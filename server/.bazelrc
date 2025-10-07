@@ -1,0 +1,16 @@
+# Enable WORKSPACE (Bazel 8.x defaults to Bzlmod)
+common --enable_bzlmod=false
+common --enable_workspace
+
+# Common build options
+build --incompatible_strict_action_env
+
+# Go specific options
+build --@io_bazel_rules_go//go/config:race
+
+# Output options
+build --show_timestamps
+build --color=yes
+
+# Test options
+test --test_output=errors

@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "websocket",
+    srcs = [
+        "client.go",
+        "handler.go",
+        "hub.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/websocket",
+    visibility = ["//:__subpackages__"],
+    deps = ["@com_github_gorilla_websocket//:websocket"],
+)

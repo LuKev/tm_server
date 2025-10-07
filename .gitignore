@@ -1,0 +1,13 @@
+# Node
+node_modules/
+
+# Build artifacts
+bazel-*/
+**/.DS_Store
+
+# Local env
+.env
+
+# Project docs to ignore
+IMPLEMENTATION_PLAN.md
+QUICKSTART.md
