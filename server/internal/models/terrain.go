@@ -1,19 +1,17 @@
 package models
 
-// TerrainType represents the seven terrain types in Terra Mystica
-// Desert, Plains, Swamp, Lake, Forest, Mountain, Wasteland
-// We use iota for stable ordinal mapping; JSON uses string names via Marshal/Unmarshal helpers if needed later
-
+// TerrainType represents the different terrain types in Terra Mystica
 type TerrainType int
 
 const (
-	TerrainDesert TerrainType = iota
-	TerrainPlains
+	TerrainPlains TerrainType = iota
 	TerrainSwamp
 	TerrainLake
 	TerrainForest
 	TerrainMountain
 	TerrainWasteland
+	TerrainDesert
+	TerrainRiver // River hexes - cannot be built on, used for shipping
 )
 
 func (t TerrainType) String() string {
@@ -32,6 +30,8 @@ func (t TerrainType) String() string {
 		return "Mountain"
 	case TerrainWasteland:
 		return "Wasteland"
+	case TerrainRiver:
+		return "River"
 	default:
 		return "Unknown"
 	}

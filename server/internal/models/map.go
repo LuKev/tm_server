@@ -21,6 +21,7 @@ type Building struct {
 	OwnerPlayerID string       `json:"ownerPlayerId"`
 	Faction       FactionType  `json:"faction"`
 	Type          BuildingType `json:"type"`
+	PowerValue    int          `json:"powerValue"` // Power value for town formation and leech
 }
 
 type MapState struct {

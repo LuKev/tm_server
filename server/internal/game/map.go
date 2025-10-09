@@ -9,10 +9,9 @@ import (
 // TerraMysticaMap represents the game board
 // Terra Mystica uses a pointy-top hex grid with 9 rows alternating 13/12 hexagons
 type TerraMysticaMap struct {
-	Hexes         map[Hex]*MapHex
-	Bridges       map[BridgeKey]*Bridge  // Tracks built bridges with ownership
-	PlayerBridges map[string]int         // Tracks bridge count per player (max 3)
-	RiverHexes    map[Hex]bool           // Tracks which hexes are rivers
+	Hexes     map[Hex]*MapHex
+	Bridges   map[BridgeKey]bool // Tracks built bridges between hexes
+	RiverHexes map[Hex]bool      // Tracks which hexes are rivers
 }
 
 // MapHex represents a single hex on the map
@@ -35,44 +34,29 @@ func NewBridgeKey(h1, h2 Hex) BridgeKey {
 	return BridgeKey{H1: h2, H2: h1}
 }
 
-// Bridge represents a bridge built by a player
-type Bridge struct {
-	Key      BridgeKey
-	PlayerID string
-}
-
 // NewTerraMysticaMap creates a new game map
 func NewTerraMysticaMap() *TerraMysticaMap {
-	m := &TerraMysticaMap{
-		Hexes:         make(map[Hex]*MapHex),
-		Bridges:       make(map[BridgeKey]*Bridge),
-		PlayerBridges: make(map[string]int),
-		RiverHexes:    make(map[Hex]bool),
-	}
-	m.initializeBaseMap()
-	return m
+    m := &TerraMysticaMap{
+        Hexes:      make(map[Hex]*MapHex),
+        Bridges:    make(map[BridgeKey]bool),
+        RiverHexes: make(map[Hex]bool),
+    }
+    m.initializeBaseMap()
+    return m
 }
 
 // initializeBaseMap sets up the standard Terra Mystica base game map
 // 9 rows alternating 13/12 hexagons, pointy-top orientation
 func (m *TerraMysticaMap) initializeBaseMap() {
-	// Load the actual Terra Mystica base game terrain layout
-	terrainLayout := BaseGameTerrainLayout()
-	riverHexes := BaseGameRiverHexes()
-	
-	// Create all hexes with their terrain
-	for hex, terrain := range terrainLayout {
-		m.Hexes[hex] = &MapHex{
-			Coord:    hex,
-			Terrain:  terrain,
-			Building: nil,
-		}
-	}
-	
-	// Mark river hexes
-	for hex := range riverHexes {
-		m.RiverHexes[hex] = true
-	}
+    // Load predefined layout
+    layout := BaseGameTerrainLayout()
+    m.RiverHexes = make(map[Hex]bool)
+    for h, t := range layout {
+        m.Hexes[h] = &MapHex{Coord: h, Terrain: t}
+        if t == models.TerrainRiver {
+            m.RiverHexes[h] = true
+        }
+    }
 }
 
 // GetHex returns the MapHex at the given coordinate, or nil if out of bounds
@@ -93,32 +77,34 @@ func (m *TerraMysticaMap) IsRiver(h Hex) bool {
 
 // HasBridge checks if there is a bridge between two hexes
 func (m *TerraMysticaMap) HasBridge(h1, h2 Hex) bool {
-	_, exists := m.Bridges[NewBridgeKey(h1, h2)]
-	return exists
+	return m.Bridges[NewBridgeKey(h1, h2)]
 }
 
-// BuildBridge creates a bridge between two hexes for a player
-// Each player can build a maximum of 3 bridges
-func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
+// BuildBridge creates a bridge between two land hexes.
+// A valid bridge must:
+// - Connect two non-river hexes
+// - Span across the edge of a river hex: the vector (h2 - h1) must be one of the 6 allowed
+//   distance-2 offsets: (1,-2), (2,-1), (2,0), (0,2), (-2,2), (-2,0) up to rotation,
+//   and the two intermediate hexes along that edge must both be river hexes.
+func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
 	if !m.IsValidHex(h1) || !m.IsValidHex(h2) {
 		return fmt.Errorf("cannot build bridge: invalid hex coordinates")
 	}
-	if !h1.IsDirectlyAdjacent(h2) {
-		return fmt.Errorf("cannot build bridge: hexes are not adjacent")
+	// Endpoints must be non-river
+	if m.isRiver(h1) || m.isRiver(h2) {
+		return fmt.Errorf("cannot build bridge: endpoints must be land hexes")
 	}
-	
+
+	// Validate against allowed bridge geometry
+	if ok := m.validateBridgeGeometry(h1, h2); !ok {
+		return fmt.Errorf("cannot build bridge: not a valid river-spanning bridge")
+	}
+
 	key := NewBridgeKey(h1, h2)
-	if _, exists := m.Bridges[key]; exists {
+	if m.Bridges[key] {
 		return fmt.Errorf("cannot build bridge: bridge already exists")
 	}
-	
-	// Check player bridge limit (max 3)
-	if m.PlayerBridges[playerID] >= 3 {
-		return fmt.Errorf("cannot build bridge: player has reached maximum of 3 bridges")
-	}
-	
-	m.Bridges[key] = &Bridge{Key: key, PlayerID: playerID}
-	m.PlayerBridges[playerID]++
+	m.Bridges[key] = true
 	return nil
 }
 
@@ -126,37 +112,132 @@ func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
 // 1. They share a hex edge (distance = 1), OR
 // 2. They are separated by a river but connected via a bridge
 func (m *TerraMysticaMap) IsDirectlyAdjacent(h1, h2 Hex) bool {
-	// Check if they share an edge
+	// Natural adjacency (shared edge)
 	if h1.IsDirectlyAdjacent(h2) {
-		// If there's a river between them, they need a bridge
-		// For simplicity, we'll check if either hex is a river
-		if m.IsRiver(h1) || m.IsRiver(h2) {
-			return m.HasBridge(h1, h2)
-		}
+		return true
+	}
+	// Bridge-based adjacency per rules
+	if m.HasBridge(h1, h2) {
 		return true
 	}
 	return false
 }
 
-// IsIndirectlyAdjacent checks if two hexes are indirectly adjacent according to Terra Mystica rules:
-// - Separated by one or more river spaces
-// - Reachable via shipping value
-// - OR reachable via special abilities (tunneling, carpet flight)
-func (m *TerraMysticaMap) IsIndirectlyAdjacent(h1, h2 Hex, shippingValue int) bool {
-	// If directly adjacent, not indirectly adjacent
-	if m.IsDirectlyAdjacent(h1, h2) {
-		return false
-	}
-
-	// Check if reachable via shipping
-	// Count river spaces between the two hexes
-	distance := h1.Distance(h2)
-	if distance <= shippingValue {
-		// TODO: Verify path only crosses rivers, not land
+// isRiver returns true if the hex is a river hex according to either explicit map or terrain type.
+func (m *TerraMysticaMap) isRiver(h Hex) bool {
+	if m.RiverHexes[h] {
 		return true
 	}
-
+	if mx := m.GetHex(h); mx != nil {
+		return mx.Terrain == models.TerrainRiver
+	}
 	return false
+}
+
+// validateBridgeGeometry checks if h1->h2 is a valid bridge per the precise rule:
+// vector must be one of the 6 allowed distance-2 offsets and the two intermediate
+// hexes must both be river hexes.
+func (m *TerraMysticaMap) validateBridgeGeometry(h1, h2 Hex) bool {
+	dq := h2.Q - h1.Q
+	dr := h2.R - h1.R
+	delta := Hex{Q: dq, R: dr}
+
+	// Base pattern (target and its two midpoints) for one orientation
+	baseTarget := Hex{Q: 1, R: -2}
+	midA := Hex{Q: 0, R: -1}
+	midB := Hex{Q: 1, R: -1}
+
+	for rot := 0; rot < 6; rot++ {
+		rt := rotate60(baseTarget, rot)
+		if delta.Equals(rt) {
+			ra := rotate60(midA, rot)
+			rb := rotate60(midB, rot)
+			a := h1.Add(ra)
+			b := h1.Add(rb)
+			return m.isRiver(a) && m.isRiver(b)
+		}
+	}
+	return false
+}
+
+// rotate60 rotates an axial coordinate around origin by k*60 degrees (k in [0..5])
+func rotate60(h Hex, k int) Hex {
+	// axial -> cube
+	x := h.Q
+	z := h.R
+	y := -x - z
+	for i := 0; i < k%6; i++ {
+		// 60° rotation: (x,y,z) -> (-z, -x, -y)
+		x, y, z = -z, -x, -y
+	}
+	// cube -> axial
+	return Hex{Q: x, R: z}
+}
+
+// IsIndirectlyAdjacent checks if two hexes are indirectly adjacent according to Terra Mystica rules:
+// 1. They share a hex edge (distance = 1), OR
+// 2. They are separated by a river but connected via a bridge
+func (m *TerraMysticaMap) IsIndirectlyAdjacent(h1, h2 Hex, shippingValue int) bool {
+    // If directly adjacent, not indirectly adjacent
+    if m.IsDirectlyAdjacent(h1, h2) {
+        return false
+    }
+    // Endpoints must be land
+    if m.isRiver(h1) || m.isRiver(h2) {
+        return false
+    }
+
+    // River-only BFS: from river neighbors of h1, walk through river hexes
+    // up to 'shippingValue' steps; success if any frontier river hex is
+    // directly adjacent (edge-sharing) to h2.
+    if shippingValue <= 0 {
+        return false
+    }
+
+    // Seed with river neighbors of h1
+    start := m.riverNeighbors(h1)
+    if len(start) == 0 {
+        return false
+    }
+
+    visited := make(map[Hex]bool)
+    frontier := start
+    steps := 1
+    for _, v := range frontier { visited[v] = true }
+
+    for steps <= shippingValue {
+        // Check if any river in frontier touches h2
+        for _, rv := range frontier {
+            if rv.IsDirectlyAdjacent(h2) { // river hex shares edge with h2
+                return true
+            }
+        }
+        // Expand frontier if we have remaining steps
+        if steps == shippingValue { break }
+        next := []Hex{}
+        for _, rv := range frontier {
+            for _, nbr := range rv.Neighbors() {
+                if !m.IsValidHex(nbr) || !m.isRiver(nbr) { continue }
+                if visited[nbr] { continue }
+                visited[nbr] = true
+                next = append(next, nbr)
+            }
+        }
+        frontier = next
+        steps++
+    }
+    return false
+}
+
+// riverNeighbors returns all river hexes sharing an edge with h.
+func (m *TerraMysticaMap) riverNeighbors(h Hex) []Hex {
+    out := []Hex{}
+    for _, nbr := range h.Neighbors() {
+        if m.IsValidHex(nbr) && m.isRiver(nbr) {
+            out = append(out, nbr)
+        }
+    }
+    return out
 }
 
 // GetDirectNeighbors returns all directly adjacent hexes (including bridges)
@@ -257,3 +338,37 @@ func (m *TerraMysticaMap) GetBuildingsInRange(h Hex, distance int) []*models.Bui
 	return buildings
 }
 
+// FindConnectedBuildings returns all buildings directly connected to the given hex
+// Used for town formation detection
+func (m *TerraMysticaMap) FindConnectedBuildings(h Hex, faction models.FactionType) []Hex {
+	visited := make(map[Hex]bool)
+	connected := []Hex{}
+
+	var dfs func(Hex)
+	dfs = func(current Hex) {
+		if visited[current] {
+			return
+		}
+		visited[current] = true
+
+		mapHex := m.GetHex(current)
+		if mapHex == nil || mapHex.Building == nil {
+			return
+		}
+
+		// Only include buildings of the same faction
+		if mapHex.Building.Faction != faction {
+			return
+		}
+
+		connected = append(connected, current)
+
+		// Explore direct neighbors
+		for _, neighbor := range m.GetDirectNeighbors(current) {
+			dfs(neighbor)
+		}
+	}
+
+	dfs(h)
+	return connected
+}

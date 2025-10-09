@@ -1,17 +1,75 @@
 package game
 
-import "github.com/lukev/tm_server/internal/models"
+import (
+	"github.com/lukev/tm_server/internal/models"
+)
 
-// Town represents a formed town on the map
+// Town represents a connected group of buildings
 type Town struct {
-	Hexes      []Hex
-	PlayerID   string
-	Faction    models.FactionType
-	TotalPower int // Sum of building power values
+	Hexes       []Hex
+	TotalPower  int
+	Faction     models.FactionType
+	TownTileKey string // Empty if no town tile selected yet
 }
 
-// BuildingPowerValue returns the power value of a building type for town formation
-func BuildingPowerValue(buildingType models.BuildingType) int {
+// IsTown checks if a group of hexes forms a valid town
+// Requirements: 4+ buildings, total power value >= 7
+func IsTown(hexes []Hex, m *TerraMysticaMap) bool {
+	if len(hexes) < 4 {
+		return false
+	}
+	
+	totalPower := 0
+	for _, h := range hexes {
+		mapHex := m.GetHex(h)
+		if mapHex == nil || mapHex.Building == nil {
+			return false
+		}
+		totalPower += mapHex.Building.PowerValue
+	}
+	
+	return totalPower >= 7
+}
+
+// DetectTowns finds all towns for a given faction on the map
+func (m *TerraMysticaMap) DetectTowns(faction models.FactionType) []Town {
+	visited := make(map[Hex]bool)
+	towns := []Town{}
+	
+	// Find all hexes with buildings of this faction
+	for hex, mapHex := range m.Hexes {
+		if mapHex.Building != nil && mapHex.Building.Faction == faction && !visited[hex] {
+			// Find connected component
+			connected := m.FindConnectedBuildings(hex, faction)
+			
+			// Mark all as visited
+			for _, h := range connected {
+				visited[h] = true
+			}
+			
+			// Check if it forms a town
+			if IsTown(connected, m) {
+				totalPower := 0
+				for _, h := range connected {
+					if mh := m.GetHex(h); mh != nil && mh.Building != nil {
+						totalPower += mh.Building.PowerValue
+					}
+				}
+				
+				towns = append(towns, Town{
+					Hexes:      connected,
+					TotalPower: totalPower,
+					Faction:    faction,
+				})
+			}
+		}
+	}
+	
+	return towns
+}
+
+// GetPowerValue returns the power value of a building type
+func GetPowerValue(buildingType models.BuildingType) int {
 	switch buildingType {
 	case models.BuildingDwelling:
 		return 1
@@ -28,111 +86,44 @@ func BuildingPowerValue(buildingType models.BuildingType) int {
 	}
 }
 
-// DetectTown checks if a group of connected buildings forms a valid town
-// A town requires:
-// - At least 4 buildings
-// - Total power value >= 7
-// - All buildings must be directly connected (including via bridges)
-func (m *TerraMysticaMap) DetectTown(startHex Hex) *Town {
-	mapHex := m.GetHex(startHex)
-	if mapHex == nil || mapHex.Building == nil {
-		return nil
-	}
+// CalculateAdjacencyBonus calculates coins gained from adjacent opponent buildings
+// when placing a new building
+func (m *TerraMysticaMap) CalculateAdjacencyBonus(h Hex, faction models.FactionType) int {
+	bonus := 0
 	
-	playerID := mapHex.Building.OwnerPlayerID
-	faction := mapHex.Building.Faction
-	
-	// Find all connected buildings for this player
-	connected := m.FindConnectedBuildings(startHex, faction, playerID)
-	
-	// Check town requirements
-	if len(connected) < 4 {
-		return nil
-	}
-	
-	// Calculate total power
-	totalPower := 0
-	for _, hex := range connected {
-		if h := m.GetHex(hex); h != nil && h.Building != nil {
-			totalPower += BuildingPowerValue(h.Building.Type)
-		}
-	}
-	
-	if totalPower < 7 {
-		return nil
-	}
-	
-	return &Town{
-		Hexes:      connected,
-		PlayerID:   playerID,
-		Faction:    faction,
-		TotalPower: totalPower,
-	}
-}
-
-// FindConnectedBuildings returns all buildings directly connected to the given hex
-// Used for town formation detection
-// Includes connections via bridges (bridges can be used to achieve correct power levels)
-func (m *TerraMysticaMap) FindConnectedBuildings(startHex Hex, faction models.FactionType, playerID string) []Hex {
-	visited := make(map[Hex]bool)
-	connected := []Hex{}
-	
-	var dfs func(Hex)
-	dfs = func(current Hex) {
-		if visited[current] {
-			return
-		}
-		visited[current] = true
-		
-		mapHex := m.GetHex(current)
-		if mapHex == nil || mapHex.Building == nil {
-			return
-		}
-		
-		// Only include buildings of the same faction and player
-		if mapHex.Building.Faction != faction || mapHex.Building.OwnerPlayerID != playerID {
-			return
-		}
-		
-		connected = append(connected, current)
-		
-		// Explore direct neighbors (including via bridges)
-		for _, neighbor := range m.GetDirectNeighbors(current) {
-			dfs(neighbor)
-		}
-	}
-	
-	dfs(startHex)
-	return connected
-}
-
-// DetectAllTowns finds all towns on the map for a given player
-func (m *TerraMysticaMap) DetectAllTowns(playerID string) []*Town {
-	visited := make(map[Hex]bool)
-	towns := []*Town{}
-	
-	// Check each hex with a building
-	for hex, mapHex := range m.Hexes {
-		if mapHex.Building == nil {
-			continue
-		}
-		if mapHex.Building.OwnerPlayerID != playerID {
-			continue
-		}
-		if visited[hex] {
-			continue
-		}
-		
-		// Try to detect a town starting from this hex
-		town := m.DetectTown(hex)
-		if town != nil {
-			// Mark all hexes in this town as visited
-			for _, townHex := range town.Hexes {
-				visited[townHex] = true
+	for _, neighbor := range m.GetDirectNeighbors(h) {
+		mapHex := m.GetHex(neighbor)
+		if mapHex != nil && mapHex.Building != nil {
+			// Adjacent opponent building gives 1 coin
+			if mapHex.Building.Faction != faction {
+				bonus++
 			}
-			towns = append(towns, town)
 		}
 	}
 	
-	return towns
+	return bonus
+}
+
+// GetPowerLeechTargets returns all players who can leech power from a building placement
+// Returns map of faction -> power amount they can leech
+func (m *TerraMysticaMap) GetPowerLeechTargets(h Hex, placedFaction models.FactionType, powerValue int) map[models.FactionType]int {
+	targets := make(map[models.FactionType]int)
+	
+	for _, neighbor := range m.GetDirectNeighbors(h) {
+		mapHex := m.GetHex(neighbor)
+		if mapHex != nil && mapHex.Building != nil {
+			// Can only leech from opponent buildings
+			if mapHex.Building.Faction != placedFaction {
+				faction := mapHex.Building.Faction
+				// Power leech amount equals the power value of the placed building
+				if existing, ok := targets[faction]; ok {
+					targets[faction] = existing + powerValue
+				} else {
+					targets[faction] = powerValue
+				}
+			}
+		}
+	}
+	
+	return targets
 }

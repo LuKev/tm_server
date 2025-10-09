@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "factions",
+    srcs = [
+        "faction.go",
+        "registry.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/game/factions",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/models:models",
+    ],
+)
+
+go_test(
+    name = "factions_test",
+    srcs = [
+        "faction_test.go",
+    ],
+    embed = [":factions"],
+    deps = [
+        "//internal/models:models",
+    ],
+)

@@ -6,10 +6,10 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-func TestBuildingPowerValue(t *testing.T) {
+func TestGetPowerValue(t *testing.T) {
 	tests := []struct {
-		buildingType models.BuildingType
-		expected     int
+		building models.BuildingType
+		expected int
 	}{
 		{models.BuildingDwelling, 1},
 		{models.BuildingTradingHouse, 2},
@@ -17,376 +17,244 @@ func TestBuildingPowerValue(t *testing.T) {
 		{models.BuildingSanctuary, 3},
 		{models.BuildingStronghold, 3},
 	}
-	
+
 	for _, tt := range tests {
-		result := BuildingPowerValue(tt.buildingType)
-		if result != tt.expected {
-			t.Errorf("BuildingPowerValue(%v) = %d, expected %d", tt.buildingType, result, tt.expected)
-		}
-	}
-}
-
-func TestTownDetectionMinimumBuildings(t *testing.T) {
-	m := NewTerraMysticaMap()
-	playerID := "player1"
-	faction := models.FactionNomads
-	
-	// Place only 3 dwellings (not enough for town)
-	hexes := []Hex{
-		NewHex(5, 5),
-		NewHex(6, 5),
-		NewHex(7, 5),
-	}
-	
-	for _, h := range hexes {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          models.BuildingDwelling,
-		}
-		m.PlaceBuilding(h, building)
-	}
-	
-	// Should not form a town (need at least 4)
-	town := m.DetectTown(hexes[0])
-	if town != nil {
-		t.Errorf("3 buildings should not form a town")
-	}
-}
-
-func TestTownDetectionMinimumPower(t *testing.T) {
-	m := NewTerraMysticaMap()
-	playerID := "player1"
-	faction := models.FactionNomads
-	
-	// Place 4 dwellings (4 buildings, but only 4 power - need 7)
-	hexes := []Hex{
-		NewHex(5, 5),
-		NewHex(6, 5),
-		NewHex(7, 5),
-		NewHex(8, 5),
-	}
-	
-	for _, h := range hexes {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          models.BuildingDwelling,
-		}
-		m.PlaceBuilding(h, building)
-	}
-	
-	// Should not form a town (only 4 power, need 7)
-	town := m.DetectTown(hexes[0])
-	if town != nil {
-		t.Errorf("4 dwellings (4 power) should not form a town (need 7 power)")
-	}
-}
-
-func TestTownDetectionValidTown(t *testing.T) {
-	m := NewTerraMysticaMap()
-	playerID := "player1"
-	faction := models.FactionNomads
-	
-	// Place 4 buildings with total power >= 7
-	// 1 Stronghold (3) + 2 Trading Houses (2+2) + 1 Dwelling (1) = 8 power
-	buildings := []struct {
-		hex  Hex
-		bType models.BuildingType
-	}{
-		{NewHex(5, 5), models.BuildingStronghold},
-		{NewHex(6, 5), models.BuildingTradingHouse},
-		{NewHex(7, 5), models.BuildingTradingHouse},
-		{NewHex(8, 5), models.BuildingDwelling},
-	}
-	
-	for _, b := range buildings {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          b.bType,
-		}
-		m.PlaceBuilding(b.hex, building)
-	}
-	
-	// Should form a valid town
-	town := m.DetectTown(buildings[0].hex)
-	if town == nil {
-		t.Fatalf("Should detect a valid town")
-	}
-	
-	if len(town.Hexes) != 4 {
-		t.Errorf("Town should have 4 hexes, got %d", len(town.Hexes))
-	}
-	
-	if town.TotalPower != 8 {
-		t.Errorf("Town should have 8 power, got %d", town.TotalPower)
-	}
-	
-	if town.PlayerID != playerID {
-		t.Errorf("Town playerID should be %s, got %s", playerID, town.PlayerID)
-	}
-	
-	if town.Faction != faction {
-		t.Errorf("Town faction should be %v, got %v", faction, town.Faction)
-	}
-}
-
-func TestTownDetectionWithBridge(t *testing.T) {
-	m := NewTerraMysticaMap()
-	playerID := "player1"
-	faction := models.FactionNomads
-	
-	// Place 4 buildings in a line
-	hexes := []Hex{
-		NewHex(5, 5),
-		NewHex(6, 5),
-		NewHex(7, 5),
-		NewHex(8, 5),
-	}
-	
-	// Place stronghold and temples (3+2+2+2 = 9 power)
-	buildingTypes := []models.BuildingType{
-		models.BuildingStronghold,
-		models.BuildingTemple,
-		models.BuildingTemple,
-		models.BuildingTemple,
-	}
-	
-	for i, h := range hexes {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          buildingTypes[i],
-		}
-		m.PlaceBuilding(h, building)
-	}
-	
-	// Without bridge, all should be connected
-	town := m.DetectTown(hexes[0])
-	if town == nil {
-		t.Fatalf("Should detect town without bridge")
-	}
-	
-	// Now test that bridges can be used to connect buildings for town formation
-	// Create a simple case: 4 buildings in a line, all connected
-	m2 := NewTerraMysticaMap()
-	
-	// Place 4 buildings that form a valid town
-	connectedHexes := []Hex{
-		NewHex(5, 5),
-		NewHex(6, 5),
-		NewHex(6, 4), // Northeast of (6,5)
-		NewHex(7, 4), // East of (6,4)
-	}
-	
-	for i, h := range connectedHexes {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          buildingTypes[i],
-		}
-		m2.PlaceBuilding(h, building)
-	}
-	
-	// Build a bridge to enhance connectivity
-	// Bridge between (5,5) and (5,6) - just testing bridge functionality
-	err := m2.BuildBridge(NewHex(5, 5), NewHex(5, 6), playerID)
-	if err != nil {
-		t.Fatalf("Failed to build bridge: %v", err)
-	}
-	
-	// Should still form town (buildings are connected)
-	townWithBridge := m2.DetectTown(connectedHexes[0])
-	if townWithBridge == nil {
-		t.Errorf("Should detect town with bridge present")
-	} else if len(townWithBridge.Hexes) != 4 {
-		t.Errorf("Town with bridge should have 4 hexes, got %d", len(townWithBridge.Hexes))
-	}
-}
-
-func TestTownDetectionDisconnectedBuildings(t *testing.T) {
-	m := NewTerraMysticaMap()
-	playerID := "player1"
-	faction := models.FactionNomads
-	
-	// Place 2 groups of buildings far apart
-	group1 := []Hex{
-		NewHex(2, 2),
-		NewHex(3, 2),
-	}
-	
-	group2 := []Hex{
-		NewHex(8, 8),
-		NewHex(9, 8),
-	}
-	
-	// Place strongholds in both groups (3+3 = 6 power each group)
-	for _, h := range append(group1, group2...) {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          models.BuildingStronghold,
-		}
-		m.PlaceBuilding(h, building)
-	}
-	
-	// Each group alone should not form a town (only 2 buildings each)
-	town1 := m.DetectTown(group1[0])
-	if town1 != nil {
-		t.Errorf("Disconnected group 1 should not form a town (only 2 buildings)")
-	}
-	
-	town2 := m.DetectTown(group2[0])
-	if town2 != nil {
-		t.Errorf("Disconnected group 2 should not form a town (only 2 buildings)")
-	}
-}
-
-func TestTownDetectionMultiplePlayers(t *testing.T) {
-	m := NewTerraMysticaMap()
-	
-	// Player 1 places 4 buildings
-	player1Hexes := []Hex{
-		NewHex(5, 5),
-		NewHex(6, 5),
-		NewHex(7, 5),
-		NewHex(8, 5),
-	}
-	
-	for _, h := range player1Hexes {
-		building := &models.Building{
-			OwnerPlayerID: "player1",
-			Faction:       models.FactionNomads,
-			Type:          models.BuildingTemple,
-		}
-		m.PlaceBuilding(h, building)
-	}
-	
-	// Player 2 places buildings adjacent to player 1
-	player2Hexes := []Hex{
-		NewHex(5, 6),
-		NewHex(6, 6),
-	}
-	
-	for _, h := range player2Hexes {
-		building := &models.Building{
-			OwnerPlayerID: "player2",
-			Faction:       models.FactionGiants,
-			Type:          models.BuildingStronghold,
-		}
-		m.PlaceBuilding(h, building)
-	}
-	
-	// Player 1 should form a town (4 temples = 8 power)
-	town1 := m.DetectTown(player1Hexes[0])
-	if town1 == nil {
-		t.Errorf("Player 1 should form a town")
-	} else {
-		// Town should only include player 1's buildings
-		if len(town1.Hexes) != 4 {
-			t.Errorf("Player 1 town should have 4 hexes, got %d", len(town1.Hexes))
-		}
-		for _, hex := range town1.Hexes {
-			mapHex := m.GetHex(hex)
-			if mapHex.Building.OwnerPlayerID != "player1" {
-				t.Errorf("Town should only include player 1's buildings")
+		t.Run(string(tt.building), func(t *testing.T) {
+			result := GetPowerValue(tt.building)
+			if result != tt.expected {
+				t.Errorf("GetPowerValue(%v) = %d, want %d", tt.building, result, tt.expected)
 			}
-		}
-	}
-	
-	// Player 2 should not form a town (only 2 buildings)
-	town2 := m.DetectTown(player2Hexes[0])
-	if town2 != nil {
-		t.Errorf("Player 2 should not form a town (only 2 buildings)")
+		})
 	}
 }
 
-func TestDetectAllTowns(t *testing.T) {
+func TestIsTown(t *testing.T) {
 	m := NewTerraMysticaMap()
-	playerID := "player1"
 	faction := models.FactionNomads
-	
-	// Create two separate towns for the same player
-	// Town 1: hexes (2,2) to (5,2)
-	town1Hexes := []Hex{
-		NewHex(2, 2),
-		NewHex(3, 2),
-		NewHex(4, 2),
-		NewHex(5, 2),
+
+	// Create a group of 4 dwellings (power value 1 each = 4 total)
+	hexes := []Hex{
+		NewHex(0, 0),
+		NewHex(1, 0),
+		NewHex(2, 0),
+		NewHex(3, 0),
 	}
-	
-	// Town 2: hexes (8,8) to (11,8)
-	town2Hexes := []Hex{
-		NewHex(8, 8),
-		NewHex(9, 8),
-		NewHex(10, 8),
-		NewHex(11, 8),
+
+	// Place dwellings
+	for _, h := range hexes {
+		m.PlaceBuilding(h, &models.Building{
+			Type:       models.BuildingDwelling,
+			Faction:    faction,
+			PowerValue: 1,
+		})
 	}
-	
-	// Place temples in both towns (2 power each, 4 buildings = 8 power)
-	for _, h := range append(town1Hexes, town2Hexes...) {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          models.BuildingTemple,
-		}
-		m.PlaceBuilding(h, building)
+
+	// 4 dwellings with total power 4 < 7, not a town
+	if IsTown(hexes, m) {
+		t.Errorf("expected not a town (power < 7)")
 	}
-	
-	// Detect all towns
-	towns := m.DetectAllTowns(playerID)
-	
-	if len(towns) != 2 {
-		t.Errorf("Should detect 2 towns, got %d", len(towns))
+
+	// Upgrade one to trading house (power 2), total = 5, still not a town
+	m.GetHex(hexes[0]).Building.Type = models.BuildingTradingHouse
+	m.GetHex(hexes[0]).Building.PowerValue = 2
+	if IsTown(hexes, m) {
+		t.Errorf("expected not a town (power = 5 < 7)")
 	}
-	
-	// Each town should have 4 hexes and 8 power
-	for i, town := range towns {
-		if len(town.Hexes) != 4 {
-			t.Errorf("Town %d should have 4 hexes, got %d", i, len(town.Hexes))
-		}
-		if town.TotalPower != 8 {
-			t.Errorf("Town %d should have 8 power, got %d", i, town.TotalPower)
+
+	// Upgrade another to trading house, total = 6, still not a town
+	m.GetHex(hexes[1]).Building.Type = models.BuildingTradingHouse
+	m.GetHex(hexes[1]).Building.PowerValue = 2
+	if IsTown(hexes, m) {
+		t.Errorf("expected not a town (power = 6 < 7)")
+	}
+
+	// Upgrade third to trading house, total = 7, now it's a town
+	m.GetHex(hexes[2]).Building.Type = models.BuildingTradingHouse
+	m.GetHex(hexes[2]).Building.PowerValue = 2
+	if !IsTown(hexes, m) {
+		t.Errorf("expected a town (4 buildings, power = 7)")
+	}
+}
+
+func TestIsTown_MinimumBuildings(t *testing.T) {
+	m := NewTerraMysticaMap()
+	faction := models.FactionNomads
+
+	// Only 3 buildings, even with high power
+	hexes := []Hex{
+		NewHex(0, 0),
+		NewHex(1, 0),
+		NewHex(2, 0),
+	}
+
+	for _, h := range hexes {
+		m.PlaceBuilding(h, &models.Building{
+			Type:       models.BuildingSanctuary,
+			Faction:    faction,
+			PowerValue: 3,
+		})
+	}
+
+	// 3 buildings with power 9 >= 7, but < 4 buildings, not a town
+	if IsTown(hexes, m) {
+		t.Errorf("expected not a town (only 3 buildings)")
+	}
+}
+
+func TestCalculateAdjacencyBonus(t *testing.T) {
+	m := NewTerraMysticaMap()
+	faction1 := models.FactionNomads
+	faction2 := models.FactionFakirs
+
+	// Place building at (0,0)
+	h := NewHex(0, 0)
+
+	// Place opponent buildings adjacent
+	neighbors := m.GetDirectNeighbors(h)
+	if len(neighbors) < 2 {
+		t.Skip("not enough neighbors for test")
+	}
+
+	// Place 2 opponent buildings
+	m.PlaceBuilding(neighbors[0], &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction2,
+		PowerValue: 1,
+	})
+	m.PlaceBuilding(neighbors[1], &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction2,
+		PowerValue: 1,
+	})
+
+	// Calculate adjacency bonus
+	bonus := m.CalculateAdjacencyBonus(h, faction1)
+	if bonus != 2 {
+		t.Errorf("expected adjacency bonus of 2, got %d", bonus)
+	}
+
+	// Place own faction building
+	if len(neighbors) > 2 {
+		m.PlaceBuilding(neighbors[2], &models.Building{
+			Type:       models.BuildingDwelling,
+			Faction:    faction1,
+			PowerValue: 1,
+		})
+
+		// Bonus should still be 2 (own buildings don't count)
+		bonus = m.CalculateAdjacencyBonus(h, faction1)
+		if bonus != 2 {
+			t.Errorf("expected adjacency bonus of 2 (own buildings don't count), got %d", bonus)
 		}
 	}
 }
 
-func TestTownDetectionExactly7Power(t *testing.T) {
+func TestGetPowerLeechTargets(t *testing.T) {
 	m := NewTerraMysticaMap()
-	playerID := "player1"
+	faction1 := models.FactionNomads
+	faction2 := models.FactionFakirs
+	faction3 := models.FactionGiants
+
+	h := NewHex(0, 0)
+	neighbors := m.GetDirectNeighbors(h)
+	if len(neighbors) < 3 {
+		t.Skip("not enough neighbors for test")
+	}
+
+	// Place buildings from 2 different opponent factions
+	m.PlaceBuilding(neighbors[0], &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction2,
+		PowerValue: 1,
+	})
+	m.PlaceBuilding(neighbors[1], &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction3,
+		PowerValue: 2,
+	})
+
+	// Place a temple (power value 2) at h
+	powerValue := 2
+	targets := m.GetPowerLeechTargets(h, faction1, powerValue)
+
+	// Both opponents should be able to leech 2 power
+	if len(targets) != 2 {
+		t.Errorf("expected 2 leech targets, got %d", len(targets))
+	}
+
+	if targets[faction2] != 2 {
+		t.Errorf("expected faction2 to leech 2 power, got %d", targets[faction2])
+	}
+
+	if targets[faction3] != 2 {
+		t.Errorf("expected faction3 to leech 2 power, got %d", targets[faction3])
+	}
+
+	// Own faction should not be in targets
+	if _, ok := targets[faction1]; ok {
+		t.Errorf("own faction should not be able to leech power")
+	}
+}
+
+func TestDetectTowns(t *testing.T) {
+	m := NewTerraMysticaMap()
 	faction := models.FactionNomads
-	
-	// Place buildings with exactly 7 power
-	// 1 Sanctuary (3) + 2 Trading Houses (2+2) = 7 power, but only 3 buildings
-	// Need to add 1 more dwelling to get 4 buildings
-	// 1 Sanctuary (3) + 1 Trading House (2) + 2 Dwellings (1+1) = 7 power, 4 buildings
-	buildings := []struct {
-		hex   Hex
-		bType models.BuildingType
-	}{
-		{NewHex(5, 5), models.BuildingSanctuary},
-		{NewHex(6, 5), models.BuildingTradingHouse},
-		{NewHex(7, 5), models.BuildingDwelling},
-		{NewHex(8, 5), models.BuildingDwelling},
+
+	// Create a connected group of 4 buildings with total power >= 7
+	hexes := []Hex{
+		NewHex(0, 0), // Plains
+		NewHex(1, 0), // Mountain (adjacent)
+		NewHex(2, 0), // Forest (adjacent)
+		NewHex(3, 0), // Lake (adjacent)
 	}
-	
-	for _, b := range buildings {
-		building := &models.Building{
-			OwnerPlayerID: playerID,
-			Faction:       faction,
-			Type:          b.bType,
+
+	// Place 2 dwellings and 2 trading houses (total power = 1+1+2+2 = 6, not enough)
+	m.PlaceBuilding(hexes[0], &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction,
+		PowerValue: 1,
+	})
+	m.PlaceBuilding(hexes[1], &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction,
+		PowerValue: 1,
+	})
+	m.PlaceBuilding(hexes[2], &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction,
+		PowerValue: 2,
+	})
+	m.PlaceBuilding(hexes[3], &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction,
+		PowerValue: 2,
+	})
+
+	// Should not detect a town yet (power = 6 < 7)
+	towns := m.DetectTowns(faction)
+	if len(towns) != 0 {
+		t.Errorf("expected 0 towns (power < 7), got %d", len(towns))
+	}
+
+	// Upgrade one dwelling to trading house (power = 7)
+	m.GetHex(hexes[0]).Building.Type = models.BuildingTradingHouse
+	m.GetHex(hexes[0]).Building.PowerValue = 2
+
+	// Should detect 1 town now
+	towns = m.DetectTowns(faction)
+	if len(towns) != 1 {
+		t.Errorf("expected 1 town, got %d", len(towns))
+	}
+
+	if len(towns) > 0 {
+		if len(towns[0].Hexes) != 4 {
+			t.Errorf("expected town with 4 hexes, got %d", len(towns[0].Hexes))
 		}
-		m.PlaceBuilding(b.hex, building)
-	}
-	
-	// Should form a valid town with exactly 7 power
-	town := m.DetectTown(buildings[0].hex)
-	if town == nil {
-		t.Fatalf("Should detect a town with exactly 7 power")
-	}
-	
-	if town.TotalPower != 7 {
-		t.Errorf("Town should have exactly 7 power, got %d", town.TotalPower)
+		if towns[0].TotalPower != 7 {
+			t.Errorf("expected town power of 7, got %d", towns[0].TotalPower)
+		}
+		if towns[0].Faction != faction {
+			t.Errorf("expected town faction %v, got %v", faction, towns[0].Faction)
+		}
 	}
 }
