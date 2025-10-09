@@ -114,7 +114,7 @@ var (
 	}
 	
 	StandardSanctuaryCost = Cost{
-		Coins:   8,
+		Coins:   6,
 		Workers: 4,
 		Priests: 0,
 		Power:   0,

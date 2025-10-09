@@ -1,0 +1,190 @@
+package factions
+
+import (
+	"testing"
+
+	"github.com/lukev/tm_server/internal/models"
+)
+
+func TestAuren_BasicProperties(t *testing.T) {
+	auren := NewAuren()
+
+	if auren.GetType() != models.FactionAuren {
+		t.Errorf("expected faction type Auren, got %v", auren.GetType())
+	}
+
+	if auren.GetHomeTerrain() != models.TerrainForest {
+		t.Errorf("expected home terrain Forest, got %v", auren.GetHomeTerrain())
+	}
+}
+
+func TestAuren_StartingResources(t *testing.T) {
+	auren := NewAuren()
+	resources := auren.GetStartingResources()
+
+	if resources.Coins != 15 {
+		t.Errorf("expected 15 coins, got %d", resources.Coins)
+	}
+	if resources.Workers != 3 {
+		t.Errorf("expected 3 workers, got %d", resources.Workers)
+	}
+	if resources.Priests != 0 {
+		t.Errorf("expected 0 priests, got %d", resources.Priests)
+	}
+	if resources.Power1 != 5 {
+		t.Errorf("expected 5 power in bowl 1, got %d", resources.Power1)
+	}
+	if resources.Power2 != 7 {
+		t.Errorf("expected 7 power in bowl 2, got %d", resources.Power2)
+	}
+	if resources.Power3 != 0 {
+		t.Errorf("expected 0 power in bowl 3, got %d", resources.Power3)
+	}
+}
+
+func TestAuren_NoPassiveAbility(t *testing.T) {
+	auren := NewAuren()
+
+	// Auren has no passive abilities
+	if auren.HasSpecialAbility(AbilityTownBonus) {
+		t.Errorf("Auren should not have town bonus ability")
+	}
+	if auren.HasSpecialAbility(AbilityFlying) {
+		t.Errorf("Auren should not have flying ability")
+	}
+}
+
+func TestAuren_ExpensiveSanctuary(t *testing.T) {
+	auren := NewAuren()
+
+	// Auren sanctuary costs 8 coins (more expensive than standard 6)
+	sanctuaryCost := auren.GetSanctuaryCost()
+	if sanctuaryCost.Coins != 8 {
+		t.Errorf("expected sanctuary to cost 8 coins, got %d", sanctuaryCost.Coins)
+	}
+	if sanctuaryCost.Workers != 4 {
+		t.Errorf("expected sanctuary to cost 4 workers, got %d", sanctuaryCost.Workers)
+	}
+}
+
+func TestAuren_StrongholdAbility(t *testing.T) {
+	auren := NewAuren()
+
+	ability := auren.GetStrongholdAbility()
+	if ability == "" {
+		t.Errorf("Auren should have a stronghold ability")
+	}
+}
+
+func TestAuren_BuildStrongholdGrantsFavorTile(t *testing.T) {
+	auren := NewAuren()
+
+	// First time building stronghold should grant favor tile
+	shouldGrantFavor := auren.BuildStronghold()
+	if !shouldGrantFavor {
+		t.Errorf("building stronghold should grant favor tile")
+	}
+
+	// Building again (hypothetically) should not grant another favor tile
+	shouldGrantFavor = auren.BuildStronghold()
+	if shouldGrantFavor {
+		t.Errorf("should only grant favor tile once")
+	}
+}
+
+func TestAuren_CultAdvanceBeforeStronghold(t *testing.T) {
+	auren := NewAuren()
+
+	// Should not be able to use cult advance before building stronghold
+	if auren.CanUseCultAdvance() {
+		t.Errorf("should not be able to use cult advance before building stronghold")
+	}
+
+	err := auren.UseCultAdvance()
+	if err == nil {
+		t.Errorf("expected error when using cult advance without stronghold")
+	}
+}
+
+func TestAuren_CultAdvanceAfterStronghold(t *testing.T) {
+	auren := NewAuren()
+
+	// Build stronghold
+	auren.BuildStronghold()
+
+	// Should be able to use cult advance
+	if !auren.CanUseCultAdvance() {
+		t.Errorf("should be able to use cult advance after building stronghold")
+	}
+
+	// Use cult advance
+	err := auren.UseCultAdvance()
+	if err != nil {
+		t.Fatalf("failed to use cult advance: %v", err)
+	}
+
+	// Should not be able to use again this Action phase
+	if auren.CanUseCultAdvance() {
+		t.Errorf("should not be able to use cult advance twice in one Action phase")
+	}
+
+	// Try to use again (should fail)
+	err = auren.UseCultAdvance()
+	if err == nil {
+		t.Errorf("expected error when using cult advance twice")
+	}
+}
+
+func TestAuren_CultAdvanceReset(t *testing.T) {
+	auren := NewAuren()
+	auren.BuildStronghold()
+
+	// Use cult advance
+	err := auren.UseCultAdvance()
+	if err != nil {
+		t.Fatalf("failed to use cult advance: %v", err)
+	}
+
+	// Should not be able to use again
+	if auren.CanUseCultAdvance() {
+		t.Errorf("should not be able to use cult advance before reset")
+	}
+
+	// Reset for new Action phase
+	auren.ResetCultAdvance()
+
+	// Should be able to use again
+	if !auren.CanUseCultAdvance() {
+		t.Errorf("should be able to use cult advance after reset")
+	}
+}
+
+func TestAuren_CultAdvanceAmount(t *testing.T) {
+	auren := NewAuren()
+
+	// Auren advances 2 spaces on cult track
+	amount := auren.GetCultAdvanceAmount()
+	if amount != 2 {
+		t.Errorf("expected cult advance of 2 spaces, got %d", amount)
+	}
+}
+
+func TestAuren_StandardCosts(t *testing.T) {
+	auren := NewAuren()
+
+	// Auren uses standard costs for most buildings
+	dwellingCost := auren.GetDwellingCost()
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
+	}
+
+	tpCost := auren.GetTradingHouseCost()
+	if tpCost.Workers != 2 || tpCost.Coins != 6 {
+		t.Errorf("unexpected trading house cost: %+v", tpCost)
+	}
+
+	templeCost := auren.GetTempleCost()
+	if templeCost.Workers != 2 || templeCost.Coins != 5 {
+		t.Errorf("unexpected temple cost: %+v", templeCost)
+	}
+}

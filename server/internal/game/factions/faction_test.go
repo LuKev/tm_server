@@ -79,7 +79,7 @@ func TestStandardBuildingCosts(t *testing.T) {
 
 	// Test sanctuary cost
 	sanctuaryCost := f.GetSanctuaryCost()
-	if sanctuaryCost.Workers != 4 || sanctuaryCost.Coins != 8 {
+	if sanctuaryCost.Workers != 4 || sanctuaryCost.Coins != 6 {
 		t.Errorf("unexpected sanctuary cost: %+v", sanctuaryCost)
 	}
 
@@ -248,7 +248,7 @@ func TestGetByTerrain(t *testing.T) {
 
 	// Get forest factions
 	forestFactions := registry.GetByTerrain(models.TerrainForest)
-	if len(forestFactions) != 1 {
-		t.Errorf("expected 1 forest faction, got %d", len(forestFactions))
+	if len(forestFactions) != 2 {
+		t.Errorf("expected 2 forest factions (Witches + Auren), got %d", len(forestFactions))
 	}
 }
