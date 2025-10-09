@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "models",
+    srcs = [
+        "building.go",
+        "faction.go",
+        "game.go",
+        "map.go",
+        "resources.go",
+        "terrain.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/models",
+    visibility = ["//:__subpackages__"],
+)

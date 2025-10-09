@@ -5,6 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/lobby"
 	"github.com/lukev/tm_server/internal/websocket"
 )
 
@@ -13,12 +15,21 @@ func main() {
 	hub := websocket.NewHub()
 	go hub.Run()
 
+	// Create managers
+	gameMgr := game.NewManager()
+	lobbyMgr := lobby.NewManager()
+
+	deps := websocket.ServerDeps{
+		Lobby: lobbyMgr,
+		Games: gameMgr,
+	}
+
 	// Set up router
 	router := mux.NewRouter()
 
 	// WebSocket endpoint
 	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
-		websocket.ServeWs(hub, w, r)
+		websocket.ServeWs(hub, deps, w, r)
 	})
 
 	// Health check endpoint

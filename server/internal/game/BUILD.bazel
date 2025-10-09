@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "game",
+    srcs = [
+        "manager.go",
+        "state.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/game",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/models:models",
+    ],
+)
