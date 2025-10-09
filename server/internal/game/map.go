@@ -9,9 +9,10 @@ import (
 // TerraMysticaMap represents the game board
 // Terra Mystica uses a pointy-top hex grid with 9 rows alternating 13/12 hexagons
 type TerraMysticaMap struct {
-	Hexes     map[Hex]*MapHex
-	Bridges   map[BridgeKey]bool // Tracks built bridges between hexes
-	RiverHexes map[Hex]bool      // Tracks which hexes are rivers
+	Hexes         map[Hex]*MapHex
+	Bridges       map[BridgeKey]*Bridge  // Tracks built bridges with ownership
+	PlayerBridges map[string]int         // Tracks bridge count per player (max 3)
+	RiverHexes    map[Hex]bool           // Tracks which hexes are rivers
 }
 
 // MapHex represents a single hex on the map
@@ -34,12 +35,19 @@ func NewBridgeKey(h1, h2 Hex) BridgeKey {
 	return BridgeKey{H1: h2, H2: h1}
 }
 
+// Bridge represents a bridge built by a player
+type Bridge struct {
+	Key      BridgeKey
+	PlayerID string
+}
+
 // NewTerraMysticaMap creates a new game map
 func NewTerraMysticaMap() *TerraMysticaMap {
 	m := &TerraMysticaMap{
-		Hexes:      make(map[Hex]*MapHex),
-		Bridges:    make(map[BridgeKey]bool),
-		RiverHexes: make(map[Hex]bool),
+		Hexes:         make(map[Hex]*MapHex),
+		Bridges:       make(map[BridgeKey]*Bridge),
+		PlayerBridges: make(map[string]int),
+		RiverHexes:    make(map[Hex]bool),
 	}
 	m.initializeBaseMap()
 	return m
@@ -48,34 +56,22 @@ func NewTerraMysticaMap() *TerraMysticaMap {
 // initializeBaseMap sets up the standard Terra Mystica base game map
 // 9 rows alternating 13/12 hexagons, pointy-top orientation
 func (m *TerraMysticaMap) initializeBaseMap() {
-	// Terra Mystica map layout:
-	// Row 0: 13 hexes (q: 0-12)
-	// Row 1: 12 hexes (q: 0-11, offset by 0.5)
-	// Row 2: 13 hexes (q: 0-12)
-	// ... alternating pattern for 9 rows total
-
-	// For now, create a placeholder map with all plains terrain
-	// TODO: Replace with actual Terra Mystica terrain layout from rulebook
-	for row := 0; row < 9; row++ {
-		hexCount := 13
-		if row%2 == 1 {
-			hexCount = 12
+	// Load the actual Terra Mystica base game terrain layout
+	terrainLayout := BaseGameTerrainLayout()
+	riverHexes := BaseGameRiverHexes()
+	
+	// Create all hexes with their terrain
+	for hex, terrain := range terrainLayout {
+		m.Hexes[hex] = &MapHex{
+			Coord:    hex,
+			Terrain:  terrain,
+			Building: nil,
 		}
-
-		for col := 0; col < hexCount; col++ {
-			// In axial coordinates for pointy-top with offset rows:
-			// Even rows (0,2,4,6,8): q = col, r = row
-			// Odd rows (1,3,5,7): q = col, r = row (but visually offset)
-			q := col
-			r := row
-
-			hex := NewHex(q, r)
-			m.Hexes[hex] = &MapHex{
-				Coord:    hex,
-				Terrain:  models.TerrainPlains, // Placeholder
-				Building: nil,
-			}
-		}
+	}
+	
+	// Mark river hexes
+	for hex := range riverHexes {
+		m.RiverHexes[hex] = true
 	}
 }
 
@@ -97,18 +93,32 @@ func (m *TerraMysticaMap) IsRiver(h Hex) bool {
 
 // HasBridge checks if there is a bridge between two hexes
 func (m *TerraMysticaMap) HasBridge(h1, h2 Hex) bool {
-	return m.Bridges[NewBridgeKey(h1, h2)]
+	_, exists := m.Bridges[NewBridgeKey(h1, h2)]
+	return exists
 }
 
-// BuildBridge creates a bridge between two hexes
-func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
+// BuildBridge creates a bridge between two hexes for a player
+// Each player can build a maximum of 3 bridges
+func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
 	if !m.IsValidHex(h1) || !m.IsValidHex(h2) {
 		return fmt.Errorf("cannot build bridge: invalid hex coordinates")
 	}
 	if !h1.IsDirectlyAdjacent(h2) {
 		return fmt.Errorf("cannot build bridge: hexes are not adjacent")
 	}
-	m.Bridges[NewBridgeKey(h1, h2)] = true
+	
+	key := NewBridgeKey(h1, h2)
+	if _, exists := m.Bridges[key]; exists {
+		return fmt.Errorf("cannot build bridge: bridge already exists")
+	}
+	
+	// Check player bridge limit (max 3)
+	if m.PlayerBridges[playerID] >= 3 {
+		return fmt.Errorf("cannot build bridge: player has reached maximum of 3 bridges")
+	}
+	
+	m.Bridges[key] = &Bridge{Key: key, PlayerID: playerID}
+	m.PlayerBridges[playerID]++
 	return nil
 }
 
@@ -247,37 +257,3 @@ func (m *TerraMysticaMap) GetBuildingsInRange(h Hex, distance int) []*models.Bui
 	return buildings
 }
 
-// FindConnectedBuildings returns all buildings directly connected to the given hex
-// Used for town formation detection
-func (m *TerraMysticaMap) FindConnectedBuildings(h Hex, faction models.FactionType) []Hex {
-	visited := make(map[Hex]bool)
-	connected := []Hex{}
-
-	var dfs func(Hex)
-	dfs = func(current Hex) {
-		if visited[current] {
-			return
-		}
-		visited[current] = true
-
-		mapHex := m.GetHex(current)
-		if mapHex == nil || mapHex.Building == nil {
-			return
-		}
-
-		// Only include buildings of the same faction
-		if mapHex.Building.Faction != faction {
-			return
-		}
-
-		connected = append(connected, current)
-
-		// Explore direct neighbors
-		for _, neighbor := range m.GetDirectNeighbors(current) {
-			dfs(neighbor)
-		}
-	}
-
-	dfs(h)
-	return connected
-}

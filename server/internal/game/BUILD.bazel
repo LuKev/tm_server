@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "game",
@@ -7,9 +7,24 @@ go_library(
         "manager.go",
         "map.go",
         "state.go",
+        "terrain_layout.go",
+        "town.go",
     ],
     importpath = "github.com/lukev/tm_server/internal/game",
     visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/models:models",
+    ],
+)
+
+go_test(
+    name = "game_test",
+    srcs = [
+        "hex_test.go",
+        "map_test.go",
+        "town_test.go",
+    ],
+    embed = [":game"],
     deps = [
         "//internal/models:models",
     ],
