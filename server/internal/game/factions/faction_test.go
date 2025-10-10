@@ -216,10 +216,13 @@ func TestRegistry(t *testing.T) {
 		t.Errorf("expected Nomads, got %v", faction.GetType())
 	}
 
-	// Try to get non-existent faction
-	_, err = registry.Get(models.FactionFakirs)
-	if err == nil {
-		t.Errorf("expected error for non-existent faction")
+	// Try to get another faction (Fakirs now exists)
+	faction2, err := registry.Get(models.FactionFakirs)
+	if err != nil {
+		t.Fatalf("failed to get Fakirs faction: %v", err)
+	}
+	if faction2.GetType() != models.FactionFakirs {
+		t.Errorf("expected Fakirs, got %v", faction2.GetType())
 	}
 }
 

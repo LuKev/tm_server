@@ -17,9 +17,9 @@ func NewRegistry() *Registry {
 		factions: make(map[models.FactionType]Faction),
 	}
 	
-	// Register all factions
-	// r.Register(NewNomads())    // TODO: Implement Nomads
-	// r.Register(NewFakirs())    // TODO: Implement Fakirs
+	// Register all 14 factions
+	r.Register(NewNomads())
+	r.Register(NewFakirs())
 	r.Register(NewChaosMagicians())
 	r.Register(NewGiants())
 	r.Register(NewSwarmlings())
