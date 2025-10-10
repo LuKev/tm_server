@@ -31,6 +31,15 @@ func TestHalflings_StartingResources(t *testing.T) {
 	if resources.Priests != 0 {
 		t.Errorf("expected 0 priests, got %d", resources.Priests)
 	}
+	if resources.Power1 != 3 {
+		t.Errorf("expected 3 power in bowl 1 (not standard 5), got %d", resources.Power1)
+	}
+	if resources.Power2 != 9 {
+		t.Errorf("expected 9 power in bowl 2 (not standard 7), got %d", resources.Power2)
+	}
+	if resources.Power3 != 0 {
+		t.Errorf("expected 0 power in bowl 3, got %d", resources.Power3)
+	}
 }
 
 func TestHalflings_HasSpadeEfficiencyAbility(t *testing.T) {

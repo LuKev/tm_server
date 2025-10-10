@@ -25,8 +25,8 @@ func NewHalflings() *Halflings {
 				Coins:   15,
 				Workers: 3,
 				Priests: 0,
-				Power1:  5,
-				Power2:  7,
+				Power1:  3, // Halflings start with 3/9 power (not standard 5/7)
+				Power2:  9,
 				Power3:  0,
 			},
 			DiggingLevel: 0,
