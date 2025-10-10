@@ -3,8 +3,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "factions",
     srcs = [
+        "alchemists.go",
         "auren.go",
+        "cultists.go",
+        "darklings.go",
         "faction.go",
+        "halflings.go",
         "registry.go",
         "witches.go",
     ],
@@ -18,8 +22,12 @@ go_library(
 go_test(
     name = "factions_test",
     srcs = [
+        "alchemists_test.go",
         "auren_test.go",
+        "cultists_test.go",
+        "darklings_test.go",
         "faction_test.go",
+        "halflings_test.go",
         "witches_test.go",
     ],
     embed = [":factions"],

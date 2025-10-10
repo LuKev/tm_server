@@ -62,6 +62,7 @@ func (f *Auren) GetStrongholdAbility() string {
 
 // BuildStronghold marks that the stronghold has been built
 // Returns true if the player should receive a favor tile
+// NOTE: Phase 7.2 (Favor Tiles) handles favor tile selection
 func (f *Auren) BuildStronghold() bool {
 	f.hasStronghold = true
 	
@@ -80,8 +81,9 @@ func (f *Auren) CanUseCultAdvance() bool {
 }
 
 // UseCultAdvance marks the cult advance special action as used
-// Full validation (cult track selection, key requirement for space 10, etc.) will be
+// NOTE: Full validation (cult track selection, key requirement for space 10, etc.) will be
 // implemented in Phase 6.2 (Action System) as part of AurenCultAdvanceAction
+// NOTE: Phase 7.1 (Cult Track System) handles cult track advancement
 func (f *Auren) UseCultAdvance() error {
 	if !f.hasStronghold {
 		return fmt.Errorf("must build stronghold before using cult advance")
@@ -106,6 +108,7 @@ func (f *Auren) ExecuteStrongholdAbility(gameState interface{}) error {
 }
 
 // GetCultAdvanceAmount returns how many spaces to advance on cult track
+// NOTE: Phase 7.1 (Cult Track System) uses this value
 func (f *Auren) GetCultAdvanceAmount() int {
 	return 2
 }

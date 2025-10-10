@@ -86,6 +86,7 @@ const (
 	AbilityFavorBenefits
 	AbilitySpadeEfficiency
 	AbilityCultBonus
+	AbilityCultTrackBonus
 	AbilityConversionEfficiency
 	AbilityPriestBenefits
 )

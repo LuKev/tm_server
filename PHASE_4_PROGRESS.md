@@ -51,7 +51,23 @@
 
 ## Phase 4.2: Individual Faction Implementations
 
-### Ready to Implement (14 factions)
+### Completed (6/14 factions)
+
+#### Green (Forest)
+- [x] **Witches** - +5 VP for towns, Witches' Ride special action
+- [x] **Auren** - Favor tile on stronghold, cult advance special action
+
+#### Brown (Plains)
+- [x] **Halflings** - +1 VP per spade, 3 spades from stronghold, cheaper digging, expensive stronghold
+- [x] **Cultists** - Cult advance from power leech, 7 VP from stronghold, expensive sanctuary/stronghold
+
+#### Black (Swamp)
+- [x] **Alchemists** - VP/Coin conversion, 12 power + 2 power/spade after stronghold
+- [x] **Darklings** - Priests for terraform (2 VP/spade), expensive sanctuary, cannot upgrade digging
+
+### In Progress (0/14 factions)
+
+### Ready to Implement (8 factions)
 
 #### Yellow (Desert)
 - [ ] **Nomads** - Sandstorm ability
@@ -65,17 +81,7 @@
 - [ ] **Swarmlings** - Cheap dwellings
 - [ ] **Mermaids** - Water building, town bonuses
 
-#### Green (Forest)
-- [ ] **Witches** - Flying
-- [ ] **Auren** - Favor tile benefits
 
-#### Brown (Plains)
-- [ ] **Halflings** - Spade efficiency
-- [ ] **Cultists** - Cult track bonuses
-
-#### Black (Swamp)
-- [ ] **Alchemists** - Conversion efficiency
-- [ ] **Darklings** - Priest benefits
 
 #### Gray (Mountain)
 - [ ] **Engineers** - Bridge building

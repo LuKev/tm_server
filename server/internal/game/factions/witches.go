@@ -96,6 +96,8 @@ func (f *Witches) ExecuteStrongholdAbility(gameState interface{}) error {
 }
 
 // GetTownFoundingBonus returns the bonus VP for founding a town
+// NOTE: Phase 8 (Scoring System) tracks VP
+// NOTE: Phase 3.2 (Town Formation) detects towns
 func (f *Witches) GetTownFoundingBonus() int {
 	return 5 // Witches get +5 VP when founding a town
 }
