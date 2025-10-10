@@ -22,11 +22,11 @@ func TestEngineers_StartingResources(t *testing.T) {
 	engineers := NewEngineers()
 	resources := engineers.GetStartingResources()
 
-	if resources.Coins != 15 {
-		t.Errorf("expected 15 coins, got %d", resources.Coins)
+	if resources.Coins != 10 {
+		t.Errorf("expected 10 coins (not standard 15), got %d", resources.Coins)
 	}
-	if resources.Workers != 3 {
-		t.Errorf("expected 3 workers, got %d", resources.Workers)
+	if resources.Workers != 2 {
+		t.Errorf("expected 2 workers (not standard 3), got %d", resources.Workers)
 	}
 	if resources.Priests != 0 {
 		t.Errorf("expected 0 priests, got %d", resources.Priests)

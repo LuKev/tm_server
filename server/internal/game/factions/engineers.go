@@ -20,8 +20,8 @@ func NewEngineers() *Engineers {
 			Type:        models.FactionEngineers,
 			HomeTerrain: models.TerrainMountain,
 			StartingRes: Resources{
-				Coins:   15,
-				Workers: 3,
+				Coins:   10, // Engineers start with 10 coins (not standard 15)
+				Workers: 2,  // Engineers start with 2 workers (not standard 3)
 				Priests: 0,
 				Power1:  3, // Engineers start with 3/9 power (not standard 5/7)
 				Power2:  9,
