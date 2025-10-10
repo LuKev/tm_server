@@ -51,7 +51,7 @@
 
 ## Phase 4.2: Individual Faction Implementations
 
-### Completed (8/14 factions)
+### Completed (12/14 factions - 86%)
 
 #### Green (Forest)
 - [x] **Witches** - +5 VP for towns, Witches' Ride special action
@@ -69,21 +69,21 @@
 - [x] **Engineers** - Cheaper bridge (2 workers), 3 VP per bridge on pass, cheaper buildings
 - [x] **Dwarves** - Tunneling (skip space for workers + 4 VP), no shipping, reduced cost after stronghold
 
+#### Red (Wasteland)
+- [x] **Chaos Magicians** - 2 favor tiles for Temple/Sanctuary, double-turn special action, start with 1 dwelling
+- [x] **Giants** - Always 2 spades to terraform, 2 free spades special action after stronghold
+
+#### Blue (Lake)
+- [x] **Swarmlings** - +3 workers for towns, free TP upgrade after stronghold, expensive buildings
+- [x] **Mermaids** - Skip river for town, free shipping after stronghold, start at shipping 1, max shipping 5
+
 ### In Progress (0/14 factions)
 
-### Ready to Implement (6 factions)
+### Ready to Implement (2 factions)
 
 #### Yellow (Desert)
 - [ ] **Nomads** - Sandstorm ability
 - [ ] **Fakirs** - Carpet flying
-
-#### Red (Wasteland)
-- [ ] **Chaos Magicians** - Favor tile transformation
-- [ ] **Giants** - Reduced terraform costs
-
-#### Blue (Lake)
-- [ ] **Swarmlings** - Cheap dwellings
-- [ ] **Mermaids** - Water building, town bonuses
 
 
 
