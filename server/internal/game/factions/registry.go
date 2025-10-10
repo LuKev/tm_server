@@ -30,8 +30,8 @@ func NewRegistry() *Registry {
 	r.Register(NewCultists())
 	r.Register(NewAlchemists())
 	r.Register(NewDarklings())
-	// r.Register(NewEngineers())
-	// r.Register(NewDwarves())
+	r.Register(NewEngineers())
+	r.Register(NewDwarves())
 	
 	return r
 }

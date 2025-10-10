@@ -51,7 +51,7 @@
 
 ## Phase 4.2: Individual Faction Implementations
 
-### Completed (6/14 factions)
+### Completed (8/14 factions)
 
 #### Green (Forest)
 - [x] **Witches** - +5 VP for towns, Witches' Ride special action
@@ -65,9 +65,13 @@
 - [x] **Alchemists** - VP/Coin conversion, 12 power + 2 power/spade after stronghold
 - [x] **Darklings** - Priests for terraform (2 VP/spade), expensive sanctuary, cannot upgrade digging
 
+#### Gray (Mountain)
+- [x] **Engineers** - Cheaper bridge (2 workers), 3 VP per bridge on pass, cheaper buildings
+- [x] **Dwarves** - Tunneling (skip space for workers + 4 VP), no shipping, reduced cost after stronghold
+
 ### In Progress (0/14 factions)
 
-### Ready to Implement (8 factions)
+### Ready to Implement (6 factions)
 
 #### Yellow (Desert)
 - [ ] **Nomads** - Sandstorm ability
@@ -83,9 +87,6 @@
 
 
 
-#### Gray (Mountain)
-- [ ] **Engineers** - Bridge building
-- [ ] **Dwarves** - Tunnel digging
 
 ## Implementation Strategy
 
