@@ -101,6 +101,11 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
+		// Check building limit (max 8 dwellings)
+		if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingDwelling); err != nil {
+			return err
+		}
+		
 		// After transformation (if any), hex must be player's home terrain
 		if needsTransform {
 			// Will be home terrain after transform
@@ -176,7 +181,7 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		// TODO: Award VP if current scoring tile rewards dwellings
 
 		// Trigger power leech for adjacent players
-		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID, dwelling.PowerValue)
+		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
 	}
 
 	return nil
@@ -223,20 +228,13 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 		return fmt.Errorf("invalid upgrade: cannot upgrade %v to %v", mapHex.Building.Type, a.NewBuildingType)
 	}
 
-	// Check if player can afford upgrade
-	var cost factions.Cost
-	switch a.NewBuildingType {
-	case models.BuildingTradingHouse:
-		cost = player.Faction.GetTradingHouseCost()
-	case models.BuildingTemple:
-		cost = player.Faction.GetTempleCost()
-	case models.BuildingSanctuary:
-		cost = player.Faction.GetSanctuaryCost()
-	case models.BuildingStronghold:
-		cost = player.Faction.GetStrongholdCost()
-	default:
-		return fmt.Errorf("invalid building type for upgrade: %v", a.NewBuildingType)
+	// Check building limits
+	if err := checkBuildingLimit(gs, a.PlayerID, a.NewBuildingType); err != nil {
+		return err
 	}
+
+	// Get upgrade cost (may be reduced if adjacent to opponent)
+	cost := getUpgradeCost(gs, player, mapHex, a.NewBuildingType)
 
 	if !player.Resources.CanAfford(cost) {
 		return fmt.Errorf("cannot afford upgrade to %v", a.NewBuildingType)
@@ -252,29 +250,30 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	mapHex := gs.Map.GetHex(a.TargetHex)
-	oldBuilding := mapHex.Building
 
-	// Get upgrade cost
-	var cost factions.Cost
-	var newPowerValue int
-	switch a.NewBuildingType {
-	case models.BuildingTradingHouse:
-		cost = player.Faction.GetTradingHouseCost()
-		newPowerValue = 2
-	case models.BuildingTemple:
-		cost = player.Faction.GetTempleCost()
-		newPowerValue = 2
-	case models.BuildingSanctuary:
-		cost = player.Faction.GetSanctuaryCost()
-		newPowerValue = 3
-	case models.BuildingStronghold:
-		cost = player.Faction.GetStrongholdCost()
-		newPowerValue = 3
-	}
+	// Get upgrade cost (may be reduced if adjacent to opponent)
+	cost := getUpgradeCost(gs, player, mapHex, a.NewBuildingType)
 
 	// Pay for upgrade
 	if err := player.Resources.Spend(cost); err != nil {
 		return fmt.Errorf("failed to pay for upgrade: %w", err)
+	}
+
+	// Return old building to faction board (reduces income)
+	// Buildings are returned to the rightmost position on their track
+	// This is handled by the faction board state (not implemented yet)
+
+	// Get new power value
+	var newPowerValue int
+	switch a.NewBuildingType {
+	case models.BuildingTradingHouse:
+		newPowerValue = 2
+	case models.BuildingTemple:
+		newPowerValue = 2
+	case models.BuildingSanctuary:
+		newPowerValue = 3
+	case models.BuildingStronghold:
+		newPowerValue = 3
 	}
 
 	// Upgrade building
@@ -285,11 +284,25 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		PowerValue: newPowerValue,
 	}
 
-	// Trigger power leech for the power increase (new value - old value)
-	powerIncrease := newPowerValue - oldBuilding.PowerValue
-	if powerIncrease > 0 {
-		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID, powerIncrease)
+	// Handle special rewards based on upgrade type
+	switch a.NewBuildingType {
+	case models.BuildingTemple, models.BuildingSanctuary:
+		// TODO: Award Favor tile(s)
+		// Chaos Magicians get 2 tiles instead of 1
+		// Player cannot take a Favor tile they already have
+		break
+	case models.BuildingStronghold:
+		// TODO: Grant faction-specific special ability
+		break
 	}
+
+	// TODO: Award VP if current scoring tile rewards this building type
+	// Trading house: 3 VP
+	// Stronghold: 5 VP
+	// Sanctuary: 5 VP
+
+	// Trigger power leech when upgrading (adjacent players leech based on their adjacent buildings)
+	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
 
 	return nil
 }
@@ -299,9 +312,9 @@ func isValidUpgrade(from, to models.BuildingType) bool {
 	validUpgrades := map[models.BuildingType][]models.BuildingType{
 		models.BuildingDwelling: {
 			models.BuildingTradingHouse,
-			models.BuildingTemple,
 		},
 		models.BuildingTradingHouse: {
+			models.BuildingTemple,
 			models.BuildingStronghold,
 		},
 		models.BuildingTemple: {
@@ -316,6 +329,79 @@ func isValidUpgrade(from, to models.BuildingType) bool {
 
 	for _, validTo := range allowed {
 		if validTo == to {
+			return true
+		}
+	}
+	return false
+}
+
+// checkBuildingLimit checks if player has reached the building limit for a type
+// Limits: 8 dwellings, 4 trading houses, 3 temples, 1 sanctuary, 1 stronghold
+func checkBuildingLimit(gs *GameState, playerID string, buildingType models.BuildingType) error {
+	// Count existing buildings of this type
+	count := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && mapHex.Building.Type == buildingType {
+			count++
+		}
+	}
+
+	// Check limits
+	var limit int
+	switch buildingType {
+	case models.BuildingDwelling:
+		limit = 8
+	case models.BuildingTradingHouse:
+		limit = 4
+	case models.BuildingTemple:
+		limit = 3
+	case models.BuildingSanctuary, models.BuildingStronghold:
+		limit = 1
+	default:
+		return nil
+	}
+
+	if count >= limit {
+		return fmt.Errorf("building limit reached: cannot have more than %d %v", limit, buildingType)
+	}
+
+	return nil
+}
+
+// getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent
+func getUpgradeCost(gs *GameState, player *Player, mapHex *MapHex, newBuildingType models.BuildingType) factions.Cost {
+	var baseCost factions.Cost
+
+	switch newBuildingType {
+	case models.BuildingTradingHouse:
+		baseCost = player.Faction.GetTradingHouseCost()
+	case models.BuildingTemple:
+		baseCost = player.Faction.GetTempleCost()
+	case models.BuildingSanctuary:
+		baseCost = player.Faction.GetSanctuaryCost()
+	case models.BuildingStronghold:
+		baseCost = player.Faction.GetStrongholdCost()
+	default:
+		return baseCost
+	}
+
+	// Apply discount for Trading House if adjacent to opponent
+	if newBuildingType == models.BuildingTradingHouse {
+		if hasAdjacentOpponent(gs, mapHex.Coord, player.ID) {
+			// Reduce coin cost by half (6 -> 3 for most factions)
+			baseCost.Coins = baseCost.Coins / 2
+		}
+	}
+
+	return baseCost
+}
+
+// hasAdjacentOpponent checks if there's an opponent building adjacent to the hex
+func hasAdjacentOpponent(gs *GameState, hex Hex, playerID string) bool {
+	neighbors := hex.Neighbors()
+	for _, neighbor := range neighbors {
+		mapHex := gs.Map.GetHex(neighbor)
+		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID != playerID {
 			return true
 		}
 	}
@@ -551,6 +637,9 @@ func (a *PassAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	player.HasPassed = true
+	
+	// Record pass order (determines turn order for next round)
+	gs.PassOrder = append(gs.PassOrder, a.PlayerID)
 
 	// TODO: Handle bonus card selection and benefits
 

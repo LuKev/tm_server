@@ -13,10 +13,13 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map              *TerraMysticaMap
-	Players          map[string]*Player
-	Round            int
-	Phase            GamePhase
+	Map                *TerraMysticaMap
+	Players            map[string]*Player
+	Round              int
+	Phase              GamePhase
+	TurnOrder          []string                      // Player IDs in turn order
+	CurrentPlayerIndex int                           // Index into TurnOrder
+	PassOrder          []string                      // Player IDs in the order they passed (for next round's turn order)
 	PendingLeechOffers map[string][]*PowerLeechOffer // Key: playerID who can accept
 }
 
@@ -130,11 +133,7 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 // This is called when a building is placed or upgraded
 // According to Terra Mystica rules, each adjacent player receives ONE offer equal to
 // the sum of power values from ALL their buildings adjacent to the new building
-func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string, powerValue int) {
-	if powerValue <= 0 {
-		return
-	}
-
+func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string) {
 	// Find all adjacent players and calculate total power from their adjacent buildings
 	neighbors := buildingHex.Neighbors()
 	adjacentPlayerPower := make(map[string]int) // playerID -> total power from their adjacent buildings
@@ -225,4 +224,85 @@ func (gs *GameState) DeclineLeechOffer(playerID string, offerIndex int) error {
 // ClearPendingLeechOffers clears all pending leech offers for a player
 func (gs *GameState) ClearPendingLeechOffers(playerID string) {
 	delete(gs.PendingLeechOffers, playerID)
+}
+
+// GetCurrentPlayer returns the player whose turn it is
+func (gs *GameState) GetCurrentPlayer() *Player {
+	if len(gs.TurnOrder) == 0 || gs.CurrentPlayerIndex >= len(gs.TurnOrder) {
+		return nil
+	}
+	return gs.GetPlayer(gs.TurnOrder[gs.CurrentPlayerIndex])
+}
+
+// NextTurn advances to the next player's turn
+// Returns true if we've completed a full round of turns
+func (gs *GameState) NextTurn() bool {
+	// Skip players who have passed
+	for {
+		gs.CurrentPlayerIndex++
+		
+		// If we've gone through all players, check if everyone has passed
+		if gs.CurrentPlayerIndex >= len(gs.TurnOrder) {
+			gs.CurrentPlayerIndex = 0
+			
+			// Check if all players have passed
+			allPassed := true
+			for _, playerID := range gs.TurnOrder {
+				player := gs.GetPlayer(playerID)
+				if player != nil && !player.HasPassed {
+					allPassed = false
+					break
+				}
+			}
+			
+			if allPassed {
+				return true // Round complete
+			}
+		}
+		
+		// Get current player
+		currentPlayer := gs.GetCurrentPlayer()
+		if currentPlayer == nil {
+			continue
+		}
+		
+		// If player hasn't passed, it's their turn
+		if !currentPlayer.HasPassed {
+			break
+		}
+	}
+	
+	return false
+}
+
+// StartNewRound prepares the game for a new round
+func (gs *GameState) StartNewRound() {
+	gs.Round++
+	gs.CurrentPlayerIndex = 0
+	
+	// Set turn order based on pass order (first to pass goes first next round)
+	if len(gs.PassOrder) > 0 {
+		gs.TurnOrder = make([]string, len(gs.PassOrder))
+		copy(gs.TurnOrder, gs.PassOrder)
+	}
+	
+	// Reset pass order for the new round
+	gs.PassOrder = []string{}
+	
+	// Reset all players' passed status
+	for _, player := range gs.Players {
+		player.HasPassed = false
+	}
+	
+	gs.Phase = PhaseAction
+}
+
+// AllPlayersPassed checks if all players have passed
+func (gs *GameState) AllPlayersPassed() bool {
+	for _, player := range gs.Players {
+		if !player.HasPassed {
+			return false
+		}
+	}
+	return true
 }
