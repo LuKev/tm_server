@@ -542,3 +542,98 @@ func TestTransformAndBuild_DeclineLeechOffer(t *testing.T) {
 		t.Errorf("expected no pending offers after declining, got %d", len(offers))
 	}
 }
+
+func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
+	gs := NewGameState()
+	faction1 := factions.NewHalflings()
+	faction2 := factions.NewCultists()
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	
+	player1 := gs.GetPlayer("player1")
+	player2 := gs.GetPlayer("player2")
+	
+	player1.Resources.Coins = 20
+	player1.Resources.Workers = 20
+	
+	// Place player1's initial dwelling at (2, 1) - River
+	initialHex := NewHex(2, 1)
+	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
+	
+	// Place player2's Temple (power value 2) at (1, 1) - adjacent to (1,2)
+	player2Temple := NewHex(1, 1)
+	gs.Map.GetHex(player2Temple).Building = &models.Building{
+		Type:       models.BuildingTemple,
+		Faction:    faction2.GetType(),
+		PlayerID:   "player2",
+		PowerValue: 2,
+	}
+	
+	// Place player2's Stronghold (power value 3) at (2, 2) - also adjacent to (1,2)
+	player2Stronghold := NewHex(2, 2)
+	gs.Map.GetHex(player2Stronghold).Building = &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction2.GetType(),
+		PlayerID:   "player2",
+		PowerValue: 3,
+	}
+	
+	// Player1 builds at (1, 2) which is adjacent to:
+	// - player1's dwelling at (2,1) ✓
+	// - player2's Temple at (1,1) ✓
+	// - player2's Stronghold at (2,2) ✓
+	// Neighbors of (1,2): (2,2), (1,3), (0,3), (0,2), (1,1), (2,1)
+	targetHex := NewHex(1, 2)
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+	
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected action to succeed, got error: %v", err)
+	}
+	
+	// Verify player2 has ONE leech offer with TOTAL power from both buildings
+	offers := gs.GetPendingLeechOffers("player2")
+	if len(offers) != 1 {
+		t.Fatalf("expected player2 to have exactly 1 leech offer, got %d", len(offers))
+	}
+	
+	offer := offers[0]
+	// Total power should be Temple (2) + Stronghold (3) = 5
+	if offer.Amount != 5 {
+		t.Errorf("expected offer amount of 5 (2 from temple + 3 from stronghold), got %d", offer.Amount)
+	}
+	// VP cost should be 5 - 1 = 4
+	if offer.VPCost != 4 {
+		t.Errorf("expected VP cost of 4 (amount - 1), got %d", offer.VPCost)
+	}
+	if offer.FromPlayerID != "player1" {
+		t.Errorf("expected offer from player1, got %s", offer.FromPlayerID)
+	}
+	
+	// Test accepting the offer
+	initialBowl1 := player2.Resources.Power.Bowl1
+	initialBowl2 := player2.Resources.Power.Bowl2
+	initialVP := player2.VictoryPoints
+	
+	err = gs.AcceptLeechOffer("player2", 0)
+	if err != nil {
+		t.Fatalf("expected to accept leech offer, got error: %v", err)
+	}
+	
+	// Verify player2 gained 5 power
+	// With 5 power to gain and starting with Bowl1=5, Bowl2=7:
+	// All 5 from Bowl1 moves to Bowl2
+	if player2.Resources.Power.Bowl1 != initialBowl1 - 5 {
+		t.Errorf("expected Bowl1 to decrease by 5, initial: %d, new: %d", initialBowl1, player2.Resources.Power.Bowl1)
+	}
+	if player2.Resources.Power.Bowl2 != initialBowl2 + 5 {
+		t.Errorf("expected Bowl2 to increase by 5, initial: %d, new: %d", initialBowl2, player2.Resources.Power.Bowl2)
+	}
+	
+	// Verify player2 lost 4 VP
+	if player2.VictoryPoints != initialVP - 4 {
+		t.Errorf("expected player2 to lose 4 VP, initial: %d, new: %d", initialVP, player2.VictoryPoints)
+	}
+}

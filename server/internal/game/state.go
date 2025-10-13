@@ -128,34 +128,37 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 
 // TriggerPowerLeech triggers power leech offers for all adjacent players
 // This is called when a building is placed or upgraded
+// According to Terra Mystica rules, each adjacent player receives ONE offer equal to
+// the sum of power values from ALL their buildings adjacent to the new building
 func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string, powerValue int) {
 	if powerValue <= 0 {
 		return
 	}
 
-	// Find all adjacent players
+	// Find all adjacent players and calculate total power from their adjacent buildings
 	neighbors := buildingHex.Neighbors()
-	adjacentPlayers := make(map[string]bool)
+	adjacentPlayerPower := make(map[string]int) // playerID -> total power from their adjacent buildings
 
 	for _, neighbor := range neighbors {
 		mapHex := gs.Map.GetHex(neighbor)
 		if mapHex != nil && mapHex.Building != nil {
 			neighborPlayerID := mapHex.Building.PlayerID
 			if neighborPlayerID != buildingPlayerID {
-				adjacentPlayers[neighborPlayerID] = true
+				// Add this building's power value to the player's total
+				adjacentPlayerPower[neighborPlayerID] += mapHex.Building.PowerValue
 			}
 		}
 	}
 
-	// Create power leech offers for each adjacent player
-	for neighborPlayerID := range adjacentPlayers {
+	// Create ONE power leech offer per adjacent player based on their total adjacent power
+	for neighborPlayerID, totalPower := range adjacentPlayerPower {
 		neighborPlayer := gs.GetPlayer(neighborPlayerID)
 		if neighborPlayer == nil {
 			continue
 		}
 
-		// Create offer based on building value and player's power capacity
-		offer := NewPowerLeechOffer(powerValue, buildingPlayerID, neighborPlayer.Resources.Power)
+		// Create offer based on TOTAL power from all adjacent buildings
+		offer := NewPowerLeechOffer(totalPower, buildingPlayerID, neighborPlayer.Resources.Power)
 		if offer != nil {
 			// Store offer for player to accept/decline
 			if gs.PendingLeechOffers[neighborPlayerID] == nil {
