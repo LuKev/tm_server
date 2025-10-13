@@ -97,7 +97,7 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 		return true
 	}
 
-	// Get all neighbors
+	// Check direct adjacency (distance 1)
 	neighbors := targetHex.Neighbors()
 	for _, neighbor := range neighbors {
 		mapHex := gs.Map.GetHex(neighbor)
@@ -106,7 +106,23 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 		}
 	}
 
-	// TODO: Check for indirect adjacency via shipping
+	// Check indirect adjacency via shipping
+	// Shipping level allows building at distance = shipping level + 1
+	// Level 0: distance 1 (direct neighbors only)
+	// Level 1: distance 2 (can skip one hex)
+	// Level 2: distance 3, etc.
+	if player.ShippingLevel > 0 {
+		maxDistance := player.ShippingLevel + 1
+		for _, mapHex := range gs.Map.Hexes {
+			if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+				distance := targetHex.Distance(mapHex.Coord)
+				if distance > 0 && distance <= maxDistance {
+					return true
+				}
+			}
+		}
+	}
+
 	// TODO: Check for special abilities (Witches flying, Fakirs carpet, Dwarves tunneling)
 
 	return false

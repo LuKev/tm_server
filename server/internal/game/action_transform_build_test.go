@@ -292,3 +292,93 @@ func TestTransformAndBuild_InsufficientWorkersForTransform(t *testing.T) {
 		t.Errorf("expected error for insufficient workers to transform")
 	}
 }
+
+func TestTransformAndBuild_IndirectAdjacency(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 20
+	player.Resources.Workers = 20
+	player.ShippingLevel = 1 // Shipping level 1 allows indirect adjacency
+	
+	// Place initial dwelling at (0, 1)
+	initialHex := NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
+	
+	// Try to build at (2, 1) which is NOT directly adjacent to (0,1)
+	// but IS indirectly adjacent with shipping level 1
+	// Direct neighbors of (0,1): (1,1), (0,2), (-1,2), (-1,1), (0,0), (1,0)
+	// (2,1) is distance 2 from (0,1), so requires shipping
+	targetHex := NewHex(2, 1)
+	// Ensure it needs transformation
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+	
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected action to succeed with shipping level 1, got error: %v", err)
+	}
+	
+	// Verify building was placed
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Building == nil {
+		t.Errorf("expected building to be placed")
+	}
+	if mapHex.Building.Type != models.BuildingDwelling {
+		t.Errorf("expected dwelling, got %v", mapHex.Building.Type)
+	}
+}
+
+func TestTransformAndBuild_AdvancedDiggingLevel(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 10
+	player.Resources.Workers = 10
+	
+	// Advance digging level to 2
+	// Base cost: 3 workers per spade
+	// With digging level 2: 3 - 2 = 1 worker per spade
+	player.Faction.(*factions.Halflings).DiggingLevel = 2
+	
+	// Place initial dwelling
+	initialHex := NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
+	
+	// Transform and build on Forest terrain
+	// Forest -> Plains: distance 3
+	// With digging level 2: 1 worker per spade * 3 = 3 workers for terraform
+	// Plus 1 worker for dwelling = 4 workers total
+	targetHex := NewHex(1, 0)
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+	
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	
+	initialWorkers := player.Resources.Workers
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected action to succeed with advanced digging, got error: %v", err)
+	}
+	
+	// Verify correct number of workers were spent
+	// Should be 3 for terraform + 1 for dwelling = 4 total
+	expectedWorkers := initialWorkers - 4
+	if player.Resources.Workers != expectedWorkers {
+		t.Errorf("expected %d workers (started with %d, should spend 4), got %d", 
+			expectedWorkers, initialWorkers, player.Resources.Workers)
+	}
+	
+	// Verify building was placed
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Building == nil {
+		t.Errorf("expected building to be placed")
+	}
+	if mapHex.Terrain != models.TerrainPlains {
+		t.Errorf("expected terrain to be transformed to Plains, got %v", mapHex.Terrain)
+	}
+}
