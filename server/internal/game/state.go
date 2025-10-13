@@ -13,10 +13,11 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map     *TerraMysticaMap
-	Players map[string]*Player
-	Round   int
-	Phase   GamePhase
+	Map              *TerraMysticaMap
+	Players          map[string]*Player
+	Round            int
+	Phase            GamePhase
+	PendingLeechOffers map[string][]*PowerLeechOffer // Key: playerID who can accept
 }
 
 // GamePhase represents the current phase of the game
@@ -41,13 +42,14 @@ type Player struct {
 	VictoryPoints int
 }
 
-// NewGameState creates a new game state
+// NewGameState creates a new game state with an initialized map
 func NewGameState() *GameState {
 	return &GameState{
-		Map:     NewTerraMysticaMap(),
-		Players: make(map[string]*Player),
-		Round:   1,
-		Phase:   PhaseSetup,
+		Map:                NewTerraMysticaMap(),
+		Players:            make(map[string]*Player),
+		Round:              1,
+		Phase:              PhaseSetup,
+		PendingLeechOffers: make(map[string][]*PowerLeechOffer),
 	}
 }
 
@@ -155,9 +157,69 @@ func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string,
 		// Create offer based on building value and player's power capacity
 		offer := NewPowerLeechOffer(powerValue, buildingPlayerID, neighborPlayer.Resources.Power)
 		if offer != nil {
-			// TODO: Phase 6.1 - Store offer for player to accept/decline
-			// For now, we'll just create the offer structure
-			_ = offer
+			// Store offer for player to accept/decline
+			if gs.PendingLeechOffers[neighborPlayerID] == nil {
+				gs.PendingLeechOffers[neighborPlayerID] = []*PowerLeechOffer{}
+			}
+			gs.PendingLeechOffers[neighborPlayerID] = append(gs.PendingLeechOffers[neighborPlayerID], offer)
 		}
 	}
+}
+
+// GetPendingLeechOffers returns all pending leech offers for a player
+func (gs *GameState) GetPendingLeechOffers(playerID string) []*PowerLeechOffer {
+	return gs.PendingLeechOffers[playerID]
+}
+
+// HasPendingLeechOffers checks if any player has pending leech offers
+func (gs *GameState) HasPendingLeechOffers() bool {
+	for _, offers := range gs.PendingLeechOffers {
+		if len(offers) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// AcceptLeechOffer allows a player to accept a power leech offer
+func (gs *GameState) AcceptLeechOffer(playerID string, offerIndex int) error {
+	offers := gs.PendingLeechOffers[playerID]
+	if offerIndex < 0 || offerIndex >= len(offers) {
+		return fmt.Errorf("invalid offer index: %d", offerIndex)
+	}
+
+	offer := offers[offerIndex]
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Gain power
+	player.Resources.Power.GainPower(offer.Amount)
+
+	// Lose VP
+	player.VictoryPoints -= offer.VPCost
+
+	// Remove the offer
+	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
+
+	return nil
+}
+
+// DeclineLeechOffer allows a player to decline a power leech offer
+func (gs *GameState) DeclineLeechOffer(playerID string, offerIndex int) error {
+	offers := gs.PendingLeechOffers[playerID]
+	if offerIndex < 0 || offerIndex >= len(offers) {
+		return fmt.Errorf("invalid offer index: %d", offerIndex)
+	}
+
+	// Simply remove the offer without gaining power or losing VP
+	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
+
+	return nil
+}
+
+// ClearPendingLeechOffers clears all pending leech offers for a player
+func (gs *GameState) ClearPendingLeechOffers(playerID string) {
+	delete(gs.PendingLeechOffers, playerID)
 }

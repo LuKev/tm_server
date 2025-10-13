@@ -380,8 +380,165 @@ func TestTransformAndBuild_AdvancedDiggingLevel(t *testing.T) {
 	mapHex := gs.Map.GetHex(targetHex)
 	if mapHex.Building == nil {
 		t.Errorf("expected building to be placed")
-	}
+	} // Wasteland (row 3)
 	if mapHex.Terrain != models.TerrainPlains {
 		t.Errorf("expected terrain to be transformed to Plains, got %v", mapHex.Terrain)
+	}
+}
+
+func TestTransformAndBuild_PowerLeechOffers(t *testing.T) {
+	gs := NewGameState()
+	faction1 := factions.NewHalflings()
+	faction2 := factions.NewCultists()
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	
+	player1 := gs.GetPlayer("player1")
+	player2 := gs.GetPlayer("player2")
+	
+	player1.Resources.Coins = 20
+	player1.Resources.Workers = 20
+	
+	// Place player1's initial dwelling at (0, 1)
+	initialHex := NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
+	
+	// Place player2's dwelling adjacent to where player1 will build
+	// Neighbors of (0,0) are: (1,0), (0,1), (-1,1), (-1,0), (0,-1), (1,-1)
+	// We'll place player2 at (1,0) which is adjacent to (0,0)
+	player2Hex := NewHex(1, 0)
+	gs.Map.GetHex(player2Hex).Building = testBuilding("player2", faction2.GetType(), models.BuildingDwelling)
+	
+	// Player1 builds at (0,0) which is adjacent to both (0,1) and (1,0)
+	targetHex := NewHex(0, 0)
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+	
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	
+	// Record player2's initial state
+	initialVP := player2.VictoryPoints
+	initialBowl1 := player2.Resources.Power.Bowl1
+	initialBowl2 := player2.Resources.Power.Bowl2
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected action to succeed, got error: %v", err)
+	}
+	
+	// Verify player2 has a pending leech offer
+	offers := gs.GetPendingLeechOffers("player2")
+	if len(offers) == 0 {
+		t.Fatalf("expected player2 to have a pending leech offer")
+	}
+	
+	offer := offers[0]
+	if offer.Amount != 1 {
+		t.Errorf("expected offer amount of 1 (dwelling power value), got %d", offer.Amount)
+	}
+	if offer.VPCost != 0 {
+		t.Errorf("expected VP cost of 0 (amount - 1), got %d", offer.VPCost)
+	}
+	if offer.FromPlayerID != "player1" {
+		t.Errorf("expected offer from player1, got %s", offer.FromPlayerID)
+	}
+	
+	// Test accepting the offer
+	err = gs.AcceptLeechOffer("player2", 0)
+	if err != nil {
+		t.Fatalf("expected to accept leech offer, got error: %v", err)
+	}
+	
+	// Verify player2 gained power (power moves from Bowl1 to Bowl2)
+	// GainPower(1) should move 1 power from Bowl1 to Bowl2
+	if player2.Resources.Power.Bowl1 != initialBowl1 - 1 {
+		t.Errorf("expected Bowl1 to decrease by 1, initial: %d, new: %d", initialBowl1, player2.Resources.Power.Bowl1)
+	}
+	if player2.Resources.Power.Bowl2 != initialBowl2 + 1 {
+		t.Errorf("expected Bowl2 to increase by 1, initial: %d, new: %d", initialBowl2, player2.Resources.Power.Bowl2)
+	}
+	
+	// Verify player2 lost VP
+	if player2.VictoryPoints != initialVP - offer.VPCost {
+		t.Errorf("expected player2 to lose %d VP, initial: %d, new: %d", offer.VPCost, initialVP, player2.VictoryPoints)
+	}
+	
+	// Verify offer was removed
+	offers = gs.GetPendingLeechOffers("player2")
+	if len(offers) != 0 {
+		t.Errorf("expected no pending offers after accepting, got %d", len(offers))
+	}
+}
+
+func TestTransformAndBuild_DeclineLeechOffer(t *testing.T) {
+	gs := NewGameState()
+	faction1 := factions.NewHalflings()
+	faction2 := factions.NewCultists()
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	
+	player1 := gs.GetPlayer("player1")
+	player2 := gs.GetPlayer("player2")
+	
+	player1.Resources.Coins = 20
+	player1.Resources.Workers = 20
+	
+	// Place player1's initial dwelling
+	initialHex := NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
+	
+	// Place player2's dwelling adjacent to where player1 will build
+	// We'll place player2 at (1,0) which is adjacent to (0,0)
+	player2Hex := NewHex(1, 0)
+	gs.Map.GetHex(player2Hex).Building = testBuilding("player2", faction2.GetType(), models.BuildingDwelling)
+	
+	// Player1 builds at (0,0) which is adjacent to both (0,1) and (1,0)
+	targetHex := NewHex(0, 0)
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+	
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	
+	// Record player2's initial state
+	initialVP := player2.VictoryPoints
+	initialBowl1 := player2.Resources.Power.Bowl1
+	initialBowl2 := player2.Resources.Power.Bowl2
+	initialBowl3 := player2.Resources.Power.Bowl3
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected action to succeed, got error: %v", err)
+	}
+	
+	// Verify player2 has a pending leech offer
+	offers := gs.GetPendingLeechOffers("player2")
+	if len(offers) == 0 {
+		t.Fatalf("expected player2 to have a pending leech offer")
+	}
+	
+	// Test declining the offer
+	err = gs.DeclineLeechOffer("player2", 0)
+	if err != nil {
+		t.Fatalf("expected to decline leech offer, got error: %v", err)
+	}
+	
+	// Verify player2 did NOT gain power (all bowls unchanged)
+	if player2.Resources.Power.Bowl1 != initialBowl1 {
+		t.Errorf("expected Bowl1 to remain unchanged, initial: %d, new: %d", initialBowl1, player2.Resources.Power.Bowl1)
+	}
+	if player2.Resources.Power.Bowl2 != initialBowl2 {
+		t.Errorf("expected Bowl2 to remain unchanged, initial: %d, new: %d", initialBowl2, player2.Resources.Power.Bowl2)
+	}
+	if player2.Resources.Power.Bowl3 != initialBowl3 {
+		t.Errorf("expected Bowl3 to remain unchanged, initial: %d, new: %d", initialBowl3, player2.Resources.Power.Bowl3)
+	}
+	
+	// Verify player2 did NOT lose VP
+	if player2.VictoryPoints != initialVP {
+		t.Errorf("expected player2 VP to remain unchanged, initial: %d, new: %d", initialVP, player2.VictoryPoints)
+	}
+	
+	// Verify offer was removed
+	offers = gs.GetPendingLeechOffers("player2")
+	if len(offers) != 0 {
+		t.Errorf("expected no pending offers after declining, got %d", len(offers))
 	}
 }
