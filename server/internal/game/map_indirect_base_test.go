@@ -14,36 +14,50 @@ import (
 
 func TestIndirectAdjacency_Shipping1_SingleRiverNeighbor(t *testing.T) {
 	m := NewTerraMysticaMap()
-	// h1 at (0,1) is Desert (land); neighbor (0,2) is River
-	// h2 at (1,2) is River - but endpoint must be land, so use (2,2) which is Swamp
-	h1 := NewHex(0, 1) // Desert
-	h2 := NewHex(2, 2) // Swamp, adjacent to river (1,2)
+	// b1 is Desert
+	// b2 is Plains
+	// c1 is Swamp
+	// This is the north western corner of the map
+	b1 := NewHex(0, 1)
+	b2 := NewHex(3, 1)
+	c1 := NewHex(1, 2)
 
-	// From (0,1) Desert, river neighbor is (0,2)
-	// From (0,2) river, can reach (1,2) river in 1 step
-	// (1,2) river is adjacent to (2,2) Swamp
-	if ok := m.IsIndirectlyAdjacent(h1, h2, 2); !ok {
-		t.Fatalf("expected shipping=2 to reach from %v to %v", h1, h2)
+	if ok := m.IsIndirectlyAdjacent(b1, b2, 2); !ok {
+		t.Fatalf("expected shipping=2 to reach from %v to %v", b1, c1)
 	}
-	// With shipping 1 should not reach
-	if ok := m.IsIndirectlyAdjacent(h1, h2, 1); ok {
-		t.Fatalf("expected shipping=1 to NOT reach from %v to %v", h1, h2)
+	if ok := m.IsIndirectlyAdjacent(b1, b2, 1); ok {
+		t.Fatalf("expected shipping=1 to NOT reach from %v to %v", b1, c1)
 	}
+	if ok := m.IsIndirectlyAdjacent(b1, c1, 1); !ok {
+		t.Fatalf("expected shipping=1 to reach from %v to %v", b1, c1)
+	}
+	if ok := m.IsIndirectlyAdjacent(b2, c1, 1); !ok {
+		t.Fatalf("expected shipping=1 to reach from %v to %v", b2, c1)
+	}
+	
 }
 
 func TestIndirectAdjacency_Shipping2_RiverChain(t *testing.T) {
 	m := NewTerraMysticaMap()
-	// Use row 1-2 river chain: (1,1) and (1,2) are both rivers
-	// Start from (0,1) Desert, end at (2,2) Swamp
-	h1 := NewHex(0, 1) // Desert
-	h2 := NewHex(2, 2) // Swamp
+	// Use northern black swamp 2 ship path
+	a8 := NewHex(7, 0)
+	b3 := NewHex(4, 1)
+	c1 := NewHex(1, 2)
+	e5 := NewHex(2, 4)
 
-	if ok := m.IsIndirectlyAdjacent(h1, h2, 2); !ok {
-		t.Fatalf("expected shipping=2 to reach from %v to %v via river chain", h1, h2)
+	pairs := [][2]Hex{
+		{c1, e5},
+		{e5, b3},
+		{b3, a8},
 	}
-	// With shipping 1 should not reach
-	if ok := m.IsIndirectlyAdjacent(h1, h2, 1); ok {
-		t.Fatalf("expected shipping=1 to NOT reach from %v to %v", h1, h2)
+	for _, p := range pairs {
+		if ok := m.IsIndirectlyAdjacent(p[0], p[1], 2); !ok {
+			t.Fatalf("expected shipping=2 to reach from %v to %v via river chain", p[0], p[1])
+		}
+		// With shipping 1 should not reach
+		if ok := m.IsIndirectlyAdjacent(p[0], p[1], 1); ok {
+			t.Fatalf("expected shipping=1 to NOT reach from %v to %v", p[0], p[1])
+		}
 	}
 }
 
@@ -69,15 +83,27 @@ func TestIndirectAdjacency_DirectAdjacencyExcluded_BaseMap(t *testing.T) {
 
 func TestIndirectAdjacency_Shipping3_LongerChain(t *testing.T) {
 	m := NewTerraMysticaMap()
-	// Test shipping=3 along row 2 river chain
-	// Row 2: River, River, Swamp, River, Mountain, River, Forest, River, Forest, River, Mountain, River, River
-	// Path: (0,1) Desert -> (0,2) River -> (1,2) River -> (3,2) River -> (2,2) Swamp
-	h1 := NewHex(0, 1) // Desert
-	h2 := NewHex(2, 2) // Swamp
-	
-	// Already tested this as shipping=2, so test that shipping=3 also works
-	if ok := m.IsIndirectlyAdjacent(h1, h2, 3); !ok {
-		t.Fatalf("expected shipping=3 to reach from %v to %v", h1, h2)
+	// Test western mermaid 3 ship path
+    a4 := NewHex(3, 0)
+    d2 := NewHex(0, 3)
+    e4 := NewHex(1, 4)
+	h4 := NewHex(3, 7)
+	i4 := NewHex(-1, 8)
+
+	pairs := [][2]Hex{
+		{a4, d2},
+		{a4, e4},
+		{e4, i4},
+		{i4, h4},
+	}
+	for _, p := range pairs {
+		if ok := m.IsIndirectlyAdjacent(p[0], p[1], 3); !ok {
+			t.Fatalf("expected shipping=3 to reach from %v to %v via river chain", p[0], p[1])
+		}
+		// With shipping 2 should not reach
+		if ok := m.IsIndirectlyAdjacent(p[0], p[1], 2); ok {
+			t.Fatalf("expected shipping=2 to NOT reach from %v to %v", p[0], p[1])
+		}
 	}
 }
 
@@ -209,13 +235,16 @@ func TestIndirectAdjacency_NoRiverPath(t *testing.T) {
 
 func TestIndirectAdjacency_CrossMapShipping(t *testing.T) {
 	m := NewTerraMysticaMap()
-	// Test shipping across different rows via river network
-	// From row 1 to row 3 through river hexes
-	h1 := NewHex(3, 1) // Plains (row 1)
-	h2 := NewHex(5, 3) // Wasteland (row 3)
+	// Test a 6 ship path
+	d5 := NewHex(5, 3)
+	i10 := NewHex(6, 8)
 	
 	// Check if reachable via river path with appropriate shipping
-	if ok := m.IsIndirectlyAdjacent(h1, h2, 6); !ok {
-		t.Fatalf("expected shipping=6 to potentially reach from %v to %v if river path exists", h1, h2)
+	if ok := m.IsIndirectlyAdjacent(d5, i10, 6); !ok {
+		t.Fatalf("expected shipping=6 to potentially reach from %v to %v if river path exists", d5, i10)
+	}
+	// With shipping 5 should not reach
+	if ok := m.IsIndirectlyAdjacent(d5, i10, 5); ok {
+		t.Fatalf("expected shipping=5 to NOT reach from %v to %v", d5, i10)
 	}
 }
