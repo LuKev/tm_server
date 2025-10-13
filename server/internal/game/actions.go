@@ -87,6 +87,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	// Check if terrain needs transformation to home terrain
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
 	
+	totalWorkersNeeded := 0
 	if needsTransform {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
@@ -94,13 +95,8 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 			return fmt.Errorf("terrain distance calculation failed")
 		}
 		
-		workersPerSpade := player.Faction.GetTerraformCost(distance)
-		totalWorkers := workersPerSpade * distance
-		
-		// Check if player has enough workers
-		if player.Resources.Workers < totalWorkers {
-			return fmt.Errorf("not enough workers for terraform: need %d, have %d", totalWorkers, player.Resources.Workers)
-		}
+		// GetTerraformCost returns total workers needed (already accounts for distance)
+		totalWorkersNeeded = player.Faction.GetTerraformCost(distance)
 	}
 
 	// If building a dwelling, check requirements
@@ -112,11 +108,22 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 			return fmt.Errorf("cannot build dwelling: hex is not home terrain")
 		}
 		
-		// Check if player can afford dwelling
+		// Check if player can afford dwelling (coins and priests)
 		dwellingCost := player.Faction.GetDwellingCost()
-		if !player.Resources.CanAfford(dwellingCost) {
-			return fmt.Errorf("cannot afford dwelling")
+		if player.Resources.Coins < dwellingCost.Coins {
+			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
 		}
+		if player.Resources.Priests < dwellingCost.Priests {
+			return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
+		}
+		
+		// Add dwelling workers to total needed (checked separately below)
+		totalWorkersNeeded += dwellingCost.Workers
+	}
+	
+	// Check total workers needed (terraform + dwelling)
+	if player.Resources.Workers < totalWorkersNeeded {
+		return fmt.Errorf("not enough workers: need %d, have %d", totalWorkersNeeded, player.Resources.Workers)
 	}
 
 	return nil
@@ -134,8 +141,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
 	if needsTransform {
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
-		workersPerSpade := player.Faction.GetTerraformCost(distance)
-		totalWorkers := workersPerSpade * distance
+		// GetTerraformCost returns total workers needed (already accounts for distance)
+		totalWorkers := player.Faction.GetTerraformCost(distance)
 
 		// Pay workers for terraform (spades)
 		player.Resources.Workers -= totalWorkers

@@ -73,7 +73,12 @@ func TestTransformAndBuild_NotAdjacent(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 10
 	
-	// Try to build without any adjacent buildings
+	// Place initial dwelling at (0,1)
+	initialHex := NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
+	
+	// Try to build at a non-adjacent location (5,5)
+	// (5,5) is far from (0,1) and not adjacent
 	targetHex := NewHex(5, 5)
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
@@ -116,13 +121,16 @@ func TestTransformAndBuild_SkipTerraform(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 10
 	
-	// Place initial dwelling
-	initialHex := NewHex(0, 1)
+	// Place initial dwelling on Plains
+	initialHex := NewHex(3, 1) // Plains terrain
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
-	// Build on home terrain (Plains for Halflings) - no transform needed
-	// Use adjacent hex (1,1) which is Plains
-	targetHex := NewHex(1, 1) // Plains terrain
+	// Build on adjacent home terrain (Plains for Halflings) - no transform needed
+	// Use adjacent hex (4,1) which should also be Plains or transform it to Plains first
+	targetHex := NewHex(4, 1)
+	// Ensure target is Plains (home terrain)
+	gs.Map.TransformTerrain(targetHex, models.TerrainPlains)
+	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
 	initialWorkers := player.Resources.Workers
@@ -135,7 +143,8 @@ func TestTransformAndBuild_SkipTerraform(t *testing.T) {
 	dwellingCost := faction.GetDwellingCost()
 	expectedWorkers := initialWorkers - dwellingCost.Workers
 	if player.Resources.Workers != expectedWorkers {
-		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
+		t.Errorf("expected %d workers (started with %d, dwelling cost %d), got %d", 
+			expectedWorkers, initialWorkers, dwellingCost.Workers, player.Resources.Workers)
 	}
 }
 
@@ -251,29 +260,35 @@ func TestTransformAndBuild_TransformOnly(t *testing.T) {
 	}
 }
 
-func TestTransformAndBuild_BuildOnNonHomeTerrain(t *testing.T) {
+func TestTransformAndBuild_InsufficientWorkersForTransform(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
 	
 	player := gs.GetPlayer("player1")
 	player.Resources.Coins = 10
-	player.Resources.Workers = 10
+	player.Resources.Workers = 2 // Not enough for transform + dwelling
 	
 	// Place initial dwelling
 	initialHex := NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
-	// Try to build on non-home terrain without transforming
-	// (This should fail because dwelling requires home terrain)
-	targetHex := NewHex(0, 0) // Forest terrain (not Plains)
-	// First transform it to something else (not home terrain)
-	gs.Map.TransformTerrain(targetHex, models.TerrainDesert)
+	// Try to transform and build on non-Plains terrain
+	// Use (1,0) which should be adjacent to (0,1)
+	// We need to ensure it's NOT Plains
+	targetHex := NewHex(1, 0)
+	// Force it to be Forest to ensure transform is needed
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
+	// Forest -> Plains: distance 3 on the wheel
+	// Halflings at digging level 0: 3 workers per spade
+	// Total terraform cost: 3 * 3 = 9 workers
+	// Plus 1 worker for dwelling = 10 workers total needed
+	// But player only has 2 workers
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
 	err := action.Execute(gs)
 	if err == nil {
-		t.Errorf("expected error for building on non-home terrain")
+		t.Errorf("expected error for insufficient workers to transform")
 	}
 }
