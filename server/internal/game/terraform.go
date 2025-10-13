@@ -102,11 +102,6 @@ func (m *TerraMysticaMap) Terraform(h Hex, newTerrain models.TerrainType) error 
 	// Update terrain
 	mapHex.Terrain = newTerrain
 	
-	// Remove from river hexes if it was a river
-	if m.RiverHexes[h] {
-		delete(m.RiverHexes, h)
-	}
-	
 	return nil
 }
 

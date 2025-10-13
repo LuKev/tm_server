@@ -6,6 +6,7 @@ go_library(
         "hex.go",
         "manager.go",
         "map.go",
+        "power.go",
         "state.go",
         "terraform.go",
         "terrain_layout.go",
@@ -25,6 +26,7 @@ go_test(
     srcs = [
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",
+        "power_test.go",
         "terraform_test.go",
         "town_test.go",
     ],
