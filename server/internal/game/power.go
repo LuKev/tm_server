@@ -56,7 +56,7 @@ func (ps *PowerSystem) GainPower(amount int) int {
 	// Move power from bowl 2 to bowl 3
 	twoToThree := remaining
 	if ps.Bowl2 < remaining {
-		twoTothree = ps.Bowl2
+		twoToThree = ps.Bowl2
 	}
 	ps.Bowl2 -= twoToThree
 	ps.Bowl3 += twoToThree

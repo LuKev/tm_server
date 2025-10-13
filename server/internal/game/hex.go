@@ -108,6 +108,7 @@ func (h Hex) Ring(radius int) []Hex {
 }
 
 // SpiralRange returns all hexes within a given radius (inclusive)
+// Potentially useful for Fakirs with upgraded flights - revisit this and remove it if it turns out to be unnecessary
 func (h Hex) SpiralRange(radius int) []Hex {
 	results := []Hex{h}
 	for k := 1; k <= radius; k++ {

@@ -58,21 +58,23 @@ func TestGainPowerZero(t *testing.T) {
 }
 
 func TestGainPowerOverflow(t *testing.T) {
+	// No power in bowl 1, but 3 in bowl 2
+	// Gaining 10 power should move all 3 from bowl 2 to bowl 3
 	ps := NewPowerSystem(0, 3, 9)
 	
 	gained := ps.GainPower(10)
 	
 	if gained != 3 {
-		t.Errorf("expected to gain 3 power, got %d", gained)
+		t.Errorf("expected to gain 3 power (limited by bowl 2), got %d", gained)
 	}
 	if ps.Bowl1 != 0 {
 		t.Errorf("expected Bowl1 = 0, got %d", ps.Bowl1)
 	}
 	if ps.Bowl2 != 0 {
-		t.Errorf("expected Bowl2 = 0, got %d", ps.Bowl2)
+		t.Errorf("expected Bowl2 = 0 (all moved to bowl 3), got %d", ps.Bowl2)
 	}
-	if ps.Bowl3 != 0 {
-		t.Errorf("expected Bowl3 = 0, got %d", ps.Bowl3)
+	if ps.Bowl3 != 12 {
+		t.Errorf("expected Bowl3 = 12 (9 + 3), got %d", ps.Bowl3)
 	}
 }
 
@@ -174,38 +176,81 @@ func TestCanBurn(t *testing.T) {
 	}
 }
 
-// This logic is wrong, please fix it.
 func TestPowerCycle(t *testing.T) {
 	// Test a full power cycle
 	ps := NewPowerSystem(5, 7, 0)
 	
-	// 1. Gain power (goes to Bowl 1)
+	// 1. Gain 3 power - since there's power in bowl 1, move from bowl 1 to bowl 2
 	ps.GainPower(3)
-	if ps.Bowl1 != 8 || ps.Bowl2 != 7 || ps.Bowl3 != 0 {
-		t.Errorf("after gain: expected (8,7,0), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
+	if ps.Bowl1 != 2 || ps.Bowl2 != 10 || ps.Bowl3 != 0 {
+		t.Errorf("after gain 3: expected (2,10,0), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
 	
-	// 2. Income phase (Bowl 1 → Bowl 2)
-	ps.IncomePhase()
-	if ps.Bowl1 != 0 || ps.Bowl2 != 15 || ps.Bowl3 != 0 {
-		t.Errorf("after income: expected (0,15,0), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
+	// 2. Gain 10 more power - move remaining 2 from bowl 1 to bowl 2, then 8 from bowl 2 to bowl 3
+	ps.GainPower(10)
+	if ps.Bowl1 != 0 || ps.Bowl2 != 4 || ps.Bowl3 != 8 {
+		t.Errorf("after gain 10: expected (0,4,8), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
 	
-	// 3. Cycle power (Bowl 2 → Bowl 3)
-	ps.CyclePower(10)
-	if ps.Bowl1 != 0 || ps.Bowl2 != 5 || ps.Bowl3 != 10 {
-		t.Errorf("after cycle: expected (0,5,10), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
-	}
-	
-	// 4. Spend power (Bowl 3 → Bowl 1)
+	// 3. Spend 6 power (Bowl 3 → Bowl 1)
 	ps.SpendPower(6)
-	if ps.Bowl1 != 6 || ps.Bowl2 != 5 || ps.Bowl3 != 4 {
-		t.Errorf("after spend: expected (6,5,4), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
+	if ps.Bowl1 != 6 || ps.Bowl2 != 4 || ps.Bowl3 != 2 {
+		t.Errorf("after spend 6: expected (6,4,2), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
+	}
+	
+	// 4. Gain 3 more power - move from bowl 1 to bowl 2
+	ps.GainPower(3)
+	if ps.Bowl1 != 3 || ps.Bowl2 != 7 || ps.Bowl3 != 2 {
+		t.Errorf("after gain 3 again: expected (3,7,2), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
 	
 	// Total power should remain constant
-	if ps.TotalPower() != 15 {
-		t.Errorf("total power should remain 15, got %d", ps.TotalPower())
+	if ps.TotalPower() != 12 {
+		t.Errorf("total power should remain 12, got %d", ps.TotalPower())
+	}
+}
+
+func TestGainPowerWithEmptyBowl1(t *testing.T) {
+	// No power in bowl 1, power goes from bowl 2 to bowl 3
+	ps := NewPowerSystem(0, 10, 2)
+	
+	gained := ps.GainPower(5)
+	
+	if gained != 5 {
+		t.Errorf("expected to gain 5 power, got %d", gained)
+	}
+	if ps.Bowl1 != 0 {
+		t.Errorf("expected Bowl1 = 0, got %d", ps.Bowl1)
+	}
+	if ps.Bowl2 != 5 {
+		t.Errorf("expected Bowl2 = 5 (10 - 5), got %d", ps.Bowl2)
+	}
+	if ps.Bowl3 != 7 {
+		t.Errorf("expected Bowl3 = 7 (2 + 5), got %d", ps.Bowl3)
+	}
+}
+
+func TestGainPowerMixedBowls(t *testing.T) {
+	// Some power in bowl 1, some in bowl 2
+	// Gaining more than bowl 1 should move all from bowl 1, then from bowl 2
+	// Start: (3, 8, 1)
+	// Gain 7: Move 3 from bowl 1 to bowl 2 → (0, 11, 1)
+	//         Then move 4 from bowl 2 to bowl 3 → (0, 7, 5)
+	ps := NewPowerSystem(3, 8, 1)
+	
+	gained := ps.GainPower(7)
+	
+	if gained != 7 {
+		t.Errorf("expected to gain 7 power, got %d", gained)
+	}
+	if ps.Bowl1 != 0 {
+		t.Errorf("expected Bowl1 = 0 (all moved), got %d", ps.Bowl1)
+	}
+	if ps.Bowl2 != 7 {
+		t.Errorf("expected Bowl2 = 7 (8 + 3 - 4), got %d", ps.Bowl2)
+	}
+	if ps.Bowl3 != 5 {
+		t.Errorf("expected Bowl3 = 5 (1 + 4), got %d", ps.Bowl3)
 	}
 }
 
