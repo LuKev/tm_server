@@ -301,25 +301,28 @@ func TestTransformAndBuild_IndirectAdjacency(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	player.Resources.Coins = 20
 	player.Resources.Workers = 20
-	player.ShippingLevel = 1 // Shipping level 1 allows indirect adjacency
+	player.ShippingLevel = 1 // Shipping level 1 allows indirect adjacency via river
 	
-	// Place initial dwelling at (0, 1)
+	// Base map layout (from map_indirect_base_test.go):
+	// Row 1: Desert(0,1), River(1,1), River(2,1), Plains(3,1), Swamp(4,1), ...
+	// Row 2: River(0,2), River(1,2), Swamp(1,2), River(3,2), Mountain(4,2), ...
+	//
+	// (0,1) Desert and (1,2) Swamp are indirectly adjacent with shipping=1
+	// via river path: (0,1) -> river neighbor -> (1,2)
+	
+	// Place initial dwelling at (0, 1) - Desert
 	initialHex := NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
-	// Try to build at (2, 1) which is NOT directly adjacent to (0,1)
-	// but IS indirectly adjacent with shipping level 1
-	// Direct neighbors of (0,1): (1,1), (0,2), (-1,2), (-1,1), (0,0), (1,0)
-	// (2,1) is distance 2 from (0,1), so requires shipping
-	targetHex := NewHex(2, 1)
-	// Ensure it needs transformation
-	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+	// Try to build at (1, 2) - Swamp
+	// This is indirectly adjacent to (0,1) with shipping level 1
+	targetHex := NewHex(1, 2)
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
 	err := action.Execute(gs)
 	if err != nil {
-		t.Fatalf("expected action to succeed with shipping level 1, got error: %v", err)
+		t.Fatalf("expected action to succeed with shipping level 1 (indirect adjacency), got error: %v", err)
 	}
 	
 	// Verify building was placed

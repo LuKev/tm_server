@@ -77,6 +77,9 @@ func (gs *GameState) GetPlayer(playerID string) *Player {
 }
 
 // IsAdjacentToPlayerBuilding checks if a hex is adjacent to any of the player's buildings
+// According to Terra Mystica rules, adjacency can be:
+// 1. Direct adjacency (shared edge or connected via bridge)
+// 2. Indirect adjacency (connected via river navigation with shipping)
 func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) bool {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
@@ -97,26 +100,19 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 		return true
 	}
 
-	// Check direct adjacency (distance 1)
-	neighbors := targetHex.Neighbors()
-	for _, neighbor := range neighbors {
-		mapHex := gs.Map.GetHex(neighbor)
-		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-			return true
-		}
-	}
-
-	// Check indirect adjacency via shipping
-	// Shipping level allows building at distance = shipping level + 1
-	// Level 0: distance 1 (direct neighbors only)
-	// Level 1: distance 2 (can skip one hex)
-	// Level 2: distance 3, etc.
-	if player.ShippingLevel > 0 {
-		maxDistance := player.ShippingLevel + 1
-		for _, mapHex := range gs.Map.Hexes {
-			if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-				distance := targetHex.Distance(mapHex.Coord)
-				if distance > 0 && distance <= maxDistance {
+	// Check adjacency to each of the player's buildings
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			buildingHex := mapHex.Coord
+			
+			// Check direct adjacency (includes bridges)
+			if gs.Map.IsDirectlyAdjacent(targetHex, buildingHex) {
+				return true
+			}
+			
+			// Check indirect adjacency via shipping (river navigation)
+			if player.ShippingLevel > 0 {
+				if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, player.ShippingLevel) {
 					return true
 				}
 			}
