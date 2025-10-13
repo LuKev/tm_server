@@ -7,6 +7,7 @@ go_library(
         "manager.go",
         "map.go",
         "power.go",
+        "resources.go",
         "state.go",
         "terraform.go",
         "terrain_layout.go",
@@ -15,6 +16,7 @@ go_library(
     importpath = "github.com/lukev/tm_server/internal/game",
     visibility = ["//:__subpackages__"],
     deps = [
+        "//internal/game/factions:factions",
         "//internal/models:models",
     ],
 )
@@ -27,11 +29,13 @@ go_test(
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",
         "power_test.go",
+        "resources_test.go",
         "terraform_test.go",
         "town_test.go",
     ],
     embed = [":game"],
     deps = [
+        "//internal/game/factions:factions",
         "//internal/models:models",
     ],
 )
