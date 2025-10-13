@@ -59,9 +59,14 @@ func (m *TerraMysticaMap) initializeBaseMap() {
     }
 }
 
-// GetHex returns the MapHex at the given coordinate, or nil if out of bounds
+// GetHex returns the MapHex at the given coordinates, or nil if not found
 func (m *TerraMysticaMap) GetHex(h Hex) *MapHex {
 	return m.Hexes[h]
+}
+
+// GetTerrainDistance returns the number of spades needed to transform from one terrain to another
+func (m *TerraMysticaMap) GetTerrainDistance(from, to models.TerrainType) int {
+	return TerrainDistance(from, to)
 }
 
 // IsValidHex checks if a hex coordinate is on the map

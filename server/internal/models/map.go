@@ -18,10 +18,10 @@ type MapHex struct {
 }
 
 type Building struct {
-	OwnerPlayerID string       `json:"ownerPlayerId"`
-	Faction       FactionType  `json:"faction"`
-	Type          BuildingType `json:"type"`
-	PowerValue    int          `json:"powerValue"` // Power value for town formation and leech
+	Type       BuildingType `json:"type"`
+	Faction    FactionType  `json:"faction"`
+	PlayerID   string       `json:"playerId"`
+	PowerValue int          `json:"powerValue"` // Power value for town formation and leech
 }
 
 type MapState struct {

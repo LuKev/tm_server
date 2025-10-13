@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library")
 go_library(
     name = "game",
     srcs = [
+        "actions.go",
         "hex.go",
         "manager.go",
         "map.go",
@@ -26,6 +27,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_test")
 go_test(
     name = "game_test",
     srcs = [
+        "action_transform_build_test.go",
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",
         "power_test.go",
