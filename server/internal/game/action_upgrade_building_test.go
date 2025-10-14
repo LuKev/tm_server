@@ -350,7 +350,7 @@ func TestUpgradeBuilding_PowerLeech(t *testing.T) {
 	gs.AddPlayer("player2", faction2)
 	
 	player1 := gs.GetPlayer("player1")
-	player2 := gs.GetPlayer("player2")
+	_ = gs.GetPlayer("player2") // player2 exists but we don't need to use it
 	
 	// Place player1's dwelling at (0, 1)
 	dwellingHex := NewHex(0, 1)
@@ -410,7 +410,7 @@ func TestUpgradeBuilding_PowerLeechMultipleBuildings(t *testing.T) {
 	gs.AddPlayer("player2", faction2)
 	
 	player1 := gs.GetPlayer("player1")
-	player2 := gs.GetPlayer("player2")
+	_ = gs.GetPlayer("player2") // player2 exists but we don't need to use it
 	
 	// Place player1's dwelling at (1, 2)
 	dwellingHex := NewHex(1, 2)

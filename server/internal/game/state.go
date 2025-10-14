@@ -20,6 +20,7 @@ type GameState struct {
 	TurnOrder          []string                      // Player IDs in turn order
 	CurrentPlayerIndex int                           // Index into TurnOrder
 	PassOrder          []string                      // Player IDs in the order they passed (for next round's turn order)
+	PowerActions       *PowerActionState             // Tracks which power actions have been used this round
 	PendingLeechOffers map[string][]*PowerLeechOffer // Key: playerID who can accept
 }
 
@@ -27,22 +28,38 @@ type GameState struct {
 type GamePhase int
 
 const (
-	PhaseSetup GamePhase = iota
-	PhaseAction
-	PhaseIncome
-	PhaseScoring
-	PhaseEnd
+	PhaseSetup   GamePhase = iota // Initial game setup
+	PhaseIncome                   // Players receive resources
+	PhaseAction                   // Players take actions
+	PhaseCleanup                  // End-of-round maintenance and scoring
+	PhaseEnd                      // Game over (after round 6)
+)
+
+// CultTrack represents the four cult tracks
+type CultTrack int
+
+const (
+	CultFire CultTrack = iota
+	CultWater
+	CultEarth
+	CultAir
 )
 
 // Player represents a player in the game
 type Player struct {
-	ID            string
-	Faction       factions.Faction
-	Resources     *ResourcePool
-	ShippingLevel int
-	DiggingLevel  int
-	HasPassed     bool
-	VictoryPoints int
+	ID                      string
+	Faction                 factions.Faction
+	Resources               *ResourcePool
+	ShippingLevel           int
+	DiggingLevel            int
+	BridgesBuilt            int // Number of bridges built (max 3)
+	CultPositions           map[CultTrack]int // Position on each cult track (0-10)
+	HasStrongholdAbility    bool // Whether the stronghold special ability is available
+	StrongholdAbilityUsed   bool // Whether the stronghold ability has been used this round
+	HasPassed               bool
+	VictoryPoints           int
+	// TODO: Track towns formed (for Witches +5 VP bonus per town, Swarmlings +3 workers per town)
+	// TODO: Track town tiles selected (for various bonuses)
 }
 
 // NewGameState creates a new game state with an initialized map
@@ -52,6 +69,7 @@ func NewGameState() *GameState {
 		Players:            make(map[string]*Player),
 		Round:              1,
 		Phase:              PhaseSetup,
+		PowerActions:       NewPowerActionState(),
 		PendingLeechOffers: make(map[string][]*PowerLeechOffer),
 	}
 }
@@ -68,8 +86,17 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 		Resources:     NewResourcePool(faction.GetStartingResources()),
 		ShippingLevel: 0,
 		DiggingLevel:  0,
-		HasPassed:     false,
-		VictoryPoints: 20, // Starting VP
+		BridgesBuilt:  0,
+		CultPositions: map[CultTrack]int{
+			CultFire:  0,
+			CultWater: 0,
+			CultEarth: 0,
+			CultAir:   0,
+		},
+		HasStrongholdAbility:  false,
+		StrongholdAbilityUsed: false,
+		HasPassed:             false,
+		VictoryPoints:         20, // Starting VP
 	}
 
 	gs.Players[playerID] = player
@@ -276,6 +303,7 @@ func (gs *GameState) NextTurn() bool {
 }
 
 // StartNewRound prepares the game for a new round
+// This transitions from PhaseCleanup (or PhaseSetup for round 1) to PhaseIncome
 func (gs *GameState) StartNewRound() {
 	gs.Round++
 	gs.CurrentPlayerIndex = 0
@@ -289,12 +317,44 @@ func (gs *GameState) StartNewRound() {
 	// Reset pass order for the new round
 	gs.PassOrder = []string{}
 	
-	// Reset all players' passed status
+	// Reset power actions for the new round
+	gs.PowerActions.ResetForNewRound()
+	
+	// Reset all players' passed status and stronghold ability usage
 	for _, player := range gs.Players {
 		player.HasPassed = false
+		player.StrongholdAbilityUsed = false
 	}
 	
+	// Start with income phase
+	gs.Phase = PhaseIncome
+}
+
+// StartIncomePhase transitions to the income phase
+func (gs *GameState) StartIncomePhase() {
+	gs.Phase = PhaseIncome
+	// TODO: Grant income to all players (implemented in income.go)
+}
+
+// StartActionPhase transitions to the action phase
+func (gs *GameState) StartActionPhase() {
 	gs.Phase = PhaseAction
+	gs.CurrentPlayerIndex = 0
+}
+
+// StartCleanupPhase transitions to the cleanup phase
+func (gs *GameState) StartCleanupPhase() {
+	gs.Phase = PhaseCleanup
+	// TODO: Execute cleanup logic (implemented in cleanup.go)
+	// - Cult track rewards
+	// - Add coins to bonus tiles
+	// - Check for game end
+}
+
+// EndGame transitions to the end game phase
+func (gs *GameState) EndGame() {
+	gs.Phase = PhaseEnd
+	// TODO: Calculate final scores (implemented in scoring.go)
 }
 
 // AllPlayersPassed checks if all players have passed
@@ -305,4 +365,9 @@ func (gs *GameState) AllPlayersPassed() bool {
 		}
 	}
 	return true
+}
+
+// IsGameOver checks if the game has ended (after round 6)
+func (gs *GameState) IsGameOver() bool {
+	return gs.Round > 6
 }

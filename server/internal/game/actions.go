@@ -292,7 +292,13 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		// Player cannot take a Favor tile they already have
 		break
 	case models.BuildingStronghold:
-		// TODO: Grant faction-specific special ability
+		// Grant stronghold special ability
+		player.HasStrongholdAbility = true
+		
+		// Auren gets an immediate favor tile when building stronghold
+		if player.Faction.GetType() == models.FactionAuren {
+			// TODO: Award 1 Favor tile immediately
+		}
 		break
 	}
 
@@ -513,88 +519,6 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 
 	// Advance digging
 	player.DiggingLevel++
-
-	return nil
-}
-
-// PowerActionType represents different power actions
-type PowerActionType int
-
-const (
-	PowerActionCoins PowerActionType = iota
-	PowerActionWorkers
-	PowerActionPriests
-)
-
-// PowerAction represents using power for resources
-type PowerAction struct {
-	BaseAction
-	PowerType PowerActionType
-	Amount    int // Amount of resource to gain
-}
-
-func NewPowerAction(playerID string, powerType PowerActionType, amount int) *PowerAction {
-	return &PowerAction{
-		BaseAction: BaseAction{
-			Type:     ActionPowerAction,
-			PlayerID: playerID,
-		},
-		PowerType: powerType,
-		Amount:    amount,
-	}
-}
-
-func (a *PowerAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
-	}
-
-	if a.Amount <= 0 {
-		return fmt.Errorf("amount must be positive")
-	}
-
-	// Check if player has enough power
-	var powerNeeded int
-	switch a.PowerType {
-	case PowerActionCoins:
-		powerNeeded = a.Amount // 1 power = 1 coin
-	case PowerActionWorkers:
-		powerNeeded = a.Amount * 3 // 3 power = 1 worker
-	case PowerActionPriests:
-		powerNeeded = a.Amount * 5 // 5 power = 1 priest
-	default:
-		return fmt.Errorf("invalid power action type")
-	}
-
-	if !player.Resources.Power.CanSpend(powerNeeded) {
-		return fmt.Errorf("not enough power: need %d, have %d", powerNeeded, player.Resources.Power.Bowl3)
-	}
-
-	return nil
-}
-
-func (a *PowerAction) Execute(gs *GameState) error {
-	if err := a.Validate(gs); err != nil {
-		return err
-	}
-
-	player := gs.GetPlayer(a.PlayerID)
-
-	// Execute the appropriate conversion
-	var err error
-	switch a.PowerType {
-	case PowerActionCoins:
-		err = player.Resources.ConvertPowerToCoins(a.Amount)
-	case PowerActionWorkers:
-		err = player.Resources.ConvertPowerToWorkers(a.Amount)
-	case PowerActionPriests:
-		err = player.Resources.ConvertPowerToPriests(a.Amount)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to execute power action: %w", err)
-	}
 
 	return nil
 }
