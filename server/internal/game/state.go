@@ -21,7 +21,18 @@ type GameState struct {
 	CurrentPlayerIndex int                           // Index into TurnOrder
 	PassOrder          []string                      // Player IDs in the order they passed (for next round's turn order)
 	PowerActions       *PowerActionState             // Tracks which power actions have been used this round
+	CultTracks         *CultTrackState               // Tracks all players' cult track positions
+	FavorTiles         *FavorTileState               // Tracks available favor tiles and player selections
+	BonusCards         *BonusCardState               // Tracks available bonus cards and player selections
+	TownTiles          *TownTileState                // Tracks available town tiles
 	PendingLeechOffers map[string][]*PowerLeechOffer // Key: playerID who can accept
+	PendingTownFormations map[string]*PendingTownFormation // Key: playerID who can form town
+}
+
+// PendingTownFormation represents a town that can be formed but awaits tile selection
+type PendingTownFormation struct {
+	PlayerID string
+	Hexes    []Hex // The connected buildings that form the town
 }
 
 // GamePhase represents the current phase of the game
@@ -55,22 +66,28 @@ type Player struct {
 	BridgesBuilt            int // Number of bridges built (max 3)
 	CultPositions           map[CultTrack]int // Position on each cult track (0-10)
 	HasStrongholdAbility    bool // Whether the stronghold special ability is available
-	StrongholdAbilityUsed   bool // Whether the stronghold ability has been used this round
+	SpecialActionsUsed      map[SpecialActionType]bool // Track which special actions have been used this round
 	HasPassed               bool
 	VictoryPoints           int
-	// TODO: Track towns formed (for Witches +5 VP bonus per town, Swarmlings +3 workers per town)
-	// TODO: Track town tiles selected (for various bonuses)
+	Keys                    int // Keys for advancing to position 10 on cult tracks
+	TownsFormed             int // Number of towns formed
+	TownTiles               []TownTileType // Town tiles selected by this player
 }
 
 // NewGameState creates a new game state with an initialized map
 func NewGameState() *GameState {
 	return &GameState{
-		Map:                NewTerraMysticaMap(),
-		Players:            make(map[string]*Player),
-		Round:              1,
-		Phase:              PhaseSetup,
-		PowerActions:       NewPowerActionState(),
-		PendingLeechOffers: make(map[string][]*PowerLeechOffer),
+		Map:                   NewTerraMysticaMap(),
+		Players:               make(map[string]*Player),
+		Round:                 1,
+		Phase:                 PhaseSetup,
+		PowerActions:          NewPowerActionState(),
+		CultTracks:            NewCultTrackState(),
+		FavorTiles:            NewFavorTileState(),
+		BonusCards:            NewBonusCardState(),
+		TownTiles:             NewTownTileState(),
+		PendingLeechOffers:    make(map[string][]*PowerLeechOffer),
+		PendingTownFormations: make(map[string]*PendingTownFormation),
 	}
 }
 
@@ -94,18 +111,55 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 			CultAir:   0,
 		},
 		HasStrongholdAbility:  false,
-		StrongholdAbilityUsed: false,
+		SpecialActionsUsed:    make(map[SpecialActionType]bool),
 		HasPassed:             false,
 		VictoryPoints:         20, // Starting VP
+		Keys:                  0,
+		TownsFormed:           0,
+		TownTiles:             []TownTileType{},
 	}
 
 	gs.Players[playerID] = player
+	
+	// Initialize cult track positions for this player
+	gs.CultTracks.InitializePlayer(playerID)
+	
+	// Initialize favor tiles for this player
+	gs.FavorTiles.InitializePlayer(playerID)
+	
+	// Initialize bonus cards for this player
+	gs.BonusCards.InitializePlayer(playerID)
+	
 	return nil
 }
 
 // GetPlayer returns a player by ID
 func (gs *GameState) GetPlayer(playerID string) *Player {
 	return gs.Players[playerID]
+}
+
+// SelectTownTile allows a player to select a town tile for their pending town formation
+func (gs *GameState) SelectTownTile(playerID string, tileType TownTileType) error {
+	// Check if player has a pending town formation
+	pending, ok := gs.PendingTownFormations[playerID]
+	if !ok || pending == nil {
+		return fmt.Errorf("no pending town formation for player %s", playerID)
+	}
+	
+	// Check if tile is available
+	if !gs.TownTiles.IsAvailable(tileType) {
+		return fmt.Errorf("town tile %v is not available", tileType)
+	}
+	
+	// Form the town with the selected tile
+	if err := gs.FormTown(playerID, pending.Hexes, tileType); err != nil {
+		return err
+	}
+	
+	// Remove pending town formation
+	delete(gs.PendingTownFormations, playerID)
+	
+	return nil
 }
 
 // IsAdjacentToPlayerBuilding checks if a hex is adjacent to any of the player's buildings
@@ -320,10 +374,10 @@ func (gs *GameState) StartNewRound() {
 	// Reset power actions for the new round
 	gs.PowerActions.ResetForNewRound()
 	
-	// Reset all players' passed status and stronghold ability usage
+	// Reset all players' passed status and special action usage
 	for _, player := range gs.Players {
 		player.HasPassed = false
-		player.StrongholdAbilityUsed = false
+		player.SpecialActionsUsed = make(map[SpecialActionType]bool)
 	}
 	
 	// Start with income phase

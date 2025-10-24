@@ -4,6 +4,9 @@ go_library(
     name = "game",
     srcs = [
         "actions.go",
+        "bonus_cards.go",
+        "cult.go",
+        "favor.go",
         "hex.go",
         "income.go",
         "manager.go",
@@ -30,8 +33,13 @@ load("@io_bazel_rules_go//go:def.bzl", "go_test")
 go_test(
     name = "game_test",
     srcs = [
+        "action_scoring_test.go",
         "action_transform_build_test.go",
         "action_upgrade_building_test.go",
+        "bonus_card_income_test.go",
+        "bonus_card_scoring_test.go",
+        "cult_test.go",
+        "favor_test.go",
         "income_test.go",
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",

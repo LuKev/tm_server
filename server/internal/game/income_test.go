@@ -484,3 +484,53 @@ func TestGrantIncome_AppliesCorrectly(t *testing.T) {
 		t.Errorf("expected %d power in bowl 2, got %d", expectedBowl2, player.Resources.Power.Bowl2)
 	}
 }
+
+func TestIncome_WithFavorTiles(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Set up initial resources
+	player.Resources.Coins = 10
+	player.Resources.Workers = 5
+	player.Resources.Priests = 2
+	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl2 = 0
+	player.Resources.Power.Bowl3 = 0
+
+	// Give player favor tiles: Fire+1 (3 coins), Earth+2 (1 worker, 1 power), Air+2 (4 power)
+	gs.FavorTiles.TakeFavorTile("player1", FavorFire1)
+	gs.FavorTiles.TakeFavorTile("player1", FavorEarth2)
+	gs.FavorTiles.TakeFavorTile("player1", FavorAir2)
+
+	// Grant income
+	gs.GrantIncome()
+
+	// Expected income:
+	// Base income (Auren): 1 worker
+	// Favor tiles: +3 coins (Fire+1), +1 worker (Earth+2), +5 power (Earth+2 + Air+2)
+	// Total: +3 coins, +2 workers, +5 power
+
+	expectedCoins := 10 + 3
+	expectedWorkers := 5 + 1 + 1 // Base 1 + Earth+2 1
+	expectedPriests := 2
+	expectedBowl1 := 20 - 5
+	expectedBowl2 := 0 + 5
+
+	if player.Resources.Coins != expectedCoins {
+		t.Errorf("expected %d coins, got %d", expectedCoins, player.Resources.Coins)
+	}
+	if player.Resources.Workers != expectedWorkers {
+		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
+	}
+	if player.Resources.Priests != expectedPriests {
+		t.Errorf("expected %d priests, got %d", expectedPriests, player.Resources.Priests)
+	}
+	if player.Resources.Power.Bowl1 != expectedBowl1 {
+		t.Errorf("expected %d power in bowl 1, got %d", expectedBowl1, player.Resources.Power.Bowl1)
+	}
+	if player.Resources.Power.Bowl2 != expectedBowl2 {
+		t.Errorf("expected %d power in bowl 2, got %d", expectedBowl2, player.Resources.Power.Bowl2)
+	}
+}

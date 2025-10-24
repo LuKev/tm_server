@@ -49,8 +49,8 @@ func TestAurenCultAdvance_Basic(t *testing.T) {
 	}
 	
 	// Verify ability is marked as used
-	if !player.StrongholdAbilityUsed {
-		t.Error("expected stronghold ability to be marked as used")
+	if !player.SpecialActionsUsed[SpecialActionAurenCultAdvance] {
+		t.Error("expected Auren cult advance to be marked as used")
 	}
 }
 
@@ -223,8 +223,8 @@ func TestWitchesRide_Basic(t *testing.T) {
 	}
 	
 	// Verify ability is marked as used
-	if !player.StrongholdAbilityUsed {
-		t.Error("expected stronghold ability to be marked as used")
+	if !player.SpecialActionsUsed[SpecialActionWitchesRide] {
+		t.Error("expected Witches' Ride to be marked as used")
 	}
 }
 
@@ -422,8 +422,8 @@ func TestSwarmlingsUpgrade_Basic(t *testing.T) {
 	}
 	
 	// Verify ability is marked as used
-	if !player.StrongholdAbilityUsed {
-		t.Error("expected stronghold ability to be marked as used")
+	if !player.SpecialActionsUsed[SpecialActionSwarmlingsUpgrade] {
+		t.Error("expected Swarmlings upgrade to be marked as used")
 	}
 }
 

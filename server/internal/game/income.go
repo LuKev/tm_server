@@ -50,8 +50,21 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Priests += buildingIncome.Priests
 	income.Power += buildingIncome.Power
 
-	// 3. Income from bonus tiles
-	// TODO: Implement bonus tile income (Phase 7)
+	// 3. Income from favor tiles
+	playerTiles := gs.FavorTiles.GetPlayerTiles(player.ID)
+	favorCoins, favorWorkers, favorPower := GetFavorTileIncomeBonus(playerTiles)
+	income.Coins += favorCoins
+	income.Workers += favorWorkers
+	income.Power += favorPower
+
+	// 4. Income from bonus cards
+	if bonusCard, ok := gs.BonusCards.GetPlayerCard(player.ID); ok {
+		bonusCoins, bonusWorkers, bonusPriests, bonusPower := GetBonusCardIncomeBonus(bonusCard)
+		income.Coins += bonusCoins
+		income.Workers += bonusWorkers
+		income.Priests += bonusPriests
+		income.Power += bonusPower
+	}
 
 	return income
 }

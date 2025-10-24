@@ -14,6 +14,7 @@ const (
 	ActionUpgradeBuilding
 	ActionAdvanceShipping
 	ActionAdvanceDigging
+	ActionSendPriestToCult
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
@@ -178,10 +179,26 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		}
 		mapHex.Building = dwelling
 
+		// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
+		playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
+		if HasFavorTile(playerTiles, FavorEarth1) {
+			player.VictoryPoints += 2
+		}
+
 		// TODO: Award VP if current scoring tile rewards dwellings
 
 		// Trigger power leech for adjacent players
 		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
+		
+		// Check for town formation after building dwelling
+		connected := gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+		if connected != nil {
+			// Town can be formed - create pending town formation
+			gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
+				PlayerID: a.PlayerID,
+				Hexes:    connected,
+			}
+		}
 	}
 
 	return nil
@@ -286,16 +303,29 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 
 	// Handle special rewards based on upgrade type
 	switch a.NewBuildingType {
+	case models.BuildingTradingHouse:
+		// Award VP from Water+1 favor tile (+3 VP when upgrading Dwelling→Trading House)
+		playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
+		if HasFavorTile(playerTiles, FavorWater1) {
+			player.VictoryPoints += 3
+		}
+		break
 	case models.BuildingTemple, models.BuildingSanctuary:
-		// TODO: Award Favor tile(s)
-		// Chaos Magicians get 2 tiles instead of 1
-		// Player cannot take a Favor tile they already have
+		// Player must select a Favor tile
+		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
+		// This will be handled by a separate action/prompt system
+		// For now, we just note that favor tile selection is pending
+		// Number of tiles to select:
+		//   - Chaos Magicians: 2 favor tiles
+		//   - All other factions: 1 favor tile
+		// TODO: Implement favor tile selection prompt/action (Phase 7+)
 		break
 	case models.BuildingStronghold:
 		// Grant stronghold special ability
 		player.HasStrongholdAbility = true
 		
 		// Auren gets an immediate favor tile when building stronghold
+		// TODO: Implement favor tile selection prompt/action for Auren
 		if player.Faction.GetType() == models.FactionAuren {
 			// TODO: Award 1 Favor tile immediately
 		}
@@ -309,6 +339,16 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 
 	// Trigger power leech when upgrading (adjacent players leech based on their adjacent buildings)
 	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
+	
+	// Check for town formation after upgrading
+	connected := gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+	if connected != nil {
+		// Town can be formed - create pending town formation
+		gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
+			PlayerID: a.PlayerID,
+			Hexes:    connected,
+		}
+	}
 
 	return nil
 }
@@ -526,16 +566,16 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 // PassAction represents passing for the round
 type PassAction struct {
 	BaseAction
-	BonusCardID string // Optional bonus card selection
+	BonusCard *BonusCardType // Bonus card selection (required)
 }
 
-func NewPassAction(playerID string, bonusCardID string) *PassAction {
+func NewPassAction(playerID string, bonusCard *BonusCardType) *PassAction {
 	return &PassAction{
 		BaseAction: BaseAction{
 			Type:     ActionPass,
 			PlayerID: playerID,
 		},
-		BonusCardID: bonusCardID,
+		BonusCard: bonusCard,
 	}
 }
 
@@ -549,7 +589,14 @@ func (a *PassAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player has already passed")
 	}
 
-	// TODO: Validate bonus card selection
+	// Validate bonus card selection
+	if a.BonusCard == nil {
+		return fmt.Errorf("bonus card selection is required when passing")
+	}
+
+	if !gs.BonusCards.IsAvailable(*a.BonusCard) {
+		return fmt.Errorf("bonus card %v is not available", *a.BonusCard)
+	}
 
 	return nil
 }
@@ -565,7 +612,101 @@ func (a *PassAction) Execute(gs *GameState) error {
 	// Record pass order (determines turn order for next round)
 	gs.PassOrder = append(gs.PassOrder, a.PlayerID)
 
-	// TODO: Handle bonus card selection and benefits
+	// Take bonus card and get coins from it
+	coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
+	if err != nil {
+		return fmt.Errorf("failed to take bonus card: %w", err)
+	}
+	player.Resources.Coins += coins
+
+	// Award VP from Air+1 favor tile (VP based on Trading House count)
+	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
+	if HasFavorTile(playerTiles, FavorAir1) {
+		// Count trading houses on the map
+		tradingHouseCount := 0
+		for _, mapHex := range gs.Map.Hexes {
+			if mapHex.Building != nil && 
+			   mapHex.Building.PlayerID == a.PlayerID && 
+			   mapHex.Building.Type == models.BuildingTradingHouse {
+				tradingHouseCount++
+			}
+		}
+		
+		vp := GetAir1PassVP(playerTiles, tradingHouseCount)
+		player.VictoryPoints += vp
+	}
+
+	// Award VP from bonus card (based on buildings/shipping)
+	bonusVP := GetBonusCardPassVP(*a.BonusCard, gs, a.PlayerID)
+	player.VictoryPoints += bonusVP
+
+	return nil
+}
+
+// SendPriestToCultAction represents sending a priest to a cult track
+type SendPriestToCultAction struct {
+	BaseAction
+	Track         CultTrack
+	UsePriestSlot bool // If true, priest is placed on board (2 or 3 spaces). If false, returns to supply (1 space)
+	SlotValue     int  // 2 or 3, only used if UsePriestSlot is true
+}
+
+func (a *SendPriestToCultAction) GetType() ActionType {
+	return ActionSendPriestToCult
+}
+
+func (a *SendPriestToCultAction) Validate(gs *GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+
+	// Check if player has passed
+	if player.HasPassed {
+		return fmt.Errorf("player has already passed")
+	}
+
+	// Check if player has a priest available
+	if player.Resources.Priests < 1 {
+		return fmt.Errorf("no priests available")
+	}
+
+	// Validate slot value if using priest slot
+	if a.UsePriestSlot {
+		if a.SlotValue != 2 && a.SlotValue != 3 {
+			return fmt.Errorf("invalid priest slot value: %d (must be 2 or 3)", a.SlotValue)
+		}
+		
+		// TODO: Check if the specific priest slot is available (not already occupied)
+		// For now, we'll allow it - this can be tracked in CultTrackState if needed
+	}
+
+	return nil
+}
+
+func (a *SendPriestToCultAction) Execute(gs *GameState) error {
+	if err := a.Validate(gs); err != nil {
+		return err
+	}
+
+	player := gs.GetPlayer(a.PlayerID)
+
+	// Determine how many spaces to advance
+	spacesToAdvance := 1 // Default: return priest to supply
+	if a.UsePriestSlot {
+		spacesToAdvance = a.SlotValue // 2 or 3 spaces
+	}
+
+	// Remove priest from player's supply
+	player.Resources.Priests--
+
+	// Advance on cult track (with bonus power at milestones)
+	// Note: It's valid to sacrifice a priest even if you can't advance (no refund)
+	// Position 10 requires a key (checked in AdvancePlayer)
+	gs.CultTracks.AdvancePlayer(a.PlayerID, a.Track, spacesToAdvance, player)
+
+	// Note: If UsePriestSlot is true, the priest is permanently placed on the board
+	// If false, the priest is returned to supply (already handled by not placing it)
 
 	return nil
 }

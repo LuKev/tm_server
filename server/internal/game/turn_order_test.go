@@ -17,24 +17,33 @@ func TestTurnOrder_PassOrderDeterminesNextRound(t *testing.T) {
 	gs.AddPlayer("player2", faction2)
 	gs.AddPlayer("player3", faction3)
 	
+	// Set up bonus cards for the game (3 players + 3 = 6 cards)
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
+		BonusCard6Coins, BonusCardPriest, BonusCardWorkerPower,
+		BonusCardDwellingVP, BonusCardTradingHouseVP, BonusCardSpade,
+	})
+	
 	// Set initial turn order
 	gs.TurnOrder = []string{"player1", "player2", "player3"}
 	gs.CurrentPlayerIndex = 0
 	
 	// Players pass in order: player2, player3, player1
-	pass2 := NewPassAction("player2", "")
+	bonusCard := BonusCard6Coins
+	pass2 := NewPassAction("player2", &bonusCard)
 	err := pass2.Execute(gs)
 	if err != nil {
 		t.Fatalf("player2 pass failed: %v", err)
 	}
 	
-	pass3 := NewPassAction("player3", "")
+	bonusCard2 := BonusCardPriest
+	pass3 := NewPassAction("player3", &bonusCard2)
 	err = pass3.Execute(gs)
 	if err != nil {
 		t.Fatalf("player3 pass failed: %v", err)
 	}
 	
-	pass1 := NewPassAction("player1", "")
+	bonusCard3 := BonusCardWorkerPower
+	pass1 := NewPassAction("player1", &bonusCard3)
 	err = pass1.Execute(gs)
 	if err != nil {
 		t.Fatalf("player1 pass failed: %v", err)
@@ -130,11 +139,17 @@ func TestTurnOrder_SkipsPassedPlayers(t *testing.T) {
 	gs.AddPlayer("player2", faction2)
 	gs.AddPlayer("player3", faction3)
 	
+	// Set up bonus cards
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
+		BonusCard6Coins, BonusCardPriest, BonusCardWorkerPower,
+	})
+	
 	gs.TurnOrder = []string{"player1", "player2", "player3"}
 	gs.CurrentPlayerIndex = 0
 	
 	// Player2 passes
-	pass2 := NewPassAction("player2", "")
+	bonusCard := BonusCard6Coins
+	pass2 := NewPassAction("player2", &bonusCard)
 	err := pass2.Execute(gs)
 	if err != nil {
 		t.Fatalf("player2 pass failed: %v", err)
@@ -162,6 +177,11 @@ func TestTurnOrder_AllPlayersPassed(t *testing.T) {
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
+	// Set up bonus cards
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
+		BonusCardPriest, BonusCardWorkerPower,
+	})
+	
 	gs.TurnOrder = []string{"player1", "player2"}
 	
 	// Initially, not all players have passed
@@ -170,7 +190,8 @@ func TestTurnOrder_AllPlayersPassed(t *testing.T) {
 	}
 	
 	// Player1 passes
-	pass1 := NewPassAction("player1", "")
+	bonusCard1 := BonusCardPriest
+	pass1 := NewPassAction("player1", &bonusCard1)
 	pass1.Execute(gs)
 	
 	// Still not all passed
@@ -179,7 +200,8 @@ func TestTurnOrder_AllPlayersPassed(t *testing.T) {
 	}
 	
 	// Player2 passes
-	pass2 := NewPassAction("player2", "")
+	bonusCard2 := BonusCardWorkerPower
+	pass2 := NewPassAction("player2", &bonusCard2)
 	pass2.Execute(gs)
 	
 	// Now all have passed

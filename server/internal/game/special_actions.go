@@ -81,6 +81,9 @@ const (
 	SpecialActionChaosMagiciansDoubleTurn
 	SpecialActionGiantsTransform
 	SpecialActionNomadsSandstorm
+	SpecialActionWater2CultAdvance      // Water+2 favor tile: Advance 1 on any cult track
+	SpecialActionBonusCardSpade         // Bonus card: 1 free spade
+	SpecialActionBonusCardCultAdvance   // Bonus card: Advance 1 on any cult track
 	// TODO: Add other faction special actions
 )
 
@@ -194,14 +197,31 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	// Check if player has stronghold ability
-	if !player.HasStrongholdAbility {
-		return fmt.Errorf("player does not have stronghold special ability")
+	// Check if this specific special action has already been used this round
+	if player.SpecialActionsUsed[a.ActionType] {
+		return fmt.Errorf("special action %v already used this round", a.ActionType)
 	}
 
-	// Check if ability has already been used this round
-	if player.StrongholdAbilityUsed {
-		return fmt.Errorf("stronghold special ability already used this round")
+	// Stronghold actions require the stronghold ability
+	strongholdActions := []SpecialActionType{
+		SpecialActionAurenCultAdvance,
+		SpecialActionWitchesRide,
+		SpecialActionSwarmlingsUpgrade,
+		SpecialActionChaosMagiciansDoubleTurn,
+		SpecialActionGiantsTransform,
+		SpecialActionNomadsSandstorm,
+	}
+	
+	isStrongholdAction := false
+	for _, sa := range strongholdActions {
+		if a.ActionType == sa {
+			isStrongholdAction = true
+			break
+		}
+	}
+	
+	if isStrongholdAction && !player.HasStrongholdAbility {
+		return fmt.Errorf("player does not have stronghold special ability")
 	}
 
 	switch a.ActionType {
@@ -217,6 +237,12 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateGiantsTransform(gs, player)
 	case SpecialActionNomadsSandstorm:
 		return a.validateNomadsSandstorm(gs, player)
+	case SpecialActionWater2CultAdvance:
+		return a.validateWater2CultAdvance(gs, player)
+	case SpecialActionBonusCardSpade:
+		return a.validateBonusCardSpade(gs, player)
+	case SpecialActionBonusCardCultAdvance:
+		return a.validateBonusCardCultAdvance(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -414,6 +440,61 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 	return nil
 }
 
+func (a *SpecialAction) validateWater2CultAdvance(gs *GameState, player *Player) error {
+	// Check if player has Water+2 favor tile
+	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
+	if !HasFavorTile(playerTiles, FavorWater2) {
+		return fmt.Errorf("player does not have Water+2 favor tile")
+	}
+
+	if a.CultTrack == nil {
+		return fmt.Errorf("cult track must be specified")
+	}
+
+	return nil
+}
+
+func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) error {
+	// Check if player has the spade bonus card
+	if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardSpade {
+		return fmt.Errorf("player does not have the spade bonus card")
+	}
+
+	// Validate the transform action (hex must exist, be empty or transformable, etc.)
+	if a.TargetHex == nil {
+		return fmt.Errorf("target hex must be specified")
+	}
+
+	mapHex := gs.Map.GetHex(*a.TargetHex)
+	if mapHex == nil {
+		return fmt.Errorf("hex does not exist: %v", a.TargetHex)
+	}
+
+	if mapHex.Building != nil {
+		return fmt.Errorf("hex already has a building")
+	}
+
+	// Check adjacency
+	if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
+		return fmt.Errorf("hex is not adjacent to player's buildings")
+	}
+
+	return nil
+}
+
+func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState, player *Player) error {
+	// Check if player has the cult advance bonus card
+	if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardCultAdvance {
+		return fmt.Errorf("player does not have the cult advance bonus card")
+	}
+
+	if a.CultTrack == nil {
+		return fmt.Errorf("cult track must be specified")
+	}
+
+	return nil
+}
+
 func (a *SpecialAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -421,8 +502,8 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 
-	// Mark ability as used
-	player.StrongholdAbilityUsed = true
+	// Mark this specific special action as used
+	player.SpecialActionsUsed[a.ActionType] = true
 
 	switch a.ActionType {
 	case SpecialActionAurenCultAdvance:
@@ -437,6 +518,12 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		return a.executeGiantsTransform(gs, player)
 	case SpecialActionNomadsSandstorm:
 		return a.executeNomadsSandstorm(gs, player)
+	case SpecialActionWater2CultAdvance:
+		return a.executeWater2CultAdvance(gs, player)
+	case SpecialActionBonusCardSpade:
+		return a.executeBonusCardSpade(gs, player)
+	case SpecialActionBonusCardCultAdvance:
+		return a.executeBonusCardCultAdvance(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -591,6 +678,75 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 		// Trigger power leech
 		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
 	}
+
+	return nil
+}
+
+func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) error {
+	// Advance 1 space on the chosen cult track
+	// This uses the cult track system which handles power bonuses automatically
+	gs.CultTracks.AdvancePlayer(a.PlayerID, *a.CultTrack, 1, player)
+
+	return nil
+}
+
+func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) error {
+	mapHex := gs.Map.GetHex(*a.TargetHex)
+
+	// Get 1 free spade to transform terrain
+	// Calculate terraform cost (but we get 1 free spade)
+	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
+	if distance == 0 {
+		return fmt.Errorf("terrain distance calculation failed")
+	}
+
+	totalWorkers := player.Faction.GetTerraformCost(distance)
+	
+	// Subtract 1 for the free spade (minimum 0)
+	workersNeeded := totalWorkers - 1
+	if workersNeeded < 0 {
+		workersNeeded = 0
+	}
+
+	// Pay remaining workers if needed
+	if workersNeeded > 0 {
+		if player.Resources.Workers < workersNeeded {
+			return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+		}
+		player.Resources.Workers -= workersNeeded
+	}
+
+	// Transform terrain to home terrain
+	if err := gs.Map.TransformTerrain(*a.TargetHex, player.Faction.GetHomeTerrain()); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
+
+	// Optionally build dwelling if requested
+	if a.BuildDwelling {
+		dwellingCost := player.Faction.GetDwellingCost()
+		if err := player.Resources.Spend(dwellingCost); err != nil {
+			return fmt.Errorf("failed to pay for dwelling: %w", err)
+		}
+
+		dwelling := &models.Building{
+			Type:       models.BuildingDwelling,
+			Faction:    player.Faction.GetType(),
+			PlayerID:   a.PlayerID,
+			PowerValue: 1,
+		}
+		mapHex.Building = dwelling
+
+		// Trigger power leech
+		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
+	}
+
+	return nil
+}
+
+func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState, player *Player) error {
+	// Advance 1 space on the chosen cult track (free)
+	// This uses the cult track system which handles power bonuses automatically
+	gs.CultTracks.AdvancePlayer(a.PlayerID, *a.CultTrack, 1, player)
 
 	return nil
 }

@@ -16,9 +16,10 @@ type TerraMysticaMap struct {
 
 // MapHex represents a single hex on the map
 type MapHex struct {
-	Coord    Hex
-	Terrain  models.TerrainType
-	Building *models.Building // nil if no building
+	Coord      Hex
+	Terrain    models.TerrainType
+	Building   *models.Building // nil if no building
+	PartOfTown bool             // true if this building is part of a town
 }
 
 // BridgeKey represents a bridge between two hexes (order-independent)

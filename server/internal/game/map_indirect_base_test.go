@@ -2,6 +2,9 @@ package game
 
 import (
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // These tests use the BaseGameTerrainLayout via NewTerraMysticaMap()
@@ -246,5 +249,120 @@ func TestIndirectAdjacency_CrossMapShipping(t *testing.T) {
 	// With shipping 5 should not reach
 	if ok := m.IsIndirectlyAdjacent(d5, i10, 5); ok {
 		t.Fatalf("expected shipping=5 to NOT reach from %v to %v", d5, i10)
+	}
+}
+
+func TestBonusCard_ShippingBonus_IndirectAdjacency(t *testing.T) {
+	gs := NewGameState()
+	
+	// Add player with shipping level 1
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	player.ShippingLevel = 1
+	
+	// Set up bonus cards and give player the Shipping bonus card
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShipping})
+	bonusCard := BonusCardShipping
+	gs.BonusCards.TakeBonusCard("player1", bonusCard)
+	
+	// Place a building at b1 (Desert)
+	b1 := NewHex(0, 1)
+	gs.Map.GetHex(b1).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(b1).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+	
+	// b2 is Plains, requires shipping=2 to reach from b1
+	b2 := NewHex(3, 1)
+	
+	// Without bonus card, shipping level 1 should NOT reach b2 from b1
+	if gs.IsAdjacentToPlayerBuilding(b2, "player1") {
+		t.Fatal("expected b2 to NOT be adjacent with base shipping=1")
+	}
+	
+	// Get effective shipping level with bonus card
+	if bonusCardType, ok := gs.BonusCards.GetPlayerCard("player1"); ok {
+		shippingBonus := GetBonusCardShippingBonus(bonusCardType, player.Faction.GetType())
+		effectiveShipping := player.ShippingLevel + shippingBonus
+		
+		// With bonus card, effective shipping should be 2
+		if effectiveShipping != 2 {
+			t.Errorf("expected effective shipping=2 with bonus card, got %d", effectiveShipping)
+		}
+		
+		// Now check if b2 is reachable with effective shipping level
+		if !gs.Map.IsIndirectlyAdjacent(b1, b2, effectiveShipping) {
+			t.Fatal("expected b2 to be indirectly adjacent with effective shipping=2")
+		}
+	} else {
+		t.Fatal("player should have bonus card")
+	}
+}
+
+func TestBonusCard_ShippingBonus_DwarvesNoEffect(t *testing.T) {
+	gs := NewGameState()
+	
+	// Add Dwarves player with shipping level 1
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	player.ShippingLevel = 1
+	
+	// Set up bonus cards and give player the Shipping bonus card
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShipping})
+	bonusCard := BonusCardShipping
+	gs.BonusCards.TakeBonusCard("player1", bonusCard)
+	
+	// Get effective shipping level with bonus card
+	if bonusCardType, ok := gs.BonusCards.GetPlayerCard("player1"); ok {
+		shippingBonus := GetBonusCardShippingBonus(bonusCardType, player.Faction.GetType())
+		effectiveShipping := player.ShippingLevel + shippingBonus
+		
+		// Dwarves should NOT benefit from shipping bonus
+		if effectiveShipping != 1 {
+			t.Errorf("expected effective shipping=1 for Dwarves (no bonus), got %d", effectiveShipping)
+		}
+		
+		if shippingBonus != 0 {
+			t.Errorf("expected shipping bonus=0 for Dwarves, got %d", shippingBonus)
+		}
+	} else {
+		t.Fatal("player should have bonus card")
+	}
+}
+
+func TestBonusCard_ShippingBonus_FakirsNoEffect(t *testing.T) {
+	gs := NewGameState()
+	
+	// Add Fakirs player with shipping level 1
+	faction := factions.NewFakirs()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	player.ShippingLevel = 1
+	
+	// Set up bonus cards and give player the Shipping bonus card
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShipping})
+	bonusCard := BonusCardShipping
+	gs.BonusCards.TakeBonusCard("player1", bonusCard)
+	
+	// Get effective shipping level with bonus card
+	if bonusCardType, ok := gs.BonusCards.GetPlayerCard("player1"); ok {
+		shippingBonus := GetBonusCardShippingBonus(bonusCardType, player.Faction.GetType())
+		effectiveShipping := player.ShippingLevel + shippingBonus
+		
+		// Fakirs should NOT benefit from shipping bonus
+		if effectiveShipping != 1 {
+			t.Errorf("expected effective shipping=1 for Fakirs (no bonus), got %d", effectiveShipping)
+		}
+		
+		if shippingBonus != 0 {
+			t.Errorf("expected shipping bonus=0 for Fakirs, got %d", shippingBonus)
+		}
+	} else {
+		t.Fatal("player should have bonus card")
 	}
 }
