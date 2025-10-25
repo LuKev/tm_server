@@ -1162,6 +1162,188 @@ func TestEngineers_BridgePowerAction(t *testing.T) {
 	}
 }
 
+func TestBridge_ValidGeometry_BaseOrientation(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Test base orientation: delta (1,-2) with midpoints (0,-1) and (1,-1)
+	// This is the canonical valid bridge pattern
+	hex1 := NewHex(0, 0)
+	river1 := NewHex(0, -1)
+	river2 := NewHex(1, -1)
+	hex2 := NewHex(1, -2)
+	
+	// Set up map
+	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.RiverHexes[river1] = true
+	gs.Map.RiverHexes[river2] = true
+	
+	// Build bridge
+	player.Resources.Power.Bowl3 = 3
+	action := NewPowerActionWithBridge("player1", hex1, hex2)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("valid bridge should succeed: %v", err)
+	}
+	
+	// Verify bridge exists
+	if !gs.Map.HasBridge(hex1, hex2) {
+		t.Error("bridge should exist on map")
+	}
+	
+	// Verify hexes are now considered adjacent
+	if !gs.Map.IsDirectlyAdjacent(hex1, hex2) {
+		t.Error("hexes should be adjacent via bridge")
+	}
+}
+
+func TestBridge_ValidGeometry_BidirectionalBridge(t *testing.T) {
+	// Bridges are bidirectional - can be built in either direction
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	hex1 := NewHex(0, 0)
+	river1 := NewHex(0, -1)
+	river2 := NewHex(1, -1)
+	hex2 := NewHex(1, -2)
+	
+	// Set up map
+	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.RiverHexes[river1] = true
+	gs.Map.RiverHexes[river2] = true
+	
+	// Build bridge in reverse direction (hex2 to hex1)
+	player.Resources.Power.Bowl3 = 3
+	action := NewPowerActionWithBridge("player1", hex2, hex1)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("bridge should work in both directions: %v", err)
+	}
+	
+	// Verify bridge exists (should work both ways)
+	if !gs.Map.HasBridge(hex1, hex2) {
+		t.Error("bridge should exist on map")
+	}
+	if !gs.Map.HasBridge(hex2, hex1) {
+		t.Error("bridge should work in reverse direction too")
+	}
+	
+	// Verify hexes are adjacent
+	if !gs.Map.IsDirectlyAdjacent(hex1, hex2) {
+		t.Error("hexes should be adjacent via bridge")
+	}
+	if !gs.Map.IsDirectlyAdjacent(hex2, hex1) {
+		t.Error("adjacency should be bidirectional")
+	}
+}
+
+func TestBridge_InvalidGeometry_NonRiverMidpoint(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Try to build bridge where one midpoint is NOT a river
+	hex1 := NewHex(0, 0)
+	river1 := NewHex(0, -1)
+	notRiver := NewHex(1, -1) // This should be river but isn't
+	hex2 := NewHex(1, -2)
+	
+	// Set up map
+	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[notRiver] = &MapHex{Coord: notRiver, Terrain: models.TerrainPlains} // NOT river!
+	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.RiverHexes[river1] = true
+	// notRiver is NOT marked as river
+	
+	// Try to build bridge
+	player.Resources.Power.Bowl3 = 3
+	action := NewPowerActionWithBridge("player1", hex1, hex2)
+	err := action.Execute(gs)
+	if err == nil {
+		t.Error("bridge with non-river midpoint should fail")
+	}
+	
+	// Verify bridge was not created
+	if gs.Map.HasBridge(hex1, hex2) {
+		t.Error("invalid bridge should not exist on map")
+	}
+}
+
+func TestBridge_InvalidGeometry_WrongDistance(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Try to build bridge with wrong distance (adjacent hexes = distance 1, not distance 2)
+	hex1 := NewHex(0, 0)
+	hex2 := NewHex(1, 0) // Adjacent, but bridges must span distance 2
+	
+	// Set up map
+	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	
+	// Try to build bridge
+	player.Resources.Power.Bowl3 = 3
+	action := NewPowerActionWithBridge("player1", hex1, hex2)
+	err := action.Execute(gs)
+	if err == nil {
+		t.Error("bridge between adjacent hexes should fail")
+	}
+	
+	// Verify bridge was not created
+	if gs.Map.HasBridge(hex1, hex2) {
+		t.Error("invalid bridge should not exist on map")
+	}
+}
+
+func TestBridge_InvalidGeometry_RiverEndpoint(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Try to build bridge where one endpoint is a river (not allowed)
+	hex1 := NewHex(0, 0)
+	riverEndpoint := NewHex(1, -2)
+	river1 := NewHex(0, -1)
+	river2 := NewHex(1, -1)
+	
+	// Set up map
+	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[riverEndpoint] = &MapHex{Coord: riverEndpoint, Terrain: models.TerrainRiver} // Endpoint is river!
+	gs.Map.RiverHexes[river1] = true
+	gs.Map.RiverHexes[river2] = true
+	gs.Map.RiverHexes[riverEndpoint] = true
+	
+	// Try to build bridge
+	player.Resources.Power.Bowl3 = 3
+	action := NewPowerActionWithBridge("player1", hex1, riverEndpoint)
+	err := action.Execute(gs)
+	if err == nil {
+		t.Error("bridge with river endpoint should fail")
+	}
+	
+	// Verify bridge was not created
+	if gs.Map.HasBridge(hex1, riverEndpoint) {
+		t.Error("invalid bridge should not exist on map")
+	}
+}
+
 func TestBridge_ChecksTownFormationAfterBuilding(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewEngineers()
