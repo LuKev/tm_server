@@ -67,11 +67,17 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
 	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2)
 	
-	// Set resources
+	// Set resources (clear power bowls first since Auren starts with power)
+	player1.Resources.Power.Bowl1 = 0
+	player1.Resources.Power.Bowl2 = 0
+	player1.Resources.Power.Bowl3 = 0
 	player1.Resources.Coins = 9  // 3 VP
 	player1.Resources.Workers = 2 // 2 VP
 	player1.Resources.Priests = 1 // 1 VP
 	
+	player2.Resources.Power.Bowl1 = 0
+	player2.Resources.Power.Bowl2 = 0
+	player2.Resources.Power.Bowl3 = 0
 	player2.Resources.Coins = 6  // 2 VP
 	player2.Resources.Workers = 3 // 3 VP
 	player2.Resources.Priests = 0 // 0 VP
@@ -316,23 +322,24 @@ func TestResourceConversion(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Set resources
-	player.Resources.Coins = 10  // 10/3 = 3 VP
-	player.Resources.Workers = 5 // 5 VP
-	player.Resources.Priests = 2 // 2 VP
+	player.Resources.Coins = 10         // 10/3 = 3 VP
+	player.Resources.Power.Bowl2 = 6    // 3 coins -> total 13/3 = 4 VP
+	player.Resources.Workers = 5        // 5 VP
+	player.Resources.Priests = 2        // 2 VP
 	
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
 	
 	gs.calculateResourceConversion(scores)
 	
-	// Total: 3 + 5 + 2 = 10 VP
-	if scores["player1"].ResourceVP != 10 {
-		t.Errorf("expected 10 VP, got %d", scores["player1"].ResourceVP)
+	// Total: 4 (coins with power) + 5 (workers) + 2 (priests) = 11 VP
+	if scores["player1"].ResourceVP != 11 {
+		t.Errorf("expected 11 VP, got %d", scores["player1"].ResourceVP)
 	}
 	
-	// Tiebreaker value: 10 + 5 + 2 = 17
-	if scores["player1"].TotalResourceValue != 17 {
-		t.Errorf("expected resource value 17, got %d", scores["player1"].TotalResourceValue)
+	// Tiebreaker value: 13 (coins+power) + 5 + 2 = 20
+	if scores["player1"].TotalResourceValue != 20 {
+		t.Errorf("expected resource value 20, got %d", scores["player1"].TotalResourceValue)
 	}
 }
 
@@ -399,6 +406,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
 	
 	// Create two separate areas: 3 buildings and 2 buildings
 	// Area 1: (0,0), (1,0), (2,0)
@@ -425,8 +433,78 @@ func TestGetLargestConnectedArea(t *testing.T) {
 		})
 	}
 	
-	largestArea := gs.Map.GetLargestConnectedArea("player1")
+	largestArea := gs.Map.GetLargestConnectedArea("player1", player.Faction)
 	if largestArea != 3 {
 		t.Errorf("expected largest area 3, got %d", largestArea)
+	}
+}
+
+func TestResourceConversion_WithPower(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set resources
+	player.Resources.Coins = 3          // 3 coins
+	player.Resources.Power.Bowl2 = 10   // 5 coins
+	player.Resources.Power.Bowl3 = 4    // 2 coins
+	// Total: 10 coins / 3 = 3 VP
+	player.Resources.Workers = 2        // 2 VP
+	player.Resources.Priests = 1        // 1 VP
+	
+	scores := make(map[string]*PlayerFinalScore)
+	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
+	
+	gs.calculateResourceConversion(scores)
+	
+	// Total: 3 (coins) + 2 (workers) + 1 (priests) = 6 VP
+	if scores["player1"].ResourceVP != 6 {
+		t.Errorf("expected 6 VP, got %d", scores["player1"].ResourceVP)
+	}
+}
+
+func TestResourceConversion_Alchemists(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set resources (Alchemists start with power in bowl 2)
+	player.Resources.Coins = 8           // 8 coins
+	player.Resources.Power.Bowl2 = 4     // 2 coins -> total 10/2 = 5 VP (Alchemists)
+	player.Resources.Workers = 1         // 1 VP
+	player.Resources.Priests = 0         // 0 VP
+	
+	scores := make(map[string]*PlayerFinalScore)
+	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
+	
+	gs.calculateResourceConversion(scores)
+	
+	// Total: 5 (coins with Alchemists bonus) + 1 (workers) = 6 VP
+	if scores["player1"].ResourceVP != 6 {
+		t.Errorf("expected 6 VP, got %d", scores["player1"].ResourceVP)
+	}
+}
+
+func TestResourceConversion_AlchemistsWithPower(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set resources
+	player.Resources.Coins = 2          // 1 VP (Alchemists)
+	player.Resources.Power.Bowl2 = 6    // 3 coins -> total 5 coins / 2 = 2 VP
+	player.Resources.Workers = 1        // 1 VP
+	
+	scores := make(map[string]*PlayerFinalScore)
+	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
+	
+	gs.calculateResourceConversion(scores)
+	
+	// Total: 2 (coins) + 1 (workers) = 3 VP
+	if scores["player1"].ResourceVP != 3 {
+		t.Errorf("expected 3 VP, got %d", scores["player1"].ResourceVP)
 	}
 }

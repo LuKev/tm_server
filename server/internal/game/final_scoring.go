@@ -2,6 +2,8 @@ package game
 
 import (
 	"sort"
+
+	"github.com/lukev/tm_server/internal/game/factions"
 )
 
 // Final Scoring (End of Game - After Round 6)
@@ -54,9 +56,9 @@ func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 // calculateAreaBonuses awards VP for largest connected area
 // 18 VP for largest area (ties split the VP, rounded down)
 func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
-	// Calculate largest area for each player
-	for playerID := range gs.Players {
-		largestArea := gs.Map.GetLargestConnectedArea(playerID)
+	// Calculate largest area for each player (faction-specific adjacency)
+	for playerID, player := range gs.Players {
+		largestArea := gs.Map.GetLargestConnectedArea(playerID, player.Faction)
 		scores[playerID].LargestAreaSize = largestArea
 	}
 	
@@ -167,12 +169,24 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 }
 
 // calculateResourceConversion converts remaining resources to VP
-// 3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP
+// 3 coins = 1 VP (or 2 coins = 1 VP for Alchemists), 1 worker = 1 VP, 1 priest = 1 VP
+// Power in bowls 2 and 3 is automatically converted to coins first (2 power = 1 coin)
 // Also tracks total resource value for tiebreaker
 func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalScore) {
 	for playerID, player := range gs.Players {
-		// Convert coins (3 coins = 1 VP)
-		coinVP := player.Resources.Coins / 3
+		// First, convert power to coins (2 power = 1 coin)
+		totalPower := player.Resources.Power.Bowl2 + player.Resources.Power.Bowl3
+		powerCoins := totalPower / 2
+		totalCoins := player.Resources.Coins + powerCoins
+		
+		// Check if player is Alchemists (2 coins = 1 VP instead of 3 coins = 1 VP)
+		coinsPerVP := 3
+		if player.Faction.HasSpecialAbility(factions.AbilityConversionEfficiency) {
+			coinsPerVP = 2
+		}
+		
+		// Convert coins to VP
+		coinVP := totalCoins / coinsPerVP
 		
 		// Convert workers (1 worker = 1 VP)
 		workerVP := player.Resources.Workers
@@ -183,8 +197,8 @@ func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalS
 		scores[playerID].ResourceVP = coinVP + workerVP + priestVP
 		
 		// Track total resource value for tiebreaker
-		// Tiebreaker uses: coins + workers + priests (not converted)
-		scores[playerID].TotalResourceValue = player.Resources.Coins + 
+		// Tiebreaker uses: coins + power + workers + priests (not converted)
+		scores[playerID].TotalResourceValue = totalCoins + 
 			player.Resources.Workers + 
 			player.Resources.Priests
 	}

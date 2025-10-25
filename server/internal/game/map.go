@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -381,7 +382,7 @@ func (m *TerraMysticaMap) FindConnectedBuildings(h Hex, faction models.FactionTy
 
 // GetLargestConnectedArea returns the size of the largest connected area for a player
 // Used for final scoring (18 VP for largest area)
-func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string) int {
+func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string, faction factions.Faction) int {
 	visited := make(map[Hex]bool)
 	maxArea := 0
 	
@@ -389,7 +390,7 @@ func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string) int {
 	for hex, mapHex := range m.Hexes {
 		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && !visited[hex] {
 			// Start a new connected component search
-			area := m.getConnectedAreaSize(hex, playerID, visited)
+			area := m.getConnectedAreaSize(hex, playerID, visited, faction)
 			if area > maxArea {
 				maxArea = area
 			}
@@ -401,7 +402,8 @@ func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string) int {
 
 // getConnectedAreaSize returns the size of the connected area starting from a hex
 // Uses DFS to explore all connected buildings
-func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visited map[Hex]bool) int {
+// Handles faction-specific adjacency: Fakirs (carpet flight), Dwarves (tunneling)
+func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visited map[Hex]bool, faction factions.Faction) int {
 	if visited[start] {
 		return 0
 	}
@@ -415,10 +417,58 @@ func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visit
 	visited[start] = true
 	size := 1
 	
-	// Explore direct neighbors (including bridges)
-	for _, neighbor := range m.GetDirectNeighbors(start) {
-		size += m.getConnectedAreaSize(neighbor, playerID, visited)
+	// Get neighbors based on faction-specific movement
+	neighbors := m.getNeighborsForAreaScoring(start, faction)
+	
+	for _, neighbor := range neighbors {
+		size += m.getConnectedAreaSize(neighbor, playerID, visited, faction)
 	}
 	
 	return size
+}
+
+// getNeighborsForAreaScoring returns neighbors based on faction-specific movement
+// For final area scoring: Fakirs use carpet flight, Dwarves use tunneling, others use direct adjacency
+func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Faction) []Hex {
+	neighbors := []Hex{}
+	
+	// Check for Fakirs (carpet flight)
+	if faction.HasSpecialAbility(factions.AbilityFlying) {
+		// Fakirs can connect via carpet flight (range 1-3 depending on upgrades)
+		if fakir, ok := faction.(*factions.Fakirs); ok {
+			flightRange := fakir.GetCarpetFlightRange()
+			
+			// Get all hexes within flight range
+			for candidate := range m.Hexes {
+				if candidate == h {
+					continue
+				}
+				
+				distance := h.Distance(candidate)
+				if distance <= flightRange {
+					neighbors = append(neighbors, candidate)
+				}
+			}
+			return neighbors
+		}
+	}
+	
+	// Check for Dwarves (tunneling - always range 2)
+	if faction.HasSpecialAbility(factions.AbilityTunnelDigging) {
+		// Dwarves can connect via tunneling (distance 2)
+		for candidate := range m.Hexes {
+			if candidate == h {
+				continue
+			}
+			
+			distance := h.Distance(candidate)
+			if distance <= 2 {
+				neighbors = append(neighbors, candidate)
+			}
+		}
+		return neighbors
+	}
+	
+	// Default: direct adjacency only (including bridges)
+	return m.GetDirectNeighbors(h)
 }
