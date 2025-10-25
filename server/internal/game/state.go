@@ -25,8 +25,10 @@ type GameState struct {
 	FavorTiles         *FavorTileState               // Tracks available favor tiles and player selections
 	BonusCards         *BonusCardState               // Tracks available bonus cards and player selections
 	TownTiles          *TownTileState                // Tracks available town tiles
+	ScoringTiles       *ScoringTileState             // Tracks scoring tiles for each round
 	PendingLeechOffers map[string][]*PowerLeechOffer // Key: playerID who can accept
 	PendingTownFormations map[string]*PendingTownFormation // Key: playerID who can form town
+	PendingSpades      map[string]int                // Key: playerID, Value: number of spades to use (from cult rewards)
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -86,6 +88,7 @@ func NewGameState() *GameState {
 		FavorTiles:            NewFavorTileState(),
 		BonusCards:            NewBonusCardState(),
 		TownTiles:             NewTownTileState(),
+		ScoringTiles:          NewScoringTileState(),
 		PendingLeechOffers:    make(map[string][]*PowerLeechOffer),
 		PendingTownFormations: make(map[string]*PendingTownFormation),
 	}

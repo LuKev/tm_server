@@ -18,6 +18,7 @@ const (
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
+	ActionUseCultSpade // Use a spade from cult track reward (cleanup phase)
 )
 
 // Action represents a player action
@@ -158,8 +159,11 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			return fmt.Errorf("failed to transform terrain: %w", err)
 		}
 		
-		// TODO: Award VP if current scoring tile rewards spades
-		// TODO: Award VP if current scoring tile rewards terraform
+		// Award VP from scoring tile (per spade used)
+		spadesUsed := player.Faction.GetTerraformSpades(distance)
+		for i := 0; i < spadesUsed; i++ {
+			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		}
 	}
 
 	// Step 2: Build dwelling if requested
@@ -185,7 +189,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			player.VictoryPoints += 2
 		}
 
-		// TODO: Award VP if current scoring tile rewards dwellings
+		// Award VP from scoring tile
+		gs.AwardActionVP(a.PlayerID, ScoringActionDwelling)
 
 		// Trigger power leech for adjacent players
 		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
@@ -309,6 +314,9 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		if HasFavorTile(playerTiles, FavorWater1) {
 			player.VictoryPoints += 3
 		}
+		
+		// Award VP from scoring tile
+		gs.AwardActionVP(a.PlayerID, ScoringActionTradingHouse)
 		break
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
@@ -319,6 +327,11 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		//   - Chaos Magicians: 2 favor tiles
 		//   - All other factions: 1 favor tile
 		// TODO: Implement favor tile selection prompt/action (Phase 7+)
+		
+		// Award VP from scoring tile for Sanctuary
+		if a.NewBuildingType == models.BuildingSanctuary {
+			gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
+		}
 		break
 	case models.BuildingStronghold:
 		// Grant stronghold special ability
@@ -329,13 +342,11 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		if player.Faction.GetType() == models.FactionAuren {
 			// TODO: Award 1 Favor tile immediately
 		}
+		
+		// Award VP from scoring tile
+		gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
 		break
 	}
-
-	// TODO: Award VP if current scoring tile rewards this building type
-	// Trading house: 3 VP
-	// Stronghold: 5 VP
-	// Sanctuary: 5 VP
 
 	// Trigger power leech when upgrading (adjacent players leech based on their adjacent buildings)
 	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
@@ -704,6 +715,11 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	// Note: It's valid to sacrifice a priest even if you can't advance (no refund)
 	// Position 10 requires a key (checked in AdvancePlayer)
 	gs.CultTracks.AdvancePlayer(a.PlayerID, a.Track, spacesToAdvance, player)
+
+	// Record priest sent for scoring tile #5 (Trading House + Priest)
+	if gs.ScoringTiles != nil {
+		gs.ScoringTiles.RecordPriestSent(a.PlayerID)
+	}
 
 	// Note: If UsePriestSlot is true, the priest is permanently placed on the board
 	// If false, the priest is returned to supply (already handled by not placing it)

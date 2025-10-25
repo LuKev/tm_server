@@ -54,8 +54,8 @@ func (f *Giants) GetTerraformCost(distance int) int {
 }
 
 // GetTerraformSpades returns the number of spades needed for Giants
-// Giants always need exactly 2 spades
-func (f *Giants) GetTerraformSpades() int {
+// Giants always need exactly 2 spades (overrides BaseFaction)
+func (f *Giants) GetTerraformSpades(distance int) int {
 	return 2 // Always 2 spades, regardless of terrain distance
 }
 

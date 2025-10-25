@@ -239,6 +239,9 @@ func (gs *GameState) FormTown(playerID string, hexes []Hex, tileType TownTileTyp
 	// Apply faction-specific town bonuses
 	gs.ApplyFactionTownBonus(playerID)
 	
+	// Award VP from scoring tile
+	gs.AwardActionVP(playerID, ScoringActionTown)
+	
 	return nil
 }
 

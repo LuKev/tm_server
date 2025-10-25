@@ -20,6 +20,7 @@ type Faction interface {
 	
 	// Terraform costs (returns workers needed per spade)
 	GetTerraformCost(distance int) int
+	GetTerraformSpades(distance int) int // Returns actual spades used (for scoring)
 	
 	// Shipping and digging
 	GetShippingCost(currentLevel int) Cost
@@ -194,6 +195,11 @@ func (f *BaseFaction) GetTerraformCost(distance int) int {
 		costPerSpade = 1
 	}
 	return distance * costPerSpade
+}
+
+func (f *BaseFaction) GetTerraformSpades(distance int) int {
+	// For most factions, spades = distance
+	return distance
 }
 
 func (f *BaseFaction) GetShippingCost(currentLevel int) Cost {

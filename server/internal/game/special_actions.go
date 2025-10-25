@@ -702,8 +702,11 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	totalWorkers := player.Faction.GetTerraformCost(distance)
 	
-	// Subtract 1 for the free spade (minimum 0)
-	workersNeeded := totalWorkers - 1
+	// Calculate workers per spade (to subtract for the free spade)
+	workersPerSpade := player.Faction.GetTerraformCost(1)
+	
+	// Subtract workers for 1 free spade (minimum 0)
+	workersNeeded := totalWorkers - workersPerSpade
 	if workersNeeded < 0 {
 		workersNeeded = 0
 	}
@@ -721,6 +724,13 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 
+	// Award VP from scoring tile for spades used
+	// Even though we get 1 free spade, we still used spades for the transformation
+	spadesUsed := player.Faction.GetTerraformSpades(distance)
+	for i := 0; i < spadesUsed; i++ {
+		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	}
+
 	// Optionally build dwelling if requested
 	if a.BuildDwelling {
 		dwellingCost := player.Faction.GetDwellingCost()
@@ -736,8 +746,20 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		}
 		mapHex.Building = dwelling
 
+		// Award VP from scoring tile for dwelling
+		gs.AwardActionVP(a.PlayerID, ScoringActionDwelling)
+
 		// Trigger power leech
 		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
+		
+		// Check for town formation
+		connected := gs.CheckForTownFormation(a.PlayerID, *a.TargetHex)
+		if connected != nil {
+			gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
+				PlayerID: a.PlayerID,
+				Hexes:    connected,
+			}
+		}
 	}
 
 	return nil
