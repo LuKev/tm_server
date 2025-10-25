@@ -124,6 +124,17 @@ func (a *PowerAction) Validate(gs *GameState) error {
 	if player.Resources.Power.Bowl3 < powerCost {
 		return fmt.Errorf("not enough power in Bowl III: need %d, have %d", powerCost, player.Resources.Power.Bowl3)
 	}
+	
+	// Validate priest power action against 7-priest limit
+	if a.ActionType == PowerActionPriest {
+		priestsInHand := player.Resources.Priests
+		priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(a.PlayerID)
+		totalPriests := priestsInHand + priestsOnCult
+		
+		if totalPriests >= 7 {
+			return fmt.Errorf("cannot gain priest: already at 7-priest limit (%d in hand + %d on cult tracks)", priestsInHand, priestsOnCult)
+		}
+	}
 
 	// Validate spade actions
 	if a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2 {

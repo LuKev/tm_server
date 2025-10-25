@@ -28,7 +28,7 @@ type BaseIncome struct {
 func (gs *GameState) GrantIncome() {
 	for _, player := range gs.Players {
 		income := calculatePlayerIncome(gs, player)
-		applyIncome(player, income)
+		applyIncome(gs, player, income)
 	}
 }
 
@@ -312,10 +312,28 @@ func getStrongholdIncome(factionType models.FactionType) BaseIncome {
 }
 
 // applyIncome applies the calculated income to a player's resources
-func applyIncome(player *Player, income BaseIncome) {
+func applyIncome(gs *GameState, player *Player, income BaseIncome) {
 	player.Resources.Coins += income.Coins
 	player.Resources.Workers += income.Workers
-	player.Resources.Priests += income.Priests
+	
+	// Apply priest income with 7-priest limit enforcement
+	// Terra Mystica rule: priests in hand + priests on cult tracks <= 7
+	if income.Priests > 0 {
+		priestsInHand := player.Resources.Priests
+		priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(player.ID)
+		totalPriests := priestsInHand + priestsOnCult
+		maxNewPriests := 7 - totalPriests
+		
+		// Cap priests gained to not exceed the 7-priest limit
+		if maxNewPriests > 0 {
+			priestsToAdd := income.Priests
+			if priestsToAdd > maxNewPriests {
+				priestsToAdd = maxNewPriests
+			}
+			player.Resources.Priests += priestsToAdd
+		}
+		// If already at or above 7 priests, no priests are gained from income
+	}
 
 	// Use GainPower to properly cycle power through bowls
 	if income.Power > 0 {

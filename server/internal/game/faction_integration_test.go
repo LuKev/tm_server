@@ -1941,6 +1941,94 @@ func TestDarklings_PowerActionWithPriests(t *testing.T) {
 	}
 }
 
+func Test7PriestLimit_Income(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Give player 5 priests in hand and send 2 to cult tracks
+	player.Resources.Priests = 5
+	gs.CultTracks.InitializePlayer("player1")
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player)
+	player.Resources.Priests = 3 // 5 - 2 sent
+	
+	// Now player has 3 in hand + 2 on cults = 5 total
+	// Income should give up to 2 more priests (to reach 7 total)
+	
+	// Grant income (Auren base income includes 1 priest)
+	gs.GrantIncome()
+	
+	// Check that only the allowed number of priests were added
+	priestsInHand := player.Resources.Priests
+	priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks("player1")
+	totalPriests := priestsInHand + priestsOnCult
+	
+	if totalPriests > 7 {
+		t.Errorf("7-priest limit violated: have %d total priests (%d in hand + %d on cult)", totalPriests, priestsInHand, priestsOnCult)
+	}
+	
+	// Player should have gained priests up to the limit
+	// Started with 3 in hand, income gives 1 base + temple/sanctuary income
+	// Should cap at 5 in hand (to stay at 7 total with 2 on cults)
+	if priestsInHand > 5 {
+		t.Errorf("expected at most 5 priests in hand (7 total - 2 on cults), got %d", priestsInHand)
+	}
+}
+
+func Test7PriestLimit_PowerAction(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Give player enough power and set up at the priest limit
+	player.Resources.Power.Bowl3 = 10
+	player.Resources.Priests = 4
+	
+	// Send 3 priests to cult tracks
+	gs.CultTracks.InitializePlayer("player1")
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 3, player)
+	player.Resources.Priests = 1 // 4 - 3 sent
+	
+	// Now player has 1 in hand + 3 on cults = 4 total
+	// Power action should work (can gain up to 3 more)
+	action := &PowerAction{
+		BaseAction: BaseAction{
+			Type:     ActionPowerAction,
+			PlayerID: "player1",
+		},
+		ActionType: PowerActionPriest,
+	}
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("power action should work when under 7-priest limit, got error: %v", err)
+	}
+	
+	// Verify priest was gained
+	if player.Resources.Priests != 2 {
+		t.Errorf("expected 2 priests in hand after power action, got %d", player.Resources.Priests)
+	}
+	
+	// Now test at the limit (7 total)
+	// Add more priests to reach 7 total
+	player.Resources.Priests = 4 // 4 in hand + 3 on cults = 7 total
+	
+	action2 := &PowerAction{
+		BaseAction: BaseAction{
+			Type:     ActionPowerAction,
+			PlayerID: "player1",
+		},
+		ActionType: PowerActionPriest,
+	}
+	
+	err = action2.Validate(gs)
+	if err == nil {
+		t.Fatal("power action should fail when at 7-priest limit")
+	}
+}
+
 func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewEngineers()

@@ -50,7 +50,8 @@ go_test(
         # - Fakirs: Carpet flight (basic, after stronghold, power action, no shipping) (4 tests)
         # - Dwarves: Tunneling (basic, after stronghold, power action, no shipping) (4 tests)
         # - Darklings: Priest terraform, VP bonus, priest ordination w/ 7-priest limit, cannot upgrade digging, power action (6 tests)
-        # Total: 46 faction integration tests
+        # - 7-Priest Limit: Income capping, power action validation (2 tests)
+        # Total: 48 faction integration tests
         "faction_integration_test.go",
         # Action tests
         "action_scoring_test.go",
