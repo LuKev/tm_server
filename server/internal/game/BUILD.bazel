@@ -49,6 +49,7 @@ go_test(
         "cult_test.go",
         "favor_test.go",
         "final_scoring_test.go",
+        "giants_special_action_test.go",
         "income_test.go",
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",
