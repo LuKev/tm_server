@@ -1057,3 +1057,110 @@ func TestGiants_TransformOncePerRound(t *testing.T) {
 		t.Error("second Giants transform in same round should fail")
 	}
 }
+
+// ============================================================================
+// ENGINEERS TESTS
+// ============================================================================
+
+func TestEngineers_VPPerBridgeOnPass(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold to enable 3 VP per bridge ability
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Simulate building 2 bridges
+	player.BridgesBuilt = 2
+	
+	initialVP := player.VictoryPoints
+	
+	// Set up bonus cards
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardPriest})
+	
+	// Pass action should award 3 VP per bridge = 6 VP
+	bonusCard := BonusCardPriest
+	action := NewPassAction("player1", &bonusCard)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("pass action failed: %v", err)
+	}
+	
+	vpGained := player.VictoryPoints - initialVP
+	expectedVP := 6 // 2 bridges * 3 VP
+	if vpGained != expectedVP {
+		t.Errorf("expected %d VP from bridges on pass, got %d", expectedVP, vpGained)
+	}
+}
+
+func TestEngineers_VPPerBridgeBeforeStronghold(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// No stronghold built
+	
+	// Simulate building 2 bridges
+	player.BridgesBuilt = 2
+	
+	initialVP := player.VictoryPoints
+	
+	// Set up bonus cards
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardPriest})
+	
+	// Pass action should NOT award VP for bridges (no stronghold)
+	bonusCard := BonusCardPriest
+	action := NewPassAction("player1", &bonusCard)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("pass action failed: %v", err)
+	}
+	
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 0 {
+		t.Errorf("expected 0 VP from bridges (no stronghold), got %d", vpGained)
+	}
+}
+
+func TestEngineers_CheaperBridgeCost(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Engineers bridges cost 2 workers (vs standard 3)
+	bridgeCost := faction.GetBridgeCost()
+	if bridgeCost.Workers != 2 {
+		t.Errorf("expected 2 workers for Engineers bridge, got %d", bridgeCost.Workers)
+	}
+	
+	// Give player resources
+	player.Resources.Workers = 2
+	
+	// Build a bridge using power action
+	player.Resources.Power.Bowl3 = 3
+	action := NewPowerAction("player1", PowerActionBridge)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("bridge action failed: %v", err)
+	}
+	
+	// Verify bridge was built
+	if player.BridgesBuilt != 1 {
+		t.Errorf("expected 1 bridge built, got %d", player.BridgesBuilt)
+	}
+}
+
+func TestBridge_ChecksTownFormationAfterBuilding(t *testing.T) {
+	// TODO: This test requires setting up a valid bridge geometry per Terra Mystica rules
+	// Bridge geometry validation: vector must be one of the 6 allowed distance-2 offsets
+	// and the two intermediate hexes must both be river hexes.
+	//
+	// For now, we test that CheckForTownFormation works correctly after bridges exist.
+	// The power action bridge building should call CheckForTownFormation when implemented.
+	
+	t.Skip("Bridge building and town formation integration test needs proper bridge geometry setup")
+}

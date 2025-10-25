@@ -667,6 +667,16 @@ func (a *PassAction) Execute(gs *GameState) error {
 	bonusVP := GetBonusCardPassVP(*a.BonusCard, gs, a.PlayerID)
 	player.VictoryPoints += bonusVP
 
+	// Award VP for Engineers stronghold ability (3 VP per bridge when passing)
+	if player.Faction.GetType() == models.FactionEngineers && player.HasStrongholdAbility {
+		engineersFaction, ok := player.Faction.(*factions.Engineers)
+		if ok {
+			vpPerBridge := engineersFaction.GetVPPerBridgeOnPass()
+			bridgeVP := player.BridgesBuilt * vpPerBridge
+			player.VictoryPoints += bridgeVP
+		}
+	}
+
 	return nil
 }
 

@@ -45,6 +45,7 @@ go_test(
         # - Alchemists: VP/Coin conversion, power per spade
         # - Cultists: Power leech bonuses
         # - Giants: Transform special action
+        # - Engineers: VP per bridge on pass (stronghold ability)
         "faction_integration_test.go",
         # Action tests
         "action_scoring_test.go",
