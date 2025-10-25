@@ -4,6 +4,7 @@ go_library(
     name = "game",
     srcs = [
         "action_cult_spade.go",
+        "action_halflings_spades.go",
         "action_power_leech.go",
         "action_select_favor_tile.go",
         "actions.go",
@@ -57,6 +58,7 @@ go_test(
         "faction_integration_test.go",
         "mermaids_integration_test.go",
         # Action tests
+        "action_halflings_spades_test.go",
         "action_scoring_test.go",
         "action_select_favor_tile_test.go",
         "action_shipping_digging_vp_test.go",

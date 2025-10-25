@@ -22,6 +22,9 @@ const (
 	ActionAcceptPowerLeech     // Accept a power leech offer
 	ActionDeclinePowerLeech    // Decline a power leech offer
 	ActionSelectFavorTile      // Select a favor tile after Temple/Sanctuary/Auren Stronghold
+	ActionApplyHalflingsSpade  // Apply one of 3 stronghold spades (Halflings only)
+	ActionBuildHalflingsDwelling // Build dwelling on transformed hex (Halflings optional)
+	ActionSkipHalflingsDwelling  // Skip optional dwelling (Halflings)
 )
 
 // Action represents a player action
@@ -512,22 +515,25 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		case models.FactionHalflings:
 			// Halflings: Immediately get 3 spades to apply on terrain spaces
 			// May build a dwelling on exactly one of these spaces by paying its costs
-			// This happens IMMEDIATELY when building stronghold (not a separate action)
 			if halflings, ok := player.Faction.(*factions.Halflings); ok {
 				halflings.BuildStronghold()
-				// TODO: Prompt player to select which hexes to apply 3 spades to
-				// TODO: Optionally allow building a dwelling on one of those hexes
-				// This must complete before the stronghold upgrade action finishes
+				
+				// Create pending spades application
+				// Player must apply these 3 spades before continuing
+				gs.PendingHalflingsSpades = &PendingHalflingsSpades{
+					PlayerID:       a.PlayerID,
+					SpadesRemaining: 3,
+					TransformedHexes: []Hex{},
+				}
 			}
 		case models.FactionDarklings:
-			// Darklings: Immediately trade up to 3 workers for 1 priest each (one-time only)
-			// This happens IMMEDIATELY when building stronghold (not a separate action)
+			// Darklings: Priest ordination is now handled via direct faction method calls
+			// Tests call UsePriestOrdination() directly + gs.GainPriests()
+			// This is NOT a special action - it's an immediate one-time bonus after building stronghold
 			if darklings, ok := player.Faction.(*factions.Darklings); ok {
 				darklings.BuildStronghold()
-				// TODO: Prompt player to choose how many workers (0-3) to convert to priests
-				// TODO: Apply the conversion (deduct workers, add priests)
-				// This must complete before the stronghold upgrade action finishes
-				// Note: Darklings have a 7-priest limit to enforce
+				// Note: Player must call UsePriestOrdination() separately to convert workers
+				// The 7-priest limit is enforced in gs.GainPriests()
 			}
 		default:
 			// All other factions just mark stronghold as built (no immediate bonus)

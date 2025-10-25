@@ -450,14 +450,13 @@ Complete implementation of all faction-specific mechanics and special abilities.
 - [x] Giants 2 free spades transform (once per round after stronghold) ✅
 - [x] Swarmlings free dwelling upgrade (once per round after stronghold) ✅
 
-**Remaining Work:**
-- [ ] Halflings stronghold: Prompt for applying 3 spades immediately + optional dwelling
-- [ ] Auren stronghold: Prompt for selecting favor tile immediately
-- [ ] Favor tile selection: Temple/Sanctuary/Auren stronghold should prompt for favor tile
-
 **Recently Completed:**
+- [x] Halflings stronghold: 3 spades + optional dwelling ✅ (PendingHalflingsSpades system)
+- [x] Auren stronghold: Favor tile selection ✅ (PendingFavorTileSelection)
+- [x] Favor tile selection: Temple/Sanctuary/Auren stronghold ✅ (SelectFavorTileAction)
 - [x] Mermaids river-skipping for town formation ✅ (can skip 1 river, delayed vs immediate claiming)
 - [x] Darklings priest ordination ✅ (immediate one-time bonus after stronghold, not a special action)
+- [x] Shipping/Digging VP awards ✅ (Level + 1 formula)
 
 **Low Priority (Already Functional):**
 - [x] All passive abilities (cost reductions, VP bonuses, etc.)
