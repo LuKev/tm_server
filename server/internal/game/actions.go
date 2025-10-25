@@ -501,6 +501,11 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 					if newLevel <= mermaids.GetMaxShippingLevel() {
 						mermaids.SetShippingLevel(newLevel)
 						player.ShippingLevel = newLevel
+						
+						// Award VP based on new shipping level
+						// Shipping Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
+						vpBonus := newLevel + 1
+						player.VictoryPoints += vpBonus
 					}
 				}
 			}
@@ -697,6 +702,11 @@ func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 
 	// Advance shipping
 	player.ShippingLevel++
+	
+	// Award VP based on new shipping level
+	// Shipping Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
+	vpBonus := player.ShippingLevel + 1
+	player.VictoryPoints += vpBonus
 
 	return nil
 }
@@ -750,6 +760,11 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 
 	// Advance digging
 	player.DiggingLevel++
+	
+	// Award VP based on new digging level
+	// Digging Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
+	vpBonus := player.DiggingLevel + 1
+	player.VictoryPoints += vpBonus
 
 	return nil
 }
