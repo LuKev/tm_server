@@ -283,22 +283,26 @@ Implement all player actions:
   - [x] Action execution
   - [x] Pass mechanism
   - [x] Action phase end detection (AllPlayersPassed)
-- [ ] **Cleanup Phase**: End-of-round maintenance (deferred until Phase 7)
-  - [ ] Cult track rewards (requires cult system - Phase 7)
-  - [ ] Add coins to bonus tiles (requires bonus cards - Phase 7)
-  - [x] Reset round-specific state (power actions, stronghold abilities)
+- [x] **Cleanup Phase**: End-of-round maintenance ✅ COMPLETE
+  - [x] Cult track rewards (multiple thresholds calculated correctly)
+  - [x] Add coins to leftover bonus cards
+  - [x] Return bonus cards to available pool
+  - [x] Reset round-specific state (power actions, HasPassed, PassOrder)
+  - [x] Pending spades system (from cult rewards, used in pass order)
   - [x] Check for game end (IsGameOver - after round 6)
-- [ ] **End Game Scoring**: Final VP calculation (deferred)
+- [ ] **End Game Scoring**: Final VP calculation (Phase 8.2)
 
 **Files created:**
-- ✅ `server/internal/game/state.go` (turn order, pass order, phase tracking)
+- ✅ `server/internal/game/state.go` (turn order, pass order, phase tracking, PendingSpades)
 - ✅ `server/internal/game/actions.go` (all basic actions)
+- ✅ `server/internal/game/action_cult_spade.go` (cult spade action)
 - ✅ `server/internal/game/power_actions.go` (power actions from game board)
-- ✅ `server/internal/game/special_actions.go` (stronghold special actions)
+- ✅ `server/internal/game/special_actions.go` (stronghold + bonus card special actions)
 - ✅ `server/internal/game/income.go` (complete income system)
-- 📝 `server/internal/game/cleanup.go` (deferred until Phase 7)
-- 📝 `server/internal/game/scoring.go` (deferred)
-- ✅ **81 tests passing**
+- ✅ `server/internal/game/cleanup.go` (cleanup phase orchestration)
+- ✅ `server/internal/game/scoring_tiles.go` (scoring tiles + cult rewards)
+- 📝 `server/internal/game/scoring.go` (final scoring - Phase 8.2)
+- ✅ **200 tests passing**
 
 ### Phase 7: Cult Tracks and Tiles (Days 19-20) ✅ COMPLETE
 
@@ -362,6 +366,9 @@ Implement all player actions:
 - ✅ 18 cult track tests
 - ✅ 10 favor tile tests
 - ✅ 8 action scoring tests (favor tile & bonus card VP)
+- ✅ 8 bonus card special action tests
+- ✅ 7 scoring tile tests
+- ✅ 24 cleanup phase tests (all cult rewards, bonus cards, full integration)
 - ✅ 1 income test (favor tile & bonus card income)
 - ✅ 4 turn order tests (bonus card selection)
 - ✅ 17 town formation tests (all 7 tiles, Sanctuary, Fire 2, faction bonuses, prompting)
@@ -369,17 +376,20 @@ Implement all player actions:
 
 ### Phase 8: Scoring System (Days 21-22)
 
-#### 8.1 Round Scoring
-- [ ] Implement scoring tile evaluation
-- [ ] Add bonus card scoring
-- [ ] Calculate cult track bonuses
-- [ ] Track victory points
+#### 8.1 Round Scoring ✅ COMPLETE
+- [x] Implement scoring tile evaluation (9 tiles with action VP)
+- [x] Add bonus card scoring (pass VP bonuses)
+- [x] Cult track end-of-round rewards (all 5 types: priests, power, workers, coins, spades)
+- [x] Spade VP calculation (faction-specific: Giants always 2 spades)
+- [x] Dwelling/Trading House/Stronghold VP from scoring tiles
+- [x] Town VP from scoring tiles
+- [x] Track victory points (awarded throughout game)
 
-#### 8.2 Final Scoring
+#### 8.2 Final Scoring (IN PROGRESS)
 - [ ] Calculate area majority (largest connected area)
-- [ ] Score cult track positions
-- [ ] Add resource conversion to VP
-- [ ] Determine winner
+- [ ] Score cult track positions (8/4/2 VP for top 3 per track)
+- [ ] Add resource conversion to VP (3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP)
+- [ ] Determine winner (highest VP, tiebreaker: resources)
 
 #### 8.3 Auction System
 - [ ] Implement Standard Auction
