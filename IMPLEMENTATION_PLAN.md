@@ -374,31 +374,32 @@ Implement all player actions:
 - ✅ 17 town formation tests (all 7 tiles, Sanctuary, Fire 2, faction bonuses, prompting)
 - ✅ **157 total tests passing**
 
-### Phase 8: Scoring System (Days 21-22)
+### Phase 8: Scoring System (Days 21-22) ✅ COMPLETE
 
 #### 8.1 Round Scoring ✅ COMPLETE
-- [x] Implement scoring tile evaluation (9 tiles with action VP)
-- [x] Add bonus card scoring (pass VP bonuses)
-- [x] Cult track end-of-round rewards (all 5 types: priests, power, workers, coins, spades)
-- [x] Spade VP calculation (faction-specific: Giants always 2 spades)
-- [x] Dwelling/Trading House/Stronghold VP from scoring tiles
-- [x] Town VP from scoring tiles
-- [x] Track victory points (awarded throughout game)
+- [x] Implement scoring tile evaluation (9 tiles with action VP) ✅
+- [x] Add bonus card scoring (pass VP bonuses) ✅
+- [x] Cult track end-of-round rewards (all 5 types: priests, power, workers, coins, spades) ✅
+- [x] Spade VP calculation (faction-specific: Giants always 2 spades, Halflings +1 VP) ✅
+- [x] Dwelling/Trading House/Stronghold VP from scoring tiles ✅
+- [x] Town VP from scoring tiles ✅
+- [x] Track victory points (awarded throughout game) ✅
+- [x] Shipping/Digging advancement VP (Level + 1 formula) ✅
 
 #### 8.2 Final Scoring ✅ COMPLETE
-- [x] Calculate area majority (largest connected area - 18 VP, ties split)
-- [x] Score cult track positions (8/4/2 VP for top 3 per track, all 4 tracks)
-- [x] Add resource conversion to VP (3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP)
-- [x] Determine winner (highest VP, tiebreaker: total resource value)
-- [x] Ranked player list for leaderboard
+- [x] Calculate area majority (largest connected area - 18 VP, ties split) ✅
+- [x] Score cult track positions (8/4/2 VP for top 3 per track, all 4 tracks) ✅
+- [x] Add resource conversion to VP (3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP) ✅
+- [x] Determine winner (highest VP, tiebreaker: total resource value) ✅
+- [x] Ranked player list for leaderboard ✅
 
 #### 8.3 Auction System ✅ COMPLETE
-- [x] Implement Standard Auction (nomination + bidding phases)
-- [x] Turn order by nomination order
-- [x] Starting VP based on bids (40 - bid)
-- [x] Overbidding mechanics (must reduce VP by at least 1)
-- [x] GameSetupOptions for auction vs direct selection
-- [ ] Fast Auction algorithm (optional, deferred)
+- [x] Implement Standard Auction (nomination + bidding phases) ✅
+- [x] Turn order by nomination order ✅
+- [x] Starting VP based on bids (40 - bid) ✅
+- [x] Overbidding mechanics (must reduce VP by at least 1) ✅
+- [x] GameSetupOptions for auction vs direct selection ✅
+- [ ] Fast Auction algorithm (optional, deferred to future)
 
 **Files created:**
 - ✅ `server/internal/game/scoring_tiles.go` (round scoring with cult rewards)
@@ -408,22 +409,23 @@ Implement all player actions:
 
 **Test Coverage:**
 - ✅ 7 scoring tile tests
-- ✅ 24 cleanup phase tests
-- ✅ 12 final scoring tests
+- ✅ 21 cleanup phase tests
+- ✅ 14 final scoring tests
 - ✅ 13 auction tests
-- ✅ **228 total tests passing**
+- ✅ 56 bonus card tests (income + scoring + special actions)
+- ✅ **All scoring systems fully tested and passing**
 
-### Phase 8.5: Faction Special Abilities (Days 22-23) - IN PROGRESS
+### Phase 8.5: Faction Special Abilities (Days 22-23) ✅ COMPLETE
 
 Complete implementation of all faction-specific mechanics and special abilities.
 
 #### Status by Faction:
 
-**✅ FULLY IMPLEMENTED (with Integration Tests):**
-1. **Halflings** - Cheap dig (1P/2W/1C), +1 VP per spade always, stronghold: 3 spades ✅
+**✅ ALL 14 FACTIONS FULLY IMPLEMENTED (with Integration Tests):**
+1. **Halflings** - Cheap dig (1P/2W/1C), +1 VP per spade always, stronghold: 3 spades + optional dwelling ✅
 2. **Swarmlings** - Expensive dwellings (2W+3C), stronghold: free D→TH upgrade/round, +3 workers/town ✅
 3. **Alchemists** - VP↔Coin conversion (1:1 and 2:1), +2 power per spade after stronghold ✅
-4. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech ✅
+4. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech, cult advance when opponent accepts leech ✅
 5. **Giants** - 2 spades/terraform always, stronghold: 2 free spades/round (awards scoring tile VP) ✅
 6. **Engineers** - Reduced building costs, bridge cost 2W, stronghold: 3VP/bridge on pass ✅
 7. **Witches** - +5 VP per town, stronghold: Witches' Ride (free dwelling on any forest, once/round, ignores adjacency) ✅
@@ -431,38 +433,38 @@ Complete implementation of all faction-specific mechanics and special abilities.
 9. **Fakirs** - Carpet flight (1P, +4 VP, range 1+stronghold+shipping tile), cannot upgrade shipping/digging past 1, expensive stronghold ✅
 10. **Dwarves** - Tunneling (2W before stronghold/1W after, +4 VP, range 1), cannot upgrade shipping ✅
 11. **Darklings** - Terraform with priests (1P per spade, +2 VP per spade), priest ordination (convert up to 3 workers to priests, once/game, 7-priest limit), cannot upgrade digging, expensive sanctuary ✅
-12. **Chaos Magicians** - 2 favor tiles, double turn (take 2 actions, once/round), start with 4W/15C, 1 dwelling placed last, cheap stronghold (4C), expensive sanctuary (8C) ✅
+12. **Chaos Magicians** - 2 favor tiles for Temple/Sanctuary, double turn (take 2 actions, once/round), start with 4W/15C, 1 dwelling placed last, cheap stronghold (4C), expensive sanctuary (8C) ✅
 13. **Nomads** - Sandstorm (transform adjacent hex, once/round), start with 3 dwellings, 2W/15C ✅
+14. **Mermaids** - River-skipping for towns (delayed vs immediate claiming), start with shipping level 1, can reach level 5, stronghold: +1 free shipping with VP, expensive sanctuary (8C/4W) ✅
 
-**⚠️ PARTIALLY IMPLEMENTED:**
-14. **Mermaids** - Water building, town bonuses (needs water hex placement validation)
+#### Key Features Implemented:
 
-#### Work Needed:
+**Stronghold Special Actions (Once per Round):**
+- [x] Witches Ride - Free dwelling on any forest, ignores adjacency ✅
+- [x] Fakirs Carpet Flight - Place dwelling ignoring adjacency, pay 1 priest, +4 VP ✅
+- [x] Dwarves Tunneling - Skip terrain/river by paying workers ✅
+- [x] Nomads Sandstorm - Transform adjacent hex + optional dwelling ✅
+- [x] Chaos Magicians Double Turn - Take 2 actions instead of 1 ✅
+- [x] Auren Cult Advance - Advance 2 on any cult track ✅
+- [x] Giants Transform - 2 free spades + optional dwelling ✅
+- [x] Swarmlings Upgrade - Free dwelling→trading house upgrade ✅
 
-**High Priority (Core Mechanics):**
-- [x] Witches Ride action (place dwelling on any forest, once per round after stronghold) ✅
-- [x] Fakirs carpet flight action (place dwelling ignoring adjacency, pay priest) ✅
-- [x] Dwarves tunneling in Transform+Build (skip terrain/river by paying workers) ✅
-- [x] Nomads Sandstorm action (place dwelling on any desert, once per round after stronghold) ✅
-- [x] Chaos Magicians double turn (take 2 actions instead of 1, once per round after stronghold) ✅
-- [x] Auren cult advance action (advance 2 on any cult track, once per round after stronghold) ✅
-- [x] Darklings priest ordination (convert up to 3 workers to priests, once per game after stronghold) ✅
-- [x] Giants 2 free spades transform (once per round after stronghold) ✅
-- [x] Swarmlings free dwelling upgrade (once per round after stronghold) ✅
+**One-Time Stronghold Bonuses:**
+- [x] Halflings - 3 spades + optional dwelling (PendingHalflingsSpades) ✅
+- [x] Darklings - Priest ordination (0-3 workers → priests, 7-priest limit) ✅
+- [x] Auren - 1 favor tile immediately (PendingFavorTileSelection) ✅
+- [x] Mermaids - +1 free shipping level with VP ✅
+- [x] Alchemists - +12 power immediately ✅
+- [x] Cultists - +7 VP immediately ✅
 
-**Recently Completed:**
-- [x] Halflings stronghold: 3 spades + optional dwelling ✅ (PendingHalflingsSpades system)
-- [x] Auren stronghold: Favor tile selection ✅ (PendingFavorTileSelection)
-- [x] Favor tile selection: Temple/Sanctuary/Auren stronghold ✅ (SelectFavorTileAction)
-- [x] Mermaids river-skipping for town formation ✅ (can skip 1 river, delayed vs immediate claiming)
-- [x] Darklings priest ordination ✅ (immediate one-time bonus after stronghold, not a special action)
-- [x] Shipping/Digging VP awards ✅ (Level + 1 formula)
-
-**Low Priority (Already Functional):**
-- [x] All passive abilities (cost reductions, VP bonuses, etc.)
-- [x] Town bonuses (Witches, Swarmlings, Mermaids)
-- [x] Area scoring (Fakirs, Dwarves)
-- [x] Resource conversion (Alchemists)
+**Special Systems:**
+- [x] Favor tile selection after Temple/Sanctuary/Auren Stronghold (SelectFavorTileAction) ✅
+- [x] Mermaids river-skipping for town formation (delayed vs immediate claiming) ✅
+- [x] Shipping/Digging VP awards (Level + 1 formula) ✅
+- [x] All passive abilities (cost reductions, VP bonuses, etc.) ✅
+- [x] Town bonuses (Witches +5 VP, Swarmlings +3 workers, Mermaids +3 power) ✅
+- [x] Area scoring (Fakirs, Dwarves) ✅
+- [x] Resource conversion (Alchemists VP↔Coin) ✅
 
 ### Phase 9: Frontend UI - Game Board (Days 23-28)
 
