@@ -40,12 +40,13 @@ go_test(
     name = "game_test",
     srcs = [
         # Faction integration tests (consolidated):
-        # - Halflings: Spade VP bonuses
-        # - Swarmlings: Upgrade scoring  
-        # - Alchemists: VP/Coin conversion, power per spade
-        # - Cultists: Power leech bonuses
-        # - Giants: Transform special action
-        # - Engineers: VP per bridge on pass (stronghold ability)
+        # - Halflings: Spade VP bonuses (4 tests)
+        # - Swarmlings: Upgrade scoring (3 tests)
+        # - Alchemists: VP/Coin conversion, power per spade (11 tests)
+        # - Cultists: Power leech bonuses (4 tests)
+        # - Giants: Transform special action (3 tests)
+        # - Engineers: VP per bridge on pass, bridge+town formation (4 tests)
+        # Total: 29 faction integration tests
         "faction_integration_test.go",
         # Action tests
         "action_scoring_test.go",
@@ -62,7 +63,7 @@ go_test(
         "income_test.go",
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",
-        "power_actions_test.go",
+        "power_actions_test.go",  # Includes 5 bridge geometry validation tests
         "power_test.go",
         "resources_test.go",
         "scoring_tiles_test.go",
