@@ -378,3 +378,47 @@ func (m *TerraMysticaMap) FindConnectedBuildings(h Hex, faction models.FactionTy
 	dfs(h)
 	return connected
 }
+
+// GetLargestConnectedArea returns the size of the largest connected area for a player
+// Used for final scoring (18 VP for largest area)
+func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string) int {
+	visited := make(map[Hex]bool)
+	maxArea := 0
+	
+	// Find all buildings belonging to this player
+	for hex, mapHex := range m.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && !visited[hex] {
+			// Start a new connected component search
+			area := m.getConnectedAreaSize(hex, playerID, visited)
+			if area > maxArea {
+				maxArea = area
+			}
+		}
+	}
+	
+	return maxArea
+}
+
+// getConnectedAreaSize returns the size of the connected area starting from a hex
+// Uses DFS to explore all connected buildings
+func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visited map[Hex]bool) int {
+	if visited[start] {
+		return 0
+	}
+	
+	mapHex := m.GetHex(start)
+	if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+		return 0
+	}
+	
+	// Mark as visited
+	visited[start] = true
+	size := 1
+	
+	// Explore direct neighbors (including bridges)
+	for _, neighbor := range m.GetDirectNeighbors(start) {
+		size += m.getConnectedAreaSize(neighbor, playerID, visited)
+	}
+	
+	return size
+}
