@@ -310,7 +310,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		return fmt.Errorf("hex is already home terrain")
 	}
 	
-	// Use free spades first, then pay workers for remaining
+	// Use free spades first, then pay workers/priests for remaining
 	spadesNeeded := distance
 	spadesFromFreeAction := freeSpades
 	if spadesFromFreeAction > spadesNeeded {
@@ -319,13 +319,27 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	
 	remainingSpades := spadesNeeded - spadesFromFreeAction
 	
-	// Pay for remaining spades with workers
+	// Pay for remaining spades
 	if remainingSpades > 0 {
-		workersNeeded := player.Faction.GetTerraformCost(remainingSpades)
-		if player.Resources.Workers < workersNeeded {
-			return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+		// Darklings pay priests (instead of workers)
+		if darklings, ok := player.Faction.(*factions.Darklings); ok {
+			priestsNeeded := darklings.GetTerraformCostInPriests(remainingSpades)
+			if player.Resources.Priests < priestsNeeded {
+				return fmt.Errorf("not enough priests: need %d, have %d", priestsNeeded, player.Resources.Priests)
+			}
+			player.Resources.Priests -= priestsNeeded
+			
+			// Award Darklings VP bonus (+2 VP per remaining spade)
+			vpBonus := darklings.GetTerraformVPBonus(remainingSpades)
+			player.VictoryPoints += vpBonus
+		} else {
+			// Other factions pay workers
+			workersNeeded := player.Faction.GetTerraformCost(remainingSpades)
+			if player.Resources.Workers < workersNeeded {
+				return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+			}
+			player.Resources.Workers -= workersNeeded
 		}
-		player.Resources.Workers -= workersNeeded
 	}
 	
 	// Transform the terrain

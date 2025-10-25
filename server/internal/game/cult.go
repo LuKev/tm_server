@@ -82,6 +82,18 @@ func (cts *CultTrackState) GetPosition(playerID string, track CultTrack) int {
 	return 0
 }
 
+// GetTotalPriestsOnCultTracks returns the total number of priests a player has on all cult tracks
+// This is used for the 7-priest limit (priests in hand + priests on cult tracks <= 7)
+func (cts *CultTrackState) GetTotalPriestsOnCultTracks(playerID string) int {
+	total := 0
+	if positions, ok := cts.PlayerPositions[playerID]; ok {
+		for _, position := range positions {
+			total += position
+		}
+	}
+	return total
+}
+
 // AdvancePlayer advances a player on a cult track
 // Returns the number of spaces actually advanced (may be less if at max or blocked)
 // Also grants power for each space advanced AND bonus power at positions 3/5/7/10

@@ -1639,6 +1639,308 @@ func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 	}
 }
 
+// ============================================================================
+// DARKLINGS TESTS
+// ============================================================================
+
+func TestDarklings_TerraformWithPriests(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDarklings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Place initial dwelling at (0,0)
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is adjacent - terraform Mountain to Swamp (3 spades)
+	targetHex := NewHex(1, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainMountain}
+	
+	// Give player resources (priests, not workers)
+	player.Resources.Priests = 5
+	player.Resources.Workers = 10
+	player.Resources.Coins = 10
+	initialPriests := player.Resources.Priests
+	initialWorkers := player.Resources.Workers
+	initialVP := player.VictoryPoints
+	
+	// Transform and build dwelling
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("terraform should work for Darklings, got error: %v", err)
+	}
+	
+	// Verify priests were spent (not workers)
+	// Mountain to Swamp = 3 spades = 3 priests
+	priestsSpent := initialPriests - player.Resources.Priests
+	if priestsSpent != 3 {
+		t.Errorf("expected 3 priests spent (Mountain to Swamp = 3 spades), got %d", priestsSpent)
+	}
+	
+	// Verify workers were NOT spent for terraform (only for dwelling)
+	workersSpent := initialWorkers - player.Resources.Workers
+	if workersSpent != 1 { // Only dwelling cost
+		t.Errorf("expected 1 worker spent (dwelling only), got %d", workersSpent)
+	}
+	
+	// Verify VP bonus (+2 VP per spade = +6 VP for 3 spades)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 6 {
+		t.Errorf("expected +6 VP for 3 spades, got +%d", vpGained)
+	}
+	
+	// Verify dwelling was built
+	if gs.Map.GetHex(targetHex).Building == nil {
+		t.Error("expected dwelling to be built")
+	}
+}
+
+func TestDarklings_PriestOrdinationBasic(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDarklings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold first
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Give player 3 workers
+	player.Resources.Workers = 3
+	player.Resources.Priests = 1 // Start with 1 priest
+	
+	// Convert 2 workers to 2 priests
+	action := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType: SpecialActionDarklingsPriestOrdination,
+		Amount:     2,
+	}
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("priest ordination should work, got error: %v", err)
+	}
+	
+	// Verify workers were spent
+	if player.Resources.Workers != 1 {
+		t.Errorf("expected 1 worker remaining, got %d", player.Resources.Workers)
+	}
+	
+	// Verify priests were gained
+	if player.Resources.Priests != 3 {
+		t.Errorf("expected 3 priests total (1 start + 2 converted), got %d", player.Resources.Priests)
+	}
+	
+	// Verify it can only be used once
+	action2 := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType: SpecialActionDarklingsPriestOrdination,
+		Amount:     1,
+	}
+	
+	err = action2.Execute(gs)
+	if err == nil {
+		t.Fatal("priest ordination should only work once")
+	}
+}
+
+func TestDarklings_PriestOrdination7PriestLimit(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDarklings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Player has 4 priests in hand
+	player.Resources.Priests = 4
+	player.Resources.Workers = 5
+	
+	// Send 2 priests to cult tracks (using cult system directly)
+	gs.CultTracks.InitializePlayer("player1")
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 1, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 1, player)
+	// Now: 4 in hand - 2 sent = 2 in hand, 2 on cults = 4 total
+	player.Resources.Priests = 2
+	
+	// Try to convert 3 workers (would be 2 + 2 + 3 = 7 total, should work)
+	action := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType: SpecialActionDarklingsPriestOrdination,
+		Amount:     3,
+	}
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("should be able to convert 3 workers (2+2+3=7 total), got error: %v", err)
+	}
+	
+	// Verify priests were gained
+	if player.Resources.Priests != 5 {
+		t.Errorf("expected 5 priests in hand, got %d", player.Resources.Priests)
+	}
+}
+
+func TestDarklings_PriestOrdinationExceeds7PriestLimit(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDarklings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Player has 4 priests in hand, 3 on cult tracks
+	player.Resources.Priests = 4
+	player.Resources.Workers = 5
+	
+	gs.CultTracks.InitializePlayer("player1")
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 1, player)
+	// Now: 4 in hand - 3 sent = 1 in hand, 3 on cults = 4 total
+	player.Resources.Priests = 1
+	
+	// Try to convert 3 workers (would be 1 + 3 + 3 = 7 total, at limit)
+	action := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType: SpecialActionDarklingsPriestOrdination,
+		Amount:     3,
+	}
+	
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("should be able to convert 3 workers (1+3+3=7 total), got error: %v", err)
+	}
+	
+	// Now player has 4 priests in hand, 3 on cult tracks = 7 total
+	
+	// Create new game state and test exceeding limit
+	gs2 := NewGameState()
+	faction2 := factions.NewDarklings()
+	gs2.AddPlayer("player1", faction2)
+	player2 := gs2.GetPlayer("player1")
+	
+	faction2.BuildStronghold()
+	player2.HasStrongholdAbility = true
+	
+	// Player has 4 priests in hand, 3 on cult tracks
+	player2.Resources.Priests = 4
+	player2.Resources.Workers = 5
+	
+	gs2.CultTracks.InitializePlayer("player1")
+	gs2.CultTracks.AdvancePlayer("player1", CultFire, 3, player2)
+	player2.Resources.Priests = 1
+	
+	// Try to convert 3 workers (would be 1 + 3 + 3 = 7, then try to exceed)
+	// Actually, let's test exceeding directly
+	player2.Resources.Priests = 5
+	// 5 in hand + 3 on cults = 8 total, can't convert any more
+	
+	action2 := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType: SpecialActionDarklingsPriestOrdination,
+		Amount:     1,
+	}
+	
+	err2 := action2.Validate(gs2)
+	if err2 == nil {
+		t.Fatal("should not be able to convert workers when at 8 priests total (exceeds limit)")
+	}
+}
+
+func TestDarklings_CannotUpgradeDigging(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDarklings()
+	gs.AddPlayer("player1", faction)
+	
+	// Darklings cannot upgrade digging - cost should be 0
+	cost := faction.GetDiggingCost(0)
+	if cost.Workers != 0 || cost.Coins != 0 || cost.Priests != 0 {
+		t.Error("Darklings should have 0 cost for digging (indicating impossible)")
+	}
+}
+
+func TestDarklings_PowerActionWithPriests(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDarklings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Place initial dwelling
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is adjacent
+	targetHex := NewHex(1, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainMountain}
+	
+	// Give player power and priests
+	player.Resources.Power.Bowl3 = 5
+	player.Resources.Priests = 5
+	player.Resources.Workers = 10
+	initialPriests := player.Resources.Priests
+	initialWorkers := player.Resources.Workers
+	initialVP := player.VictoryPoints
+	
+	// Use spade power action (1 free spade, Darklings pay priests for remaining)
+	// Mountain to Swamp = 3 spades, 1 free, need to pay for 2 spades = 2 priests
+	action := NewPowerActionWithTransform("player1", PowerActionSpade1, targetHex, false)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("spade power action should work for Darklings, got error: %v", err)
+	}
+	
+	// Verify 2 priests were spent (not workers)
+	priestsSpent := initialPriests - player.Resources.Priests
+	if priestsSpent != 2 {
+		t.Errorf("expected 2 priests spent for 2 remaining spades, got %d", priestsSpent)
+	}
+	
+	// Verify workers were NOT spent
+	workersSpent := initialWorkers - player.Resources.Workers
+	if workersSpent != 0 {
+		t.Errorf("expected 0 workers spent, got %d", workersSpent)
+	}
+	
+	// Verify VP bonus (+2 VP per remaining spade = +4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for 2 remaining spades, got +%d", vpGained)
+	}
+}
+
 func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewEngineers()

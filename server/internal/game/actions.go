@@ -146,6 +146,8 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
 	
 	totalWorkersNeeded := 0
+	totalPriestsNeeded := 0
+	
 	if needsTransform {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
@@ -153,8 +155,14 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 			return fmt.Errorf("terrain distance calculation failed")
 		}
 		
-		// GetTerraformCost returns total workers needed (already accounts for distance)
-		totalWorkersNeeded = player.Faction.GetTerraformCost(distance)
+		// Darklings pay priests for terraform (1 priest per spade)
+		if darklings, ok := player.Faction.(*factions.Darklings); ok {
+			totalPriestsNeeded = darklings.GetTerraformCostInPriests(distance)
+		} else {
+			// Other factions pay workers
+			// GetTerraformCost returns total workers needed (already accounts for distance)
+			totalWorkersNeeded = player.Faction.GetTerraformCost(distance)
+		}
 	}
 	
 	// Add tunneling cost to total if using skip (Dwarves)
@@ -195,6 +203,11 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	if player.Resources.Workers < totalWorkersNeeded {
 		return fmt.Errorf("not enough workers: need %d, have %d", totalWorkersNeeded, player.Resources.Workers)
 	}
+	
+	// Check total priests needed (Darklings terraform cost)
+	if player.Resources.Priests < totalPriestsNeeded {
+		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
+	}
 
 	return nil
 }
@@ -227,11 +240,20 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
 	if needsTransform {
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
-		// GetTerraformCost returns total workers needed (already accounts for distance)
-		totalWorkers := player.Faction.GetTerraformCost(distance)
-
-		// Pay workers for terraform (spades)
-		player.Resources.Workers -= totalWorkers
+		
+		// Darklings pay priests for terraform (instead of workers)
+		if darklings, ok := player.Faction.(*factions.Darklings); ok {
+			priestCost := darklings.GetTerraformCostInPriests(distance)
+			player.Resources.Priests -= priestCost
+			
+			// Award Darklings VP bonus (+2 VP per spade)
+			vpBonus := darklings.GetTerraformVPBonus(distance)
+			player.VictoryPoints += vpBonus
+		} else {
+			// Other factions pay workers
+			totalWorkers := player.Faction.GetTerraformCost(distance)
+			player.Resources.Workers -= totalWorkers
+		}
 
 		// Transform terrain to home terrain
 		if err := gs.Map.TransformTerrain(a.TargetHex, player.Faction.GetHomeTerrain()); err != nil {
@@ -239,22 +261,25 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		}
 		
 		// Award VP from scoring tile (per spade used)
-		spadesUsed := player.Faction.GetTerraformSpades(distance)
-		for i := 0; i < spadesUsed; i++ {
-			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
-		}
-		
-		// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-		if halflings, ok := player.Faction.(*factions.Halflings); ok {
-			vpBonus := halflings.GetVPPerSpade() * spadesUsed
-			player.VictoryPoints += vpBonus
-		}
-		
-		// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
-		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
-			if powerBonus > 0 {
-				player.Resources.Power.Bowl1 += powerBonus
+		// Note: Darklings get their own VP bonus above, not from scoring tiles or Halflings
+		if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings {
+			spadesUsed := player.Faction.GetTerraformSpades(distance)
+			for i := 0; i < spadesUsed; i++ {
+				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+			}
+			
+			// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+			if halflings, ok := player.Faction.(*factions.Halflings); ok {
+				vpBonus := halflings.GetVPPerSpade() * spadesUsed
+				player.VictoryPoints += vpBonus
+			}
+			
+			// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+				powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+				if powerBonus > 0 {
+					player.Resources.Power.Bowl1 += powerBonus
+				}
 			}
 		}
 	}

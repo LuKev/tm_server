@@ -430,10 +430,10 @@ Complete implementation of all faction-specific mechanics and special abilities.
 8. **Auren** - Expensive sanctuary (8C/4W), stronghold: 1 favor tile on build + cult advance special action (2 spaces, once/round) ✅
 9. **Fakirs** - Carpet flight (1P, +4 VP, range 1+stronghold+shipping tile), cannot upgrade shipping/digging past 1, expensive stronghold ✅
 10. **Dwarves** - Tunneling (2W before stronghold/1W after, +4 VP, range 1), cannot upgrade shipping ✅
+11. **Darklings** - Terraform with priests (1P per spade, +2 VP per spade), priest ordination (convert up to 3 workers to priests, once/game, 7-priest limit), cannot upgrade digging, expensive sanctuary ✅
 
 **⚠️ PARTIALLY IMPLEMENTED:**
-11. **Mermaids** - Water building, town bonuses (needs water hex placement validation)
-12. **Darklings** - Priest ordination (needs action integration)
+12. **Mermaids** - Water building, town bonuses (needs water hex placement validation)
 13. **Chaos Magicians** - 2 favor tiles, double turn (needs action integration)
 14. **Nomads** - Sandstorm (needs action integration for placement)
 
