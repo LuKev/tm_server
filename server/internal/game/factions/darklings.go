@@ -69,9 +69,9 @@ func (f *Darklings) CanUsePriestOrdination() bool {
 	return f.hasStronghold && !f.hasUsedPriestOrdination
 }
 
-// UsePriestOrdination trades workers for priests (up to 3 workers)
+// UsePriestOrdination trades workers for priests (0-3 workers)
 // Returns the number of priests gained
-// NOTE: Full validation will be in Phase 6.2 (Action System)
+// Player can choose 0 to skip using the ability
 func (f *Darklings) UsePriestOrdination(workersToTrade int) (int, error) {
 	if !f.hasStronghold {
 		return 0, fmt.Errorf("must build stronghold before using priest ordination")
@@ -81,8 +81,8 @@ func (f *Darklings) UsePriestOrdination(workersToTrade int) (int, error) {
 		return 0, fmt.Errorf("priest ordination already used")
 	}
 	
-	if workersToTrade < 1 || workersToTrade > 3 {
-		return 0, fmt.Errorf("can only trade 1-3 workers")
+	if workersToTrade < 0 || workersToTrade > 3 {
+		return 0, fmt.Errorf("can only trade 0-3 workers")
 	}
 	
 	f.hasUsedPriestOrdination = true

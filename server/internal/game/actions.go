@@ -25,6 +25,7 @@ const (
 	ActionApplyHalflingsSpade  // Apply one of 3 stronghold spades (Halflings only)
 	ActionBuildHalflingsDwelling // Build dwelling on transformed hex (Halflings optional)
 	ActionSkipHalflingsDwelling  // Skip optional dwelling (Halflings)
+	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
 )
 
 // Action represents a player action
@@ -527,13 +528,16 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 				}
 			}
 		case models.FactionDarklings:
-			// Darklings: Priest ordination is now handled via direct faction method calls
-			// Tests call UsePriestOrdination() directly + gs.GainPriests()
-			// This is NOT a special action - it's an immediate one-time bonus after building stronghold
+			// Darklings: Priest ordination happens IMMEDIATELY after building stronghold
+			// Player must choose how many workers (0-3) to convert to priests
 			if darklings, ok := player.Faction.(*factions.Darklings); ok {
 				darklings.BuildStronghold()
-				// Note: Player must call UsePriestOrdination() separately to convert workers
-				// The 7-priest limit is enforced in gs.GainPriests()
+				
+				// Create pending priest ordination
+				// Player must complete this immediately before continuing
+				gs.PendingDarklingsPriestOrdination = &PendingDarklingsPriestOrdination{
+					PlayerID: a.PlayerID,
+				}
 			}
 		default:
 			// All other factions just mark stronghold as built (no immediate bonus)

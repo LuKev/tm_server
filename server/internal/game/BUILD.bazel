@@ -4,6 +4,7 @@ go_library(
     name = "game",
     srcs = [
         "action_cult_spade.go",
+        "action_darklings_ordination.go",
         "action_halflings_spades.go",
         "action_power_leech.go",
         "action_select_favor_tile.go",
@@ -52,13 +53,14 @@ go_test(
         # - Fakirs: Carpet flight (basic, after stronghold, power action, no shipping) (4 tests)
         # - Dwarves: Tunneling (basic, after stronghold, power action, no shipping) (4 tests)
         # - Darklings: Priest terraform, VP bonus, priest ordination w/ 7-priest limit, cannot upgrade digging, power action (6 tests)
+        # - Darklings Ordination: Stronghold immediate priest ordination (0-3 workers→priests, 7-priest limit, one-time) (7 tests)
         # - 7-Priest Limit: Income capping (1 test)
         # - Mermaids: River skipping for towns, delayed town formation, stronghold shipping (7 tests)
-        # Total: 54 faction integration tests
+        # - Halflings Spades: Stronghold 3 spades + optional dwelling (9 tests)
+        # Total: 54 + 7 (Darklings ordination) + 9 (Halflings) = 70 faction integration tests
+        # Note: Alchemists tests (11) already included in the original 54 count
         "faction_integration_test.go",
-        "mermaids_integration_test.go",
         # Action tests
-        "action_halflings_spades_test.go",
         "action_scoring_test.go",
         "action_select_favor_tile_test.go",
         "action_shipping_digging_vp_test.go",

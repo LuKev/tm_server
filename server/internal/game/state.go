@@ -32,6 +32,7 @@ type GameState struct {
 	PendingCultistsLeech    map[string]*CultistsLeechBonus      // Key: playerID (Cultists), tracks pending cult advance/power bonus
 	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
 	PendingHalflingsSpades    *PendingHalflingsSpades           // Halflings player who needs to apply 3 stronghold spades
+	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination // Darklings player who needs to convert workers to priests
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -64,6 +65,12 @@ type PendingHalflingsSpades struct {
 	PlayerID       string
 	SpadesRemaining int    // Number of spades left to apply (starts at 3)
 	TransformedHexes []Hex // Hexes that have been transformed
+}
+
+// PendingDarklingsPriestOrdination represents Darklings player who needs to convert workers to priests
+// Triggered by: Building Stronghold (one-time only, immediate)
+type PendingDarklingsPriestOrdination struct {
+	PlayerID string
 }
 
 // GamePhase represents the current phase of the game
