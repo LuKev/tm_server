@@ -316,6 +316,63 @@ func TestGameSetupOptions_Validation(t *testing.T) {
 	}
 }
 
+func TestAuction_CannotNominateSameColor(t *testing.T) {
+	// Test that only one faction per color can be nominated
+	seatOrder := []string{"Alice", "Bob", "Charlie", "Diana"}
+	auction := NewAuctionState(seatOrder)
+	
+	// Alice nominates Nomads (Yellow/Desert)
+	err := auction.NominateFaction("Alice", models.FactionNomads)
+	if err != nil {
+		t.Fatalf("Alice failed to nominate Nomads: %v", err)
+	}
+	
+	// Bob tries to nominate Fakirs (also Yellow/Desert) - should fail
+	err = auction.NominateFaction("Bob", models.FactionFakirs)
+	if err == nil {
+		t.Error("Bob should not be able to nominate Fakirs (same color as Nomads)")
+	}
+	
+	// Bob nominates Giants (Red/Wasteland) - should succeed
+	err = auction.NominateFaction("Bob", models.FactionGiants)
+	if err != nil {
+		t.Fatalf("Bob failed to nominate Giants: %v", err)
+	}
+	
+	// Charlie tries to nominate Chaos Magicians (also Red/Wasteland) - should fail
+	err = auction.NominateFaction("Charlie", models.FactionChaosMagicians)
+	if err == nil {
+		t.Error("Charlie should not be able to nominate Chaos Magicians (same color as Giants)")
+	}
+	
+	// Charlie nominates Swarmlings (Blue/Lake) - should succeed
+	err = auction.NominateFaction("Charlie", models.FactionSwarmlings)
+	if err != nil {
+		t.Fatalf("Charlie failed to nominate Swarmlings: %v", err)
+	}
+	
+	// Diana nominates Witches (Green/Forest) - should succeed
+	err = auction.NominateFaction("Diana", models.FactionWitches)
+	if err != nil {
+		t.Fatalf("Diana failed to nominate Witches: %v", err)
+	}
+	
+	// Verify nomination order
+	if len(auction.NominationOrder) != 4 {
+		t.Errorf("expected 4 nominations, got %d", len(auction.NominationOrder))
+	}
+	
+	// Verify all different colors
+	colors := make(map[models.FactionColor]bool)
+	for _, faction := range auction.NominationOrder {
+		color := faction.GetFactionColor()
+		if colors[color] {
+			t.Errorf("duplicate color found: %v", color)
+		}
+		colors[color] = true
+	}
+}
+
 func TestAuction_ComplexScenario(t *testing.T) {
 	// 4-player game with multiple overbids
 	seatOrder := []string{"Alice", "Bob", "Charlie", "Diana"}

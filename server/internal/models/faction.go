@@ -56,3 +56,38 @@ func (f FactionType) String() string {
 		return "Unknown"
 	}
 }
+
+// FactionColor represents the terrain color of a faction
+type FactionColor int
+
+const (
+	ColorYellow FactionColor = iota // Desert
+	ColorRed                         // Wasteland
+	ColorBlue                        // Lake
+	ColorGreen                       // Forest
+	ColorBrown                       // Plains
+	ColorBlack                       // Swamp
+	ColorGray                        // Mountain
+)
+
+// GetFactionColor returns the color/terrain type of a faction
+func (f FactionType) GetFactionColor() FactionColor {
+	switch f {
+	case FactionNomads, FactionFakirs:
+		return ColorYellow // Desert
+	case FactionChaosMagicians, FactionGiants:
+		return ColorRed // Wasteland
+	case FactionSwarmlings, FactionMermaids:
+		return ColorBlue // Lake
+	case FactionWitches, FactionAuren:
+		return ColorGreen // Forest
+	case FactionHalflings, FactionCultists:
+		return ColorBrown // Plains
+	case FactionAlchemists, FactionDarklings:
+		return ColorBlack // Swamp
+	case FactionEngineers, FactionDwarves:
+		return ColorGray // Mountain
+	default:
+		return ColorYellow // Default
+	}
+}

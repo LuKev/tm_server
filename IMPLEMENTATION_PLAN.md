@@ -422,7 +422,7 @@ Complete implementation of all faction-specific mechanics and special abilities.
 **✅ FULLY IMPLEMENTED:**
 1. **Giants** - 2 spades/terraform always, stronghold: 2 free spades/round (awards scoring tile VP) ✅
 2. **Swarmlings** - Expensive dwellings (2W+3C), stronghold: free D→TH upgrade/round, +3 workers/town ✅
-3. **Engineers** - Reduced bridge cost (3→1), +2 VP on passing after stronghold
+3. **Engineers** - Reduced building costs, reduced income, bridge cost 2W, stronghold: 3VP/bridge on pass ✅
 4. **Alchemists** - VP↔Coin conversion, +2 power per spade after stronghold
 5. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech
 

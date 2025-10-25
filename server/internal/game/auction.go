@@ -60,6 +60,14 @@ func (as *AuctionState) NominateFaction(playerID string, faction models.FactionT
 		}
 	}
 	
+	// Check if a faction of the same color has already been nominated
+	factionColor := faction.GetFactionColor()
+	for _, f := range as.NominationOrder {
+		if f.GetFactionColor() == factionColor {
+			return fmt.Errorf("a faction of this color has already been nominated")
+		}
+	}
+	
 	// Add to nomination order
 	as.NominationOrder = append(as.NominationOrder, faction)
 	as.CurrentBids[faction] = 0 // Starting bid is 0 (40 VP)
