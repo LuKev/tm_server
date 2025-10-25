@@ -65,6 +65,9 @@ type PowerAction struct {
 	// For spade actions, these fields specify the transform details
 	TargetHex      *Hex // Optional: for spade actions
 	BuildDwelling  bool // Optional: for spade actions
+	// For bridge action, these fields specify the bridge endpoints
+	BridgeHex1 *Hex // Optional: for bridge action
+	BridgeHex2 *Hex // Optional: for bridge action
 }
 
 func NewPowerAction(playerID string, actionType PowerActionType) *PowerAction {
@@ -87,6 +90,19 @@ func NewPowerActionWithTransform(playerID string, actionType PowerActionType, ta
 		ActionType:    actionType,
 		TargetHex:     &targetHex,
 		BuildDwelling: buildDwelling,
+	}
+}
+
+// NewPowerActionWithBridge creates a power action for building a bridge
+func NewPowerActionWithBridge(playerID string, hex1, hex2 Hex) *PowerAction {
+	return &PowerAction{
+		BaseAction: BaseAction{
+			Type:     ActionPowerAction,
+			PlayerID: playerID,
+		},
+		ActionType: PowerActionBridge,
+		BridgeHex1: &hex1,
+		BridgeHex2: &hex2,
 	}
 }
 
@@ -135,7 +151,26 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		if player.BridgesBuilt >= 3 {
 			return fmt.Errorf("player has already built 3 bridges (maximum)")
 		}
-		// TODO: Validate bridge placement location
+		
+		// If bridge hex coordinates are provided, validate the bridge placement
+		if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
+			// Check if bridge already exists
+			if gs.Map.HasBridge(*a.BridgeHex1, *a.BridgeHex2) {
+				return fmt.Errorf("bridge already exists between these hexes")
+			}
+			
+			// Validate hex coordinates are on the map
+			if gs.Map.GetHex(*a.BridgeHex1) == nil {
+				return fmt.Errorf("bridge hex1 is not on the map")
+			}
+			if gs.Map.GetHex(*a.BridgeHex2) == nil {
+				return fmt.Errorf("bridge hex2 is not on the map")
+			}
+			
+			// Note: Full geometry validation happens in BuildBridge during Execute
+		}
+		// Note: Bridge coordinates are optional for backward compatibility
+		// If not provided, the action just increments the counter
 	}
 
 	return nil
@@ -159,8 +194,30 @@ func (a *PowerAction) Execute(gs *GameState) error {
 	// Execute the specific action
 	switch a.ActionType {
 	case PowerActionBridge:
+		// Place the bridge on the map if coordinates provided
+		if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
+			if err := gs.Map.BuildBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+				return fmt.Errorf("failed to build bridge: %w", err)
+			}
+			
+			// Check for town formation after building bridge
+			// The bridge might connect buildings into a town
+			// Check from both endpoints
+			connected := gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex1)
+			if connected == nil {
+				connected = gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
+			}
+			
+			if connected != nil {
+				// Town can be formed - create pending town formation
+				gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
+					PlayerID: a.PlayerID,
+					Hexes:    connected,
+				}
+			}
+		}
+		
 		player.BridgesBuilt++
-		// TODO: Actually place the bridge on the map
 		
 	case PowerActionPriest:
 		player.Resources.Priests++

@@ -1125,42 +1125,159 @@ func TestEngineers_VPPerBridgeBeforeStronghold(t *testing.T) {
 	}
 }
 
-func TestEngineers_CheaperBridgeCost(t *testing.T) {
+func TestEngineers_BridgePowerAction(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewEngineers()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	
-	// Engineers bridges cost 2 workers (vs standard 3)
-	bridgeCost := faction.GetBridgeCost()
-	if bridgeCost.Workers != 2 {
-		t.Errorf("expected 2 workers for Engineers bridge, got %d", bridgeCost.Workers)
-	}
+	// Engineers can build bridges using power action (like all factions)
+	// They also have a special action to build bridges for 2 workers
 	
-	// Give player resources
-	player.Resources.Workers = 2
+	// Reset starting power and give player resources for power action
+	player.Resources.Power.Bowl1 = 0
+	player.Resources.Power.Bowl2 = 0
+	player.Resources.Power.Bowl3 = 3
 	
 	// Build a bridge using power action
-	player.Resources.Power.Bowl3 = 3
+	// NOTE: Bridge placement requires specifying hex coordinates
+	// For now, just verify the counter increments
 	action := NewPowerAction("player1", PowerActionBridge)
 	err := action.Execute(gs)
 	if err != nil {
-		t.Fatalf("bridge action failed: %v", err)
+		t.Fatalf("bridge power action failed: %v", err)
+	}
+	
+	// Verify bridge counter was incremented
+	if player.BridgesBuilt != 1 {
+		t.Errorf("expected 1 bridge built, got %d", player.BridgesBuilt)
+	}
+	
+	// Verify power was spent (3 power moved from Bowl3 to Bowl1)
+	if player.Resources.Power.Bowl3 != 0 {
+		t.Errorf("expected 0 power in Bowl3 after spending, got %d", player.Resources.Power.Bowl3)
+	}
+	if player.Resources.Power.Bowl1 != 3 {
+		t.Errorf("expected 3 power in Bowl1 after spending, got %d", player.Resources.Power.Bowl1)
+	}
+}
+
+func TestBridge_ChecksTownFormationAfterBuilding(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set up a valid bridge scenario using base orientation from Terra Mystica rules
+	// Bridge from (0,0) to (1,-2) with midpoints (0,-1) and (1,-1) both being river
+	// This creates two groups of buildings that will form a town when connected
+	
+	// Group 1: Buildings at and near (0,0)
+	hex1 := NewHex(0, 0)
+	hex2 := NewHex(-1, 0)
+	
+	// River hexes that separate the groups
+	river1 := NewHex(0, -1)
+	river2 := NewHex(1, -1)
+	
+	// Group 2: Buildings at and near (1,-2)
+	hex3 := NewHex(1, -2)
+	hex4 := NewHex(2, -2)
+	
+	// Ensure hexes exist in map and set up terrain
+	if gs.Map.GetHex(hex1) == nil {
+		gs.Map.Hexes[hex1] = &MapHex{Coord: hex1}
+	}
+	if gs.Map.GetHex(hex2) == nil {
+		gs.Map.Hexes[hex2] = &MapHex{Coord: hex2}
+	}
+	if gs.Map.GetHex(river1) == nil {
+		gs.Map.Hexes[river1] = &MapHex{Coord: river1}
+	}
+	if gs.Map.GetHex(river2) == nil {
+		gs.Map.Hexes[river2] = &MapHex{Coord: river2}
+	}
+	if gs.Map.GetHex(hex3) == nil {
+		gs.Map.Hexes[hex3] = &MapHex{Coord: hex3}
+	}
+	if gs.Map.GetHex(hex4) == nil {
+		gs.Map.Hexes[hex4] = &MapHex{Coord: hex4}
+	}
+	
+	// Set up terrain
+	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(hex2).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(river1).Terrain = models.TerrainRiver
+	gs.Map.GetHex(river2).Terrain = models.TerrainRiver
+	gs.Map.GetHex(hex3).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(hex4).Terrain = faction.GetHomeTerrain()
+	
+	// Mark river hexes
+	gs.Map.RiverHexes[river1] = true
+	gs.Map.RiverHexes[river2] = true
+	
+	// Place buildings with total power = 7 to form a town
+	// Dwelling (1) + Dwelling (1) + Trading House (2) + Trading House (2) = 6 (not enough)
+	// Need at least 7 power
+	gs.Map.PlaceBuilding(hex1, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	gs.Map.PlaceBuilding(hex2, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.PlaceBuilding(hex3, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.PlaceBuilding(hex4, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	// Total power = 1 + 2 + 2 + 2 = 7 (exactly 7, meets requirement)
+	
+	// Before bridge: buildings are not connected (separated by river)
+	connectedBefore := gs.CheckForTownFormation("player1", hex1)
+	if connectedBefore != nil {
+		t.Error("expected no town formation before bridge (groups separated by river)")
+	}
+	
+	// Give player resources for power action
+	player.Resources.Power.Bowl3 = 3
+	
+	// Build a bridge using power action
+	action := NewPowerActionWithBridge("player1", hex1, hex3)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to build bridge: %v", err)
 	}
 	
 	// Verify bridge was built
 	if player.BridgesBuilt != 1 {
 		t.Errorf("expected 1 bridge built, got %d", player.BridgesBuilt)
 	}
-}
-
-func TestBridge_ChecksTownFormationAfterBuilding(t *testing.T) {
-	// TODO: This test requires setting up a valid bridge geometry per Terra Mystica rules
-	// Bridge geometry validation: vector must be one of the 6 allowed distance-2 offsets
-	// and the two intermediate hexes must both be river hexes.
-	//
-	// For now, we test that CheckForTownFormation works correctly after bridges exist.
-	// The power action bridge building should call CheckForTownFormation when implemented.
 	
-	t.Skip("Bridge building and town formation integration test needs proper bridge geometry setup")
+	// Verify bridge exists on map
+	if !gs.Map.HasBridge(hex1, hex3) {
+		t.Error("expected bridge to exist on map")
+	}
+	
+	// Verify that town formation was detected and pending
+	if gs.PendingTownFormations["player1"] == nil {
+		t.Error("expected pending town formation after bridge connects buildings")
+	} else {
+		pendingTown := gs.PendingTownFormations["player1"]
+		if len(pendingTown.Hexes) != 4 {
+			t.Errorf("expected 4 connected buildings in town, got %d", len(pendingTown.Hexes))
+		}
+	}
 }
