@@ -314,9 +314,10 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 
 func TestAwardCultRewards_Priests(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren()
+	faction2 := factions.NewWitches()
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	

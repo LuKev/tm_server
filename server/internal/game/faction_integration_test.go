@@ -1,0 +1,945 @@
+package game
+
+import (
+	"testing"
+
+	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
+)
+
+// This file contains integration tests for faction-specific abilities
+// that interact with the game state and actions.
+//
+// Factions tested:
+// - Halflings: Spade VP bonuses
+// - Swarmlings: Upgrade scoring
+// - Alchemists: VP/Coin conversion, power per spade
+// - Cultists: Power leech bonuses
+
+// ============================================================================
+// HALFLINGS TESTS
+// ============================================================================
+
+func TestHalflings_RegularTransformScoring(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set up scoring tile: 2 VP per spade
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{
+				Type:       ScoringSpades,
+				ActionType: ScoringActionSpades,
+				ActionVP:   2,
+			},
+		},
+	}
+	
+	// Give player resources
+	player.Resources.Workers = 20
+	
+	// Find a hex that needs transformation (not already home terrain)
+	targetHex := NewHex(0, 0)
+	// Make sure it's not already home terrain
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Plains
+	
+	initialVP := player.VictoryPoints
+	
+	// Transform (Halflings use 3 spades for distance 3)
+	action := NewTransformAndBuildAction("player1", targetHex, false)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to transform: %v", err)
+	}
+	
+	// Should get: 2 VP per spade (scoring tile) + 1 VP per spade (Halflings) = 3 VP per spade
+	// Distance 3 = 3 spades, so 3 * 3 = 9 VP total
+	vpGained := player.VictoryPoints - initialVP
+	expectedVP := 3 * 3 // 3 spades * 3 VP per spade
+	if vpGained != expectedVP {
+		t.Errorf("expected %d VP, got %d", expectedVP, vpGained)
+	}
+}
+
+func TestHalflings_BonusCardSpadeScoring(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Give player the spade bonus card
+	gs.BonusCards.PlayerCards["player1"] = BonusCardSpade
+	gs.BonusCards.PlayerHasCard["player1"] = true
+	
+	// Set up scoring tile: 2 VP per spade
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{
+				Type:       ScoringSpades,
+				ActionType: ScoringActionSpades,
+				ActionVP:   2,
+			},
+		},
+	}
+	
+	player.Resources.Workers = 20
+	
+	targetHex := NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Plains
+	
+	initialVP := player.VictoryPoints
+	
+	// Use bonus card spade (1 free spade)
+	action := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType:    SpecialActionBonusCardSpade,
+		TargetHex:     &targetHex,
+		BuildDwelling: false,
+	}
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to use bonus card spade: %v", err)
+	}
+	
+	// Distance 3 = 3 spades, should get 3 * 3 = 9 VP
+	vpGained := player.VictoryPoints - initialVP
+	expectedVP := 3 * 3
+	if vpGained != expectedVP {
+		t.Errorf("expected %d VP, got %d", expectedVP, vpGained)
+	}
+}
+
+func TestHalflings_CultSpadeScoring(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set up scoring tile: 2 VP per spade
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{
+				Type:       ScoringSpades,
+				ActionType: ScoringActionSpades,
+				ActionVP:   2,
+			},
+		},
+	}
+	
+	// Place a dwelling first to make hex adjacent
+	startHex := NewHex(0, 0)
+	gs.Map.GetHex(startHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(startHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Give player a pending spade from cult reward
+	gs.PendingSpades = make(map[string]int)
+	gs.PendingSpades["player1"] = 1
+	
+	targetHex := NewHex(1, 0) // Adjacent hex
+	initialVP := player.VictoryPoints
+	
+	// Use cult spade
+	action := NewUseCultSpadeAction("player1", targetHex)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to use cult spade: %v", err)
+	}
+	
+	// 1 spade: 2 VP (scoring tile) + 1 VP (Halflings) = 3 VP
+	vpGained := player.VictoryPoints - initialVP
+	expectedVP := 3
+	if vpGained != expectedVP {
+		t.Errorf("expected %d VP, got %d", expectedVP, vpGained)
+	}
+}
+
+func TestHalflings_StrongholdSpadesScoring(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold on the faction
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Set up scoring tile: 2 VP per spade
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{
+				Type:       ScoringSpades,
+				ActionType: ScoringActionSpades,
+				ActionVP:   2,
+			},
+		},
+	}
+	
+	// Check that Halflings can use stronghold spades
+	if !faction.CanUseStrongholdSpades() {
+		t.Fatal("Halflings should be able to use stronghold spades")
+	}
+	
+	spades := faction.UseStrongholdSpades()
+	if spades != 3 {
+		t.Errorf("expected 3 spades from stronghold, got %d", spades)
+	}
+	
+	// Note: The actual stronghold action implementation is TODO
+	// This test just verifies the faction method works
+}
+
+// ============================================================================
+// SWARMLINGS TESTS
+// ============================================================================
+
+func TestSwarmlings_UpgradeWithScoringTile(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewSwarmlings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	player.HasStrongholdAbility = true
+	
+	// Set up scoring tile: 3 VP per trading house
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{
+				Type:       ScoringTradingHouseWater,
+				ActionType: ScoringActionTradingHouse,
+				ActionVP:   3,
+			},
+		},
+	}
+	
+	// Place a dwelling first
+	upgradeHex := NewHex(0, 0)
+	gs.Map.GetHex(upgradeHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(upgradeHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	initialVP := player.VictoryPoints
+	
+	// Use Swarmlings upgrade (free D→TH)
+	action := NewSwarmlingsUpgradeAction("player1", upgradeHex)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade: %v", err)
+	}
+	
+	// Should get 3 VP from scoring tile
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 3 {
+		t.Errorf("expected 3 VP from scoring tile, got %d", vpGained)
+	}
+	
+	// Verify building was upgraded
+	mapHex := gs.Map.GetHex(upgradeHex)
+	if mapHex.Building.Type != models.BuildingTradingHouse {
+		t.Error("building should be upgraded to trading house")
+	}
+}
+
+func TestSwarmlings_UpgradeWithWater1FavorTile(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewSwarmlings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	player.HasStrongholdAbility = true
+	
+	// Give player Water+1 favor tile
+	gs.FavorTiles = NewFavorTileState()
+	gs.FavorTiles.PlayerTiles["player1"] = []FavorTileType{FavorWater1}
+	
+	// Place a dwelling
+	upgradeHex := NewHex(0, 0)
+	gs.Map.GetHex(upgradeHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(upgradeHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	initialVP := player.VictoryPoints
+	
+	// Use Swarmlings upgrade
+	action := NewSwarmlingsUpgradeAction("player1", upgradeHex)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade: %v", err)
+	}
+	
+	// Should get 3 VP from Water+1 favor tile
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 3 {
+		t.Errorf("expected 3 VP from Water+1 favor tile, got %d", vpGained)
+	}
+}
+
+func TestSwarmlings_UpgradeWithBothScoringAndFavor(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewSwarmlings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	player.HasStrongholdAbility = true
+	
+	// Set up scoring tile
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{
+				Type:       ScoringTradingHouseWater,
+				ActionType: ScoringActionTradingHouse,
+				ActionVP:   3,
+			},
+		},
+	}
+	
+	// Give player Water+1 favor tile
+	gs.FavorTiles = NewFavorTileState()
+	gs.FavorTiles.PlayerTiles["player1"] = []FavorTileType{FavorWater1}
+	
+	// Place a dwelling
+	upgradeHex := NewHex(0, 0)
+	gs.Map.GetHex(upgradeHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(upgradeHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	initialVP := player.VictoryPoints
+	
+	// Use Swarmlings upgrade
+	action := NewSwarmlingsUpgradeAction("player1", upgradeHex)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade: %v", err)
+	}
+	
+	// Should get 3 VP (scoring tile) + 3 VP (Water+1) = 6 VP
+	vpGained := player.VictoryPoints - initialVP
+	expectedVP := 6
+	if vpGained != expectedVP {
+		t.Errorf("expected %d VP (scoring + favor), got %d", expectedVP, vpGained)
+	}
+}
+
+// ============================================================================
+// ALCHEMISTS TESTS
+// ============================================================================
+
+func TestAlchemists_ConvertVPToCoins(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Give player VP
+	player.VictoryPoints = 10
+	player.Resources.Coins = 5
+	
+	// Convert 3 VP to 3 coins (1:1 ratio)
+	err := gs.AlchemistsConvertVPToCoins("player1", 3)
+	if err != nil {
+		t.Fatalf("conversion failed: %v", err)
+	}
+	
+	// Check results
+	if player.VictoryPoints != 7 {
+		t.Errorf("expected 7 VP, got %d", player.VictoryPoints)
+	}
+	if player.Resources.Coins != 8 {
+		t.Errorf("expected 8 coins, got %d", player.Resources.Coins)
+	}
+}
+
+func TestAlchemists_ConvertVPToCoins_NotEnoughVP(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	player.VictoryPoints = 2
+	
+	// Try to convert more VP than available
+	err := gs.AlchemistsConvertVPToCoins("player1", 5)
+	if err == nil {
+		t.Error("should fail when not enough VP")
+	}
+}
+
+func TestAlchemists_ConvertVPToCoins_OnlyAlchemists(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	player.VictoryPoints = 10
+	
+	// Try to convert as non-Alchemists
+	err := gs.AlchemistsConvertVPToCoins("player1", 3)
+	if err == nil {
+		t.Error("should fail for non-Alchemists faction")
+	}
+}
+
+func TestAlchemists_ConvertCoinsToVP(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Give player coins
+	player.Resources.Coins = 10
+	player.VictoryPoints = 5
+	
+	// Convert 6 coins to 3 VP (2:1 ratio)
+	err := gs.AlchemistsConvertCoinsToVP("player1", 6)
+	if err != nil {
+		t.Fatalf("conversion failed: %v", err)
+	}
+	
+	// Check results
+	if player.Resources.Coins != 4 {
+		t.Errorf("expected 4 coins, got %d", player.Resources.Coins)
+	}
+	if player.VictoryPoints != 8 {
+		t.Errorf("expected 8 VP, got %d", player.VictoryPoints)
+	}
+}
+
+func TestAlchemists_ConvertCoinsToVP_NotEnoughCoins(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	player.Resources.Coins = 3
+	
+	// Try to convert more coins than available
+	err := gs.AlchemistsConvertCoinsToVP("player1", 6)
+	if err == nil {
+		t.Error("should fail when not enough coins")
+	}
+}
+
+func TestAlchemists_ConvertCoinsToVP_MustBeEven(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	player.Resources.Coins = 10
+	
+	// Try to convert odd number of coins
+	err := gs.AlchemistsConvertCoinsToVP("player1", 5)
+	if err == nil {
+		t.Error("should fail when converting odd number of coins")
+	}
+}
+
+func TestAlchemists_PowerPerSpadeAfterStronghold(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Give player resources
+	player.Resources.Workers = 20
+	player.Resources.Power.Bowl1 = 10
+	player.Resources.Power.Bowl2 = 0
+	player.Resources.Power.Bowl3 = 0
+	
+	// Transform terrain (distance 3 = 2 spades for Alchemists, who use 2 workers per spade)
+	targetHex := NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
+	
+	initialPower := player.Resources.Power.Bowl1
+	
+	action := NewTransformAndBuildAction("player1", targetHex, false)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("transform failed: %v", err)
+	}
+	
+	// Should gain 2 spades * 2 power = 4 power
+	powerGained := player.Resources.Power.Bowl1 - initialPower
+	expectedPower := 4
+	if powerGained != expectedPower {
+		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+	}
+}
+
+func TestAlchemists_PowerPerSpadeBeforeStronghold(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// No stronghold built
+	
+	// Give player resources
+	player.Resources.Workers = 20
+	player.Resources.Power.Bowl1 = 10
+	
+	// Transform terrain
+	targetHex := NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
+	
+	initialPower := player.Resources.Power.Bowl1
+	
+	action := NewTransformAndBuildAction("player1", targetHex, false)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("transform failed: %v", err)
+	}
+	
+	// Should gain 0 power (no stronghold)
+	powerGained := player.Resources.Power.Bowl1 - initialPower
+	if powerGained != 0 {
+		t.Errorf("expected 0 power gained before stronghold, got %d", powerGained)
+	}
+}
+
+func TestAlchemists_PowerPerSpadeWithCultSpade(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Place a dwelling first
+	startHex := NewHex(0, 0)
+	gs.Map.GetHex(startHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(startHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Give player a pending spade from cult reward
+	gs.PendingSpades = make(map[string]int)
+	gs.PendingSpades["player1"] = 1
+	
+	player.Resources.Power.Bowl1 = 10
+	
+	targetHex := NewHex(1, 0) // Adjacent hex
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
+	
+	initialPower := player.Resources.Power.Bowl1
+	
+	// Use cult spade
+	action := NewUseCultSpadeAction("player1", targetHex)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("cult spade failed: %v", err)
+	}
+	
+	// Should gain 1 spade * 2 power = 2 power
+	powerGained := player.Resources.Power.Bowl1 - initialPower
+	expectedPower := 2
+	if powerGained != expectedPower {
+		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+	}
+}
+
+func TestAlchemists_PowerPerSpadeWithBonusCard(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Give player the spade bonus card
+	gs.BonusCards.PlayerCards["player1"] = BonusCardSpade
+	gs.BonusCards.PlayerHasCard["player1"] = true
+	
+	player.Resources.Workers = 20
+	player.Resources.Power.Bowl1 = 10
+	
+	targetHex := NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
+	
+	initialPower := player.Resources.Power.Bowl1
+	
+	// Use bonus card spade
+	action := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: "player1",
+		},
+		ActionType:    SpecialActionBonusCardSpade,
+		TargetHex:     &targetHex,
+		BuildDwelling: false,
+	}
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("bonus card spade failed: %v", err)
+	}
+	
+	// Should gain 2 spades * 2 power = 4 power (Alchemists use 2 workers per spade)
+	powerGained := player.Resources.Power.Bowl1 - initialPower
+	expectedPower := 4
+	if powerGained != expectedPower {
+		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+	}
+}
+
+func TestAlchemists_ConversionDuringAction(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Player has 0 coins, 1 worker, 20 VP
+	player.Resources.Coins = 0
+	player.Resources.Workers = 1
+	player.VictoryPoints = 20
+	
+	// Convert 2 VP to 2 coins
+	err := gs.AlchemistsConvertVPToCoins("player1", 2)
+	if err != nil {
+		t.Fatalf("conversion failed: %v", err)
+	}
+	
+	// Now build a dwelling (costs 0 coins + 1 worker for Alchemists)
+	// First need to transform terrain
+	targetHex := NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = faction.GetHomeTerrain()
+	
+	action := NewTransformAndBuildAction("player1", targetHex, true)
+	err = action.Execute(gs)
+	if err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+	
+	// Verify dwelling was built
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Building == nil || mapHex.Building.Type != models.BuildingDwelling {
+		t.Error("dwelling should be built")
+	}
+	
+	// Verify resources were spent
+	if player.VictoryPoints != 18 {
+		t.Errorf("expected 18 VP (20-2), got %d", player.VictoryPoints)
+	}
+	if player.Resources.Coins != 2 {
+		t.Errorf("expected 2 coins remaining, got %d", player.Resources.Coins)
+	}
+	if player.Resources.Workers != 0 {
+		t.Errorf("expected 0 workers, got %d", player.Resources.Workers)
+	}
+}
+
+// ============================================================================
+// CULTISTS TESTS
+// ============================================================================
+
+func TestCultists_PowerWhenAllDecline(t *testing.T) {
+	gs := NewGameState()
+	cultistsFaction := factions.NewCultists()
+	swarmlingsFaction := factions.NewSwarmlings() // Using Swarmlings (Lake) not Halflings (Plains)
+	
+	gs.AddPlayer("cultists", cultistsFaction)
+	gs.AddPlayer("swarmlings", swarmlingsFaction)
+	
+	cultistsPlayer := gs.GetPlayer("cultists")
+	swarmlingsPlayer := gs.GetPlayer("swarmlings")
+	
+	// Set up power
+	cultistsPlayer.Resources.Power.Bowl1 = 10
+	swarmlingsPlayer.Resources.Power.Bowl1 = 10
+	
+	// Place a Swarmlings dwelling adjacent to where Cultists will build
+	adjacentHex := NewHex(1, 0)
+	gs.Map.GetHex(adjacentHex).Terrain = swarmlingsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    swarmlingsFaction.GetType(),
+		PlayerID:   "swarmlings",
+		PowerValue: 1,
+	})
+	
+	// Cultists build a dwelling
+	cultistsHex := NewHex(0, 0)
+	gs.Map.GetHex(cultistsHex).Terrain = cultistsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(cultistsHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    cultistsFaction.GetType(),
+		PlayerID:   "cultists",
+		PowerValue: 1,
+	})
+	
+	// Trigger power leech
+	initialPower := cultistsPlayer.Resources.Power.Bowl1
+	gs.TriggerPowerLeech(cultistsHex, "cultists")
+	
+	// Verify leech offer was created for Swarmlings
+	offers := gs.GetPendingLeechOffers("swarmlings")
+	if len(offers) != 1 {
+		t.Fatalf("expected 1 leech offer, got %d", len(offers))
+	}
+	
+	// Swarmlings decline the offer
+	declineAction := NewDeclinePowerLeechAction("swarmlings", 0)
+	err := declineAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("decline failed: %v", err)
+	}
+	
+	// Cultists should gain 1 power (all opponents declined)
+	powerGained := cultistsPlayer.Resources.Power.Bowl1 - initialPower
+	expectedPower := 1
+	if powerGained != expectedPower {
+		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+	}
+	
+	// Verify the pending bonus was resolved
+	if gs.PendingCultistsLeech["cultists"] != nil {
+		t.Error("Cultists leech bonus should be resolved")
+	}
+}
+
+func TestCultists_CultAdvanceWhenOneAccepts(t *testing.T) {
+	gs := NewGameState()
+	cultistsFaction := factions.NewCultists()
+	swarmlingsFaction := factions.NewSwarmlings()
+	
+	gs.AddPlayer("cultists", cultistsFaction)
+	gs.AddPlayer("swarmlings", swarmlingsFaction)
+	
+	cultistsPlayer := gs.GetPlayer("cultists")
+	swarmlingsPlayer := gs.GetPlayer("swarmlings")
+	
+	// Set up power
+	cultistsPlayer.Resources.Power.Bowl1 = 10
+	swarmlingsPlayer.Resources.Power.Bowl1 = 10
+	swarmlingsPlayer.VictoryPoints = 10
+	
+	// Place a Swarmlings dwelling adjacent to where Cultists will build
+	adjacentHex := NewHex(1, 0)
+	gs.Map.GetHex(adjacentHex).Terrain = swarmlingsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    swarmlingsFaction.GetType(),
+		PlayerID:   "swarmlings",
+		PowerValue: 1,
+	})
+	
+	// Cultists build a dwelling
+	cultistsHex := NewHex(0, 0)
+	gs.Map.GetHex(cultistsHex).Terrain = cultistsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(cultistsHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    cultistsFaction.GetType(),
+		PlayerID:   "cultists",
+		PowerValue: 1,
+	})
+	
+	// Trigger power leech
+	initialPower := cultistsPlayer.Resources.Power.Bowl1
+	gs.TriggerPowerLeech(cultistsHex, "cultists")
+	
+	// Verify leech offer was created
+	offers := gs.GetPendingLeechOffers("swarmlings")
+	if len(offers) != 1 {
+		t.Fatalf("expected 1 leech offer, got %d", len(offers))
+	}
+	
+	// Swarmlings accept the offer
+	acceptAction := NewAcceptPowerLeechAction("swarmlings", 0)
+	err := acceptAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("accept failed: %v", err)
+	}
+	
+	// Cultists should NOT gain power (opponent accepted)
+	powerGained := cultistsPlayer.Resources.Power.Bowl1 - initialPower
+	if powerGained != 0 {
+		t.Errorf("expected 0 power gained (opponent accepted), got %d", powerGained)
+	}
+	
+	// Verify the pending bonus was resolved
+	if gs.PendingCultistsLeech["cultists"] != nil {
+		t.Error("Cultists leech bonus should be resolved")
+	}
+	
+	// TODO: When cult track selection is implemented, verify cult advance happened
+}
+
+func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
+	gs := NewGameState()
+	cultistsFaction := factions.NewCultists()
+	swarmlingsFaction := factions.NewSwarmlings() // Using Swarmlings (Lake) instead of Halflings (Plains)
+	nomadsFaction := factions.NewNomads()
+	
+	gs.AddPlayer("cultists", cultistsFaction)
+	gs.AddPlayer("swarmlings", swarmlingsFaction)
+	gs.AddPlayer("nomads", nomadsFaction)
+	
+	cultistsPlayer := gs.GetPlayer("cultists")
+	swarmlingsPlayer := gs.GetPlayer("swarmlings")
+	nomadsPlayer := gs.GetPlayer("nomads")
+	
+	// Set up power
+	cultistsPlayer.Resources.Power.Bowl1 = 10
+	swarmlingsPlayer.Resources.Power.Bowl1 = 10
+	swarmlingsPlayer.VictoryPoints = 10
+	nomadsPlayer.Resources.Power.Bowl1 = 10
+	nomadsPlayer.VictoryPoints = 10
+	
+	// Place Swarmlings dwelling adjacent to Cultists
+	hex1 := NewHex(1, 0)
+	gs.Map.GetHex(hex1).Terrain = swarmlingsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(hex1, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    swarmlingsFaction.GetType(),
+		PlayerID:   "swarmlings",
+		PowerValue: 1,
+	})
+	
+	// Place Nomads dwelling adjacent to Cultists
+	hex2 := NewHex(0, 1)
+	gs.Map.GetHex(hex2).Terrain = nomadsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(hex2, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    nomadsFaction.GetType(),
+		PlayerID:   "nomads",
+		PowerValue: 1,
+	})
+	
+	// Cultists build a dwelling
+	cultistsHex := NewHex(0, 0)
+	gs.Map.GetHex(cultistsHex).Terrain = cultistsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(cultistsHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    cultistsFaction.GetType(),
+		PlayerID:   "cultists",
+		PowerValue: 1,
+	})
+	
+	// Trigger power leech
+	initialPower := cultistsPlayer.Resources.Power.Bowl1
+	gs.TriggerPowerLeech(cultistsHex, "cultists")
+	
+	// Verify leech offers were created
+	swarmlingsOffers := gs.GetPendingLeechOffers("swarmlings")
+	nomadsOffers := gs.GetPendingLeechOffers("nomads")
+	if len(swarmlingsOffers) != 1 || len(nomadsOffers) != 1 {
+		t.Fatalf("expected 1 offer each, got %d and %d", len(swarmlingsOffers), len(nomadsOffers))
+	}
+	
+	// Swarmlings accept
+	acceptAction := NewAcceptPowerLeechAction("swarmlings", 0)
+	err := acceptAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("swarmlings accept failed: %v", err)
+	}
+	
+	// Nomads decline
+	declineAction := NewDeclinePowerLeechAction("nomads", 0)
+	err = declineAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("nomads decline failed: %v", err)
+	}
+	
+	// Cultists should NOT gain power (at least one opponent accepted)
+	powerGained := cultistsPlayer.Resources.Power.Bowl1 - initialPower
+	if powerGained != 0 {
+		t.Errorf("expected 0 power gained (one accepted), got %d", powerGained)
+	}
+	
+	// Verify the pending bonus was resolved
+	if gs.PendingCultistsLeech["cultists"] != nil {
+		t.Error("Cultists leech bonus should be resolved")
+	}
+}
+
+func TestCultists_OnlyCultistsGetBonus(t *testing.T) {
+	gs := NewGameState()
+	halflingsFaction := factions.NewHalflings()
+	nomadsFaction := factions.NewNomads()
+	
+	gs.AddPlayer("halflings", halflingsFaction)
+	gs.AddPlayer("nomads", nomadsFaction)
+	
+	halflingsPlayer := gs.GetPlayer("halflings")
+	nomadsPlayer := gs.GetPlayer("nomads")
+	
+	// Set up power
+	halflingsPlayer.Resources.Power.Bowl1 = 10
+	nomadsPlayer.Resources.Power.Bowl1 = 10
+	
+	// Place a Nomads dwelling adjacent to where Halflings will build
+	adjacentHex := NewHex(1, 0)
+	gs.Map.GetHex(adjacentHex).Terrain = nomadsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    nomadsFaction.GetType(),
+		PlayerID:   "nomads",
+		PowerValue: 1,
+	})
+	
+	// Halflings build a dwelling
+	halflingsHex := NewHex(0, 0)
+	gs.Map.GetHex(halflingsHex).Terrain = halflingsFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(halflingsHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    halflingsFaction.GetType(),
+		PlayerID:   "halflings",
+		PowerValue: 1,
+	})
+	
+	// Trigger power leech
+	initialPower := halflingsPlayer.Resources.Power.Bowl1
+	gs.TriggerPowerLeech(halflingsHex, "halflings")
+	
+	// Nomads decline
+	declineAction := NewDeclinePowerLeechAction("nomads", 0)
+	err := declineAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("decline failed: %v", err)
+	}
+	
+	// Halflings should NOT gain power (not Cultists)
+	powerGained := halflingsPlayer.Resources.Power.Bowl1 - initialPower
+	if powerGained != 0 {
+		t.Errorf("expected 0 power gained (not Cultists), got %d", powerGained)
+	}
+	
+	// Verify no pending bonus was created
+	if gs.PendingCultistsLeech["halflings"] != nil {
+		t.Error("non-Cultists should not have pending leech bonus")
+	}
+}

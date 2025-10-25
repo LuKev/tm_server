@@ -108,6 +108,15 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	if _, exists := gs.Players[playerID]; exists {
 		return fmt.Errorf("player already exists: %s", playerID)
 	}
+	
+	// Check if another player already has the same home terrain
+	newHomeTerrain := faction.GetHomeTerrain()
+	for _, existingPlayer := range gs.Players {
+		if existingPlayer.Faction.GetHomeTerrain() == newHomeTerrain {
+			return fmt.Errorf("faction %s cannot be added: another player already has home terrain %v (faction %s)", 
+				faction.GetType(), newHomeTerrain, existingPlayer.Faction.GetType())
+		}
+	}
 
 	player := &Player{
 		ID:            playerID,

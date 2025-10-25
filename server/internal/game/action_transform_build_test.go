@@ -151,7 +151,7 @@ func TestTransformAndBuild_SkipTerraform(t *testing.T) {
 func TestTransformAndBuild_PowerLeech(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
@@ -389,7 +389,7 @@ func TestTransformAndBuild_AdvancedDiggingLevel(t *testing.T) {
 func TestTransformAndBuild_PowerLeechOffers(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
@@ -472,7 +472,7 @@ func TestTransformAndBuild_PowerLeechOffers(t *testing.T) {
 func TestTransformAndBuild_DeclineLeechOffer(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
@@ -546,7 +546,7 @@ func TestTransformAndBuild_DeclineLeechOffer(t *testing.T) {
 func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	

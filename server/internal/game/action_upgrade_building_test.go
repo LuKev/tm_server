@@ -47,7 +47,7 @@ func TestUpgradeBuilding_DwellingToTradingHouse(t *testing.T) {
 func TestUpgradeBuilding_TradingHouseDiscount(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
@@ -345,7 +345,7 @@ func TestUpgradeBuilding_BuildingLimitStronghold(t *testing.T) {
 func TestUpgradeBuilding_PowerLeech(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
@@ -405,7 +405,7 @@ func TestUpgradeBuilding_PowerLeech(t *testing.T) {
 func TestUpgradeBuilding_PowerLeechMultipleBuildings(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Changed from Cultists (Plains) to Swarmlings (Lake)
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
