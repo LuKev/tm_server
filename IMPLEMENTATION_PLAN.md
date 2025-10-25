@@ -426,12 +426,11 @@ Complete implementation of all faction-specific mechanics and special abilities.
 4. **Alchemists** - VP↔Coin conversion, +2 power per spade after stronghold
 5. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech
 
-**⚠️ NEEDS FIXES:**
-6. **Halflings** - PARTIALLY CORRECT
+6. **Halflings** - MOSTLY CORRECT ✅
    - ✅ Cheap dig (1 priest, 2 workers, 1 coin)
-   - ❌ +1 VP per spade should be ALWAYS (not just after stronghold)
-   - ❌ Stronghold: 3 spades (must use before building dwelling)
-   - ❌ All spades must be on reachable hexes (before dwelling placement)
+   - ✅ +1 VP per spade ALWAYS (all spade actions award this)
+   - ✅ Stronghold: 3 spades (one-time)
+   - ⚠️ TODO: Stronghold action needs validation (all spades before dwelling, reachable hexes only)
 
 **⚠️ PARTIALLY IMPLEMENTED:**
 7. **Witches** - Flying implemented, +5 VP per town, Witches Ride (needs action integration)
