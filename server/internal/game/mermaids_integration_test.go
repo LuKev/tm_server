@@ -15,7 +15,7 @@ func TestMermaids_RiverSkippingTownFormation(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewMermaids()
 	gs.AddPlayer("player1", faction)
-	player := gs.GetPlayer("player1")
+	_ = gs.GetPlayer("player1")
 	
 	// Set up: 4 buildings separated by a river
 	// Buildings on both sides of the river
@@ -88,7 +88,7 @@ func TestMermaids_LandOnlyTownMustClaimImmediately(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewMermaids()
 	gs.AddPlayer("player1", faction)
-	player := gs.GetPlayer("player1")
+	_ = gs.GetPlayer("player1")
 	
 	// Set up: 4 buildings all adjacent on land (no river)
 	hex1 := NewHex(0, 0)
@@ -184,7 +184,7 @@ func TestMermaids_TownTilePlacedOnSkippedRiver(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewMermaids()
 	gs.AddPlayer("player1", faction)
-	player := gs.GetPlayer("player1")
+	_ = gs.GetPlayer("player1")
 	
 	// Set up: 4 buildings separated by a river
 	hex1 := NewHex(0, 0)
@@ -366,24 +366,25 @@ func TestMermaids_StrongholdGrantsFreeShipping(t *testing.T) {
 	})
 	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainLake)
 	
-	// Upgrade to stronghold
+	// Upgrade to stronghold (this automatically calls faction.BuildStronghold() and increases shipping)
 	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to upgrade to stronghold: %v", err)
 	}
 	
-	// Verify stronghold was built and grants free shipping
-	shouldGrantShipping := faction.BuildStronghold()
-	if !shouldGrantShipping {
-		t.Error("building stronghold should grant free shipping upgrade")
+	// Verify stronghold ability is granted
+	if !player.HasStrongholdAbility {
+		t.Error("Mermaids should have stronghold ability")
 	}
 	
-	// In a full implementation, shipping would be automatically upgraded
-	// For now, verify the faction method returns true for the first stronghold
+	// Verify shipping level was increased (1 → 2)
+	if faction.GetShippingLevel() != 2 {
+		t.Errorf("expected shipping level 2 after stronghold, got %d", faction.GetShippingLevel())
+	}
 	
-	// Verify it only grants once
-	shouldGrantShipping = faction.BuildStronghold()
+	// Verify the shipping was only granted once (calling BuildStronghold again should return false)
+	shouldGrantShipping := faction.BuildStronghold()
 	if shouldGrantShipping {
 		t.Error("should only grant free shipping once")
 	}

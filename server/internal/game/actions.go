@@ -21,6 +21,7 @@ const (
 	ActionUseCultSpade         // Use a spade from cult track reward (cleanup phase)
 	ActionAcceptPowerLeech     // Accept a power leech offer
 	ActionDeclinePowerLeech    // Decline a power leech offer
+	ActionSelectFavorTile      // Select a favor tile after Temple/Sanctuary/Auren Stronghold
 )
 
 // Action represents a player action
@@ -433,12 +434,21 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
 		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
-		// This will be handled by a separate action/prompt system
-		// For now, we just note that favor tile selection is pending
-		// Number of tiles to select:
-		//   - Chaos Magicians: 2 favor tiles
-		//   - All other factions: 1 favor tile
-		// TODO: Implement favor tile selection prompt/action (Phase 7+)
+		count := 1
+		if chaosMagicians, ok := player.Faction.(*factions.ChaosMagicians); ok {
+			if a.NewBuildingType == models.BuildingTemple {
+				count = chaosMagicians.GetFavorTilesForTemple()
+			} else {
+				count = chaosMagicians.GetFavorTilesForSanctuary()
+			}
+		}
+		
+		// Create pending favor tile selection
+		gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+			PlayerID:      a.PlayerID,
+			Count:         count,
+			SelectedTiles: []FavorTileType{},
+		}
 		
 		// Award VP from scoring tile for Sanctuary
 		if a.NewBuildingType == models.BuildingSanctuary {
@@ -472,8 +482,12 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			if auren, ok := player.Faction.(*factions.Auren); ok {
 				shouldGrantFavorTile := auren.BuildStronghold()
 				if shouldGrantFavorTile {
-					// TODO: Implement favor tile selection prompt/action for Auren
-					// For now, mark that favor tile selection is pending
+					// Create pending favor tile selection (1 tile for Auren)
+					gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+						PlayerID:      a.PlayerID,
+						Count:         1,
+						SelectedTiles: []FavorTileType{},
+					}
 				}
 			}
 		case models.FactionMermaids:

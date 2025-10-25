@@ -451,10 +451,13 @@ Complete implementation of all faction-specific mechanics and special abilities.
 - [x] Swarmlings free dwelling upgrade (once per round after stronghold) ✅
 
 **Remaining Work:**
-- [ ] Mermaids river-skipping for town formation (skip 1 river hex when founding town)
 - [ ] Halflings stronghold: Prompt for applying 3 spades immediately + optional dwelling
-- [ ] Darklings stronghold: Prompt for converting 0-3 workers to priests immediately
 - [ ] Auren stronghold: Prompt for selecting favor tile immediately
+- [ ] Favor tile selection: Temple/Sanctuary/Auren stronghold should prompt for favor tile
+
+**Recently Completed:**
+- [x] Mermaids river-skipping for town formation ✅ (can skip 1 river, delayed vs immediate claiming)
+- [x] Darklings priest ordination ✅ (immediate one-time bonus after stronghold, not a special action)
 
 **Low Priority (Already Functional):**
 - [x] All passive abilities (cost reductions, VP bonuses, etc.)

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "action_cult_spade.go",
         "action_power_leech.go",
+        "action_select_favor_tile.go",
         "actions.go",
         "auction.go",
         "bonus_cards.go",
@@ -57,6 +58,7 @@ go_test(
         "mermaids_integration_test.go",
         # Action tests
         "action_scoring_test.go",
+        "action_select_favor_tile_test.go",
         "action_transform_build_test.go",
         "action_upgrade_building_test.go",
         "auction_test.go",

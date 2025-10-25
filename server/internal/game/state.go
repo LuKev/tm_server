@@ -24,12 +24,13 @@ type GameState struct {
 	CultTracks         *CultTrackState               // Tracks all players' cult track positions
 	FavorTiles         *FavorTileState               // Tracks available favor tiles and player selections
 	BonusCards         *BonusCardState               // Tracks available bonus cards and player selections
-	TownTiles          *TownTileState                // Tracks available town tiles
-	ScoringTiles          *ScoringTileState             // Tracks scoring tiles for each round
-	PendingLeechOffers    map[string][]*PowerLeechOffer    // Key: playerID who can accept
-	PendingTownFormations map[string]*PendingTownFormation // Key: playerID who can form town
-	PendingSpades         map[string]int                   // Key: playerID, Value: number of spades to use (from cult rewards)
-	PendingCultistsLeech  map[string]*CultistsLeechBonus   // Key: playerID (Cultists), tracks pending cult advance/power bonus
+	TownTiles               *TownTileState                      // Tracks available town tiles
+	ScoringTiles            *ScoringTileState                   // Tracks scoring tiles for each round
+	PendingLeechOffers      map[string][]*PowerLeechOffer       // Key: playerID who can accept
+	PendingTownFormations   map[string]*PendingTownFormation    // Key: playerID who can form town
+	PendingSpades           map[string]int                      // Key: playerID, Value: number of spades to use (from cult rewards)
+	PendingCultistsLeech    map[string]*CultistsLeechBonus      // Key: playerID (Cultists), tracks pending cult advance/power bonus
+	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -46,6 +47,14 @@ type CultistsLeechBonus struct {
 	OffersCreated  int  // Number of offers created
 	AcceptedCount  int  // Number of offers accepted
 	DeclinedCount  int  // Number of offers declined
+}
+
+// PendingFavorTileSelection represents a player who needs to select favor tile(s)
+// Triggered by: Temple, Sanctuary, or Auren Stronghold
+type PendingFavorTileSelection struct {
+	PlayerID      string
+	Count         int  // Number of tiles to select (1 for most factions, 2 for Chaos Magicians)
+	SelectedTiles []FavorTileType // Tiles selected so far
 }
 
 // GamePhase represents the current phase of the game
