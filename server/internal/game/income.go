@@ -317,22 +317,8 @@ func applyIncome(gs *GameState, player *Player, income BaseIncome) {
 	player.Resources.Workers += income.Workers
 	
 	// Apply priest income with 7-priest limit enforcement
-	// Terra Mystica rule: priests in hand + priests on cult tracks <= 7
 	if income.Priests > 0 {
-		priestsInHand := player.Resources.Priests
-		priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(player.ID)
-		totalPriests := priestsInHand + priestsOnCult
-		maxNewPriests := 7 - totalPriests
-		
-		// Cap priests gained to not exceed the 7-priest limit
-		if maxNewPriests > 0 {
-			priestsToAdd := income.Priests
-			if priestsToAdd > maxNewPriests {
-				priestsToAdd = maxNewPriests
-			}
-			player.Resources.Priests += priestsToAdd
-		}
-		// If already at or above 7 priests, no priests are gained from income
+		gs.GainPriests(player.ID, income.Priests)
 	}
 
 	// Use GainPower to properly cycle power through bowls

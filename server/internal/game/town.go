@@ -277,7 +277,7 @@ func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType TownTileTyp
 		
 	case TownTile9Points:
 		player.VictoryPoints += 9
-		player.Resources.Priests += 1
+		gs.GainPriests(playerID, 1)
 		player.Keys += 1
 		
 	case TownTile11Points:

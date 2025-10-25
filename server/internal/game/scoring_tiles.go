@@ -298,7 +298,7 @@ func (gs *GameState) AwardCultRewards() {
 			
 			switch tile.CultRewardType {
 			case CultRewardPriest:
-				player.Resources.Priests += totalReward
+				gs.GainPriests(playerID, totalReward)
 			case CultRewardPower:
 				player.Resources.Power.GainPower(totalReward)
 			case CultRewardSpade:

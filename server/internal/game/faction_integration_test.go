@@ -2011,9 +2011,18 @@ func Test7PriestLimit_PowerAction(t *testing.T) {
 		t.Errorf("expected 2 priests in hand after power action, got %d", player.Resources.Priests)
 	}
 	
-	// Now test at the limit (7 total)
-	// Add more priests to reach 7 total
-	player.Resources.Priests = 4 // 4 in hand + 3 on cults = 7 total
+	// Now test at the limit (7 total) - need fresh game state since power actions are one-time per round
+	gs2 := NewGameState()
+	faction2 := factions.NewAuren()
+	gs2.AddPlayer("player1", faction2)
+	player2 := gs2.GetPlayer("player1")
+	
+	// Set up at limit
+	player2.Resources.Power.Bowl3 = 10
+	player2.Resources.Priests = 4
+	gs2.CultTracks.InitializePlayer("player1")
+	gs2.CultTracks.AdvancePlayer("player1", CultFire, 3, player2)
+	player2.Resources.Priests = 4 // 4 in hand + 3 on cults = 7 total
 	
 	action2 := &PowerAction{
 		BaseAction: BaseAction{
@@ -2023,9 +2032,20 @@ func Test7PriestLimit_PowerAction(t *testing.T) {
 		ActionType: PowerActionPriest,
 	}
 	
-	err = action2.Validate(gs)
-	if err == nil {
-		t.Fatal("power action should fail when at 7-priest limit")
+	// Action should succeed (power is spent) but no priest is gained
+	err = action2.Execute(gs2)
+	if err != nil {
+		t.Fatalf("power action should succeed even at 7-priest limit (but no priest gained), got error: %v", err)
+	}
+	
+	// Verify no priest was gained
+	if player2.Resources.Priests != 4 {
+		t.Errorf("expected 4 priests in hand (no change at limit), got %d", player2.Resources.Priests)
+	}
+	
+	// Verify power was still spent
+	if player2.Resources.Power.Bowl3 != 7 {
+		t.Errorf("expected power to be spent (10 - 3 = 7), got %d", player2.Resources.Power.Bowl3)
 	}
 }
 

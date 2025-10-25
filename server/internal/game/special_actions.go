@@ -808,8 +808,9 @@ func (a *SpecialAction) executeDarklingsPriestOrdination(gs *GameState, player *
 	// Pay workers
 	player.Resources.Workers -= workersToConvert
 	
-	// Gain priests
-	player.Resources.Priests += priestsGained
+	// Gain priests (with 7-priest limit enforcement)
+	// Note: Validation already checked the limit, so this should always succeed
+	gs.GainPriests(a.PlayerID, priestsGained)
 	
 	return nil
 }

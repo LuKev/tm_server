@@ -335,19 +335,25 @@ func TestAwardCultRewards_Priests(t *testing.T) {
 		},
 	}
 	
-	// Player 1 at position 8 (should get 2 priests: 8/4 = 2)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 8, player1)
+	// Player 1 at position 4 (should get 1 priest: 4/4 = 1)
+	// Note: Position 4 means 4 priests on cult track, leaving room for 3 in hand (7 max total)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 4, player1)
 	
 	// Player 2 at position 3 (should get 0 priests: 3/4 = 0)
 	gs.CultTracks.AdvancePlayer("player2", CultWater, 3, player2)
+	
+	// Give players some priests in hand
+	player1.Resources.Priests = 2 // 2 in hand + 4 on cult = 6 total, room for 1 more
+	player2.Resources.Priests = 3 // 3 in hand + 3 on cult = 6 total, room for 1 more
 	
 	initialPriests1 := player1.Resources.Priests
 	initialPriests2 := player2.Resources.Priests
 	
 	gs.AwardCultRewards()
 	
-	if player1.Resources.Priests != initialPriests1+2 {
-		t.Errorf("player1: expected 2 priests, got %d", player1.Resources.Priests-initialPriests1)
+	// Player1 should gain 1 priest (4/4 = 1 reward, capped by 7-priest limit)
+	if player1.Resources.Priests != initialPriests1+1 {
+		t.Errorf("player1: expected 1 priest gained, got %d", player1.Resources.Priests-initialPriests1)
 	}
 	
 	if player2.Resources.Priests != initialPriests2 {
