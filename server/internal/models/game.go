@@ -14,8 +14,8 @@ const (
 // PlayerState tracks per-player info used across the game
 
 type PlayerState struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
+	ID        string      `json:"id"`
+	Name      string      `json:"name"`
 	Faction   FactionType `json:"faction"`
 	Resources Resources   `json:"resources"`
 	Shipping  int         `json:"shipping"`

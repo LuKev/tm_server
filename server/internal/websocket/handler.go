@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gorilla/websocket"
-    "github.com/lukev/tm_server/internal/game"
-    "github.com/lukev/tm_server/internal/lobby"
+	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/lobby"
 )
 
 var upgrader = websocket.Upgrader{
@@ -21,8 +21,8 @@ var upgrader = websocket.Upgrader{
 
 // ServerDeps contains references to other subsystems used by websocket clients.
 type ServerDeps struct {
-    Lobby *lobby.Manager
-    Games *game.Manager
+	Lobby *lobby.Manager
+	Games *game.Manager
 }
 
 // ServeWs handles websocket requests from the peer.
@@ -41,7 +41,7 @@ func ServeWs(hub *Hub, deps ServerDeps, w http.ResponseWriter, r *http.Request) 
 		conn: conn,
 		send: make(chan []byte, 256),
 		id:   clientID,
-        deps: deps,
+		deps: deps,
 	}
 	client.hub.register <- client
 
