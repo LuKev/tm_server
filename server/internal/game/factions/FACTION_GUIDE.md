@@ -39,7 +39,7 @@ Base: 3 workers per spade, reduced by digging level.
 - Digging 1: 2 workers/spade
 - Digging 2: 1 worker/spade
 
-Giants have reduced base terraform costs.
+Darklings use priests instead of workers for digging.
 
 ## Faction List
 

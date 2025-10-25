@@ -604,6 +604,11 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 	// Transform terrain to home terrain (2 free spades)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
+	
+	// Award VP from scoring tile (2 spades used)
+	// Giants always use 2 spades, so award VP twice
+	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 
 	// Build dwelling if requested
 	if a.BuildDwelling {

@@ -36,12 +36,12 @@ type RoundState struct {
 // GameState is the authoritative state stored on the server
 
 type GameState struct {
-	ID          string                 `json:"id"`
+	ID          string                  `json:"id"`
 	Players     map[string]*PlayerState `json:"players"`
-	Order       []string               `json:"order"` // player ID order
-	ActiveIndex int                    `json:"activeIndex"`
-	Map         MapState               `json:"map"`
-	Round       RoundState             `json:"round"`
-	Started     bool                   `json:"started"`
-	Finished    bool                   `json:"finished"`
+	Order       []string                `json:"order"` // player ID order
+	ActiveIndex int                     `json:"activeIndex"`
+	Map         MapState                `json:"map"`
+	Round       RoundState              `json:"round"`
+	Started     bool                    `json:"started"`
+	Finished    bool                    `json:"finished"`
 }
