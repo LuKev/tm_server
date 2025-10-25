@@ -100,8 +100,8 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 
 func TestCultTrackState_GetRankings(t *testing.T) {
 	gs := NewGameState()
-	gs.AddPlayer("player1", factions.NewAuren())
-	gs.AddPlayer("player2", factions.NewWitches())
+	gs.AddPlayer("player1", factions.NewAuren()) // Forest
+	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren
 	gs.AddPlayer("player3", factions.NewGiants())
 
 	player1 := gs.GetPlayer("player1")
@@ -139,7 +139,7 @@ func TestCultTrackState_GetRankings(t *testing.T) {
 func TestCultTrackState_EndGameScoring_Simple(t *testing.T) {
 	gs := NewGameState()
 	gs.AddPlayer("player1", factions.NewAuren())
-	gs.AddPlayer("player2", factions.NewWitches())
+	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren (Forest)
 	gs.AddPlayer("player3", factions.NewGiants())
 
 	player1 := gs.GetPlayer("player1")
@@ -177,7 +177,7 @@ func TestCultTrackState_EndGameScoring_Simple(t *testing.T) {
 func TestCultTrackState_EndGameScoring_Tie(t *testing.T) {
 	gs := NewGameState()
 	gs.AddPlayer("player1", factions.NewAuren())
-	gs.AddPlayer("player2", factions.NewWitches())
+	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren (Forest)
 	gs.AddPlayer("player3", factions.NewGiants())
 
 	player1 := gs.GetPlayer("player1")
@@ -214,7 +214,7 @@ func TestCultTrackState_EndGameScoring_Tie(t *testing.T) {
 func TestCultTrackState_EndGameScoring_MultipleTracks(t *testing.T) {
 	gs := NewGameState()
 	gs.AddPlayer("player1", factions.NewAuren())
-	gs.AddPlayer("player2", factions.NewWitches())
+	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren (Forest)
 
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
@@ -252,7 +252,7 @@ func TestCultTrackState_EndGameScoring_MultipleTracks(t *testing.T) {
 func TestCultTrackState_EndGameScoring_NoAdvancement(t *testing.T) {
 	gs := NewGameState()
 	gs.AddPlayer("player1", factions.NewAuren())
-	gs.AddPlayer("player2", factions.NewWitches())
+	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren (Forest)
 
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
@@ -333,7 +333,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 func TestCultTrackState_Position10Blocked(t *testing.T) {
 	gs := NewGameState()
 	gs.AddPlayer("player1", factions.NewAuren())
-	gs.AddPlayer("player2", factions.NewWitches())
+	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren (Forest)
 
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")

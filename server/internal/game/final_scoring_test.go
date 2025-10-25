@@ -9,9 +9,10 @@ import (
 
 func TestCalculateFinalScoring_Complete(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	
@@ -23,24 +24,24 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	hex1 := NewHex(0, 0)
 	hex2 := NewHex(1, 0)
 	hex3 := NewHex(2, 0)
-	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
-	gs.Map.GetHex(hex2).Terrain = faction.GetHomeTerrain()
-	gs.Map.GetHex(hex3).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(hex1).Terrain = faction1.GetHomeTerrain()
+	gs.Map.GetHex(hex2).Terrain = faction1.GetHomeTerrain()
+	gs.Map.GetHex(hex3).Terrain = faction1.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex1, &models.Building{
 		Type:       models.BuildingDwelling,
-		Faction:    faction.GetType(),
+		Faction:    faction1.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	})
 	gs.Map.PlaceBuilding(hex2, &models.Building{
 		Type:       models.BuildingDwelling,
-		Faction:    faction.GetType(),
+		Faction:    faction1.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	})
 	gs.Map.PlaceBuilding(hex3, &models.Building{
 		Type:       models.BuildingDwelling,
-		Faction:    faction.GetType(),
+		Faction:    faction1.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	})
@@ -48,17 +49,17 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	// Build for player2 (connected area of 2)
 	hex4 := NewHex(5, 5)
 	hex5 := NewHex(6, 5)
-	gs.Map.GetHex(hex4).Terrain = faction.GetHomeTerrain()
-	gs.Map.GetHex(hex5).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(hex4).Terrain = faction2.GetHomeTerrain()
+	gs.Map.GetHex(hex5).Terrain = faction2.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex4, &models.Building{
 		Type:       models.BuildingDwelling,
-		Faction:    faction.GetType(),
+		Faction:    faction2.GetType(),
 		PlayerID:   "player2",
 		PowerValue: 1,
 	})
 	gs.Map.PlaceBuilding(hex5, &models.Building{
 		Type:       models.BuildingDwelling,
-		Faction:    faction.GetType(),
+		Faction:    faction2.GetType(),
 		PlayerID:   "player2",
 		PowerValue: 1,
 	})
@@ -113,17 +114,18 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 
 func TestAreaBonus_SingleWinner(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	
 	// Player1: 5 connected buildings
 	for i := 0; i < 5; i++ {
 		hex := NewHex(i, 0)
-		gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
+		gs.Map.GetHex(hex).Terrain = faction1.GetHomeTerrain()
 		gs.Map.PlaceBuilding(hex, &models.Building{
 			Type:       models.BuildingDwelling,
-			Faction:    faction.GetType(),
+			Faction:    faction1.GetType(),
 			PlayerID:   "player1",
 			PowerValue: 1,
 		})
@@ -132,10 +134,10 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 	// Player2: 3 connected buildings
 	for i := 0; i < 3; i++ {
 		hex := NewHex(i, 5)
-		gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
+		gs.Map.GetHex(hex).Terrain = faction2.GetHomeTerrain()
 		gs.Map.PlaceBuilding(hex, &models.Building{
 			Type:       models.BuildingDwelling,
-			Faction:    faction.GetType(),
+			Faction:    faction2.GetType(),
 			PlayerID:   "player2",
 			PowerValue: 1,
 		})
@@ -163,13 +165,15 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 
 func TestAreaBonus_Tie(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
-	gs.AddPlayer("player3", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	faction3 := factions.NewHalflings() // Plains
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	gs.AddPlayer("player3", faction3)
 	
 	// All players: 4 connected buildings each
-	for playerID := range gs.Players {
+	for playerID, player := range gs.Players {
 		row := 0
 		if playerID == "player2" {
 			row = 3
@@ -179,10 +183,10 @@ func TestAreaBonus_Tie(t *testing.T) {
 		
 		for i := 0; i < 4; i++ {
 			hex := NewHex(i, row)
-			gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
+			gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
 			gs.Map.PlaceBuilding(hex, &models.Building{
 				Type:       models.BuildingDwelling,
-				Faction:    faction.GetType(),
+				Faction:    player.Faction.GetType(),
 				PlayerID:   playerID,
 				PowerValue: 1,
 			})
@@ -206,10 +210,12 @@ func TestAreaBonus_Tie(t *testing.T) {
 
 func TestCultBonus_SingleTrack(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
-	gs.AddPlayer("player3", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	faction3 := factions.NewHalflings() // Plains
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	gs.AddPlayer("player3", faction3)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
@@ -245,10 +251,12 @@ func TestCultBonus_SingleTrack(t *testing.T) {
 
 func TestCultBonus_TieForFirst(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
-	gs.AddPlayer("player3", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	faction3 := factions.NewHalflings() // Plains
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	gs.AddPlayer("player3", faction3)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
@@ -282,9 +290,10 @@ func TestCultBonus_TieForFirst(t *testing.T) {
 
 func TestCultBonus_MultipleTracks(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	

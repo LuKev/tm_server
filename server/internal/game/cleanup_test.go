@@ -107,9 +107,10 @@ func TestExecuteCleanupPhase_Round5(t *testing.T) {
 
 func TestReturnBonusCards(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	
 	// Give players bonus cards
 	gs.BonusCards.PlayerCards["player1"] = BonusCardPriest
@@ -168,10 +169,12 @@ func TestResetRoundState(t *testing.T) {
 
 func TestGetNextPlayerWithSpades(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
-	gs.AddPlayer("player3", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	faction3 := factions.NewHalflings() // Plains
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	gs.AddPlayer("player3", faction3)
 	
 	// Set pass order
 	gs.PassOrder = []string{"player2", "player1", "player3"}
@@ -314,8 +317,8 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 
 func TestAwardCultRewards_Priests(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren()
-	faction2 := factions.NewWitches()
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp - different terrain from Auren
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
@@ -419,9 +422,10 @@ func TestAwardCultRewards_Coins(t *testing.T) {
 
 func TestAwardCultRewards_PriestCoinTile(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	
@@ -583,10 +587,12 @@ func TestPowerActions_ResetForNewRound(t *testing.T) {
 
 func TestMultiplePlayers_DifferentRewards(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
-	gs.AddPlayer("player3", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp  
+	faction3 := factions.NewHalflings() // Plains
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	gs.AddPlayer("player3", faction3)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
@@ -654,9 +660,10 @@ func TestMultipleSpades_Sequential(t *testing.T) {
 
 func TestFullCleanupFlow(t *testing.T) {
 	gs := NewGameState()
-	faction := factions.NewAuren()
-	gs.AddPlayer("player1", faction)
-	gs.AddPlayer("player2", faction)
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	

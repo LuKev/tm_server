@@ -613,7 +613,6 @@ func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	}
 	
 	// Test accepting the offer
-	initialBowl1 := player2.Resources.Power.Bowl1
 	initialBowl2 := player2.Resources.Power.Bowl2
 	initialVP := player2.VictoryPoints
 	
@@ -623,13 +622,17 @@ func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	}
 	
 	// Verify player2 gained 5 power
-	// With 5 power to gain and starting with Bowl1=5, Bowl2=7:
-	// All 5 from Bowl1 moves to Bowl2
-	if player2.Resources.Power.Bowl1 != initialBowl1 - 5 {
-		t.Errorf("expected Bowl1 to decrease by 5, initial: %d, new: %d", initialBowl1, player2.Resources.Power.Bowl1)
+	// With 5 power to gain and Swarmlings starting with Bowl1=3, Bowl2=9:
+	// 3 from Bowl1 moves to Bowl2 (Bowl1: 3->0, Bowl2: 9->12)
+	// Remaining 2 power moves from Bowl2 to Bowl3 (Bowl2: 12->10, Bowl3: 0->2)
+	if player2.Resources.Power.Bowl1 != 0 {
+		t.Errorf("expected Bowl1 to be 0, got %d", player2.Resources.Power.Bowl1)
 	}
-	if player2.Resources.Power.Bowl2 != initialBowl2 + 5 {
-		t.Errorf("expected Bowl2 to increase by 5, initial: %d, new: %d", initialBowl2, player2.Resources.Power.Bowl2)
+	if player2.Resources.Power.Bowl2 != initialBowl2 + 1 {
+		t.Errorf("expected Bowl2 to increase by 1 (9->12->10), initial: %d, new: %d", initialBowl2, player2.Resources.Power.Bowl2)
+	}
+	if player2.Resources.Power.Bowl3 != 2 {
+		t.Errorf("expected Bowl3 to be 2, got %d", player2.Resources.Power.Bowl3)
 	}
 	
 	// Verify player2 lost 4 VP
