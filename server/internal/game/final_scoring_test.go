@@ -10,7 +10,7 @@ import (
 func TestCalculateFinalScoring_Complete(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren() // Forest
-	faction2 := factions.NewAlchemists() // Swamp
+	faction2 := factions.NewSwarmlings() // Lake - different from Auren, no special resource conversion
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
@@ -115,7 +115,7 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 func TestAreaBonus_SingleWinner(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren() // Forest
-	faction2 := factions.NewAlchemists() // Swamp
+	faction2 := factions.NewSwarmlings() // Lake
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	
@@ -166,7 +166,7 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 func TestAreaBonus_Tie(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren() // Forest
-	faction2 := factions.NewAlchemists() // Swamp
+	faction2 := factions.NewSwarmlings() // Lake
 	faction3 := factions.NewHalflings() // Plains
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
@@ -211,7 +211,7 @@ func TestAreaBonus_Tie(t *testing.T) {
 func TestCultBonus_SingleTrack(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren() // Forest
-	faction2 := factions.NewAlchemists() // Swamp
+	faction2 := factions.NewSwarmlings() // Lake
 	faction3 := factions.NewHalflings() // Plains
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
@@ -252,7 +252,7 @@ func TestCultBonus_SingleTrack(t *testing.T) {
 func TestCultBonus_TieForFirst(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren() // Forest
-	faction2 := factions.NewAlchemists() // Swamp
+	faction2 := factions.NewSwarmlings() // Lake
 	faction3 := factions.NewHalflings() // Plains
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
@@ -291,7 +291,7 @@ func TestCultBonus_TieForFirst(t *testing.T) {
 func TestCultBonus_MultipleTracks(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren() // Forest
-	faction2 := factions.NewAlchemists() // Swamp
+	faction2 := factions.NewSwarmlings() // Lake
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")

@@ -434,8 +434,8 @@ func TestPowerAction_Spade2TwoHexes(t *testing.T) {
 
 func TestPowerAction_OncePerRound(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction1 := factions.NewHalflings() // Plains
+	faction2 := factions.NewSwarmlings() // Lake - different from Halflings
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	

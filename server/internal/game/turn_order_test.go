@@ -10,7 +10,7 @@ func TestTurnOrder_PassOrderDeterminesNextRound(t *testing.T) {
 	
 	// Add 3 players
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Lake - different from Halflings
 	faction3 := factions.NewNomads()
 	
 	gs.AddPlayer("player1", faction1)
@@ -98,7 +98,7 @@ func TestTurnOrder_GetCurrentPlayer(t *testing.T) {
 	gs := NewGameState()
 	
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Lake - different from Halflings
 	
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
@@ -132,7 +132,7 @@ func TestTurnOrder_SkipsPassedPlayers(t *testing.T) {
 	gs := NewGameState()
 	
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Lake - different from Halflings
 	faction3 := factions.NewNomads()
 	
 	gs.AddPlayer("player1", faction1)
@@ -172,7 +172,7 @@ func TestTurnOrder_AllPlayersPassed(t *testing.T) {
 	gs := NewGameState()
 	
 	faction1 := factions.NewHalflings()
-	faction2 := factions.NewCultists()
+	faction2 := factions.NewSwarmlings() // Lake - different from Halflings
 	
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
