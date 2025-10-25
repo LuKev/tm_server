@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -618,6 +620,13 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 	// Giants always use 2 spades, so award VP twice
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	
+	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+	// Note: Giants can't be Halflings, but this is here for consistency
+	if halflings, ok := player.Faction.(*factions.Halflings); ok {
+		vpBonus := halflings.GetVPPerSpade() * 2 // 2 spades
+		player.VictoryPoints += vpBonus
+	}
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
@@ -743,6 +752,12 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 	spadesUsed := player.Faction.GetTerraformSpades(distance)
 	for i := 0; i < spadesUsed; i++ {
 		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	}
+	
+	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+	if halflings, ok := player.Faction.(*factions.Halflings); ok {
+		vpBonus := halflings.GetVPPerSpade() * spadesUsed
+		player.VictoryPoints += vpBonus
 	}
 
 	// Optionally build dwelling if requested

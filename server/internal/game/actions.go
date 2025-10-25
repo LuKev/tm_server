@@ -164,6 +164,12 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		for i := 0; i < spadesUsed; i++ {
 			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 		}
+		
+		// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+		if halflings, ok := player.Faction.(*factions.Halflings); ok {
+			vpBonus := halflings.GetVPPerSpade() * spadesUsed
+			player.VictoryPoints += vpBonus
+		}
 	}
 
 	// Step 2: Build dwelling if requested

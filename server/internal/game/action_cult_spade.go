@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+
+	"github.com/lukev/tm_server/internal/game/factions"
 )
 
 // UseCultSpadeAction represents using a free spade from cult track rewards
@@ -81,6 +83,12 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	spadesUsed := 1 // Cult reward spades are always 1 spade at a time
 	for i := 0; i < spadesUsed; i++ {
 		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	}
+	
+	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+	if halflings, ok := player.Faction.(*factions.Halflings); ok {
+		vpBonus := halflings.GetVPPerSpade() * spadesUsed
+		player.VictoryPoints += vpBonus
 	}
 
 	return nil

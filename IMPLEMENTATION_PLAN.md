@@ -420,12 +420,18 @@ Complete implementation of all faction-specific mechanics and special abilities.
 #### Status by Faction:
 
 **✅ FULLY IMPLEMENTED:**
-1. **Giants** - 2 spades/terraform, 2 free spades/round after stronghold
-2. **Swarmlings** - Free dwelling cost, +3 workers per town
-3. **Halflings** - +1 VP per spade after stronghold
-4. **Engineers** - Reduced bridge cost (3→1), +2 VP on passing after stronghold
-5. **Alchemists** - VP↔Coin conversion, +2 power per spade after stronghold
-6. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech
+1. **Giants** - 2 spades/terraform always, stronghold: 2 free spades/round (awards scoring tile VP) ✅
+2. **Swarmlings** - Expensive dwellings (2W+3C), stronghold: free D→TH upgrade/round, +3 workers/town ✅
+3. **Engineers** - Reduced bridge cost (3→1), +2 VP on passing after stronghold
+4. **Alchemists** - VP↔Coin conversion, +2 power per spade after stronghold
+5. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech
+
+**⚠️ NEEDS FIXES:**
+6. **Halflings** - PARTIALLY CORRECT
+   - ✅ Cheap dig (1 priest, 2 workers, 1 coin)
+   - ❌ +1 VP per spade should be ALWAYS (not just after stronghold)
+   - ❌ Stronghold: 3 spades (must use before building dwelling)
+   - ❌ All spades must be on reachable hexes (before dwelling placement)
 
 **⚠️ PARTIALLY IMPLEMENTED:**
 7. **Witches** - Flying implemented, +5 VP per town, Witches Ride (needs action integration)
