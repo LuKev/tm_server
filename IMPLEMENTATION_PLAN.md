@@ -385,19 +385,27 @@ Implement all player actions:
 - [x] Town VP from scoring tiles
 - [x] Track victory points (awarded throughout game)
 
-#### 8.2 Final Scoring (IN PROGRESS)
-- [ ] Calculate area majority (largest connected area)
-- [ ] Score cult track positions (8/4/2 VP for top 3 per track)
-- [ ] Add resource conversion to VP (3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP)
-- [ ] Determine winner (highest VP, tiebreaker: resources)
+#### 8.2 Final Scoring ✅ COMPLETE
+- [x] Calculate area majority (largest connected area - 18 VP, ties split)
+- [x] Score cult track positions (8/4/2 VP for top 3 per track, all 4 tracks)
+- [x] Add resource conversion to VP (3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP)
+- [x] Determine winner (highest VP, tiebreaker: total resource value)
+- [x] Ranked player list for leaderboard
 
 #### 8.3 Auction System
 - [ ] Implement Standard Auction
 - [ ] Implement Fast Auction algorithm
 
-**Files to create:**
-- `server/internal/game/scoring.go`
-- `server/internal/game/final_scoring.go`
+**Files created:**
+- ✅ `server/internal/game/scoring_tiles.go` (round scoring with cult rewards)
+- ✅ `server/internal/game/final_scoring.go` (end-game scoring system)
+- ✅ `server/internal/game/cleanup.go` (cleanup phase orchestration)
+
+**Test Coverage:**
+- ✅ 7 scoring tile tests
+- ✅ 24 cleanup phase tests
+- ✅ 12 final scoring tests
+- ✅ **212 total tests passing**
 
 ### Phase 9: Frontend UI - Game Board (Days 23-28)
 
