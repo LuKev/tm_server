@@ -18,7 +18,9 @@ const (
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
-	ActionUseCultSpade // Use a spade from cult track reward (cleanup phase)
+	ActionUseCultSpade         // Use a spade from cult track reward (cleanup phase)
+	ActionAcceptPowerLeech     // Accept a power leech offer
+	ActionDeclinePowerLeech    // Decline a power leech offer
 )
 
 // Action represents a player action
@@ -169,6 +171,14 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		if halflings, ok := player.Faction.(*factions.Halflings); ok {
 			vpBonus := halflings.GetVPPerSpade() * spadesUsed
 			player.VictoryPoints += vpBonus
+		}
+		
+		// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+			if powerBonus > 0 {
+				player.Resources.Power.Bowl1 += powerBonus
+			}
 		}
 	}
 

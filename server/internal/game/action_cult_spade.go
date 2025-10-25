@@ -90,6 +90,14 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 		vpBonus := halflings.GetVPPerSpade() * spadesUsed
 		player.VictoryPoints += vpBonus
 	}
+	
+	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+		if powerBonus > 0 {
+			player.Resources.Power.Bowl1 += powerBonus
+		}
+	}
 
 	return nil
 }

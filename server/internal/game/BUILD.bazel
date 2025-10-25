@@ -4,6 +4,7 @@ go_library(
     name = "game",
     srcs = [
         "action_cult_spade.go",
+        "action_power_leech.go",
         "actions.go",
         "auction.go",
         "bonus_cards.go",

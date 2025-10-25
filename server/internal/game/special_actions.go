@@ -627,6 +627,15 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 		vpBonus := halflings.GetVPPerSpade() * 2 // 2 spades
 		player.VictoryPoints += vpBonus
 	}
+	
+	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+	// Note: Giants can't be Alchemists, but this is here for consistency
+	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+		powerBonus := alchemists.GetPowerPerSpade() * 2 // 2 spades
+		if powerBonus > 0 {
+			player.Resources.Power.Bowl1 += powerBonus
+		}
+	}
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
@@ -758,6 +767,14 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 	if halflings, ok := player.Faction.(*factions.Halflings); ok {
 		vpBonus := halflings.GetVPPerSpade() * spadesUsed
 		player.VictoryPoints += vpBonus
+	}
+	
+	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+		if powerBonus > 0 {
+			player.Resources.Power.Bowl1 += powerBonus
+		}
 	}
 
 	// Optionally build dwelling if requested

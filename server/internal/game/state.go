@@ -26,15 +26,24 @@ type GameState struct {
 	BonusCards         *BonusCardState               // Tracks available bonus cards and player selections
 	TownTiles          *TownTileState                // Tracks available town tiles
 	ScoringTiles       *ScoringTileState             // Tracks scoring tiles for each round
-	PendingLeechOffers map[string][]*PowerLeechOffer // Key: playerID who can accept
+	PendingLeechOffers    map[string][]*PowerLeechOffer    // Key: playerID who can accept
 	PendingTownFormations map[string]*PendingTownFormation // Key: playerID who can form town
-	PendingSpades      map[string]int                // Key: playerID, Value: number of spades to use (from cult rewards)
+	PendingSpades         map[string]int                   // Key: playerID, Value: number of spades to use (from cult rewards)
+	PendingCultistsLeech  map[string]*CultistsLeechBonus   // Key: playerID (Cultists), tracks pending cult advance/power bonus
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
 type PendingTownFormation struct {
 	PlayerID string
 	Hexes    []Hex // The connected buildings that form the town
+}
+
+// CultistsLeechBonus tracks Cultists' pending cult advance or power bonus from power leech
+type CultistsLeechBonus struct {
+	PlayerID       string
+	OffersCreated  int  // Number of offers created
+	AcceptedCount  int  // Number of offers accepted
+	DeclinedCount  int  // Number of offers declined
 }
 
 // GamePhase represents the current phase of the game
@@ -217,6 +226,7 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 // This is called when a building is placed or upgraded
 // According to Terra Mystica rules, each adjacent player receives ONE offer equal to
 // the sum of power values from ALL their buildings adjacent to the new building
+// Special: If building player is Cultists, they get cult advance or power bonus based on responses
 func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string) {
 	// Find all adjacent players and calculate total power from their adjacent buildings
 	neighbors := buildingHex.Neighbors()
@@ -233,6 +243,9 @@ func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string)
 		}
 	}
 
+	// Track if any offers were created (for Cultists ability)
+	offersCreated := 0
+	
 	// Create ONE power leech offer per adjacent player based on their total adjacent power
 	for neighborPlayerID, totalPower := range adjacentPlayerPower {
 		neighborPlayer := gs.GetPlayer(neighborPlayerID)
@@ -248,6 +261,26 @@ func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string)
 				gs.PendingLeechOffers[neighborPlayerID] = []*PowerLeechOffer{}
 			}
 			gs.PendingLeechOffers[neighborPlayerID] = append(gs.PendingLeechOffers[neighborPlayerID], offer)
+			offersCreated++
+		}
+	}
+	
+	// Cultists special ability: If at least one offer was created, mark for cult advance/power bonus
+	// The actual bonus is applied when all offers are resolved (accepted/declined)
+	if offersCreated > 0 {
+		buildingPlayer := gs.GetPlayer(buildingPlayerID)
+		if buildingPlayer != nil {
+			if _, ok := buildingPlayer.Faction.(*factions.Cultists); ok {
+				// Store that this building triggered Cultists ability
+				// We'll resolve it when all leech offers are processed
+				if gs.PendingCultistsLeech == nil {
+					gs.PendingCultistsLeech = make(map[string]*CultistsLeechBonus)
+				}
+				gs.PendingCultistsLeech[buildingPlayerID] = &CultistsLeechBonus{
+					PlayerID:      buildingPlayerID,
+					OffersCreated: offersCreated,
+				}
+			}
 		}
 	}
 }
@@ -427,4 +460,68 @@ func (gs *GameState) AllPlayersPassed() bool {
 // IsGameOver checks if the game has ended (after round 6)
 func (gs *GameState) IsGameOver() bool {
 	return gs.Round > 6
+}
+
+// AlchemistsConvertVPToCoins allows Alchemists to convert VP to Coins (1 VP -> 1 Coin)
+// This can be done at any time and does not count as an action
+func (gs *GameState) AlchemistsConvertVPToCoins(playerID string, vp int) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player not found")
+	}
+	
+	// Check if player is Alchemists
+	alchemists, ok := player.Faction.(*factions.Alchemists)
+	if !ok {
+		return fmt.Errorf("only Alchemists can use Philosopher's Stone")
+	}
+	
+	// Validate conversion
+	coins, err := alchemists.ConvertVPToCoins(vp)
+	if err != nil {
+		return err
+	}
+	
+	// Check if player has enough VP
+	if player.VictoryPoints < vp {
+		return fmt.Errorf("not enough VP (have %d, need %d)", player.VictoryPoints, vp)
+	}
+	
+	// Execute conversion
+	player.VictoryPoints -= vp
+	player.Resources.Coins += coins
+	
+	return nil
+}
+
+// AlchemistsConvertCoinsToVP allows Alchemists to convert Coins to VP (2 Coins -> 1 VP)
+// This can be done at any time and does not count as an action
+func (gs *GameState) AlchemistsConvertCoinsToVP(playerID string, coins int) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player not found")
+	}
+	
+	// Check if player is Alchemists
+	alchemists, ok := player.Faction.(*factions.Alchemists)
+	if !ok {
+		return fmt.Errorf("only Alchemists can use Philosopher's Stone")
+	}
+	
+	// Validate conversion
+	vp, err := alchemists.ConvertCoinsToVP(coins)
+	if err != nil {
+		return err
+	}
+	
+	// Check if player has enough coins
+	if player.Resources.Coins < coins {
+		return fmt.Errorf("not enough coins (have %d, need %d)", player.Resources.Coins, coins)
+	}
+	
+	// Execute conversion
+	player.Resources.Coins -= coins
+	player.VictoryPoints += vp
+	
+	return nil
 }
