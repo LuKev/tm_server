@@ -34,8 +34,9 @@ type GameState struct {
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
 type PendingTownFormation struct {
-	PlayerID string
-	Hexes    []Hex // The connected buildings that form the town
+	PlayerID        string
+	Hexes           []Hex // The connected buildings that form the town
+	SkippedRiverHex *Hex  // For Mermaids: the river hex that was skipped to form the town (town tile goes here)
 }
 
 // CultistsLeechBonus tracks Cultists' pending cult advance or power bonus from power leech

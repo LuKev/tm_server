@@ -128,15 +128,23 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 	if player == nil {
 		return nil
 	}
-	
+
 	mapHex := gs.Map.GetHex(hex)
 	if mapHex == nil || mapHex.Building == nil {
 		return nil
 	}
-	
+
 	// Find all connected buildings for this player
-	connected := gs.Map.GetConnectedBuildingsIncludingBridges(hex, playerID)
-	
+	// Mermaids can skip one river hex when founding towns
+	var connected []Hex
+	var skippedRiver *Hex
+
+	if player.Faction.GetType() == models.FactionMermaids {
+		connected, skippedRiver = gs.Map.GetConnectedBuildingsForMermaids(hex, playerID)
+	} else {
+		connected = gs.Map.GetConnectedBuildingsIncludingBridges(hex, playerID)
+	}
+
 	// Check if any building in the component is already part of a town
 	for _, h := range connected {
 		mh := gs.Map.GetHex(h)
@@ -144,12 +152,16 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 			return nil // Already part of a town, cannot form another
 		}
 	}
-	
+
 	// Check if requirements are met
 	if gs.CanFormTown(playerID, connected) {
+		// Store the skipped river hex if Mermaids used their ability
+		if skippedRiver != nil {
+			gs.PendingTownFormations[playerID].SkippedRiverHex = skippedRiver
+		}
 		return connected
 	}
-	
+
 	return nil
 }
 
@@ -299,22 +311,16 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 		return
 	}
 	
-	// Check if faction has the town bonus ability
-	if player.Faction.HasSpecialAbility(factions.AbilityTownBonus) {
-		switch player.Faction.GetType() {
-		case models.FactionWitches:
-			// Witches get +5 VP per town formed
-			if witches, ok := player.Faction.(*factions.Witches); ok {
-				player.VictoryPoints += witches.GetTownFoundingBonus()
-			}
-		case models.FactionMermaids:
-			// Mermaids get +3 power per town formed
-			player.Resources.Power.GainPower(3)
+	// Apply town founding bonuses
+	// Only Witches and Swarmlings get bonuses when founding towns
+	switch player.Faction.GetType() {
+	case models.FactionWitches:
+		// Witches get +5 VP per town formed
+		if witches, ok := player.Faction.(*factions.Witches); ok {
+			player.VictoryPoints += witches.GetTownFoundingBonus()
 		}
-	}
-	
-	// Swarmlings get +3 workers per town formed (not part of AbilityTownBonus, separate mechanic)
-	if player.Faction.GetType() == models.FactionSwarmlings {
+	case models.FactionSwarmlings:
+		// Swarmlings get +3 workers per town formed
 		player.Resources.Workers += 3
 	}
 }
@@ -326,26 +332,26 @@ func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playe
 	connected := []Hex{}
 	queue := []Hex{start}
 	visited[start] = true
-	
+
 	for len(queue) > 0 {
 		current := queue[0]
 		queue = queue[1:]
-		
+
 		currentHex := m.GetHex(current)
 		if currentHex == nil || currentHex.Building == nil {
 			continue
 		}
-		
+
 		// Only include buildings belonging to this player
 		if currentHex.Building.PlayerID != playerID {
 			continue
 		}
-		
+
 		connected = append(connected, current)
-		
+
 		// Get all adjacent hexes (including via bridges)
 		neighbors := m.GetDirectNeighbors(current)
-		
+
 		// Also check for bridge connections
 		for bridge := range m.Bridges {
 			if bridge.H1 == current {
@@ -354,7 +360,7 @@ func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playe
 				neighbors = append(neighbors, bridge.H1)
 			}
 		}
-		
+
 		// Add unvisited neighbors to queue
 		for _, neighbor := range neighbors {
 			if !visited[neighbor] {
@@ -366,6 +372,86 @@ func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playe
 			}
 		}
 	}
-	
+
 	return connected
+}
+
+// GetConnectedBuildingsForMermaids finds all buildings connected to the starting hex
+// Mermaids can skip ONE river hex when forming towns (town tile goes on the skipped river)
+// Returns: connected buildings, and the skipped river hex (if any)
+func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID string) ([]Hex, *Hex) {
+	visited := make(map[Hex]bool)
+	connected := []Hex{}
+	queue := []Hex{start}
+	visited[start] = true
+	var skippedRiver *Hex
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		currentHex := m.GetHex(current)
+		if currentHex == nil || currentHex.Building == nil {
+			continue
+		}
+
+		// Only include buildings belonging to this player
+		if currentHex.Building.PlayerID != playerID {
+			continue
+		}
+
+		connected = append(connected, current)
+
+		// Get all adjacent hexes (including via bridges)
+		neighbors := m.GetDirectNeighbors(current)
+
+		// Also check for bridge connections
+		for bridge := range m.Bridges {
+			if bridge.H1 == current {
+				neighbors = append(neighbors, bridge.H2)
+			} else if bridge.H2 == current {
+				neighbors = append(neighbors, bridge.H1)
+			}
+		}
+
+		// Add unvisited neighbors to queue
+		for _, neighbor := range neighbors {
+			if !visited[neighbor] {
+				neighborHex := m.GetHex(neighbor)
+				if neighborHex != nil && neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
+					visited[neighbor] = true
+					queue = append(queue, neighbor)
+				}
+			}
+		}
+
+		// Mermaids special ability: Check for buildings across ONE river hex
+		// Only use this ability once per town formation
+		if skippedRiver == nil {
+			for _, neighbor := range neighbors {
+				neighborHex := m.GetHex(neighbor)
+				// Check if this neighbor is a river hex
+				if neighborHex != nil && neighborHex.Terrain == models.TerrainRiver && !visited[neighbor] {
+					// Check hexes on the other side of this river
+					riverNeighbors := neighbor.Neighbors()
+					for _, acrossRiver := range riverNeighbors {
+						if acrossRiver == current {
+							continue // Skip the hex we came from
+						}
+						if !visited[acrossRiver] {
+							acrossHex := m.GetHex(acrossRiver)
+							// If there's a player building on the other side, connect it
+							if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
+								visited[acrossRiver] = true
+								queue = append(queue, acrossRiver)
+								skippedRiver = &neighbor // Track which river was skipped
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return connected, skippedRiver
 }

@@ -2086,3 +2086,632 @@ func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 		}
 	}
 }
+
+// ===== CHAOS MAGICIANS TESTS =====
+
+func TestChaosMagicians_DoubleTurnBasic(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewChaosMagicians()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 50
+	player.Resources.Workers = 20
+	player.Resources.Priests = 5
+	player.Resources.Power.Bowl3 = 10
+
+	// Build stronghold to enable double turn
+	strongholdHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 3,
+	})
+	gs.Map.TransformTerrain(strongholdHex, models.TerrainWasteland)
+	player.HasStrongholdAbility = true
+
+	// Place a dwelling for first action (upgrade to trading house)
+	dwellingHex := NewHex(1, 0)
+	gs.Map.TransformTerrain(dwellingHex, models.TerrainWasteland)
+	gs.Map.PlaceBuilding(dwellingHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	// Prepare second action target (transform and build)
+	targetHex := NewHex(1, 1)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
+
+	initialCoins := player.Resources.Coins
+	initialWorkers := player.Resources.Workers
+
+	// Create double turn: 1) Upgrade dwelling to trading house, 2) Transform and build
+	firstAction := NewUpgradeBuildingAction("player1", dwellingHex, models.BuildingTradingHouse)
+	secondAction := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
+	action.FirstAction = firstAction
+	action.SecondAction = secondAction
+
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected Chaos Magicians double turn to succeed, got error: %v", err)
+	}
+
+	// Verify first action: dwelling was upgraded to trading house
+	mapHex1 := gs.Map.GetHex(dwellingHex)
+	if mapHex1.Building.Type != models.BuildingTradingHouse {
+		t.Errorf("expected trading house, got %v", mapHex1.Building.Type)
+	}
+
+	// Verify second action: terrain was transformed and dwelling built
+	mapHex2 := gs.Map.GetHex(targetHex)
+	if mapHex2.Terrain != models.TerrainWasteland {
+		t.Errorf("expected Wasteland terrain, got %v", mapHex2.Terrain)
+	}
+	if mapHex2.Building == nil {
+		t.Fatal("expected dwelling to be built")
+	}
+	if mapHex2.Building.Type != models.BuildingDwelling {
+		t.Errorf("expected dwelling, got %v", mapHex2.Building.Type)
+	}
+
+	// Verify resources were spent for both actions
+	if player.Resources.Coins >= initialCoins {
+		t.Error("expected coins to be spent")
+	}
+	if player.Resources.Workers >= initialWorkers {
+		t.Error("expected workers to be spent")
+	}
+
+	// Verify special action was marked as used
+	if !player.SpecialActionsUsed[SpecialActionChaosMagiciansDoubleTurn] {
+		t.Error("expected double turn to be marked as used")
+	}
+}
+
+func TestChaosMagicians_DoubleTurnTwoTransforms(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewChaosMagicians()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 50
+	player.Resources.Workers = 30
+	player.Resources.Priests = 5
+
+	// Build stronghold
+	strongholdHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 3,
+	})
+	gs.Map.TransformTerrain(strongholdHex, models.TerrainWasteland)
+	player.HasStrongholdAbility = true
+
+	// First transform target
+	targetHex1 := NewHex(1, 0)
+	gs.Map.GetHex(targetHex1).Terrain = models.TerrainForest
+
+	// Second transform target
+	targetHex2 := NewHex(1, 1)
+	gs.Map.GetHex(targetHex2).Terrain = models.TerrainLake
+
+	// Create double turn with two transform actions
+	firstAction := NewTransformAndBuildAction("player1", targetHex1, true)
+	secondAction := NewTransformAndBuildAction("player1", targetHex2, true)
+	action := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
+	action.FirstAction = firstAction
+	action.SecondAction = secondAction
+
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected double turn to succeed, got error: %v", err)
+	}
+
+	// Verify both hexes were transformed and have dwellings
+	mapHex1 := gs.Map.GetHex(targetHex1)
+	if mapHex1.Terrain != models.TerrainWasteland {
+		t.Errorf("expected Wasteland for hex 1, got %v", mapHex1.Terrain)
+	}
+	if mapHex1.Building == nil || mapHex1.Building.Type != models.BuildingDwelling {
+		t.Error("expected dwelling on hex 1")
+	}
+
+	mapHex2 := gs.Map.GetHex(targetHex2)
+	if mapHex2.Terrain != models.TerrainWasteland {
+		t.Errorf("expected Wasteland for hex 2, got %v", mapHex2.Terrain)
+	}
+	if mapHex2.Building == nil || mapHex2.Building.Type != models.BuildingDwelling {
+		t.Error("expected dwelling on hex 2")
+	}
+}
+
+func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewChaosMagicians()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 100
+	player.Resources.Workers = 50
+
+	// Build stronghold
+	strongholdHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 3,
+	})
+	gs.Map.TransformTerrain(strongholdHex, models.TerrainWasteland)
+	player.HasStrongholdAbility = true
+
+	// Place two dwellings
+	dwelling1Hex := NewHex(1, 0)
+	gs.Map.TransformTerrain(dwelling1Hex, models.TerrainWasteland)
+	gs.Map.PlaceBuilding(dwelling1Hex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	dwelling2Hex := NewHex(1, 1)
+	gs.Map.TransformTerrain(dwelling2Hex, models.TerrainWasteland)
+	gs.Map.PlaceBuilding(dwelling2Hex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	// First double turn
+	firstAction1 := NewUpgradeBuildingAction("player1", dwelling1Hex, models.BuildingTradingHouse)
+	targetHex1 := NewHex(2, 0)
+	gs.Map.GetHex(targetHex1).Terrain = models.TerrainForest
+	secondAction1 := NewTransformAndBuildAction("player1", targetHex1, false)
+	action1 := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
+	action1.FirstAction = firstAction1
+	action1.SecondAction = secondAction1
+
+	err := action1.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected first double turn to succeed, got error: %v", err)
+	}
+
+	// Try to use double turn again in same round - should fail
+	firstAction2 := NewUpgradeBuildingAction("player1", dwelling2Hex, models.BuildingTradingHouse)
+	targetHex2 := NewHex(2, 1)
+	gs.Map.GetHex(targetHex2).Terrain = models.TerrainSwamp
+	secondAction2 := NewTransformAndBuildAction("player1", targetHex2, false)
+	action2 := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
+	action2.FirstAction = firstAction2
+	action2.SecondAction = secondAction2
+
+	err = action2.Validate(gs)
+	if err == nil {
+		t.Fatal("expected error when using double turn twice in one round")
+	}
+}
+
+// ===== NOMADS TESTS =====
+
+func TestNomads_SandstormBasic(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewNomads()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 20
+	player.Resources.Workers = 20
+	player.Resources.Priests = 5
+
+	// Build stronghold
+	strongholdHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 3,
+	})
+	gs.Map.TransformTerrain(strongholdHex, models.TerrainDesert)
+	player.HasStrongholdAbility = true
+
+	// Target hex directly adjacent to stronghold
+	targetHex := NewHex(1, 0)
+	gs.Map.TransformTerrain(targetHex, models.TerrainSwamp)
+
+	// Use Nomads sandstorm special action
+	action := NewSpecialAction("player1", SpecialActionNomadsSandstorm)
+	action.TargetHex = &targetHex
+	action.BuildDwelling = true
+
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected Nomads sandstorm to succeed, got error: %v", err)
+	}
+
+	// Verify terrain was transformed
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Terrain != models.TerrainDesert {
+		t.Errorf("expected Desert terrain, got %v", mapHex.Terrain)
+	}
+
+	// Verify dwelling was built
+	if mapHex.Building == nil {
+		t.Fatal("expected dwelling to be built")
+	}
+	if mapHex.Building.Type != models.BuildingDwelling {
+		t.Errorf("expected dwelling, got %v", mapHex.Building.Type)
+	}
+
+	// Verify special action was marked as used
+	if !player.SpecialActionsUsed[SpecialActionNomadsSandstorm] {
+		t.Error("expected sandstorm to be marked as used")
+	}
+}
+
+func TestNomads_SandstormCanOnlyUseOnce(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewNomads()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 50
+	player.Resources.Workers = 50
+
+	// Build stronghold
+	strongholdHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 3,
+	})
+	gs.Map.TransformTerrain(strongholdHex, models.TerrainDesert)
+	player.HasStrongholdAbility = true
+
+	// First sandstorm target
+	targetHex1 := NewHex(1, 0)
+	gs.Map.TransformTerrain(targetHex1, models.TerrainSwamp)
+
+	// Use sandstorm once
+	action1 := NewSpecialAction("player1", SpecialActionNomadsSandstorm)
+	action1.TargetHex = &targetHex1
+	action1.BuildDwelling = true
+
+	err := action1.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected first sandstorm to succeed, got error: %v", err)
+	}
+
+	// Try to use sandstorm again in same round - should fail
+	targetHex2 := NewHex(0, 2)
+	gs.Map.TransformTerrain(targetHex2, models.TerrainForest)
+
+	action2 := NewSpecialAction("player1", SpecialActionNomadsSandstorm)
+	action2.TargetHex = &targetHex2
+	action2.BuildDwelling = true
+
+	err = action2.Validate(gs)
+	if err == nil {
+		t.Fatal("expected error when using sandstorm twice in one round")
+	}
+}
+
+// ===== STRONGHOLD IMMEDIATE BONUS TESTS =====
+
+func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Give player resources to upgrade
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+
+	// Place a trading house to upgrade to stronghold
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainSwamp)
+
+	// Record initial power
+	initialPower := player.Resources.Power.Bowl1
+
+	// Upgrade to stronghold via UpgradeBuilding action
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	// Verify +12 power was granted automatically
+	powerGained := player.Resources.Power.Bowl1 - initialPower
+	if powerGained != 12 {
+		t.Errorf("expected +12 power from stronghold, got +%d", powerGained)
+	}
+
+	// Verify stronghold ability is granted
+	if !player.HasStrongholdAbility {
+		t.Error("expected HasStrongholdAbility to be true")
+	}
+
+	// Verify building was upgraded
+	mapHex := gs.Map.GetHex(tradingHouseHex)
+	if mapHex.Building.Type != models.BuildingStronghold {
+		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
+	}
+}
+
+func TestAlchemists_StrongholdBonusOnlyOnce(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAlchemists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 200
+	player.Resources.Workers = 200
+
+	// Place a trading house
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainSwamp)
+
+	// Upgrade to stronghold
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	powerAfterFirst := player.Resources.Power.Bowl1
+
+	// Try to call BuildStronghold again (simulating hypothetical rebuild)
+	powerBonus := faction.BuildStronghold()
+	if powerBonus != 0 {
+		t.Errorf("expected 0 power bonus on second stronghold build, got %d", powerBonus)
+	}
+
+	// Power should not change
+	if player.Resources.Power.Bowl1 != powerAfterFirst {
+		t.Error("power should not change on second BuildStronghold call")
+	}
+}
+
+func TestCultists_StrongholdGrants7VP(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewCultists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+
+	// Place a trading house to upgrade to stronghold
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainPlains)
+
+	// Record initial VP
+	initialVP := player.VictoryPoints
+
+	// Upgrade to stronghold via UpgradeBuilding action
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	// Verify +7 VP was granted automatically (plus any scoring tile VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained < 7 {
+		t.Errorf("expected at least +7 VP from stronghold, got +%d", vpGained)
+	}
+
+	// Verify stronghold ability is granted
+	if !player.HasStrongholdAbility {
+		t.Error("expected HasStrongholdAbility to be true")
+	}
+
+	// Verify building was upgraded
+	mapHex := gs.Map.GetHex(tradingHouseHex)
+	if mapHex.Building.Type != models.BuildingStronghold {
+		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
+	}
+}
+
+func TestCultists_StrongholdBonusOnlyOnce(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewCultists()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+
+	// Place a trading house
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainPlains)
+
+	// Upgrade to stronghold
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	vpAfterFirst := player.VictoryPoints
+
+	// Try to call BuildStronghold again
+	vpBonus := faction.BuildStronghold()
+	if vpBonus != 0 {
+		t.Errorf("expected 0 VP bonus on second stronghold build, got %d", vpBonus)
+	}
+
+	// VP should not change
+	if player.VictoryPoints != vpAfterFirst {
+		t.Error("VP should not change on second BuildStronghold call")
+	}
+}
+
+func TestMermaids_StrongholdGrants1Shipping(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewMermaids()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+
+	// Place a trading house to upgrade to stronghold
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainLake)
+
+	// Mermaids start with shipping level 1
+	initialShipping := faction.GetShippingLevel()
+	if initialShipping != 1 {
+		t.Fatalf("expected Mermaids to start at shipping level 1, got %d", initialShipping)
+	}
+
+	// Upgrade to stronghold via UpgradeBuilding action
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	// Verify shipping level increased by 1 (1 -> 2)
+	newShipping := faction.GetShippingLevel()
+	if newShipping != 2 {
+		t.Errorf("expected shipping level 2 after stronghold, got %d", newShipping)
+	}
+
+	// Verify player shipping level was also updated
+	if player.ShippingLevel != 2 {
+		t.Errorf("expected player shipping level 2, got %d", player.ShippingLevel)
+	}
+
+	// Verify stronghold ability is granted
+	if !player.HasStrongholdAbility {
+		t.Error("expected HasStrongholdAbility to be true")
+	}
+
+	// Verify building was upgraded
+	mapHex := gs.Map.GetHex(tradingHouseHex)
+	if mapHex.Building.Type != models.BuildingStronghold {
+		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
+	}
+}
+
+func TestMermaids_StrongholdBonusOnlyOnce(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewMermaids()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+
+	// Place a trading house
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainLake)
+
+	// Upgrade to stronghold
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	shippingAfterFirst := faction.GetShippingLevel()
+
+	// Try to call BuildStronghold again
+	shouldGrantShipping := faction.BuildStronghold()
+	if shouldGrantShipping {
+		t.Error("expected false on second stronghold build (no more free shipping)")
+	}
+
+	// Shipping should not change
+	if faction.GetShippingLevel() != shippingAfterFirst {
+		t.Error("shipping should not change on second BuildStronghold call")
+	}
+}
+
+func TestAuren_StrongholdMarksFavorTilePending(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+
+	// Place a trading house to upgrade to stronghold
+	tradingHouseHex := NewHex(0, 1)
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainForest)
+
+	// Upgrade to stronghold via UpgradeBuilding action
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to stronghold: %v", err)
+	}
+
+	// Verify stronghold ability is granted
+	if !player.HasStrongholdAbility {
+		t.Error("expected HasStrongholdAbility to be true")
+	}
+
+	// Verify building was upgraded
+	mapHex := gs.Map.GetHex(tradingHouseHex)
+	if mapHex.Building.Type != models.BuildingStronghold {
+		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
+	}
+
+	// TODO: When favor tile system is implemented, verify that Auren has 1 favor tile to select
+}

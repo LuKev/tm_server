@@ -49,9 +49,13 @@ func (f *Mermaids) GetSanctuaryCost() Cost {
 	}
 }
 
-// HasSpecialAbility returns true for town bonus (skip river when founding town)
+// HasSpecialAbility returns true for Mermaids' river-skipping ability
+// Note: This is NOT a town founding bonus like Witches/Swarmlings
+// It allows river hexes to count as connections when forming towns
 func (f *Mermaids) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityTownBonus
+	// Mermaids don't have a predefined special ability constant
+	// Their ability (skip river for town connectivity) is checked via CanSkipRiverForTown()
+	return false
 }
 
 // GetStrongholdAbility returns the description of the stronghold ability

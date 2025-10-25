@@ -431,25 +431,30 @@ Complete implementation of all faction-specific mechanics and special abilities.
 9. **Fakirs** - Carpet flight (1P, +4 VP, range 1+stronghold+shipping tile), cannot upgrade shipping/digging past 1, expensive stronghold ✅
 10. **Dwarves** - Tunneling (2W before stronghold/1W after, +4 VP, range 1), cannot upgrade shipping ✅
 11. **Darklings** - Terraform with priests (1P per spade, +2 VP per spade), priest ordination (convert up to 3 workers to priests, once/game, 7-priest limit), cannot upgrade digging, expensive sanctuary ✅
+12. **Chaos Magicians** - 2 favor tiles, double turn (take 2 actions, once/round), start with 4W/15C, 1 dwelling placed last, cheap stronghold (4C), expensive sanctuary (8C) ✅
+13. **Nomads** - Sandstorm (transform adjacent hex, once/round), start with 3 dwellings, 2W/15C ✅
 
 **⚠️ PARTIALLY IMPLEMENTED:**
-12. **Mermaids** - Water building, town bonuses (needs water hex placement validation)
-13. **Chaos Magicians** - 2 favor tiles, double turn (needs action integration)
-14. **Nomads** - Sandstorm (needs action integration for placement)
+14. **Mermaids** - Water building, town bonuses (needs water hex placement validation)
 
 #### Work Needed:
 
 **High Priority (Core Mechanics):**
-- [ ] Witches Ride action (place dwelling on any forest, once per round after stronghold)
-- [ ] Fakirs carpet flight action (place dwelling ignoring adjacency, pay priest)
-- [ ] Dwarves tunneling in Transform+Build (skip terrain/river by paying workers)
-- [ ] Nomads Sandstorm action (place dwelling on any desert, once per round after stronghold)
-- [ ] Chaos Magicians double turn (take 2 actions instead of 1, once per round after stronghold)
+- [x] Witches Ride action (place dwelling on any forest, once per round after stronghold) ✅
+- [x] Fakirs carpet flight action (place dwelling ignoring adjacency, pay priest) ✅
+- [x] Dwarves tunneling in Transform+Build (skip terrain/river by paying workers) ✅
+- [x] Nomads Sandstorm action (place dwelling on any desert, once per round after stronghold) ✅
+- [x] Chaos Magicians double turn (take 2 actions instead of 1, once per round after stronghold) ✅
+- [x] Auren cult advance action (advance 2 on any cult track, once per round after stronghold) ✅
+- [x] Darklings priest ordination (convert up to 3 workers to priests, once per game after stronghold) ✅
+- [x] Giants 2 free spades transform (once per round after stronghold) ✅
+- [x] Swarmlings free dwelling upgrade (once per round after stronghold) ✅
 
-**Medium Priority (Special Actions):**
-- [ ] Auren cult advance action (advance 1 on any cult track, once per round after stronghold)
-- [ ] Darklings priest ordination (convert worker to priest, once per game after stronghold)
-- [ ] Mermaids water hex validation (can build on water hexes)
+**Remaining Work:**
+- [ ] Mermaids river-skipping for town formation (skip 1 river hex when founding town)
+- [ ] Halflings stronghold: Prompt for applying 3 spades immediately + optional dwelling
+- [ ] Darklings stronghold: Prompt for converting 0-3 workers to priests immediately
+- [ ] Auren stronghold: Prompt for selecting favor tile immediately
 
 **Low Priority (Already Functional):**
 - [x] All passive abilities (cost reductions, VP bonuses, etc.)

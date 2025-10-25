@@ -628,18 +628,18 @@ func TestNomadsSandstorm_RequiresDirectAdjacency(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewNomads()
 	gs.AddPlayer("player1", faction)
-	
+
 	// Build stronghold
 	strongholdHex := NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
-	
+
 	// Target hex NOT adjacent to stronghold
 	targetHex := NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainSwamp)
-	
+
 	// Try to use sandstorm - should fail
 	action := NewNomadsSandstormAction("player1", targetHex, true)
-	
+
 	err := action.Execute(gs)
 	if err == nil {
 		t.Fatal("expected error when target is not directly adjacent")

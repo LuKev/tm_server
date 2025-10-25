@@ -44,10 +44,16 @@ func TestGiants_HasSpadeEfficiencyAbility(t *testing.T) {
 func TestGiants_AlwaysTwoSpades(t *testing.T) {
 	giants := NewGiants()
 
-	// Giants always need exactly 2 spades
-	spades := giants.GetTerraformSpades()
+	// Giants always need exactly 2 spades, regardless of distance
+	spades := giants.GetTerraformSpades(1) // Distance doesn't matter for Giants
 	if spades != 2 {
 		t.Errorf("expected 2 spades, got %d", spades)
+	}
+
+	// Test with different distances - always 2 spades
+	spades = giants.GetTerraformSpades(3)
+	if spades != 2 {
+		t.Errorf("expected 2 spades for distance 3, got %d", spades)
 	}
 }
 

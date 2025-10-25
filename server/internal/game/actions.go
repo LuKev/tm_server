@@ -454,18 +454,73 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	case models.BuildingStronghold:
 		// Grant stronghold special ability
 		player.HasStrongholdAbility = true
-		
-		// Auren gets an immediate favor tile when building stronghold
-		// TODO: Implement favor tile selection prompt/action for Auren
-		if player.Faction.GetType() == models.FactionAuren {
-			// TODO: Award 1 Favor tile immediately
+
+		// Call faction-specific BuildStronghold() methods to grant immediate bonuses
+		switch player.Faction.GetType() {
+		case models.FactionAlchemists:
+			// Alchemists get +12 power immediately when building stronghold
+			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+				powerBonus := alchemists.BuildStronghold()
+				if powerBonus > 0 {
+					player.Resources.Power.Bowl1 += powerBonus
+				}
+			}
+		case models.FactionCultists:
+			// Cultists get +7 VP immediately when building stronghold
+			if cultists, ok := player.Faction.(*factions.Cultists); ok {
+				vpBonus := cultists.BuildStronghold()
+				if vpBonus > 0 {
+					player.VictoryPoints += vpBonus
+				}
+			}
+		case models.FactionAuren:
+			// Auren gets an immediate favor tile when building stronghold
+			if auren, ok := player.Faction.(*factions.Auren); ok {
+				shouldGrantFavorTile := auren.BuildStronghold()
+				if shouldGrantFavorTile {
+					// TODO: Implement favor tile selection prompt/action for Auren
+					// For now, mark that favor tile selection is pending
+				}
+			}
+		case models.FactionMermaids:
+			// Mermaids get +1 shipping level immediately when building stronghold
+			if mermaids, ok := player.Faction.(*factions.Mermaids); ok {
+				shouldGrantShipping := mermaids.BuildStronghold()
+				if shouldGrantShipping {
+					// Increase shipping level by 1
+					currentLevel := mermaids.GetShippingLevel()
+					newLevel := currentLevel + 1
+					if newLevel <= mermaids.GetMaxShippingLevel() {
+						mermaids.SetShippingLevel(newLevel)
+						player.ShippingLevel = newLevel
+					}
+				}
+			}
+		case models.FactionHalflings:
+			// Halflings: Immediately get 3 spades to apply on terrain spaces
+			// May build a dwelling on exactly one of these spaces by paying its costs
+			// This happens IMMEDIATELY when building stronghold (not a separate action)
+			if halflings, ok := player.Faction.(*factions.Halflings); ok {
+				halflings.BuildStronghold()
+				// TODO: Prompt player to select which hexes to apply 3 spades to
+				// TODO: Optionally allow building a dwelling on one of those hexes
+				// This must complete before the stronghold upgrade action finishes
+			}
+		case models.FactionDarklings:
+			// Darklings: Immediately trade up to 3 workers for 1 priest each (one-time only)
+			// This happens IMMEDIATELY when building stronghold (not a separate action)
+			if darklings, ok := player.Faction.(*factions.Darklings); ok {
+				darklings.BuildStronghold()
+				// TODO: Prompt player to choose how many workers (0-3) to convert to priests
+				// TODO: Apply the conversion (deduct workers, add priests)
+				// This must complete before the stronghold upgrade action finishes
+				// Note: Darklings have a 7-priest limit to enforce
+			}
+		default:
+			// All other factions just mark stronghold as built (no immediate bonus)
+			// This includes: Witches, Swarmlings, Chaos Magicians, Giants, Nomads, Engineers, Dwarves, Fakirs
 		}
-		
-		// Darklings: Priest Ordination is a one-time bonus that happens immediately after building stronghold
-		// The actual conversion is handled by the player choosing how many workers to convert (0-3)
-		// This is tracked via the faction's UsePriestOrdination() method
-		// Note: In a full game implementation, this would prompt the player for their choice
-		
+
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
 		break

@@ -62,14 +62,6 @@ func TestMermaids_MaxShippingLevel(t *testing.T) {
 	}
 }
 
-func TestMermaids_HasTownBonusAbility(t *testing.T) {
-	mermaids := NewMermaids()
-
-	if !mermaids.HasSpecialAbility(AbilityTownBonus) {
-		t.Errorf("Mermaids should have town bonus ability")
-	}
-}
-
 func TestMermaids_ExpensiveSanctuary(t *testing.T) {
 	mermaids := NewMermaids()
 
