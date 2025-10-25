@@ -1307,9 +1307,9 @@ func TestFakirs_CarpetFlightBasic(t *testing.T) {
 		PowerValue: 1,
 	})
 	
-	// Target hex is 1 space away (not directly adjacent) - requires carpet flight
-	// Note: (1,0) is directly adjacent to (0,0), so use (1,-1) which is distance 1 but not a neighbor
-	targetHex := NewHex(1, -1)
+	// Target hex is distance 2 away (not directly adjacent) - requires carpet flight
+	// Fakirs with range 1 can reach distance 2 (skip over 1 hex)
+	targetHex := NewHex(2, 0)
 	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player resources
@@ -1496,8 +1496,11 @@ func TestDwarves_TunnelingBasic(t *testing.T) {
 	}
 	
 	// Verify extra workers were spent (2 for tunneling before stronghold)
-	// Cost: 2 tunneling + 3 spades + 1 dwelling = 6 workers
-	expectedWorkerCost := 2 + 3 + 1 // tunneling + terraform + dwelling
+	// Mountain to Plains = 3 spades * 3 workers/spade = 9 workers
+	// Plus tunneling = 2 workers
+	// Plus dwelling = 1 worker
+	// Total = 12 workers
+	expectedWorkerCost := 2 + 9 + 1 // tunneling + terraform + dwelling
 	actualWorkerCost := initialWorkers - player.Resources.Workers
 	if actualWorkerCost != expectedWorkerCost {
 		t.Errorf("expected %d workers spent, got %d", expectedWorkerCost, actualWorkerCost)
@@ -1562,8 +1565,10 @@ func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
 	}
 	
 	// Verify only 1 extra worker was spent for tunneling (+ terraform)
-	// Cost: 1 tunneling + 3 spades = 4 workers
-	expectedWorkerCost := 1 + 3 // tunneling + terraform
+	// Mountain to Plains = 3 spades * 3 workers/spade = 9 workers
+	// Plus tunneling with stronghold = 1 worker
+	// Total = 10 workers
+	expectedWorkerCost := 1 + 9 // tunneling + terraform
 	actualWorkerCost := initialWorkers - player.Resources.Workers
 	if actualWorkerCost != expectedWorkerCost {
 		t.Errorf("expected %d workers spent with stronghold, got %d", expectedWorkerCost, actualWorkerCost)
@@ -1604,14 +1609,15 @@ func TestDwarves_TunnelingWithPowerAction(t *testing.T) {
 		t.Fatalf("spade power action with tunneling should work, got error: %v", err)
 	}
 	
-	// Verify 2 workers were spent for tunneling + remaining spades
+	// Verify workers spent for tunneling + remaining spades
 	// Terrain distance from Mountain to Plains = 3 spades
-	// Power action gives 1 free spade, so need to pay for 2 more = 2 workers
+	// Power action gives 1 free spade, so need to pay for 2 remaining spades
+	// 2 spades * 3 workers/spade = 6 workers
 	// Plus tunneling cost = 2 workers
-	// Total = 4 workers
+	// Total = 8 workers
 	workersSpent := initialWorkers - player.Resources.Workers
-	if workersSpent != 4 {
-		t.Errorf("expected 4 workers spent (2 tunneling + 2 for remaining spades), got %d", workersSpent)
+	if workersSpent != 8 {
+		t.Errorf("expected 8 workers spent (2 tunneling + 6 for 2 remaining spades), got %d", workersSpent)
 	}
 	
 	// Verify VP bonus was awarded (+4 VP)

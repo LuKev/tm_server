@@ -156,6 +156,13 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		// GetTerraformCost returns total workers needed (already accounts for distance)
 		totalWorkersNeeded = player.Faction.GetTerraformCost(distance)
 	}
+	
+	// Add tunneling cost to total if using skip (Dwarves)
+	if a.UseSkip {
+		if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			totalWorkersNeeded += dwarves.GetTunnelingCost()
+		}
+	}
 
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
