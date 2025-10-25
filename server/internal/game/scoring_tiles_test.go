@@ -282,7 +282,7 @@ func TestScoringTile_PriestTracking(t *testing.T) {
 			PlayerID: "player1",
 		},
 		Track:         CultFire,
-		UsePriestSlot: false,
+		SpacesToClimb: 1,
 	}
 	action1.Execute(gs)
 	
@@ -292,7 +292,7 @@ func TestScoringTile_PriestTracking(t *testing.T) {
 			PlayerID: "player1",
 		},
 		Track:         CultWater,
-		UsePriestSlot: false,
+		SpacesToClimb: 1,
 	}
 	action2.Execute(gs)
 	

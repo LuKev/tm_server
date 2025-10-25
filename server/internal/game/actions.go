@@ -461,12 +461,17 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			// TODO: Award 1 Favor tile immediately
 		}
 		
+		// Darklings: Priest Ordination is a one-time bonus that happens immediately after building stronghold
+		// The actual conversion is handled by the player choosing how many workers to convert (0-3)
+		// This is tracked via the faction's UsePriestOrdination() method
+		// Note: In a full game implementation, this would prompt the player for their choice
+		
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
 		break
 	}
 
-	// Trigger power leech when upgrading (adjacent players leech based on their adjacent buildings)
+	// Trigger power leech when upgrading (adjacent players leech based by their adjacent buildings)
 	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
 	
 	// Check for town formation after upgrading
@@ -786,8 +791,7 @@ func (a *PassAction) Execute(gs *GameState) error {
 type SendPriestToCultAction struct {
 	BaseAction
 	Track         CultTrack
-	UsePriestSlot bool // If true, priest is placed on board (2 or 3 spaces). If false, returns to supply (1 space)
-	SlotValue     int  // 2 or 3, only used if UsePriestSlot is true
+	SpacesToClimb int // Number of spaces to advance (1-3), always costs 1 priest
 }
 
 func (a *SendPriestToCultAction) GetType() ActionType {
@@ -805,19 +809,14 @@ func (a *SendPriestToCultAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player has already passed")
 	}
 
-	// Check if player has a priest available
+	// Check if player has a priest
 	if player.Resources.Priests < 1 {
-		return fmt.Errorf("no priests available")
+		return fmt.Errorf("not enough priests: need 1, have %d", player.Resources.Priests)
 	}
 
-	// Validate slot value if using priest slot
-	if a.UsePriestSlot {
-		if a.SlotValue != 2 && a.SlotValue != 3 {
-			return fmt.Errorf("invalid priest slot value: %d (must be 2 or 3)", a.SlotValue)
-		}
-		
-		// TODO: Check if the specific priest slot is available (not already occupied)
-		// For now, we'll allow it - this can be tracked in CultTrackState if needed
+	// Validate spaces to climb
+	if a.SpacesToClimb < 1 || a.SpacesToClimb > 3 {
+		return fmt.Errorf("invalid spaces to climb: %d (must be 1-3)", a.SpacesToClimb)
 	}
 
 	return nil
@@ -830,19 +829,13 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 
-	// Determine how many spaces to advance
-	spacesToAdvance := 1 // Default: return priest to supply
-	if a.UsePriestSlot {
-		spacesToAdvance = a.SlotValue // 2 or 3 spaces
-	}
-
-	// Remove priest from player's supply
-	player.Resources.Priests--
+	// Remove 1 priest from player's supply (cost is always 1 priest, regardless of spaces)
+	player.Resources.Priests -= 1
 
 	// Advance on cult track (with bonus power at milestones)
 	// Note: It's valid to sacrifice a priest even if you can't advance (no refund)
 	// Position 10 requires a key (checked in AdvancePlayer)
-	gs.CultTracks.AdvancePlayer(a.PlayerID, a.Track, spacesToAdvance, player)
+	gs.CultTracks.AdvancePlayer(a.PlayerID, a.Track, a.SpacesToClimb, player)
 
 	// Record priest sent for scoring tile #5 (Trading House + Priest)
 	if gs.ScoringTiles != nil {

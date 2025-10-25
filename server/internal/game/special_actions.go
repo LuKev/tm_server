@@ -83,8 +83,7 @@ const (
 	SpecialActionChaosMagiciansDoubleTurn
 	SpecialActionGiantsTransform
 	SpecialActionNomadsSandstorm
-	SpecialActionDarklingsPriestOrdination // Darklings: Convert up to 3 workers to priests (1:1), once per game after stronghold
-	SpecialActionWater2CultAdvance         // Water+2 favor tile: Advance 1 on any cult track
+	SpecialActionWater2CultAdvance // Water+2 favor tile: Advance 1 on any cult track
 	SpecialActionBonusCardSpade            // Bonus card: 1 free spade
 	SpecialActionBonusCardCultAdvance      // Bonus card: Advance 1 on any cult track
 	// TODO: Add other faction special actions
@@ -214,7 +213,6 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionChaosMagiciansDoubleTurn,
 		SpecialActionGiantsTransform,
 		SpecialActionNomadsSandstorm,
-		SpecialActionDarklingsPriestOrdination,
 	}
 	
 	isStrongholdAction := false
@@ -242,8 +240,6 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateGiantsTransform(gs, player)
 	case SpecialActionNomadsSandstorm:
 		return a.validateNomadsSandstorm(gs, player)
-	case SpecialActionDarklingsPriestOrdination:
-		return a.validateDarklingsPriestOrdination(gs, player)
 	case SpecialActionWater2CultAdvance:
 		return a.validateWater2CultAdvance(gs, player)
 	case SpecialActionBonusCardSpade:
@@ -447,46 +443,6 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 	return nil
 }
 
-func (a *SpecialAction) validateDarklingsPriestOrdination(gs *GameState, player *Player) error {
-	// Verify player is Darklings
-	if player.Faction.GetType() != models.FactionDarklings {
-		return fmt.Errorf("only Darklings can use priest ordination special action")
-	}
-	
-	darklings, ok := player.Faction.(*factions.Darklings)
-	if !ok {
-		return fmt.Errorf("faction is not Darklings")
-	}
-	
-	// Check if ordination can be used
-	if !darklings.CanUsePriestOrdination() {
-		return fmt.Errorf("priest ordination already used or stronghold not built")
-	}
-	
-	// Validate amount (1-3 workers)
-	if a.Amount < 1 || a.Amount > 3 {
-		return fmt.Errorf("can only convert 1-3 workers to priests, got %d", a.Amount)
-	}
-	
-	// Check if player has enough workers
-	if player.Resources.Workers < a.Amount {
-		return fmt.Errorf("not enough workers: need %d, have %d", a.Amount, player.Resources.Workers)
-	}
-	
-	// Check the 7-priest limit (priests in hand + on cult tracks <= 7)
-	priestsInHand := player.Resources.Priests
-	priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(a.PlayerID)
-	totalPriests := priestsInHand + priestsOnCult
-	maxNewPriests := 7 - totalPriests
-	
-	if maxNewPriests < a.Amount {
-		return fmt.Errorf("cannot convert %d workers: would exceed 7-priest limit (currently have %d in hand + %d on cult tracks = %d total, max additional: %d)", 
-			a.Amount, priestsInHand, priestsOnCult, totalPriests, maxNewPriests)
-	}
-	
-	return nil
-}
-
 func (a *SpecialAction) validateWater2CultAdvance(gs *GameState, player *Player) error {
 	// Check if player has Water+2 favor tile
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
@@ -594,8 +550,6 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		return a.executeGiantsTransform(gs, player)
 	case SpecialActionNomadsSandstorm:
 		return a.executeNomadsSandstorm(gs, player)
-	case SpecialActionDarklingsPriestOrdination:
-		return a.executeDarklingsPriestOrdination(gs, player)
 	case SpecialActionWater2CultAdvance:
 		return a.executeWater2CultAdvance(gs, player)
 	case SpecialActionBonusCardSpade:
@@ -787,31 +741,6 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
 	}
 
-	return nil
-}
-
-func (a *SpecialAction) executeDarklingsPriestOrdination(gs *GameState, player *Player) error {
-	darklings, ok := player.Faction.(*factions.Darklings)
-	if !ok {
-		return fmt.Errorf("faction is not Darklings")
-	}
-	
-	// Convert workers to priests (1:1)
-	workersToConvert := a.Amount
-	
-	// Use the faction's UsePriestOrdination method to mark it as used
-	priestsGained, err := darklings.UsePriestOrdination(workersToConvert)
-	if err != nil {
-		return fmt.Errorf("failed to use priest ordination: %w", err)
-	}
-	
-	// Pay workers
-	player.Resources.Workers -= workersToConvert
-	
-	// Gain priests (with 7-priest limit enforcement)
-	// Note: Validation already checked the limit, so this should always succeed
-	gs.GainPriests(a.PlayerID, priestsGained)
-	
 	return nil
 }
 

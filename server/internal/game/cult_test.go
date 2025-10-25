@@ -377,15 +377,14 @@ func TestSendPriestToCult_Basic(t *testing.T) {
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
-	// Send priest to Fire track (use slot value 3)
+	// Send priest to Fire track (advance 3 spaces, costs 1 priest)
 	action := &SendPriestToCultAction{
 		BaseAction: BaseAction{
 			Type:     ActionSendPriestToCult,
 			PlayerID: "player1",
 		},
 		Track:         CultFire,
-		UsePriestSlot: true,
-		SlotValue:     3,
+		SpacesToClimb: 3,
 	}
 
 	err := action.Execute(gs)
@@ -393,9 +392,9 @@ func TestSendPriestToCult_Basic(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify priest was consumed
+	// Verify priest was consumed (1 priest for 3 spaces)
 	if player.Resources.Priests != 2 {
-		t.Errorf("expected 2 priests remaining, got %d", player.Resources.Priests)
+		t.Errorf("expected 2 priests remaining (3 - 1), got %d", player.Resources.Priests)
 	}
 
 	// Verify position advanced by 3
@@ -421,15 +420,14 @@ func TestSendPriestToCult_ReturnToSupply(t *testing.T) {
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
-	// Send priest to Water track (return to supply, only 1 space)
+	// Send priest to Water track (advance 1 space, costs 1 priest)
 	action := &SendPriestToCultAction{
 		BaseAction: BaseAction{
 			Type:     ActionSendPriestToCult,
 			PlayerID: "player1",
 		},
 		Track:         CultWater,
-		UsePriestSlot: false, // Return to supply
-		SlotValue:     0,
+		SpacesToClimb: 1,
 	}
 
 	err := action.Execute(gs)
@@ -468,8 +466,7 @@ func TestSendPriestToCult_NoPriest(t *testing.T) {
 			PlayerID: "player1",
 		},
 		Track:         CultFire,
-		UsePriestSlot: true,
-		SlotValue:     3,
+		SpacesToClimb: 3,
 	}
 
 	err := action.Execute(gs)
@@ -501,8 +498,7 @@ func TestSendPriestToCult_AlreadyAtMax(t *testing.T) {
 			PlayerID: "player1",
 		},
 		Track:         CultEarth,
-		UsePriestSlot: true,
-		SlotValue:     3,
+		SpacesToClimb: 3,
 	}
 
 	err := action.Execute(gs)
