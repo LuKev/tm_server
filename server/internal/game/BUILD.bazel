@@ -46,7 +46,8 @@ go_test(
         # - Cultists: Power leech bonuses (4 tests)
         # - Giants: Transform special action (3 tests)
         # - Engineers: VP per bridge on pass, bridge+town formation (4 tests)
-        # Total: 29 faction integration tests
+        # - Witches: Town founding bonus, Witches' Ride (3 tests)
+        # Total: 32 faction integration tests
         "faction_integration_test.go",
         # Action tests
         "action_scoring_test.go",

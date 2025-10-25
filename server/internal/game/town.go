@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -298,13 +299,22 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 		return
 	}
 	
-	switch player.Faction.GetType() {
-	case models.FactionWitches:
-		// Witches get +5 VP per town formed
-		player.VictoryPoints += 5
-		
-	case models.FactionSwarmlings:
-		// Swarmlings get +3 workers per town formed
+	// Check if faction has the town bonus ability
+	if player.Faction.HasSpecialAbility(factions.AbilityTownBonus) {
+		switch player.Faction.GetType() {
+		case models.FactionWitches:
+			// Witches get +5 VP per town formed
+			if witches, ok := player.Faction.(*factions.Witches); ok {
+				player.VictoryPoints += witches.GetTownFoundingBonus()
+			}
+		case models.FactionMermaids:
+			// Mermaids get +3 power per town formed
+			player.Resources.Power.GainPower(3)
+		}
+	}
+	
+	// Swarmlings get +3 workers per town formed (not part of AbilityTownBonus, separate mechanic)
+	if player.Faction.GetType() == models.FactionSwarmlings {
 		player.Resources.Workers += 3
 	}
 }

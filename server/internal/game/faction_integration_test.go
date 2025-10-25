@@ -1162,6 +1162,131 @@ func TestEngineers_BridgePowerAction(t *testing.T) {
 	}
 }
 
+// ============================================================================
+// WITCHES TESTS
+// ============================================================================
+
+func TestWitches_TownFoundingBonus(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewWitches()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Set up 4 connected buildings with total power >= 7
+	hexes := []Hex{
+		NewHex(0, 0),
+		NewHex(1, 0),
+		NewHex(2, 0),
+		NewHex(3, 0),
+	}
+	
+	// Place buildings: 1 Dwelling + 3 Trading Houses = 1 + 2 + 2 + 2 = 7 power
+	for i, hex := range hexes {
+		gs.Map.Hexes[hex] = &MapHex{Coord: hex, Terrain: faction.GetHomeTerrain()}
+		buildingType := models.BuildingDwelling
+		powerValue := 1
+		if i > 0 {
+			buildingType = models.BuildingTradingHouse
+			powerValue = 2
+		}
+		gs.Map.PlaceBuilding(hex, &models.Building{
+			Type:       buildingType,
+			Faction:    faction.GetType(),
+			PlayerID:   "player1",
+			PowerValue: powerValue,
+		})
+	}
+	
+	// Record initial VP
+	initialVP := player.VictoryPoints
+	
+	// Form town
+	err := gs.FormTown("player1", hexes, TownTile5Points)
+	if err != nil {
+		t.Fatalf("failed to form town: %v", err)
+	}
+	
+	// Verify Witches got their +5 VP bonus
+	// Town tile gives +5 VP, Witches bonus gives +5 VP = +10 VP total
+	expectedVPGain := 5 + 5 // tile VP + Witches bonus
+	actualVPGain := player.VictoryPoints - initialVP
+	if actualVPGain != expectedVPGain {
+		t.Errorf("expected +%d VP (5 tile + 5 Witches bonus), got +%d", expectedVPGain, actualVPGain)
+	}
+}
+
+func TestWitches_RideIgnoresAdjacency(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewWitches()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold (required for Witches' Ride)
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Place a building for the player
+	startHex := NewHex(0, 0)
+	gs.Map.Hexes[startHex] = &MapHex{Coord: startHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(startHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is far away (not adjacent) but is Forest
+	targetHex := NewHex(10, 10)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainForest}
+	
+	// Use Witches' Ride to place dwelling far away (ignoring adjacency)
+	action := NewWitchesRideAction("player1", targetHex)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("Witches' Ride should ignore adjacency, got error: %v", err)
+	}
+	
+	// Verify dwelling was placed
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Building == nil {
+		t.Error("expected building at target hex")
+	}
+	if mapHex.Building.Type != models.BuildingDwelling {
+		t.Errorf("expected dwelling, got %v", mapHex.Building.Type)
+	}
+	if mapHex.Building.PlayerID != "player1" {
+		t.Errorf("expected player1's building, got player %s", mapHex.Building.PlayerID)
+	}
+}
+
+func TestWitches_RideOnlyOnForest(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewWitches()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold
+	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
+	
+	// Target hex is NOT forest
+	targetHex := NewHex(5, 5)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Witches' Ride should fail on non-forest
+	action := NewWitchesRideAction("player1", targetHex)
+	err := action.Execute(gs)
+	if err == nil {
+		t.Error("Witches' Ride should only work on Forest spaces")
+	}
+	
+	// Verify no building was placed
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Building != nil {
+		t.Error("no building should have been placed on non-forest")
+	}
+}
+
 func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewEngineers()

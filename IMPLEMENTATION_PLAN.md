@@ -426,10 +426,10 @@ Complete implementation of all faction-specific mechanics and special abilities.
 4. **Cultists** - +7 VP on stronghold, +1 power if all refuse leech ✅
 5. **Giants** - 2 spades/terraform always, stronghold: 2 free spades/round (awards scoring tile VP) ✅
 6. **Engineers** - Reduced building costs, bridge cost 2W, stronghold: 3VP/bridge on pass ✅
+7. **Witches** - +5 VP per town, stronghold: Witches' Ride (free dwelling on any forest, once/round, ignores adjacency) ✅
+8. **Auren** - Expensive sanctuary (8C/4W), stronghold: 1 favor tile on build + cult advance special action (2 spaces, once/round) ✅
 
 **⚠️ PARTIALLY IMPLEMENTED:**
-7. **Witches** - Flying implemented, +5 VP per town, Witches Ride (needs action integration)
-8. **Auren** - Cult advance implemented (needs action integration)
 9. **Fakirs** - Carpet flight implemented (needs action integration for placement)
 10. **Dwarves** - Tunneling cost/VP, area scoring (needs action integration for transform+build)
 11. **Mermaids** - Water building, town bonuses (needs water hex placement validation)

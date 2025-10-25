@@ -31,7 +31,7 @@ Standard costs are defined in `faction.go`:
 - **Sanctuary**: 8 coins, 4 workers
 - **Stronghold**: 6 coins, 4 workers
 
-Factions like Swarmlings have reduced dwelling costs.
+Individual factions may have different building costs.
 
 ### Terraform Costs
 Base: 3 workers per spade, reduced by digging level.
@@ -48,28 +48,28 @@ Darklings use priests instead of workers for digging.
 2. **Fakirs** - Carpet flying (place dwelling on any desert hex, ignoring adjacency)
 
 ### Red (Wasteland)
-3. **Chaos Magicians** - Transform favor tiles for different benefits
+3. **Chaos Magicians** - Start with a single dwelling. Temples and Sanctuaries give two favor tiles instead of one.
 4. **Giants** - Reduced terraform costs (2 workers per spade base)
 
 ### Blue (Lake)
-5. **Swarmlings** - Cheap dwellings (no worker cost)
-6. **Mermaids** - Can build on water hexes, town formation bonuses
+5. **Swarmlings** - More expensive buildings, but stronghold gives free TH upgrade. Towns give 3 workers on formation.
+6. **Mermaids** - Increased shipping. Towns can cross water hexes.
 
 ### Green (Forest)
-7. **Witches** - Flying (can place buildings ignoring adjacency)
-8. **Auren** - Enhanced favor tile benefits
+7. **Witches** - Flying (can place buildings ignoring adjacency). Towns provide 5 additional VP.
+8. **Auren** - Stronghold provides cult steps.
 
 ### Brown (Plains)
-9. **Halflings** - Spade efficiency (can use spades more effectively)
-10. **Cultists** - Cult track bonuses
+9. **Halflings** - Spade efficiency and +1 VP per spade.
+10. **Cultists** - Go up on the cults when opponents accept leech.
 
 ### Black (Swamp)
-11. **Alchemists** - Conversion efficiency (better resource conversion)
-12. **Darklings** - Priest benefits (extra benefits from priests)
+11. **Alchemists** - Can arbitrarily trade VP for coins.
+12. **Darklings** - Dig with priests instead of workers.
 
 ### Gray (Mountain)
-13. **Engineers** - Bridge building (reduced bridge costs)
-14. **Dwarves** - Tunnel digging (can treat certain hexes as adjacent)
+13. **Engineers** - Cheaper building costs
+14. **Dwarves** - Tunneling ability (can treat certain hexes as adjacent)
 
 ## Implementation Template
 
