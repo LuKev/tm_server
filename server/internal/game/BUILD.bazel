@@ -39,10 +39,12 @@ load("@io_bazel_rules_go//go:def.bzl", "go_test")
 go_test(
     name = "game_test",
     srcs = [
+        "alchemists_test.go",
         "action_scoring_test.go",
         "action_transform_build_test.go",
         "action_upgrade_building_test.go",
         "auction_test.go",
+        "cultists_integration_test.go",
         "bonus_card_income_test.go",
         "bonus_card_scoring_test.go",
         "bonus_card_special_actions_test.go",
