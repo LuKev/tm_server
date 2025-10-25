@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -65,6 +66,7 @@ type PowerAction struct {
 	// For spade actions, these fields specify the transform details
 	TargetHex      *Hex // Optional: for spade actions
 	BuildDwelling  bool // Optional: for spade actions
+	UseSkip        bool // Optional: for spade actions (Fakirs/Dwarves skip)
 	// For bridge action, these fields specify the bridge endpoints
 	BridgeHex1 *Hex // Optional: for bridge action
 	BridgeHex2 *Hex // Optional: for bridge action
@@ -139,9 +141,38 @@ func (a *PowerAction) Validate(gs *GameState) error {
 			return fmt.Errorf("hex already has a building")
 		}
 		
-		// Check adjacency to player's buildings
-		if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
-			return fmt.Errorf("hex is not adjacent to player's buildings")
+		// Check adjacency (or skip range for Fakirs/Dwarves)
+		if a.UseSkip {
+			// Validate skip ability usage (same as TransformAndBuildAction)
+			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+				if !fakirs.CanCarpetFlight() {
+					return fmt.Errorf("Fakirs cannot use carpet flight")
+				}
+				skipRange := fakirs.GetCarpetFlightRange()
+				if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, skipRange) {
+					return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
+				}
+				if player.Resources.Priests < 1 {
+					return fmt.Errorf("not enough priests for carpet flight")
+				}
+			} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+				if !dwarves.CanTunnel() {
+					return fmt.Errorf("Dwarves cannot tunnel")
+				}
+				if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, 1) {
+					return fmt.Errorf("target hex is not within tunneling range 1")
+				}
+				workerCost := dwarves.GetTunnelingCost()
+				if player.Resources.Workers < workerCost {
+					return fmt.Errorf("not enough workers for tunneling")
+				}
+			} else {
+				return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
+			}
+		} else {
+			if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
+				return fmt.Errorf("hex is not adjacent to player's buildings")
+			}
 		}
 	}
 
@@ -253,6 +284,22 @@ func (a *PowerAction) Execute(gs *GameState) error {
 // executeTransformWithFreeSpades handles the transform part of spade power actions
 func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Player, freeSpades int) error {
 	mapHex := gs.Map.GetHex(*a.TargetHex)
+	
+	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
+	if a.UseSkip {
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			// Pay priest for carpet flight
+			player.Resources.Priests -= 1
+			// Award VP bonus
+			player.VictoryPoints += fakirs.GetCarpetFlightVPBonus()
+		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			// Pay workers for tunneling
+			workerCost := dwarves.GetTunnelingCost()
+			player.Resources.Workers -= workerCost
+			// Award VP bonus
+			player.VictoryPoints += dwarves.GetTunnelingVPBonus()
+		}
+	}
 	
 	// Calculate spades needed
 	currentTerrain := mapHex.Terrain

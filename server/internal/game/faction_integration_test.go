@@ -1287,6 +1287,352 @@ func TestWitches_RideOnlyOnForest(t *testing.T) {
 	}
 }
 
+// ============================================================================
+// FAKIRS TESTS
+// ============================================================================
+
+func TestFakirs_CarpetFlightBasic(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewFakirs()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Place initial dwelling at (0,0)
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is 1 space away (not directly adjacent) - requires carpet flight
+	// Note: (1,0) is directly adjacent to (0,0), so use (1,-1) which is distance 1 but not a neighbor
+	targetHex := NewHex(1, -1)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Give player resources
+	player.Resources.Workers = 10
+	player.Resources.Priests = 5
+	initialVP := player.VictoryPoints
+	
+	// Try normal build action without skip - should fail (not adjacent)
+	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true)
+	err := actionNoSkip.Execute(gs)
+	if err == nil {
+		t.Fatal("expected error for non-adjacent hex without skip")
+	}
+	
+	// Use carpet flight (skip)
+	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true)
+	err = actionWithSkip.Execute(gs)
+	if err != nil {
+		t.Fatalf("carpet flight should work, got error: %v", err)
+	}
+	
+	// Verify priest was spent
+	if player.Resources.Priests != 4 {
+		t.Errorf("expected 4 priests remaining, got %d", player.Resources.Priests)
+	}
+	
+	// Verify VP bonus was awarded (+4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for carpet flight, got +%d", vpGained)
+	}
+	
+	// Verify dwelling was built
+	if gs.Map.GetHex(targetHex).Building == nil {
+		t.Error("expected dwelling to be built")
+	}
+}
+
+func TestFakirs_CarpetFlightAfterStronghold(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewFakirs()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold (increases range to 2)
+	faction.BuildStronghold()
+	
+	// Place initial dwelling
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is 2 spaces away - only possible with stronghold
+	targetHex := NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Give player resources
+	player.Resources.Workers = 10
+	player.Resources.Priests = 2
+	
+	// Verify range is 2 after stronghold
+	if faction.GetCarpetFlightRange() != 2 {
+		t.Errorf("expected carpet flight range 2 after stronghold, got %d", faction.GetCarpetFlightRange())
+	}
+	
+	// Use carpet flight
+	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("carpet flight with stronghold should work, got error: %v", err)
+	}
+	
+	// Verify priest was spent
+	if player.Resources.Priests != 1 {
+		t.Errorf("expected 1 priest remaining, got %d", player.Resources.Priests)
+	}
+}
+
+func TestFakirs_CarpetFlightWithPowerAction(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewFakirs()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Place initial dwelling
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is 1 space away
+	targetHex := NewHex(1, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Give player power and priests
+	player.Resources.Power.Bowl3 = 5
+	player.Resources.Priests = 2
+	player.Resources.Workers = 10
+	initialVP := player.VictoryPoints
+	
+	// Use spade power action with carpet flight
+	action := NewPowerActionWithTransform("player1", PowerActionSpade1, targetHex, false)
+	action.UseSkip = true
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("spade power action with carpet flight should work, got error: %v", err)
+	}
+	
+	// Verify priest was spent for carpet flight
+	if player.Resources.Priests != 1 {
+		t.Errorf("expected 1 priest remaining, got %d", player.Resources.Priests)
+	}
+	
+	// Verify VP bonus was awarded (+4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for carpet flight, got +%d", vpGained)
+	}
+}
+
+func TestFakirs_CannotUpgradeShipping(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewFakirs()
+	gs.AddPlayer("player1", faction)
+	
+	// Fakirs cannot upgrade shipping - cost should be 0
+	cost := faction.GetShippingCost(0)
+	if cost.Priests != 0 || cost.Coins != 0 {
+		t.Error("Fakirs should have 0 cost for shipping (indicating impossible)")
+	}
+}
+
+// ============================================================================
+// DWARVES TESTS
+// ============================================================================
+
+func TestDwarves_TunnelingBasic(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Place initial dwelling at (0,0)
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is distance 2 away (not adjacent) - use (2,0)
+	// (1,0) is directly adjacent to (0,0), so it won't work for testing tunneling
+	targetHex := NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Give player resources (2 extra workers for tunneling + terraform + dwelling)
+	player.Resources.Workers = 15
+	initialVP := player.VictoryPoints
+	initialWorkers := player.Resources.Workers
+	
+	// Try normal build action without skip - should fail (not adjacent)
+	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true)
+	err := actionNoSkip.Execute(gs)
+	if err == nil {
+		t.Fatal("expected error for non-adjacent hex without skip")
+	}
+	
+	// Use tunneling (skip)
+	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true)
+	err = actionWithSkip.Execute(gs)
+	if err != nil {
+		t.Fatalf("tunneling should work, got error: %v", err)
+	}
+	
+	// Verify extra workers were spent (2 for tunneling before stronghold)
+	// Cost: 2 tunneling + 3 spades + 1 dwelling = 6 workers
+	expectedWorkerCost := 2 + 3 + 1 // tunneling + terraform + dwelling
+	actualWorkerCost := initialWorkers - player.Resources.Workers
+	if actualWorkerCost != expectedWorkerCost {
+		t.Errorf("expected %d workers spent, got %d", expectedWorkerCost, actualWorkerCost)
+	}
+	
+	// Verify VP bonus was awarded (+4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for tunneling, got +%d", vpGained)
+	}
+	
+	// Verify dwelling was built
+	if gs.Map.GetHex(targetHex).Building == nil {
+		t.Error("expected dwelling to be built")
+	}
+}
+
+func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Build stronghold (reduces tunneling cost to 1 worker)
+	faction.BuildStronghold()
+	
+	// Place initial dwelling
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is distance 2 away
+	targetHex := NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Give player resources
+	player.Resources.Workers = 15
+	initialWorkers := player.Resources.Workers
+	initialVP := player.VictoryPoints
+	
+	// Verify tunneling cost is 1 after stronghold
+	if faction.GetTunnelingCost() != 1 {
+		t.Errorf("expected tunneling cost 1 after stronghold, got %d", faction.GetTunnelingCost())
+	}
+	
+	// Use tunneling with stronghold
+	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("tunneling with stronghold should work, got error: %v", err)
+	}
+	
+	// Verify VP bonus was awarded
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for tunneling, got +%d", vpGained)
+	}
+	
+	// Verify only 1 extra worker was spent for tunneling (+ terraform)
+	// Cost: 1 tunneling + 3 spades = 4 workers
+	expectedWorkerCost := 1 + 3 // tunneling + terraform
+	actualWorkerCost := initialWorkers - player.Resources.Workers
+	if actualWorkerCost != expectedWorkerCost {
+		t.Errorf("expected %d workers spent with stronghold, got %d", expectedWorkerCost, actualWorkerCost)
+	}
+}
+
+func TestDwarves_TunnelingWithPowerAction(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+	
+	// Place initial dwelling
+	initialHex := NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Target hex is distance 2 away
+	targetHex := NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	
+	// Give player power and workers
+	player.Resources.Power.Bowl3 = 5
+	player.Resources.Workers = 10
+	initialVP := player.VictoryPoints
+	initialWorkers := player.Resources.Workers
+	
+	// Use spade power action with tunneling (1 free spade + pay for remaining)
+	action := NewPowerActionWithTransform("player1", PowerActionSpade1, targetHex, false)
+	action.UseSkip = true
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("spade power action with tunneling should work, got error: %v", err)
+	}
+	
+	// Verify 2 workers were spent for tunneling + remaining spades
+	// Terrain distance from Mountain to Plains = 3 spades
+	// Power action gives 1 free spade, so need to pay for 2 more = 2 workers
+	// Plus tunneling cost = 2 workers
+	// Total = 4 workers
+	workersSpent := initialWorkers - player.Resources.Workers
+	if workersSpent != 4 {
+		t.Errorf("expected 4 workers spent (2 tunneling + 2 for remaining spades), got %d", workersSpent)
+	}
+	
+	// Verify VP bonus was awarded (+4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for tunneling, got +%d", vpGained)
+	}
+}
+
+func TestDwarves_CannotUpgradeShipping(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	
+	// Dwarves cannot upgrade shipping - cost should be 0
+	cost := faction.GetShippingCost(0)
+	if cost.Priests != 0 || cost.Coins != 0 {
+		t.Error("Dwarves should have 0 cost for shipping (indicating impossible)")
+	}
+}
+
 func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewEngineers()

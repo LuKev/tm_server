@@ -428,10 +428,10 @@ Complete implementation of all faction-specific mechanics and special abilities.
 6. **Engineers** - Reduced building costs, bridge cost 2W, stronghold: 3VP/bridge on pass ✅
 7. **Witches** - +5 VP per town, stronghold: Witches' Ride (free dwelling on any forest, once/round, ignores adjacency) ✅
 8. **Auren** - Expensive sanctuary (8C/4W), stronghold: 1 favor tile on build + cult advance special action (2 spaces, once/round) ✅
+9. **Fakirs** - Carpet flight (1P, +4 VP, range 1+stronghold+shipping tile), cannot upgrade shipping/digging past 1, expensive stronghold ✅
+10. **Dwarves** - Tunneling (2W before stronghold/1W after, +4 VP, range 1), cannot upgrade shipping ✅
 
 **⚠️ PARTIALLY IMPLEMENTED:**
-9. **Fakirs** - Carpet flight implemented (needs action integration for placement)
-10. **Dwarves** - Tunneling cost/VP, area scoring (needs action integration for transform+build)
 11. **Mermaids** - Water building, town bonuses (needs water hex placement validation)
 12. **Darklings** - Priest ordination (needs action integration)
 13. **Chaos Magicians** - 2 favor tiles, double turn (needs action integration)

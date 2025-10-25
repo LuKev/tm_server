@@ -47,7 +47,9 @@ go_test(
         # - Giants: Transform special action (3 tests)
         # - Engineers: VP per bridge on pass, bridge+town formation (4 tests)
         # - Witches: Town founding bonus, Witches' Ride (3 tests)
-        # Total: 32 faction integration tests
+        # - Fakirs: Carpet flight (basic, after stronghold, power action, no shipping) (4 tests)
+        # - Dwarves: Tunneling (basic, after stronghold, power action, no shipping) (4 tests)
+        # Total: 40 faction integration tests
         "faction_integration_test.go",
         # Action tests
         "action_scoring_test.go",

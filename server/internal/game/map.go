@@ -115,6 +115,25 @@ func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
 	return nil
 }
 
+// IsWithinSkipRange checks if a target hex is reachable with skip ability (Fakirs/Dwarves)
+// Skip allows reaching a hex by skipping OVER skipRange hexes
+// For example, with skipRange=1, you can reach distance 2 (skip 1 hex to get there)
+// With skipRange=2, you can reach distance 3 (skip 2 hexes to get there)
+func (m *TerraMysticaMap) IsWithinSkipRange(target Hex, playerID string, skipRange int) bool {
+	// Find all hexes with player's buildings
+	for hex, mapHex := range m.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			// Check if target is within skip range of this building
+			// Distance should be skip range + 1 (you skip OVER that many hexes)
+			distance := hex.Distance(target)
+			if distance <= skipRange+1 {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // IsDirectlyAdjacent checks if two hexes are directly adjacent according to Terra Mystica rules:
 // 1. They share a hex edge (distance = 1), OR
 // 2. They are separated by a river but connected via a bridge

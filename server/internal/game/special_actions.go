@@ -95,9 +95,10 @@ type SpecialAction struct {
 	ActionType SpecialActionType
 	// For Auren cult advance
 	CultTrack *CultTrack
-	// For Witches' Ride, Giants, Nomads
+	// For Witches' Ride, Giants, Nomads, Bonus Card Spade
 	TargetHex     *Hex
 	BuildDwelling bool // For Giants and Nomads - whether to build dwelling after transform
+	UseSkip       bool // For bonus card spade with Fakirs/Dwarves
 	// For Alchemists conversion
 	ConvertVPToCoins bool // true = VP->Coins, false = Coins->VP
 	Amount          int  // Number of conversions
@@ -476,9 +477,38 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 		return fmt.Errorf("hex already has a building")
 	}
 
-	// Check adjacency
-	if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
-		return fmt.Errorf("hex is not adjacent to player's buildings")
+	// Check adjacency (or skip range for Fakirs/Dwarves)
+	if a.UseSkip {
+		// Validate skip ability usage
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			if !fakirs.CanCarpetFlight() {
+				return fmt.Errorf("Fakirs cannot use carpet flight")
+			}
+			skipRange := fakirs.GetCarpetFlightRange()
+			if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, skipRange) {
+				return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
+			}
+			if player.Resources.Priests < 1 {
+				return fmt.Errorf("not enough priests for carpet flight")
+			}
+		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			if !dwarves.CanTunnel() {
+				return fmt.Errorf("Dwarves cannot tunnel")
+			}
+			if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, 1) {
+				return fmt.Errorf("target hex is not within tunneling range 1")
+			}
+			workerCost := dwarves.GetTunnelingCost()
+			if player.Resources.Workers < workerCost {
+				return fmt.Errorf("not enough workers for tunneling")
+			}
+		} else {
+			return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
+		}
+	} else {
+		if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
+			return fmt.Errorf("hex is not adjacent to player's buildings")
+		}
 	}
 
 	return nil
@@ -724,6 +754,22 @@ func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) 
 
 func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) error {
 	mapHex := gs.Map.GetHex(*a.TargetHex)
+
+	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
+	if a.UseSkip {
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			// Pay priest for carpet flight
+			player.Resources.Priests -= 1
+			// Award VP bonus
+			player.VictoryPoints += fakirs.GetCarpetFlightVPBonus()
+		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			// Pay workers for tunneling
+			workerCost := dwarves.GetTunnelingCost()
+			player.Resources.Workers -= workerCost
+			// Award VP bonus
+			player.VictoryPoints += dwarves.GetTunnelingVPBonus()
+		}
+	}
 
 	// Get 1 free spade to transform terrain
 	// Calculate terraform cost (but we get 1 free spade)

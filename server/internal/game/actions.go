@@ -52,6 +52,7 @@ type TransformAndBuildAction struct {
 	BaseAction
 	TargetHex      Hex
 	BuildDwelling  bool // Whether to build a dwelling after transforming
+	UseSkip        bool // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
 }
 
 func NewTransformAndBuildAction(playerID string, targetHex Hex, buildDwelling bool) *TransformAndBuildAction {
@@ -62,6 +63,20 @@ func NewTransformAndBuildAction(playerID string, targetHex Hex, buildDwelling bo
 		},
 		TargetHex:      targetHex,
 		BuildDwelling:  buildDwelling,
+		UseSkip:        false,
+	}
+}
+
+// NewTransformAndBuildActionWithSkip creates a transform action with carpet flight/tunneling
+func NewTransformAndBuildActionWithSkip(playerID string, targetHex Hex, buildDwelling bool) *TransformAndBuildAction {
+	return &TransformAndBuildAction{
+		BaseAction: BaseAction{
+			Type:     ActionTransformAndBuild,
+			PlayerID: playerID,
+		},
+		TargetHex:      targetHex,
+		BuildDwelling:  buildDwelling,
+		UseSkip:        true,
 	}
 }
 
@@ -83,9 +98,48 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	// Check adjacency - required for both transforming and building
 	// "Even when transforming a Terrain space without building a Dwelling, the transformed 
 	// Terrain space needs to be directly or indirectly adjacent to one of your Structures"
-	if !gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID) {
-		// TODO: Check for special abilities (Witches flying, Fakirs carpet, etc.)
-		return fmt.Errorf("hex is not adjacent to player's buildings")
+	isAdjacent := gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)
+	
+	// If using skip (Fakirs/Dwarves), check if player can skip and if range is valid
+	if a.UseSkip {
+		// Check if player's faction can use skip ability
+		canSkip := false
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			canSkip = fakirs.CanCarpetFlight()
+			// Check if target is within skip range
+			skipRange := fakirs.GetCarpetFlightRange()
+			if !gs.Map.IsWithinSkipRange(a.TargetHex, a.PlayerID, skipRange) {
+				return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
+			}
+			// Check if player has priest to pay
+			if player.Resources.Priests < 1 {
+				return fmt.Errorf("not enough priests for carpet flight: need 1, have %d", player.Resources.Priests)
+			}
+		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			canSkip = dwarves.CanTunnel()
+			// Dwarves can tunnel 1 space
+			if !gs.Map.IsWithinSkipRange(a.TargetHex, a.PlayerID, 1) {
+				return fmt.Errorf("target hex is not within tunneling range 1")
+			}
+			// Check if player has workers to pay
+			workerCost := dwarves.GetTunnelingCost()
+			// This cost is in addition to transform/dwelling costs
+			// Just verify they have it here, will deduct later
+			if player.Resources.Workers < workerCost {
+				return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
+			}
+		} else {
+			return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
+		}
+		
+		if !canSkip {
+			return fmt.Errorf("player cannot use skip ability")
+		}
+	} else {
+		// Normal adjacency required if not using skip
+		if !isAdjacent {
+			return fmt.Errorf("hex is not adjacent to player's buildings")
+		}
 	}
 
 	// Check if terrain needs transformation to home terrain
@@ -145,6 +199,22 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	mapHex := gs.Map.GetHex(a.TargetHex)
+
+	// Step 0: Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
+	if a.UseSkip {
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			// Pay priest for carpet flight
+			player.Resources.Priests -= 1
+			// Award VP bonus
+			player.VictoryPoints += fakirs.GetCarpetFlightVPBonus()
+		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			// Pay workers for tunneling
+			workerCost := dwarves.GetTunnelingCost()
+			player.Resources.Workers -= workerCost
+			// Award VP bonus
+			player.VictoryPoints += dwarves.GetTunnelingVPBonus()
+		}
+	}
 
 	// Step 1: Transform terrain to home terrain if needed
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
