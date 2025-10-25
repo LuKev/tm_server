@@ -447,9 +447,9 @@ func TestResourceConversion_WithPower(t *testing.T) {
 	
 	// Set resources
 	player.Resources.Coins = 3          // 3 coins
-	player.Resources.Power.Bowl2 = 10   // 5 coins
-	player.Resources.Power.Bowl3 = 4    // 2 coins
-	// Total: 10 coins / 3 = 3 VP
+	player.Resources.Power.Bowl2 = 10   // 10/2 = 5 coins (burn to Bowl 3, then convert)
+	player.Resources.Power.Bowl3 = 4    // 4 coins (direct conversion)
+	// Total: 3 + 5 + 4 = 12 coins / 3 = 4 VP
 	player.Resources.Workers = 2        // 2 VP
 	player.Resources.Priests = 1        // 1 VP
 	
@@ -458,9 +458,9 @@ func TestResourceConversion_WithPower(t *testing.T) {
 	
 	gs.calculateResourceConversion(scores)
 	
-	// Total: 3 (coins) + 2 (workers) + 1 (priests) = 6 VP
-	if scores["player1"].ResourceVP != 6 {
-		t.Errorf("expected 6 VP, got %d", scores["player1"].ResourceVP)
+	// Total: 4 (coins) + 2 (workers) + 1 (priests) = 7 VP
+	if scores["player1"].ResourceVP != 7 {
+		t.Errorf("expected 7 VP, got %d", scores["player1"].ResourceVP)
 	}
 }
 
@@ -470,9 +470,10 @@ func TestResourceConversion_Alchemists(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	
-	// Set resources (Alchemists start with power in bowl 2)
+	// Set resources
 	player.Resources.Coins = 8           // 8 coins
-	player.Resources.Power.Bowl2 = 4     // 2 coins -> total 10/2 = 5 VP (Alchemists)
+	player.Resources.Power.Bowl2 = 4     // 4/2 = 2 coins -> total 10/2 = 5 VP (Alchemists)
+	player.Resources.Power.Bowl3 = 0     // 0 coins
 	player.Resources.Workers = 1         // 1 VP
 	player.Resources.Priests = 0         // 0 VP
 	
@@ -494,8 +495,10 @@ func TestResourceConversion_AlchemistsWithPower(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Set resources
-	player.Resources.Coins = 2          // 1 VP (Alchemists)
-	player.Resources.Power.Bowl2 = 6    // 3 coins -> total 5 coins / 2 = 2 VP
+	player.Resources.Coins = 2          // 2 coins
+	player.Resources.Power.Bowl2 = 6    // 6/2 = 3 coins
+	player.Resources.Power.Bowl3 = 1    // 1 coin
+	// Total: 2 + 3 + 1 = 6 coins / 2 = 3 VP (Alchemists)
 	player.Resources.Workers = 1        // 1 VP
 	
 	scores := make(map[string]*PlayerFinalScore)
@@ -503,8 +506,8 @@ func TestResourceConversion_AlchemistsWithPower(t *testing.T) {
 	
 	gs.calculateResourceConversion(scores)
 	
-	// Total: 2 (coins) + 1 (workers) = 3 VP
-	if scores["player1"].ResourceVP != 3 {
-		t.Errorf("expected 3 VP, got %d", scores["player1"].ResourceVP)
+	// Total: 3 (coins) + 1 (workers) = 4 VP
+	if scores["player1"].ResourceVP != 4 {
+		t.Errorf("expected 4 VP, got %d", scores["player1"].ResourceVP)
 	}
 }

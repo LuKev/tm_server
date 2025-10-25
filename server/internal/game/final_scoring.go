@@ -170,13 +170,19 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 
 // calculateResourceConversion converts remaining resources to VP
 // 3 coins = 1 VP (or 2 coins = 1 VP for Alchemists), 1 worker = 1 VP, 1 priest = 1 VP
-// Power in bowls 2 and 3 is automatically converted to coins first (2 power = 1 coin)
+// Power is automatically converted optimally to coins first:
+//   - Burn Bowl 2 power to move to Bowl 3 (2 Bowl 2 → 1 Bowl 3)
+//   - Convert Bowl 3 to coins (1 Bowl 3 → 1 coin)
+//   - Result: coins from power = Bowl 3 + floor(Bowl 2 / 2)
 // Also tracks total resource value for tiebreaker
 func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalScore) {
 	for playerID, player := range gs.Players {
-		// First, convert power to coins (2 power = 1 coin)
-		totalPower := player.Resources.Power.Bowl2 + player.Resources.Power.Bowl3
-		powerCoins := totalPower / 2
+		// First, convert power to coins optimally
+		// Players can: 1 power in Bowl 3 → 1 coin
+		// Players can: burn 1 power in Bowl 2 to move 1 power from Bowl 2 to Bowl 3
+		// Optimal: Convert all Bowl 2 power to Bowl 3 (2 Bowl 2 → 1 Bowl 3), then convert Bowl 3 to coins
+		// Result: coins = Bowl 3 + floor(Bowl 2 / 2)
+		powerCoins := player.Resources.Power.Bowl3 + (player.Resources.Power.Bowl2 / 2)
 		totalCoins := player.Resources.Coins + powerCoins
 		
 		// Check if player is Alchemists (2 coins = 1 VP instead of 3 coins = 1 VP)
