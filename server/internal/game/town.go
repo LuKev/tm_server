@@ -155,10 +155,27 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 
 	// Check if requirements are met
 	if gs.CanFormTown(playerID, connected) {
-		// Store the skipped river hex if Mermaids used their ability
-		if skippedRiver != nil {
-			gs.PendingTownFormations[playerID].SkippedRiverHex = skippedRiver
+		// For Mermaids: determine if town can be delayed
+		// - If river was skipped (skippedRiver != nil), can be delayed
+		// - If only land tiles (skippedRiver == nil), must claim immediately
+		canBeDelayed := false
+		if player.Faction.GetType() == models.FactionMermaids && skippedRiver != nil {
+			canBeDelayed = true
 		}
+		
+		// Create or update pending town formation with Mermaids-specific data
+		if gs.PendingTownFormations[playerID] == nil {
+			gs.PendingTownFormations[playerID] = &PendingTownFormation{
+				PlayerID:        playerID,
+				Hexes:           connected,
+				SkippedRiverHex: skippedRiver,
+				CanBeDelayed:    canBeDelayed,
+			}
+		} else {
+			gs.PendingTownFormations[playerID].SkippedRiverHex = skippedRiver
+			gs.PendingTownFormations[playerID].CanBeDelayed = canBeDelayed
+		}
+		
 		return connected
 	}
 
@@ -218,7 +235,8 @@ func (gs *GameState) GetTownPowerRequirement(playerID string) int {
 }
 
 // FormTown marks the buildings as part of a town and applies town tile benefits
-func (gs *GameState) FormTown(playerID string, hexes []Hex, tileType TownTileType) error {
+// For Mermaids: if skippedRiverHex is provided, places the town tile on that river hex
+func (gs *GameState) FormTown(playerID string, hexes []Hex, tileType TownTileType, skippedRiverHex *Hex) error {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", playerID)
@@ -236,6 +254,16 @@ func (gs *GameState) FormTown(playerID string, hexes []Hex, tileType TownTileTyp
 			mapHex.PartOfTown = true
 		}
 	}
+	
+	// For Mermaids: Place town tile on the skipped river hex
+	if skippedRiverHex != nil {
+		riverMapHex := gs.Map.GetHex(*skippedRiverHex)
+		if riverMapHex != nil {
+			riverMapHex.HasTownTile = true
+			riverMapHex.TownTileType = tileType
+		}
+	}
+	// For other factions: Town tile placement is tracked per player, not on the map
 	
 	// Take the tile
 	if err := gs.TownTiles.TakeTile(tileType); err != nil {

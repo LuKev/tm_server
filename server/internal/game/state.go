@@ -37,6 +37,7 @@ type PendingTownFormation struct {
 	PlayerID        string
 	Hexes           []Hex // The connected buildings that form the town
 	SkippedRiverHex *Hex  // For Mermaids: the river hex that was skipped to form the town (town tile goes here)
+	CanBeDelayed    bool  // For Mermaids: true if town uses river skipping (can be claimed later), false if only land tiles (must claim now)
 }
 
 // CultistsLeechBonus tracks Cultists' pending cult advance or power bonus from power leech
@@ -173,8 +174,8 @@ func (gs *GameState) SelectTownTile(playerID string, tileType TownTileType) erro
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
 	
-	// Form the town with the selected tile
-	if err := gs.FormTown(playerID, pending.Hexes, tileType); err != nil {
+	// Form the town with the selected tile (and skipped river hex for Mermaids)
+	if err := gs.FormTown(playerID, pending.Hexes, tileType, pending.SkippedRiverHex); err != nil {
 		return err
 	}
 	

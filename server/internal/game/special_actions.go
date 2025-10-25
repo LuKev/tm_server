@@ -844,14 +844,8 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		// Trigger power leech
 		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
 		
-		// Check for town formation
-		connected := gs.CheckForTownFormation(a.PlayerID, *a.TargetHex)
-		if connected != nil {
-			gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
-				PlayerID: a.PlayerID,
-				Hexes:    connected,
-			}
-		}
+		// Check for town formation - CheckForTownFormation handles creating PendingTownFormation
+		gs.CheckForTownFormation(a.PlayerID, *a.TargetHex)
 	}
 
 	return nil

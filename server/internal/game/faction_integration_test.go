@@ -1201,7 +1201,7 @@ func TestWitches_TownFoundingBonus(t *testing.T) {
 	initialVP := player.VictoryPoints
 	
 	// Form town
-	err := gs.FormTown("player1", hexes, TownTile5Points)
+	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}

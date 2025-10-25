@@ -51,8 +51,10 @@ go_test(
         # - Dwarves: Tunneling (basic, after stronghold, power action, no shipping) (4 tests)
         # - Darklings: Priest terraform, VP bonus, priest ordination w/ 7-priest limit, cannot upgrade digging, power action (6 tests)
         # - 7-Priest Limit: Income capping (1 test)
-        # Total: 47 faction integration tests
+        # - Mermaids: River skipping for towns, delayed town formation, stronghold shipping (7 tests)
+        # Total: 54 faction integration tests
         "faction_integration_test.go",
+        "mermaids_integration_test.go",
         # Action tests
         "action_scoring_test.go",
         "action_transform_build_test.go",

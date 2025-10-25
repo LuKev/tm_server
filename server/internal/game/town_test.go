@@ -144,7 +144,7 @@ func TestTownFormation_5PointsTile(t *testing.T) {
 	initialCoins := player.Resources.Coins
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", connected, TownTile5Points)
+	err := gs.FormTown("player1", connected, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -193,7 +193,7 @@ func TestTownFormation_6PointsTile(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile6Points)
+	err := gs.FormTown("player1", hexes, TownTile6Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestTownFormation_7PointsTile(t *testing.T) {
 	initialWorkers := player.Resources.Workers
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile7Points)
+	err := gs.FormTown("player1", hexes, TownTile7Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -254,7 +254,7 @@ func TestTownFormation_8PointsTile_CultAdvancement(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile8Points)
+	err := gs.FormTown("player1", hexes, TownTile8Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -288,7 +288,7 @@ func TestTownFormation_9PointsTile(t *testing.T) {
 	initialPriests := player.Resources.Priests
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile9Points)
+	err := gs.FormTown("player1", hexes, TownTile9Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -316,7 +316,7 @@ func TestTownFormation_11PointsTile(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile11Points)
+	err := gs.FormTown("player1", hexes, TownTile11Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -350,7 +350,7 @@ func TestTownFormation_2PointsTile_CultAdvancement(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile2Points)
+	err := gs.FormTown("player1", hexes, TownTile2Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -421,7 +421,7 @@ func TestTownFormation_WithSanctuary_3Buildings(t *testing.T) {
 	}
 	
 	// Form town
-	err := gs.FormTown("player1", connected, TownTile5Points)
+	err := gs.FormTown("player1", connected, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -451,7 +451,7 @@ func TestTownFormation_Fire2FavorTile_PowerRequirement6(t *testing.T) {
 	}
 	
 	// Form town
-	err := gs.FormTown("player1", connected, TownTile5Points)
+	err := gs.FormTown("player1", connected, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -509,7 +509,7 @@ func TestTownFormation_MultipleTownsInSameTurn(t *testing.T) {
 		t.Fatal("expected first town to be formable")
 	}
 	
-	err := gs.FormTown("player1", connected1, TownTile5Points)
+	err := gs.FormTown("player1", connected1, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form first town: %v", err)
 	}
@@ -524,7 +524,7 @@ func TestTownFormation_MultipleTownsInSameTurn(t *testing.T) {
 		t.Fatal("expected second town to be formable")
 	}
 	
-	err = gs.FormTown("player1", connected2, TownTile6Points)
+	err = gs.FormTown("player1", connected2, TownTile6Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form second town: %v", err)
 	}
@@ -554,7 +554,7 @@ func TestTownFormation_CannotReformSameTown(t *testing.T) {
 	hexes := setupConnectedBuildings(gs, "player1", faction, 4, 7)
 	
 	// Form town
-	err := gs.FormTown("player1", hexes, TownTile5Points)
+	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -593,7 +593,7 @@ func TestTownFormation_WithBridges(t *testing.T) {
 	}
 	
 	// Form town
-	err := gs.FormTown("player1", connected, TownTile5Points)
+	err := gs.FormTown("player1", connected, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -613,7 +613,7 @@ func TestTownFormation_WitchesBonus(t *testing.T) {
 	
 	initialVP := player.VictoryPoints
 	
-	err := gs.FormTown("player1", hexes, TownTile5Points)
+	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -634,7 +634,7 @@ func TestTownFormation_SwarmlingsBonus(t *testing.T) {
 	
 	initialWorkers := player.Resources.Workers
 	
-	err := gs.FormTown("player1", hexes, TownTile5Points)
+	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}

@@ -233,18 +233,10 @@ func (a *PowerAction) Execute(gs *GameState) error {
 			
 			// Check for town formation after building bridge
 			// The bridge might connect buildings into a town
-			// Check from both endpoints
-			connected := gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex1)
-			if connected == nil {
-				connected = gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
-			}
-			
-			if connected != nil {
-				// Town can be formed - create pending town formation
-				gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
-					PlayerID: a.PlayerID,
-					Hexes:    connected,
-				}
+			// Check from both endpoints - CheckForTownFormation handles creating PendingTownFormation
+			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex1)
+			if gs.PendingTownFormations[a.PlayerID] == nil {
+				gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
 			}
 		}
 		

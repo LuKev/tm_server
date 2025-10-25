@@ -314,14 +314,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
 		
 		// Check for town formation after building dwelling
-		connected := gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
-		if connected != nil {
-			// Town can be formed - create pending town formation
-			gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
-				PlayerID: a.PlayerID,
-				Hexes:    connected,
-			}
-		}
+		// CheckForTownFormation handles creating PendingTownFormation if needed
+		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
 	}
 
 	return nil
@@ -530,14 +524,8 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
 	
 	// Check for town formation after upgrading
-	connected := gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
-	if connected != nil {
-		// Town can be formed - create pending town formation
-		gs.PendingTownFormations[a.PlayerID] = &PendingTownFormation{
-			PlayerID: a.PlayerID,
-			Hexes:    connected,
-		}
-	}
+	// CheckForTownFormation handles creating PendingTownFormation if needed
+	gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
 
 	return nil
 }
