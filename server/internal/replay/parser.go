@@ -234,6 +234,19 @@ func ParseLogLine(line string) (*LogEntry, error) {
 			continue
 		}
 
+		// Skip numeric-only fields and delta markers (like "2 2" or "+1")
+		// These are metadata fields before the actual action
+		if _, err := strconv.Atoi(strings.TrimSpace(part)); err == nil {
+			idx++
+			continue
+		}
+		if strings.HasPrefix(part, "+") || strings.HasPrefix(part, "-") {
+			if _, err := strconv.Atoi(strings.TrimPrefix(strings.TrimPrefix(part, "+"), "-")); err == nil {
+				idx++
+				continue
+			}
+		}
+
 		// Everything else is part of the action
 		actionParts := parts[idx:]
 		entry.Action = strings.TrimSpace(strings.Join(actionParts, " "))
@@ -357,11 +370,34 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 
 	case strings.HasPrefix(actionStr, "action "):
 		// action ACT6, action BON1, action ACTW
-		parts := strings.Fields(actionStr)
-		if len(parts) >= 2 {
-			params["action_type"] = parts[1]
-			return ActionPowerAction, params, nil
+		// action ACT5. build F3
+		parts := strings.Split(actionStr, ".")
+
+		// First part is always "action ACTX"
+		firstPart := strings.TrimSpace(parts[0])
+		actionFields := strings.Fields(firstPart)
+		if len(actionFields) >= 2 {
+			params["action_type"] = actionFields[1]
 		}
+
+		// Check if there are additional parts (e.g., "build F3")
+		if len(parts) > 1 {
+			for _, part := range parts[1:] {
+				part = strings.TrimSpace(part)
+				if strings.HasPrefix(part, "build ") {
+					coord := strings.TrimPrefix(part, "build ")
+					params["coord"] = strings.Fields(coord)[0]
+				} else if strings.HasPrefix(part, "transform ") {
+					fields := strings.Fields(part)
+					if len(fields) >= 4 && fields[2] == "to" {
+						params["transform_coord"] = fields[1]
+						params["transform_color"] = fields[3]
+					}
+				}
+			}
+		}
+
+		return ActionPowerAction, params, nil
 
 	case strings.HasPrefix(actionStr, "burn "):
 		// Usually part of compound action, but can appear alone

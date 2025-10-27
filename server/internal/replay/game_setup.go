@@ -56,6 +56,13 @@ func (v *GameValidator) SetupGame() error {
 
 		v.GameState.Players[playerID] = player
 		v.GameState.TurnOrder = append(v.GameState.TurnOrder, playerID)
+
+		// Initialize cult track state for this player
+		v.GameState.CultTracks.InitializePlayer(playerID)
+		v.GameState.CultTracks.PlayerPositions[playerID][game.CultFire] = cultPositions.Fire
+		v.GameState.CultTracks.PlayerPositions[playerID][game.CultWater] = cultPositions.Water
+		v.GameState.CultTracks.PlayerPositions[playerID][game.CultEarth] = cultPositions.Earth
+		v.GameState.CultTracks.PlayerPositions[playerID][game.CultAir] = cultPositions.Air
 	}
 
 	// Set up scoring tiles

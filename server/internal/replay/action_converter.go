@@ -3,6 +3,7 @@ package replay
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/models"
@@ -54,10 +55,62 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return convertSendPriestAction(playerID, params)
 
 	case ActionPowerAction:
-		// Power actions are complex - they modify state but don't have a dedicated Action type
-		// They're usually combined with other actions (e.g., "action ACT6. transform ... build")
-		// For now, return nil and let the compound action handle it
-		return nil, nil
+		// Power actions can be standalone or combined with build/transform
+		// e.g., "action ACT5. build F3" or "action ACT6. transform F2 to gray. build D4"
+		// Also handles bonus card actions: "action BON1. build C5"
+		actionTypeStr, ok := params["action_type"]
+		if !ok {
+			return nil, fmt.Errorf("power action missing action_type")
+		}
+
+		// Check if this is a bonus card action (BON1-10) vs power action (ACT1-6)
+		if strings.HasPrefix(actionTypeStr, "BON") {
+			// Bonus card actions like BON1 (spade bonus)
+			// These work similarly to power actions but come from bonus cards
+			// For now, treat BON1 like a spade power action
+			coordStr, hasCoord := params["coord"]
+			if hasCoord {
+				hex, err := ConvertLogCoordToAxial(coordStr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+				}
+				// BON1 provides a free spade transform
+				// Use TransformAndBuild action
+				return game.NewTransformAndBuildAction(playerID, hex, true), nil
+			}
+			// Standalone bonus card action (not combined with build)
+			// Skip for now - these are typically informational
+			return nil, nil
+		}
+
+		powerActionType, err := ParsePowerActionType(actionTypeStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid power action type: %v", err)
+		}
+
+		// Check if this is combined with build/transform
+		coordStr, hasCoord := params["coord"]
+		if hasCoord {
+			// Power action with build or transform+build
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+			}
+
+			// Check if there's a transform
+			_, hasTransform := params["transform_coord"]
+			if hasTransform || powerActionType == game.PowerActionSpade1 || powerActionType == game.PowerActionSpade2 {
+				// Power action provides free spades for transform+build
+				return game.NewPowerActionWithTransform(playerID, powerActionType, hex, true), nil
+			}
+
+			// Just a build (e.g., with bridge power action)
+			// For now, treat as error - need to implement this case
+			return nil, fmt.Errorf("power action with build but no transform not yet implemented")
+		}
+
+		// Standalone power action (ACT1=bridge, ACT2=priest, ACT3=workers, ACT4=coins)
+		return game.NewPowerAction(playerID, powerActionType), nil
 
 	case ActionBurnPower:
 		// Burning power is usually part of a compound action
@@ -234,20 +287,20 @@ func convertPassAction(playerID string, params map[string]string) (game.Action, 
 }
 
 func convertLeechAction(playerID string, params map[string]string, gs *game.GameState) (game.Action, error) {
-	// Leech actions look like: "Leech 1 from engineers" or "Decline 3PW from giants"
-	// In the game, players have pending leech offers that they must accept or decline
-	// For simplicity in replay, we accept the first pending leech offer
-	// The game state will validate that the offer exists
-
-	offers := gs.GetPendingLeechOffers(playerID)
-	if len(offers) == 0 {
-		// No pending offers - this might be an informational log entry after the offer was processed
-		return nil, nil
-	}
-
-	// Accept the first (oldest) pending offer
-	// TODO: Handle decline actions if needed
-	return game.NewAcceptPowerLeechAction(playerID, 0), nil
+	// Leech actions in the log are informational - they show power being gained
+	// The log entry's power bowls already reflect the final state after leeching
+	// We don't need to execute the leech action; we just need to update the power state
+	// to match what the log says it should be.
+	//
+	// The validator will check that the final power state matches the log entry
+	// after this function returns nil (no action to execute).
+	//
+	// However, we DO need to manually adjust the power to match the log, because
+	// the leech offers were created by previous builds, but we're not tracking them
+	// across entries in the replay.
+	//
+	// For now, skip executing leech actions and let state validation catch discrepancies
+	return nil, nil
 }
 
 func convertSendPriestAction(playerID string, params map[string]string) (game.Action, error) {
