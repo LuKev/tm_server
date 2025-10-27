@@ -71,8 +71,8 @@ func BaseGameTerrainLayout() map[Hex]models.TerrainType {
 	layout[NewHex(0, 4)] = models.TerrainWasteland
 	layout[NewHex(1, 4)] = models.TerrainLake
 	layout[NewHex(2, 4)] = models.TerrainSwamp
-	layout[NewHex(3, 4)] = models.TerrainPlains
-	layout[NewHex(4, 4)] = models.TerrainMountain
+	layout[NewHex(3, 4)] = models.TerrainPlains      // E6 - cultists initial
+	layout[NewHex(4, 4)] = models.TerrainMountain    // E7 - engineers initial
 	layout[NewHex(5, 4)] = models.TerrainDesert
 	layout[NewHex(6, 4)] = models.TerrainRiver
 	layout[NewHex(7, 4)] = models.TerrainRiver
@@ -81,16 +81,16 @@ func BaseGameTerrainLayout() map[Hex]models.TerrainType {
 	layout[NewHex(10, 4)] = models.TerrainLake
 	
 	// Row 5 (12 hexes)
-	layout[NewHex(-2, 5)] = models.TerrainMountain
+	layout[NewHex(-2, 5)] = models.TerrainMountain     // F1 - engineers initial
 	layout[NewHex(-1, 5)] = models.TerrainForest
 	layout[NewHex(0, 5)] = models.TerrainRiver
 	layout[NewHex(1, 5)] = models.TerrainRiver
 	layout[NewHex(2, 5)] = models.TerrainDesert
-	layout[NewHex(3, 5)] = models.TerrainForest
+	layout[NewHex(3, 5)] = models.TerrainForest      // F4 - witches initial
 	layout[NewHex(4, 5)] = models.TerrainRiver
 	layout[NewHex(5, 5)] = models.TerrainRiver
 	layout[NewHex(6, 5)] = models.TerrainRiver
-	layout[NewHex(7, 5)] = models.TerrainPlains
+	layout[NewHex(7, 5)] = models.TerrainPlains      // F5 - cultists initial
 	layout[NewHex(8, 5)] = models.TerrainMountain
 	layout[NewHex(9, 5)] = models.TerrainPlains
 	

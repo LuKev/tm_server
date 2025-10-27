@@ -1,0 +1,232 @@
+package replay
+
+import (
+	"fmt"
+
+	"github.com/lukev/tm_server/internal/game"
+)
+
+// GameValidator validates a game replay against a log file
+type GameValidator struct {
+	GameState *game.GameState
+	LogEntries []*LogEntry
+	CurrentEntry int
+	Errors []ValidationError
+}
+
+// ValidationError represents a validation error
+type ValidationError struct {
+	Line  int
+	Entry *LogEntry
+	Field string
+	Expected interface{}
+	Actual interface{}
+	Message string
+}
+
+// NewGameValidator creates a new validator
+func NewGameValidator() *GameValidator {
+	return &GameValidator{
+		Errors: make([]ValidationError, 0),
+	}
+}
+
+// LoadGameLog loads a game log file
+func (v *GameValidator) LoadGameLog(filename string) error {
+	entries, err := ParseGameLog(filename)
+	if err != nil {
+		return fmt.Errorf("failed to parse game log: %v", err)
+	}
+
+	v.LogEntries = entries
+	return nil
+}
+
+// InitializeGame sets up the initial game state from the log
+func (v *GameValidator) InitializeGame() error {
+	return v.SetupGame()
+}
+
+// ValidateNextEntry validates the next log entry
+func (v *GameValidator) ValidateNextEntry() error {
+	if v.CurrentEntry >= len(v.LogEntries) {
+		return fmt.Errorf("no more entries to validate")
+	}
+
+	entry := v.LogEntries[v.CurrentEntry]
+	v.CurrentEntry++
+
+	// Skip comment lines
+	if entry.IsComment {
+		return nil
+	}
+
+	// Skip "setup" entries - they just show initial state, no action to execute
+	if entry.Action == "setup" {
+		return nil
+	}
+
+	// First, validate state matches the log entry BEFORE executing the action
+	// (The log shows state AFTER the previous action)
+	if err := v.ValidateState(entry); err != nil {
+		return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+	}
+
+	// Then, try to convert and execute the action for this entry
+	action, err := ConvertLogEntryToAction(entry, v.GameState)
+	if err != nil {
+		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
+	}
+
+	// Execute the action (if it's not nil)
+	if action != nil {
+		if err := v.executeAction(action); err != nil {
+			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
+		}
+	}
+
+	return nil
+}
+
+// executeAction executes an action and updates game state
+func (v *GameValidator) executeAction(action game.Action) error {
+	// Validate the action first
+	if err := action.Validate(v.GameState); err != nil {
+		return fmt.Errorf("action validation failed: %v", err)
+	}
+
+	// Execute the action
+	if err := action.Execute(v.GameState); err != nil {
+		return fmt.Errorf("action execution failed: %v", err)
+	}
+
+	return nil
+}
+
+// ReplayGame replays the entire game and validates each step
+func (v *GameValidator) ReplayGame() error {
+	// Initialize game
+	if err := v.InitializeGame(); err != nil {
+		return fmt.Errorf("failed to initialize game: %v", err)
+	}
+
+	// Process all entries
+	for v.CurrentEntry < len(v.LogEntries) {
+		if err := v.ValidateNextEntry(); err != nil {
+			// Don't fail immediately, collect error and continue
+			fmt.Printf("Error at entry %d: %v\n", v.CurrentEntry, err)
+			// For now, stop on first error to make debugging easier
+			return err
+		}
+	}
+
+	return nil
+}
+
+// ValidateState validates the current game state against a log entry
+func (v *GameValidator) ValidateState(entry *LogEntry) error {
+	// Get player state
+	var playerState *game.Player
+	for _, p := range v.GameState.Players {
+		if p.Faction.GetType() == entry.Faction {
+			playerState = p
+			break
+		}
+	}
+	if playerState == nil {
+		return fmt.Errorf("player not found for faction %v", entry.Faction)
+	}
+
+	// Validate VP
+	if playerState.VictoryPoints != entry.VP {
+		v.addError(v.CurrentEntry, entry, "VP", entry.VP, playerState.VictoryPoints,
+			fmt.Sprintf("VP mismatch: expected %d, got %d", entry.VP, playerState.VictoryPoints))
+	}
+
+	// Validate Coins
+	if playerState.Resources.Coins != entry.Coins {
+		v.addError(v.CurrentEntry, entry, "Coins", entry.Coins, playerState.Resources.Coins,
+			fmt.Sprintf("Coins mismatch: expected %d, got %d", entry.Coins, playerState.Resources.Coins))
+	}
+
+	// Validate Workers
+	if playerState.Resources.Workers != entry.Workers {
+		v.addError(v.CurrentEntry, entry, "Workers", entry.Workers, playerState.Resources.Workers,
+			fmt.Sprintf("Workers mismatch: expected %d, got %d", entry.Workers, playerState.Resources.Workers))
+	}
+
+	// Validate Priests
+	if playerState.Resources.Priests != entry.Priests {
+		v.addError(v.CurrentEntry, entry, "Priests", entry.Priests, playerState.Resources.Priests,
+			fmt.Sprintf("Priests mismatch: expected %d, got %d", entry.Priests, playerState.Resources.Priests))
+	}
+
+	// Validate Power Bowls
+	if playerState.Resources.Power.Bowl1 != entry.PowerBowls.Bowl1 ||
+	   playerState.Resources.Power.Bowl2 != entry.PowerBowls.Bowl2 ||
+	   playerState.Resources.Power.Bowl3 != entry.PowerBowls.Bowl3 {
+		v.addError(v.CurrentEntry, entry, "PowerBowls",
+			fmt.Sprintf("%d/%d/%d", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3),
+			fmt.Sprintf("%d/%d/%d", playerState.Resources.Power.Bowl1, playerState.Resources.Power.Bowl2, playerState.Resources.Power.Bowl3),
+			"Power bowls mismatch")
+	}
+
+	// Validate Cult Tracks
+	fireCult, fireOk := playerState.CultPositions[game.CultFire]
+	waterCult, waterOk := playerState.CultPositions[game.CultWater]
+	earthCult, earthOk := playerState.CultPositions[game.CultEarth]
+	airCult, airOk := playerState.CultPositions[game.CultAir]
+
+	if fireOk && fireCult != entry.CultTracks.Fire {
+		v.addError(v.CurrentEntry, entry, "Fire Cult", entry.CultTracks.Fire, fireCult,
+			fmt.Sprintf("Fire cult mismatch: expected %d, got %d", entry.CultTracks.Fire, fireCult))
+	}
+	if waterOk && waterCult != entry.CultTracks.Water {
+		v.addError(v.CurrentEntry, entry, "Water Cult", entry.CultTracks.Water, waterCult,
+			fmt.Sprintf("Water cult mismatch: expected %d, got %d", entry.CultTracks.Water, waterCult))
+	}
+	if earthOk && earthCult != entry.CultTracks.Earth {
+		v.addError(v.CurrentEntry, entry, "Earth Cult", entry.CultTracks.Earth, earthCult,
+			fmt.Sprintf("Earth cult mismatch: expected %d, got %d", entry.CultTracks.Earth, earthCult))
+	}
+	if airOk && airCult != entry.CultTracks.Air {
+		v.addError(v.CurrentEntry, entry, "Air Cult", entry.CultTracks.Air, airCult,
+			fmt.Sprintf("Air cult mismatch: expected %d, got %d", entry.CultTracks.Air, airCult))
+	}
+
+	return nil
+}
+
+// addError adds a validation error
+func (v *GameValidator) addError(line int, entry *LogEntry, field string, expected, actual interface{}, message string) {
+	v.Errors = append(v.Errors, ValidationError{
+		Line:     line,
+		Entry:    entry,
+		Field:    field,
+		Expected: expected,
+		Actual:   actual,
+		Message:  message,
+	})
+}
+
+// HasErrors returns true if there are any validation errors
+func (v *GameValidator) HasErrors() bool {
+	return len(v.Errors) > 0
+}
+
+// GetErrorSummary returns a summary of all errors
+func (v *GameValidator) GetErrorSummary() string {
+	if !v.HasErrors() {
+		return "No errors"
+	}
+
+	summary := fmt.Sprintf("Found %d validation errors:\n", len(v.Errors))
+	for i, err := range v.Errors {
+		if i >= 10 {
+			summary += fmt.Sprintf("... and %d more errors\n", len(v.Errors)-10)
+			break
+		}
+		summary += fmt.Sprintf("  Line %d: %s\n", err.Line, err.Message)
+	}
+	return summary
+}

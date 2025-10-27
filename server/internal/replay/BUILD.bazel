@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "replay",
+    srcs = [
+        "action_converter.go",
+        "coordinates.go",
+        "game_setup.go",
+        "notation.go",
+        "parser.go",
+        "validator.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/replay",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/game",
+        "//internal/game/factions",
+        "//internal/models",
+    ],
+)
+
+go_test(
+    name = "replay_test",
+    srcs = ["parser_test.go"],
+    embed = [":replay"],
+    deps = [
+        "//internal/models",
+    ],
+)

@@ -18,6 +18,7 @@ const (
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
+	ActionSetupDwelling        // Place initial dwelling during setup (no cost, no adjacency)
 	ActionUseCultSpade         // Use a spade from cult track reward (cleanup phase)
 	ActionAcceptPowerLeech     // Accept a power leech offer
 	ActionDeclinePowerLeech    // Decline a power leech offer

@@ -9,6 +9,7 @@ go_library(
         "action_halflings_spades.go",
         "action_power_leech.go",
         "action_select_favor_tile.go",
+        "action_setup_dwelling.go",
         "actions.go",
         "auction.go",
         "bonus_cards.go",
