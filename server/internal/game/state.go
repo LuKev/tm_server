@@ -486,16 +486,20 @@ func (gs *GameState) StartNewRound() {
 	
 	// Reset pass order for the new round
 	gs.PassOrder = []string{}
-	
+
 	// Reset power actions for the new round
 	gs.PowerActions.ResetForNewRound()
-	
+
+	// Reset bonus card selections for the new round
+	// Players selected cards in the previous round (or setup), now they can select again
+	gs.BonusCards.PlayerHasCard = make(map[string]bool)
+
 	// Reset all players' passed status and special action usage
 	for _, player := range gs.Players {
 		player.HasPassed = false
 		player.SpecialActionsUsed = make(map[SpecialActionType]bool)
 	}
-	
+
 	// Start with income phase
 	gs.Phase = PhaseIncome
 }
