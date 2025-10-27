@@ -813,6 +813,13 @@ func (a *PassAction) Validate(gs *GameState) error {
 	}
 
 	if !gs.BonusCards.IsAvailable(*a.BonusCard) {
+		// Debug: show which cards ARE available
+		availableCards := []BonusCardType{}
+		for cardType := range gs.BonusCards.Available {
+			availableCards = append(availableCards, cardType)
+		}
+		fmt.Printf("DEBUG: Player %s trying to take card %v, but available cards are: %v\n",
+			a.PlayerID, *a.BonusCard, availableCards)
 		return fmt.Errorf("bonus card %v is not available", *a.BonusCard)
 	}
 

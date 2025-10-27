@@ -235,6 +235,9 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 		if player == nil {
 			return nil, fmt.Errorf("player not found: %s", playerID)
 		}
+		// Debug: print power state before burning
+		fmt.Printf("DEBUG: Player %s attempting to burn %d power. Current bowls: %d/%d/%d\n",
+			playerID, burnAmount, player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
 		// Burn power before the main action
 		if err := player.Resources.BurnPower(burnAmount); err != nil {
 			return nil, fmt.Errorf("failed to burn power: %v", err)

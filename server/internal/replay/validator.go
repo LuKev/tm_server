@@ -63,6 +63,12 @@ func (v *GameValidator) ValidateNextEntry() error {
 		// Check if this is a "Round X income" comment
 		if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
 		   strings.Contains(entry.CommentText, "income") {
+			// Before starting new round (except Round 1), return bonus cards to available pool
+			// (This normally happens during cleanup phase)
+			// Round 1 is special: bonus cards were selected during setup and should be kept
+			if v.GameState.Round > 0 {
+				v.GameState.ReturnBonusCards()
+			}
 			// Start new round (this resets HasPassed, power actions, etc.)
 			v.GameState.StartNewRound()
 			// Reset income flag for new round
@@ -113,9 +119,18 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if !v.IncomeApplied {
 			// Note: StartNewRound() was already called when we saw "Round X income" comment
 			// It set phase to PhaseIncome, so now we just grant income
+			fmt.Printf("DEBUG: Applying income for all players at entry %d\n", v.CurrentEntry)
 			v.GameState.GrantIncome()
 			v.IncomeApplied = true
 			v.GameState.StartActionPhase() // Transition to action phase
+		}
+		// Debug: show power state after income for this player
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			fmt.Printf("DEBUG: Entry %d (%s) - Expected power: %d/%d/%d, Actual: %d/%d/%d\n",
+				v.CurrentEntry, entry.Faction.String(),
+				entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3,
+				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
 		}
 		// Validate state matches after income
 		if err := v.ValidateState(entry); err != nil {

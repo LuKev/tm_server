@@ -273,6 +273,13 @@ func (bcs *BonusCardState) TakeBonusCard(playerID string, cardType BonusCardType
 		return 0, fmt.Errorf("player already has a bonus card this round")
 	}
 
+	// If player has a card from a previous round, return it first
+	// This happens when passing in Round N+1 after having selected a card in Round N
+	if oldCard, hasOldCard := bcs.PlayerCards[playerID]; hasOldCard {
+		bcs.Available[oldCard] = 0
+		delete(bcs.PlayerCards, playerID)
+	}
+
 	// Get coins from the card
 	coins := bcs.Available[cardType]
 
