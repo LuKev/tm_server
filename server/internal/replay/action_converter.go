@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/models"
@@ -35,10 +36,10 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return convertBuildAction(playerID, params, isSetup)
 
 	case ActionUpgrade:
-		return convertUpgradeAction(playerID, params)
+		return convertUpgradeAction(playerID, params, gs)
 
 	case ActionTransformAndBuild:
-		return convertTransformAndBuildAction(playerID, params)
+		return convertTransformAndBuildAction(playerID, params, gs)
 
 	case ActionPass:
 		return convertPassAction(playerID, params)
@@ -62,7 +63,10 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		// Burning power is usually part of a compound action
 		return nil, nil
 
-	case ActionSetup, ActionIncome, ActionLeech, ActionConvert, ActionCultAdvance, ActionWait:
+	case ActionLeech:
+		return convertLeechAction(playerID, params, gs)
+
+	case ActionSetup, ActionIncome, ActionConvert, ActionCultAdvance, ActionWait:
 		// These are state changes, not player actions
 		return nil, nil
 
@@ -95,7 +99,7 @@ func convertBuildAction(playerID string, params map[string]string, isSetup bool)
 	return game.NewTransformAndBuildAction(playerID, hex, true), nil
 }
 
-func convertUpgradeAction(playerID string, params map[string]string) (game.Action, error) {
+func convertUpgradeAction(playerID string, params map[string]string, gs *game.GameState) (game.Action, error) {
 	coordStr, ok := params["coord"]
 	if !ok {
 		return nil, fmt.Errorf("upgrade action missing coord")
@@ -116,10 +120,48 @@ func convertUpgradeAction(playerID string, params map[string]string) (game.Actio
 		return nil, fmt.Errorf("invalid building type %s: %v", buildingStr, err)
 	}
 
-	return game.NewUpgradeBuildingAction(playerID, hex, buildingType), nil
+	upgradeAction := game.NewUpgradeBuildingAction(playerID, hex, buildingType)
+
+	// If there's a favor tile specified, this is a compound action:
+	// upgrade + select favor tile. Execute both immediately.
+	if favorTileStr, hasFavorTile := params["favor_tile"]; hasFavorTile {
+		// Execute upgrade first
+		if err := upgradeAction.Validate(gs); err != nil {
+			return nil, fmt.Errorf("upgrade validation failed: %v", err)
+		}
+		if err := upgradeAction.Execute(gs); err != nil {
+			return nil, fmt.Errorf("upgrade execution failed: %v", err)
+		}
+
+		// Now create and execute favor tile selection
+		favorTileType, err := ParseFavorTile(favorTileStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
+		}
+
+		favorAction := &game.SelectFavorTileAction{
+			BaseAction: game.BaseAction{
+				Type:     game.ActionSelectFavorTile,
+				PlayerID: playerID,
+			},
+			TileType: favorTileType,
+		}
+
+		if err := favorAction.Validate(gs); err != nil {
+			return nil, fmt.Errorf("favor tile validation failed: %v", err)
+		}
+		if err := favorAction.Execute(gs); err != nil {
+			return nil, fmt.Errorf("favor tile execution failed: %v", err)
+		}
+
+		// Both actions executed, return nil to skip normal execution
+		return nil, nil
+	}
+
+	return upgradeAction, nil
 }
 
-func convertTransformAndBuildAction(playerID string, params map[string]string) (game.Action, error) {
+func convertTransformAndBuildAction(playerID string, params map[string]string, gs *game.GameState) (game.Action, error) {
 	coordStr, ok := params["coord"]
 	if !ok {
 		return nil, fmt.Errorf("transform and build action missing coord")
@@ -128,6 +170,38 @@ func convertTransformAndBuildAction(playerID string, params map[string]string) (
 	hex, err := ConvertLogCoordToAxial(coordStr)
 	if err != nil {
 		return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+	}
+
+	// Handle burning power if present
+	if burnStr, hasBurn := params["burn"]; hasBurn {
+		burnAmount, err := strconv.Atoi(burnStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid burn amount %s: %v", burnStr, err)
+		}
+		player := gs.GetPlayer(playerID)
+		if player == nil {
+			return nil, fmt.Errorf("player not found: %s", playerID)
+		}
+		// Burn power before the main action
+		if err := player.Resources.BurnPower(burnAmount); err != nil {
+			return nil, fmt.Errorf("failed to burn power: %v", err)
+		}
+	}
+
+	// Handle power action if present (e.g., ACT6 for 2 free spades)
+	if powerActionStr, hasPowerAction := params["power_action"]; hasPowerAction {
+		powerActionType, err := ParsePowerActionType(powerActionStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid power action %s: %v", powerActionStr, err)
+		}
+
+		// For spade power actions, create a PowerAction with transform
+		if powerActionType == game.PowerActionSpade1 || powerActionType == game.PowerActionSpade2 {
+			return game.NewPowerActionWithTransform(playerID, powerActionType, hex, true), nil
+		}
+
+		// Other power actions - not expected in transform-and-build context
+		return nil, fmt.Errorf("unexpected power action %s in transform-and-build", powerActionStr)
 	}
 
 	// Check if we need to transform (has transform_coord or spades)
@@ -157,6 +231,23 @@ func convertPassAction(playerID string, params map[string]string) (game.Action, 
 	}
 
 	return game.NewPassAction(playerID, &bonusCard), nil
+}
+
+func convertLeechAction(playerID string, params map[string]string, gs *game.GameState) (game.Action, error) {
+	// Leech actions look like: "Leech 1 from engineers" or "Decline 3PW from giants"
+	// In the game, players have pending leech offers that they must accept or decline
+	// For simplicity in replay, we accept the first pending leech offer
+	// The game state will validate that the offer exists
+
+	offers := gs.GetPendingLeechOffers(playerID)
+	if len(offers) == 0 {
+		// No pending offers - this might be an informational log entry after the offer was processed
+		return nil, nil
+	}
+
+	// Accept the first (oldest) pending offer
+	// TODO: Handle decline actions if needed
+	return game.NewAcceptPowerLeechAction(playerID, 0), nil
 }
 
 func convertSendPriestAction(playerID string, params map[string]string) (game.Action, error) {

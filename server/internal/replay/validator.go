@@ -2,16 +2,18 @@ package replay
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
 )
 
 // GameValidator validates a game replay against a log file
 type GameValidator struct {
-	GameState *game.GameState
-	LogEntries []*LogEntry
-	CurrentEntry int
-	Errors []ValidationError
+	GameState      *game.GameState
+	LogEntries     []*LogEntry
+	CurrentEntry   int
+	Errors         []ValidationError
+	IncomeApplied  bool // Track if income has been applied for current round
 }
 
 // ValidationError represents a validation error
@@ -56,8 +58,16 @@ func (v *GameValidator) ValidateNextEntry() error {
 	entry := v.LogEntries[v.CurrentEntry]
 	v.CurrentEntry++
 
-	// Skip comment lines
+	// Handle comment lines - detect round transitions
 	if entry.IsComment {
+		// Check if this is a "Round X income" comment
+		if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
+		   strings.Contains(entry.CommentText, "income") {
+			// Start new round (this resets HasPassed, power actions, etc.)
+			v.GameState.StartNewRound()
+			// Reset income flag for new round
+			v.IncomeApplied = false
+		}
 		return nil
 	}
 
@@ -66,13 +76,25 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
-	// First, validate state matches the log entry BEFORE executing the action
-	// (The log shows state AFTER the previous action)
-	if err := v.ValidateState(entry); err != nil {
-		return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+	// Handle income phase
+	if entry.Action == "other_income_for_faction" {
+		// Apply income once for all players when we see the first income entry
+		if !v.IncomeApplied {
+			// Note: StartNewRound() was already called when we saw "Round X income" comment
+			// It set phase to PhaseIncome, so now we just grant income
+			v.GameState.GrantIncome()
+			v.IncomeApplied = true
+			v.GameState.StartActionPhase() // Transition to action phase
+		}
+		// Validate state matches after income
+		if err := v.ValidateState(entry); err != nil {
+			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+		}
+		// Skip further processing - income is not a player action
+		return nil
 	}
 
-	// Then, try to convert and execute the action for this entry
+	// First, try to convert and execute the action for this entry
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {
 		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
@@ -83,6 +105,12 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
 		}
+	}
+
+	// Then, validate state matches the log entry AFTER executing the action
+	// (The log shows state AFTER the action is executed)
+	if err := v.ValidateState(entry); err != nil {
+		return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
 	}
 
 	return nil

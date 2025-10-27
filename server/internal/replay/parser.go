@@ -265,10 +265,24 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 
 	case strings.HasPrefix(actionStr, "upgrade "):
 		// upgrade E5 to TP
-		parts := strings.Fields(actionStr)
-		if len(parts) >= 4 && parts[2] == "to" {
-			params["coord"] = parts[1]
-			params["building"] = parts[3]
+		// upgrade E5 to TE. +FAV11
+		parts := strings.Split(actionStr, ".")
+		firstPart := strings.TrimSpace(parts[0])
+		fields := strings.Fields(firstPart)
+		if len(fields) >= 4 && fields[2] == "to" {
+			params["coord"] = fields[1]
+			params["building"] = fields[3]
+
+			// Check for favor tile selection
+			if len(parts) > 1 {
+				for _, part := range parts[1:] {
+					part = strings.TrimSpace(part)
+					if strings.HasPrefix(part, "+FAV") {
+						params["favor_tile"] = strings.TrimPrefix(part, "+")
+					}
+				}
+			}
+
 			return ActionUpgrade, params, nil
 		}
 		return ActionUnknown, nil, fmt.Errorf("invalid upgrade format: %s", actionStr)
@@ -282,10 +296,23 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 	case strings.Contains(actionStr, "transform") && strings.Contains(actionStr, "build"):
 		// transform F2 to gray. build D4
 		// dig 1. build G6
+		// burn 6. action ACT6. transform F2 to gray. build D4
 		parts := strings.Split(actionStr, ".")
 		for _, part := range parts {
 			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, "transform ") {
+			if strings.HasPrefix(part, "burn ") {
+				// Extract burn amount
+				fields := strings.Fields(part)
+				if len(fields) >= 2 {
+					params["burn"] = fields[1]
+				}
+			} else if strings.HasPrefix(part, "action ") {
+				// Extract power action type
+				fields := strings.Fields(part)
+				if len(fields) >= 2 {
+					params["power_action"] = fields[1]
+				}
+			} else if strings.HasPrefix(part, "transform ") {
 				fields := strings.Fields(part)
 				if len(fields) >= 4 && fields[2] == "to" {
 					params["transform_coord"] = fields[1]

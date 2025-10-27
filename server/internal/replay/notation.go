@@ -215,3 +215,58 @@ func ParseBonusCard(bonusStr string) (game.BonusCardType, error) {
 		return 0, fmt.Errorf("unknown bonus card: %s", bonusStr)
 	}
 }
+
+// ParsePowerActionType parses a power action string (ACT1-ACT6) to game.PowerActionType
+func ParsePowerActionType(actionStr string) (game.PowerActionType, error) {
+	switch actionStr {
+	case "ACT1": // 3 PW: Build a bridge
+		return game.PowerActionBridge, nil
+	case "ACT2": // 3 PW: Gain 1 priest
+		return game.PowerActionPriest, nil
+	case "ACT3": // 4 PW: Gain 2 workers
+		return game.PowerActionWorkers, nil
+	case "ACT4": // 4 PW: Gain 7 coins
+		return game.PowerActionCoins, nil
+	case "ACT5": // 4 PW: 1 free spade for transform
+		return game.PowerActionSpade1, nil
+	case "ACT6": // 6 PW: 2 free spades for transform
+		return game.PowerActionSpade2, nil
+	default:
+		return 0, fmt.Errorf("unknown power action: %s", actionStr)
+	}
+}
+
+// ParseFavorTile parses a favor tile string (FAV1-FAV12) to game.FavorTileType
+func ParseFavorTile(tileStr string) (game.FavorTileType, error) {
+	switch tileStr {
+	// +3 cult advancement tiles (1 of each)
+	case "FAV1": // Fire +3
+		return game.FavorFire3, nil
+	case "FAV2": // Water +3
+		return game.FavorWater3, nil
+	case "FAV3": // Earth +3
+		return game.FavorEarth3, nil
+	case "FAV4": // Air +3
+		return game.FavorAir3, nil
+	// +2 cult advancement tiles with abilities (3 of each)
+	case "FAV5": // Fire +2 (town power requirement 6)
+		return game.FavorFire2, nil
+	case "FAV6": // Water +2 (cult track action)
+		return game.FavorWater2, nil
+	case "FAV7": // Earth +2 (+1 worker, +1 power income)
+		return game.FavorEarth2, nil
+	case "FAV8": // Air +2 (+4 power income)
+		return game.FavorAir2, nil
+	// +1 cult advancement tiles with abilities (3 of each)
+	case "FAV9": // Fire +1 (+3 coins income)
+		return game.FavorFire1, nil
+	case "FAV10": // Water +1 (+3 VP per DW->TP upgrade)
+		return game.FavorWater1, nil
+	case "FAV11": // Earth +1 (+2 VP per dwelling)
+		return game.FavorEarth1, nil
+	case "FAV12": // Air +1 (VP at pass based on trading houses)
+		return game.FavorAir1, nil
+	default:
+		return 0, fmt.Errorf("unknown favor tile: %s", tileStr)
+	}
+}

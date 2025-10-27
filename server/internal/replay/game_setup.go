@@ -77,9 +77,10 @@ func (v *GameValidator) SetupGame() error {
 // GameSetupInfo contains information extracted from the game log
 type GameSetupInfo struct {
 	Factions        []models.FactionType
-	ScoringTiles    map[int]string // Round -> Scoring tile
-	RemovedBonuses  []string       // Removed bonus tiles
-	PlayerNames     map[int]string // Player number -> name
+	ScoringTiles    map[int]string          // Round -> Scoring tile
+	RemovedBonuses  []string                // Removed bonus tiles
+	BonusCards      []game.BonusCardType    // Bonus cards used in the game
+	PlayerNames     map[int]string          // Player number -> name
 }
 
 func (v *GameValidator) extractSetupInfo() (*GameSetupInfo, error) {
@@ -161,8 +162,46 @@ func (v *GameValidator) setupScoringTiles(info *GameSetupInfo) error {
 }
 
 func (v *GameValidator) setupBonusCards(info *GameSetupInfo) error {
-	// TODO: Remove specified bonus cards from available pool
-	// For now, just use defaults
+	// All 10 bonus cards in BON1-BON10 order
+	allBonusCards := []game.BonusCardType{
+		game.BonusCardSpade,              // BON1 - Spade special action
+		game.BonusCardCultAdvance,        // BON2 - +4 C, cult advance action
+		game.BonusCard6Coins,             // BON3 - 6 coins income
+		game.BonusCardShipping,           // BON4 - +3 PW, 1 ship for round
+		game.BonusCardWorkerPower,        // BON5 - +1 W, +3 PW
+		game.BonusCardStrongholdSanctuary, // BON6 - +2 W, pass-vp:SH/SA
+		game.BonusCardTradingHouseVP,     // BON7 - +1 W, pass-vp:TP
+		game.BonusCardPriest,             // BON8 - +1 P income
+		game.BonusCardDwellingVP,         // BON9 - +2 C, pass-vp:D
+		game.BonusCardShippingVP,         // BON10 - +3 PW, pass-vp:shipping level
+	}
+
+	// If no bonus cards were removed, use all
+	if len(info.RemovedBonuses) == 0 {
+		v.GameState.BonusCards.SetAvailableBonusCards(allBonusCards)
+		return nil
+	}
+
+	// Parse removed bonus card strings to types
+	removedTypes := make(map[game.BonusCardType]bool)
+	for _, bonusStr := range info.RemovedBonuses {
+		bonusType, err := ParseBonusCard(bonusStr)
+		if err != nil {
+			return fmt.Errorf("invalid removed bonus card %s: %v", bonusStr, err)
+		}
+		removedTypes[bonusType] = true
+	}
+
+	// Filter out removed bonus cards
+	availableCards := make([]game.BonusCardType, 0)
+	for _, card := range allBonusCards {
+		if !removedTypes[card] {
+			availableCards = append(availableCards, card)
+		}
+	}
+
+	// Set available bonus cards in game state
+	v.GameState.BonusCards.SetAvailableBonusCards(availableCards)
 	return nil
 }
 
