@@ -4,6 +4,7 @@ go_library(
     name = "game",
     srcs = [
         "action_cult_spade.go",
+        "action_cultists_cult_selection.go",
         "action_darklings_ordination.go",
         "action_halflings_spades.go",
         "action_power_leech.go",
@@ -57,7 +58,8 @@ go_test(
         # - 7-Priest Limit: Income capping (1 test)
         # - Mermaids: River skipping for towns, delayed town formation, stronghold shipping (7 tests)
         # - Halflings Spades: Stronghold 3 spades + optional dwelling (9 tests)
-        # Total: 54 + 7 (Darklings ordination) + 9 (Halflings) = 70 faction integration tests
+        # - Cultists Cult Selection: Power leech bonus cult track selection (4 tests)
+        # Total: 54 + 7 (Darklings ordination) + 9 (Halflings) + 4 (Cultists cult selection) = 74 faction integration tests
         # Note: Alchemists tests (11) already included in the original 54 count
         "faction_integration_test.go",
         # Action tests

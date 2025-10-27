@@ -26,6 +26,7 @@ const (
 	ActionBuildHalflingsDwelling // Build dwelling on transformed hex (Halflings optional)
 	ActionSkipHalflingsDwelling  // Skip optional dwelling (Halflings)
 	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
+	ActionSelectCultistsCultTrack // Select cult track for power leech bonus (Cultists only)
 )
 
 // Action represents a player action
@@ -916,8 +917,8 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 
 	// Advance on cult track (with bonus power at milestones)
 	// Note: It's valid to sacrifice a priest even if you can't advance (no refund)
-	// Position 10 requires a key (checked in AdvancePlayer)
-	gs.CultTracks.AdvancePlayer(a.PlayerID, a.Track, a.SpacesToClimb, player)
+	// Position 10 requires a key (checked in gs.AdvanceCultTrack)
+	gs.AdvanceCultTrack(a.PlayerID, a.Track, a.SpacesToClimb)
 
 	// Record priest sent for scoring tile #5 (Trading House + Priest)
 	if gs.ScoringTiles != nil {

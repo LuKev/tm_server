@@ -33,6 +33,7 @@ type GameState struct {
 	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
 	PendingHalflingsSpades    *PendingHalflingsSpades           // Halflings player who needs to apply 3 stronghold spades
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination // Darklings player who needs to convert workers to priests
+	PendingCultistsCultSelection *PendingCultistsCultSelection // Cultists player who needs to select cult track for power leech bonus
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -70,6 +71,12 @@ type PendingHalflingsSpades struct {
 // PendingDarklingsPriestOrdination represents Darklings player who needs to convert workers to priests
 // Triggered by: Building Stronghold (one-time only, immediate)
 type PendingDarklingsPriestOrdination struct {
+	PlayerID string
+}
+
+// PendingCultistsCultSelection represents Cultists player who needs to select a cult track
+// Triggered by: Power leech bonus (when at least one opponent accepts power)
+type PendingCultistsCultSelection struct {
 	PlayerID string
 }
 
@@ -184,6 +191,43 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 // GetPlayer returns a player by ID
 func (gs *GameState) GetPlayer(playerID string) *Player {
 	return gs.Players[playerID]
+}
+
+// AdvanceCultTrack is a centralized helper for advancing a player on a cult track
+// Handles:
+// - Power gains at milestone positions (3, 5, 7, 10): 1/2/2/3 power
+// - Key requirement for reaching position 10
+// - Position 10 blocking if already occupied by another player
+// - Updates both CultTrackState and Player.CultPositions
+// Returns the number of spaces actually advanced
+func (gs *GameState) AdvanceCultTrack(playerID string, track CultTrack, spaces int) (int, error) {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return 0, fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Sync CultTrackState with player's local position (for tests that set it manually)
+	// Use the HIGHER value to avoid going backwards
+	if player.CultPositions != nil {
+		if localPos, ok := player.CultPositions[track]; ok {
+			cultTrackPos := gs.CultTracks.GetPosition(playerID, track)
+			if localPos > cultTrackPos {
+				// Player's local position is ahead, sync it to CultTrackState
+				gs.CultTracks.PlayerPositions[playerID][track] = localPos
+			}
+		}
+	}
+
+	// Use CultTrackState to advance (handles power gains, keys, position 10)
+	spacesAdvanced, err := gs.CultTracks.AdvancePlayer(playerID, track, spaces, player)
+	if err != nil {
+		return 0, err
+	}
+
+	// Sync player's local cult position (for backward compatibility)
+	player.CultPositions[track] = gs.CultTracks.GetPosition(playerID, track)
+
+	return spacesAdvanced, nil
 }
 
 // SelectTownTile allows a player to select a town tile for their pending town formation

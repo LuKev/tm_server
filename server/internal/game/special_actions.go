@@ -560,16 +560,11 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 
 func (a *SpecialAction) executeAurenCultAdvance(gs *GameState, player *Player) error {
 	// Advance 2 spaces on the chosen cult track
-	currentPos := player.CultPositions[*a.CultTrack]
-	newPos := currentPos + 2
-	if newPos > 10 {
-		newPos = 10
+	// Uses gs.AdvanceCultTrack which handles power gains, keys, and position 10 blocking
+	_, err := gs.AdvanceCultTrack(player.ID, *a.CultTrack, 2)
+	if err != nil {
+		return fmt.Errorf("failed to advance cult track: %w", err)
 	}
-
-	player.CultPositions[*a.CultTrack] = newPos
-
-	// Note: Advanced cult features (power gains per space, key mechanics, space 10 limits) are future enhancements
-	// End-game cult majority bonuses are implemented in final_scoring.go
 
 	return nil
 }

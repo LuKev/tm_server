@@ -794,7 +794,7 @@ func TestCultists_CultAdvanceWhenOneAccepts(t *testing.T) {
 		t.Error("Cultists leech bonus should be resolved")
 	}
 	
-	// Note: Manual cult track selection when multiple opponents accept is a future enhancement
+	// Cult track selection is now implemented and tested below
 }
 
 func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
@@ -940,6 +940,219 @@ func TestCultists_OnlyCultistsGetBonus(t *testing.T) {
 	// Verify no pending bonus was created
 	if gs.PendingCultistsLeech["halflings"] != nil {
 		t.Error("non-Cultists should not have pending leech bonus")
+	}
+}
+
+// ============================================================================
+// CULTISTS CULT TRACK SELECTION TESTS
+// ============================================================================
+
+func TestCultists_CultTrackSelection_OpponentAccepts(t *testing.T) {
+	gs := NewGameState()
+	cultistsFaction := factions.NewCultists()
+	aurenFaction := factions.NewAuren()
+	
+	err := gs.AddPlayer("cultists", cultistsFaction)
+	if err != nil {
+		t.Fatalf("failed to add cultists: %v", err)
+	}
+	err = gs.AddPlayer("auren", aurenFaction)
+	if err != nil {
+		t.Fatalf("failed to add auren: %v", err)
+	}
+	
+	cultistsPlayer := gs.GetPlayer("cultists")
+	aurenPlayer := gs.GetPlayer("auren")
+	
+	// Set up power
+	cultistsPlayer.Resources.Power.Bowl1 = 10
+	aurenPlayer.Resources.Power.Bowl1 = 10
+	aurenPlayer.VictoryPoints = 10
+	
+	// Initialize cult positions
+	cultistsPlayer.CultPositions = make(map[CultTrack]int)
+	cultistsPlayer.CultPositions[CultFire] = 2
+	
+	// Place an Auren dwelling adjacent to where Cultists will build
+	adjacentHex := NewHex(1, 0)
+	gs.Map.GetHex(adjacentHex).Terrain = aurenFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    aurenFaction.GetType(),
+		PlayerID:   "auren",
+		PowerValue: 1,
+	})
+	
+	// Cultists place a dwelling (triggers power leech)
+	cultistHex := NewHex(0, 0)
+	gs.Map.GetHex(cultistHex).Terrain = cultistsFaction.GetHomeTerrain()
+	action := NewTransformAndBuildAction("cultists", cultistHex, true)
+	err = action.Execute(gs)
+	if err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+	
+	// Auren accepts power leech
+	acceptAction := NewAcceptPowerLeechAction("auren", 0)
+	err = acceptAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("accept failed: %v", err)
+	}
+	
+	// Verify pending cult selection was created for Cultists
+	if gs.PendingCultistsCultSelection == nil {
+		t.Fatal("expected pending cult selection for Cultists")
+	}
+	
+	if gs.PendingCultistsCultSelection.PlayerID != "cultists" {
+		t.Errorf("expected cultists, got %s", gs.PendingCultistsCultSelection.PlayerID)
+	}
+	
+	initialFirePos := cultistsPlayer.CultPositions[CultFire]
+	
+	// Cultists selects Fire cult track
+	selectAction := NewSelectCultistsCultTrackAction("cultists", CultFire)
+	err = selectAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("cult selection failed: %v", err)
+	}
+	
+	// Verify cult position advanced
+	if cultistsPlayer.CultPositions[CultFire] != initialFirePos+1 {
+		t.Errorf("expected Fire cult position %d, got %d", initialFirePos+1, cultistsPlayer.CultPositions[CultFire])
+	}
+	
+	// Verify pending state was cleared
+	if gs.PendingCultistsCultSelection != nil {
+		t.Error("pending cult selection should be cleared")
+	}
+}
+
+func TestCultists_CultTrackSelection_AllOpponentsDecline(t *testing.T) {
+	gs := NewGameState()
+	cultistsFaction := factions.NewCultists()
+	aurenFaction := factions.NewAuren()
+	
+	err := gs.AddPlayer("cultists", cultistsFaction)
+	if err != nil {
+		t.Fatalf("failed to add cultists: %v", err)
+	}
+	err = gs.AddPlayer("auren", aurenFaction)
+	if err != nil {
+		t.Fatalf("failed to add auren: %v", err)
+	}
+	
+	cultistsPlayer := gs.GetPlayer("cultists")
+	aurenPlayer := gs.GetPlayer("auren")
+	
+	// Set up power
+	cultistsPlayer.Resources.Power.Bowl1 = 10
+	aurenPlayer.Resources.Power.Bowl1 = 10
+	aurenPlayer.VictoryPoints = 10
+	
+	// Initialize cult positions
+	cultistsPlayer.CultPositions = make(map[CultTrack]int)
+	
+	// Place an Auren dwelling adjacent to where Cultists will build
+	adjacentHex := NewHex(1, 0)
+	gs.Map.GetHex(adjacentHex).Terrain = aurenFaction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    aurenFaction.GetType(),
+		PlayerID:   "auren",
+		PowerValue: 1,
+	})
+	
+	// Cultists place a dwelling (triggers power leech)
+	cultistHex := NewHex(0, 0)
+	gs.Map.GetHex(cultistHex).Terrain = cultistsFaction.GetHomeTerrain()
+	action := NewTransformAndBuildAction("cultists", cultistHex, true)
+	err = action.Execute(gs)
+	if err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+	
+	initialPower := cultistsPlayer.Resources.Power.Bowl1
+	
+	// Auren declines power leech
+	declineAction := NewDeclinePowerLeechAction("auren", 0)
+	err = declineAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("decline failed: %v", err)
+	}
+	
+	// Verify NO pending cult selection (Cultists gains power instead)
+	if gs.PendingCultistsCultSelection != nil {
+		t.Error("should not have pending cult selection when all decline")
+	}
+	
+	// Verify Cultists gained 1 power (not cult advance)
+	if cultistsPlayer.Resources.Power.Bowl1 != initialPower+1 {
+		t.Errorf("expected %d power, got %d", initialPower+1, cultistsPlayer.Resources.Power.Bowl1)
+	}
+}
+
+func TestCultists_CultTrackSelection_CannotSelectAtPosition10(t *testing.T) {
+	gs := NewGameState()
+	cultistsFaction := factions.NewCultists()
+	err := gs.AddPlayer("cultists", cultistsFaction)
+	if err != nil {
+		t.Fatalf("failed to add cultists: %v", err)
+	}
+	cultistsPlayer := gs.GetPlayer("cultists")
+	
+	// Set up cult position at maximum
+	cultistsPlayer.CultPositions = make(map[CultTrack]int)
+	cultistsPlayer.CultPositions[CultFire] = 10
+	cultistsPlayer.CultPositions[CultWater] = 5
+	
+	// Create pending cult selection
+	gs.PendingCultistsCultSelection = &PendingCultistsCultSelection{
+		PlayerID: "cultists",
+	}
+	
+	// Try to select Fire (at position 10)
+	selectAction := NewSelectCultistsCultTrackAction("cultists", CultFire)
+	err = selectAction.Validate(gs)
+	if err == nil {
+		t.Error("expected error when selecting cult track at position 10")
+	}
+	
+	// Try to select Water (at position 5) - should work
+	selectAction2 := NewSelectCultistsCultTrackAction("cultists", CultWater)
+	err = selectAction2.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected success for Water cult track: %v", err)
+	}
+	
+	if cultistsPlayer.CultPositions[CultWater] != 6 {
+		t.Errorf("expected Water position 6, got %d", cultistsPlayer.CultPositions[CultWater])
+	}
+}
+
+func TestCultists_CultTrackSelection_OnlyForCultists(t *testing.T) {
+	gs := NewGameState()
+	halflingsFaction := factions.NewHalflings()
+	err := gs.AddPlayer("halflings", halflingsFaction)
+	if err != nil {
+		t.Fatalf("failed to add halflings: %v", err)
+	}
+	halflingsPlayer := gs.GetPlayer("halflings")
+	
+	// Set up cult positions
+	halflingsPlayer.CultPositions = make(map[CultTrack]int)
+	halflingsPlayer.CultPositions[CultFire] = 2
+	
+	// Incorrectly create pending cult selection for non-Cultists
+	gs.PendingCultistsCultSelection = &PendingCultistsCultSelection{
+		PlayerID: "halflings",
+	}
+	
+	// Try to select cult track as non-Cultists
+	selectAction := NewSelectCultistsCultTrackAction("halflings", CultFire)
+	err = selectAction.Validate(gs)
+	if err == nil {
+		t.Error("expected error when non-Cultists tries to use cult selection")
 	}
 }
 

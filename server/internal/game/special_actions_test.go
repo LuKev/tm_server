@@ -68,6 +68,9 @@ func TestAurenCultAdvance_MaxPosition(t *testing.T) {
 	// Set cult position near max
 	player.CultPositions[CultWater] = 9
 	
+	// Give player a key to reach position 10
+	player.Keys = 1
+	
 	// Use Auren cult advance special action
 	action := NewAurenCultAdvanceAction("player1", CultWater)
 	

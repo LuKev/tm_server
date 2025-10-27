@@ -310,7 +310,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 		t.Errorf("expected %d power in Bowl2, got %d", expectedBowl2, player.Resources.Power.Bowl2)
 	}
 
-	// Advance to position 10 (should get 2 bonus at pos 7 + 3 bonus at pos 10 = 5 total, no base power)
+	// Advance to position 10 (should get 2 bonus at pos 7 + 3 bonus at pos 10)
 	advanced, err = gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
