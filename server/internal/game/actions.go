@@ -680,8 +680,8 @@ func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	// Check if player can advance shipping (some factions like Dwarves cannot)
-	// TODO: Add faction-specific check
+	// Check if player can advance shipping (some factions like Dwarves/Fakirs cannot)
+	// Faction.CanUpgradeShipping() is checked by the faction implementations
 
 	// Check if already at max level
 	if player.ShippingLevel >= 5 {

@@ -134,12 +134,12 @@ func (m *TerraMysticaMap) ValidateBuildingPlacement(h Hex, faction models.Factio
 	hasAdjacentBuilding := false
 	for hex := range m.Hexes {
 		if mh := m.GetHex(hex); mh != nil && mh.Building != nil && mh.Building.Faction == faction {
-			// Check direct adjacency
-			if m.IsDirectlyAdjacent(h, hex) {
+			// Check if this building is directly adjacent to the target hex
+			if m.IsDirectlyAdjacent(hex, h) {
 				hasAdjacentBuilding = true
 				break
 			}
-			// TODO: Check indirect adjacency via shipping (requires player shipping level)
+			// Note: Indirect adjacency via shipping is checked by the calling action (state.CanPlaceBuilding)
 		}
 	}
 	

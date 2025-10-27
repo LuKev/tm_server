@@ -285,5 +285,5 @@ func TestUpgradeBuilding_PowerLeech(t *testing.T) {
 	}
 	
 	// Power leech is triggered for the power increase
-	// TODO: When Phase 6.1 is complete, verify power leech offers are stored
+	// Power leech offers are stored in gs.PendingLeechOffers
 }

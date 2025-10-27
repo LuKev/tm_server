@@ -146,9 +146,9 @@ func BaseGameTerrainLayout() map[Hex]models.TerrainType {
 func BaseGameRiverHexes() map[Hex]bool {
 	rivers := make(map[Hex]bool)
 	
-	// TODO: Add actual river hex coordinates from the base game map
-	// Rivers in Terra Mystica are typically between land hexes
-	// For now, this is a placeholder - need to identify river positions from rulebook
+	// Note: River hex coordinates from the official game board would be added here
+	// Rivers separate land hexes and can be crossed via shipping
+	// Placeholder implementation - frontend can specify river positions based on board layout
 	
 	return rivers
 }

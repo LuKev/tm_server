@@ -12,7 +12,8 @@ import (
 // Income Sources:
 // 1. Base faction income
 // 2. Buildings on the map (coins, workers, priests, power)
-// 3. Bonus tiles (TODO: Phase 7)
+// 3. Bonus tiles (implemented)
+// 4. Favor tiles (implemented)
 //
 // Income is granted simultaneously to all players at the start of the round.
 

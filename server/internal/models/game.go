@@ -27,10 +27,10 @@ type PlayerState struct {
 }
 
 // RoundState stores current round info
-
+// Note: This is a simplified model. The full game engine state (game.GameState)
+// tracks scoring tiles and bonus cards in separate detailed structures.
 type RoundState struct {
 	Round int `json:"round"` // 1..6
-	// TODO: scoring tiles, bonus tiles ref ids later
 }
 
 // GameState is the authoritative state stored on the server

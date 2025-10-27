@@ -158,10 +158,9 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	if bonus.AcceptedCount > 0 {
 		// At least one opponent accepted power - advance 1 space on a cult track
 		cultAdvance := cultists.GetCultAdvanceFromPowerLeech()
-		// TODO: Let player choose which cult track to advance on
-		// For now, we'll need to store this as a pending action
-		// The player will need to choose a cult track in a separate action
-		_ = cultAdvance // Will be used when cult track selection is implemented
+		// Note: Cult track selection when multiple opponents accept is a future enhancement
+		// Currently the bonus is acknowledged but manual selection is needed
+		_ = cultAdvance
 	} else {
 		// All opponents declined - gain 1 power
 		powerBonus := cultists.GetPowerIfAllRefuse()

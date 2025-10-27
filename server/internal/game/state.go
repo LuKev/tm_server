@@ -253,7 +253,7 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 		}
 	}
 
-	// TODO: Check for special abilities (Witches flying, Fakirs carpet, Dwarves tunneling)
+	// Special abilities (Witches flying, Fakirs carpet, Dwarves tunneling) are handled by special actions
 
 	return false
 }
@@ -459,7 +459,7 @@ func (gs *GameState) StartNewRound() {
 // StartIncomePhase transitions to the income phase
 func (gs *GameState) StartIncomePhase() {
 	gs.Phase = PhaseIncome
-	// TODO: Grant income to all players (implemented in income.go)
+	// Income is granted by calling GrantIncome() for each player
 }
 
 // StartActionPhase transitions to the action phase
@@ -471,7 +471,7 @@ func (gs *GameState) StartActionPhase() {
 // StartCleanupPhase transitions to the cleanup phase
 func (gs *GameState) StartCleanupPhase() {
 	gs.Phase = PhaseCleanup
-	// TODO: Execute cleanup logic (implemented in cleanup.go)
+	// Cleanup logic executed by calling ExecuteCleanupPhase()
 	// - Cult track rewards
 	// - Add coins to bonus tiles
 	// - Check for game end
@@ -480,7 +480,7 @@ func (gs *GameState) StartCleanupPhase() {
 // EndGame transitions to the end game phase
 func (gs *GameState) EndGame() {
 	gs.Phase = PhaseEnd
-	// TODO: Calculate final scores (implemented in scoring.go)
+	// Final scores calculated by calling CalculateFinalScores()
 }
 
 // AllPlayersPassed checks if all players have passed

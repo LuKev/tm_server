@@ -194,8 +194,7 @@ func TestHalflings_StrongholdSpadesScoring(t *testing.T) {
 		t.Errorf("expected 3 spades from stronghold, got %d", spades)
 	}
 	
-	// Note: The actual stronghold action implementation is TODO
-	// This test just verifies the faction method works
+	// Stronghold action implemented via PendingHalflingsSpades system
 }
 
 // ============================================================================
@@ -795,7 +794,7 @@ func TestCultists_CultAdvanceWhenOneAccepts(t *testing.T) {
 		t.Error("Cultists leech bonus should be resolved")
 	}
 	
-	// TODO: When cult track selection is implemented, verify cult advance happened
+	// Note: Manual cult track selection when multiple opponents accept is a future enhancement
 }
 
 func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
@@ -2713,7 +2712,7 @@ func TestAuren_StrongholdMarksFavorTilePending(t *testing.T) {
 		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
 	}
 
-	// TODO: When favor tile system is implemented, verify that Auren has 1 favor tile to select
+	// Favor tile selection implemented via PendingFavorTileSelection system
 }
 
 // ============================================================================

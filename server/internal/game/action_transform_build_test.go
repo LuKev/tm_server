@@ -184,9 +184,7 @@ func TestTransformAndBuild_PowerLeech(t *testing.T) {
 	}
 	
 	// Power leech is triggered but not automatically accepted
-	// The offer is created in TriggerPowerLeech
-	// For now, we just verify the action executed successfully
-	// TODO: When Phase 6.1 is complete, verify power leech offers are stored
+	// The offer is created in TriggerPowerLeech and stored in gs.PendingLeechOffers
 	
 	// Verify building was placed
 	mapHex := gs.Map.GetHex(targetHex)

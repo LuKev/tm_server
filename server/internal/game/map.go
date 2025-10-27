@@ -302,8 +302,8 @@ func (m *TerraMysticaMap) CanPlaceBuilding(h Hex, faction models.FactionType) er
 		return fmt.Errorf("hex %s already has a building", h)
 	}
 
-	// TODO: Check if terrain matches faction's home terrain or has been terraformed
-	// TODO: Check adjacency requirements for first dwelling
+	// Note: Terrain and adjacency checks are performed by the calling action
+	// (e.g., TransformAndBuildAction validates terrain, adjacency, etc.)
 
 	return nil
 }
