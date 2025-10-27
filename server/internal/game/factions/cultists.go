@@ -38,6 +38,11 @@ func NewCultists() *Cultists {
 	}
 }
 
+// GetStartingCultPositions returns Cultists starting cult track positions
+func (f *Cultists) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 1, Water: 0, Earth: 1, Air: 0}
+}
+
 // GetSanctuaryCost returns the expensive sanctuary cost for Cultists
 func (f *Cultists) GetSanctuaryCost() Cost {
 	return Cost{

@@ -40,6 +40,11 @@ func NewChaosMagicians() *ChaosMagicians {
 	}
 }
 
+// GetStartingCultPositions returns Chaos Magicians starting cult track positions
+func (f *ChaosMagicians) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 2, Water: 0, Earth: 0, Air: 0}
+}
+
 // GetSanctuaryCost returns the expensive sanctuary cost for Chaos Magicians
 func (f *ChaosMagicians) GetSanctuaryCost() Cost {
 	return Cost{

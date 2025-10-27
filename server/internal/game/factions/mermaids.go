@@ -39,6 +39,11 @@ func NewMermaids() *Mermaids {
 	}
 }
 
+// GetStartingCultPositions returns Mermaids starting cult track positions
+func (f *Mermaids) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 0, Water: 2, Earth: 0, Air: 0}
+}
+
 // GetSanctuaryCost returns the expensive sanctuary cost for Mermaids
 func (f *Mermaids) GetSanctuaryCost() Cost {
 	return Cost{

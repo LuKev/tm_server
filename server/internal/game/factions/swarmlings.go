@@ -38,6 +38,11 @@ func NewSwarmlings() *Swarmlings {
 	}
 }
 
+// GetStartingCultPositions returns Swarmlings starting cult track positions
+func (f *Swarmlings) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 1, Water: 1, Earth: 1, Air: 1}
+}
+
 // GetDwellingCost returns the expensive dwelling cost for Swarmlings
 func (f *Swarmlings) GetDwellingCost() Cost {
 	return Cost{

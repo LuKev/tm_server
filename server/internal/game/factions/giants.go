@@ -39,6 +39,11 @@ func NewGiants() *Giants {
 	}
 }
 
+// GetStartingCultPositions returns Giants starting cult track positions
+func (f *Giants) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 1, Water: 0, Earth: 0, Air: 1}
+}
+
 // GetTerraformCost overrides the base method
 // Giants always pay exactly 2 spades (regardless of terrain distance)
 // NOTE: Phase 6.2 (Action System) must use this for Giants

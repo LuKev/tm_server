@@ -36,6 +36,11 @@ func NewAlchemists() *Alchemists {
 	}
 }
 
+// GetStartingCultPositions returns Alchemists starting cult track positions
+func (f *Alchemists) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 1, Water: 1, Earth: 0, Air: 0}
+}
+
 // HasSpecialAbility returns true for conversion efficiency
 func (f *Alchemists) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityConversionEfficiency

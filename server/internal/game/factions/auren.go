@@ -40,6 +40,11 @@ func NewAuren() *Auren {
 	}
 }
 
+// GetStartingCultPositions returns Auren starting cult track positions
+func (f *Auren) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 0, Water: 1, Earth: 0, Air: 1}
+}
+
 // GetSanctuaryCost returns the Auren's expensive sanctuary cost
 func (f *Auren) GetSanctuaryCost() Cost {
 	return Cost{

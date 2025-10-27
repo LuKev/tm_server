@@ -40,6 +40,11 @@ func NewFakirs() *Fakirs {
 	}
 }
 
+// GetStartingCultPositions returns Fakirs starting cult track positions
+func (f *Fakirs) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 1, Water: 0, Earth: 0, Air: 1}
+}
+
 // GetStrongholdCost returns the expensive stronghold cost for Fakirs
 func (f *Fakirs) GetStrongholdCost() Cost {
 	return Cost{

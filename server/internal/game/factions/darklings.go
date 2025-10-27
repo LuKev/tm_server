@@ -39,6 +39,11 @@ func NewDarklings() *Darklings {
 	}
 }
 
+// GetStartingCultPositions returns Darklings starting cult track positions
+func (f *Darklings) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 0, Water: 1, Earth: 1, Air: 0}
+}
+
 // GetSanctuaryCost returns the Darklings' expensive sanctuary cost
 func (f *Darklings) GetSanctuaryCost() Cost {
 	return Cost{
@@ -71,22 +76,22 @@ func (f *Darklings) CanUsePriestOrdination() bool {
 
 // UsePriestOrdination trades workers for priests (0-3 workers)
 // Returns the number of priests gained
-// Player can choose 0 to skip using the ability
+// Player can choose 0 to decline the conversion, but ability is still used up
 func (f *Darklings) UsePriestOrdination(workersToTrade int) (int, error) {
 	if !f.hasStronghold {
 		return 0, fmt.Errorf("must build stronghold before using priest ordination")
 	}
-	
+
 	if f.hasUsedPriestOrdination {
 		return 0, fmt.Errorf("priest ordination already used")
 	}
-	
+
 	if workersToTrade < 0 || workersToTrade > 3 {
 		return 0, fmt.Errorf("can only trade 0-3 workers")
 	}
-	
+
 	f.hasUsedPriestOrdination = true
-	
+
 	// 1 Worker = 1 Priest
 	return workersToTrade, nil
 }

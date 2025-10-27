@@ -121,7 +121,7 @@ func TestDarklings_PriestOrdinationLimits(t *testing.T) {
 		{"1 worker valid", 1, false},
 		{"2 workers valid", 2, false},
 		{"3 workers valid", 3, false},
-		{"0 workers invalid", 0, true},
+		{"0 workers valid (decline conversion)", 0, false},
 		{"4 workers invalid", 4, true},
 		{"5 workers invalid", 5, true},
 	}

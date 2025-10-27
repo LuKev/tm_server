@@ -35,6 +35,11 @@ func NewDwarves() *Dwarves {
 	}
 }
 
+// GetStartingCultPositions returns Dwarves starting cult track positions
+func (f *Dwarves) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 0, Water: 0, Earth: 2, Air: 0}
+}
+
 // GetShippingCost overrides the base method
 // Dwarves cannot increase shipping (they have no shipping)
 // NOTE: Phase 6.2 (Action System) must prevent Dwarves from taking shipping actions

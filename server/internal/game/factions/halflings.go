@@ -36,6 +36,11 @@ func NewHalflings() *Halflings {
 	}
 }
 
+// GetStartingCultPositions returns Halflings starting cult track positions
+func (f *Halflings) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 0, Water: 0, Earth: 1, Air: 1}
+}
+
 // GetDiggingCost returns the cheaper digging upgrade cost for Halflings
 func (f *Halflings) GetDiggingCost(currentLevel int) Cost {
 	// Halflings pay less for digging upgrades

@@ -40,6 +40,11 @@ func NewNomads() *Nomads {
 	}
 }
 
+// GetStartingCultPositions returns Nomads starting cult track positions
+func (f *Nomads) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 1, Water: 0, Earth: 1, Air: 0}
+}
+
 // HasSpecialAbility returns true for sandstorm
 func (f *Nomads) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilitySandstorm

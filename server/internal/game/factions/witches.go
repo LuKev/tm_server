@@ -37,6 +37,11 @@ func NewWitches() *Witches {
 	}
 }
 
+// GetStartingCultPositions returns Witches starting cult track positions
+func (f *Witches) GetStartingCultPositions() CultPositions {
+	return CultPositions{Fire: 0, Water: 0, Earth: 0, Air: 2}
+}
+
 // HasSpecialAbility returns true for town bonus
 func (f *Witches) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityTownBonus

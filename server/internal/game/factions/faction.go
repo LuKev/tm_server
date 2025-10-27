@@ -10,34 +10,35 @@ type Faction interface {
 	GetType() models.FactionType
 	GetHomeTerrain() models.TerrainType
 	GetStartingResources() Resources
-	
+	GetStartingCultPositions() CultPositions
+
 	// Building costs
 	GetDwellingCost() Cost
 	GetTradingHouseCost() Cost
 	GetTempleCost() Cost
 	GetSanctuaryCost() Cost
 	GetStrongholdCost() Cost
-	
+
 	// Terraform costs (returns workers needed per spade)
 	GetTerraformCost(distance int) int
 	GetTerraformSpades(distance int) int // Returns actual spades used (for scoring)
-	
+
 	// Shipping and digging
 	GetShippingCost(currentLevel int) Cost
 	GetDiggingCost(currentLevel int) Cost
-	
+
 	// Special abilities
 	HasSpecialAbility(ability SpecialAbility) bool
 	CanUseSpecialAction(action string, gameState interface{}) bool
 	ExecuteSpecialAction(action string, gameState interface{}) error
-	
+
 	// Stronghold ability
 	GetStrongholdAbility() string
 	ExecuteStrongholdAbility(gameState interface{}) error
-	
+
 	// Income modifiers
 	ModifyIncome(baseIncome Resources) Resources
-	
+
 	// Action modifiers
 	CanBuildOnWater() bool // For Fakirs, Mermaids
 	CanFly() bool          // For Witches
@@ -60,6 +61,14 @@ type Resources struct {
 	Power1  int // Power in bowl 1
 	Power2  int // Power in bowl 2
 	Power3  int // Power in bowl 3
+}
+
+// CultPositions represents starting positions on cult tracks
+type CultPositions struct {
+	Fire  int
+	Water int
+	Earth int
+	Air   int
 }
 
 // Cost represents the cost of an action
@@ -166,6 +175,11 @@ func (f *BaseFaction) GetHomeTerrain() models.TerrainType {
 
 func (f *BaseFaction) GetStartingResources() Resources {
 	return f.StartingRes
+}
+
+func (f *BaseFaction) GetStartingCultPositions() CultPositions {
+	// Default: no starting cult positions (Engineers only)
+	return CultPositions{Fire: 0, Water: 0, Earth: 0, Air: 0}
 }
 
 func (f *BaseFaction) GetDwellingCost() Cost {
