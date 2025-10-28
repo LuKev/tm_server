@@ -164,6 +164,19 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 	}
 
+	// Debug: show cult tracks at entry 59
+	if v.CurrentEntry == 59 {
+		if player := v.GameState.GetPlayer("Darklings"); player != nil {
+			fmt.Printf("DEBUG: Entry 59 - Darklings BEFORE action:\n")
+			fmt.Printf("  Cult tracks: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
+				player.CultPositions[game.CultFire], player.CultPositions[game.CultWater],
+				player.CultPositions[game.CultEarth], player.CultPositions[game.CultAir])
+			fmt.Printf("  Expected after: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
+				entry.CultTracks.Fire, entry.CultTracks.Water, entry.CultTracks.Earth, entry.CultTracks.Air)
+			fmt.Printf("  Action: %s\n", entry.Action)
+		}
+	}
+
 	// First, try to convert and execute the action for this entry
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {
@@ -199,6 +212,18 @@ func (v *GameValidator) ValidateNextEntry() error {
 			fmt.Printf("DEBUG: Entry 48 - Engineers AFTER action:\n")
 			fmt.Printf("  Power bowls: %d/%d/%d\n", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
 			fmt.Printf("  Expected: %d/%d/%d\n", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
+		}
+	}
+
+	// Debug: show cult tracks at entry 59 AFTER action
+	if v.CurrentEntry == 59 {
+		if player := v.GameState.GetPlayer("Darklings"); player != nil {
+			fmt.Printf("DEBUG: Entry 59 - Darklings AFTER action:\n")
+			fmt.Printf("  Cult tracks: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
+				player.CultPositions[game.CultFire], player.CultPositions[game.CultWater],
+				player.CultPositions[game.CultEarth], player.CultPositions[game.CultAir])
+			fmt.Printf("  Expected: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
+				entry.CultTracks.Fire, entry.CultTracks.Water, entry.CultTracks.Earth, entry.CultTracks.Air)
 		}
 	}
 

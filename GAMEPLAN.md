@@ -9,17 +9,14 @@
 
 ## Current Bug Being Investigated
 
-**Location**: Entry 59 (Round 1, turn 2)
-**Faction**: Darklings
-**Action**: `upgrade E5 to TE. +FAV11`
+**Location**: Entries 148-151 (Round 3 income phase)
+**Issue**: Power bowl distribution mismatch during income phase
+- Expected power states show power split across bowls (e.g., 0/2/10)
+- Actual power states have all power in bowl 3 (e.g., 0/0/12)
+- **Symptom**: 114 validation errors (reduced from 127)
+- **Next steps**: Investigate power cycling during income phase
 
-**Issue**: Cult track advancement from favor tile not being applied
-- Expected: Earth cult at 2 (after +1 from FAV11)
-- Actual: Earth cult at 1 (favor tile cult advancement not applied)
-- **Symptom**: 127 validation errors accumulated, preventing progress to entry 158
-- **Next steps**: Investigate SelectFavorTileAction to ensure cult advancement happens when taking a tile
-
-**Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` to track power bowls and resources.
+**Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` and `favor.go` to track cult advancement and power states.
 
 ## Bugs Fixed So Far
 
@@ -55,6 +52,13 @@
 - **Fix**: Added code in `server/internal/replay/action_converter.go` to spend power from bowl 3 after burning and before marking the action as used
 - **Location**: Entry 48 in test file, Lines 319-323 in action_converter.go
 - **Result**: Reduced validation errors from 129 to 127
+
+### Bug #10: Cult Track Not Synced When Taking Favor Tiles
+- **Issue**: When taking favor tiles (e.g., "+FAV11" which grants +1 Earth cult), the cult track position was updated in CultTrackState but not synced to player.CultPositions
+- **Root Cause**: `ApplyFavorTileImmediate` was calling `gs.CultTracks.AdvancePlayer` directly instead of the wrapper function `gs.AdvanceCultTrack` which properly syncs both data structures
+- **Fix**: Changed `favor.go` line 270 to call `gs.AdvanceCultTrack` instead of `gs.CultTracks.AdvancePlayer`
+- **Location**: Entry 59 in test file, `server/internal/game/favor.go` line 270
+- **Result**: Reduced validation errors from 127 to 114 (fixed all cult track mismatches)
 
 ### Other Fixes
 - Terrain color parsing improvements

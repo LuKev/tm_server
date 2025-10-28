@@ -195,6 +195,9 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 	// If there's a favor tile specified, this is a compound action:
 	// upgrade + select favor tile. Execute both immediately.
 	if favorTileStr, hasFavorTile := params["favor_tile"]; hasFavorTile {
+		fmt.Printf("DEBUG: Compound upgrade+favor action for %s: upgrade to %s, then take %s\n",
+			playerID, buildingStr, favorTileStr)
+
 		// Execute upgrade first
 		if err := upgradeAction.Validate(gs); err != nil {
 			return nil, fmt.Errorf("upgrade validation failed: %v", err)
@@ -202,12 +205,14 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		if err := upgradeAction.Execute(gs); err != nil {
 			return nil, fmt.Errorf("upgrade execution failed: %v", err)
 		}
+		fmt.Printf("DEBUG: Upgrade executed, PendingFavorTileSelection: %v\n", gs.PendingFavorTileSelection != nil)
 
 		// Now create and execute favor tile selection
 		favorTileType, err := ParseFavorTile(favorTileStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
 		}
+		fmt.Printf("DEBUG: Parsed favor tile %s as type %v\n", favorTileStr, favorTileType)
 
 		favorAction := &game.SelectFavorTileAction{
 			BaseAction: game.BaseAction{
@@ -220,9 +225,11 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		if err := favorAction.Validate(gs); err != nil {
 			return nil, fmt.Errorf("favor tile validation failed: %v", err)
 		}
+		fmt.Printf("DEBUG: Favor tile action validated, now executing\n")
 		if err := favorAction.Execute(gs); err != nil {
 			return nil, fmt.Errorf("favor tile execution failed: %v", err)
 		}
+		fmt.Printf("DEBUG: Favor tile action executed successfully\n")
 
 		// Both actions executed, return nil to skip normal execution
 		return nil, nil

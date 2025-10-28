@@ -259,9 +259,17 @@ func ApplyFavorTileImmediate(gs *GameState, playerID string, tileType FavorTileT
 		return fmt.Errorf("invalid favor tile type: %v", tileType)
 	}
 
+	fmt.Printf("DEBUG ApplyFavorTileImmediate: %s taking tile %v (type %d)\n", playerID, tileType, tileType)
+	fmt.Printf("DEBUG: Tile info: CultTrack=%v, CultAdvance=%d\n", tile.CultTrack, tile.CultAdvance)
+
 	// Apply cult track advancement
 	if tile.CultAdvance > 0 {
-		gs.CultTracks.AdvancePlayer(playerID, tile.CultTrack, tile.CultAdvance, player)
+		fmt.Printf("DEBUG: Advancing %s on %v by %d positions\n", playerID, tile.CultTrack, tile.CultAdvance)
+		beforePos := player.CultPositions[tile.CultTrack]
+		// Use AdvanceCultTrack (not CultTracks.AdvancePlayer) to properly sync player.CultPositions
+		gs.AdvanceCultTrack(playerID, tile.CultTrack, tile.CultAdvance)
+		afterPos := player.CultPositions[tile.CultTrack]
+		fmt.Printf("DEBUG: Cult position changed from %d to %d\n", beforePos, afterPos)
 	}
 
 	// Note: Ongoing abilities are applied during income phase or relevant actions
