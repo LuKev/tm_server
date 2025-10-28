@@ -145,6 +145,15 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 	}
 
+	// Debug: show resources for engineers at entry 58 and 132
+	if v.CurrentEntry == 58 || v.CurrentEntry == 132 {
+		if player := v.GameState.GetPlayer("Engineers"); player != nil {
+			fmt.Printf("DEBUG: Entry %d - Engineers resources before action: %d C, %d W, %d P\n",
+				v.CurrentEntry, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
+			fmt.Printf("DEBUG: Entry %d action: %s\n", v.CurrentEntry, entry.Action)
+		}
+	}
+
 	// First, try to convert and execute the action for this entry
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {

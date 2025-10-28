@@ -154,19 +154,19 @@ func ParseBuildingType(buildingStr string) (models.BuildingType, error) {
 func ParseTerrainColor(color string) (models.TerrainType, error) {
 	switch color {
 	case "gray", "grey":
-		return models.TerrainDesert, nil
+		return models.TerrainMountain, nil // Gray = Mountain (Engineers, Dwarves)
 	case "blue":
-		return models.TerrainLake, nil
+		return models.TerrainLake, nil // Blue = Lake (Mermaids)
 	case "brown":
-		return models.TerrainSwamp, nil
+		return models.TerrainPlains, nil // Brown = Plains (Halflings)
 	case "green":
-		return models.TerrainForest, nil
+		return models.TerrainForest, nil // Green = Forest (Witches)
 	case "yellow":
-		return models.TerrainPlains, nil
+		return models.TerrainDesert, nil // Yellow = Desert (Fakirs, Nomads)
 	case "red":
-		return models.TerrainWasteland, nil
+		return models.TerrainWasteland, nil // Red = Wasteland (Giants, Chaos Magicians)
 	case "black":
-		return models.TerrainSwamp, nil // Darklings/Alchemists also use swamp
+		return models.TerrainSwamp, nil // Black = Swamp (Darklings, Alchemists)
 	default:
 		return 0, fmt.Errorf("unknown terrain color: %s", color)
 	}

@@ -1,0 +1,350 @@
+Default game options	show history
+option strict-leech	show history
+option strict-darkling-sh	show history
+option strict-chaosmagician-sh	show history
+option errata-cultist-power	show history
+option mini-expansion-1	show history
+option shipping-bonus	show history
+option email-notify	show history
+option maintain-player-order	show history
+Randomize setup	show history
+Round 1 scoring: SCORE6, TP >> 3	show history
+Round 2 scoring: SCORE3, D >> 2	show history
+Round 3 scoring: SCORE7, SA/SH >> 5	show history
+Round 4 scoring: SCORE5, D >> 2	show history
+Round 5 scoring: SCORE8, TP >> 3	show history
+Round 6 scoring: SCORE2, TOWN >> 5	show history
+Removing tile BON3	show history
+Removing tile BON2	show history
+Removing tile BON4	show history
+Player 1: Xevoc	show history
+Player 2: Juho	show history
+Player 3: Cephalofair	show history
+Player 4: eunck	show history
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		setup
+chaosmagicians		20 VP		15 C		4 W		0 P		5/7/0 PW		2/0/0/0		setup
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build E10
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build F4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build G4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build B4
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build C4
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build G5
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build F3
+chaosmagicians		20 VP		15 C		4 W		0 P		5/7/0 PW		2/0/0/0		build D7
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		Pass BON6
+chaosmagicians		20 VP		15 C		4 W		0 P		5/7/0 PW		2/0/0/0		Pass BON1
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		Pass BON5
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON8
+Round 1 income	show history
+darklings		20 VP		15 C	+3	4 W	+1	2 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+witches		20 VP		15 C	+4	7 W		0 P	+3	2/10/0 PW		0/0/0/2		other_income_for_faction
+chaosmagicians		20 VP	+2	17 C	+2	6 W		0 P		5/7/0 PW		2/0/0/0		other_income_for_faction
+nomads		20 VP		15 C	+6	8 W		0 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+Round 1, turn 1	show history
+darklings	+3	23 VP	-3	12 C	-2	2 W		2 P		5/7/0 PW		0/1/1/0	1 	upgrade E10 to TP
+witches	+3	23 VP	-3	12 C	-2	5 W		0 P		2/10/0 PW		0/0/0/2	1 	upgrade F4 to TP
+chaosmagicians		20 VP		17 C		6 W		0 P	+1	4/8/0 PW		2/0/0/0		Leech 1 from darklings
+chaosmagicians	+3	23 VP	-3	14 C	-2	4 W		0 P		4/8/0 PW		2/0/0/0	2 	upgrade D7 to TP
+darklings	-1	22 VP		12 C		2 W		2 P	+2	3/9/0 PW		0/1/1/0		Leech 2 from chaosmagicians
+nomads		20 VP		15 C		8 W		0 P	+1	4/8/0 PW		1/0/1/0		Leech 1 from witches
+nomads		20 VP	+7	22 C		8 W		0 P	-8	8/0/0 PW		1/0/1/0		burn 4. action ACT4
+Round 1, turn 2	show history
+darklings		22 VP		12 C		2 W	-1	1 P	+1	2/10/0 PW	+3	0/4/1/0		send p to WATER
+witches		23 VP		12 C		5 W	+1	1 P	-6	5/4/0 PW		0/0/0/2		burn 3. action ACT2
+chaosmagicians		23 VP	-5	9 C	-2	2 W		0 P		4/8/0 PW	+3	2/2/1/0	2 	upgrade D7 to TE. +FAV11. +FAV6
+darklings	-1	21 VP		12 C		2 W		1 P	+2	0/12/0 PW		0/4/1/0		Leech 2 from chaosmagicians
+nomads	+3	23 VP	-3	19 C	-2	6 W		0 P		8/0/0 PW		1/0/1/0	1 	upgrade G4 to TP
+darklings		21 VP		12 C		2 W		1 P	+1	0/11/1 PW		0/4/1/0		Leech 1 from nomads
+Round 1, turn 3	show history
+darklings		21 VP	-5	7 C	-2	0 W		1 P		0/11/1 PW	+1	0/4/2/0	2 	upgrade E10 to TE. +FAV11
+witches		23 VP	-5	7 C	-2	3 W		1 P		5/4/0 PW	+1	0/0/1/2	1 	upgrade F4 to TE. +FAV11
+nomads		23 VP		19 C		6 W		0 P	+1	7/1/0 PW		1/0/1/0		Leech 1 from witches
+chaosmagicians	-1	22 VP		9 C		2 W		0 P	+2	2/10/0 PW		2/2/1/0		Leech 2 from darklings
+chaosmagicians	+2	24 VP	-2	7 C	-1	1 W		0 P		2/10/0 PW		2/2/1/0		action BON1. build C5
+nomads	+3	26 VP	-3	16 C	-2	4 W		0 P		7/1/0 PW		1/0/1/0	2 	upgrade F3 to TP
+witches	-1	22 VP		7 C		3 W		1 P	+2	3/6/0 PW		0/0/1/2		Leech 2 from nomads
+Round 1, turn 4	show history
+darklings	+4	25 VP	-2	5 C		0 W	-1	0 P	-6	3/7/0 PW		0/4/2/0	2 	burn 2. convert 3pw to 1w. dig 1. build F5
+nomads	-1	25 VP		16 C		4 W		0 P	+2	5/3/0 PW		1/0/1/0		Leech 2 from darklings
+witches		22 VP		7 C		3 W	-1	0 P	+3	0/9/0 PW	+3	0/0/1/5		send p to AIR
+chaosmagicians		24 VP		7 C		1 W		0 P	+1	1/11/0 PW	+1	2/3/1/0		action FAV6. +WATER
+nomads		25 VP	-8	8 C	-4	0 W		0 P		5/3/0 PW		1/0/1/0	2 	upgrade G4 to SH
+darklings	-1	24 VP		5 C		0 W		0 P	+2	1/9/0 PW		0/4/2/0		Leech 2 from nomads
+Round 1, turn 5	show history
+darklings		24 VP	+1	6 C		0 W		0 P		1/9/0 PW		0/4/2/0		pass BON9
+witches	+3	25 VP	-3	4 C	-2	1 W		0 P		0/9/0 PW		0/0/1/5	1 	upgrade C4 to TP
+nomads		25 VP		8 C		0 W		0 P	+1	4/4/0 PW		1/0/1/0		Leech 1 from witches
+chaosmagicians		24 VP	+1	8 C		1 W		0 P		1/11/0 PW		2/3/1/0		pass BON10
+nomads		25 VP		8 C		0 W		0 P		4/4/0 PW		1/0/1/0		action ACTN. transform E5 to yellow
+Round 1, turn 6	show history
+witches		25 VP		4 C		1 W		0 P		0/9/0 PW		0/0/1/5		pass BON1
+nomads	+4	29 VP	+1	9 C		0 W		0 P		4/4/0 PW		1/0/1/0		pass BON7
+Round 2 income	show history
+darklings		24 VP		6 C		0 W		0 P		1/9/0 PW		0/4/2/0		cult_income_for_faction
+witches		25 VP		4 C		1 W		0 P		0/9/0 PW		0/0/1/5		cult_income_for_faction
+chaosmagicians		24 VP		8 C		1 W		0 P		1/11/0 PW		2/3/1/0		cult_income_for_faction
+nomads		29 VP		9 C		0 W		0 P		4/4/0 PW		1/0/1/0		cult_income_for_faction
+Round 2 income	show history
+darklings		24 VP	+2	8 C	+3	3 W	+1	1 P		1/9/0 PW		0/4/2/0		transform H7 to black. other_income_for_faction
+witches		25 VP	+4	8 C	+1	2 W	+1	1 P	+1	0/8/1 PW		0/0/1/5		other_income_for_faction
+chaosmagicians		24 VP		8 C	+2	3 W	+1	1 P	+3	0/10/2 PW		2/3/1/0		other_income_for_faction
+nomads		29 VP	+2	11 C	+3	3 W		0 P	+3	1/7/0 PW		1/0/1/0		other_income_for_faction
+Round 2, turn 1	show history
+darklings	+4	28 VP	-2	6 C	-1	2 W		1 P		1/9/0 PW		0/4/2/0		build H7
+witches		25 VP	+7	15 C		2 W		1 P	-8	4/2/0 PW		0/0/1/5		burn 3. action ACT4
+chaosmagicians	+2	26 VP	-4	4 C		3 W	-1	0 P		0/10/2 PW		2/3/1/0		advance ship
+nomads	+2	31 VP	-2	9 C	-1	2 W		0 P		1/7/0 PW		1/0/1/0		build E5
+Round 2, turn 2	show history
+darklings	+6	34 VP	-2	4 C	-1	1 W	-1	0 P		1/9/0 PW		0/4/2/0		dig 1. build I10
+witches	+2	27 VP	-4	11 C		2 W	-1	0 P		4/2/0 PW		0/0/1/5		advance ship
+chaosmagicians	+4	30 VP	-2	2 C	-1	2 W		0 P		0/10/2 PW		2/3/1/0	2 	build D6
+witches	-1	26 VP		11 C		2 W		0 P	+2	2/4/0 PW		0/0/1/5		Leech 2 from chaosmagicians
+nomads	+2	33 VP	-2	7 C	-1	1 W		0 P		1/7/0 PW		1/0/1/0		action ACTN. build E4
+Round 2, turn 3	show history
+darklings	+4	38 VP	+1	5 C		1 W		0 P		1/9/0 PW		0/4/2/0		pass BON6
+witches	+4	30 VP	-2	9 C	-1	1 W		0 P		2/4/0 PW		0/0/1/5		action BON1. build E7
+chaosmagicians		30 VP		2 C		2 W		0 P		0/10/2 PW	+1	2/4/1/0		action FAV6. +WATER
+nomads	+2	35 VP	-2	5 C	-1	0 W		0 P		1/7/0 PW		1/0/1/0		build D3
+Round 2, turn 4	show history
+witches	+4	34 VP	-2	7 C	-1	0 W		0 P		2/4/0 PW		0/0/1/5		build G3
+chaosmagicians	+4	34 VP	-2	0 C	-1	1 W		0 P		0/10/2 PW		2/4/1/0		build A12
+nomads	+2	37 VP		5 C		0 W		0 P		1/7/0 PW		1/0/1/0		pass BON9
+Round 2, turn 5	show history
+witches		34 VP	+1	8 C		0 W		0 P		2/4/0 PW		0/0/1/5		pass BON5
+chaosmagicians	+4	38 VP		0 C	-1	0 W		0 P	-12	6/2/0 PW		2/4/1/0	1 	burn 4. convert 2PW to 2C. action ACT5. build E8
+chaosmagicians	+3	41 VP		0 C		0 W		0 P		6/2/0 PW		2/4/1/0		pass BON1
+witches		34 VP		8 C		0 W		0 P	+1	1/5/0 PW		0/0/1/5		Leech 1 from chaosmagicians
+Round 3 income	show history
+darklings		38 VP		5 C		1 W	+1	1 P		1/9/0 PW		0/4/2/0		cult_income_for_faction
+witches		34 VP		8 C		0 W		0 P		1/5/0 PW		0/0/1/5		cult_income_for_faction
+chaosmagicians		41 VP		0 C		0 W	+1	1 P		6/2/0 PW		2/4/1/0		cult_income_for_faction
+nomads		37 VP		5 C		0 W		0 P		1/7/0 PW		1/0/1/0		cult_income_for_faction
+Round 3 income	show history
+darklings		38 VP		5 C	+7	8 W	+1	2 P		1/9/0 PW		0/4/2/0		other_income_for_faction
+witches		34 VP	+2	10 C	+4	4 W	+1	1 P	+4	0/3/3 PW		0/0/1/5		other_income_for_faction
+chaosmagicians		41 VP	+2	2 C	+5	5 W	+1	2 P		6/2/0 PW		2/4/1/0		other_income_for_faction
+nomads		37 VP	+4	9 C	+5	5 W		0 P	+3	0/6/2 PW		1/0/1/0		other_income_for_faction
+Round 3, turn 1	show history
+darklings		38 VP	+7	12 C		8 W		2 P	-8	5/1/0 PW		0/4/2/0		burn 4. action ACT4
+witches		34 VP		10 C		4 W	-1	0 P	+1	0/2/4 PW	+3	3/0/1/5		send p to FIRE
+chaosmagicians		41 VP		2 C		5 W	-1	1 P	+1	5/3/0 PW	+3	2/4/4/0		send p to EARTH
+nomads		37 VP	-2	7 C	-1	4 W		0 P	-8	4/2/0 PW		1/0/1/0	2 	burn 2. action ACT5. build G2
+witches	-1	33 VP		10 C		4 W		0 P	+2	0/0/6 PW		3/0/1/5		Leech 2 from nomads
+Round 3, turn 2	show history
+darklings	+5	43 VP	-10	2 C	-4	4 W		2 P	+2	3/3/0 PW	+1	0/5/2/0	2 	upgrade E10 to SA. +FAV10
+witches	+2	35 VP	-2	8 C	-1	3 W		0 P	-12	6/0/0 PW		3/0/1/5	1 	action ACT6. build B5
+nomads		37 VP		7 C		4 W		0 P	+1	3/3/0 PW		1/0/1/0		Leech 1 from witches
+chaosmagicians	-1	40 VP		2 C		5 W		1 P	+2	3/5/0 PW		2/4/4/0		Leech 2 from darklings
+chaosmagicians		40 VP		2 C		5 W	-1	0 P		3/5/0 PW	+2	2/4/4/2		send p to AIR
+nomads	+9	46 VP	-3	4 C	-2	2 W	+1	1 P		3/3/0 PW		1/0/1/0	2 	upgrade G2 to TP. +TW3
+witches	-1	34 VP		8 C		3 W		0 P	+2	4/2/0 PW		3/0/1/5		Leech 2 from nomads
+Round 3, turn 3	show history
+darklings	+2	45 VP		2 C		4 W	-1	1 P		3/3/0 PW		0/5/2/0		dig 1. transform D8 to black
+witches		34 VP	+2	10 C		3 W		0 P		4/2/0 PW		3/0/1/5		pass BON8
+chaosmagicians		40 VP		2 C		5 W		0 P	+2	1/7/0 PW	+1	2/4/5/2		action FAV6. +EARTH
+nomads	+2	48 VP	-4	0 C		2 W	-1	0 P		3/3/0 PW		1/0/1/0		advance ship
+Round 3, turn 4	show history
+darklings	+2	47 VP		2 C		4 W	-1	0 P		3/3/0 PW		0/5/2/0		dig 1. transform F7 to black
+chaosmagicians		40 VP		2 C		5 W		0 P		1/7/0 PW		2/4/5/2		action BON1. transform B6 to red
+nomads		48 VP		0 C	-2	0 W		0 P	-2	4/1/0 PW		1/0/1/0		burn 1. convert 1pw to 1c. convert 1w to 1c. build I7
+Round 3, turn 5	show history
+darklings	+2	49 VP	-2	0 C	-1	3 W		0 P		3/3/0 PW		0/5/2/0	2 	build D8
+chaosmagicians	-1	39 VP		2 C		5 W		0 P	+2	0/7/1 PW		2/4/5/2		Leech 2 from darklings
+chaosmagicians		39 VP	-2	0 C	-3	2 W		0 P		0/7/1 PW		2/4/5/2	2 	convert 1W to 1C. upgrade D6 to TP
+witches	-1	33 VP		10 C		3 W		0 P	+2	2/4/0 PW		3/0/1/5		Leech 2 from chaosmagicians
+nomads		48 VP		0 C		0 W		0 P		4/1/0 PW		1/0/1/0		action ACTN. transform I8 to yellow
+Round 3, turn 6	show history
+darklings	+2	51 VP		0 C	-3	0 W		0 P		3/3/0 PW		0/5/2/0		convert 2w to 2c. build F7
+chaosmagicians		39 VP	+1	1 C		2 W		0 P		0/7/1 PW		2/4/5/2		pass BON10
+nomads	+5	53 VP		0 C		0 W		0 P		4/1/0 PW		1/0/1/0		pass BON1
+darklings	+4	55 VP		0 C		0 W		0 P		3/3/0 PW		0/5/2/0		pass BON9
+Round 4 income	show history
+witches		33 VP		10 C	+2	5 W		0 P		2/4/0 PW		3/0/1/5		cult_income_for_faction
+chaosmagicians		39 VP		1 C	+1	3 W		0 P		0/7/1 PW		2/4/5/2		cult_income_for_faction
+nomads		53 VP		0 C		0 W		0 P		4/1/0 PW		1/0/1/0		cult_income_for_faction
+darklings		55 VP		0 C		0 W		0 P		3/3/0 PW		0/5/2/0		cult_income_for_faction
+Round 4 income	show history
+witches		33 VP	+2	12 C	+4	9 W	+2	2 P	+1	1/5/0 PW		3/0/1/5		other_income_for_faction
+chaosmagicians		39 VP	+2	3 C	+4	7 W	+1	1 P	+4	0/3/5 PW		2/4/5/2		other_income_for_faction
+nomads		53 VP	+6	6 C	+6	6 W		0 P	+4	0/5/0 PW		1/0/1/0		other_income_for_faction
+darklings		55 VP	+2	2 C	+7	7 W	+2	2 P		3/3/0 PW		0/5/2/0		other_income_for_faction
+Round 4, turn 1	show history
+witches	+4	37 VP	-2	10 C	-1	8 W		2 P		1/5/0 PW		3/0/1/5		build A10
+chaosmagicians		39 VP	+7	10 C		7 W		1 P	-8	4/3/1 PW		2/4/5/2		action ACT4
+nomads	+2	55 VP	-2	4 C	-1	5 W		0 P		0/5/0 PW		1/0/1/0		build I8
+darklings	+6	61 VP	-2	0 C	-1	6 W	-1	1 P		3/3/0 PW		0/5/2/0		dig 1. build E11
+Round 4, turn 2	show history
+witches	+4	41 VP	-2	8 C	-4	4 W		2 P		1/5/0 PW		3/0/1/5	1 	dig 1. build D5
+chaosmagicians		39 VP		10 C		7 W		1 P	+1	3/4/1 PW		2/4/5/2		Leech 1 from witches
+chaosmagicians		39 VP	-8	2 C	-4	3 W		1 P	+2	1/6/1 PW	+3	3/4/5/4	4 	upgrade D7 to SA. +FAV9. +FAV8
+nomads	+2	57 VP	-2	2 C	-1	4 W		0 P		0/5/0 PW		1/0/1/0		action BON1. build B2
+darklings	-3	58 VP		0 C		6 W		1 P	+4	0/5/1 PW		0/5/2/0		Leech 4 from chaosmagicians
+darklings		58 VP		0 C		6 W	-1	0 P	+2	0/3/3 PW	+2	0/7/2/0		send p to WATER
+Round 4, turn 3	show history
+witches	+4	45 VP	-2	6 C	-1	3 W		2 P		1/5/0 PW		3/0/1/5		build C3
+chaosmagicians		39 VP		2 C		3 W		1 P		1/6/1 PW	+1	4/4/5/4		action FAV6. +FIRE
+nomads	+2	59 VP	-2	0 C	-1	3 W		0 P		0/5/0 PW		1/0/1/0	1 	action ACTN. build H5
+darklings	+7	65 VP	+2	2 C		6 W		0 P		0/3/3 PW		0/7/2/0		pass BON7
+witches		45 VP		6 C		3 W		2 P	+1	0/6/0 PW		3/0/1/5		Leech 1 from nomads
+Round 4, turn 4	show history
+witches	+3	48 VP	-4	2 C		3 W	-1	1 P		0/6/0 PW		3/0/1/5		advance ship
+chaosmagicians	+4	43 VP	-2	0 C	-1	2 W		1 P		1/6/1 PW		4/4/5/4		build B6
+nomads		59 VP		0 C		3 W		0 P		0/5/0 PW		1/0/1/0		pass BON9
+Round 4, turn 5	show history
+witches	+4	52 VP	-2	0 C	-1	2 W		1 P		0/6/0 PW		3/0/1/5	1 	build I6
+nomads		59 VP		0 C		3 W		0 P	+1	0/4/1 PW		1/0/1/0		Leech 1 from witches
+chaosmagicians		43 VP		0 C		2 W	-1	0 P	+2	0/6/2 PW	+2	4/4/7/4		send p to EARTH
+Round 4, turn 6	show history
+witches		52 VP		0 C		2 W	-1	0 P	+2	0/4/2 PW	+2	5/0/1/5		send p to FIRE
+chaosmagicians	+3	46 VP	+3	3 C		2 W		0 P	-4	2/6/0 PW		4/4/7/4		convert 2PW to 2C. pass BON6
+Round 4, turn 7	show history
+witches	+4	56 VP		0 C	-1	1 W		0 P	-4	2/4/0 PW		5/0/1/5	3 4 	convert 2PW to 2C. build E9
+witches		56 VP		0 C		1 W		0 P		2/4/0 PW		5/0/1/5		pass BON10
+darklings	-2	63 VP		2 C		6 W		0 P	+3	0/0/6 PW		0/7/2/0		Leech 4 from witches
+chaosmagicians		46 VP		3 C		2 W		0 P		2/6/0 PW		4/4/7/4		Decline 3 from witches
+Round 5 income	show history
+darklings		63 VP		2 C		6 W		0 P		0/0/6 PW		0/7/2/0		cult_income_for_faction
+witches		56 VP		0 C		1 W		0 P	+4	0/4/2 PW		5/0/1/5		cult_income_for_faction
+chaosmagicians		46 VP		3 C		2 W		0 P	+4	0/6/2 PW		4/4/7/4		cult_income_for_faction
+nomads		59 VP		0 C		3 W		0 P		0/4/1 PW		1/0/1/0		cult_income_for_faction
+Round 5 income	show history
+darklings		63 VP		2 C	+9	15 W	+2	2 P		0/0/6 PW		0/7/2/0		other_income_for_faction
+witches		56 VP	+2	2 C	+8	9 W	+1	1 P	+4	0/0/6 PW		5/0/1/5		other_income_for_faction
+chaosmagicians		46 VP	+5	8 C	+7	9 W	+1	1 P	+5	0/1/7 PW		4/4/7/4		other_income_for_faction
+nomads		59 VP	+6	6 C	+8	11 W		0 P	+4	0/0/5 PW		1/0/1/0		other_income_for_faction
+Round 5, turn 1	show history
+darklings		63 VP	+7	9 C		15 W		2 P	-8	4/0/2 PW		0/7/2/0		action ACT4
+witches	+3	59 VP	-2	0 C	-2	7 W		1 P	-2	1/0/5 PW		5/0/1/5	1 	convert 1PW to 1C. upgrade B5 to TP
+chaosmagicians		46 VP		8 C		9 W	+1	2 P	-6	3/1/4 PW		4/4/7/4		action ACT2
+nomads		59 VP		6 C		11 W		0 P		0/0/5 PW		1/0/1/0		Decline 1 from witches
+nomads	+3	62 VP	-2	4 C	-2	9 W		0 P	-2	1/0/4 PW		1/0/1/0	4 	convert 1pw to 1c. upgrade B4 to TP
+witches	-1	58 VP		0 C		7 W		1 P	+2	0/0/6 PW		5/0/1/5		Leech 4 from nomads
+Round 5, turn 2	show history
+darklings	+6	69 VP	-3	6 C	-2	13 W		2 P		4/0/2 PW		0/7/2/0	3 1 	upgrade F5 to TP
+witches		58 VP		0 C		7 W		1 P		0/0/6 PW		5/0/1/5		Decline 1 from darklings
+witches	+3	61 VP		0 C	-2	5 W		1 P	-6	3/0/3 PW		5/0/1/5	1 	convert 3PW to 3C. upgrade E7 to TP
+chaosmagicians		46 VP		8 C		9 W		2 P	+1	2/2/4 PW		4/4/7/4		Leech 1 from witches
+chaosmagicians		46 VP	-4	4 C	-2	7 W		2 P	+4	1/0/7 PW	+4	4/5/7/7	2 	upgrade D6 to TE. +FAV4. +FAV10. convert 1PW to 1C
+witches	-1	60 VP		0 C		5 W		1 P	+2	1/2/3 PW		5/0/1/5		Leech 2 from chaosmagicians
+nomads		62 VP		4 C		9 W		0 P		1/0/4 PW		1/0/1/0		Decline 3 from darklings
+nomads		62 VP	-2	2 C	-1	8 W		0 P		1/0/4 PW		1/0/1/0		build A5
+Round 5, turn 3	show history
+darklings	+15	84 VP	-3	3 C	-2	11 W	+1	3 P		4/0/2 PW		0/7/2/0	3 	upgrade D8 to TP. +TW3
+witches	+3	63 VP		0 C	-5	0 W		1 P		1/2/3 PW		5/0/1/5	3 5 	convert 3W to 3C. upgrade E9 to TP
+darklings		84 VP		3 C		11 W		3 P		4/0/2 PW		0/7/2/0		Decline 5 from witches
+chaosmagicians	-1	45 VP		4 C		7 W		2 P	+2	0/0/8 PW		4/5/7/7		Leech 3 from darklings
+chaosmagicians		45 VP		4 C		7 W		2 P		0/0/8 PW		4/5/7/7		Decline 3 from witches
+chaosmagicians	+3	48 VP	-3	1 C		7 W	-1	1 P	-2	1/0/7 PW		4/5/7/7		convert 1PW to 1C. advance ship
+nomads	+3	65 VP	-2	0 C	-2	6 W		0 P	-2	2/0/3 PW		1/0/1/0	1 	convert 1pw to 1c. upgrade H5 to TP
+Round 5, turn 4	show history
+darklings	+6	90 VP	-3	0 C	-2	9 W		3 P		4/0/2 PW		0/7/2/0	3 	upgrade G5 to TP
+witches		63 VP		0 C		0 W		1 P	+1	0/3/3 PW		5/0/1/5		Leech 1 from nomads
+witches	+4	67 VP		0 C		0 W	-1	0 P	-8	4/1/0 PW		5/0/1/5		burn 1. convert 4PW to 4C. advance ship
+chaosmagicians	+4	52 VP	-1	0 C	-2	5 W	-1	0 P	-2	2/0/6 PW		4/5/7/7		convert 2W to 2C. convert 1PW to 1C. advance ship
+nomads		65 VP		0 C		6 W		0 P		2/0/3 PW		1/0/1/0		Decline 3 from darklings
+nomads		65 VP		0 C	-3	3 W		0 P		2/0/3 PW		1/0/1/0		convert 2w to 2c. action ACTN. build A8
+Round 5, turn 5	show history
+darklings	+6	96 VP		0 C	-6	3 W		3 P	-4	6/0/0 PW		0/7/2/0		convert 2PW to 2C. convert 4w to 4c. upgrade E11 to TP
+witches	+9	76 VP	+1	1 C		0 W		0 P		4/1/0 PW		5/0/1/5		pass BON1
+chaosmagicians	+6	58 VP		0 C	-3	2 W		0 P	-4	4/0/4 PW		4/5/7/7	3 	convert 1W to 1C. convert 2PW to 2C. upgrade E8 to TP
+witches	-2	74 VP		1 C		0 W		0 P	+3	1/4/0 PW		5/0/1/5		Leech 3 from chaosmagicians
+nomads	+5	70 VP	+6	6 C		3 W		0 P	-6	5/0/0 PW		1/0/1/0		action ACT1. Bridge H5:G4. +TW1
+Round 5, turn 6	show history
+darklings	+2	98 VP		0 C		3 W	-1	2 P		6/0/0 PW		0/7/2/0		dig 1. transform g6
+chaosmagicians		58 VP		0 C		2 W		0 P		4/0/4 PW	+1	4/5/7/8		action FAV6. +AIR
+nomads	+8	78 VP	+2	8 C		3 W		0 P		5/0/0 PW		1/0/1/0		pass BON5
+Round 5, turn 7	show history
+darklings	+6	104 VP		0 C	-3	0 W	-2	0 P		6/0/0 PW		0/7/2/0		dig 2. transform G7 to black. convert 2w to 2c. build G7
+chaosmagicians	+4	62 VP	+1	1 C		2 W		0 P	-2	5/0/3 PW		4/5/7/8		convert 1PW to 1C. pass BON10
+darklings	+8	112 VP		0 C		0 W		0 P		6/0/0 PW		0/7/2/0		pass BON9
+Round 6 income	show history
+witches		74 VP		1 C		0 W		0 P		1/4/0 PW		5/0/1/5		cult_income_for_faction
+chaosmagicians		62 VP		1 C		2 W		0 P		5/0/3 PW		4/5/7/8		cult_income_for_faction
+nomads		78 VP		8 C		3 W		0 P		5/0/0 PW		1/0/1/0		cult_income_for_faction
+darklings		112 VP		0 C		0 W		0 P		6/0/0 PW		0/7/2/0		cult_income_for_faction
+witches		74 VP		1 C		0 W		0 P		1/4/0 PW		5/0/1/5		transform G1 to green
+chaosmagicians		62 VP		1 C		2 W		0 P		5/0/3 PW		4/5/7/8		transform A7 to red
+Round 6 income	show history
+witches		74 VP	+10	11 C	+6	6 W	+1	1 P	+6	0/0/5 PW		5/0/1/5		other_income_for_faction
+chaosmagicians		62 VP	+5	6 C	+4	6 W	+2	2 P	+8	0/2/6 PW		4/5/7/8		other_income_for_faction
+nomads		78 VP	+11	19 C	+9	12 W		0 P	+9	0/1/4 PW		1/0/1/0		other_income_for_faction
+darklings		112 VP	+10	10 C	+5	5 W	+2	2 P	+6	0/6/0 PW		0/7/2/0		other_income_for_faction
+Round 6, turn 1	show history
+witches		74 VP	+7	18 C		6 W		1 P	-8	4/0/1 PW		5/0/1/5		action ACT4
+chaosmagicians	+2	64 VP	-2	4 C	-1	5 W		2 P		0/2/6 PW		4/5/7/8	1 	build A7
+nomads		78 VP		19 C		12 W		0 P	+1	0/0/5 PW		1/0/1/0		Leech 1 from chaosmagicians
+nomads		78 VP	-4	15 C	-2	10 W		0 P	-2	1/0/4 PW	+1	1/1/1/0	4 	upgrade B4 to TE. +FAV10. convert 1pw to 1c
+darklings		112 VP		10 C		5 W	+1	3 P	-6	3/0/0 PW		0/7/2/0		burn 3. action ACT2
+witches		74 VP		18 C		6 W		1 P		4/0/1 PW		5/0/1/5		Decline 4 from nomads
+Round 6, turn 2	show history
+witches	+2	76 VP	-2	16 C	-1	5 W		1 P		4/0/1 PW		5/0/1/5	1 	action BON1. build A11
+chaosmagicians		64 VP		4 C		5 W		2 P	+1	0/1/7 PW		4/5/7/8		Leech 1 from witches
+chaosmagicians		64 VP		4 C		5 W		2 P	-6	3/1/4 PW		4/5/7/8		action ACT1. Bridge C5:B6
+nomads	+3	81 VP	-3	12 C	-2	8 W		0 P		1/0/4 PW		1/1/1/0	1 	upgrade A8 to TP
+darklings	+19	131 VP	-2	8 C	-1	4 W	-2	1 P	+1	2/1/0 PW	+4	1/8/3/1		dig 2. build I11. +TW5
+Round 6, turn 3	show history
+witches	+39	115 VP	-5	11 C	-2	3 W		1 P	+2	2/2/1 PW	+6	8/1/2/6	2 2 	upgrade c4 to te. +fav5. +tw8. +tw5
+chaosmagicians		64 VP		4 C		5 W		2 P	+1	2/2/4 PW		4/5/7/8		Leech 1 from nomads
+chaosmagicians		64 VP		4 C		5 W		2 P		2/2/4 PW		4/5/7/8		Decline 2 from witches
+chaosmagicians	+7	71 VP	-1	3 C	-2	3 W		2 P	+4	0/2/6 PW	+13	8/10/9/10	3 	convert 1PW to 1C. upgrade E8 to TE. +FAV2. +FAV5. convert 3PW to 3C. +TW6
+nomads		81 VP		12 C		8 W		0 P		1/0/4 PW		1/1/1/0		Decline 2 from witches
+nomads		81 VP	-2	10 C	-1	7 W		0 P		1/0/4 PW		1/1/1/0	3 	action ACTN. build A9
+darklings	+2	133 VP	-2	6 C	-1	3 W		1 P		2/1/0 PW		1/8/3/1		build G6
+witches		115 VP		11 C		3 W		1 P		2/2/1 PW		8/1/2/6		Decline 3 from chaosmagicians
+witches		115 VP		11 C		3 W		1 P		2/2/1 PW		8/1/2/6		Decline 3 from nomads
+Round 6, turn 4	show history
+witches	+2	117 VP	-2	9 C	-1	2 W		1 P		2/2/1 PW		8/1/2/6		build G1
+chaosmagicians	+2	73 VP	-2	1 C	-1	2 W		2 P		0/2/6 PW		8/10/9/10	1 	build A6
+nomads		81 VP		10 C		7 W		0 P	+1	0/1/4 PW		1/1/1/0		Leech 1 from chaosmagicians
+nomads	+12	93 VP	-5	5 C	-2	5 W		0 P	-1	1/0/4 PW	+2	3/1/1/0	4 	upgrade B4 to SA. +FAV5. +TW2. convert 1pw to 1c
+witches		117 VP		9 C		2 W		1 P		2/2/1 PW		8/1/2/6		Decline 4 from nomads
+darklings		133 VP	-5	1 C	-2	1 W		1 P		2/1/0 PW	+1	1/8/3/2		upgrade E11 to TE. +FAV12
+Round 6, turn 5	show history
+witches	+2	119 VP	-2	7 C	-1	1 W		1 P		2/2/1 PW		8/1/2/6		build F2
+chaosmagicians	+2	75 VP	-1	0 C	-1	1 W		2 P	-2	1/2/5 PW		8/10/9/10	4 	convert 1PW to 1C. build D4
+witches		119 VP		7 C		1 W		1 P		2/2/1 PW		8/1/2/6		Decline 4 from chaosmagicians
+nomads		93 VP	-5	0 C	-2	3 W		0 P		1/0/4 PW	+1	3/1/1/1	2 	upgrade G2 to TE. +FAV12
+witches		119 VP		7 C		1 W		1 P		2/2/1 PW		8/1/2/6		Decline 2 from nomads
+darklings	+2	135 VP		1 C		1 W	-1	0 P		2/1/0 PW		1/8/3/2		dig 1. transform F6 to red
+Round 6, turn 6	show history
+witches		119 VP		7 C		1 W	-1	0 P	+3	0/3/2 PW	+2	10/1/2/6		send p to FIRE
+chaosmagicians	+6	81 VP		0 C	-1	0 W	-2	0 P	-10	6/2/0 PW		8/10/9/10		convert 1P to 1W. convert 5PW to 5C. advance dig
+nomads	+3	96 VP		0 C	-2	1 W		0 P	-6	4/0/1 PW		3/1/1/1	3 	convert 3pw to 3c. upgrade A9 to TP
+darklings	+9	144 VP		1 C		1 W		0 P		2/1/0 PW		1/8/3/2		pass
+witches		119 VP		7 C		1 W		0 P		0/3/2 PW		10/1/2/6		Decline 3 from nomads
+Round 6, turn 7	show history
+witches		119 VP	-5	2 C	-1	0 W		0 P	-3	0/4/0 PW	+3	10/1/5/6	5 	burn 1. convert 3PW to 1W. upgrade B5 to TE. +FAV3
+nomads		96 VP		0 C		1 W		0 P		4/0/1 PW		3/1/1/1		Decline 5 from witches
+chaosmagicians		81 VP		0 C		0 W		0 P		6/2/0 PW	+1	9/10/9/10		action FAV6. +FIRE
+nomads	+4	100 VP		0 C		1 W		0 P		4/0/1 PW		3/1/1/1		pass
+Round 6, turn 8	show history
+witches		119 VP		2 C		0 W		0 P		0/4/0 PW		10/1/5/6		pass
+chaosmagicians	+9	90 VP		0 C		0 W		0 P		6/2/0 PW		9/10/9/10		pass
+Scoring FIRE cult	show history
+witches	+8	127 VP		2 C		0 W		0 P		0/4/0 PW		10/1/5/6		+8vp for FIRE
+chaosmagicians	+4	94 VP		0 C		0 W		0 P		6/2/0 PW		9/10/9/10		+4vp for FIRE
+nomads	+2	102 VP		0 C		1 W		0 P		4/0/1 PW		3/1/1/1		+2vp for FIRE
+Scoring WATER cult	show history
+darklings	+4	148 VP		1 C		1 W		0 P		2/1/0 PW		1/8/3/2		+4vp for WATER
+witches	+1	128 VP		2 C		0 W		0 P		0/4/0 PW		10/1/5/6		+1vp for WATER
+chaosmagicians	+8	102 VP		0 C		0 W		0 P		6/2/0 PW		9/10/9/10		+8vp for WATER
+nomads	+1	103 VP		0 C		1 W		0 P		4/0/1 PW		3/1/1/1		+1vp for WATER
+Scoring EARTH cult	show history
+darklings	+2	150 VP		1 C		1 W		0 P		2/1/0 PW		1/8/3/2		+2vp for EARTH
+witches	+4	132 VP		2 C		0 W		0 P		0/4/0 PW		10/1/5/6		+4vp for EARTH
+chaosmagicians	+8	110 VP		0 C		0 W		0 P		6/2/0 PW		9/10/9/10		+8vp for EARTH
+Scoring AIR cult	show history
+darklings	+2	152 VP		1 C		1 W		0 P		2/1/0 PW		1/8/3/2		+2vp for AIR
+witches	+4	136 VP		2 C		0 W		0 P		0/4/0 PW		10/1/5/6		+4vp for AIR
+chaosmagicians	+8	118 VP		0 C		0 W		0 P		6/2/0 PW		9/10/9/10		+8vp for AIR
+Scoring network	show history
+darklings	+9	161 VP		1 C		1 W		0 P		2/1/0 PW		1/8/3/2		+9vp for network
+witches	+18	154 VP		2 C		0 W		0 P		0/4/0 PW		10/1/5/6		+18vp for network
+nomads	+9	112 VP		0 C		1 W		0 P		4/0/1 PW		3/1/1/1		+9vp for network
+Converting resources to VPs	show history
+darklings		161 VP	+1	2 C	-1	0 W		0 P		2/1/0 PW		1/8/3/2		score_resources
+witches	+1	155 VP	-1	1 C		0 W		0 P	-4	2/0/0 PW		10/1/5/6		score_resources
+chaosmagicians		118 VP	+1	1 C		0 W		0 P	-2	7/0/0 PW		9/10/9/10		score_resources
+nomads		112 VP	+2	2 C	-1	0 W		0 P	-2	5/0/0 PW		3/1/1/1		score_resources

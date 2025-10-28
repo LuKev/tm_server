@@ -251,8 +251,64 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 			return nil, fmt.Errorf("invalid power action %s: %v", powerActionStr, err)
 		}
 
-		// For spade power actions, create a PowerAction with transform
+		// For spade power actions, check if transform and build are on different hexes
+		// Example: "action ACT6. transform F2 to gray. build D4"
+		// This means: transform F2 (using 2 free spades), then build dwelling on D4
 		if powerActionType == game.PowerActionSpade1 || powerActionType == game.PowerActionSpade2 {
+			if transformCoordStr, hasTransformCoord := params["transform_coord"]; hasTransformCoord {
+				transformHex, err := ConvertLogCoordToAxial(transformCoordStr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid transform coordinate %s: %v", transformCoordStr, err)
+				}
+
+				// If transform and build are on different hexes, manually transform first
+				if transformHex.Q != hex.Q || transformHex.R != hex.R {
+					// Manually transform the hex without using actions
+					// The power action provides free spades, so just transform the terrain
+					player := gs.GetPlayer(playerID)
+					if player == nil {
+						return nil, fmt.Errorf("player not found: %s", playerID)
+					}
+
+					// Get target terrain from params (e.g., "gray", "green", etc.)
+					targetTerrainStr, hasTargetTerrain := params["transform_color"]
+					if !hasTargetTerrain {
+						return nil, fmt.Errorf("transform action missing target terrain color")
+					}
+					targetTerrain, err := ParseTerrainColor(targetTerrainStr)
+					if err != nil {
+						return nil, fmt.Errorf("invalid target terrain %s: %v", targetTerrainStr, err)
+					}
+
+					buildHexTerrain := gs.Map.GetHex(hex).Terrain
+					homeTerrain := player.Faction.GetHomeTerrain()
+					fmt.Printf("DEBUG: Player %s ACT%d - Transforming %v (from %v to %v), then building on %v (terrain: %v, home: %v)\n",
+						playerID, powerActionType+4,
+						transformHex, gs.Map.GetHex(transformHex).Terrain, targetTerrain, hex,
+						buildHexTerrain, homeTerrain)
+
+					// Transform the transform_coord hex to target terrain (using free spades from power action)
+					if err := gs.Map.TransformTerrain(transformHex, targetTerrain); err != nil {
+						return nil, fmt.Errorf("failed to transform terrain: %w", err)
+					}
+
+					// If build hex also needs transformation, transform it to home terrain (also using free spades)
+					if buildHexTerrain != homeTerrain {
+						if err := gs.Map.TransformTerrain(hex, homeTerrain); err != nil {
+							return nil, fmt.Errorf("failed to transform build hex: %w", err)
+						}
+					}
+
+					// Mark power action as used
+					gs.PowerActions.MarkUsed(powerActionType)
+
+					// Now just build the dwelling (no transformation needed since we already did it)
+					// Use TransformAndBuildAction but the terrain is already correct
+					return game.NewTransformAndBuildAction(playerID, hex, true), nil
+				}
+			}
+
+			// Transform and build on same hex
 			return game.NewPowerActionWithTransform(playerID, powerActionType, hex, true), nil
 		}
 
