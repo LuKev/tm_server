@@ -154,6 +154,15 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 	}
 
+	// Debug: show power bowls at entry 48
+	if v.CurrentEntry == 48 {
+		if player := v.GameState.GetPlayer("Engineers"); player != nil {
+			fmt.Printf("DEBUG: Entry 48 - Engineers BEFORE action:\n")
+			fmt.Printf("  Power bowls: %d/%d/%d\n", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+			fmt.Printf("  Expected after: %d/%d/%d\n", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
+			fmt.Printf("  Action: %s\n", entry.Action)
+		}
+	}
 
 	// First, try to convert and execute the action for this entry
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
@@ -181,6 +190,15 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if player := v.GameState.GetPlayer("Witches"); player != nil {
 			fmt.Printf("DEBUG: Entry %d (%s) - Witches workers: %d→%d (expected: %d), action: %s\n",
 				v.CurrentEntry, entry.Faction, workersBefore, player.Resources.Workers, entry.Workers, entry.Action)
+		}
+	}
+
+	// Debug: show power bowls at entry 48 AFTER action
+	if v.CurrentEntry == 48 {
+		if player := v.GameState.GetPlayer("Engineers"); player != nil {
+			fmt.Printf("DEBUG: Entry 48 - Engineers AFTER action:\n")
+			fmt.Printf("  Power bowls: %d/%d/%d\n", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+			fmt.Printf("  Expected: %d/%d/%d\n", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
 		}
 	}
 

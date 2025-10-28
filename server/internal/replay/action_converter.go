@@ -316,6 +316,12 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 						}
 					}
 
+					// Spend the power from bowl 3 (it was already burned from bowl 2 to bowl 3 earlier)
+					powerCost := game.GetPowerCost(powerActionType)
+					if err := player.Resources.Power.SpendPower(powerCost); err != nil {
+						return nil, fmt.Errorf("failed to spend power for power action: %w", err)
+					}
+
 					// Mark power action as used
 					gs.PowerActions.MarkUsed(powerActionType)
 

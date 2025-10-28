@@ -9,18 +9,17 @@
 
 ## Current Bug Being Investigated
 
-**Location**: Entry 158 (Round 3, turn 1)
-**Faction**: Engineers
-**Action**: `advance ship`
+**Location**: Entry 59 (Round 1, turn 2)
+**Faction**: Darklings
+**Action**: `upgrade E5 to TE. +FAV11`
 
-**Issue**: Engineers attempting to advance shipping but cannot afford it
-- Actual resources in game state: 1C, 4W, 1P
-- Expected resources from log: 6C, 5W, 0P
-- Shipping cost: 4C, 0W, 1P
-- **Root cause**: Accumulated drift in game state (129 validation errors)
-- **Next steps**: Investigate earlier errors - first error is at entry 48 (power bowl mismatch)
+**Issue**: Cult track advancement from favor tile not being applied
+- Expected: Earth cult at 2 (after +1 from FAV11)
+- Actual: Earth cult at 1 (favor tile cult advancement not applied)
+- **Symptom**: 127 validation errors accumulated, preventing progress to entry 158
+- **Next steps**: Investigate SelectFavorTileAction to ensure cult advancement happens when taking a tile
 
-**Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` to track Engineers' resources and shipping cost at entry 158.
+**Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` to track power bowls and resources.
 
 ## Bugs Fixed So Far
 
@@ -49,6 +48,13 @@
 - **Fix**: Updated `server/internal/replay/parser.go` to detect compound convert+pass actions and parse the pass action
 - **Location**: Line 139 in test file: `convert 1PW to 1C. pass BON7`
 - **Result**: Successfully progressed from entry 140 to entry 158
+
+### Bug #9: Power Not Spent in Split Transform/Build Actions
+- **Issue**: When using power actions like ACT6 (2 free spades) with split transform/build (e.g., "burn 6. action ACT6. transform F2 to gray. build D4"), the power was burned (moved from bowl 2 to bowl 3) but never spent (moved from bowl 3 to bowl 1)
+- **Impact**: Power bowls remained in wrong state (0/0/6 instead of 6/0/0), causing accumulated drift in game state
+- **Fix**: Added code in `server/internal/replay/action_converter.go` to spend power from bowl 3 after burning and before marking the action as used
+- **Location**: Entry 48 in test file, Lines 319-323 in action_converter.go
+- **Result**: Reduced validation errors from 129 to 127
 
 ### Other Fixes
 - Terrain color parsing improvements
