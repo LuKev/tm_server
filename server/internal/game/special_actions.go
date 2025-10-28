@@ -191,6 +191,19 @@ func NewNomadsSandstormAction(playerID string, targetHex Hex, buildDwelling bool
 	}
 }
 
+// NewBonusCardSpadeAction creates a bonus card spade special action
+func NewBonusCardSpadeAction(playerID string, targetHex Hex, buildDwelling bool) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:    SpecialActionBonusCardSpade,
+		TargetHex:     &targetHex,
+		BuildDwelling: buildDwelling,
+	}
+}
+
 func (a *SpecialAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {

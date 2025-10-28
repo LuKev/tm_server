@@ -65,21 +65,21 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 
 		// Check if this is a bonus card action (BON1-10) vs power action (ACT1-6)
 		if strings.HasPrefix(actionTypeStr, "BON") {
-			// Bonus card actions like BON1 (spade bonus)
-			// These work similarly to power actions but come from bonus cards
-			// For now, treat BON1 like a spade power action
-			coordStr, hasCoord := params["coord"]
-			if hasCoord {
-				hex, err := ConvertLogCoordToAxial(coordStr)
-				if err != nil {
-					return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+			// BON1 provides 1 free spade for transformation
+			if actionTypeStr == "BON1" {
+				coordStr, hasCoord := params["coord"]
+				if hasCoord {
+					hex, err := ConvertLogCoordToAxial(coordStr)
+					if err != nil {
+						return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+					}
+					// BON1 provides a free spade transform + build
+					return game.NewBonusCardSpadeAction(playerID, hex, true), nil
 				}
-				// BON1 provides a free spade transform
-				// Use TransformAndBuild action
-				return game.NewTransformAndBuildAction(playerID, hex, true), nil
+				// Standalone BON1 action (not combined with build) - skip
+				return nil, nil
 			}
-			// Standalone bonus card action (not combined with build)
-			// Skip for now - these are typically informational
+			// Other bonus card actions (BON2-BON10) - skip for now
 			return nil, nil
 		}
 

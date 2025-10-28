@@ -1,0 +1,383 @@
+    Default game options	show history
+option strict-leech	show history
+option strict-darkling-sh	show history
+option strict-chaosmagician-sh	show history
+option errata-cultist-power	show history
+option mini-expansion-1	show history
+option shipping-bonus	show history
+option email-notify	show history
+option maintain-player-order	show history
+Randomize setup	show history
+Round 1 scoring: SCORE2, TOWN >> 5	show history
+Round 2 scoring: SCORE7, SA/SH >> 5	show history
+Round 3 scoring: SCORE3, D >> 2	show history
+Round 4 scoring: SCORE8, TP >> 3	show history
+Round 5 scoring: SCORE6, TP >> 3	show history
+Round 6 scoring: SCORE5, D >> 2	show history
+Removing tile BON4	show history
+Removing tile BON6	show history
+Removing tile BON2	show history
+Player 1: Cephalofair	show history
+Player 2: marksickau	show history
+Player 3: no_dice	show history
+Player 4: affe1982	show history
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		setup
+dwarves		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/2/0		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+fakirs		20 VP		15 C		3 W		0 P		7/5/0 PW		1/0/0/1		setup
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		build D5
+dwarves		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/2/0		build E7
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build E5
+fakirs		20 VP		15 C		3 W		0 P		7/5/0 PW		1/0/0/1		build F3
+fakirs		20 VP		15 C		3 W		0 P		7/5/0 PW		1/0/0/1		build D3
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build G5
+dwarves		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/2/0		build F6
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		build E4
+fakirs		20 VP		15 C		3 W		0 P		7/5/0 PW		1/0/0/1		Pass BON1
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON8
+dwarves		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/2/0		Pass BON5
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		Pass BON3
+Round 1 income	show history
+mermaids		20 VP	+6	21 C	+3	6 W		0 P		3/9/0 PW		0/2/0/0		other_income_for_faction
+dwarves		20 VP		15 C	+4	7 W		0 P	+3	2/10/0 PW		0/0/2/0		other_income_for_faction
+darklings		20 VP		15 C	+3	4 W	+1	2 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+fakirs		20 VP	+2	17 C	+3	6 W		0 P		7/5/0 PW		1/0/0/1		other_income_for_faction
+Round 1, turn 1	show history
+mermaids		20 VP	-3	18 C	-2	4 W		0 P		3/9/0 PW		0/2/0/0	1 1 	upgrade E4 to TP
+darklings		20 VP		15 C		4 W		2 P	+1	4/8/0 PW		0/1/1/0		Leech 1 from mermaids
+dwarves		20 VP	-3	12 C	-2	5 W		0 P		2/10/0 PW		0/0/2/0	1 	upgrade F6 to TP
+darklings		20 VP		15 C		4 W		2 P	+1	3/9/0 PW		0/1/1/0		Leech 1 from dwarves
+darklings		20 VP	-3	12 C	-2	2 W		2 P		3/9/0 PW		0/1/1/0	1 2 	upgrade E5 to TP
+fakirs		20 VP		17 C		6 W		0 P	+1	6/6/0 PW		1/0/0/1		Leech 1 from mermaids
+fakirs		20 VP		17 C		6 W		0 P	+1	5/7/0 PW		1/0/0/1		Leech 1 from darklings
+fakirs		20 VP	-3	14 C	-2	4 W		0 P		5/7/0 PW		1/0/0/1	2 	upgrade D3 to TP
+mermaids	-1	19 VP		18 C		4 W		0 P	+2	1/11/0 PW		0/2/0/0		Leech 2 from darklings
+mermaids	-1	18 VP		18 C		4 W		0 P	+2	0/11/1 PW		0/2/0/0		Leech 2 from fakirs
+Round 1, turn 2	show history
+mermaids		18 VP	-5	13 C	-2	2 W		0 P		0/11/1 PW	+1	0/2/1/0	2 2 	upgrade E4 to TE. +FAV11
+dwarves		20 VP	-5	7 C	-2	3 W		0 P	+1	1/11/0 PW	+1	0/0/3/0	1 	upgrade F6 to TE. +FAV11
+darklings	-1	19 VP		12 C		2 W		2 P	+2	1/11/0 PW		0/1/1/0		Leech 2 from mermaids
+darklings		19 VP		12 C		2 W		2 P	+1	0/12/0 PW		0/1/1/0		Leech 1 from dwarves
+darklings		19 VP	-5	7 C	-2	0 W		2 P		0/12/0 PW	+1	0/1/2/0	1 2 	upgrade E5 to TE. +FAV11
+mermaids	-1	17 VP		13 C		2 W		0 P	+2	0/9/3 PW		0/2/1/0		Leech 2 from darklings
+fakirs	-1	19 VP		14 C		4 W		0 P	+2	3/9/0 PW		1/0/0/1		Leech 2 from mermaids
+fakirs		19 VP		14 C		4 W		0 P	+1	2/10/0 PW		1/0/0/1		Leech 1 from darklings
+fakirs		19 VP	-5	9 C	-2	2 W		0 P	+1	1/11/0 PW	+2	1/0/0/3	2 	upgrade D3 to TE. +FAV8
+mermaids	-1	16 VP		13 C		2 W		0 P	+2	0/7/5 PW		0/2/1/0		Leech 2 from fakirs
+Round 1, turn 3	show history
+mermaids		16 VP		13 C		2 W	+1	1 P	-6	3/7/2 PW		0/2/1/0		action ACT2
+dwarves	+2	22 VP	-2	5 C	-1	2 W		0 P	-8	5/3/0 PW		0/0/3/0	1 	burn 4. action ACT5. build D4
+mermaids		16 VP		13 C		2 W		1 P	+1	2/8/2 PW		0/2/1/0		Leech 1 from dwarves
+darklings		19 VP		7 C	+2	2 W		2 P	-8	4/4/0 PW		0/1/2/0		burn 4. action ACT3
+fakirs		19 VP	-2	7 C	-1	1 W		0 P		1/11/0 PW		1/0/0/3	2 2 	action BON1. build E6
+dwarves	-1	21 VP		5 C		2 W		0 P	+2	3/5/0 PW		0/0/3/0		Leech 2 from fakirs
+Round 1, turn 4	show history
+mermaids	+2	18 VP	-4	9 C		2 W	-1	0 P		2/8/2 PW		0/2/1/0		advance ship
+dwarves		21 VP	+1	6 C		2 W		0 P		3/5/0 PW		0/0/3/0		pass BON9
+darklings	-1	18 VP		7 C		2 W		2 P	+2	2/6/0 PW		0/1/2/0		Leech 2 from fakirs
+darklings		18 VP		7 C		2 W	-1	1 P	+3	0/7/1 PW	+3	0/1/5/0		send p to Earth
+fakirs		19 VP		7 C		1 W		0 P		1/11/0 PW		1/0/0/3		pass BON5
+Round 1, turn 5	show history
+mermaids	+2	20 VP	-2	7 C	-1	1 W		0 P		2/8/2 PW		0/2/1/0		build H2
+darklings		18 VP	+7	14 C		2 W		1 P	-8	4/1/0 PW		0/1/5/0		burn 3. action ACT4
+Round 1, turn 6	show history
+mermaids		20 VP	+1	8 C		1 W		0 P		2/8/2 PW		0/2/1/0		pass BON10
+darklings	+4	22 VP	-2	12 C	-1	1 W	-1	0 P		4/1/0 PW		0/1/5/0	2 	dig 1. build G6
+darklings		22 VP		12 C		1 W		0 P		4/1/0 PW		0/1/5/0		pass BON3
+dwarves	-1	20 VP		6 C		2 W		0 P	+2	1/7/0 PW		0/0/3/0		Leech 2 from darklings
+Round 2 income	show history
+dwarves		20 VP		6 C		2 W		0 P		1/7/0 PW		0/0/3/0		cult_income_for_faction
+darklings		22 VP		12 C		1 W		0 P		4/1/0 PW		0/1/5/0		cult_income_for_faction
+fakirs		19 VP		7 C		1 W		0 P		1/11/0 PW		1/0/0/3		cult_income_for_faction
+mermaids		20 VP		8 C		1 W		0 P		2/8/2 PW		0/2/1/0		cult_income_for_faction
+darklings		22 VP		12 C		1 W		0 P		4/1/0 PW		0/1/5/0		transform F7 to black
+Round 2 income	show history
+dwarves		20 VP	+2	8 C	+3	5 W	+1	1 P		1/7/0 PW		0/0/3/0		other_income_for_faction
+darklings		22 VP	+6	18 C	+3	4 W	+1	1 P		4/1/0 PW		0/1/5/0		other_income_for_faction
+fakirs		19 VP		7 C	+4	5 W	+1	1 P	+7	0/6/6 PW		1/0/0/3		other_income_for_faction
+mermaids		20 VP		8 C	+3	4 W	+1	1 P	+3	0/9/3 PW		0/2/1/0		other_income_for_faction
+Round 2, turn 1	show history
+dwarves		20 VP		8 C		5 W	-1	0 P	+1	0/8/0 PW	+3	0/0/3/3		send p to Air
+darklings		22 VP		18 C		4 W	-1	0 P	+1	3/2/0 PW	+3	0/4/5/0		send p to Water
+fakirs	+5	24 VP	-6	1 C	-4	1 W		1 P		0/6/6 PW	+1	1/1/0/3	2 	upgrade D3 to SA. +FAV10
+mermaids	-1	19 VP		8 C		4 W		1 P	+2	0/7/5 PW		0/2/1/0		Leech 2 from fakirs
+mermaids		19 VP		8 C	+2	6 W		1 P	-8	4/7/1 PW		0/2/1/0		action ACT3
+Round 2, turn 2	show history
+dwarves		20 VP	-3	5 C	-2	3 W		0 P		0/8/0 PW		0/0/3/3	1 1 	upgrade D4 to TP
+mermaids		19 VP		8 C		6 W		1 P	+1	3/8/1 PW		0/2/1/0		Leech 1 from dwarves
+fakirs		24 VP		1 C		1 W		1 P	+1	0/5/7 PW		1/1/0/3		Leech 1 from dwarves
+darklings	+5	27 VP	-10	8 C	-4	0 W		0 P	+2	1/4/0 PW	+2	0/6/5/0	2 2 	upgrade E5 to SA. +FAV6
+mermaids	-1	18 VP		8 C		6 W		1 P	+2	1/10/1 PW		0/2/1/0		Leech 2 from darklings
+fakirs	-1	23 VP		1 C		1 W		1 P	+2	0/3/9 PW		1/1/0/3		Leech 2 from darklings
+fakirs	+4	27 VP		1 C		1 W	-1	0 P	-12	6/3/3 PW		1/1/0/3		action ACT6. transform E2 to yellow. transform G2 to yellow
+mermaids		18 VP	+7	15 C		6 W		1 P	-8	5/4/0 PW		0/2/1/0		burn 3. action ACT4
+Round 2, turn 3	show history
+dwarves		20 VP	-5	0 C	-2	1 W		0 P	+2	0/6/2 PW	+2	0/0/3/5	1 1 	upgrade D4 to TE. +FAV8
+mermaids		18 VP		15 C		6 W		1 P	+1	4/5/0 PW		0/2/1/0		Leech 1 from dwarves
+darklings		27 VP		8 C		0 W		0 P	+2	0/4/1 PW	+1	0/7/5/0		action FAV6. +WATER
+fakirs		27 VP		1 C		1 W		0 P	+1	5/4/3 PW		1/1/0/3		Leech 1 from dwarves
+fakirs		27 VP	+1	2 C		1 W		0 P		5/4/3 PW		1/1/0/3		pass BON1
+mermaids		18 VP	-3	12 C	-2	4 W		1 P		4/5/0 PW		0/2/1/0	3 	upgrade D5 to TP
+dwarves	-2	18 VP		0 C		1 W		0 P	+3	0/3/5 PW		0/0/3/5		Leech 3 from mermaids
+Round 2, turn 4	show history
+dwarves	+2	20 VP		0 C	-1	0 W		0 P	-12	6/1/0 PW		0/0/3/5	2 	convert 2PW to 2C. burn 1. action ACT5. build F4
+darklings		27 VP	+1	9 C		0 W		0 P		0/4/1 PW		0/7/5/0		pass BON8
+mermaids	+8	26 VP	-6	6 C	-4	0 W		1 P		4/5/0 PW		0/2/1/0	3 	upgrade D5 to SH
+dwarves	-2	18 VP		0 C		0 W		0 P	+3	3/4/0 PW		0/0/3/5		Leech 3 from mermaids
+Round 2, turn 5	show history
+dwarves	+2	20 VP		0 C		0 W		0 P		3/4/0 PW		0/0/3/5		pass BON3
+mermaids	+2	28 VP	-2	4 C		0 W	-1	0 P		4/5/0 PW		0/2/1/0		convert 1P to 1W. build A4
+mermaids	+9	37 VP		4 C		0 W		0 P		4/5/0 PW		0/2/1/0		pass BON9
+fakirs	-1	26 VP		2 C		1 W		0 P	+2	3/6/3 PW		1/1/0/3		Leech 2 from dwarves
+Round 3 income	show history
+fakirs		26 VP		2 C	+1	2 W		0 P		3/6/3 PW		1/1/0/3		cult_income_for_faction
+mermaids		37 VP		4 C		0 W		0 P		4/5/0 PW		0/2/1/0		cult_income_for_faction
+dwarves		20 VP		0 C	+2	2 W		0 P		3/4/0 PW		0/0/3/5		cult_income_for_faction
+darklings		27 VP		9 C		0 W		0 P		0/4/1 PW		0/7/5/0		cult_income_for_faction
+Round 3 income	show history
+fakirs		26 VP	+2	4 C	+3	5 W	+1	1 P	+4	0/8/4 PW		1/1/0/3		other_income_for_faction
+mermaids		37 VP	+2	6 C	+3	3 W	+1	1 P	+4	0/9/0 PW		0/2/1/0		other_income_for_faction
+dwarves		20 VP	+6	6 C	+3	5 W	+2	2 P	+4	0/6/1 PW		0/0/3/5		other_income_for_faction
+darklings		27 VP		9 C	+3	3 W	+3	3 P		0/4/1 PW		0/7/5/0		other_income_for_faction
+Round 3, turn 1	show history
+fakirs		26 VP	+7	11 C		5 W		1 P	-8	4/8/0 PW		1/1/0/3		action ACT4
+mermaids	+4	41 VP	-2	4 C	-1	2 W		1 P		0/9/0 PW		0/2/1/0	3 	build D2
+fakirs	-2	24 VP		11 C		5 W		1 P	+3	1/11/0 PW		1/1/0/3		Leech 3 from mermaids
+dwarves	+8	28 VP	-2	4 C	-3	2 W		2 P		0/6/1 PW		0/0/3/5	1 	build H6
+darklings		27 VP		9 C		3 W		3 P	+1	0/3/2 PW		0/7/5/0		Leech 1 from dwarves
+darklings	+4	31 VP	-2	7 C	-1	2 W		3 P		0/3/2 PW		0/7/5/0	2 	build F7
+Round 3, turn 2	show history
+fakirs	+2	26 VP	-2	9 C	-1	4 W		1 P		1/11/0 PW		1/1/0/3	1 	build G2
+mermaids	+4	45 VP	-2	2 C	-1	1 W		1 P		0/9/0 PW		0/2/1/0		build I4
+dwarves	-1	27 VP		4 C		2 W		2 P	+2	0/4/3 PW		0/0/3/5		Leech 2 from darklings
+dwarves		27 VP		4 C		2 W		2 P	+1	0/3/4 PW		0/0/3/5		Leech 1 from fakirs
+dwarves	+8	35 VP	-2	2 C	-2	0 W	-1	1 P	-8	4/3/0 PW		0/0/3/5		convert 1P to 1W. action ACT5. build G3
+darklings		31 VP		7 C		2 W	-1	2 P	+1	0/2/3 PW	+3	3/7/5/0		send p to Fire
+Round 3, turn 3	show history
+fakirs	+6	32 VP	-2	7 C	-1	3 W	-1	0 P		1/11/0 PW		1/1/0/3	1 	action BON1. build B2
+mermaids		45 VP		2 C		1 W		1 P	+1	0/8/1 PW		0/2/1/0		Leech 1 from fakirs
+mermaids	+4	49 VP	-2	0 C	-1	0 W		1 P		0/8/1 PW		0/2/1/0	1 	build H4
+dwarves		35 VP		2 C		0 W		1 P	+1	3/4/0 PW		0/0/3/5		Leech 1 from mermaids
+dwarves		35 VP	+3	5 C		0 W		1 P		3/4/0 PW		0/0/3/5		pass BON7
+darklings	+4	35 VP	-2	5 C	-1	1 W		2 P		0/2/3 PW		3/7/5/0	2 	build E10
+dwarves	-1	34 VP		5 C		0 W		1 P	+2	1/6/0 PW		0/0/3/5		Leech 2 from darklings
+Round 3, turn 4	show history
+fakirs	+2	34 VP	-2	5 C	-1	2 W		0 P		1/11/0 PW		1/1/0/3	1 	build A5
+mermaids		49 VP		0 C		0 W		1 P	+1	0/7/2 PW		0/2/1/0		Leech 1 from fakirs
+mermaids		49 VP		0 C		0 W	-1	0 P	+1	0/6/3 PW	+2	0/4/1/0		send p to Water
+darklings	+6	41 VP	-2	3 C	-1	0 W	-1	1 P		0/2/3 PW		3/7/5/0		dig 1. build D8
+Round 3, turn 5	show history
+fakirs		34 VP		5 C		2 W	+1	1 P	-6	4/5/0 PW		1/1/0/3		burn 3. action ACT2
+mermaids	+5	54 VP	+3	3 C		0 W		0 P	-4	2/6/1 PW		0/4/1/0		convert 2PW to 2C. pass BON10
+darklings		41 VP		3 C		0 W		1 P		0/2/3 PW	+1	3/8/5/0		action FAV6. +WATER
+Round 3, turn 6	show history
+fakirs	+6	40 VP	-2	3 C	-1	1 W	-1	0 P		4/5/0 PW		1/1/0/3	1 	build E2
+darklings		41 VP		3 C		0 W	-1	0 P		0/2/3 PW	+1	3/9/5/0		send p to Water for 1
+Round 3, turn 7	show history
+fakirs		40 VP		3 C		1 W		0 P		4/5/0 PW		1/1/0/3		pass BON9
+mermaids		54 VP		3 C		0 W		0 P	+1	1/7/1 PW		0/4/1/0		Leech 1 from fakirs
+darklings		41 VP		3 C		0 W		0 P		0/2/3 PW		3/9/5/0		pass BON3
+Round 4 income	show history
+dwarves		34 VP		5 C		0 W		1 P		1/6/0 PW		0/0/3/5		cult_income_for_faction
+darklings		41 VP		3 C		0 W	+2	2 P		0/2/3 PW		3/9/5/0		cult_income_for_faction
+fakirs		40 VP		3 C		1 W		0 P		4/5/0 PW		1/1/0/3		cult_income_for_faction
+mermaids		54 VP		3 C		0 W	+1	1 P		1/7/1 PW		0/4/1/0		cult_income_for_faction
+Round 4 income	show history
+dwarves		34 VP		5 C	+6	6 W	+2	3 P	+4	0/4/3 PW		0/0/3/5		other_income_for_faction
+darklings		41 VP	+6	9 C	+6	6 W	+2	4 P		0/2/3 PW		3/9/5/0		other_income_for_faction
+fakirs		40 VP	+2	5 C	+7	8 W	+1	1 P	+4	0/9/0 PW		1/1/0/3		other_income_for_faction
+mermaids		54 VP		3 C	+6	6 W	+1	2 P	+7	0/2/7 PW		0/4/1/0		other_income_for_faction
+Round 4, turn 1	show history
+dwarves		34 VP	+7	12 C		6 W		3 P	-8	4/2/0 PW		0/0/3/5		burn 1. action ACT4
+darklings	+2	43 VP	-4	5 C		6 W	-1	3 P		0/2/3 PW		3/9/5/0		advance ship
+fakirs	+6	46 VP	-3	2 C	-2	6 W		1 P		0/9/0 PW		1/1/0/3	1 	upgrade E2 to TP
+mermaids		54 VP		3 C		6 W		2 P	+1	0/1/8 PW		0/4/1/0		Leech 1 from fakirs
+mermaids	+3	57 VP	-3	0 C	-2	4 W		2 P		0/1/8 PW		0/4/1/0	5 	upgrade D2 to TP
+Round 4, turn 2	show history
+dwarves	+3	37 VP	-3	9 C	-2	4 W		3 P		4/2/0 PW		0/0/3/5	3 	upgrade F4 to TP
+darklings	+8	51 VP	-2	3 C	-1	5 W	-3	0 P		0/2/3 PW		3/9/5/0	1 	dig 3. build C2
+fakirs	-4	42 VP		2 C		6 W		1 P	+5	0/4/5 PW		1/1/0/3		Leech 5 from mermaids
+fakirs	-2	40 VP		2 C		6 W		1 P	+3	0/1/8 PW		1/1/0/3		Leech 3 from dwarves
+fakirs		40 VP		2 C		6 W		1 P	+1	0/0/9 PW		1/1/0/3		Leech 1 from darklings
+fakirs	+4	44 VP	-2	0 C	-1	5 W	-1	0 P	-12	6/0/3 PW		1/1/0/3	4 	action ACT6. transform A7 to yellow. build E3
+mermaids		57 VP		0 C		4 W		2 P	+1	0/0/9 PW		0/4/1/0		Leech 4 from fakirs
+mermaids		57 VP		0 C	-2	2 W		2 P	-8	3/2/4 PW	+1	0/5/1/0	6 	convert 5PW to 5C. upgrade D2 to TE. +FAV10
+Round 4, turn 3	show history
+dwarves	+3	40 VP	-3	6 C	-2	2 W		3 P		4/2/0 PW		0/0/3/5	1 3 	upgrade E7 to TP
+fakirs		44 VP		0 C		5 W		0 P		6/0/3 PW		1/1/0/3		Decline 6 from mermaids
+fakirs		44 VP		0 C		5 W		0 P	+1	5/1/3 PW		1/1/0/3		Leech 1 from dwarves
+mermaids	-2	55 VP		0 C		2 W		2 P	+3	0/5/4 PW		0/5/1/0		Leech 3 from dwarves
+darklings	+2	53 VP	-2	1 C	-1	4 W		0 P		0/2/3 PW		3/9/5/0	2 	build B3
+fakirs	-1	43 VP		0 C		5 W		0 P	+2	3/3/3 PW		1/1/0/3		Leech 2 from darklings
+fakirs	+14	57 VP		0 C	-2	3 W		0 P	-6	6/3/0 PW	+4	2/2/1/4	4 	convert 3PW to 3C. upgrade E3 to TP. +TW5
+mermaids		55 VP		0 C		2 W		2 P		0/5/4 PW		0/5/1/0		Decline 4 from fakirs
+mermaids	+6	61 VP		0 C	-2	0 W		2 P	-6	3/5/1 PW		0/5/1/0	2 	convert 3PW to 3C. upgrade A4 to TP
+fakirs	-1	56 VP		0 C		3 W		0 P	+2	4/5/0 PW		2/2/1/4		Leech 2 from mermaids
+Round 4, turn 4	show history
+dwarves	+4	44 VP	+1	7 C		2 W		3 P		4/2/0 PW		0/0/3/5		pass BON1
+darklings		53 VP		1 C		4 W		0 P	-6	3/2/0 PW		3/9/5/0		action ACT1. Bridge C2:E5
+fakirs	+5	61 VP		0 C		3 W		0 P		4/5/0 PW		2/2/1/4		pass BON7
+mermaids		61 VP		0 C		0 W	-1	1 P		3/5/1 PW	+2	0/5/1/2		send p to AIR
+Round 4, turn 5	show history
+darklings		53 VP		1 C		4 W		0 P		3/2/0 PW	+1	4/9/5/0		action FAV6. +FIRE
+mermaids		61 VP		0 C		0 W	-1	0 P	+1	2/6/1 PW	+2	0/5/1/4		send p to AIR
+Round 4, turn 6	show history
+darklings		53 VP		1 C		4 W		0 P		3/2/0 PW		4/9/5/0		pass BON9
+mermaids	+9	70 VP		0 C		0 W		0 P		2/6/1 PW		0/5/1/4		pass BON3
+Round 5 income	show history
+dwarves		44 VP		7 C		2 W		3 P		4/2/0 PW		0/0/3/5		cult_income_for_faction
+darklings		53 VP		1 C		4 W		0 P		3/2/0 PW		4/9/5/0		cult_income_for_faction
+fakirs		61 VP		0 C		3 W		0 P		4/5/0 PW		2/2/1/4		cult_income_for_faction
+mermaids		70 VP		0 C		0 W		0 P		2/6/1 PW		0/5/1/4		cult_income_for_faction
+dwarves		44 VP		7 C		2 W		3 P		4/2/0 PW		0/0/3/5		transform C3 to gray
+fakirs		61 VP		0 C		3 W		0 P		4/5/0 PW		2/2/1/4		transform A6 to yellow
+mermaids		70 VP		0 C		0 W		0 P		2/6/1 PW		0/5/1/4		transform C1 to blue
+Round 5 income	show history
+dwarves		44 VP	+7	14 C	+3	5 W	+2	5 P	+6	0/4/2 PW		0/0/3/5		other_income_for_faction
+darklings		53 VP	+2	3 C	+8	12 W	+2	2 P		3/2/0 PW		4/9/5/0		other_income_for_faction
+fakirs		61 VP	+4	4 C	+7	10 W	+1	1 P	+6	0/7/2 PW		2/2/1/4		other_income_for_faction
+mermaids		70 VP	+8	8 C	+4	4 W	+2	2 P	+5	0/5/4 PW		0/5/1/4		other_income_for_faction
+Round 5, turn 1	show history
+dwarves		44 VP		14 C		5 W	-1	4 P	+2	0/2/4 PW	+2	0/0/3/7		send p to Air
+darklings	+6	59 VP	-2	1 C	-1	11 W	-2	0 P		3/2/0 PW		4/9/5/0	1 	dig 2. build A6
+fakirs		61 VP		4 C		10 W		1 P	+1	0/6/3 PW		2/2/1/4		Leech 1 from darklings
+fakirs		61 VP	+7	11 C		10 W		1 P	-8	4/4/0 PW		2/2/1/4		burn 1. action ACT4
+mermaids	+2	72 VP	-2	6 C	-1	3 W		2 P		0/5/4 PW		0/5/1/4	3 	build C1
+Round 5, turn 2	show history
+dwarves	+4	48 VP	-1	13 C	-1	4 W		4 P		1/0/5 PW	+8	2/2/5/9	3 	build C3. +TW6. convert 1PW to 1C
+fakirs	-2	59 VP		11 C		10 W		1 P	+3	1/7/0 PW		2/2/1/4		Leech 3 from mermaids
+darklings	+11	70 VP	-1	0 C	-4	7 W		0 P	+5	0/3/2 PW	+4	5/10/6/1	2 	convert 2W to 2C. upgrade B3 to TP. +TW5
+mermaids		72 VP		6 C		3 W		2 P		0/5/4 PW		0/5/1/4		Decline 3 from dwarves
+fakirs	-1	58 VP		11 C		10 W		1 P	+2	0/7/1 PW		2/2/1/4		Leech 2 from darklings
+fakirs	+6	64 VP	-3	8 C	-2	8 W		1 P		0/7/1 PW		2/2/1/4	6 3 	upgrade E6 to TP
+mermaids	+2	74 VP	-2	4 C	-1	2 W		2 P	-12	6/1/0 PW		0/5/1/4		burn 2. action ACT6. transform C4 to blue. build A3
+darklings		70 VP		0 C		7 W		0 P		0/3/2 PW		5/10/6/1		Decline 3 from fakirs
+dwarves	-1	47 VP		13 C		4 W		4 P	+2	0/0/6 PW		2/2/5/9		Leech 6 from fakirs
+Round 5, turn 3	show history
+dwarves	+2	49 VP	-2	11 C	-1	3 W		4 P	-8	4/0/2 PW		2/2/5/9	1 	action ACT5. build E9
+darklings		70 VP		0 C		7 W		0 P	+1	0/2/3 PW		5/10/6/1		Leech 1 from dwarves
+darklings		70 VP		0 C		7 W	+1	1 P	-6	3/2/0 PW		5/10/6/1		action ACT2
+fakirs	+6	70 VP	-3	5 C	-2	6 W		1 P		0/7/1 PW		2/2/1/4	2 3 	upgrade F3 to TP
+darklings		70 VP		0 C		7 W		1 P		3/2/0 PW		5/10/6/1		Decline 3 from fakirs
+mermaids	+11	85 VP	+3	7 C	-2	0 W		2 P		6/1/0 PW		0/5/1/4	3 	upgrade C1 to TP. connect r1. +TW1
+fakirs	-2	68 VP		5 C		6 W		1 P	+3	0/4/4 PW		2/2/1/4		Leech 3 from mermaids
+dwarves	-1	48 VP		11 C		3 W		4 P	+2	2/2/2 PW		2/2/5/9		Leech 2 from fakirs
+Round 5, turn 4	show history
+dwarves		48 VP		11 C		3 W	-1	3 P	+2	0/4/2 PW	+2	2/2/7/9		send p to Earth
+darklings		70 VP		0 C		7 W		1 P	+2	1/4/0 PW	+1	5/10/7/1		action FAV6. +EARTH
+fakirs		68 VP	-5	0 C	-2	4 W		1 P	+2	0/2/6 PW	+1	2/2/1/5	4 	upgrade E3 to TE. +FAV12
+mermaids		85 VP		7 C		0 W		2 P		6/1/0 PW		0/5/1/4		Decline 4 from fakirs
+mermaids	+2	87 VP	-2	5 C		0 W	-1	1 P		6/1/0 PW		0/5/1/4		convert 1P to 1W. build C4
+Round 5, turn 5	show history
+dwarves	+2	50 VP	-2	9 C	-1	2 W		3 P		0/4/2 PW		2/2/7/9	2 	action BON1. build D7
+darklings	-1	69 VP		0 C		7 W		1 P	+2	0/4/1 PW		5/10/7/1		Leech 2 from dwarves
+darklings	+3	72 VP		0 C	-5	2 W		1 P		0/4/1 PW		5/10/7/1	4 	convert 3W to 3C. upgrade E10 to TP
+fakirs	+6	74 VP		0 C	-2	2 W		1 P	-6	3/2/3 PW		2/2/1/5	2 	convert 3PW to 3C. upgrade G2 to TP
+mermaids		87 VP	+1	6 C		0 W		1 P		6/1/0 PW		0/5/1/4		pass BON10
+dwarves		50 VP		9 C		2 W		3 P		0/4/2 PW		2/2/7/9		Decline 4 from darklings
+dwarves	-1	49 VP		9 C		2 W		3 P	+2	0/2/4 PW		2/2/7/9		Leech 2 from fakirs
+Round 5, turn 6	show history
+dwarves		49 VP		9 C	+2	4 W		3 P	-8	4/2/0 PW		2/2/7/9		action ACT3
+darklings	+10	82 VP		0 C	-2	0 W		1 P	-6	3/0/0 PW		5/10/7/1	3 	burn 2. convert 3PW to 3C. upgrade G5 to TP. +TW7
+fakirs	+12	86 VP	+3	3 C		2 W		1 P	-2	4/2/2 PW		2/2/1/5		convert 1PW to 1C. pass BON8
+dwarves		49 VP		9 C		4 W		3 P		4/2/0 PW		2/2/7/9		Decline 3 from darklings
+Round 5, turn 7	show history
+dwarves	+2	51 VP	-2	7 C	-1	3 W		3 P		4/2/0 PW		2/2/7/9		build C5
+darklings	+5	87 VP		0 C		0 W		1 P		3/0/0 PW		5/10/7/1		pass BON7
+Round 5, turn 8	show history
+dwarves		51 VP		7 C		3 W	-1	2 P		4/2/0 PW	+2	2/2/9/9		send p to Earth
+Round 5, turn 9	show history
+dwarves		51 VP		7 C		3 W	-1	1 P	+3	1/5/0 PW	+1	2/2/10/9		send p to Earth for 1
+Round 5, turn 10	show history
+dwarves	+3	54 VP	-3	4 C	-2	1 W		1 P		1/5/0 PW		2/2/10/9	3 	upgrade D7 to TP
+dwarves		54 VP		4 C		1 W		1 P		1/5/0 PW		2/2/10/9		pass BON9
+darklings		87 VP		0 C		0 W		1 P		3/0/0 PW		5/10/7/1		Decline 3 from dwarves
+Round 6 income	show history
+mermaids		87 VP		6 C		0 W		1 P		6/1/0 PW		0/5/1/4		cult_income_for_faction
+dwarves		54 VP		4 C		1 W		1 P		1/5/0 PW		2/2/10/9		cult_income_for_faction
+darklings		87 VP		0 C		0 W		1 P		3/0/0 PW		5/10/7/1		cult_income_for_faction
+fakirs		86 VP		3 C		2 W		1 P		4/2/2 PW		2/2/1/5		cult_income_for_faction
+mermaids		87 VP		6 C		0 W		1 P		6/1/0 PW		0/5/1/4		transform A10 to blue
+darklings		87 VP		0 C		0 W		1 P		3/0/0 PW		5/10/7/1		transform F5 to black. transform A7 to brown
+Round 6 income	show history
+mermaids		87 VP	+4	10 C	+6	6 W	+2	3 P	+9	0/4/3 PW		0/5/1/4		other_income_for_faction
+dwarves		54 VP	+9	13 C	+6	7 W	+2	3 P	+7	0/0/6 PW		2/2/10/9		other_income_for_faction
+darklings		87 VP	+6	6 C	+7	7 W	+2	3 P	+4	0/2/1 PW		5/10/7/1		other_income_for_faction
+fakirs		86 VP	+8	11 C	+3	5 W	+3	4 P	+10	0/0/8 PW		2/2/1/5		other_income_for_faction
+Round 6, turn 1	show history
+mermaids	+4	91 VP	-2	8 C	-1	5 W		3 P		0/4/3 PW		0/5/1/4		build A10
+dwarves	+8	62 VP	-2	11 C	-3	4 W		3 P		0/0/6 PW		2/2/10/9	1 	build H8
+darklings		87 VP		6 C		7 W		3 P	+1	0/1/2 PW		5/10/7/1		Leech 1 from dwarves
+darklings	+4	91 VP	-2	4 C	-1	6 W		3 P		0/1/2 PW		5/10/7/1	3 	build F5
+fakirs	+6	92 VP	-2	9 C	-1	4 W	-1	3 P	-12	6/0/2 PW		2/2/1/5		action ACT6. transform G1 to yellow. build G1
+Round 6, turn 2	show history
+mermaids	+4	95 VP	-2	6 C	-1	4 W		3 P		0/4/3 PW		0/5/1/4		build A11
+dwarves		62 VP		11 C		4 W		3 P		0/0/6 PW		2/2/10/9		Decline 3 from darklings
+dwarves		62 VP		11 C	+2	6 W		3 P	-8	4/0/2 PW		2/2/10/9		action ACT3
+darklings	+8	99 VP	-2	2 C	-1	5 W	-2	1 P		0/1/2 PW		5/10/7/1	3 2 	dig 2. build E8
+fakirs		92 VP		9 C		4 W	-1	2 P	+1	5/1/2 PW	+2	4/2/1/5		send p to FIRE
+mermaids		95 VP		6 C		4 W		3 P		0/4/3 PW		0/5/1/4		Decline 3 from darklings
+Round 6, turn 3	show history
+mermaids	+15	110 VP	-2	4 C	-4	0 W		3 P		0/4/3 PW		0/5/1/4		dig 1. build B5. connect r16. +TW8
+dwarves		62 VP		11 C		6 W		3 P		4/0/2 PW		2/2/10/9		Decline 2 from darklings
+dwarves		62 VP		11 C		6 W	-1	2 P	+1	3/1/2 PW	+2	4/2/10/9		send p to Fire
+darklings	+4	103 VP	-2	0 C	-1	4 W		1 P		0/1/2 PW		5/10/7/1		build A8
+fakirs		92 VP		9 C		4 W	-1	1 P	+2	3/3/2 PW	+2	6/2/1/5		send p to FIRE
+Round 6, turn 4	show history
+mermaids	+4	114 VP	-4	0 C		0 W	-1	2 P		0/4/3 PW		0/5/1/4		advance ship
+dwarves	+8	70 VP	-2	9 C	-3	3 W		2 P		3/1/2 PW		4/2/10/9		build I9
+darklings	+4	107 VP		0 C	-4	0 W	-1	0 P		0/1/2 PW		5/10/7/1		convert 4W to 4C. advance ship
+fakirs	+9	101 VP		9 C		4 W	+1	2 P	-6	6/1/0 PW		6/2/1/5		burn 1. action ACT1. Bridge G1:F3. +TW3
+Round 6, turn 5	show history
+mermaids		114 VP	+7	7 C		0 W		2 P	-8	4/2/0 PW		0/5/1/4		burn 1. action ACT4
+dwarves		70 VP	-5	4 C	-2	1 W		2 P	+4	0/3/3 PW	+3	7/2/10/9	6 	upgrade F4 to TE. +FAV1
+darklings		107 VP		0 C		0 W		0 P		0/1/2 PW	+1	6/10/7/1		action FAV6. +FIRE
+fakirs		101 VP		9 C		4 W		2 P		6/1/0 PW		6/2/1/5		Decline 6 from dwarves
+fakirs	+6	107 VP	-2	7 C	-1	3 W	-1	1 P		6/1/0 PW		6/2/1/5	1 	build I7
+mermaids		114 VP		7 C		0 W		2 P	+1	3/3/0 PW		0/5/1/4		Leech 1 from fakirs
+Round 6, turn 6	show history
+mermaids	+5	119 VP	-4	3 C		0 W	-1	1 P		3/3/0 PW		0/5/1/4		advance ship
+dwarves	+7	77 VP	-3	1 C	+1	2 W	-1	1 P		0/3/3 PW		7/2/10/9	3 	convert 1P to 1W. upgrade E9 to TP. +TW2
+darklings		107 VP		0 C		0 W		0 P	+1	0/0/3 PW		6/10/7/1		Leech 3 from dwarves
+darklings		107 VP		0 C		0 W	+1	1 P	-6	3/0/0 PW		6/10/7/1		action ACT2
+fakirs		107 VP	-5	2 C	-2	1 W		1 P	+1	5/2/0 PW	+2	6/4/1/5	2 	upgrade G2 to TE. +FAV6
+Round 6, turn 7	show history
+mermaids		119 VP		3 C		0 W	-1	0 P	+2	1/5/0 PW	+1	0/5/1/5		send p to AIR
+dwarves		77 VP		1 C		2 W		1 P		0/3/3 PW		7/2/10/9		Decline 2 from fakirs
+dwarves	+4	81 VP	-1	0 C	-2	0 W		1 P	-8	4/1/0 PW		7/2/10/9		convert 1W to 1C. burn 1. action ACT5. build I11
+darklings		107 VP		0 C		0 W	-1	0 P	+2	1/2/0 PW	+1	7/10/7/1		send p to Fire
+fakirs		107 VP		2 C		1 W	-1	0 P	+2	3/4/0 PW	+1	7/4/1/5		send p to FIRE
+Round 6, turn 8	show history
+mermaids	+15	134 VP		3 C		0 W		0 P		1/5/0 PW		0/5/1/5		pass
+dwarves		81 VP		0 C		0 W	-1	0 P		4/1/0 PW	+1	8/2/10/9		send p to Fire
+darklings	+6	113 VP		0 C		0 W		0 P		1/2/0 PW		7/10/7/1		pass
+fakirs		107 VP		2 C		1 W		0 P		3/4/0 PW	+1	8/4/1/5		action FAV6. +FIRE
+Round 6, turn 9	show history
+dwarves	+7	88 VP		0 C		0 W		0 P		4/1/0 PW		8/2/10/9		pass
+fakirs	+3	110 VP		2 C		1 W		0 P		3/4/0 PW		8/4/1/5		pass
+Scoring FIRE cult	show history
+dwarves	+6	94 VP		0 C		0 W		0 P		4/1/0 PW		8/2/10/9		+6vp for FIRE
+darklings	+2	115 VP		0 C		0 W		0 P		1/2/0 PW		7/10/7/1		+2vp for FIRE
+fakirs	+6	116 VP		2 C		1 W		0 P		3/4/0 PW		8/4/1/5		+6vp for FIRE
+Scoring WATER cult	show history
+mermaids	+4	138 VP		3 C		0 W		0 P		1/5/0 PW		0/5/1/5		+4vp for WATER
+darklings	+8	123 VP		0 C		0 W		0 P		1/2/0 PW		7/10/7/1		+8vp for WATER
+fakirs	+2	118 VP		2 C		1 W		0 P		3/4/0 PW		8/4/1/5		+2vp for WATER
+Scoring EARTH cult	show history
+mermaids	+1	139 VP		3 C		0 W		0 P		1/5/0 PW		0/5/1/5		+1vp for EARTH
+dwarves	+8	102 VP		0 C		0 W		0 P		4/1/0 PW		8/2/10/9		+8vp for EARTH
+darklings	+4	127 VP		0 C		0 W		0 P		1/2/0 PW		7/10/7/1		+4vp for EARTH
+fakirs	+1	119 VP		2 C		1 W		0 P		3/4/0 PW		8/4/1/5		+1vp for EARTH
+Scoring AIR cult	show history
+mermaids	+3	142 VP		3 C		0 W		0 P		1/5/0 PW		0/5/1/5		+3vp for AIR
+dwarves	+8	110 VP		0 C		0 W		0 P		4/1/0 PW		8/2/10/9		+8vp for AIR
+fakirs	+3	122 VP		2 C		1 W		0 P		3/4/0 PW		8/4/1/5		+3vp for AIR
+Scoring network	show history
+mermaids	+15	157 VP		3 C		0 W		0 P		1/5/0 PW		0/5/1/5		+15vp for network
+dwarves	+15	125 VP		0 C		0 W		0 P		4/1/0 PW		8/2/10/9		+15vp for network
+darklings	+6	133 VP		0 C		0 W		0 P		1/2/0 PW		7/10/7/1		+6vp for network
+Converting resources to VPs	show history
+mermaids	+1	158 VP	-1	2 C		0 W		0 P	-4	3/1/0 PW		0/5/1/5		score_resources
+dwarves		125 VP		0 C		0 W		0 P		4/1/0 PW		8/2/10/9		score_resources
+darklings		133 VP	+1	1 C		0 W		0 P	-2	2/0/0 PW		7/10/7/1		score_resources
+fakirs	+1	123 VP		2 C	-1	0 W		0 P	-4	5/0/0 PW		8/4/1/5		score_resources

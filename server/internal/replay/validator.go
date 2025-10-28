@@ -63,16 +63,13 @@ func (v *GameValidator) ValidateNextEntry() error {
 		// Check if this is a "Round X income" comment
 		if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
 		   strings.Contains(entry.CommentText, "income") {
-			// Before starting new round (except Round 1), return bonus cards to available pool
-			// (This normally happens during cleanup phase)
-			// Round 1 is special: bonus cards were selected during setup and should be kept
-			if v.GameState.Round > 0 {
-				v.GameState.ReturnBonusCards()
-			}
 			// Start new round (this resets HasPassed, power actions, etc.)
 			v.GameState.StartNewRound()
 			// Reset income flag for new round
 			v.IncomeApplied = false
+			// Note: We do NOT return bonus cards here. Bonus cards are selected when passing
+			// and provide income for the NEXT round. They are only returned to the pool when
+			// the player passes again and selects a new bonus card (handled in TakeBonusCard).
 		}
 		return nil
 	}
@@ -140,16 +137,40 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
+	// Debug: show resources for darklings at entry 110
+	if v.CurrentEntry == 110 {
+		if player := v.GameState.GetPlayer("Darklings"); player != nil {
+			fmt.Printf("DEBUG: Entry %d - Darklings resources before action: %d C, %d W, %d P\n",
+				v.CurrentEntry, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
+		}
+	}
+
 	// First, try to convert and execute the action for this entry
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {
 		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
 	}
 
+	// Debug: show worker count for witches BEFORE action
+	var workersBefore int
+	if v.CurrentEntry >= 85 && v.CurrentEntry <= 92 {
+		if player := v.GameState.GetPlayer("Witches"); player != nil {
+			workersBefore = player.Resources.Workers
+		}
+	}
+
 	// Execute the action (if it's not nil)
 	if action != nil {
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
+		}
+	}
+
+	// Debug: show worker count for witches AFTER action
+	if v.CurrentEntry >= 85 && v.CurrentEntry <= 92 {
+		if player := v.GameState.GetPlayer("Witches"); player != nil {
+			fmt.Printf("DEBUG: Entry %d (%s) - Witches workers: %d→%d (expected: %d), action: %s\n",
+				v.CurrentEntry, entry.Faction, workersBefore, player.Resources.Workers, entry.Workers, entry.Action)
 		}
 	}
 

@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -61,10 +63,17 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	// 4. Income from bonus cards
 	if bonusCard, ok := gs.BonusCards.GetPlayerCard(player.ID); ok {
 		bonusCoins, bonusWorkers, bonusPriests, bonusPower := GetBonusCardIncomeBonus(bonusCard)
+		// Debug: show bonus card income for debugging
+		if bonusCoins > 0 || bonusWorkers > 0 || bonusPriests > 0 || bonusPower > 0 {
+			fmt.Printf("DEBUG: Player %s has bonus card %v, income: +%dC +%dW +%dP +%dPW\n",
+				player.ID, bonusCard, bonusCoins, bonusWorkers, bonusPriests, bonusPower)
+		}
 		income.Coins += bonusCoins
 		income.Workers += bonusWorkers
 		income.Priests += bonusPriests
 		income.Power += bonusPower
+	} else {
+		fmt.Printf("DEBUG: Player %s has NO bonus card for income\n", player.ID)
 	}
 
 	return income
