@@ -245,12 +245,15 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	// Step 1: Transform terrain to home terrain if needed
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
+	fmt.Printf("DEBUG TransformAndBuild: %s building on %v, terrain=%v, home=%v, needsTransform=%v\n",
+		a.PlayerID, a.TargetHex, mapHex.Terrain, player.Faction.GetHomeTerrain(), needsTransform)
 	if needsTransform {
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
-		
+
 		// Darklings pay priests for terraform (instead of workers)
 		if darklings, ok := player.Faction.(*factions.Darklings); ok {
 			priestCost := darklings.GetTerraformCostInPriests(distance)
+			fmt.Printf("DEBUG: %s paying %d priests for %d spades of terraform\n", a.PlayerID, priestCost, distance)
 			player.Resources.Priests -= priestCost
 			
 			// Award Darklings VP bonus (+2 VP per spade)
@@ -259,6 +262,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		} else {
 			// Other factions pay workers
 			totalWorkers := player.Faction.GetTerraformCost(distance)
+			fmt.Printf("DEBUG: %s paying %d workers for %d spades of terraform (before: %d W, after: %d W)\n",
+				a.PlayerID, totalWorkers, distance, player.Resources.Workers, player.Resources.Workers-totalWorkers)
 			player.Resources.Workers -= totalWorkers
 		}
 

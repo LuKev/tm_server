@@ -245,6 +245,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 	case PowerActionPriest:
 		// Grant priest with 7-priest limit enforcement
 		// If at limit, action still succeeds (power is spent) but no priest is gained
+		fmt.Printf("DEBUG: PowerActionPriest executing for %s\n", a.PlayerID)
 		gs.GainPriests(a.PlayerID, 1)
 		
 	case PowerActionWorkers:

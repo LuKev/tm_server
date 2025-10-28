@@ -195,15 +195,8 @@ func ParseLogLine(line string) (*LogEntry, error) {
 			priests, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "P")))
 			entry.Priests = priests
 
-			// Check for delta
-			if idx+1 < len(parts) {
-				nextPart := strings.TrimSpace(parts[idx+1])
-				if strings.HasPrefix(nextPart, "+") || strings.HasPrefix(nextPart, "-") {
-					delta, _ := strconv.Atoi(nextPart)
-					entry.PriestsDelta = delta
-					idx++
-				}
-			}
+			// Note: Do NOT read delta after priests - the next numeric field is the power delta (Bowl2 change during burns)
+			// Priest deltas are not shown in the log format
 			idx++
 			continue
 		}
@@ -323,7 +316,7 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 				// Extract power action type
 				fields := strings.Fields(part)
 				if len(fields) >= 2 {
-					params["power_action"] = fields[1]
+					params["action_type"] = fields[1]
 				}
 			} else if strings.HasPrefix(part, "transform ") {
 				fields := strings.Fields(part)
@@ -400,9 +393,32 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		return ActionPowerAction, params, nil
 
 	case strings.HasPrefix(actionStr, "burn "):
-		// Usually part of compound action, but can appear alone
-		// burn 6. action ACT6. transform...
-		params["amount"] = strings.Fields(actionStr)[1]
+		// Can be part of compound action: "burn 3. action ACT2" or "burn 6. action ACT6. transform..."
+		// Parse all parts of the compound action
+		parts := strings.Split(actionStr, ".")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "burn ") {
+				// Extract burn amount
+				fields := strings.Fields(part)
+				if len(fields) >= 2 {
+					params["burn"] = fields[1]
+				}
+			} else if strings.HasPrefix(part, "action ") {
+				// Extract power action type (e.g., "action ACT2")
+				fields := strings.Fields(part)
+				if len(fields) >= 2 {
+					params["action_type"] = fields[1]
+				}
+			}
+		}
+
+		// If there's a power action specified, this is a power action with burn
+		if _, hasActionType := params["action_type"]; hasActionType {
+			return ActionPowerAction, params, nil
+		}
+
+		// Otherwise, it's just a burn (not sure if this ever happens alone)
 		return ActionBurnPower, params, nil
 
 	case actionStr == "setup":
@@ -416,6 +432,22 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 
 	case strings.HasPrefix(actionStr, "Leech ") || strings.HasPrefix(actionStr, "Decline "):
 		return ActionLeech, params, nil
+
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "pass "):
+		// Compound action: convert 1PW to 1C. pass BON7
+		// The convert part is a state change (reflected in resource deltas)
+		// We only need to execute the pass action
+		parts := strings.Split(actionStr, ".")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "pass ") || strings.HasPrefix(part, "Pass ") {
+				bonusTile := strings.Fields(part)[1]
+				params["bonus"] = bonusTile
+				return ActionPass, params, nil
+			}
+		}
+		// If we couldn't find the pass part, treat as convert only
+		return ActionConvert, params, nil
 
 	case strings.HasPrefix(actionStr, "convert "):
 		return ActionConvert, params, nil

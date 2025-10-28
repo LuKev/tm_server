@@ -154,6 +154,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 	}
 
+
 	// First, try to convert and execute the action for this entry
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {

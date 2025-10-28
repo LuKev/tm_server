@@ -548,28 +548,28 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 	if amount <= 0 {
 		return 0
 	}
-	
+
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return 0
 	}
-	
+
 	priestsInHand := player.Resources.Priests
 	priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(playerID)
 	totalPriests := priestsInHand + priestsOnCult
 	maxNewPriests := 7 - totalPriests
-	
+
 	if maxNewPriests <= 0 {
 		// Already at or above the 7-priest limit, cannot gain any priests
 		return 0
 	}
-	
+
 	// Cap the amount to not exceed the limit
 	priestsToGain := amount
 	if priestsToGain > maxNewPriests {
 		priestsToGain = maxNewPriests
 	}
-	
+
 	player.Resources.Priests += priestsToGain
 	return priestsToGain
 }

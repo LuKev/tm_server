@@ -263,6 +263,13 @@ func (bcs *BonusCardState) GetCoinsOnCard(cardType BonusCardType) int {
 // TakeBonusCard assigns a bonus card to a player when they pass
 // Returns the number of coins that were on the card
 func (bcs *BonusCardState) TakeBonusCard(playerID string, cardType BonusCardType) (int, error) {
+	// Debug: show available cards
+	availableCards := make([]BonusCardType, 0)
+	for card := range bcs.Available {
+		availableCards = append(availableCards, card)
+	}
+	fmt.Printf("DEBUG: Player %s trying to take card %d, but available cards are: %v\n", playerID, cardType, availableCards)
+
 	// Check if available
 	if !bcs.IsAvailable(cardType) {
 		return 0, fmt.Errorf("bonus card %v is not available", cardType)
@@ -276,6 +283,7 @@ func (bcs *BonusCardState) TakeBonusCard(playerID string, cardType BonusCardType
 	// If player has a card from a previous round, return it first
 	// This happens when passing in Round N+1 after having selected a card in Round N
 	if oldCard, hasOldCard := bcs.PlayerCards[playerID]; hasOldCard {
+		fmt.Printf("DEBUG: %s returning old card %d before taking new card %d\n", playerID, oldCard, cardType)
 		bcs.Available[oldCard] = 0
 		delete(bcs.PlayerCards, playerID)
 	}

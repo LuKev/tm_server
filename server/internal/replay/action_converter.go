@@ -63,6 +63,22 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			return nil, fmt.Errorf("power action missing action_type")
 		}
 
+		// Handle burning power if present (e.g., "burn 3. action ACT2")
+		if burnStr, hasBurn := params["burn"]; hasBurn {
+			burnAmount, err := strconv.Atoi(burnStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid burn amount %s: %v", burnStr, err)
+			}
+			player := gs.GetPlayer(playerID)
+			if player == nil {
+				return nil, fmt.Errorf("player not found: %s", playerID)
+			}
+			// Burn power before the main action
+			if err := player.Resources.BurnPower(burnAmount); err != nil {
+				return nil, fmt.Errorf("failed to burn power: %v", err)
+			}
+		}
+
 		// Check if this is a bonus card action (BON1-10) vs power action (ACT1-6)
 		if strings.HasPrefix(actionTypeStr, "BON") {
 			// BON1 provides 1 free spade for transformation
@@ -110,6 +126,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		}
 
 		// Standalone power action (ACT1=bridge, ACT2=priest, ACT3=workers, ACT4=coins)
+		fmt.Printf("DEBUG: Creating standalone power action %v for %s\n", powerActionType, playerID)
 		return game.NewPowerAction(playerID, powerActionType), nil
 
 	case ActionBurnPower:
@@ -245,7 +262,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 	}
 
 	// Handle power action if present (e.g., ACT6 for 2 free spades)
-	if powerActionStr, hasPowerAction := params["power_action"]; hasPowerAction {
+	if powerActionStr, hasPowerAction := params["action_type"]; hasPowerAction {
 		powerActionType, err := ParsePowerActionType(powerActionStr)
 		if err != nil {
 			return nil, fmt.Errorf("invalid power action %s: %v", powerActionStr, err)
