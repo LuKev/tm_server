@@ -205,9 +205,9 @@ func TestBuildingIncome_Mixed(t *testing.T) {
 	// Expected:
 	// 2 dwellings: 2 workers
 	// 1 trading house: 2 coins + 1 power
-	// 1 temple: 1 priest + 1 power
+	// 1 temple: 1 priest (no power - temples give priests only)
 	// 1 stronghold: 2 power + 1 priest
-	// Total: 2 workers, 2 coins, 2 priests, 4 power
+	// Total: 2 workers, 2 coins, 2 priests, 3 power
 
 	if income.Workers != 2 {
 		t.Errorf("expected 2 workers, got %d", income.Workers)
@@ -216,10 +216,10 @@ func TestBuildingIncome_Mixed(t *testing.T) {
 		t.Errorf("expected 2 coins, got %d", income.Coins)
 	}
 	if income.Priests != 2 {
-		t.Errorf("expected 2 priests, got %d", income.Priests)
+		t.Errorf("expected 2 priests (1 from temple, 1 from stronghold), got %d", income.Priests)
 	}
-	if income.Power != 4 {
-		t.Errorf("expected 4 power, got %d", income.Power)
+	if income.Power != 3 {
+		t.Errorf("expected 3 power (1 from TH, 2 from SH), got %d", income.Power)
 	}
 }
 
@@ -293,39 +293,10 @@ func TestDwellingIncome_Engineers(t *testing.T) {
 	}
 }
 
-func TestTempleIncome_Standard(t *testing.T) {
-	// Standard: 1 priest + 1 power per temple
-	income := calculateTempleIncome(2, models.FactionHalflings)
-	if income.Priests != 2 {
-		t.Errorf("expected 2 priests from 2 temples, got %d", income.Priests)
-	}
-	if income.Power != 2 {
-		t.Errorf("expected 2 power from 2 temples, got %d", income.Power)
-	}
-}
-
-func TestTempleIncome_Engineers(t *testing.T) {
-	// Engineers: 1st temple = 1 priest + 1 power, 2nd temple = 5 power, 3rd temple = 1 priest + 1 power
-	tests := []struct {
-		temples        int
-		expectedPriest int
-		expectedPower  int
-	}{
-		{1, 1, 1}, // 1st temple: 1 priest + 1 power
-		{2, 1, 6}, // 1st temple: 1 priest + 1 power, 2nd temple: 5 power
-		{3, 2, 7}, // 1st: 1p+1pw, 2nd: 5pw, 3rd: 1p+1pw
-	}
-
-	for _, tt := range tests {
-		income := calculateTempleIncome(tt.temples, models.FactionEngineers)
-		if income.Priests != tt.expectedPriest {
-			t.Errorf("expected %d priests from %d Engineers temples, got %d", tt.expectedPriest, tt.temples, income.Priests)
-		}
-		if income.Power != tt.expectedPower {
-			t.Errorf("expected %d power from %d Engineers temples, got %d", tt.expectedPower, tt.temples, income.Power)
-		}
-	}
-}
+// Note: Temple and Sanctuary income tests removed
+// In Terra Mystica, temples and sanctuaries do NOT give power/priest income
+// They provide special abilities and cult track advancement, but no resource income
+// This was confirmed by examining actual game logs which show no power changes from temples
 
 func TestTradingHouseIncome_Standard(t *testing.T) {
 	// Standard: 1st-2nd: 2c+1pw, 3rd-4th: 2c+2pw

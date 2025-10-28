@@ -31,7 +31,17 @@ type BaseIncome struct {
 func (gs *GameState) GrantIncome() {
 	for _, player := range gs.Players {
 		income := calculatePlayerIncome(gs, player)
+		if player.ID == "Cultists" {
+			fmt.Printf("DEBUG GrantIncome: Cultists calculated income: %dC %dW %dP %dPW\n",
+				income.Coins, income.Workers, income.Priests, income.Power)
+			fmt.Printf("DEBUG: Cultists power BEFORE applyIncome: %d/%d/%d\n",
+				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+		}
 		applyIncome(gs, player, income)
+		if player.ID == "Cultists" {
+			fmt.Printf("DEBUG: Cultists power AFTER applyIncome: %d/%d/%d\n",
+				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+		}
 	}
 }
 
@@ -134,14 +144,15 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	income.Coins += tradingHouseIncome.Coins
 	income.Power += tradingHouseIncome.Power
 
-	// Temple income: 1 priest + 1 power per temple (with exceptions)
+	// Temple income: 1 priest per temple (NO power income from temples)
+	// Temples provide cult advancement abilities, not power income
 	templeIncome := calculateTempleIncome(temples, factionType)
 	income.Priests += templeIncome.Priests
-	income.Power += templeIncome.Power
+	// Note: Do NOT add temple power to income - temples don't give power income
 
-	// Sanctuary income: 1 priest + 1 power per sanctuary
-	income.Priests += sanctuaries
-	income.Power += sanctuaries
+	// Sanctuary income: Sanctuaries do NOT give resource income
+	// They provide special abilities but no resource income
+	// (No income from sanctuaries)
 
 	// Stronghold income is faction-specific
 	if strongholds > 0 {

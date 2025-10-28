@@ -9,12 +9,14 @@
 
 ## Current Bug Being Investigated
 
-**Location**: Entries 148-151 (Round 3 income phase)
-**Issue**: Power bowl distribution mismatch during income phase
-- Expected power states show power split across bowls (e.g., 0/2/10)
-- Actual power states have all power in bowl 3 (e.g., 0/0/12)
-- **Symptom**: 114 validation errors (reduced from 127)
-- **Next steps**: Investigate power cycling during income phase
+**Location**: Entry 158 - Engineers "advance ship" action failing
+**Blocking Issue**: Cannot afford shipping upgrade (cascades from earlier resource mismatches)
+**Root Cause**: Power bowl distribution mismatches at Round 3 income (entries 148-151) causing resource drift
+- Cultists: Expected 0/2/10, Actual 0/1/11
+- Engineers: Expected 0/1/5, Actual 0/4/2
+- Darklings: Expected 1/5/0, Actual 3/3/0
+- **Symptom**: 110 validation errors (reduced from 114)
+- **Next steps**: Investigate actions between entries 107-148 to find what's causing power bowl drift
 
 **Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` and `favor.go` to track cult advancement and power states.
 
@@ -59,6 +61,23 @@
 - **Fix**: Changed `favor.go` line 270 to call `gs.AdvanceCultTrack` instead of `gs.CultTracks.AdvancePlayer`
 - **Location**: Entry 59 in test file, `server/internal/game/favor.go` line 270
 - **Result**: Reduced validation errors from 127 to 114 (fixed all cult track mismatches)
+
+### Bug #11: Temple Income Missing (NOT power bowl issue)
+- **Issue**: Temples weren't giving priest income during income phases, causing priest shortages
+- **Root Cause**: `calculateTempleIncome()` function existed but was never called in `calculateBuildingIncome()`
+- **Fix**: Added call to `calculateTempleIncome()` in `server/internal/game/income.go` lines 147-151
+- **Important**: Temples give ONLY priests (1 per temple), NOT power. Power income comes from trading houses and strongholds only
+- **Location**: Entry 109 in test file (Engineers needed 1 priest for "send p to WATER")
+- **Result**: Fixed priest income, Round 2 income now matches perfectly (entries 104-107)
+
+### Bug #12: Round 3 Income Power Bowl Distribution (IN PROGRESS)
+- **Issue**: At Round 3 income (entries 148-151), power bowl distributions don't match expected values
+- **Symptoms**:
+  - Cultists: Expected 0/2/10, Actual 0/1/11
+  - Engineers: Expected 0/1/5, Actual 0/4/2
+  - Darklings: Expected 1/5/0, Actual 3/3/0
+- **Status**: Investigating between entries 107-148 to find cause
+- **Current errors**: 110 validation errors remaining
 
 ### Other Fixes
 - Terrain color parsing improvements

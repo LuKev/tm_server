@@ -117,7 +117,21 @@ func (v *GameValidator) ValidateNextEntry() error {
 			// Note: StartNewRound() was already called when we saw "Round X income" comment
 			// It set phase to PhaseIncome, so now we just grant income
 			fmt.Printf("DEBUG: Applying income for all players at entry %d\n", v.CurrentEntry)
+
+			// Debug: show power state BEFORE income
+			if cultists := v.GameState.GetPlayer("Cultists"); cultists != nil {
+				fmt.Printf("DEBUG: BEFORE income - Cultists power: %d/%d/%d\n",
+					cultists.Resources.Power.Bowl1, cultists.Resources.Power.Bowl2, cultists.Resources.Power.Bowl3)
+			}
+
 			v.GameState.GrantIncome()
+
+			// Debug: show power state AFTER income
+			if cultists := v.GameState.GetPlayer("Cultists"); cultists != nil {
+				fmt.Printf("DEBUG: AFTER income - Cultists power: %d/%d/%d\n",
+					cultists.Resources.Power.Bowl1, cultists.Resources.Power.Bowl2, cultists.Resources.Power.Bowl3)
+			}
+
 			v.IncomeApplied = true
 			v.GameState.StartActionPhase() // Transition to action phase
 		}
@@ -224,6 +238,19 @@ func (v *GameValidator) ValidateNextEntry() error {
 				player.CultPositions[game.CultEarth], player.CultPositions[game.CultAir])
 			fmt.Printf("  Expected: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
 				entry.CultTracks.Fire, entry.CultTracks.Water, entry.CultTracks.Earth, entry.CultTracks.Air)
+		}
+	}
+
+	// Debug: track power bowls from entry 136 to 148
+	if v.CurrentEntry >= 136 && v.CurrentEntry <= 148 {
+		if player := v.GameState.GetPlayer("Cultists"); player != nil {
+			total := player.Resources.Power.Bowl1 + player.Resources.Power.Bowl2 + player.Resources.Power.Bowl3
+			expectedTotal := entry.PowerBowls.Bowl1 + entry.PowerBowls.Bowl2 + entry.PowerBowls.Bowl3
+			fmt.Printf("DEBUG: Entry %d (%s) - Cultists power: %d/%d/%d (total %d), expected %d/%d/%d (total %d), action: %s\n",
+				v.CurrentEntry, entry.Faction,
+				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3, total,
+				entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3, expectedTotal,
+				entry.Action)
 		}
 	}
 
