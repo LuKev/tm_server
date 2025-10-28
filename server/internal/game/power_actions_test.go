@@ -782,3 +782,95 @@ func Test7PriestLimit_PowerAction(t *testing.T) {
 		t.Errorf("expected power to be spent (10 - 3 = 7), got %d", player2.Resources.Power.Bowl3)
 	}
 }
+
+// Regression test for Bug #7: ACT6 split transform/build
+// The bug was that power actions like "ACT6. transform F2 to gray. build D4"
+// (where transform and build are on different hexes) were not working correctly.
+// The transform hex was being transformed, but the build hex was charged full
+// terraform cost instead of using the remaining free spades from ACT6.
+func TestPowerActionSpade2_SplitTransformAndBuild(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewEngineers() // Engineers home terrain is Mountain (gray)
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+
+	// Set up power for ACT6 (2 free spades, costs 6 power)
+	player.Resources.Power.Bowl3 = 6
+
+	// Set up two hexes:
+	// 1. Transform hex (F2): Forest -> needs to be transformed to Mountain
+	// 2. Build hex (D4): Wasteland -> needs to be transformed to Mountain for dwelling
+	transformHex := NewHex(-1, 5) // F2 in log notation
+	buildHex := NewHex(4, 3)      // D4 in log notation
+
+	transformMapHex := gs.Map.GetHex(transformHex)
+	transformMapHex.Terrain = models.TerrainForest // Will transform to Mountain
+
+	buildMapHex := gs.Map.GetHex(buildHex)
+	buildMapHex.Terrain = models.TerrainWasteland // Will transform to Mountain and build
+
+	// Place adjacent dwelling for build hex adjacency
+	adjacentHex := NewHex(3, 3)
+	adjacentMapHex := gs.Map.GetHex(adjacentHex)
+	adjacentMapHex.Terrain = models.TerrainMountain
+	adjacentMapHex.Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    models.FactionEngineers,
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+
+	// Engineers start with 2 workers
+	initialWorkers := player.Resources.Workers
+
+	// Manually transform both hexes (simulating the action converter's fix)
+	// This is what the replay validator does for split transform/build
+	err := gs.Map.TransformTerrain(transformHex, models.TerrainMountain)
+	if err != nil {
+		t.Fatalf("failed to transform F2: %v", err)
+	}
+
+	err = gs.Map.TransformTerrain(buildHex, models.TerrainMountain)
+	if err != nil {
+		t.Fatalf("failed to transform D4: %v", err)
+	}
+
+	// Mark power action as used
+	gs.PowerActions.MarkUsed(PowerActionSpade2)
+
+	// Now build dwelling on D4 (should only cost dwelling resources)
+	buildAction := NewTransformAndBuildAction("player1", buildHex, true)
+
+	err = buildAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected build to succeed, got error: %v", err)
+	}
+
+	// Verify both hexes were transformed
+	if transformMapHex.Terrain != models.TerrainMountain {
+		t.Errorf("F2 should be Mountain, got %v", transformMapHex.Terrain)
+	}
+
+	if buildMapHex.Terrain != models.TerrainMountain {
+		t.Errorf("D4 should be Mountain, got %v", buildMapHex.Terrain)
+	}
+
+	// Verify dwelling was built on D4
+	if buildMapHex.Building == nil || buildMapHex.Building.Type != models.BuildingDwelling {
+		t.Error("expected dwelling to be built on D4")
+	}
+
+	// Verify workers consumed = only dwelling cost (Engineers dwelling costs 1 worker)
+	// NOT transformation cost since ACT6 provided 2 free spades
+	expectedWorkers := initialWorkers - 1
+	if player.Resources.Workers != expectedWorkers {
+		t.Errorf("expected %d workers (spent 1 for dwelling), got %d workers",
+			expectedWorkers, player.Resources.Workers)
+	}
+
+	// Verify F2 has no building (it was just transformed, not built on)
+	if transformMapHex.Building != nil {
+		t.Error("F2 should not have a building")
+	}
+}

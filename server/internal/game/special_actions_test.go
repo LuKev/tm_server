@@ -691,3 +691,65 @@ func TestUpgradeToStronghold_GrantsAbility(t *testing.T) {
 		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
 	}
 }
+
+// Regression test for Bug #4: BON1 bonus card spade action
+// The bug was that BON1 was being converted to a regular TransformAndBuildAction
+// instead of a SpecialAction, causing it to consume all workers instead of providing
+// 1 free spade.
+func TestBonusCardSpade_ProvidesFreeSpade(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewWitches()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+
+	// Give player the spade bonus card
+	gs.BonusCards.PlayerCards["player1"] = BonusCardSpade
+
+	// Set up a hex that needs 1 spade to transform (distance 1)
+	targetHex := NewHex(0, 1)
+	mapHex := gs.Map.GetHex(targetHex)
+	mapHex.Terrain = models.TerrainMountain // Witches are Forest, Mountain->Forest = 1 step
+
+	// Place a dwelling nearby for adjacency
+	adjacentHex := NewHex(0, 0)
+	adjacentMapHex := gs.Map.GetHex(adjacentHex)
+	adjacentMapHex.Terrain = models.TerrainForest
+	adjacentMapHex.Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    models.FactionWitches,
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+
+	// Player starts with 3 workers (Witches starting resources)
+	initialWorkers := player.Resources.Workers
+
+	// Use bonus card spade action to transform and build
+	action := NewBonusCardSpadeAction("player1", targetHex, true)
+
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("expected bonus card spade action to succeed, got error: %v", err)
+	}
+
+	// Verify terrain was transformed
+	if mapHex.Terrain != models.TerrainForest {
+		t.Errorf("expected terrain to be Forest, got %v", mapHex.Terrain)
+	}
+
+	// Verify dwelling was built
+	if mapHex.Building == nil || mapHex.Building.Type != models.BuildingDwelling {
+		t.Error("expected dwelling to be built")
+	}
+
+	// Verify workers consumed = only dwelling cost (1 worker)
+	// Mountain->Forest is 1 step (1 spade needed)
+	// BON1 provides 1 free spade, so transformation is free
+	// Only dwelling cost (1 worker) should be charged
+	expectedWorkers := initialWorkers - 1
+	if player.Resources.Workers != expectedWorkers {
+		t.Errorf("expected %d workers remaining (spent 1 for dwelling), got %d workers (spent %d)",
+			expectedWorkers, player.Resources.Workers, initialWorkers - player.Resources.Workers)
+	}
+}
