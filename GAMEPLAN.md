@@ -4,21 +4,23 @@
 
 **Test File**: `test_data/4pLeague_S66_D1L1_G6.txt`
 - Total lines: 413
-- Current position: Entry 158 (38% through the file)
+- Current position: **Entry 158 (38% through the file)** - BLOCKED
 - Test file is a 4-player game: Engineers, Darklings, Cultists, Witches
+- Progress: Fixed 9 bugs (#4-#12), reduced errors from 129 to 99
 
 ## Current Bug Being Investigated
 
 **Location**: Entry 158 - Engineers "advance ship" action failing
-**Blocking Issue**: Cannot afford shipping upgrade (cascades from earlier resource mismatches)
-**Root Cause**: Power bowl distribution mismatches at Round 3 income (entries 148-151) causing resource drift
-- Cultists: Expected 0/2/10, Actual 0/1/11
+**Blocking Issue**: Cannot afford shipping upgrade (cascades from power bowl mismatches)
+**Root Cause**: Power bowl distribution mismatches at Round 5 income (entries 150-151)
 - Engineers: Expected 0/1/5, Actual 0/4/2
 - Darklings: Expected 1/5/0, Actual 3/3/0
-- **Symptom**: 110 validation errors (reduced from 114)
-- **Next steps**: Investigate actions between entries 107-148 to find what's causing power bowl drift
+- Cultists: ✓ Fixed! Expected 0/2/10, Actual 0/2/10
+- **Symptom**: 99 validation errors (reduced from 110)
+- **Status**: Bug #12 (Cultists compound convert+upgrade) FIXED! Now investigating Engineers/Darklings power drift
+- **Next steps**: Investigate what's causing Engineers/Darklings power bowl drift at Round 5 income
 
-**Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` and `favor.go` to track cult advancement and power states.
+**Debug Code**: Added temporary debug output in `server/internal/replay/validator.go` and `income.go` to track power states and building counts.
 
 ## Bugs Fixed So Far
 
@@ -70,14 +72,28 @@
 - **Location**: Entry 109 in test file (Engineers needed 1 priest for "send p to WATER")
 - **Result**: Fixed priest income, Round 2 income now matches perfectly (entries 104-107)
 
-### Bug #12: Round 3 Income Power Bowl Distribution (IN PROGRESS)
-- **Issue**: At Round 3 income (entries 148-151), power bowl distributions don't match expected values
-- **Symptoms**:
-  - Cultists: Expected 0/2/10, Actual 0/1/11
-  - Engineers: Expected 0/1/5, Actual 0/4/2
-  - Darklings: Expected 1/5/0, Actual 3/3/0
-- **Status**: Investigating between entries 107-148 to find cause
-- **Current errors**: 110 validation errors remaining
+### Bug #12: Compound Convert+Upgrade Actions Not Parsed (FIXED)
+- **Issue**: Entry 119 contains compound action "convert 1W to 1C. upgrade F3 to TE. +FAV9" that wasn't being parsed
+- **Root Cause**: Parser only handled "convert + pass" compound actions, not "convert + upgrade + favor"
+- **Impact**:
+  - Building upgrade from TradingHouse to Temple at F3 was skipped
+  - Round 3 income calculated Cultists as having 1 temple instead of 2
+  - Power bowl mismatch: Expected 0/2/10, Actual 0/1/11 (extra 1 power in bowl 3)
+- **Investigation**:
+  - Traced Cultists power bowls backwards through game log
+  - Found F3 should be upgraded at entry 119 (Round 2) before Round 3 income (entry 148)
+  - Debug showed building still TradingHouse at income time, upgraded later
+- **Fix**:
+  - **Parser** (`parser.go`): Added case to detect and parse "convert ... upgrade ... +FAV" compound actions
+  - **Validator** (`validator.go`): Sync all resources to final state BEFORE action execution for compound actions
+  - **Action Converter** (`action_converter.go`): Manually place building when skip_validation flag set
+- **Testing**: Added debug output to track entry 119 execution and building state
+- **Result**:
+  - Entry 119 now correctly upgrades F3 from TradingHouse to Temple
+  - Round 3 income: Cultists power bowls now match: Expected 0/2/10, Actual 0/2/10 ✓
+  - Round 5 income: Cultists power bowls now match: Expected 0/2/10, Actual 0/2/10 ✓
+  - Reduced validation errors from 110 to 99
+- **Location**: Entry 119 in test file: "convert 1W to 1C. upgrade F3 to TE. +FAV9"
 
 ### Other Fixes
 - Terrain color parsing improvements
