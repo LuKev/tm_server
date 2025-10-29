@@ -199,13 +199,62 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 			playerID, buildingStr, favorTileStr)
 
 		// Execute upgrade first
-		if err := upgradeAction.Validate(gs); err != nil {
-			return nil, fmt.Errorf("upgrade validation failed: %v", err)
+		// Skip validation if this is a compound convert+upgrade action (resources synced by validator)
+		skipValidation := params["skip_validation"] == "true"
+		if skipValidation {
+			fmt.Printf("DEBUG: Manually placing building %s at %v for %s\n", buildingStr, hex, playerID)
+			// Resources already synced - just place the building manually
+			mapHex := gs.Map.GetHex(hex)
+			if mapHex == nil {
+				return nil, fmt.Errorf("hex does not exist: %v", hex)
+			}
+			player := gs.GetPlayer(playerID)
+			if player == nil {
+				return nil, fmt.Errorf("player not found: %s", playerID)
+			}
+			fmt.Printf("DEBUG: mapHex found, current building: %v\n", mapHex.Building)
+
+			// Get new power value
+			var newPowerValue int
+			switch buildingType {
+			case models.BuildingTradingHouse:
+				newPowerValue = 2
+			case models.BuildingTemple:
+				newPowerValue = 2
+			case models.BuildingSanctuary:
+				newPowerValue = 3
+			case models.BuildingStronghold:
+				newPowerValue = 3
+			}
+
+			// Place building
+			mapHex.Building = &models.Building{
+				Type:       buildingType,
+				Faction:    player.Faction.GetType(),
+				PlayerID:   playerID,
+				PowerValue: newPowerValue,
+			}
+			fmt.Printf("DEBUG: Building placed: %v\n", mapHex.Building)
+
+			// Set pending favor tile selection (if Temple or Sanctuary)
+			if buildingType == models.BuildingTemple || buildingType == models.BuildingSanctuary {
+				tileCount := game.GetFavorTileCount(player.Faction.GetType())
+				gs.PendingFavorTileSelection = &game.PendingFavorTileSelection{
+					PlayerID: playerID,
+					Count:    tileCount,
+				}
+			}
+			fmt.Printf("DEBUG: Building placed manually, PendingFavorTileSelection: %v\n", gs.PendingFavorTileSelection != nil)
+		} else {
+			// Normal execution
+			if err := upgradeAction.Validate(gs); err != nil {
+				return nil, fmt.Errorf("upgrade validation failed: %v", err)
+			}
+			if err := upgradeAction.Execute(gs); err != nil {
+				return nil, fmt.Errorf("upgrade execution failed: %v", err)
+			}
+			fmt.Printf("DEBUG: Upgrade executed, PendingFavorTileSelection: %v\n", gs.PendingFavorTileSelection != nil)
 		}
-		if err := upgradeAction.Execute(gs); err != nil {
-			return nil, fmt.Errorf("upgrade execution failed: %v", err)
-		}
-		fmt.Printf("DEBUG: Upgrade executed, PendingFavorTileSelection: %v\n", gs.PendingFavorTileSelection != nil)
 
 		// Now create and execute favor tile selection
 		favorTileType, err := ParseFavorTile(favorTileStr)

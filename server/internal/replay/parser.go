@@ -433,6 +433,49 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 	case strings.HasPrefix(actionStr, "Leech ") || strings.HasPrefix(actionStr, "Decline "):
 		return ActionLeech, params, nil
 
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "upgrade "):
+		// Compound action: convert 1W to 1C. upgrade F3 to TE. +FAV9
+		// The convert part is a state change (reflected in resource deltas)
+		// We only need to execute the upgrade and favor tile actions
+		parts := strings.Split(actionStr, ".")
+		for i, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "upgrade ") {
+				// Found the upgrade part - parse it and any following favor tile
+				// Look for favor tile in the same part or next part
+				favorPart := ""
+				if strings.Contains(part, "+FAV") {
+					favorPart = part
+				} else if i+1 < len(parts) && strings.Contains(parts[i+1], "+FAV") {
+					favorPart = parts[i+1]
+				}
+
+				// Parse the upgrade
+				fields := strings.Fields(part)
+				if len(fields) >= 4 {
+					coord := fields[1]
+					buildingType := fields[3] // "TE", "TP", "SH", "SA"
+					params["coord"] = coord
+					params["building"] = buildingType
+
+					// Parse favor tile if present
+					if favorPart != "" {
+						favorMatch := regexp.MustCompile(`\+FAV(\d+)`).FindStringSubmatch(favorPart)
+						if len(favorMatch) > 1 {
+							params["favor_tile"] = "FAV" + favorMatch[1] // No "+" prefix for ParseFavorTile
+						}
+					}
+
+					// Mark to skip validation since resources are synced by validator first
+					params["skip_validation"] = "true"
+
+					return ActionUpgrade, params, nil
+				}
+			}
+		}
+		// If we couldn't parse the upgrade, treat as convert only
+		return ActionConvert, params, nil
+
 	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "pass "):
 		// Compound action: convert 1PW to 1C. pass BON7
 		// The convert part is a state change (reflected in resource deltas)

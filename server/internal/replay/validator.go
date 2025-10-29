@@ -110,6 +110,39 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
+	// Handle compound convert+upgrade actions: sync all state, then execute action for building placement
+	// Example: "convert 1W to 1C. upgrade F3 to TE. +FAV9"
+	// The convert AND upgrade costs are reflected in resource deltas, so we sync state first
+	// Then execute the action which will place the building (action converter skips validation/cost payment)
+	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ") {
+		fmt.Printf("DEBUG: Entry %d - Processing compound convert+upgrade action: %s\n", v.CurrentEntry, entry.Action)
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync all resources to match final state (includes convert + upgrade costs)
+			player.VictoryPoints = entry.VP
+			player.Resources.Coins = entry.Coins
+			player.Resources.Workers = entry.Workers
+			player.Resources.Priests = entry.Priests
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+
+			// Sync cult positions (favor tile might advance cult)
+			player.CultPositions[game.CultFire] = entry.CultTracks.Fire
+			player.CultPositions[game.CultWater] = entry.CultTracks.Water
+			player.CultPositions[game.CultEarth] = entry.CultTracks.Earth
+			player.CultPositions[game.CultAir] = entry.CultTracks.Air
+
+			// Sync cult track state
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultFire] = entry.CultTracks.Fire
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultWater] = entry.CultTracks.Water
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultEarth] = entry.CultTracks.Earth
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultAir] = entry.CultTracks.Air
+		}
+		// Continue to execute action - it will place building and apply favor tile
+		// (action converter skips validation since resources are pre-synced)
+	}
+
 	// Handle income phase
 	if entry.Action == "other_income_for_faction" {
 		// Apply income once for all players when we see the first income entry
@@ -192,9 +225,16 @@ func (v *GameValidator) ValidateNextEntry() error {
 	}
 
 	// First, try to convert and execute the action for this entry
+	if v.CurrentEntry == 119 {
+		fmt.Printf("DEBUG: Entry 119 - About to convert action: %s\n", entry.Action)
+		fmt.Printf("DEBUG: Entry 119 - Current round: %d\n", v.GameState.Round)
+	}
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {
 		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
+	}
+	if v.CurrentEntry == 119 {
+		fmt.Printf("DEBUG: Entry 119 - Action converted: %v (is nil: %v)\n", action, action == nil)
 	}
 
 	// Debug: show worker count for witches BEFORE action
@@ -207,9 +247,24 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	// Execute the action (if it's not nil)
 	if action != nil {
+		if v.CurrentEntry == 119 {
+			fmt.Printf("DEBUG: Entry 119 - Executing action\n")
+		}
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
 		}
+		if v.CurrentEntry == 119 {
+			fmt.Printf("DEBUG: Entry 119 - Action executed successfully\n")
+			// Check building state at F3 (coord 2,5)
+			hex := v.GameState.Map.GetHex(game.NewHex(2, 5))
+			if hex != nil && hex.Building != nil {
+				fmt.Printf("DEBUG: Entry 119 - Building at F3 (2,5) after action: %v\n", hex.Building.Type)
+			} else {
+				fmt.Printf("DEBUG: Entry 119 - No building at F3 (2,5) after action\n")
+			}
+		}
+	} else if v.CurrentEntry == 119 {
+		fmt.Printf("DEBUG: Entry 119 - Action is nil, skipping execution\n")
 	}
 
 	// Debug: show worker count for witches AFTER action
