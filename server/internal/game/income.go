@@ -1,8 +1,6 @@
 package game
 
 import (
-	"fmt"
-
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -31,17 +29,7 @@ type BaseIncome struct {
 func (gs *GameState) GrantIncome() {
 	for _, player := range gs.Players {
 		income := calculatePlayerIncome(gs, player)
-		if player.ID == "Cultists" {
-			fmt.Printf("DEBUG GrantIncome: Cultists calculated income: %dC %dW %dP %dPW\n",
-				income.Coins, income.Workers, income.Priests, income.Power)
-			fmt.Printf("DEBUG: Cultists power BEFORE applyIncome: %d/%d/%d\n",
-				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
-		}
 		applyIncome(gs, player, income)
-		if player.ID == "Cultists" {
-			fmt.Printf("DEBUG: Cultists power AFTER applyIncome: %d/%d/%d\n",
-				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
-		}
 	}
 }
 
@@ -55,7 +43,6 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Workers += baseIncome.Workers
 	income.Priests += baseIncome.Priests
 	income.Power += baseIncome.Power
-
 	// 2. Income from buildings on the map
 	buildingIncome := calculateBuildingIncome(gs, player)
 	income.Coins += buildingIncome.Coins
@@ -73,17 +60,10 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	// 4. Income from bonus cards
 	if bonusCard, ok := gs.BonusCards.GetPlayerCard(player.ID); ok {
 		bonusCoins, bonusWorkers, bonusPriests, bonusPower := GetBonusCardIncomeBonus(bonusCard)
-		// Debug: show bonus card income for debugging
-		if bonusCoins > 0 || bonusWorkers > 0 || bonusPriests > 0 || bonusPower > 0 {
-			fmt.Printf("DEBUG: Player %s has bonus card %v, income: +%dC +%dW +%dP +%dPW\n",
-				player.ID, bonusCard, bonusCoins, bonusWorkers, bonusPriests, bonusPower)
-		}
 		income.Coins += bonusCoins
 		income.Workers += bonusWorkers
 		income.Priests += bonusPriests
 		income.Power += bonusPower
-	} else {
-		fmt.Printf("DEBUG: Player %s has NO bonus card for income\n", player.ID)
 	}
 
 	return income
@@ -144,11 +124,12 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	income.Coins += tradingHouseIncome.Coins
 	income.Power += tradingHouseIncome.Power
 
-	// Temple income: 1 priest per temple (NO power income from temples)
-	// Temples provide cult advancement abilities, not power income
+	// Temple income: 1 priest per temple (standard), Engineers 2nd temple gives 5 power instead
+	// Standard temples provide cult advancement abilities, not power income
+	// Engineers exception: 2nd temple gives 5 power instead of priest
 	templeIncome := calculateTempleIncome(temples, factionType)
 	income.Priests += templeIncome.Priests
-	// Note: Do NOT add temple power to income - temples don't give power income
+	income.Power += templeIncome.Power // Engineers 2nd temple gives 5 power
 
 	// Sanctuary income: Sanctuaries do NOT give resource income
 	// They provide special abilities but no resource income
@@ -279,21 +260,21 @@ func calculateTempleIncome(templeCount int, factionType models.FactionType) Base
 	income := BaseIncome{}
 
 	if factionType == models.FactionEngineers {
-		// Engineers: 1st and 3rd temples give 1 priest, 2nd temple gives 5 power
+		// Engineers: 1st and 3rd temples give 1 priest (NO power), 2nd temple gives 5 power (NO priest)
 		for i := 1; i <= templeCount; i++ {
 			if i == 2 {
-				income.Power += 5
+				income.Power += 5 // 2nd temple: 5 power, no priest
 			} else {
-				income.Priests++
-				income.Power++
+				income.Priests++ // 1st and 3rd temples: 1 priest, no power
 			}
 		}
 		return income
 	}
 
-	// Standard: 1 priest + 1 power per temple
+	// Standard: 1 priest per temple (NO power for standard temples)
+	// Temples provide cult advancement abilities, not power income
 	income.Priests = templeCount
-	income.Power = templeCount
+	// No power income for standard temples
 	return income
 }
 
@@ -336,7 +317,7 @@ func getStrongholdIncome(factionType models.FactionType) BaseIncome {
 func applyIncome(gs *GameState, player *Player, income BaseIncome) {
 	player.Resources.Coins += income.Coins
 	player.Resources.Workers += income.Workers
-	
+
 	// Apply priest income with 7-priest limit enforcement
 	if income.Priests > 0 {
 		gs.GainPriests(player.ID, income.Priests)
