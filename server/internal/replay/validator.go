@@ -110,6 +110,23 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
+	// Handle compound convert+pass actions: sync resources (convert is a state change)
+	// Example: "convert 1PW to 1C. pass BON7"
+	// The convert part is reflected in resource deltas, we sync first then execute pass
+	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "pass ") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync power bowls to match final state (convert costs are reflected in deltas)
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+			// Also sync coins/workers in case they were converted
+			player.Resources.Coins = entry.Coins
+			player.Resources.Workers = entry.Workers
+		}
+		// Continue to execute pass action
+	}
+
 	// Handle compound convert+upgrade actions: sync all state, then execute action for building placement
 	// Example: "convert 1W to 1C. upgrade F3 to TE. +FAV9"
 	// The convert AND upgrade costs are reflected in resource deltas, so we sync state first
@@ -296,16 +313,33 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 	}
 
-	// Debug: track power bowls from entry 136 to 148
-	if v.CurrentEntry >= 136 && v.CurrentEntry <= 148 {
-		if player := v.GameState.GetPlayer("Cultists"); player != nil {
-			total := player.Resources.Power.Bowl1 + player.Resources.Power.Bowl2 + player.Resources.Power.Bowl3
-			expectedTotal := entry.PowerBowls.Bowl1 + entry.PowerBowls.Bowl2 + entry.PowerBowls.Bowl3
-			fmt.Printf("DEBUG: Entry %d (%s) - Cultists power: %d/%d/%d (total %d), expected %d/%d/%d (total %d), action: %s\n",
-				v.CurrentEntry, entry.Faction,
-				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3, total,
-				entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3, expectedTotal,
-				entry.Action)
+	// Debug: track power bowls from entry 104 to 151 for Engineers and Darklings
+	if v.CurrentEntry >= 104 && v.CurrentEntry <= 151 {
+		for _, playerID := range []string{"Engineers", "Darklings"} {
+			if player := v.GameState.GetPlayer(playerID); player != nil {
+				// Only show if this is the player's entry OR it's an income entry
+				if entry.Faction.String() == playerID || strings.Contains(entry.Action, "income_for_faction") {
+					total := player.Resources.Power.Bowl1 + player.Resources.Power.Bowl2 + player.Resources.Power.Bowl3
+					expectedTotal := entry.PowerBowls.Bowl1 + entry.PowerBowls.Bowl2 + entry.PowerBowls.Bowl3
+
+					mismatch := ""
+					if entry.Faction.String() == playerID {
+						actualBowls := fmt.Sprintf("%d/%d/%d", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+						expectedBowls := fmt.Sprintf("%d/%d/%d", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
+						if actualBowls != expectedBowls {
+							mismatch = " ❌ MISMATCH"
+						}
+					}
+
+					fmt.Printf("DEBUG: Entry %d (%s) - %s power: %d/%d/%d (total %d), expected %d/%d/%d (total %d), action: %s%s\n",
+						v.CurrentEntry, entry.Faction,
+						playerID,
+						player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3, total,
+						entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3, expectedTotal,
+						entry.Action,
+						mismatch)
+				}
+			}
 		}
 	}
 

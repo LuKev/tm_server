@@ -52,7 +52,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return game.NewAdvanceDiggingAction(playerID), nil
 
 	case ActionSendPriest:
-		return convertSendPriestAction(playerID, params)
+		return convertSendPriestAction(playerID, params, entry, gs)
 
 	case ActionPowerAction:
 		// Power actions can be standalone or combined with build/transform
@@ -441,7 +441,7 @@ func convertLeechAction(playerID string, params map[string]string, gs *game.Game
 	return nil, nil
 }
 
-func convertSendPriestAction(playerID string, params map[string]string) (game.Action, error) {
+func convertSendPriestAction(playerID string, params map[string]string, entry *LogEntry, gs *game.GameState) (game.Action, error) {
 	cultStr, ok := params["cult"]
 	if !ok {
 		return nil, fmt.Errorf("send priest action missing cult track")
@@ -465,13 +465,37 @@ func convertSendPriestAction(playerID string, params map[string]string) (game.Ac
 		gameCultTrack = game.CultAir
 	}
 
-	// Default to advancing 1 space (standard priest send)
+	// Calculate spaces to climb from current to target position
+	// Use game state to get current position, and entry to get target position
+	spacesToClimb := 1 // Default
+	if gs != nil && entry != nil {
+		currentPos := gs.CultTracks.GetPosition(playerID, gameCultTrack)
+		var targetPos int
+		switch gameCultTrack {
+		case game.CultFire:
+			targetPos = entry.CultTracks.Fire
+		case game.CultWater:
+			targetPos = entry.CultTracks.Water
+		case game.CultEarth:
+			targetPos = entry.CultTracks.Earth
+		case game.CultAir:
+			targetPos = entry.CultTracks.Air
+		}
+		spacesToClimb = targetPos - currentPos
+		if spacesToClimb < 1 {
+			spacesToClimb = 1 // Minimum 1 space
+		}
+		if spacesToClimb > 3 {
+			spacesToClimb = 3 // Maximum 3 spaces per priest
+		}
+	}
+
 	return &game.SendPriestToCultAction{
 		BaseAction: game.BaseAction{
 			Type:     game.ActionSendPriestToCult,
 			PlayerID: playerID,
 		},
 		Track:         gameCultTrack,
-		SpacesToClimb: 1,
+		SpacesToClimb: spacesToClimb,
 	}, nil
 }
