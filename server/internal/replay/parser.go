@@ -398,6 +398,7 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 
 	case strings.HasPrefix(actionStr, "burn "):
 		// Can be part of compound action: "burn 3. action ACT2" or "burn 6. action ACT6. transform..."
+		// or "burn 4. action ACT5. build B3"
 		// Parse all parts of the compound action
 		parts := strings.Split(actionStr, ".")
 		for _, part := range parts {
@@ -413,6 +414,17 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 				fields := strings.Fields(part)
 				if len(fields) >= 2 {
 					params["action_type"] = fields[1]
+				}
+			} else if strings.HasPrefix(part, "build ") {
+				// Extract build coordinate (e.g., "build B3")
+				coord := strings.TrimPrefix(part, "build ")
+				params["coord"] = strings.Fields(coord)[0]
+			} else if strings.HasPrefix(part, "transform ") {
+				// Extract transform details (e.g., "transform F2 to gray")
+				fields := strings.Fields(part)
+				if len(fields) >= 4 && fields[2] == "to" {
+					params["transform_coord"] = fields[1]
+					params["transform_color"] = fields[3]
 				}
 			}
 		}
@@ -479,6 +491,28 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		}
 		// If we couldn't parse the upgrade, treat as convert only
 		return ActionConvert, params, nil
+
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, ". action "):
+		// Compound action: convert 1PW to 1C. action ACTW. build H4
+		// The convert part is a state change (reflected in resource deltas)
+		// We only need to execute the action part
+		parts := strings.Split(actionStr, ".")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "action ") {
+				// Extract action type
+				actionFields := strings.Fields(part)
+				if len(actionFields) >= 2 {
+					params["action_type"] = actionFields[1]
+				}
+				// Continue parsing for build coordinate
+			} else if strings.HasPrefix(part, "build ") {
+				coord := strings.TrimPrefix(part, "build ")
+				params["coord"] = strings.Fields(coord)[0]
+			}
+		}
+		// Return as power action
+		return ActionPowerAction, params, nil
 
 	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "pass "):
 		// Compound action: convert 1PW to 1C. pass BON7

@@ -201,7 +201,68 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
-	// Handle compound convert+pass actions: sync resources (convert is a state change)
+	// Handle compound convert + dig + transform actions: sync resources and transform terrain
+	// Example: "convert 1PW to 1C. dig 1. transform H4 to green"
+	// The convert and dig are state changes (reflected in deltas), transform changes terrain
+	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "dig ") && strings.Contains(entry.Action, "transform ") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync resources to match final state
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+			player.Resources.Coins = entry.Coins
+			player.Resources.Workers = entry.Workers
+			player.Resources.Priests = entry.Priests
+		}
+		
+		// Parse and execute the transform part
+		parts := strings.Split(entry.Action, ".")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "transform ") {
+				// Parse: "transform H4 to green"
+				fields := strings.Fields(part)
+				if len(fields) >= 4 && fields[2] == "to" {
+					coordStr := fields[1]
+					colorStr := fields[3]
+					
+					hex, err := ConvertLogCoordToAxial(coordStr)
+					if err == nil {
+						terrain, err := ParseTerrainColor(colorStr)
+						if err == nil {
+							v.GameState.Map.TransformTerrain(hex, terrain)
+							fmt.Printf("DEBUG: Entry %d - Transformed %s to %s (terrain %v)\n", 
+								v.CurrentEntry, coordStr, colorStr, terrain)
+						}
+					}
+				}
+				break
+			}
+		}
+		// Skip normal action execution
+		return nil
+	}
+
+	// Handle compound convert + action actions: sync resources (convert is a state change)
+	// Example: "convert 1PW to 1C. action ACTW. build H4"
+	// The convert part is reflected in resource deltas, we sync first then execute action
+	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, ". action ") {
+		fmt.Printf("DEBUG: Entry %d - Processing compound convert+action: %s\n", v.CurrentEntry, entry.Action)
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync power bowls to match final state (convert costs are reflected in deltas)
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+			// Also sync coins/workers in case they were converted
+			player.Resources.Coins = entry.Coins
+			player.Resources.Workers = entry.Workers
+		}
+		// Continue to execute action
+	}
+
+	// Handle compound convert + pass actions: sync resources (convert is a state change)
 	// Example: "convert 1PW to 1C. pass BON7"
 	// The convert part is reflected in resource deltas, we sync first then execute pass
 	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "pass ") {
@@ -215,7 +276,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 			player.Resources.Coins = entry.Coins
 			player.Resources.Workers = entry.Workers
 		}
-		// Continue to execute pass action
+		// Continue to execute pass
 	}
 
 	// Handle compound convert+upgrade actions: sync all state, then execute action for building placement

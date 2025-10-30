@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/models"
@@ -174,6 +175,8 @@ func ParseTerrainColor(color string) (models.TerrainType, error) {
 
 // ParseCultTrack converts a cult track string to the internal CultType
 func ParseCultTrack(cultStr string) (models.CultType, error) {
+	// Convert to uppercase for case-insensitive matching
+	cultStr = strings.ToUpper(cultStr)
 	switch cultStr {
 	case "FIRE":
 		return models.CultFire, nil

@@ -120,6 +120,8 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 
 		// Check if this is combined with build/transform
 		coordStr, hasCoord := params["coord"]
+		fmt.Printf("DEBUG: Power action %v for %s, hasCoord=%v, coord=%v, params=%v\n", 
+			powerActionType, playerID, hasCoord, coordStr, params)
 		if hasCoord {
 			// Power action with build or transform+build
 			hex, err := ConvertLogCoordToAxial(coordStr)
@@ -131,6 +133,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			_, hasTransform := params["transform_coord"]
 			if hasTransform || powerActionType == game.PowerActionSpade1 || powerActionType == game.PowerActionSpade2 {
 				// Power action provides free spades for transform+build
+				fmt.Printf("DEBUG: Creating power action with transform for %s at %v\n", playerID, hex)
 				return game.NewPowerActionWithTransform(playerID, powerActionType, hex, true), nil
 			}
 
