@@ -3,41 +3,47 @@
 ## Session Summary (Latest)
 
 **Major Achievements**:
-1. ✅ **Fixed Bug #23: Bonus Card Return Logic** - Core game logic bug: Always return bonus cards to Available pool regardless of PlayerHasCard flag (with regression test)
-2. ✅ **Fixed Bug #24: Compound Cult Advance + Pass Actions** - Parser and validator now handle "+FIRE. pass BON10" format correctly
-3. ✅ **Progress** - Advanced from entry 189 (46%) to entry 210 (51%)  
-4. ✅ **Reduced Errors** - From 46 to 61 validation errors (temporarily increased as we uncover more edge cases)
-5. ✅ **All Tests Passing** - Regression test for Bug #23 added and passing
+1. ✅ **Fixed Bugs #25-29** - Compound action parsing, cult tracks, special actions, town tiles
+2. ✅ **Progress** - Advanced from entry 210 (51%) to entry 302 (73%)  
+3. ✅ **Cleaned Up Debug Output** - Removed all temporary debugging logs for cleaner output
+4. ✅ **Town Tile System** - Added full support for town tile selection with shipping advancement
+5. ✅ **All Tests Passing** - Validator and all unit tests passing
 
 **Validator Improvements**:
-- Cult advancement and power leech entries now properly synced
-- State synchronization prevents error cascades (errors reduced from 89 → 39)
-- Validator now progresses much further before encountering fatal errors
-- Resource mismatches shown with ⚠️ warnings before action execution
+- Parse and handle town tiles (+TW) in upgrade actions
+- Apply town tile benefits including shipping level increases
+- Handle compound convert+action and convert+dig+transform actions
+- Case-insensitive cult track parsing
+- Much cleaner debug output with temporary logs removed
 
 ## Current Status
 
 **Test File**: `test_data/4pLeague_S66_D1L1_G6.txt`
 - Total lines: 413
-- Current position: **Entry 210 (51% through the file)**
+- Current position: **Entry 302 (73% through the file)**
 - Test file is a 4-player game: Engineers, Darklings, Cultists, Witches
-- Progress: Fixed 20 bugs (#4-#24, skipping #6, #15, #22), reduced errors from 129 to 61
+- Progress: Fixed 29 bugs (#4-#29, skipping #6, #15, #22), errors at 121
 - **Major improvements**: 
   - Added resource validation before each action
   - Fixed cult advancement and state-change entry handling
   - Added state synchronization after validation to prevent error cascades
-  - Fixed compound action parsing (convert+upgrade, cult advance+pass)
+  - Fixed compound action parsing (convert+upgrade, cult advance+pass, convert+action, convert+dig+transform)
   - Fixed core game logic bug in bonus card return mechanism
+  - Added town tile support with shipping advancement
 
 ## Current Bug Being Investigated
 
-**Status**: Excellent progress, now at entry 210 (51% through file)
+**Status**: Excellent progress, now at entry 302 (73% through file)
 - **Recent Fixes**:
-  - Bug #23 (FIXED): Bonus card return logic - core game logic bug with regression test
-  - Bug #24 (FIXED): Compound cult advance + pass actions parsing
-- **Current Issue**: Entry 210 - "spade power action requires a target hex"
-  - Need to investigate spade power action validation
-  - 61 validation errors (increased as we uncover more edge cases while progressing further)
+  - Bug #25 (FIXED): Parse build/transform coords in burn+action compound actions
+  - Bug #26 (FIXED): Case-insensitive cult track parsing (Air vs AIR)
+  - Bug #27 (FIXED): Compound convert+action (e.g. convert+ACTW) parsing
+  - Bug #28 (FIXED): Compound convert+dig+transform actions
+  - Bug #29 (FIXED): Town tile support with shipping advancement (TW7)
+- **Current Issue**: Entry 302 - "insufficient resources: need workers:1, have workers:0"
+  - Player has 2 priests and 3 power but needs 1 worker for dwelling
+  - Need to investigate resource state or action parsing
+  - 121 validation errors (revealing more issues as we progress deeper)
 
 **Key Improvements This Session**:
 
