@@ -834,6 +834,13 @@ func (a *PassAction) Execute(gs *GameState) error {
 	// Record pass order (determines turn order for next round)
 	gs.PassOrder = append(gs.PassOrder, a.PlayerID)
 
+	// Award VP from OLD bonus card being returned (if player has one)
+	// In Terra Mystica, pass VP is awarded when you RETURN the card, not when you take it
+	if oldCard, hasOldCard := gs.BonusCards.GetPlayerCard(a.PlayerID); hasOldCard {
+		bonusVP := GetBonusCardPassVP(oldCard, gs, a.PlayerID)
+		player.VictoryPoints += bonusVP
+	}
+
 	// Take bonus card and get coins from it
 	coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
 	if err != nil {
@@ -857,10 +864,6 @@ func (a *PassAction) Execute(gs *GameState) error {
 		vp := GetAir1PassVP(playerTiles, tradingHouseCount)
 		player.VictoryPoints += vp
 	}
-
-	// Award VP from bonus card (based on buildings/shipping)
-	bonusVP := GetBonusCardPassVP(*a.BonusCard, gs, a.PlayerID)
-	player.VictoryPoints += bonusVP
 
 	// Award VP for Engineers stronghold ability (3 VP per bridge when passing)
 	if player.Faction.GetType() == models.FactionEngineers && player.HasStrongholdAbility {

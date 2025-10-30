@@ -15,7 +15,7 @@ func TestBonusCard_DwellingVP(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardDwellingVP})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardDwellingVP, BonusCardPriest})
 
 	// Place 4 dwellings on the map
 	for i := 0; i < 4; i++ {
@@ -29,10 +29,23 @@ func TestBonusCard_DwellingVP(t *testing.T) {
 		}
 	}
 
-	initialVP := player.VictoryPoints
+	// First pass: take the dwelling VP card (no VP yet)
 	bonusCard := BonusCardDwellingVP
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the dwelling VP card and get VP
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -52,7 +65,7 @@ func TestBonusCard_TradingHouseVP(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardTradingHouseVP})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardTradingHouseVP, BonusCardPriest})
 
 	// Place 3 trading houses on the map
 	for i := 0; i < 3; i++ {
@@ -66,10 +79,23 @@ func TestBonusCard_TradingHouseVP(t *testing.T) {
 		}
 	}
 
-	initialVP := player.VictoryPoints
+	// First pass: take the trading house VP card (no VP yet)
 	bonusCard := BonusCardTradingHouseVP
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the trading house VP card and get VP
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -89,7 +115,7 @@ func TestBonusCard_StrongholdSanctuaryVP(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardStrongholdSanctuary})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardStrongholdSanctuary, BonusCardPriest})
 
 	// Place a stronghold
 	strongholdHex := NewHex(0, 0)
@@ -111,10 +137,23 @@ func TestBonusCard_StrongholdSanctuaryVP(t *testing.T) {
 		PowerValue: 3,
 	}
 
-	initialVP := player.VictoryPoints
+	// First pass: take the stronghold/sanctuary VP card (no VP yet)
 	bonusCard := BonusCardStrongholdSanctuary
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the stronghold/sanctuary VP card and get VP
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -134,7 +173,7 @@ func TestBonusCard_StrongholdOnlyVP(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardStrongholdSanctuary})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardStrongholdSanctuary, BonusCardPriest})
 
 	// Place only a stronghold
 	strongholdHex := NewHex(0, 0)
@@ -146,10 +185,23 @@ func TestBonusCard_StrongholdOnlyVP(t *testing.T) {
 		PowerValue: 3,
 	}
 
-	initialVP := player.VictoryPoints
+	// First pass: take the stronghold/sanctuary VP card (no VP yet)
 	bonusCard := BonusCardStrongholdSanctuary
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the stronghold/sanctuary VP card and get VP
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -169,15 +221,28 @@ func TestBonusCard_ShippingVP(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShippingVP})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShippingVP, BonusCardPriest})
 
 	// Set shipping level to 3
 	player.ShippingLevel = 3
 
-	initialVP := player.VictoryPoints
+	// First pass: take the shipping VP card (no VP yet)
 	bonusCard := BonusCardShippingVP
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the shipping VP card and get VP
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -197,15 +262,28 @@ func TestBonusCard_ShippingVP_Dwarves(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShippingVP})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShippingVP, BonusCardPriest})
 
 	// Set shipping level to 3
 	player.ShippingLevel = 3
 
-	initialVP := player.VictoryPoints
+	// First pass: take the shipping VP card (no VP yet)
 	bonusCard := BonusCardShippingVP
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the shipping VP card
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -224,12 +302,12 @@ func TestBonusCard_ShippingVP_Fakirs(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up bonus cards
-	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShippingVP})
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShippingVP, BonusCardPriest})
 
 	// Set shipping level to 3
 	player.ShippingLevel = 3
 
-	initialVP := player.VictoryPoints
+	// First pass: take the shipping VP card (no VP yet)
 	bonusCard := BonusCardShippingVP
 	action := NewPassAction("player1", &bonusCard)
 	err := action.Execute(gs)
@@ -237,9 +315,22 @@ func TestBonusCard_ShippingVP_Fakirs(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify NO VP was awarded (Fakirs don't benefit from shipping)
+	// Reset for next round (simulate cleanup and new round)
+	player.HasPassed = false
+	delete(gs.BonusCards.PlayerHasCard, "player1")
+
+	// Second pass: return the shipping VP card and get VP
+	initialVP := player.VictoryPoints
+	bonusCard2 := BonusCardPriest
+	action2 := NewPassAction("player1", &bonusCard2)
+	err = action2.Execute(gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Verify Fakirs don't get VP (should still be at initial VP)
 	if player.VictoryPoints != initialVP {
-		t.Errorf("expected %d VP (Fakirs don't benefit), got %d", initialVP, player.VictoryPoints)
+		t.Errorf("Fakirs should not gain VP from shipping card, expected %d, got %d", initialVP, player.VictoryPoints)
 	}
 }
 
