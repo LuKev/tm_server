@@ -2039,18 +2039,19 @@ func TestDarklings_PriestOrdinationExceeds7PriestLimit(t *testing.T) {
 	faction2.BuildStronghold()
 	player2.HasStrongholdAbility = true
 	
-	// Player has 4 priests in hand, 3 on cult tracks
+	// Player has 4 priests in hand, 3 on cult track action spaces
 	player2.Resources.Priests = 4
 	player2.Resources.Workers = 5
 	
 	gs2.CultTracks.InitializePlayer("player1")
-	gs2.CultTracks.AdvancePlayer("player1", CultFire, 3, player2)
-	player2.Resources.Priests = 1
+	// Place 3 priests on cult track action spaces (via 2/3-step placements)
+	gs2.CultTracks.PriestsOnActionSpaces["player1"][CultFire] = 2
+	gs2.CultTracks.PriestsOnActionSpaces["player1"][CultWater] = 1
 	
 	// Try to convert 3 workers (would be 1 + 3 + 3 = 7, then try to exceed)
 	// Actually, let's test exceeding directly
-	player2.Resources.Priests = 5
-	// 5 in hand + 3 on cults = 8 total, can't convert any more
+	player2.Resources.Priests = 4
+	// 4 in hand + 3 on action spaces = 7 total, can't gain any more
 	
 	// Try to convert 1 worker, but it should be blocked by 7-priest limit
 	// First check if we can gain a priest
@@ -3069,10 +3070,11 @@ func TestUseDarklingsPriestOrdination_Respects7PriestLimit(t *testing.T) {
 	player.Resources.Workers = 5
 	player.Resources.Priests = 4
 
-	// Send 3 priests to cult tracks
+	// Place 3 priests on cult track action spaces
 	gs.CultTracks.InitializePlayer("player1")
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 3, player)
-	player.Resources.Priests = 4 // 4 in hand + 3 on cults = 7 total
+	gs.CultTracks.PriestsOnActionSpaces["player1"][CultFire] = 2
+	gs.CultTracks.PriestsOnActionSpaces["player1"][CultEarth] = 1
+	// 4 in hand + 3 on action spaces = 7 total
 
 	// Create pending ordination
 	faction.BuildStronghold()

@@ -933,8 +933,15 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 		gs.ScoringTiles.RecordPriestSent(a.PlayerID)
 	}
 
-	// Note: If UsePriestSlot is true, the priest is permanently placed on the board
-	// If false, the priest is returned to supply (already handled by not placing it)
+	// Track priest placement on cult track action spaces
+	// In Terra Mystica, each track has 4 action spaces: one 3-step and three 2-step
+	// If placed on action space (2 or 3 steps), priest stays permanently
+	// If sacrificed (1 step), priest is removed and doesn't count toward limit
+	if a.SpacesToClimb >= 2 {
+		// Priest is placed on an action space (2-step or 3-step)
+		gs.CultTracks.PriestsOnActionSpaces[a.PlayerID][a.Track]++
+	}
+	// If SpacesToClimb == 1, priest is sacrificed (no tracking needed)
 
 	return nil
 }

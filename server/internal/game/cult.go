@@ -48,6 +48,12 @@ type CultTrackState struct {
 	// Track which cult track bonus spaces have been claimed by each player
 	// Key: playerID, Value: map of track -> set of bonus positions claimed (3, 5, 7, 10)
 	BonusPositionsClaimed map[string]map[CultTrack]map[int]bool
+	
+	// Track priests placed on cult track action spaces (below each track)
+	// Each track has 4 action spaces: one 3-step space and three 2-step spaces
+	// Priests placed here stay permanently and count toward the 7-priest limit
+	// Key: playerID, Value: map of track -> number of priests on that track's action spaces
+	PriestsOnActionSpaces map[string]map[CultTrack]int
 }
 
 // NewCultTrackState creates a new cult track state
@@ -56,6 +62,7 @@ func NewCultTrackState() *CultTrackState {
 		PlayerPositions:       make(map[string]map[CultTrack]int),
 		Position10Occupied:    make(map[CultTrack]string),
 		BonusPositionsClaimed: make(map[string]map[CultTrack]map[int]bool),
+		PriestsOnActionSpaces: make(map[string]map[CultTrack]int),
 	}
 }
 
@@ -73,6 +80,14 @@ func (cts *CultTrackState) InitializePlayer(playerID string) {
 	for _, track := range []CultTrack{CultFire, CultWater, CultEarth, CultAir} {
 		cts.BonusPositionsClaimed[playerID][track] = make(map[int]bool)
 	}
+	
+	// Initialize priests on action spaces tracking
+	cts.PriestsOnActionSpaces[playerID] = map[CultTrack]int{
+		CultFire:  0,
+		CultWater: 0,
+		CultEarth: 0,
+		CultAir:   0,
+	}
 }
 
 // GetPosition returns a player's position on a cult track
@@ -83,13 +98,21 @@ func (cts *CultTrackState) GetPosition(playerID string, track CultTrack) int {
 	return 0
 }
 
-// GetTotalPriestsOnCultTracks returns the total number of priests a player has on all cult tracks
-// This is used for the 7-priest limit (priests in hand + priests on cult tracks <= 7)
+// GetTotalPriestsOnCultTracks returns the total number of priests a player has on cult track action spaces
+// Each cult track has 4 action spaces below it (one 3-step, three 2-step)
+// Priests placed on these spaces stay permanently and count toward the 7-priest limit
+// Note: Priests can also be sacrificed for 1-step advancement - those don't count
+//
+// TODO(Bug #34): Currently returns the tracked count, but the game log format doesn't provide
+// enough information to accurately distinguish between priests placed on action spaces (2/3 steps)
+// vs sacrificed (1 step). The log shows "send p to WATER" but doesn't specify step count.
+// For now, this may undercount priests on action spaces in the validator, but it prevents
+// incorrectly blocking temple income when priests are actually on action spaces.
 func (cts *CultTrackState) GetTotalPriestsOnCultTracks(playerID string) int {
 	total := 0
-	if positions, ok := cts.PlayerPositions[playerID]; ok {
-		for _, position := range positions {
-			total += position
+	if priestCounts, ok := cts.PriestsOnActionSpaces[playerID]; ok {
+		for _, count := range priestCounts {
+			total += count
 		}
 	}
 	return total

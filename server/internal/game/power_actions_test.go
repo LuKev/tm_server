@@ -718,14 +718,14 @@ func Test7PriestLimit_PowerAction(t *testing.T) {
 	
 	// Give player enough power and set up at the priest limit
 	player.Resources.Power.Bowl3 = 10
-	player.Resources.Priests = 4
+	player.Resources.Priests = 1
 	
-	// Send 3 priests to cult tracks
+	// Place 3 priests on cult track action spaces
 	gs.CultTracks.InitializePlayer("player1")
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 3, player)
-	player.Resources.Priests = 1 // 4 - 3 sent
+	gs.CultTracks.PriestsOnActionSpaces["player1"][CultFire] = 2
+	gs.CultTracks.PriestsOnActionSpaces["player1"][CultWater] = 1
 	
-	// Now player has 1 in hand + 3 on cults = 4 total
+	// Now player has 1 in hand + 3 on action spaces = 4 total
 	// Power action should work (can gain up to 3 more)
 	action := &PowerAction{
 		BaseAction: BaseAction{
@@ -755,8 +755,9 @@ func Test7PriestLimit_PowerAction(t *testing.T) {
 	player2.Resources.Power.Bowl3 = 10
 	player2.Resources.Priests = 4
 	gs2.CultTracks.InitializePlayer("player1")
-	gs2.CultTracks.AdvancePlayer("player1", CultFire, 3, player2)
-	player2.Resources.Priests = 4 // 4 in hand + 3 on cults = 7 total
+	gs2.CultTracks.PriestsOnActionSpaces["player1"][CultFire] = 2
+	gs2.CultTracks.PriestsOnActionSpaces["player1"][CultWater] = 1
+	// 4 in hand + 3 on action spaces = 7 total
 	
 	action2 := &PowerAction{
 		BaseAction: BaseAction{
