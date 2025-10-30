@@ -24,15 +24,14 @@ func (gs *GameState) ExecuteCleanupPhase() bool {
 	// 1. Award cult track rewards based on the current round's scoring tile
 	gs.AwardCultRewards()
 	
-	// 2. Add 1 coin to each leftover (unselected) bonus card
+	// 2. Add 1 coin to each available (unselected) bonus card
+	// NOTE: Players keep their bonus cards across rounds - cards are only returned when
+	// players pass and select a new card. Coins accumulate on cards in the Available pool.
 	if gs.BonusCards != nil {
 		gs.BonusCards.AddCoinsToLeftoverCards()
 	}
 	
-	// 3. Return bonus cards to available pool
-	gs.ReturnBonusCards()
-	
-	// 4. Reset round-specific state
+	// 3. Reset round-specific state
 	gs.ResetRoundState()
 	
 	// Game continues to next round

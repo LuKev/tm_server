@@ -370,6 +370,7 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 	case strings.HasPrefix(actionStr, "action "):
 		// action ACT6, action BON1, action ACTW
 		// action ACT5. build F3
+		// action BON2. +WATER (bonus card cult advance)
 		parts := strings.Split(actionStr, ".")
 
 		// First part is always "action ACTX"
@@ -379,7 +380,7 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 			params["action_type"] = actionFields[1]
 		}
 
-		// Check if there are additional parts (e.g., "build F3")
+		// Check if there are additional parts (e.g., "build F3", "+WATER")
 		if len(parts) > 1 {
 			for _, part := range parts[1:] {
 				part = strings.TrimSpace(part)
@@ -392,6 +393,16 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 						params["transform_coord"] = fields[1]
 						params["transform_color"] = fields[3]
 					}
+				} else if strings.HasPrefix(part, "+") {
+					// Cult track advancement (e.g., "+WATER", "+FIRE")
+					// Extract cult track name
+					cultTrack := strings.TrimPrefix(part, "+")
+					cultTrack = strings.TrimSpace(cultTrack)
+					params["cult_track"] = cultTrack
+				} else if strings.HasPrefix(part, "+TW") {
+					// Town tile (e.g., "+TW5")
+					townTile := strings.TrimSpace(part)
+					params["town_tile"] = townTile
 				}
 			}
 		}

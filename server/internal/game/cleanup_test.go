@@ -763,14 +763,18 @@ func TestFullCleanupFlow(t *testing.T) {
 		t.Errorf("player2: expected 2 workers, got %d", player2.Resources.Workers-initialWorkers2)
 	}
 	
-	// Verify bonus card coins added
+	// Verify bonus card coins added to available cards
 	if gs.BonusCards.Available[BonusCardPriest] != 2 {
 		t.Errorf("expected 2 coins on priest card, got %d", gs.BonusCards.Available[BonusCardPriest])
 	}
 	
-	// Verify bonus cards returned
-	if len(gs.BonusCards.PlayerCards) != 0 {
-		t.Error("player cards should be empty")
+	// Verify bonus cards NOT returned (players keep their cards across rounds)
+	// Cards are only returned when players pass and select a new card
+	if len(gs.BonusCards.PlayerCards) != 1 {
+		t.Errorf("expected 1 player card (player1's BonusCard6Coins), got %d", len(gs.BonusCards.PlayerCards))
+	}
+	if gs.BonusCards.PlayerCards["player1"] != BonusCard6Coins {
+		t.Error("player1 should still have BonusCard6Coins after cleanup")
 	}
 	
 	// Verify round state reset

@@ -768,7 +768,8 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState, player *Player) error {
 	// Advance 1 space on the chosen cult track (free)
 	// This uses the cult track system which handles power bonuses automatically
-	gs.CultTracks.AdvancePlayer(a.PlayerID, *a.CultTrack, 1, player)
+	// Use AdvanceCultTrack wrapper to properly sync both CultTrackState and player.CultPositions
+	gs.AdvanceCultTrack(a.PlayerID, *a.CultTrack, 1)
 
 	return nil
 }

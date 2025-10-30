@@ -95,7 +95,45 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 				// Standalone BON1 action (not combined with build) - skip
 				return nil, nil
 			}
-			// Other bonus card actions (BON2-BON10) - skip for now
+			
+			// BON2 provides cult advancement
+			if actionTypeStr == "BON2" {
+				cultTrackStr, hasCultTrack := params["cult_track"]
+				if hasCultTrack {
+					// Parse cult track
+					cultTrack, err := ParseCultTrack(cultTrackStr)
+					if err != nil {
+						return nil, fmt.Errorf("invalid cult track %s: %v", cultTrackStr, err)
+					}
+					
+					// Convert models.CultType to game.CultTrack
+					var gameCultTrack game.CultTrack
+					switch cultTrack {
+					case models.CultFire:
+						gameCultTrack = game.CultFire
+					case models.CultWater:
+						gameCultTrack = game.CultWater
+					case models.CultEarth:
+						gameCultTrack = game.CultEarth
+					case models.CultAir:
+						gameCultTrack = game.CultAir
+					}
+					
+					// Create special action to advance cult track by 1
+					return &game.SpecialAction{
+						BaseAction: game.BaseAction{
+							Type:     game.ActionSpecialAction,
+							PlayerID: playerID,
+						},
+						ActionType: game.SpecialActionBonusCardCultAdvance,
+						CultTrack:  &gameCultTrack,
+					}, nil
+				}
+				// Standalone BON2 without cult track - skip
+				return nil, nil
+			}
+			
+			// Other bonus card actions (BON3-BON10) - skip for now
 			return nil, nil
 		}
 
