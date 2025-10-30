@@ -639,40 +639,12 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 	
-	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-	// Note: Giants can't be Halflings, but this is here for consistency
-	if halflings, ok := player.Faction.(*factions.Halflings); ok {
-		vpBonus := halflings.GetVPPerSpade() * 2 // 2 spades
-		player.VictoryPoints += vpBonus
-	}
-	
-	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
-	// Note: Giants can't be Alchemists, but this is here for consistency
-	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-		powerBonus := alchemists.GetPowerPerSpade() * 2 // 2 spades
-		if powerBonus > 0 {
-			player.Resources.Power.Bowl1 += powerBonus
-		}
-	}
-
 	// Build dwelling if requested
 	if a.BuildDwelling {
 		dwellingCost := player.Faction.GetDwellingCost()
-		
-		// Pay for dwelling
-		if player.Resources.Coins < dwellingCost.Coins {
-			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
+		if err := player.Resources.Spend(dwellingCost); err != nil {
+			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
-		if player.Resources.Workers < dwellingCost.Workers {
-			return fmt.Errorf("not enough workers for dwelling: need %d, have %d", dwellingCost.Workers, player.Resources.Workers)
-		}
-		if player.Resources.Priests < dwellingCost.Priests {
-			return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
-		}
-
-		player.Resources.Coins -= dwellingCost.Coins
-		player.Resources.Workers -= dwellingCost.Workers
-		player.Resources.Priests -= dwellingCost.Priests
 
 		// Place dwelling and handle all VP bonuses
 		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
@@ -689,21 +661,9 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 	// Build dwelling if requested
 	if a.BuildDwelling {
 		dwellingCost := player.Faction.GetDwellingCost()
-		
-		// Pay for dwelling
-		if player.Resources.Coins < dwellingCost.Coins {
-			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
+		if err := player.Resources.Spend(dwellingCost); err != nil {
+			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
-		if player.Resources.Workers < dwellingCost.Workers {
-			return fmt.Errorf("not enough workers for dwelling: need %d, have %d", dwellingCost.Workers, player.Resources.Workers)
-		}
-		if player.Resources.Priests < dwellingCost.Priests {
-			return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
-		}
-
-		player.Resources.Coins -= dwellingCost.Coins
-		player.Resources.Workers -= dwellingCost.Workers
-		player.Resources.Priests -= dwellingCost.Priests
 
 		// Place dwelling and handle all VP bonuses
 		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)

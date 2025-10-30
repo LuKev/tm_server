@@ -349,23 +349,9 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		
 		// Pay for dwelling
 		dwellingCost := player.Faction.GetDwellingCost()
-		if a.PlayerID == "Engineers" {
-			fmt.Printf("DEBUG PowerAction dwelling check: %s need %dC %dW, have %dC %dW\n",
-				a.PlayerID, dwellingCost.Coins, dwellingCost.Workers, player.Resources.Coins, player.Resources.Workers)
+		if err := player.Resources.Spend(dwellingCost); err != nil {
+			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
-		if player.Resources.Coins < dwellingCost.Coins {
-			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
-		}
-		if player.Resources.Workers < dwellingCost.Workers {
-			return fmt.Errorf("not enough workers for dwelling: need %d, have %d", dwellingCost.Workers, player.Resources.Workers)
-		}
-		if player.Resources.Priests < dwellingCost.Priests {
-			return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
-		}
-		
-		player.Resources.Coins -= dwellingCost.Coins
-		player.Resources.Workers -= dwellingCost.Workers
-		player.Resources.Priests -= dwellingCost.Priests
 		
 		// Place dwelling and handle all VP bonuses
 		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
