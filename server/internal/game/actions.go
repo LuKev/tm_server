@@ -107,6 +107,16 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	// Terrain space needs to be directly or indirectly adjacent to one of your Structures"
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)
 	
+	// Debug: show buildings for debugging adjacency issues
+	if !isAdjacent {
+		fmt.Printf("DEBUG TransformAndBuild: %s trying to build at %v but not adjacent. Their buildings:\n", a.PlayerID, a.TargetHex)
+		for hex, mapHex := range gs.Map.Hexes {
+			if mapHex.Building != nil && mapHex.Building.PlayerID == a.PlayerID {
+				fmt.Printf("  - %v: %v\n", hex, mapHex.Building.Type)
+			}
+		}
+	}
+	
 	// If using skip (Fakirs/Dwarves), check if player can skip and if range is valid
 	if a.UseSkip {
 		// Check if player's faction can use skip ability

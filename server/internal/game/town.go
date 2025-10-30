@@ -19,6 +19,7 @@ func NewTownTileState() *TownTileState {
 			TownTile5Points:  2, // 2 copies
 			TownTile6Points:  2, // 2 copies
 			TownTile7Points:  2, // 2 copies
+			TownTile4Points:  2, // 2 copies (shipping/range upgrade, TW7)
 			TownTile8Points:  2, // 2 copies
 			TownTile9Points:  2, // 2 copies
 			TownTile11Points: 1, // 1 copy
@@ -308,6 +309,14 @@ func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType TownTileTyp
 		player.VictoryPoints += 7
 		player.Resources.Workers += 2
 		player.Keys += 1
+		
+	case TownTile4Points:
+		player.VictoryPoints += 4
+		player.Keys += 1
+		// Advance shipping level by 1
+		if player.ShippingLevel < 5 { // Max shipping level is 5
+			player.ShippingLevel++
+		}
 		
 	case TownTile8Points:
 		player.VictoryPoints += 8

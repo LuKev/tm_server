@@ -283,12 +283,14 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 			params["coord"] = fields[1]
 			params["building"] = fields[3]
 
-			// Check for favor tile selection
+			// Check for favor tile or town tile selection
 			if len(parts) > 1 {
 				for _, part := range parts[1:] {
 					part = strings.TrimSpace(part)
 					if strings.HasPrefix(part, "+FAV") {
 						params["favor_tile"] = strings.TrimPrefix(part, "+")
+					} else if strings.HasPrefix(part, "+TW") {
+						params["town_tile"] = strings.TrimPrefix(part, "+")
 					}
 				}
 			}

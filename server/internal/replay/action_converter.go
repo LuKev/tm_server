@@ -293,7 +293,33 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		return nil, nil
 	}
 
-	// If skip_validation is set but there's no favor tile, manually place the building
+	// If there's a town tile specified, this is a compound action:
+	// upgrade + select town tile (e.g., upgrade to TP and form town). Execute both immediately.
+	if townTileStr, hasTownTile := params["town_tile"]; hasTownTile {
+		// Execute upgrade first
+		if err := upgradeAction.Validate(gs); err != nil {
+			return nil, fmt.Errorf("upgrade validation failed: %v", err)
+		}
+		if err := upgradeAction.Execute(gs); err != nil {
+			return nil, fmt.Errorf("upgrade execution failed: %v", err)
+		}
+
+		// Parse town tile
+		townTileType, err := ParseTownTile(townTileStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid town tile %s: %v", townTileStr, err)
+		}
+
+		// Select the town tile (this will form the town and apply benefits)
+		if err := gs.SelectTownTile(playerID, townTileType); err != nil {
+			return nil, fmt.Errorf("town tile selection failed: %v", err)
+		}
+
+		// Both actions executed, return nil to skip normal execution
+		return nil, nil
+	}
+
+	// If skip_validation is set but there's no favor/town tile, manually place the building
 	if skipValidation {
 		mapHex := gs.Map.GetHex(hex)
 		if mapHex == nil {

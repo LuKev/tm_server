@@ -59,6 +59,30 @@ const (
 	TW8 TownTileType = "TW8" // 11 point town
 )
 
+// ParseTownTile converts a town tile string to the internal TownTileType
+func ParseTownTile(townStr string) (game.TownTileType, error) {
+	switch townStr {
+	case "TW1":
+		return game.TownTile5Points, nil
+	case "TW2":
+		return game.TownTile9Points, nil
+	case "TW3":
+		return game.TownTile9Points, nil // There are two 9-point tiles
+	case "TW4":
+		return game.TownTile6Points, nil
+	case "TW5":
+		return game.TownTile8Points, nil
+	case "TW6":
+		return game.TownTile2Points, nil
+	case "TW7":
+		return game.TownTile4Points, nil
+	case "TW8":
+		return game.TownTile11Points, nil
+	default:
+		return 0, fmt.Errorf("unknown town tile: %s", townStr)
+	}
+}
+
 // PowerActionType represents the different power actions
 type PowerActionType string
 
