@@ -57,7 +57,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	entry := v.LogEntries[v.CurrentEntry]
 	v.CurrentEntry++
-
+	
 	// Handle comment lines - detect round transitions
 	if entry.IsComment {
 		// Check if this is a "Round X income" comment
@@ -277,9 +277,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	// Handle compound convert+upgrade actions: sync all state, then execute action for building placement
 	// Example: "convert 1W to 1C. upgrade F3 to TE. +FAV9"
+	// Note: Action may have power leech prefix like "2 3  convert 1W to 1C. upgrade..."
 	// The convert AND upgrade costs are reflected in resource deltas, so we sync state first
 	// Then execute the action which will place the building (action converter skips validation/cost payment)
-	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ") {
+	if strings.Contains(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ") {
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
 			// Sync all resources to match final state (includes convert + upgrade costs)
@@ -335,7 +336,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 	   !strings.Contains(entry.Action, "Decline") &&
 	   !strings.Contains(entry.Action, "_income_for_faction") &&
 	   !strings.Contains(entry.Action, "show history") &&
-	   !(strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ")) &&
+	   !(strings.Contains(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ")) &&
 	   entry.Faction.String() != "" {
 		v.validateResourcesBeforeAction(entry)
 	}
