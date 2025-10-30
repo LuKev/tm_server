@@ -272,21 +272,35 @@ func (v *GameValidator) ValidateNextEntry() error {
 		// Continue to execute action
 	}
 
-	// Handle compound convert + pass actions: sync resources (convert is a state change)
-	// Example: "convert 1PW to 1C. pass BON7"
-	// The convert part is reflected in resource deltas, we sync first then execute pass
+	// Handle compound convert + pass actions: execute convert, then pass
+	// Example: "convert 1PW to 1C. pass BON7" with delta "+3" (1 from convert + 2 from bonus card)
+	// Bug: Previously we synced coins to final state (which includes bonus card coins),
+	// then PassAction added bonus card coins again, double-counting them.
+	// Fix: Execute convert to add its coins, sync power bowls to final state, then execute pass
 	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "pass ") {
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
-			// Sync power bowls to match final state (convert costs are reflected in deltas)
+			// Parse the convert amount from action string
+			// Format: "convert XPW to YC" or "convert XW to YC"
+			var powerAmount, coinAmount, workerAmount int
+			if strings.Contains(entry.Action, "PW to") && strings.Contains(entry.Action, "C") {
+				fmt.Sscanf(entry.Action, "convert %dPW to %dC", &powerAmount, &coinAmount)
+				if powerAmount > 0 && coinAmount > 0 {
+					player.Resources.ConvertPowerToCoins(powerAmount)
+				}
+			} else if strings.Contains(entry.Action, "W to") && strings.Contains(entry.Action, "C") {
+				fmt.Sscanf(entry.Action, "convert %dW to %dC", &workerAmount, &coinAmount)
+				if workerAmount > 0 && coinAmount > 0 {
+					player.Resources.Workers -= workerAmount
+					player.Resources.Coins += coinAmount
+				}
+			}
+			// Sync power bowls to final state (in case conversion isn't 1:1 or there are other effects)
 			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
 			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
 			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
-			// Also sync coins/workers in case they were converted
-			player.Resources.Coins = entry.Coins
-			player.Resources.Workers = entry.Workers
 		}
-		// Continue to execute pass
+		// Continue to execute pass (which will add bonus card coins)
 	}
 
 	// Handle compound convert+upgrade actions: sync all state, then execute action for building placement

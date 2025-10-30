@@ -304,9 +304,12 @@ func (bcs *BonusCardState) ReturnBonusCard(playerID string) {
 // AddCoinsToLeftoverCards adds 1 coin to each leftover (unselected) bonus card
 // Called during cleanup phase
 func (bcs *BonusCardState) AddCoinsToLeftoverCards() {
-	for cardType := range bcs.Available {
+	fmt.Printf("DEBUG AddCoinsToLeftoverCards: %d available cards: ", len(bcs.Available))
+	for cardType, coins := range bcs.Available {
+		fmt.Printf("%d(%dC->%dC) ", cardType, coins, coins+1)
 		bcs.Available[cardType]++
 	}
+	fmt.Printf("\n")
 }
 
 // GetPlayerCard returns the bonus card a player has this round
