@@ -509,6 +509,45 @@ cd server && bazel test //internal/replay:replay_test
 - Tracks bonus cards, cult positions, power bowls
 - Supports power actions, special actions, faction abilities
 
+## Bugs #39-41 (Oct 29, 2025) - Bonus Card Logic
+
+### Bug #39: BON2 Cult Advance Special Action Not Working (FIXED)
+- **Issue**: Line 125 - Engineers used "action BON2. +WATER" but Water cult didn't advance (expected 4, got 3)
+- **Root Cause**: BON2 bonus card's special action (advance 1 on any cult track) wasn't being parsed or executed
+- **Fix**:
+  - `parser.go`: Added parsing for cult track in "action BON" format to extract "+WATER", "+FIRE", etc.
+  - `action_converter.go`: BON2 actions now create `SpecialAction` with `SpecialActionBonusCardCultAdvance` type
+  - `special_actions.go`: Fixed `executeBonusCardCultAdvance` to use `AdvanceCultTrack` wrapper
+- **Result**: Line 125 FIXED! ✅
+
+### Bug #40: Bonus Card Coin Accumulation (FIXED)
+- **Issue**: Line 129 - Cultists missing 1 coin from BON1 (expected 1, got 0)
+- **Root Cause**: Validator was NOT calling `ExecuteCleanupPhase()` between rounds
+- **Fix** (`validator.go` lines 73-78):
+  - Added call to `ExecuteCleanupPhase()` BEFORE `StartNewRound()` for rounds > 1
+  - This awards cult rewards and adds 1 coin to each available (unselected) bonus card
+- **Terra Mystica Rule**: Players keep bonus cards across rounds - cards are only returned when passing and selecting a new card
+- **Result**: Line 129 FIXED! Validation errors: 50 → 45 ✅
+
+### Bug #41: Double-counting Bonus Card Coins in Compound Actions (FIXED)
+- **Issue**: Line 139 - Engineers had 6 coins instead of 4 after "convert 1PW to 1C. pass BON7"
+- **Root Cause**: For compound convert+pass actions, validator synced coins to final state (which includes bonus card coins), then PassAction added bonus card coins AGAIN
+- **Fix** (`validator.go` lines 287-316):
+  - Parse convert amount from action string (`convert XPW to YC`)
+  - Execute `ConvertPowerToCoins()` or worker conversion
+  - Sync power bowls to final state
+  - Let PassAction add bonus card coins normally (no double-counting)
+- **Result**: Line 139 FIXED! Validation errors: 45 → 43 ✅
+
+### Code Cleanup: Removed Obsolete `ReturnBonusCards()` Function
+- **Obsolete Code Removed**:
+  - `cleanup.go`: Removed `ReturnBonusCards()` function (lines 41-58)
+  - `cleanup_test.go`: Removed `TestReturnBonusCards()` and `TestReturnBonusCards_WithoutFlag()`
+- **Reason**: Function was never called in actual cleanup (only in tests). Tests verified WRONG behavior - cards should NOT be returned during cleanup per Bug #40 fix
+- **Correct Behavior**: Bonus cards are returned in `TakeBonusCard()` when players pass and select new cards
+
+**Session Progress**: Validation errors 121 → 43 (78 errors eliminated, 64% reduction!)
+
 ## Notes
 
 - Each bug found through replay validation gets a regression test

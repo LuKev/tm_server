@@ -4,10 +4,10 @@ package game
 // Executes at the end of each round (rounds 1-5, not round 6)
 // Order of operations:
 // 1. Award cult track rewards (based on scoring tile)
-// 2. Add coins to leftover bonus cards
-// 3. Return bonus cards to available pool
-// 4. Reset round-specific state
-// 5. Check if game should end (after round 6)
+// 2. Add coins to leftover bonus cards (players keep their cards across rounds)
+// 3. Reset round-specific state
+// Note: Bonus cards are NOT returned during cleanup - players keep them across rounds.
+// Cards are only returned when players pass and select a new card (handled in TakeBonusCard).
 
 // ExecuteCleanupPhase performs all cleanup tasks at the end of a round
 // This should be called after all players have passed
@@ -36,25 +36,6 @@ func (gs *GameState) ExecuteCleanupPhase() bool {
 	
 	// Game continues to next round
 	return true
-}
-
-// ReturnBonusCards returns all player bonus cards to the available pool
-// Called at end of round during cleanup
-func (gs *GameState) ReturnBonusCards() {
-	if gs.BonusCards == nil {
-		return
-	}
-	
-	// Return each player's bonus card to the available pool
-	for playerID, cardType := range gs.BonusCards.PlayerCards {
-		// Return the card to the pool with 0 coins
-		// (Any accumulated coins were already given to the player when they passed)
-		gs.BonusCards.Available[cardType] = 0
-		
-		// Remove from player's hand
-		delete(gs.BonusCards.PlayerCards, playerID)
-		delete(gs.BonusCards.PlayerHasCard, playerID)
-	}
 }
 
 // ResetRoundState resets all round-specific state
