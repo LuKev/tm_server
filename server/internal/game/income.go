@@ -131,9 +131,9 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	income.Priests += templeIncome.Priests
 	income.Power += templeIncome.Power // Engineers 2nd temple gives 5 power
 
-	// Sanctuary income: Sanctuaries do NOT give resource income
-	// They provide special abilities but no resource income
-	// (No income from sanctuaries)
+	// Sanctuary income: 1 priest (standard), 2 priests for Darklings/Swarmlings
+	sanctuaryIncome := calculateSanctuaryIncome(sanctuaries, factionType)
+	income.Priests += sanctuaryIncome
 
 	// Stronghold income is faction-specific
 	if strongholds > 0 {
@@ -278,7 +278,27 @@ func calculateTempleIncome(templeCount int, factionType models.FactionType) Base
 	return income
 }
 
+// calculateSanctuaryIncome calculates priest income from sanctuaries
+// Standard: 1 priest per sanctuary
+// Darklings/Swarmlings: 2 priests per sanctuary
+func calculateSanctuaryIncome(sanctuaryCount int, factionType models.FactionType) int {
+	if sanctuaryCount == 0 {
+		return 0
+	}
+
+	// Darklings and Swarmlings get 2 priests per sanctuary
+	if factionType == models.FactionDarklings || factionType == models.FactionSwarmlings {
+		return sanctuaryCount * 2
+	}
+
+	// Standard: 1 priest per sanctuary
+	return sanctuaryCount
+}
+
 // getStrongholdIncome returns the income for a faction's stronghold
+// Most strongholds give their special resource (power/coins/workers) + 1 priest
+// Swarmlings: special resource + 2 priests
+// Fakirs: 1 priest only (no power)
 func getStrongholdIncome(factionType models.FactionType) BaseIncome {
 	switch factionType {
 	// 2 power + 1 priest
@@ -308,8 +328,8 @@ func getStrongholdIncome(factionType models.FactionType) BaseIncome {
 		return BaseIncome{Coins: 6, Priests: 1}
 
 	default:
-		// Default: 1 priest (should not happen if all factions are covered)
-		return BaseIncome{Priests: 1}
+		// Default: 0 income (should not happen if all factions are covered)
+		return BaseIncome{}
 	}
 }
 

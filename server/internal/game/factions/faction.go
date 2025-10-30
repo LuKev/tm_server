@@ -178,7 +178,6 @@ func (f *BaseFaction) GetStartingResources() Resources {
 }
 
 func (f *BaseFaction) GetStartingCultPositions() CultPositions {
-	// Default: no starting cult positions (Engineers only)
 	return CultPositions{Fire: 0, Water: 0, Earth: 0, Air: 0}
 }
 
