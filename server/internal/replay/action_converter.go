@@ -120,8 +120,6 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 
 		// Check if this is combined with build/transform
 		coordStr, hasCoord := params["coord"]
-		fmt.Printf("DEBUG: Power action %v for %s, hasCoord=%v, coord=%v, params=%v\n", 
-			powerActionType, playerID, hasCoord, coordStr, params)
 		if hasCoord {
 			// Power action with build or transform+build
 			hex, err := ConvertLogCoordToAxial(coordStr)
@@ -133,7 +131,6 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			_, hasTransform := params["transform_coord"]
 			if hasTransform || powerActionType == game.PowerActionSpade1 || powerActionType == game.PowerActionSpade2 {
 				// Power action provides free spades for transform+build
-				fmt.Printf("DEBUG: Creating power action with transform for %s at %v\n", playerID, hex)
 				return game.NewPowerActionWithTransform(playerID, powerActionType, hex, true), nil
 			}
 
@@ -143,7 +140,6 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		}
 
 		// Standalone power action (ACT1=bridge, ACT2=priest, ACT3=workers, ACT4=coins)
-		fmt.Printf("DEBUG: Creating standalone power action %v for %s\n", powerActionType, playerID)
 		return game.NewPowerAction(playerID, powerActionType), nil
 
 	case ActionBurnPower:
@@ -216,12 +212,8 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 	// If there's a favor tile specified, this is a compound action:
 	// upgrade + select favor tile. Execute both immediately.
 	if favorTileStr, hasFavorTile := params["favor_tile"]; hasFavorTile {
-		fmt.Printf("DEBUG: Compound upgrade+favor action for %s: upgrade to %s, then take %s\n",
-			playerID, buildingStr, favorTileStr)
-
 		// Execute upgrade first
 		if skipValidation {
-			fmt.Printf("DEBUG: Manually placing building %s at %v for %s\n", buildingStr, hex, playerID)
 			// Resources already synced - just place the building manually
 			mapHex := gs.Map.GetHex(hex)
 			if mapHex == nil {
@@ -231,7 +223,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 			if player == nil {
 				return nil, fmt.Errorf("player not found: %s", playerID)
 			}
-			fmt.Printf("DEBUG: mapHex found, current building: %v\n", mapHex.Building)
 
 			// Get new power value
 			var newPowerValue int
@@ -253,7 +244,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 				PlayerID:   playerID,
 				PowerValue: newPowerValue,
 			}
-			fmt.Printf("DEBUG: Building placed: %v\n", mapHex.Building)
 
 			// Set stronghold ability if upgrading to stronghold
 			if buildingType == models.BuildingStronghold {
@@ -268,7 +258,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 					Count:    tileCount,
 				}
 			}
-			fmt.Printf("DEBUG: Building placed manually, PendingFavorTileSelection: %v\n", gs.PendingFavorTileSelection != nil)
 		} else {
 			// Normal execution
 			if err := upgradeAction.Validate(gs); err != nil {
@@ -277,7 +266,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 			if err := upgradeAction.Execute(gs); err != nil {
 				return nil, fmt.Errorf("upgrade execution failed: %v", err)
 			}
-			fmt.Printf("DEBUG: Upgrade executed, PendingFavorTileSelection: %v\n", gs.PendingFavorTileSelection != nil)
 		}
 
 		// Now create and execute favor tile selection
@@ -285,7 +273,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		if err != nil {
 			return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
 		}
-		fmt.Printf("DEBUG: Parsed favor tile %s as type %v\n", favorTileStr, favorTileType)
 
 		favorAction := &game.SelectFavorTileAction{
 			BaseAction: game.BaseAction{
@@ -298,11 +285,9 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		if err := favorAction.Validate(gs); err != nil {
 			return nil, fmt.Errorf("favor tile validation failed: %v", err)
 		}
-		fmt.Printf("DEBUG: Favor tile action validated, now executing\n")
 		if err := favorAction.Execute(gs); err != nil {
 			return nil, fmt.Errorf("favor tile execution failed: %v", err)
 		}
-		fmt.Printf("DEBUG: Favor tile action executed successfully\n")
 
 		// Both actions executed, return nil to skip normal execution
 		return nil, nil
@@ -310,7 +295,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 
 	// If skip_validation is set but there's no favor tile, manually place the building
 	if skipValidation {
-		fmt.Printf("DEBUG: Manually placing building %s at %v for %s (no favor tile)\n", buildingStr, hex, playerID)
 		mapHex := gs.Map.GetHex(hex)
 		if mapHex == nil {
 			return nil, fmt.Errorf("hex does not exist: %v", hex)
@@ -377,9 +361,6 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 		if player == nil {
 			return nil, fmt.Errorf("player not found: %s", playerID)
 		}
-		// Debug: print power state before burning
-		fmt.Printf("DEBUG: Player %s attempting to burn %d power. Current bowls: %d/%d/%d\n",
-			playerID, burnAmount, player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
 		// Burn power before the main action
 		if err := player.Resources.BurnPower(burnAmount); err != nil {
 			return nil, fmt.Errorf("failed to burn power: %v", err)
@@ -424,10 +405,6 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 
 					buildHexTerrain := gs.Map.GetHex(hex).Terrain
 					homeTerrain := player.Faction.GetHomeTerrain()
-					fmt.Printf("DEBUG: Player %s ACT%d - Transforming %v (from %v to %v), then building on %v (terrain: %v, home: %v)\n",
-						playerID, powerActionType+4,
-						transformHex, gs.Map.GetHex(transformHex).Terrain, targetTerrain, hex,
-						buildHexTerrain, homeTerrain)
 
 					// Transform the transform_coord hex to target terrain (using free spades from power action)
 					if err := gs.Map.TransformTerrain(transformHex, targetTerrain); err != nil {

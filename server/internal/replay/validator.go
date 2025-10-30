@@ -114,7 +114,6 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// Example: "+FIRE. pass BON10"
 	// The cult advancement is reflected in cult track positions, we sync first then execute pass
 	if strings.HasPrefix(entry.Action, "+") && strings.Contains(entry.Action, "pass ") {
-		fmt.Printf("DEBUG: Entry %d - Processing compound cult advance+pass action: %s\n", v.CurrentEntry, entry.Action)
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
 			// Sync cult positions to match final state
@@ -232,8 +231,6 @@ func (v *GameValidator) ValidateNextEntry() error {
 						terrain, err := ParseTerrainColor(colorStr)
 						if err == nil {
 							v.GameState.Map.TransformTerrain(hex, terrain)
-							fmt.Printf("DEBUG: Entry %d - Transformed %s to %s (terrain %v)\n", 
-								v.CurrentEntry, coordStr, colorStr, terrain)
 						}
 					}
 				}
@@ -248,7 +245,6 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// Example: "convert 1PW to 1C. action ACTW. build H4"
 	// The convert part is reflected in resource deltas, we sync first then execute action
 	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, ". action ") {
-		fmt.Printf("DEBUG: Entry %d - Processing compound convert+action: %s\n", v.CurrentEntry, entry.Action)
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
 			// Sync power bowls to match final state (convert costs are reflected in deltas)
@@ -284,7 +280,6 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// The convert AND upgrade costs are reflected in resource deltas, so we sync state first
 	// Then execute the action which will place the building (action converter skips validation/cost payment)
 	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ") {
-		fmt.Printf("DEBUG: Entry %d - Processing compound convert+upgrade action: %s\n", v.CurrentEntry, entry.Action)
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
 			// Sync all resources to match final state (includes convert + upgrade costs)
@@ -318,35 +313,13 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if !v.IncomeApplied {
 			// Note: StartNewRound() was already called when we saw "Round X income" comment
 			// It set phase to PhaseIncome, so now we just grant income
-			fmt.Printf("DEBUG: Applying income for all players at entry %d\n", v.CurrentEntry)
-
 			// Do NOT return bonus cards here - players keep their cards for the entire round
 			// Cards are only returned at the end of the round during cleanup phase
 
-			// Debug: show power state BEFORE income
-			if cultists := v.GameState.GetPlayer("Cultists"); cultists != nil {
-				fmt.Printf("DEBUG: BEFORE income - Cultists power: %d/%d/%d\n",
-					cultists.Resources.Power.Bowl1, cultists.Resources.Power.Bowl2, cultists.Resources.Power.Bowl3)
-			}
-
 			v.GameState.GrantIncome()
-
-			// Debug: show power state AFTER income
-			if cultists := v.GameState.GetPlayer("Cultists"); cultists != nil {
-				fmt.Printf("DEBUG: AFTER income - Cultists power: %d/%d/%d\n",
-					cultists.Resources.Power.Bowl1, cultists.Resources.Power.Bowl2, cultists.Resources.Power.Bowl3)
-			}
 
 			v.IncomeApplied = true
 			v.GameState.StartActionPhase() // Transition to action phase
-		}
-		// Debug: show power state after income for this player
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			fmt.Printf("DEBUG: Entry %d (%s) - Expected power: %d/%d/%d, Actual: %d/%d/%d\n",
-				v.CurrentEntry, entry.Faction.String(),
-				entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3,
-				player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
 		}
 		// Validate state matches after income
 		if err := v.ValidateState(entry); err != nil {
@@ -354,46 +327,6 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 		// Skip further processing - income is not a player action
 		return nil
-	}
-
-	// Debug: show resources for darklings at entry 110
-	if v.CurrentEntry == 110 {
-		if player := v.GameState.GetPlayer("Darklings"); player != nil {
-			fmt.Printf("DEBUG: Entry %d - Darklings resources before action: %d C, %d W, %d P\n",
-				v.CurrentEntry, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
-		}
-	}
-
-	// Debug: show resources for engineers at entry 58, 132, and 148-163
-	if v.CurrentEntry == 58 || v.CurrentEntry == 132 || (v.CurrentEntry >= 148 && v.CurrentEntry <= 163) {
-		if player := v.GameState.GetPlayer("Engineers"); player != nil {
-			fmt.Printf("DEBUG: Entry %d (%s) - Engineers resources before processing: %d C, %d W, %d P\n",
-				v.CurrentEntry, entry.Faction.String(), player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
-			fmt.Printf("DEBUG: Entry %d action: %s\n", v.CurrentEntry, entry.Action)
-		}
-	}
-
-	// Debug: show power bowls at entry 48
-	if v.CurrentEntry == 48 {
-		if player := v.GameState.GetPlayer("Engineers"); player != nil {
-			fmt.Printf("DEBUG: Entry 48 - Engineers BEFORE action:\n")
-			fmt.Printf("  Power bowls: %d/%d/%d\n", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
-			fmt.Printf("  Expected after: %d/%d/%d\n", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
-			fmt.Printf("  Action: %s\n", entry.Action)
-		}
-	}
-
-	// Debug: show cult tracks at entry 59
-	if v.CurrentEntry == 59 {
-		if player := v.GameState.GetPlayer("Darklings"); player != nil {
-			fmt.Printf("DEBUG: Entry 59 - Darklings BEFORE action:\n")
-			fmt.Printf("  Cult tracks: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
-				player.CultPositions[game.CultFire], player.CultPositions[game.CultWater],
-				player.CultPositions[game.CultEarth], player.CultPositions[game.CultAir])
-			fmt.Printf("  Expected after: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
-				entry.CultTracks.Fire, entry.CultTracks.Water, entry.CultTracks.Earth, entry.CultTracks.Air)
-			fmt.Printf("  Action: %s\n", entry.Action)
-		}
 	}
 
 	// Validate resources BEFORE executing action (except for leech/decline/income entries)
@@ -406,104 +339,15 @@ func (v *GameValidator) ValidateNextEntry() error {
 	}
 
 	// First, try to convert and execute the action for this entry
-	if v.CurrentEntry == 119 {
-		fmt.Printf("DEBUG: Entry 119 - About to convert action: %s\n", entry.Action)
-		fmt.Printf("DEBUG: Entry 119 - Current round: %d\n", v.GameState.Round)
-	}
 	action, err := ConvertLogEntryToAction(entry, v.GameState)
 	if err != nil {
 		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
 	}
-	if v.CurrentEntry == 119 {
-		fmt.Printf("DEBUG: Entry 119 - Action converted: %v (is nil: %v)\n", action, action == nil)
-	}
-
-	// Debug: show worker count for witches BEFORE action
-	var workersBefore int
-	if v.CurrentEntry >= 85 && v.CurrentEntry <= 92 {
-		if player := v.GameState.GetPlayer("Witches"); player != nil {
-			workersBefore = player.Resources.Workers
-		}
-	}
 
 	// Execute the action (if it's not nil)
 	if action != nil {
-		if v.CurrentEntry == 119 {
-			fmt.Printf("DEBUG: Entry 119 - Executing action\n")
-		}
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
-		}
-		if v.CurrentEntry == 119 {
-			fmt.Printf("DEBUG: Entry 119 - Action executed successfully\n")
-			// Check building state at F3 (coord 2,5)
-			hex := v.GameState.Map.GetHex(game.NewHex(2, 5))
-			if hex != nil && hex.Building != nil {
-				fmt.Printf("DEBUG: Entry 119 - Building at F3 (2,5) after action: %v\n", hex.Building.Type)
-			} else {
-				fmt.Printf("DEBUG: Entry 119 - No building at F3 (2,5) after action\n")
-			}
-		}
-	} else if v.CurrentEntry == 119 {
-		fmt.Printf("DEBUG: Entry 119 - Action is nil, skipping execution\n")
-	}
-
-	// Debug: show worker count for witches AFTER action
-	if v.CurrentEntry >= 85 && v.CurrentEntry <= 92 {
-		if player := v.GameState.GetPlayer("Witches"); player != nil {
-			fmt.Printf("DEBUG: Entry %d (%s) - Witches workers: %d→%d (expected: %d), action: %s\n",
-				v.CurrentEntry, entry.Faction, workersBefore, player.Resources.Workers, entry.Workers, entry.Action)
-		}
-	}
-
-	// Debug: show power bowls at entry 48 AFTER action
-	if v.CurrentEntry == 48 {
-		if player := v.GameState.GetPlayer("Engineers"); player != nil {
-			fmt.Printf("DEBUG: Entry 48 - Engineers AFTER action:\n")
-			fmt.Printf("  Power bowls: %d/%d/%d\n", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
-			fmt.Printf("  Expected: %d/%d/%d\n", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
-		}
-	}
-
-	// Debug: show cult tracks at entry 59 AFTER action
-	if v.CurrentEntry == 59 {
-		if player := v.GameState.GetPlayer("Darklings"); player != nil {
-			fmt.Printf("DEBUG: Entry 59 - Darklings AFTER action:\n")
-			fmt.Printf("  Cult tracks: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
-				player.CultPositions[game.CultFire], player.CultPositions[game.CultWater],
-				player.CultPositions[game.CultEarth], player.CultPositions[game.CultAir])
-			fmt.Printf("  Expected: Fire=%d, Water=%d, Earth=%d, Air=%d\n",
-				entry.CultTracks.Fire, entry.CultTracks.Water, entry.CultTracks.Earth, entry.CultTracks.Air)
-		}
-	}
-
-	// Debug: track power bowls from entry 104 to 151 for Engineers and Darklings
-	if v.CurrentEntry >= 104 && v.CurrentEntry <= 151 {
-		for _, playerID := range []string{"Engineers", "Darklings"} {
-			if player := v.GameState.GetPlayer(playerID); player != nil {
-				// Only show if this is the player's entry OR it's an income entry
-				if entry.Faction.String() == playerID || strings.Contains(entry.Action, "income_for_faction") {
-					total := player.Resources.Power.Bowl1 + player.Resources.Power.Bowl2 + player.Resources.Power.Bowl3
-					expectedTotal := entry.PowerBowls.Bowl1 + entry.PowerBowls.Bowl2 + entry.PowerBowls.Bowl3
-
-					mismatch := ""
-					if entry.Faction.String() == playerID {
-						actualBowls := fmt.Sprintf("%d/%d/%d", player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
-						expectedBowls := fmt.Sprintf("%d/%d/%d", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
-						if actualBowls != expectedBowls {
-							mismatch = " ❌ MISMATCH"
-						}
-					}
-
-					fmt.Printf("DEBUG: Entry %d (%s) - %s power: %d/%d/%d (total %d), expected %d/%d/%d (total %d), action: %s%s\n",
-						v.CurrentEntry, entry.Faction,
-						playerID,
-						player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3, total,
-						entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3, expectedTotal,
-						entry.Action,
-						mismatch)
-				}
-			}
 		}
 	}
 
