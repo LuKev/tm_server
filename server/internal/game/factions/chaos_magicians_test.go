@@ -186,7 +186,7 @@ func TestChaosMagicians_StandardCosts(t *testing.T) {
 
 	// Chaos Magicians use standard costs for most buildings
 	dwellingCost := cm.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

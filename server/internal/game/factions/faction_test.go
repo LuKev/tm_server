@@ -61,7 +61,7 @@ func TestStandardBuildingCosts(t *testing.T) {
 
 	// Test dwelling cost
 	dwellingCost := f.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

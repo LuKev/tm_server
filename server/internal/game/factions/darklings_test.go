@@ -211,7 +211,7 @@ func TestDarklings_StandardCosts(t *testing.T) {
 
 	// Darklings use standard costs for most buildings
 	dwellingCost := darklings.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

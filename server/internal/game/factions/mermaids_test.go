@@ -135,7 +135,7 @@ func TestMermaids_StandardCosts(t *testing.T) {
 
 	// Mermaids use standard costs for most buildings
 	dwellingCost := mermaids.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

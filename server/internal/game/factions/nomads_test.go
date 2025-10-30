@@ -149,7 +149,7 @@ func TestNomads_StandardCosts(t *testing.T) {
 
 	// Nomads use standard building costs
 	dwellingCost := nomads.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

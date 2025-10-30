@@ -158,7 +158,7 @@ func TestGiants_StandardCosts(t *testing.T) {
 
 	// Giants use standard building costs
 	dwellingCost := giants.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

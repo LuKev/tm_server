@@ -117,7 +117,7 @@ func TestCultists_StandardCosts(t *testing.T) {
 
 	// Cultists use standard costs for most buildings
 	dwellingCost := cultists.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

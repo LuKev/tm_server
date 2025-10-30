@@ -632,7 +632,7 @@ func TestAlchemists_ConversionDuringAction(t *testing.T) {
 		t.Fatalf("conversion failed: %v", err)
 	}
 	
-	// Now build a dwelling (costs 0 coins + 1 worker for Alchemists)
+	// Now build a dwelling (costs 2 coins + 1 worker for Alchemists)
 	// First need to transform terrain
 	targetHex := NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = faction.GetHomeTerrain()
@@ -649,12 +649,12 @@ func TestAlchemists_ConversionDuringAction(t *testing.T) {
 		t.Error("dwelling should be built")
 	}
 	
-	// Verify resources were spent
+	// Verify resources were spent (2 coins for dwelling)
 	if player.VictoryPoints != 18 {
 		t.Errorf("expected 18 VP (20-2), got %d", player.VictoryPoints)
 	}
-	if player.Resources.Coins != 2 {
-		t.Errorf("expected 2 coins remaining, got %d", player.Resources.Coins)
+	if player.Resources.Coins != 0 {
+		t.Errorf("expected 0 coins remaining (2 converted - 2 for dwelling), got %d", player.Resources.Coins)
 	}
 	if player.Resources.Workers != 0 {
 		t.Errorf("expected 0 workers, got %d", player.Resources.Workers)

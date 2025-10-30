@@ -104,7 +104,7 @@ const (
 // Standard building costs (can be overridden by factions)
 var (
 	StandardDwellingCost = Cost{
-		Coins:   0,
+		Coins:   2,
 		Workers: 1,
 		Priests: 0,
 		Power:   0,
@@ -153,12 +153,12 @@ func StandardShippingCost(currentLevel int) Cost {
 }
 
 func StandardDiggingCost(currentLevel int) Cost {
-	// Digging 0->1: 5 workers, 2 coins
-	// Digging 1->2: 5 workers, 2 coins
+	// Digging 0->1: 2 workers, 5 coins, 1 priest
+	// Digging 1->2: 2 workers, 5 coins, 1 priest
 	return Cost{
-		Coins:   2,
-		Workers: 5,
-		Priests: 0,
+		Coins:   5,
+		Workers: 2,
+		Priests: 1,
 		Power:   0,
 	}
 }

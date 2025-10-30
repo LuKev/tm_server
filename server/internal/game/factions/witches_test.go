@@ -157,7 +157,7 @@ func TestWitches_StandardCosts(t *testing.T) {
 
 	// Witches use standard building costs for normal builds
 	dwellingCost := witches.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

@@ -215,7 +215,7 @@ func TestFakirs_StandardCosts(t *testing.T) {
 
 	// Fakirs use standard costs for most buildings
 	dwellingCost := fakirs.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

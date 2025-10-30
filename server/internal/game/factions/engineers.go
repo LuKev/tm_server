@@ -36,7 +36,7 @@ func NewEngineers() *Engineers {
 // GetDwellingCost returns the cheaper dwelling cost for Engineers
 func (f *Engineers) GetDwellingCost() Cost {
 	return Cost{
-		Coins:   1, // Cheaper than standard (0)
+		Coins:   1, // Cheaper than standard (2)
 		Workers: 1,
 		Priests: 0,
 		Power:   0,

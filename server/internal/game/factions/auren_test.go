@@ -174,7 +174,7 @@ func TestAuren_StandardCosts(t *testing.T) {
 
 	// Auren uses standard costs for most buildings
 	dwellingCost := auren.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 

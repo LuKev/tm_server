@@ -46,7 +46,7 @@ func (f *Swarmlings) GetStartingCultPositions() CultPositions {
 // GetDwellingCost returns the expensive dwelling cost for Swarmlings
 func (f *Swarmlings) GetDwellingCost() Cost {
 	return Cost{
-		Coins:   3, // More expensive than standard (0)
+		Coins:   3, // More expensive than standard (2)
 		Workers: 2, // More expensive than standard (1)
 		Priests: 0,
 		Power:   0,

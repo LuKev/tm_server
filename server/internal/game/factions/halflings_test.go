@@ -146,7 +146,7 @@ func TestHalflings_StandardCosts(t *testing.T) {
 
 	// Halflings use standard costs for most buildings
 	dwellingCost := halflings.GetDwellingCost()
-	if dwellingCost.Workers != 1 || dwellingCost.Coins != 0 {
+	if dwellingCost.Workers != 1 || dwellingCost.Coins != 2 {
 		t.Errorf("unexpected dwelling cost: %+v", dwellingCost)
 	}
 
