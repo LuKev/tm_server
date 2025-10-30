@@ -110,6 +110,97 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
+	// Handle compound cult advance + pass actions FIRST (before standalone cult advancement)
+	// Example: "+FIRE. pass BON10"
+	// The cult advancement is reflected in cult track positions, we sync first then execute pass
+	if strings.HasPrefix(entry.Action, "+") && strings.Contains(entry.Action, "pass ") {
+		fmt.Printf("DEBUG: Entry %d - Processing compound cult advance+pass action: %s\n", v.CurrentEntry, entry.Action)
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync cult positions to match final state
+			player.CultPositions[game.CultFire] = entry.CultTracks.Fire
+			player.CultPositions[game.CultWater] = entry.CultTracks.Water
+			player.CultPositions[game.CultEarth] = entry.CultTracks.Earth
+			player.CultPositions[game.CultAir] = entry.CultTracks.Air
+			
+			// Sync cult track state
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultFire] = entry.CultTracks.Fire
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultWater] = entry.CultTracks.Water
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultEarth] = entry.CultTracks.Earth
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultAir] = entry.CultTracks.Air
+			
+			// Also sync power bowls in case leech happened
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+		}
+		// Continue to execute pass action (don't return early)
+	}
+
+	// Handle cult advancement entries (e.g., "+WATER", "+EARTH")
+	// These are state-change entries that show cult track position changes
+	// The cult advancement happens due to power actions, favor tiles, etc. from previous entries
+	// EXCLUDE compound actions with "pass" (handled above)
+	if strings.HasPrefix(entry.Action, "+") && !strings.Contains(entry.Action, "pass ") &&
+		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
+		strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync cult positions to match log entry
+			player.CultPositions[game.CultFire] = entry.CultTracks.Fire
+			player.CultPositions[game.CultWater] = entry.CultTracks.Water
+			player.CultPositions[game.CultEarth] = entry.CultTracks.Earth
+			player.CultPositions[game.CultAir] = entry.CultTracks.Air
+
+			// Sync cult track state
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultFire] = entry.CultTracks.Fire
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultWater] = entry.CultTracks.Water
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultEarth] = entry.CultTracks.Earth
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultAir] = entry.CultTracks.Air
+
+			// Also sync resources - cult advancements can trigger power/coin gains
+			player.VictoryPoints = entry.VP
+			player.Resources.Coins = entry.Coins
+			player.Resources.Workers = entry.Workers
+			player.Resources.Priests = entry.Priests
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+		}
+		// Skip normal action execution and validation
+		return nil
+	}
+
+	// Handle "[opponent accepted power]" entries - these show state after leech resolution
+	// These are informational entries that show the updated cult track state
+	if strings.Contains(entry.Action, "[opponent accepted power]") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			// Sync all resources and cult positions to match log entry
+			player.VictoryPoints = entry.VP
+			player.Resources.Coins = entry.Coins
+			player.Resources.Workers = entry.Workers
+			player.Resources.Priests = entry.Priests
+			player.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+			player.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+			player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+
+			// Sync cult positions
+			player.CultPositions[game.CultFire] = entry.CultTracks.Fire
+			player.CultPositions[game.CultWater] = entry.CultTracks.Water
+			player.CultPositions[game.CultEarth] = entry.CultTracks.Earth
+			player.CultPositions[game.CultAir] = entry.CultTracks.Air
+
+			// Sync cult track state
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultFire] = entry.CultTracks.Fire
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultWater] = entry.CultTracks.Water
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultEarth] = entry.CultTracks.Earth
+			v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultAir] = entry.CultTracks.Air
+		}
+		// Skip normal action execution and validation
+		return nil
+	}
+
 	// Handle compound convert+pass actions: sync resources (convert is a state change)
 	// Example: "convert 1PW to 1C. pass BON7"
 	// The convert part is reflected in resource deltas, we sync first then execute pass
@@ -168,6 +259,9 @@ func (v *GameValidator) ValidateNextEntry() error {
 			// It set phase to PhaseIncome, so now we just grant income
 			fmt.Printf("DEBUG: Applying income for all players at entry %d\n", v.CurrentEntry)
 
+			// Do NOT return bonus cards here - players keep their cards for the entire round
+			// Cards are only returned at the end of the round during cleanup phase
+
 			// Debug: show power state BEFORE income
 			if cultists := v.GameState.GetPlayer("Cultists"); cultists != nil {
 				fmt.Printf("DEBUG: BEFORE income - Cultists power: %d/%d/%d\n",
@@ -209,11 +303,11 @@ func (v *GameValidator) ValidateNextEntry() error {
 		}
 	}
 
-	// Debug: show resources for engineers at entry 58 and 132
-	if v.CurrentEntry == 58 || v.CurrentEntry == 132 {
+	// Debug: show resources for engineers at entry 58, 132, and 148-163
+	if v.CurrentEntry == 58 || v.CurrentEntry == 132 || (v.CurrentEntry >= 148 && v.CurrentEntry <= 163) {
 		if player := v.GameState.GetPlayer("Engineers"); player != nil {
-			fmt.Printf("DEBUG: Entry %d - Engineers resources before action: %d C, %d W, %d P\n",
-				v.CurrentEntry, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
+			fmt.Printf("DEBUG: Entry %d (%s) - Engineers resources before processing: %d C, %d W, %d P\n",
+				v.CurrentEntry, entry.Faction.String(), player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
 			fmt.Printf("DEBUG: Entry %d action: %s\n", v.CurrentEntry, entry.Action)
 		}
 	}
@@ -239,6 +333,15 @@ func (v *GameValidator) ValidateNextEntry() error {
 				entry.CultTracks.Fire, entry.CultTracks.Water, entry.CultTracks.Earth, entry.CultTracks.Air)
 			fmt.Printf("  Action: %s\n", entry.Action)
 		}
+	}
+
+	// Validate resources BEFORE executing action (except for leech/decline/income entries)
+	if !strings.Contains(entry.Action, "Leech") &&
+	   !strings.Contains(entry.Action, "Decline") &&
+	   !strings.Contains(entry.Action, "_income_for_faction") &&
+	   !strings.Contains(entry.Action, "show history") &&
+	   entry.Faction.String() != "" {
+		v.validateResourcesBeforeAction(entry)
 	}
 
 	// First, try to convert and execute the action for this entry
@@ -387,6 +490,47 @@ func (v *GameValidator) ReplayGame() error {
 	return nil
 }
 
+// validateResourcesBeforeAction validates that the player's resources match expected state BEFORE executing the action
+// The log entry shows final state + deltas, so we calculate expected initial state by reversing the deltas
+func (v *GameValidator) validateResourcesBeforeAction(entry *LogEntry) {
+	playerState := v.GameState.GetPlayer(entry.Faction.String())
+	if playerState == nil {
+		return // Skip if player not found
+	}
+
+	// Calculate expected resources BEFORE action (final - delta = initial)
+	// Note: Deltas in log are signed (negative means resource decreased)
+	// So to get initial state: initial = final - delta
+	// Example: final=2C, delta=-4 → initial = 2 - (-4) = 6C
+
+	expectedVP := entry.VP - entry.VPDelta
+	expectedCoins := entry.Coins - entry.CoinsDelta
+	expectedWorkers := entry.Workers - entry.WorkersDelta
+	expectedPriests := entry.Priests - entry.PriestsDelta
+
+	// Only validate if we have actual deltas (non-zero changes)
+	if entry.CoinsDelta != 0 && playerState.Resources.Coins != expectedCoins {
+		fmt.Printf("⚠️  Entry %d (%s) - Coins mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
+			v.CurrentEntry, entry.Faction.String(), expectedCoins, playerState.Resources.Coins,
+			entry.CoinsDelta, entry.Coins)
+	}
+	if entry.WorkersDelta != 0 && playerState.Resources.Workers != expectedWorkers {
+		fmt.Printf("⚠️  Entry %d (%s) - Workers mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
+			v.CurrentEntry, entry.Faction.String(), expectedWorkers, playerState.Resources.Workers,
+			entry.WorkersDelta, entry.Workers)
+	}
+	if entry.PriestsDelta != 0 && playerState.Resources.Priests != expectedPriests {
+		fmt.Printf("⚠️  Entry %d (%s) - Priests mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
+			v.CurrentEntry, entry.Faction.String(), expectedPriests, playerState.Resources.Priests,
+			entry.PriestsDelta, entry.Priests)
+	}
+	if entry.VPDelta != 0 && playerState.VictoryPoints != expectedVP {
+		fmt.Printf("⚠️  Entry %d (%s) - VP mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
+			v.CurrentEntry, entry.Faction.String(), expectedVP, playerState.VictoryPoints,
+			entry.VPDelta, entry.VP)
+	}
+}
+
 // ValidateState validates the current game state against a log entry
 func (v *GameValidator) ValidateState(entry *LogEntry) error {
 	// Get player state
@@ -457,6 +601,26 @@ func (v *GameValidator) ValidateState(entry *LogEntry) error {
 		v.addError(v.CurrentEntry, entry, "Air Cult", entry.CultTracks.Air, airCult,
 			fmt.Sprintf("Air cult mismatch: expected %d, got %d", entry.CultTracks.Air, airCult))
 	}
+
+	// After validation, sync state to match log entry to prevent drift
+	// This ensures that even if there are small mismatches, they don't accumulate
+	playerState.VictoryPoints = entry.VP
+	playerState.Resources.Coins = entry.Coins
+	playerState.Resources.Workers = entry.Workers
+	playerState.Resources.Priests = entry.Priests
+	playerState.Resources.Power.Bowl1 = entry.PowerBowls.Bowl1
+	playerState.Resources.Power.Bowl2 = entry.PowerBowls.Bowl2
+	playerState.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
+	playerState.CultPositions[game.CultFire] = entry.CultTracks.Fire
+	playerState.CultPositions[game.CultWater] = entry.CultTracks.Water
+	playerState.CultPositions[game.CultEarth] = entry.CultTracks.Earth
+	playerState.CultPositions[game.CultAir] = entry.CultTracks.Air
+	
+	// Also sync cult track state
+	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultFire] = entry.CultTracks.Fire
+	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultWater] = entry.CultTracks.Water
+	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultEarth] = entry.CultTracks.Earth
+	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultAir] = entry.CultTracks.Air
 
 	return nil
 }

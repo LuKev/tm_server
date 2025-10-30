@@ -195,6 +195,9 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		
 		// Check if player can afford dwelling (coins and priests)
 		dwellingCost := player.Faction.GetDwellingCost()
+		if a.PlayerID == "Witches" {
+			fmt.Printf("DEBUG TransformAndBuild.Validate: Witches dwelling check - need %dC, have %dC\n", dwellingCost.Coins, player.Resources.Coins)
+		}
 		if player.Resources.Coins < dwellingCost.Coins {
 			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
 		}
@@ -712,9 +715,20 @@ func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	cost := player.Faction.GetShippingCost(player.ShippingLevel)
 
+	if a.PlayerID == "Engineers" {
+		fmt.Printf("DEBUG AdvanceShippingAction: %s upgrading shipping level %d, cost=%dC %dW %dP, have %dC %dW %dP\n",
+			a.PlayerID, player.ShippingLevel, cost.Coins, cost.Workers, cost.Priests,
+			player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
+	}
+
 	// Pay for upgrade
 	if err := player.Resources.Spend(cost); err != nil {
 		return fmt.Errorf("failed to pay for shipping: %w", err)
+	}
+
+	if a.PlayerID == "Engineers" {
+		fmt.Printf("DEBUG AdvanceShippingAction: %s AFTER spending, have %dC %dW %dP\n",
+			a.PlayerID, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
 	}
 
 	// Advance shipping

@@ -139,6 +139,46 @@ func TestReturnBonusCards(t *testing.T) {
 	}
 }
 
+// TestReturnBonusCards_WithoutFlag tests Bug #23:
+// Bonus cards should be returned to Available pool even if PlayerHasCard flag is not set
+func TestReturnBonusCards_WithoutFlag(t *testing.T) {
+	gs := NewGameState()
+	faction1 := factions.NewAuren() // Forest
+	faction2 := factions.NewAlchemists() // Swamp
+	gs.AddPlayer("player1", faction1)
+	gs.AddPlayer("player2", faction2)
+	
+	// Give players bonus cards but don't set PlayerHasCard flags
+	// This simulates a scenario where cards are in PlayerCards but the flag wasn't set
+	gs.BonusCards.PlayerCards["player1"] = BonusCardPriest
+	gs.BonusCards.PlayerCards["player2"] = BonusCard6Coins
+	// PlayerHasCard flags are NOT set (Bug #23 scenario)
+	
+	// Return bonus cards
+	gs.ReturnBonusCards()
+	
+	// Players should no longer have cards
+	if len(gs.BonusCards.PlayerCards) != 0 {
+		t.Errorf("expected no player cards, got %d", len(gs.BonusCards.PlayerCards))
+	}
+	
+	// Cards should be back in available pool REGARDLESS of PlayerHasCard flag
+	if _, ok := gs.BonusCards.Available[BonusCardPriest]; !ok {
+		t.Error("Bug #23: priest card should be in available pool even without PlayerHasCard flag")
+	}
+	if _, ok := gs.BonusCards.Available[BonusCard6Coins]; !ok {
+		t.Error("Bug #23: 6 coins card should be in available pool even without PlayerHasCard flag")
+	}
+	
+	// Both should have 0 coins
+	if gs.BonusCards.Available[BonusCardPriest] != 0 {
+		t.Errorf("expected 0 coins on priest card, got %d", gs.BonusCards.Available[BonusCardPriest])
+	}
+	if gs.BonusCards.Available[BonusCard6Coins] != 0 {
+		t.Errorf("expected 0 coins on 6 coins card, got %d", gs.BonusCards.Available[BonusCard6Coins])
+	}
+}
+
 func TestResetRoundState(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()

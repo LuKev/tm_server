@@ -48,12 +48,9 @@ func (gs *GameState) ReturnBonusCards() {
 	
 	// Return each player's bonus card to the available pool
 	for playerID, cardType := range gs.BonusCards.PlayerCards {
-		if gs.BonusCards.PlayerHasCard[playerID] {
-			// Card was taken this round, so it had accumulated coins
-			// (These coins were already given to the player when they passed)
-			// Just return the card to the pool with 0 coins
-			gs.BonusCards.Available[cardType] = 0
-		}
+		// Return the card to the pool with 0 coins
+		// (Any accumulated coins were already given to the player when they passed)
+		gs.BonusCards.Available[cardType] = 0
 		
 		// Remove from player's hand
 		delete(gs.BonusCards.PlayerCards, playerID)

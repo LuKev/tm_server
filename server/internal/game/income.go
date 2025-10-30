@@ -1,6 +1,8 @@
 package game
 
 import (
+	"fmt"
+
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -27,9 +29,22 @@ type BaseIncome struct {
 
 // GrantIncome grants income to all players at the start of a round
 func (gs *GameState) GrantIncome() {
+	fmt.Printf("DEBUG: GrantIncome called for Round %d\n", gs.Round)
 	for _, player := range gs.Players {
+		if player.ID == "Engineers" {
+			fmt.Printf("DEBUG GrantIncome R%d: %s BEFORE - %dC %dW %dP\n",
+				gs.Round, player.ID, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
+		}
 		income := calculatePlayerIncome(gs, player)
+		if player.ID == "Engineers" {
+			fmt.Printf("DEBUG GrantIncome R%d: %s income = %dC %dW %dP\n",
+				gs.Round, player.ID, income.Coins, income.Workers, income.Priests)
+		}
 		applyIncome(gs, player, income)
+		if player.ID == "Engineers" {
+			fmt.Printf("DEBUG GrantIncome R%d: %s AFTER - %dC %dW %dP\n",
+				gs.Round, player.ID, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
+		}
 	}
 }
 

@@ -79,7 +79,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			}
 		}
 
-		// Check if this is a bonus card action (BON1-10) vs power action (ACT1-6)
+		// Check if this is a bonus card action (BON1-10) vs power action (ACT1-6) vs stronghold action (ACTW, ACTA, etc.)
 		if strings.HasPrefix(actionTypeStr, "BON") {
 			// BON1 provides 1 free spade for transformation
 			if actionTypeStr == "BON1" {
@@ -97,6 +97,20 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			}
 			// Other bonus card actions (BON2-BON10) - skip for now
 			return nil, nil
+		}
+
+		// Check if this is a stronghold special action (ACTW=Witches' Ride, ACTA=Auren, etc.)
+		if actionTypeStr == "ACTW" {
+			// Witches' Ride: Build dwelling on any Forest hex
+			coordStr, hasCoord := params["coord"]
+			if !hasCoord {
+				return nil, fmt.Errorf("Witches' Ride action missing coord")
+			}
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+			}
+			return game.NewWitchesRideAction(playerID, hex), nil
 		}
 
 		powerActionType, err := ParsePowerActionType(actionTypeStr)
@@ -192,6 +206,10 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 
 	upgradeAction := game.NewUpgradeBuildingAction(playerID, hex, buildingType)
 
+	// Check if validation should be skipped (for compound convert+upgrade actions)
+	// Resources are already synced by the validator, so we just place the building
+	skipValidation := params["skip_validation"] == "true"
+	
 	// If there's a favor tile specified, this is a compound action:
 	// upgrade + select favor tile. Execute both immediately.
 	if favorTileStr, hasFavorTile := params["favor_tile"]; hasFavorTile {
@@ -199,8 +217,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 			playerID, buildingStr, favorTileStr)
 
 		// Execute upgrade first
-		// Skip validation if this is a compound convert+upgrade action (resources synced by validator)
-		skipValidation := params["skip_validation"] == "true"
 		if skipValidation {
 			fmt.Printf("DEBUG: Manually placing building %s at %v for %s\n", buildingStr, hex, playerID)
 			// Resources already synced - just place the building manually
@@ -235,6 +251,11 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 				PowerValue: newPowerValue,
 			}
 			fmt.Printf("DEBUG: Building placed: %v\n", mapHex.Building)
+
+			// Set stronghold ability if upgrading to stronghold
+			if buildingType == models.BuildingStronghold {
+				player.HasStrongholdAbility = true
+			}
 
 			// Set pending favor tile selection (if Temple or Sanctuary)
 			if buildingType == models.BuildingTemple || buildingType == models.BuildingSanctuary {
@@ -281,6 +302,51 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		fmt.Printf("DEBUG: Favor tile action executed successfully\n")
 
 		// Both actions executed, return nil to skip normal execution
+		return nil, nil
+	}
+
+	// If skip_validation is set but there's no favor tile, manually place the building
+	if skipValidation {
+		fmt.Printf("DEBUG: Manually placing building %s at %v for %s (no favor tile)\n", buildingStr, hex, playerID)
+		mapHex := gs.Map.GetHex(hex)
+		if mapHex == nil {
+			return nil, fmt.Errorf("hex does not exist: %v", hex)
+		}
+		player := gs.GetPlayer(playerID)
+		if player == nil {
+			return nil, fmt.Errorf("player not found: %s", playerID)
+		}
+
+		// Get new power value
+		var newPowerValue int
+		switch buildingType {
+		case models.BuildingTradingHouse:
+			newPowerValue = 2
+		case models.BuildingTemple:
+			newPowerValue = 2
+		case models.BuildingSanctuary:
+			newPowerValue = 3
+		case models.BuildingStronghold:
+			newPowerValue = 3
+		}
+
+		// Place building
+		mapHex.Building = &models.Building{
+			Type:       buildingType,
+			Faction:    player.Faction.GetType(),
+			PlayerID:   playerID,
+			PowerValue: newPowerValue,
+		}
+
+		// Set stronghold ability if upgrading to stronghold
+		if buildingType == models.BuildingStronghold {
+			player.HasStrongholdAbility = true
+		}
+
+		// Trigger power leech for adjacent players
+		gs.TriggerPowerLeech(hex, playerID)
+
+		// Return nil to indicate action was executed inline
 		return nil, nil
 	}
 

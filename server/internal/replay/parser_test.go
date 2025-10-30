@@ -62,17 +62,18 @@ func TestParseLogLine_WithDeltas(t *testing.T) {
 	if entry.Faction != models.FactionEngineers {
 		t.Errorf("Expected faction Engineers, got %v", entry.Faction)
 	}
-	if entry.VP != 20 || entry.VPDelta != -1 {
-		t.Errorf("Expected VP 20 delta -1, got %d delta %d", entry.VP, entry.VPDelta)
+	if entry.VP != 20 || entry.VPDelta != 0 {
+		t.Errorf("Expected VP 20 delta 0, got %d delta %d", entry.VP, entry.VPDelta)
 	}
 	if entry.Coins != 9 || entry.CoinsDelta != -1 {
 		t.Errorf("Expected Coins 9 delta -1, got %d delta %d", entry.Coins, entry.CoinsDelta)
 	}
-	if entry.Workers != 3 {
-		t.Errorf("Expected Workers 3, got %d", entry.Workers)
+	if entry.Workers != 3 || entry.WorkersDelta != -1 {
+		t.Errorf("Expected Workers 3 delta -1, got %d delta %d", entry.Workers, entry.WorkersDelta)
 	}
-	if entry.PowerBowls.Bowl1 != 6 {
-		t.Errorf("Expected Bowl1 6, got %d", entry.PowerBowls.Bowl1)
+	if entry.PowerBowls.Bowl1 != 6 || entry.PowerBowls.Bowl2 != 0 || entry.PowerBowls.Bowl3 != 0 {
+		t.Errorf("Expected PowerBowls 6/0/0, got %d/%d/%d",
+			entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3)
 	}
 }
 

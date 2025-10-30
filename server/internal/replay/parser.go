@@ -129,6 +129,8 @@ func ParseLogLine(line string) (*LogEntry, error) {
 	// With deltas: 20 VP	-1	9 C	-1	3 W		0 P	-12	6/0/0 PW		0/0/0/0	1 	burn 6. action ACT6
 
 	idx := 1
+	var pendingDelta *int  // Store delta that comes before a value
+
 	for idx < len(parts) {
 		part := strings.TrimSpace(parts[idx])
 		if part == "" {
@@ -136,19 +138,26 @@ func ParseLogLine(line string) (*LogEntry, error) {
 			continue
 		}
 
+		// Check if this part is a delta (signed number without unit)
+		// Deltas come BEFORE values in format: [delta] value unit
+		if (strings.HasPrefix(part, "+") || strings.HasPrefix(part, "-")) &&
+		   !strings.Contains(part, "/") &&
+		   len(part) > 1 {
+			delta, err := strconv.Atoi(part)
+			if err == nil {
+				pendingDelta = &delta
+				idx++
+				continue
+			}
+		}
+
 		// Check for VP
 		if strings.HasSuffix(part, "VP") {
 			vp, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "VP")))
 			entry.VP = vp
-
-			// Check for delta
-			if idx+1 < len(parts) {
-				nextPart := strings.TrimSpace(parts[idx+1])
-				if strings.HasPrefix(nextPart, "+") || strings.HasPrefix(nextPart, "-") {
-					delta, _ := strconv.Atoi(nextPart)
-					entry.VPDelta = delta
-					idx++
-				}
+			if pendingDelta != nil {
+				entry.VPDelta = *pendingDelta
+				pendingDelta = nil
 			}
 			idx++
 			continue
@@ -158,15 +167,9 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		if strings.HasSuffix(part, "C") && !strings.Contains(part, "ACT") {
 			coins, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "C")))
 			entry.Coins = coins
-
-			// Check for delta
-			if idx+1 < len(parts) {
-				nextPart := strings.TrimSpace(parts[idx+1])
-				if strings.HasPrefix(nextPart, "+") || strings.HasPrefix(nextPart, "-") {
-					delta, _ := strconv.Atoi(nextPart)
-					entry.CoinsDelta = delta
-					idx++
-				}
+			if pendingDelta != nil {
+				entry.CoinsDelta = *pendingDelta
+				pendingDelta = nil
 			}
 			idx++
 			continue
@@ -176,15 +179,9 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		if strings.HasSuffix(part, "W") && len(part) < 5 {
 			workers, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "W")))
 			entry.Workers = workers
-
-			// Check for delta
-			if idx+1 < len(parts) {
-				nextPart := strings.TrimSpace(parts[idx+1])
-				if strings.HasPrefix(nextPart, "+") || strings.HasPrefix(nextPart, "-") {
-					delta, _ := strconv.Atoi(nextPart)
-					entry.WorkersDelta = delta
-					idx++
-				}
+			if pendingDelta != nil {
+				entry.WorkersDelta = *pendingDelta
+				pendingDelta = nil
 			}
 			idx++
 			continue
@@ -194,9 +191,10 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		if strings.HasSuffix(part, "P") && len(part) < 5 && !strings.HasSuffix(part, "VP") && !strings.HasSuffix(part, "PW") {
 			priests, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "P")))
 			entry.Priests = priests
-
-			// Note: Do NOT read delta after priests - the next numeric field is the power delta (Bowl2 change during burns)
-			// Priest deltas are not shown in the log format
+			if pendingDelta != nil {
+				entry.PriestsDelta = *pendingDelta
+				pendingDelta = nil
+			}
 			idx++
 			continue
 		}
@@ -210,6 +208,9 @@ func ParseLogLine(line string) (*LogEntry, error) {
 				entry.PowerBowls.Bowl2, _ = strconv.Atoi(pwParts[1])
 				entry.PowerBowls.Bowl3, _ = strconv.Atoi(pwParts[2])
 			}
+			// Power delta comes before PW, but we don't store it separately
+			// Just reset pendingDelta if it exists
+			pendingDelta = nil
 			idx++
 			continue
 		}
@@ -223,6 +224,9 @@ func ParseLogLine(line string) (*LogEntry, error) {
 				entry.CultTracks.Earth, _ = strconv.Atoi(cultParts[2])
 				entry.CultTracks.Air, _ = strconv.Atoi(cultParts[3])
 			}
+			// Cult track deltas come before the cult track values, but we don't use them
+			// Just reset pendingDelta if it exists
+			pendingDelta = nil
 			idx++
 			continue
 		}
@@ -500,6 +504,20 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 
 	case strings.HasPrefix(actionStr, "+"):
 		// Cult track advancement like "+FIRE", "+WATER"
+		// Can also be compound: "+FIRE. pass BON10"
+		if strings.Contains(actionStr, "pass ") {
+			// Compound cult advance + pass: extract bonus card from pass action
+			parts := strings.Split(actionStr, ".")
+			for _, part := range parts {
+				part = strings.TrimSpace(part)
+				if strings.HasPrefix(part, "pass ") || strings.HasPrefix(part, "Pass ") {
+					bonusTile := strings.Fields(part)[1]
+					params["bonus"] = bonusTile
+					return ActionPass, params, nil
+				}
+			}
+		}
+		// Just cult advancement
 		return ActionCultAdvance, params, nil
 
 	default:

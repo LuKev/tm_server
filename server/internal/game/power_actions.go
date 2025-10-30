@@ -349,6 +349,10 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		
 		// Pay for dwelling
 		dwellingCost := player.Faction.GetDwellingCost()
+		if a.PlayerID == "Engineers" {
+			fmt.Printf("DEBUG PowerAction dwelling check: %s need %dC %dW, have %dC %dW\n",
+				a.PlayerID, dwellingCost.Coins, dwellingCost.Workers, player.Resources.Coins, player.Resources.Workers)
+		}
 		if player.Resources.Coins < dwellingCost.Coins {
 			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
 		}
