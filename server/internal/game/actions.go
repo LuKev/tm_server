@@ -307,30 +307,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
 
-		// Place dwelling
-		dwelling := &models.Building{
-			Type:       models.BuildingDwelling,
-			Faction:    player.Faction.GetType(),
-			PlayerID:   a.PlayerID,
-			PowerValue: 1, // Dwellings provide 1 power to neighbors
-		}
-		mapHex.Building = dwelling
-
-		// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
-		playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
-		if HasFavorTile(playerTiles, FavorEarth1) {
-			player.VictoryPoints += 2
-		}
-
-		// Award VP from scoring tile
-		gs.AwardActionVP(a.PlayerID, ScoringActionDwelling)
-
-		// Trigger power leech for adjacent players
-		gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
-		
-		// Check for town formation after building dwelling
-		// CheckForTownFormation handles creating PendingTownFormation if needed
-		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+		// Place dwelling and handle all VP bonuses
+		buildDwelling(gs, a.PlayerID, a.TargetHex, player)
 	}
 
 	return nil
@@ -956,4 +934,38 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	// If false, the priest is returned to supply (already handled by not placing it)
 
 	return nil
+}
+
+// buildDwelling is a helper function that handles all dwelling placement logic including:
+// - Placing the dwelling building on the map
+// - Awarding VP from Earth+1 favor tile (+2 VP when building Dwelling)
+// - Awarding VP from scoring tiles
+// - Triggering power leech for adjacent players
+// - Checking for town formation
+func buildDwelling(gs *GameState, playerID string, targetHex Hex, player *Player) {
+	mapHex := gs.Map.GetHex(targetHex)
+	
+	// Place dwelling
+	dwelling := &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   playerID,
+		PowerValue: 1, // Dwellings provide 1 power to neighbors
+	}
+	mapHex.Building = dwelling
+	
+	// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
+	playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
+	if HasFavorTile(playerTiles, FavorEarth1) {
+		player.VictoryPoints += 2
+	}
+	
+	// Award VP from scoring tile
+	gs.AwardActionVP(playerID, ScoringActionDwelling)
+	
+	// Trigger power leech
+	gs.TriggerPowerLeech(targetHex, playerID)
+	
+	// Check for town formation
+	gs.CheckForTownFormation(playerID, targetHex)
 }

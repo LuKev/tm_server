@@ -367,17 +367,8 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		player.Resources.Workers -= dwellingCost.Workers
 		player.Resources.Priests -= dwellingCost.Priests
 		
-		// Place dwelling
-		dwelling := &models.Building{
-			Type:       models.BuildingDwelling,
-			Faction:    player.Faction.GetType(),
-			PlayerID:   a.PlayerID,
-			PowerValue: 1,
-		}
-		mapHex.Building = dwelling
-		
-		// Trigger power leech
-		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
+		// Place dwelling and handle all VP bonuses
+		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
 	}
 	
 	return nil

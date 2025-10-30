@@ -583,20 +583,8 @@ func (a *SpecialAction) executeAurenCultAdvance(gs *GameState, player *Player) e
 }
 
 func (a *SpecialAction) executeWitchesRide(gs *GameState, player *Player) error {
-	mapHex := gs.Map.GetHex(*a.TargetHex)
-
 	// Build dwelling without paying workers or coins
-	// (Priests cost is still paid if required, but standard dwelling has no priest cost)
-	dwelling := &models.Building{
-		Type:       models.BuildingDwelling,
-		Faction:    player.Faction.GetType(),
-		PlayerID:   a.PlayerID,
-		PowerValue: 1,
-	}
-	mapHex.Building = dwelling
-
-	// Trigger power leech for adjacent players
-	gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
+	buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
 
 	return nil
 }
@@ -642,8 +630,6 @@ func (a *SpecialAction) executeChaosMagiciansDoubleTurn(gs *GameState, player *P
 }
 
 func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) error {
-	mapHex := gs.Map.GetHex(*a.TargetHex)
-
 	// Transform terrain to home terrain (2 free spades)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
@@ -688,25 +674,14 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 		player.Resources.Workers -= dwellingCost.Workers
 		player.Resources.Priests -= dwellingCost.Priests
 
-		// Place dwelling
-		dwelling := &models.Building{
-			Type:       models.BuildingDwelling,
-			Faction:    player.Faction.GetType(),
-			PlayerID:   a.PlayerID,
-			PowerValue: 1,
-		}
-		mapHex.Building = dwelling
-
-		// Trigger power leech
-		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
+		// Place dwelling and handle all VP bonuses
+		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
 	}
 
 	return nil
 }
 
 func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) error {
-	mapHex := gs.Map.GetHex(*a.TargetHex)
-
 	// Transform terrain to home terrain (Sandstorm - not considered a spade)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
@@ -730,17 +705,8 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 		player.Resources.Workers -= dwellingCost.Workers
 		player.Resources.Priests -= dwellingCost.Priests
 
-		// Place dwelling
-		dwelling := &models.Building{
-			Type:       models.BuildingDwelling,
-			Faction:    player.Faction.GetType(),
-			PlayerID:   a.PlayerID,
-			PowerValue: 1,
-		}
-		mapHex.Building = dwelling
-
-		// Trigger power leech
-		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
+		// Place dwelling and handle all VP bonuses
+		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
 	}
 
 	return nil
@@ -832,22 +798,8 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
 
-		dwelling := &models.Building{
-			Type:       models.BuildingDwelling,
-			Faction:    player.Faction.GetType(),
-			PlayerID:   a.PlayerID,
-			PowerValue: 1,
-		}
-		mapHex.Building = dwelling
-
-		// Award VP from scoring tile for dwelling
-		gs.AwardActionVP(a.PlayerID, ScoringActionDwelling)
-
-		// Trigger power leech
-		gs.TriggerPowerLeech(*a.TargetHex, a.PlayerID)
-		
-		// Check for town formation - CheckForTownFormation handles creating PendingTownFormation
-		gs.CheckForTownFormation(a.PlayerID, *a.TargetHex)
+		// Place dwelling and handle all VP bonuses
+		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
 	}
 
 	return nil
