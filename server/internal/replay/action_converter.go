@@ -301,16 +301,22 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 			}
 		}
 
-		// Now create and execute favor tile selection
-		// BUT: if skipValidation is true, the validator already synced the final state
-		// including cult positions, so we should NOT execute the favor tile action
-		// (it would double-apply the cult advancement)
-		if !skipValidation {
-			favorTileType, err := ParseFavorTile(favorTileStr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
-			}
+		// Now handle favor tile selection
+		favorTileType, err := ParseFavorTile(favorTileStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
+		}
 
+		if skipValidation {
+			// Bug #42: When skipValidation is true, the validator syncs cult positions but does NOT
+			// add the favor tile to player's collection. We need to add it manually without applying
+			// cult advancement (which was already synced by validator).
+			// Just take the tile without executing the full action (to avoid double-applying cult advancement)
+			if err := gs.FavorTiles.TakeFavorTile(playerID, favorTileType); err != nil {
+				return nil, fmt.Errorf("failed to take favor tile: %v", err)
+			}
+		} else {
+			// Normal execution: full favor tile action including cult advancement
 			favorAction := &game.SelectFavorTileAction{
 				BaseAction: game.BaseAction{
 					Type:     game.ActionSelectFavorTile,
@@ -326,7 +332,6 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 				return nil, fmt.Errorf("favor tile execution failed: %v", err)
 			}
 		}
-		// Note: If skipValidation, favor tile effects are already in synced state
 
 		// Both actions executed, return nil to skip normal execution
 		return nil, nil
