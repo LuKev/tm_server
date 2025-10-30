@@ -13,7 +13,7 @@ const (
 	ScoringDwellingFire                         // 2 VP per dwelling | 4 steps Fire = 4 power
 	ScoringTradingHouseWater                    // 3 VP per trading house | 4 steps Water = 1 spade
 	ScoringTradingHouseAir                      // 3 VP per trading house | 4 steps Air = 1 spade
-	ScoringTradingHousePriest                   // 4 VP per trading house | 2 coins per priest sent to cult
+	ScoringTemplePriest                         // 4 VP per temple | 2 coins per priest sent to cult (SCORE5)
 	ScoringStrongholdFire                       // 5 VP per SH/SA | 2 steps Fire = 1 worker
 	ScoringStrongholdAir                        // 5 VP per SH/SA | 2 steps Air = 1 worker
 	ScoringSpades                               // 2 VP per spade | 1 step Earth = 1 coin
@@ -27,6 +27,7 @@ const (
 	ScoringActionDwelling ScoringActionType = iota
 	ScoringActionTradingHouse
 	ScoringActionStronghold
+	ScoringActionTemple // Only used for SCORE5 (Temple+Priest tile)
 	ScoringActionSpades
 	ScoringActionTown
 	ScoringActionPriestToCult
@@ -94,8 +95,8 @@ func GetAllScoringTiles() []ScoringTile {
 			CultRewardAmount: 1,
 		},
 		{
-			Type:             ScoringTradingHousePriest,
-			ActionType:       ScoringActionTradingHouse,
+			Type:             ScoringTemplePriest,
+			ActionType:       ScoringActionTemple,
 			ActionVP:         4,
 			CultTrack:        CultFire, // Not used for this tile
 			CultThreshold:    0,        // Special: 2 coins per priest sent to cult
@@ -267,8 +268,8 @@ func (gs *GameState) AwardCultRewards() {
 		return
 	}
 	
-	// Special case: Trading House + Priest tile
-	if tile.Type == ScoringTradingHousePriest {
+	// Special case: Temple + Priest tile (SCORE5)
+	if tile.Type == ScoringTemplePriest {
 		for playerID, priestCount := range gs.ScoringTiles.PriestsSent {
 			player := gs.GetPlayer(playerID)
 			if player != nil {

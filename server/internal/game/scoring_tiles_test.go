@@ -275,14 +275,15 @@ func TestScoringTile_PriestTracking(t *testing.T) {
 	// Give player priests
 	player.Resources.Priests = 5
 	
-	// Send 2 priests to cult tracks
+	// Send 2 priests to cult tracks (place on action spaces, not sacrifice)
+	// For SCORE5, only priests placed on action spaces (2-3 steps) count
 	action1 := &SendPriestToCultAction{
 		BaseAction: BaseAction{
 			Type:     ActionSendPriestToCult,
 			PlayerID: "player1",
 		},
 		Track:         CultFire,
-		SpacesToClimb: 1,
+		SpacesToClimb: 2, // Place on 2-step action space
 	}
 	action1.Execute(gs)
 	
@@ -292,7 +293,7 @@ func TestScoringTile_PriestTracking(t *testing.T) {
 			PlayerID: "player1",
 		},
 		Track:         CultWater,
-		SpacesToClimb: 1,
+		SpacesToClimb: 3, // Place on 3-step action space
 	}
 	action2.Execute(gs)
 	
@@ -345,10 +346,10 @@ func TestAwardCultRewards_PriestCoins(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	
-	// Set up scoring tile: 2 coins per priest sent to cult
+	// Set up scoring tile: 2 coins per priest sent to cult (Temple + Priest)
 	gs.ScoringTiles.Tiles = []ScoringTile{
 		{
-			Type:             ScoringTradingHousePriest,
+			Type:             ScoringTemplePriest,
 			CultRewardType:   CultRewardCoin,
 			CultRewardAmount: 2,
 		},

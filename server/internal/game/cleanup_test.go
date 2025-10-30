@@ -475,10 +475,10 @@ func TestAwardCultRewards_PriestCoinTile(t *testing.T) {
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	
-	// Set up scoring tile: Trading House + Priest (2 coins per priest sent)
+	// Set up scoring tile: Temple + Priest (2 coins per priest sent)
 	gs.ScoringTiles.Tiles = []ScoringTile{
 		{
-			Type:             ScoringTradingHousePriest,
+			Type:             ScoringTemplePriest,
 			CultTrack:        CultFire,
 			CultThreshold:    0,
 			CultRewardType:   CultRewardCoin,

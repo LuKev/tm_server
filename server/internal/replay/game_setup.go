@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/factions"
@@ -163,9 +164,66 @@ func (v *GameValidator) extractSetupInfo() (*GameSetupInfo, error) {
 }
 
 func (v *GameValidator) setupScoringTiles(info *GameSetupInfo) error {
-	// TODO: Parse and set scoring tiles
-	// For now, just use defaults
+	v.GameState.ScoringTiles = game.NewScoringTileState()
+	
+	// Parse scoring tile information from log comments
+	// Format: "Round 2 scoring: SCORE9, TE >> 4"
+	for round := 1; round <= 6; round++ {
+		scoreStr, ok := info.ScoringTiles[round]
+		if !ok {
+			continue
+		}
+		
+		// Parse the scoring tile code (e.g., "SCORE9" or "SCORE9,")
+		// The format is "SCORE9, TE >> 4" so we need to extract just the code
+		var scoreCode string
+		fmt.Sscanf(scoreStr, "%s", &scoreCode)
+		// Remove trailing comma if present
+		scoreCode = strings.TrimSuffix(scoreCode, ",")
+		
+		// Convert score code to scoring tile type
+		tile, err := parseScoringTile(scoreCode)
+		if err != nil {
+			return fmt.Errorf("failed to parse scoring tile %s for round %d: %v", scoreCode, round, err)
+		}
+		
+		v.GameState.ScoringTiles.Tiles = append(v.GameState.ScoringTiles.Tiles, tile)
+	}
+	
 	return nil
+}
+
+// parseScoringTile converts a scoring tile code to a ScoringTile
+func parseScoringTile(code string) (game.ScoringTile, error) {
+	allTiles := game.GetAllScoringTiles()
+	
+	// Map of scoring codes to tile types
+	// Note: Terra Mystica has 8 scoring tiles total, but the log may use SCORE9 for Temple+Priest
+	scoreMap := map[string]game.ScoringTileType{
+		"SCORE1": game.ScoringDwellingWater,     // 2 VP per dwelling | 4 steps Water = 1 priest
+		"SCORE2": game.ScoringTown,              // 5 VP per town | 4 steps Earth = 1 spade
+		"SCORE3": game.ScoringDwellingFire,      // 2 VP per dwelling | 4 steps Fire = 4 power
+		"SCORE4": game.ScoringStrongholdAir,     // 5 VP per SH/SA | 2 steps Air = 1 worker
+		"SCORE5": game.ScoringTemplePriest,      // 4 VP per temple | 2 coins per priest sent
+		"SCORE6": game.ScoringTradingHouseAir,   // 3 VP per trading house | 4 steps Air = 1 spade
+		"SCORE7": game.ScoringStrongholdFire,    // 5 VP per SH/SA | 2 steps Fire = 1 worker
+		"SCORE8": game.ScoringTradingHouseWater, // 3 VP per trading house | 4 steps Water = 1 spade
+		"SCORE9": game.ScoringTemplePriest,      // Same as SCORE5 (alternate notation in some logs)
+	}
+	
+	tileType, ok := scoreMap[code]
+	if !ok {
+		return game.ScoringTile{}, fmt.Errorf("unknown scoring tile code: %s", code)
+	}
+	
+	// Find the matching tile from all tiles
+	for _, tile := range allTiles {
+		if tile.Type == tileType {
+			return tile, nil
+		}
+	}
+	
+	return game.ScoringTile{}, fmt.Errorf("scoring tile not found for type %v", tileType)
 }
 
 func (v *GameValidator) setupBonusCards(info *GameSetupInfo) error {

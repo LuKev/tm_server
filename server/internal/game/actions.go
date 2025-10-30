@@ -442,8 +442,11 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			SelectedTiles: []FavorTileType{},
 		}
 		
-		// Award VP from scoring tile for Sanctuary
-		if a.NewBuildingType == models.BuildingSanctuary {
+		// Award VP from scoring tile
+		if a.NewBuildingType == models.BuildingTemple {
+			// SCORE5 (Temple+Priest): 4 VP per temple + 2 coins per priest at end of round
+			gs.AwardActionVP(a.PlayerID, ScoringActionTemple)
+		} else if a.NewBuildingType == models.BuildingSanctuary {
 			gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
 		}
 		break
@@ -928,20 +931,20 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	// Position 10 requires a key (checked in gs.AdvanceCultTrack)
 	gs.AdvanceCultTrack(a.PlayerID, a.Track, a.SpacesToClimb)
 
-	// Record priest sent for scoring tile #5 (Trading House + Priest)
-	if gs.ScoringTiles != nil {
-		gs.ScoringTiles.RecordPriestSent(a.PlayerID)
-	}
-
 	// Track priest placement on cult track action spaces
 	// In Terra Mystica, each track has 4 action spaces: one 3-step and three 2-step
-	// If placed on action space (2 or 3 steps), priest stays permanently
-	// If sacrificed (1 step), priest is removed and doesn't count toward limit
+	// If placed on action space (2 or 3 steps), priest stays permanently and counts for SCORE5
+	// If sacrificed (1 step), priest is removed and doesn't count toward limit or SCORE5
 	if a.SpacesToClimb >= 2 {
 		// Priest is placed on an action space (2-step or 3-step)
 		gs.CultTracks.PriestsOnActionSpaces[a.PlayerID][a.Track]++
+		
+		// Record priest sent for scoring tile #5 (Temple + Priest: 2 coins per priest on action space)
+		if gs.ScoringTiles != nil {
+			gs.ScoringTiles.RecordPriestSent(a.PlayerID)
+		}
 	}
-	// If SpacesToClimb == 1, priest is sacrificed (no tracking needed)
+	// If SpacesToClimb == 1, priest is sacrificed (no tracking needed, no SCORE5 reward)
 
 	return nil
 }
