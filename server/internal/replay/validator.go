@@ -70,13 +70,19 @@ func (v *GameValidator) ValidateNextEntry() error {
 			// Only start a new round if this is actually a new round
 			// (Log may have duplicate "Round X income" comments)
 			if roundNum > v.GameState.Round {
+				// Execute cleanup phase BEFORE starting new round
+				// This awards cult rewards and adds coins to leftover bonus cards
+				// Skip for Round 1 (no cleanup needed before first round)
+				if v.GameState.Round > 0 {
+					v.GameState.ExecuteCleanupPhase()
+				}
+				
 				// Start new round (this resets HasPassed, power actions, etc.)
 				v.GameState.StartNewRound()
 				// Reset income flag for new round
 				v.IncomeApplied = false
-				// Note: We do NOT return bonus cards here. Bonus cards are selected when passing
-				// and provide income for the NEXT round. They are only returned to the pool when
-				// the player passes again and selects a new bonus card (handled in TakeBonusCard).
+				// Note: Bonus cards are selected when passing and players keep them across rounds.
+				// Cards are only returned when players pass and select a new card (handled in TakeBonusCard).
 			}
 		}
 		return nil
