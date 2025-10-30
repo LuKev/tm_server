@@ -63,13 +63,21 @@ func (v *GameValidator) ValidateNextEntry() error {
 		// Check if this is a "Round X income" comment
 		if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
 		   strings.Contains(entry.CommentText, "income") {
-			// Start new round (this resets HasPassed, power actions, etc.)
-			v.GameState.StartNewRound()
-			// Reset income flag for new round
-			v.IncomeApplied = false
-			// Note: We do NOT return bonus cards here. Bonus cards are selected when passing
-			// and provide income for the NEXT round. They are only returned to the pool when
-			// the player passes again and selects a new bonus card (handled in TakeBonusCard).
+			// Parse the round number to avoid duplicate increments
+			var roundNum int
+			fmt.Sscanf(entry.CommentText, "Round %d", &roundNum)
+			
+			// Only start a new round if this is actually a new round
+			// (Log may have duplicate "Round X income" comments)
+			if roundNum > v.GameState.Round {
+				// Start new round (this resets HasPassed, power actions, etc.)
+				v.GameState.StartNewRound()
+				// Reset income flag for new round
+				v.IncomeApplied = false
+				// Note: We do NOT return bonus cards here. Bonus cards are selected when passing
+				// and provide income for the NEXT round. They are only returned to the pool when
+				// the player passes again and selects a new bonus card (handled in TakeBonusCard).
+			}
 		}
 		return nil
 	}
