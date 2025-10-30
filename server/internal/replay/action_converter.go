@@ -250,14 +250,9 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 				player.HasStrongholdAbility = true
 			}
 
-			// Set pending favor tile selection (if Temple or Sanctuary)
-			if buildingType == models.BuildingTemple || buildingType == models.BuildingSanctuary {
-				tileCount := game.GetFavorTileCount(player.Faction.GetType())
-				gs.PendingFavorTileSelection = &game.PendingFavorTileSelection{
-					PlayerID: playerID,
-					Count:    tileCount,
-				}
-			}
+			// Note: Don't set pending favor tile selection when skipValidation is true
+			// The validator has already synced the final state, so we don't need to track
+			// pending actions. The favor tile effects are already included in the synced state.
 		} else {
 			// Normal execution
 			if err := upgradeAction.Validate(gs); err != nil {
@@ -269,25 +264,31 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 		}
 
 		// Now create and execute favor tile selection
-		favorTileType, err := ParseFavorTile(favorTileStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
-		}
+		// BUT: if skipValidation is true, the validator already synced the final state
+		// including cult positions, so we should NOT execute the favor tile action
+		// (it would double-apply the cult advancement)
+		if !skipValidation {
+			favorTileType, err := ParseFavorTile(favorTileStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
+			}
 
-		favorAction := &game.SelectFavorTileAction{
-			BaseAction: game.BaseAction{
-				Type:     game.ActionSelectFavorTile,
-				PlayerID: playerID,
-			},
-			TileType: favorTileType,
-		}
+			favorAction := &game.SelectFavorTileAction{
+				BaseAction: game.BaseAction{
+					Type:     game.ActionSelectFavorTile,
+					PlayerID: playerID,
+				},
+				TileType: favorTileType,
+			}
 
-		if err := favorAction.Validate(gs); err != nil {
-			return nil, fmt.Errorf("favor tile validation failed: %v", err)
+			if err := favorAction.Validate(gs); err != nil {
+				return nil, fmt.Errorf("favor tile validation failed: %v", err)
+			}
+			if err := favorAction.Execute(gs); err != nil {
+				return nil, fmt.Errorf("favor tile execution failed: %v", err)
+			}
 		}
-		if err := favorAction.Execute(gs); err != nil {
-			return nil, fmt.Errorf("favor tile execution failed: %v", err)
-		}
+		// Note: If skipValidation, favor tile effects are already in synced state
 
 		// Both actions executed, return nil to skip normal execution
 		return nil, nil
