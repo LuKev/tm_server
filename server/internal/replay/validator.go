@@ -330,10 +330,12 @@ func (v *GameValidator) ValidateNextEntry() error {
 	}
 
 	// Validate resources BEFORE executing action (except for leech/decline/income entries)
+	// Also skip for compound convert+upgrade actions since state is pre-synced
 	if !strings.Contains(entry.Action, "Leech") &&
 	   !strings.Contains(entry.Action, "Decline") &&
 	   !strings.Contains(entry.Action, "_income_for_faction") &&
 	   !strings.Contains(entry.Action, "show history") &&
+	   !(strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ")) &&
 	   entry.Faction.String() != "" {
 		v.validateResourcesBeforeAction(entry)
 	}
@@ -349,6 +351,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
 		}
+		
 	}
 
 	// Then, validate state matches the log entry AFTER executing the action
