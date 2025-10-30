@@ -475,6 +475,13 @@ func (gs *GameState) NextTurn() bool {
 // StartNewRound prepares the game for a new round
 // This transitions from PhaseCleanup (or PhaseSetup for round 1) to PhaseIncome
 func (gs *GameState) StartNewRound() {
+	// If transitioning from setup to Round 1, add coins to leftover bonus cards
+	// During setup, players pass and take bonus cards. The cards they don't take
+	// should accumulate 1 coin before Round 1 begins.
+	if gs.Phase == PhaseSetup && gs.BonusCards != nil {
+		gs.BonusCards.AddCoinsToLeftoverCards()
+	}
+	
 	gs.Round++
 	gs.CurrentPlayerIndex = 0
 	
