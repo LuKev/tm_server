@@ -45,11 +45,11 @@ func (f *Alchemists) HasSpecialAbility(ability SpecialAbility) bool {
 }
 
 // BuildStronghold marks that the stronghold has been built
-// Returns the one-time power bonus (12 power to bowl 1)
+// Returns the one-time power bonus (12 power added to Bowl1)
 // NOTE: Power system implementation in Phase 5.1
 func (f *Alchemists) BuildStronghold() int {
 	f.hasStronghold = true
-	return 12 // Power added to bowl 1 (Phase 5.1: Power System)
+	return 12 // 12 power added to Bowl1 (Phase 5.1: Power System)
 }
 
 // GetPowerPerSpade returns how much power to gain per spade

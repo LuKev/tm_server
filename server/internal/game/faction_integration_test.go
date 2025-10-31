@@ -2633,8 +2633,8 @@ func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
 	})
 	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainSwamp)
 
-	// Record initial power
-	initialPower := player.Resources.Power.Bowl1
+	// Record initial Bowl1 power
+	initialBowl1 := player.Resources.Power.Bowl1
 
 	// Upgrade to stronghold via UpgradeBuilding action
 	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
@@ -2643,10 +2643,10 @@ func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
 		t.Fatalf("failed to upgrade to stronghold: %v", err)
 	}
 
-	// Verify +12 power was granted automatically
-	powerGained := player.Resources.Power.Bowl1 - initialPower
+	// Verify +12 power was added to Bowl1
+	powerGained := player.Resources.Power.Bowl1 - initialBowl1
 	if powerGained != 12 {
-		t.Errorf("expected +12 power from stronghold, got +%d", powerGained)
+		t.Errorf("expected +12 power in Bowl1 from stronghold, got +%d", powerGained)
 	}
 
 	// Verify stronghold ability is granted
@@ -2658,38 +2658,6 @@ func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
 	mapHex := gs.Map.GetHex(tradingHouseHex)
 	if mapHex.Building.Type != models.BuildingStronghold {
 		t.Errorf("expected stronghold, got %v", mapHex.Building.Type)
-	}
-}
-
-func TestAlchemists_StrongholdBonusOnlyOnce(t *testing.T) {
-	gs := NewGameState()
-	faction := factions.NewAlchemists()
-	gs.AddPlayer("player1", faction)
-	player := gs.GetPlayer("player1")
-
-	player.Resources.Coins = 200
-	player.Resources.Workers = 200
-
-	// Place a trading house
-	tradingHouseHex := NewHex(0, 1)
-	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
-		Type:       models.BuildingTradingHouse,
-		Faction:    faction.GetType(),
-		PlayerID:   "player1",
-		PowerValue: 2,
-	})
-	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainSwamp)
-
-	// Upgrade to stronghold
-	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
-	err := action.Execute(gs)
-	if err != nil {
-		t.Fatalf("failed to upgrade to stronghold: %v", err)
-	}
-
-	// Verify power was granted
-	if player.Resources.Power.Bowl1 < 12 {
-		t.Error("power should have been granted from stronghold")
 	}
 }
 

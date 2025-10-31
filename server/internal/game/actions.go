@@ -457,10 +457,11 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		// Call faction-specific BuildStronghold() methods to grant immediate bonuses
 		switch player.Faction.GetType() {
 		case models.FactionAlchemists:
-			// Alchemists get +12 power immediately when building stronghold
+			// Alchemists gain 12 power to Bowl1 immediately when building stronghold
 			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 				powerBonus := alchemists.BuildStronghold()
 				if powerBonus > 0 {
+					// Add power directly to Bowl1 (not cycling through bowls)
 					player.Resources.Power.Bowl1 += powerBonus
 				}
 			}
