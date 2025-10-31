@@ -312,6 +312,15 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		parseCompoundActionParts(actionStr, params)
 		return ActionTransformAndBuild, params, nil
 
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, ". action "):
+		// Compound action: convert 1PW to 1C. action ACTW. build H4
+		// The convert part is a state change (reflected in resource deltas)
+		// We only need to execute the action part
+		// NOTE: This must be checked BEFORE "convert + build" to avoid misclassification
+		parseCompoundActionParts(actionStr, params)
+		// Return as power action
+		return ActionPowerAction, params, nil
+
 	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "dig ") && strings.Contains(actionStr, "build"):
 		// convert 1P to 1W. dig 2. build D5
 		parseCompoundActionParts(actionStr, params)
@@ -432,14 +441,6 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		}
 		// If we couldn't parse the upgrade, treat as convert only
 		return ActionConvert, params, nil
-
-	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, ". action "):
-		// Compound action: convert 1PW to 1C. action ACTW. build H4
-		// The convert part is a state change (reflected in resource deltas)
-		// We only need to execute the action part
-		parseCompoundActionParts(actionStr, params)
-		// Return as power action
-		return ActionPowerAction, params, nil
 
 	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "pass "):
 		// Compound action: convert 1PW to 1C. pass BON7
