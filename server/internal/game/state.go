@@ -586,6 +586,46 @@ func (gs *GameState) IsGameOver() bool {
 	return gs.Round > 6
 }
 
+// AdvanceShippingLevel increments the player's shipping level and awards VP
+// This helper ensures consistent VP awards across all shipping advancements:
+// - AdvanceShippingAction (paid upgrade)
+// - TownTile4Points (town tile bonus)
+// - Mermaids Stronghold (faction ability)
+// VP awarded: Level 1 = 2 VP, Level 2 = 3 VP, Level 3 = 4 VP, Level 4 = 5 VP, Level 5 = 6 VP
+func (gs *GameState) AdvanceShippingLevel(playerID string) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Check if already at max level
+	if player.ShippingLevel >= 5 {
+		return fmt.Errorf("shipping already at max level")
+	}
+
+	// For Mermaids: update both faction and player shipping level
+	if player.Faction.GetType() == models.FactionMermaids {
+		if mermaids, ok := player.Faction.(*factions.Mermaids); ok {
+			currentLevel := mermaids.GetShippingLevel()
+			newLevel := currentLevel + 1
+			if newLevel <= mermaids.GetMaxShippingLevel() {
+				mermaids.SetShippingLevel(newLevel)
+				player.ShippingLevel = newLevel
+			}
+		}
+	} else {
+		// Regular factions: just update player shipping level
+		player.ShippingLevel++
+	}
+
+	// Award VP based on new shipping level
+	// Shipping Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
+	vpBonus := player.ShippingLevel + 1
+	player.VictoryPoints += vpBonus
+
+	return nil
+}
+
 // AlchemistsConvertVPToCoins allows Alchemists to convert VP to Coins (1 VP -> 1 Coin)
 // This can be done at any time and does not count as an action
 func (gs *GameState) AlchemistsConvertVPToCoins(playerID string, vp int) error {

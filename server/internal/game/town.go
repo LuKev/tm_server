@@ -313,10 +313,8 @@ func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType TownTileTyp
 	case TownTile4Points:
 		player.VictoryPoints += 4
 		player.Keys += 1
-		// Advance shipping level by 1
-		if player.ShippingLevel < 5 { // Max shipping level is 5
-			player.ShippingLevel++
-		}
+		// Advance shipping level by 1 and award VP
+		gs.AdvanceShippingLevel(playerID)
 		
 	case TownTile8Points:
 		player.VictoryPoints += 8

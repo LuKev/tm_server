@@ -152,11 +152,10 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		}
 
 		// Check for VP
-		if strings.HasSuffix(part, "VP") {
-			vp, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "VP")))
-			entry.VP = vp
-			if pendingDelta != nil {
-				entry.VPDelta = *pendingDelta
+		if value, delta, ok := parseResourceField(part, "VP", pendingDelta); ok {
+			entry.VP = value
+			if ok {
+				entry.VPDelta = delta
 				pendingDelta = nil
 			}
 			idx++
@@ -165,48 +164,50 @@ func ParseLogLine(line string) (*LogEntry, error) {
 
 		// Check for Coins
 		if strings.HasSuffix(part, "C") && !strings.Contains(part, "ACT") {
-			coins, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "C")))
-			entry.Coins = coins
-			if pendingDelta != nil {
-				entry.CoinsDelta = *pendingDelta
-				pendingDelta = nil
+			if value, delta, ok := parseResourceField(part, "C", pendingDelta); ok {
+				entry.Coins = value
+				if ok {
+					entry.CoinsDelta = delta
+					pendingDelta = nil
+				}
+				idx++
+				continue
 			}
-			idx++
-			continue
 		}
 
 		// Check for Workers
 		if strings.HasSuffix(part, "W") && len(part) < 5 {
-			workers, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "W")))
-			entry.Workers = workers
-			if pendingDelta != nil {
-				entry.WorkersDelta = *pendingDelta
-				pendingDelta = nil
+			if value, delta, ok := parseResourceField(part, "W", pendingDelta); ok {
+				entry.Workers = value
+				if ok {
+					entry.WorkersDelta = delta
+					pendingDelta = nil
+				}
+				idx++
+				continue
 			}
-			idx++
-			continue
 		}
 
 		// Check for Priests
 		if strings.HasSuffix(part, "P") && len(part) < 5 && !strings.HasSuffix(part, "VP") && !strings.HasSuffix(part, "PW") {
-			priests, _ := strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, "P")))
-			entry.Priests = priests
-			if pendingDelta != nil {
-				entry.PriestsDelta = *pendingDelta
-				pendingDelta = nil
+			if value, delta, ok := parseResourceField(part, "P", pendingDelta); ok {
+				entry.Priests = value
+				if ok {
+					entry.PriestsDelta = delta
+					pendingDelta = nil
+				}
+				idx++
+				continue
 			}
-			idx++
-			continue
 		}
 
 		// Check for Power Bowls (e.g., "3/9/0 PW")
 		if strings.HasSuffix(part, "PW") {
 			pwStr := strings.TrimSpace(strings.TrimSuffix(part, "PW"))
-			pwParts := strings.Split(pwStr, "/")
-			if len(pwParts) == 3 {
-				entry.PowerBowls.Bowl1, _ = strconv.Atoi(pwParts[0])
-				entry.PowerBowls.Bowl2, _ = strconv.Atoi(pwParts[1])
-				entry.PowerBowls.Bowl3, _ = strconv.Atoi(pwParts[2])
+			if values, ok := parseSlashSeparatedInts(pwStr, 3); ok {
+				entry.PowerBowls.Bowl1 = values[0]
+				entry.PowerBowls.Bowl2 = values[1]
+				entry.PowerBowls.Bowl3 = values[2]
 			}
 			// Power delta comes before PW, but we don't store it separately
 			// Just reset pendingDelta if it exists
@@ -216,19 +217,18 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		}
 
 		// Check for Cult Tracks (e.g., "0/0/0/0" or "0/1/1/0")
-		if strings.Count(part, "/") == 3 && !strings.Contains(part, "PW") {
-			cultParts := strings.Split(part, "/")
-			if len(cultParts) == 4 {
-				entry.CultTracks.Fire, _ = strconv.Atoi(cultParts[0])
-				entry.CultTracks.Water, _ = strconv.Atoi(cultParts[1])
-				entry.CultTracks.Earth, _ = strconv.Atoi(cultParts[2])
-				entry.CultTracks.Air, _ = strconv.Atoi(cultParts[3])
+		if !strings.Contains(part, "PW") {
+			if values, ok := parseSlashSeparatedInts(part, 4); ok {
+				entry.CultTracks.Fire = values[0]
+				entry.CultTracks.Water = values[1]
+				entry.CultTracks.Earth = values[2]
+				entry.CultTracks.Air = values[3]
+				// Cult track deltas come before the cult track values, but we don't use them
+				// Just reset pendingDelta if it exists
+				pendingDelta = nil
+				idx++
+				continue
 			}
-			// Cult track deltas come before the cult track values, but we don't use them
-			// Just reset pendingDelta if it exists
-			pendingDelta = nil
-			idx++
-			continue
 		}
 
 		// Skip numeric-only fields and delta markers (like "2 2" or "+1")
@@ -309,50 +309,25 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		// transform F2 to gray. build D4
 		// dig 1. build G6
 		// burn 6. action ACT6. transform F2 to gray. build D4
-		parts := strings.Split(actionStr, ".")
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, "burn ") {
-				// Extract burn amount
-				fields := strings.Fields(part)
-				if len(fields) >= 2 {
-					params["burn"] = fields[1]
-				}
-			} else if strings.HasPrefix(part, "action ") {
-				// Extract power action type
-				fields := strings.Fields(part)
-				if len(fields) >= 2 {
-					params["action_type"] = fields[1]
-				}
-			} else if strings.HasPrefix(part, "transform ") {
-				fields := strings.Fields(part)
-				if len(fields) >= 4 && fields[2] == "to" {
-					params["transform_coord"] = fields[1]
-					params["transform_color"] = fields[3]
-				}
-			} else if strings.HasPrefix(part, "build ") {
-				coord := strings.TrimPrefix(part, "build ")
-				params["coord"] = strings.Fields(coord)[0]
-			} else if strings.HasPrefix(part, "dig ") {
-				spades := strings.TrimPrefix(part, "dig ")
-				params["spades"] = strings.Fields(spades)[0]
-			}
-		}
+		parseCompoundActionParts(actionStr, params)
 		return ActionTransformAndBuild, params, nil
+
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "dig ") && strings.Contains(actionStr, "build"):
+		// convert 1P to 1W. dig 2. build D5
+		parseCompoundActionParts(actionStr, params)
+		// Mark this as a compound action with convert
+		params["has_convert"] = "true"
+		return ActionTransformAndBuild, params, nil
+
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "build"):
+		// convert 1PW to 1C. build I8
+		// convert 1PW to 1C. build I8. wait
+		parseCompoundActionParts(actionStr, params)
+		return ActionBuild, params, nil
 
 	case strings.HasPrefix(actionStr, "dig ") && strings.Contains(actionStr, "build"):
 		// dig 1. build G6
-		parts := strings.Split(actionStr, ".")
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, "dig ") {
-				spades := strings.TrimPrefix(part, "dig ")
-				params["spades"] = strings.Fields(spades)[0]
-			} else if strings.HasPrefix(part, "build ") {
-				coord := strings.TrimPrefix(part, "build ")
-				params["coord"] = strings.Fields(coord)[0]
-			}
-		}
+		parseCompoundActionParts(actionStr, params)
 		return ActionTransformAndBuild, params, nil
 
 	case strings.HasPrefix(actionStr, "advance ship"):
@@ -371,39 +346,19 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		// action ACT6, action BON1, action ACTW
 		// action ACT5. build F3
 		// action BON2. +WATER (bonus card cult advance)
+		parseCompoundActionParts(actionStr, params)
+
+		// Check for additional special parts (cult track, town tile)
 		parts := strings.Split(actionStr, ".")
-
-		// First part is always "action ACTX"
-		firstPart := strings.TrimSpace(parts[0])
-		actionFields := strings.Fields(firstPart)
-		if len(actionFields) >= 2 {
-			params["action_type"] = actionFields[1]
-		}
-
-		// Check if there are additional parts (e.g., "build F3", "+WATER")
-		if len(parts) > 1 {
-			for _, part := range parts[1:] {
-				part = strings.TrimSpace(part)
-				if strings.HasPrefix(part, "build ") {
-					coord := strings.TrimPrefix(part, "build ")
-					params["coord"] = strings.Fields(coord)[0]
-				} else if strings.HasPrefix(part, "transform ") {
-					fields := strings.Fields(part)
-					if len(fields) >= 4 && fields[2] == "to" {
-						params["transform_coord"] = fields[1]
-						params["transform_color"] = fields[3]
-					}
-				} else if strings.HasPrefix(part, "+") {
-					// Cult track advancement (e.g., "+WATER", "+FIRE")
-					// Extract cult track name
-					cultTrack := strings.TrimPrefix(part, "+")
-					cultTrack = strings.TrimSpace(cultTrack)
-					params["cult_track"] = cultTrack
-				} else if strings.HasPrefix(part, "+TW") {
-					// Town tile (e.g., "+TW5")
-					townTile := strings.TrimSpace(part)
-					params["town_tile"] = townTile
-				}
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "+") && !strings.HasPrefix(part, "+TW") && !strings.HasPrefix(part, "+FAV") {
+				// Cult track advancement (e.g., "+WATER", "+FIRE")
+				cultTrack := strings.TrimPrefix(part, "+")
+				params["cult_track"] = strings.TrimSpace(cultTrack)
+			} else if strings.HasPrefix(part, "+TW") {
+				// Town tile (e.g., "+TW5")
+				params["town_tile"] = strings.TrimSpace(part)
 			}
 		}
 
@@ -413,34 +368,7 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		// Can be part of compound action: "burn 3. action ACT2" or "burn 6. action ACT6. transform..."
 		// or "burn 4. action ACT5. build B3"
 		// Parse all parts of the compound action
-		parts := strings.Split(actionStr, ".")
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, "burn ") {
-				// Extract burn amount
-				fields := strings.Fields(part)
-				if len(fields) >= 2 {
-					params["burn"] = fields[1]
-				}
-			} else if strings.HasPrefix(part, "action ") {
-				// Extract power action type (e.g., "action ACT2")
-				fields := strings.Fields(part)
-				if len(fields) >= 2 {
-					params["action_type"] = fields[1]
-				}
-			} else if strings.HasPrefix(part, "build ") {
-				// Extract build coordinate (e.g., "build B3")
-				coord := strings.TrimPrefix(part, "build ")
-				params["coord"] = strings.Fields(coord)[0]
-			} else if strings.HasPrefix(part, "transform ") {
-				// Extract transform details (e.g., "transform F2 to gray")
-				fields := strings.Fields(part)
-				if len(fields) >= 4 && fields[2] == "to" {
-					params["transform_coord"] = fields[1]
-					params["transform_color"] = fields[3]
-				}
-			}
-		}
+		parseCompoundActionParts(actionStr, params)
 
 		// If there's a power action specified, this is a power action with burn
 		if _, hasActionType := params["action_type"]; hasActionType {
@@ -509,21 +437,7 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		// Compound action: convert 1PW to 1C. action ACTW. build H4
 		// The convert part is a state change (reflected in resource deltas)
 		// We only need to execute the action part
-		parts := strings.Split(actionStr, ".")
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, "action ") {
-				// Extract action type
-				actionFields := strings.Fields(part)
-				if len(actionFields) >= 2 {
-					params["action_type"] = actionFields[1]
-				}
-				// Continue parsing for build coordinate
-			} else if strings.HasPrefix(part, "build ") {
-				coord := strings.TrimPrefix(part, "build ")
-				params["coord"] = strings.Fields(coord)[0]
-			}
-		}
+		parseCompoundActionParts(actionStr, params)
 		// Return as power action
 		return ActionPowerAction, params, nil
 
@@ -574,6 +488,66 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 	}
 
 	return ActionUnknown, params, fmt.Errorf("unrecognized action: %s", actionStr)
+}
+
+// parseCompoundActionParts extracts common parts from compound actions (burn, action, build, transform, dig)
+func parseCompoundActionParts(actionStr string, params map[string]string) {
+	parts := strings.Split(actionStr, ".")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if strings.HasPrefix(part, "burn ") {
+			fields := strings.Fields(part)
+			if len(fields) >= 2 {
+				params["burn"] = fields[1]
+			}
+		} else if strings.HasPrefix(part, "action ") {
+			fields := strings.Fields(part)
+			if len(fields) >= 2 {
+				params["action_type"] = fields[1]
+			}
+		} else if strings.HasPrefix(part, "build ") {
+			coord := strings.TrimPrefix(part, "build ")
+			params["coord"] = strings.Fields(coord)[0]
+		} else if strings.HasPrefix(part, "transform ") {
+			fields := strings.Fields(part)
+			if len(fields) >= 4 && fields[2] == "to" {
+				params["transform_coord"] = fields[1]
+				params["transform_color"] = fields[3]
+			}
+		} else if strings.HasPrefix(part, "dig ") {
+			spades := strings.TrimPrefix(part, "dig ")
+			params["spades"] = strings.Fields(spades)[0]
+		}
+	}
+}
+
+// parseResourceField parses a resource field with suffix and optional delta
+func parseResourceField(part string, suffix string, pendingDelta *int) (value int, delta int, hasDelta bool) {
+	if strings.HasSuffix(part, suffix) {
+		value, _ = strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, suffix)))
+		if pendingDelta != nil {
+			delta = *pendingDelta
+			hasDelta = true
+		}
+		return value, delta, true
+	}
+	return 0, 0, false
+}
+
+// parseSlashSeparatedInts parses a slash-separated string into integers
+func parseSlashSeparatedInts(part string, expectedCount int) ([]int, bool) {
+	if strings.Count(part, "/") != expectedCount-1 {
+		return nil, false
+	}
+	parts := strings.Split(part, "/")
+	if len(parts) != expectedCount {
+		return nil, false
+	}
+	result := make([]int, expectedCount)
+	for i, p := range parts {
+		result[i], _ = strconv.Atoi(p)
+	}
+	return result, true
 }
 
 // ActionType represents different types of actions

@@ -197,18 +197,23 @@ func (v *GameValidator) setupScoringTiles(info *GameSetupInfo) error {
 func parseScoringTile(code string) (game.ScoringTile, error) {
 	allTiles := game.GetAllScoringTiles()
 	
-	// Map of scoring codes to tile types
-	// Note: Terra Mystica has 8 scoring tiles total, but the log may use SCORE9 for Temple+Priest
+	// Map of scoring codes to tile types (verified from actual game log)
+	// Round 1 (SCORE2): TOWN >> 5 | 4 EARTH -> 1 SPADE
+	// Round 2 (SCORE9): TE >> 4 | 1 CULT_P -> 2 C
+	// Round 3 (SCORE3): D >> 2 | 4 WATER -> 1 P
+	// Round 4 (SCORE5): D >> 2 | 4 FIRE -> 4 PW
+	// Round 5 (SCORE7): SA/SH >> 5 | 2 AIR -> 1 W
+	// Round 6 (SCORE4): SA/SH >> 5 | 2 FIRE -> 1 W
 	scoreMap := map[string]game.ScoringTileType{
-		"SCORE1": game.ScoringDwellingWater,     // 2 VP per dwelling | 4 steps Water = 1 priest
+		"SCORE1": game.ScoringSpades,            // 2 VP per spade | 1 step Earth = 1 coin
 		"SCORE2": game.ScoringTown,              // 5 VP per town | 4 steps Earth = 1 spade
-		"SCORE3": game.ScoringDwellingFire,      // 2 VP per dwelling | 4 steps Fire = 4 power
-		"SCORE4": game.ScoringStrongholdAir,     // 5 VP per SH/SA | 2 steps Air = 1 worker
-		"SCORE5": game.ScoringTemplePriest,      // 4 VP per temple | 2 coins per priest sent
+		"SCORE3": game.ScoringDwellingWater,     // 2 VP per dwelling | 4 steps Water = 1 priest
+		"SCORE4": game.ScoringStrongholdFire,    // 5 VP per SH/SA | 2 steps Fire = 1 worker
+		"SCORE5": game.ScoringDwellingFire,      // 2 VP per dwelling | 4 steps Fire = 4 power
 		"SCORE6": game.ScoringTradingHouseAir,   // 3 VP per trading house | 4 steps Air = 1 spade
-		"SCORE7": game.ScoringStrongholdFire,    // 5 VP per SH/SA | 2 steps Fire = 1 worker
+		"SCORE7": game.ScoringStrongholdAir,     // 5 VP per SH/SA | 2 steps Air = 1 worker
 		"SCORE8": game.ScoringTradingHouseWater, // 3 VP per trading house | 4 steps Water = 1 spade
-		"SCORE9": game.ScoringTemplePriest,      // Same as SCORE5 (alternate notation in some logs)
+		"SCORE9": game.ScoringTemplePriest,      // 4 VP per temple | 2 coins per priest sent to cult
 	}
 	
 	tileType, ok := scoreMap[code]

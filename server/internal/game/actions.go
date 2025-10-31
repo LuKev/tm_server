@@ -491,18 +491,8 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			if mermaids, ok := player.Faction.(*factions.Mermaids); ok {
 				shouldGrantShipping := mermaids.BuildStronghold()
 				if shouldGrantShipping {
-					// Increase shipping level by 1
-					currentLevel := mermaids.GetShippingLevel()
-					newLevel := currentLevel + 1
-					if newLevel <= mermaids.GetMaxShippingLevel() {
-						mermaids.SetShippingLevel(newLevel)
-						player.ShippingLevel = newLevel
-						
-						// Award VP based on new shipping level
-						// Shipping Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
-						vpBonus := newLevel + 1
-						player.VictoryPoints += vpBonus
-					}
+					// Advance shipping and award VP using centralized helper
+					gs.AdvanceShippingLevel(a.PlayerID)
 				}
 			}
 		case models.FactionHalflings:
@@ -713,15 +703,8 @@ func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 			a.PlayerID, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
 	}
 
-	// Advance shipping
-	player.ShippingLevel++
-	
-	// Award VP based on new shipping level
-	// Shipping Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
-	vpBonus := player.ShippingLevel + 1
-	player.VictoryPoints += vpBonus
-
-	return nil
+	// Advance shipping and award VP
+	return gs.AdvanceShippingLevel(a.PlayerID)
 }
 
 // AdvanceDiggingAction represents advancing digging level
