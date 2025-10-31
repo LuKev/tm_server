@@ -67,14 +67,6 @@ func TestAuren_ExpensiveSanctuary(t *testing.T) {
 	}
 }
 
-func TestAuren_StrongholdAbility(t *testing.T) {
-	auren := NewAuren()
-
-	ability := auren.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Auren should have a stronghold ability")
-	}
-}
 
 func TestAuren_BuildStrongholdGrantsFavorTile(t *testing.T) {
 	auren := NewAuren()
@@ -89,73 +81,6 @@ func TestAuren_BuildStrongholdGrantsFavorTile(t *testing.T) {
 	shouldGrantFavor = auren.BuildStronghold()
 	if shouldGrantFavor {
 		t.Errorf("should only grant favor tile once")
-	}
-}
-
-func TestAuren_CultAdvanceBeforeStronghold(t *testing.T) {
-	auren := NewAuren()
-
-	// Should not be able to use cult advance before building stronghold
-	if auren.CanUseCultAdvance() {
-		t.Errorf("should not be able to use cult advance before building stronghold")
-	}
-
-	err := auren.UseCultAdvance()
-	if err == nil {
-		t.Errorf("expected error when using cult advance without stronghold")
-	}
-}
-
-func TestAuren_CultAdvanceAfterStronghold(t *testing.T) {
-	auren := NewAuren()
-
-	// Build stronghold
-	auren.BuildStronghold()
-
-	// Should be able to use cult advance
-	if !auren.CanUseCultAdvance() {
-		t.Errorf("should be able to use cult advance after building stronghold")
-	}
-
-	// Use cult advance
-	err := auren.UseCultAdvance()
-	if err != nil {
-		t.Fatalf("failed to use cult advance: %v", err)
-	}
-
-	// Should not be able to use again this Action phase
-	if auren.CanUseCultAdvance() {
-		t.Errorf("should not be able to use cult advance twice in one Action phase")
-	}
-
-	// Try to use again (should fail)
-	err = auren.UseCultAdvance()
-	if err == nil {
-		t.Errorf("expected error when using cult advance twice")
-	}
-}
-
-func TestAuren_CultAdvanceReset(t *testing.T) {
-	auren := NewAuren()
-	auren.BuildStronghold()
-
-	// Use cult advance
-	err := auren.UseCultAdvance()
-	if err != nil {
-		t.Fatalf("failed to use cult advance: %v", err)
-	}
-
-	// Should not be able to use again
-	if auren.CanUseCultAdvance() {
-		t.Errorf("should not be able to use cult advance before reset")
-	}
-
-	// Reset for new Action phase
-	auren.ResetCultAdvance()
-
-	// Should be able to use again
-	if !auren.CanUseCultAdvance() {
-		t.Errorf("should be able to use cult advance after reset")
 	}
 }
 

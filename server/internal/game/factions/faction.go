@@ -27,22 +27,18 @@ type Faction interface {
 	GetShippingCost(currentLevel int) Cost
 	GetDiggingCost(currentLevel int) Cost
 
+	// Income methods
+	GetBaseFactionIncome() Income
+	GetDwellingIncome(dwellingCount int) Income
+	GetTradingHouseIncome(tradingHouseCount int) Income
+	GetTempleIncome(templeCount int) Income
+	GetSanctuaryIncome() Income // Only 1 sanctuary per faction, no count parameter
+	GetStrongholdIncome() Income
+
 	// Special abilities
 	HasSpecialAbility(ability SpecialAbility) bool
 	CanUseSpecialAction(action string, gameState interface{}) bool
 	ExecuteSpecialAction(action string, gameState interface{}) error
-
-	// Stronghold ability
-	GetStrongholdAbility() string
-	ExecuteStrongholdAbility(gameState interface{}) error
-
-	// Income modifiers
-	ModifyIncome(baseIncome Resources) Resources
-
-	// Action modifiers
-	CanBuildOnWater() bool // For Fakirs, Mermaids
-	CanFly() bool          // For Witches
-	GetBridgeCost() Cost   // For Engineers (reduced cost)
 }
 
 // BaseFaction provides default implementations for common faction behavior
@@ -77,6 +73,14 @@ type Cost struct {
 	Workers int
 	Priests int
 	Power   int // Power spent from bowl 3
+}
+
+// Income represents resource income per round
+type Income struct {
+	Coins   int
+	Workers int
+	Priests int
+	Power   int
 }
 
 // SpecialAbility represents unique faction abilities
@@ -235,34 +239,48 @@ func (f *BaseFaction) ExecuteSpecialAction(action string, gameState interface{})
 	return nil // Override in specific factions
 }
 
-func (f *BaseFaction) GetStrongholdAbility() string {
-	return "" // Override in specific factions
+// Income method implementations (defaults)
+
+func (f *BaseFaction) GetBaseFactionIncome() Income {
+	// Standard: 1 worker base income
+	return Income{Workers: 1}
 }
 
-func (f *BaseFaction) ExecuteStrongholdAbility(gameState interface{}) error {
-	return nil // Override in specific factions
-}
-
-func (f *BaseFaction) ModifyIncome(baseIncome Resources) Resources {
-	return baseIncome // Override in specific factions
-}
-
-func (f *BaseFaction) CanBuildOnWater() bool {
-	return false
-}
-
-func (f *BaseFaction) CanFly() bool {
-	return false
-}
-
-func (f *BaseFaction) GetBridgeCost() Cost {
-	// Standard bridge cost: 3 workers
-	return Cost{
-		Coins:   0,
-		Workers: 3,
-		Priests: 0,
-		Power:   0,
+func (f *BaseFaction) GetDwellingIncome(dwellingCount int) Income {
+	// Standard: 1 worker per dwelling, except 8th gives no income
+	if dwellingCount >= 8 {
+		return Income{Workers: 7}
 	}
+	return Income{Workers: dwellingCount}
+}
+
+func (f *BaseFaction) GetTradingHouseIncome(tradingHouseCount int) Income {
+	// Standard: 1st-2nd: 2c+1pw, 3rd-4th: 2c+2pw
+	income := Income{}
+	for i := 1; i <= tradingHouseCount && i <= 4; i++ {
+		income.Coins += 2
+		if i <= 2 {
+			income.Power += 1
+		} else {
+			income.Power += 2
+		}
+	}
+	return income
+}
+
+func (f *BaseFaction) GetTempleIncome(templeCount int) Income {
+	// Standard: 1 priest per temple
+	return Income{Priests: templeCount}
+}
+
+func (f *BaseFaction) GetSanctuaryIncome() Income {
+	// Standard: 1 priest per sanctuary
+	return Income{Priests: 1}
+}
+
+func (f *BaseFaction) GetStrongholdIncome() Income {
+	// Standard: 2 power, NO priest (only Fakirs stronghold gives priest)
+	return Income{Power: 2}
 }
 
 // Helper functions

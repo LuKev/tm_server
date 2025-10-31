@@ -69,11 +69,6 @@ func (f *Halflings) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilitySpadeEfficiency
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Halflings) GetStrongholdAbility() string {
-	return "Immediately and only once: Get 3 Spades to apply on Terrain spaces. May build a Dwelling on exactly one of these spaces by paying its costs"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Halflings) BuildStronghold() {
 	f.hasStronghold = true
@@ -105,11 +100,4 @@ func (f *Halflings) UseStrongholdSpades() int {
 // NOTE: Phase 6.2 (Action System) must apply this bonus whenever Halflings get spades
 func (f *Halflings) GetVPPerSpade() int {
 	return 1 // Halflings get +1 VP per spade
-}
-
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Halflings) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is the one-time 3 spades
-	// This is handled by UseStrongholdSpades()
-	return nil
 }

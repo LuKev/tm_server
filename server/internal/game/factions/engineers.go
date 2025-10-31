@@ -83,30 +83,45 @@ func (f *Engineers) GetStrongholdCost() Cost {
 	}
 }
 
-// GetBridgeCost returns the reduced bridge cost for Engineers
-// NOTE: Phase 6.2 (Action System) implements bridge building action
-func (f *Engineers) GetBridgeCost() Cost {
-	return Cost{
-		Coins:   0,
-		Workers: 2, // Cheaper than standard (3)
-		Priests: 0,
-		Power:   0,
-	}
-}
-
 // HasSpecialAbility returns true for bridge building
 func (f *Engineers) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityBridgeBuilding
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Engineers) GetStrongholdAbility() string {
-	return "Each round when passing: Get 3 VP for each Bridge connecting two of your Structures"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Engineers) BuildStronghold() {
 	f.hasStronghold = true
+}
+
+// Income methods (Engineers-specific)
+
+func (f *Engineers) GetBaseFactionIncome() Income {
+	// Engineers: 0 base income
+	return Income{}
+}
+
+func (f *Engineers) GetDwellingIncome(dwellingCount int) Income {
+	// Engineers: dwellings 1, 2, 4, 5, 7, 8 give income (skip 3rd and 6th)
+	workers := 0
+	for i := 1; i <= dwellingCount && i <= 8; i++ {
+		if i != 3 && i != 6 {
+			workers++
+		}
+	}
+	return Income{Workers: workers}
+}
+
+func (f *Engineers) GetTempleIncome(templeCount int) Income {
+	// Engineers: 1st and 3rd temples give 1 priest, 2nd temple gives 5 power
+	income := Income{}
+	for i := 1; i <= templeCount; i++ {
+		if i == 2 {
+			income.Power += 5 // 2nd temple: 5 power, no priest
+		} else {
+			income.Priests++ // 1st and 3rd temples: 1 priest, no power
+		}
+	}
+	return income
 }
 
 // HasStronghold returns whether the stronghold has been built
@@ -122,10 +137,4 @@ func (f *Engineers) GetVPPerBridgeOnPass() int {
 		return 3 // 3 VP per bridge connecting two structures
 	}
 	return 0
-}
-
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Engineers) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is passive (VP on passing)
-	return nil
 }

@@ -46,11 +46,6 @@ func (f *Alchemists) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityConversionEfficiency
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Alchemists) GetStrongholdAbility() string {
-	return "On building: Gain 12 Power (once). From now on: Gain 2 Power for each Spade throughout remainder of game"
-}
-
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time power bonus (12 power to bowl 1)
 // NOTE: Power system implementation in Phase 5.1
@@ -101,9 +96,28 @@ func (f *Alchemists) ConvertCoinsToVP(coins int) (vp int, err error) {
 	return coins / 2, nil
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Alchemists) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is passive (power per spade)
-	// The one-time power bonus is handled in BuildStronghold()
-	return nil
+// Income methods (Alchemists-specific)
+
+func (f *Alchemists) GetTradingHouseIncome(tradingHouseCount int) Income {
+	// Alchemists: 1st-2nd: 2c+1pw, 3rd: 3c+1pw, 4th: 4c+1pw
+	income := Income{}
+	for i := 1; i <= tradingHouseCount && i <= 4; i++ {
+		switch i {
+		case 1, 2:
+			income.Coins += 2
+			income.Power += 1
+		case 3:
+			income.Coins += 3
+			income.Power += 1
+		case 4:
+			income.Coins += 4
+			income.Power += 1
+		}
+	}
+	return income
+}
+
+func (f *Alchemists) GetStrongholdIncome() Income {
+	// Alchemists: 6 coins, NO priest
+	return Income{Coins: 6}
 }

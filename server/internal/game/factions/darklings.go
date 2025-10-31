@@ -59,11 +59,6 @@ func (f *Darklings) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityPriestBenefits
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Darklings) GetStrongholdAbility() string {
-	return "Ordination of Priests: Immediately and only once, trade up to 3 Workers for 1 Priest each"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Darklings) BuildStronghold() {
 	f.hasStronghold = true
@@ -133,9 +128,9 @@ func (f *Darklings) GetDiggingCost(currentLevel int) Cost {
 	}
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Darklings) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is the one-time priest ordination
-	// This is handled by UsePriestOrdination()
-	return nil
+// Income methods (Darklings-specific)
+
+func (f *Darklings) GetSanctuaryIncome() Income {
+	// Darklings: 2 priests per sanctuary
+	return Income{Priests: 2}
 }

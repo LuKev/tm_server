@@ -95,11 +95,6 @@ func (f *Fakirs) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityCarpetFlying
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Fakirs) GetStrongholdAbility() string {
-	return "After building: May skip 2 Terrain, or 2 River spaces, or one each when doing Carpet Flight"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Fakirs) BuildStronghold() {
 	f.hasStronghold = true
@@ -154,8 +149,9 @@ func (f *Fakirs) CanCarpetFlight() bool {
 	return true
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Fakirs) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is passive (increased carpet flight range)
-	return nil
+// Income methods (Fakirs-specific)
+
+func (f *Fakirs) GetStrongholdIncome() Income {
+	// Fakirs: ONLY stronghold that gives priest income (1 priest, no power)
+	return Income{Priests: 1}
 }

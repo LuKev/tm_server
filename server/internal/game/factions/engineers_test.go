@@ -115,28 +115,6 @@ func TestEngineers_CheaperStrongholdCost(t *testing.T) {
 	}
 }
 
-func TestEngineers_CheaperBridgeCost(t *testing.T) {
-	engineers := NewEngineers()
-
-	// Engineers bridge costs 2 workers (cheaper than standard 3 workers)
-	bridgeCost := engineers.GetBridgeCost()
-	if bridgeCost.Workers != 2 {
-		t.Errorf("expected 2 workers for bridge, got %d", bridgeCost.Workers)
-	}
-	if bridgeCost.Coins != 0 {
-		t.Errorf("expected 0 coins for bridge, got %d", bridgeCost.Coins)
-	}
-}
-
-func TestEngineers_StrongholdAbility(t *testing.T) {
-	engineers := NewEngineers()
-
-	ability := engineers.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Engineers should have a stronghold ability")
-	}
-}
-
 func TestEngineers_VPPerBridgeBeforeStronghold(t *testing.T) {
 	engineers := NewEngineers()
 

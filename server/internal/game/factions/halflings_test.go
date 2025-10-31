@@ -79,14 +79,6 @@ func TestHalflings_ExpensiveStronghold(t *testing.T) {
 	}
 }
 
-func TestHalflings_StrongholdAbility(t *testing.T) {
-	halflings := NewHalflings()
-
-	ability := halflings.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Halflings should have a stronghold ability")
-	}
-}
 
 func TestHalflings_StrongholdSpadesBeforeBuilding(t *testing.T) {
 	halflings := NewHalflings()

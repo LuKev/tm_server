@@ -54,14 +54,6 @@ func TestDarklings_ExpensiveSanctuary(t *testing.T) {
 	}
 }
 
-func TestDarklings_StrongholdAbility(t *testing.T) {
-	darklings := NewDarklings()
-
-	ability := darklings.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Darklings should have a stronghold ability")
-	}
-}
 
 func TestDarklings_PriestOrdinationBeforeStronghold(t *testing.T) {
 	darklings := NewDarklings()

@@ -58,11 +58,6 @@ func (f *Dwarves) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityTunnelDigging
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Dwarves) GetStrongholdAbility() string {
-	return "After building: Only pay 1 more Worker instead of 2 when Tunneling"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Dwarves) BuildStronghold() {
 	f.hasStronghold = true
@@ -95,8 +90,26 @@ func (f *Dwarves) CanTunnel() bool {
 	return true
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Dwarves) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is passive (reduced tunneling cost)
-	return nil
+// Income methods (Dwarves-specific)
+
+func (f *Dwarves) GetTradingHouseIncome(tradingHouseCount int) Income {
+	// Dwarves: 1st: 3c+1pw, 2nd: 2c+1pw, 3rd: 2c+2pw, 4th: 3c+2pw
+	income := Income{}
+	for i := 1; i <= tradingHouseCount && i <= 4; i++ {
+		switch i {
+		case 1:
+			income.Coins += 3
+			income.Power += 1
+		case 2:
+			income.Coins += 2
+			income.Power += 1
+		case 3:
+			income.Coins += 2
+			income.Power += 2
+		case 4:
+			income.Coins += 3
+			income.Power += 2
+		}
+	}
+	return income
 }

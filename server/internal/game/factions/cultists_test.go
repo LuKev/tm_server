@@ -67,14 +67,6 @@ func TestCultists_ExpensiveStronghold(t *testing.T) {
 	}
 }
 
-func TestCultists_StrongholdAbility(t *testing.T) {
-	cultists := NewCultists()
-
-	ability := cultists.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Cultists should have a stronghold ability")
-	}
-}
 
 func TestCultists_BuildStrongholdGrantsVP(t *testing.T) {
 	cultists := NewCultists()

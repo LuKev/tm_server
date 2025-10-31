@@ -68,11 +68,6 @@ func (f *Cultists) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityCultTrackBonus
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Cultists) GetStrongholdAbility() string {
-	return "Immediately and only once: Get 7 Victory points"
-}
-
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time VP bonus (7 VP)
 // NOTE: Phase 8 (Scoring System) tracks VP
@@ -100,11 +95,4 @@ func (f *Cultists) GetCultAdvanceFromPowerLeech() int {
 // NOTE: Phase 5.1 (Power System) implements this
 func (f *Cultists) GetPowerIfAllRefuse() int {
 	return 1 // Gain 1 power if all opponents refuse
-}
-
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Cultists) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is passive (one-time VP bonus)
-	// The VP bonus is handled in BuildStronghold()
-	return nil
 }

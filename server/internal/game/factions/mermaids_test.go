@@ -75,14 +75,6 @@ func TestMermaids_ExpensiveSanctuary(t *testing.T) {
 	}
 }
 
-func TestMermaids_StrongholdAbility(t *testing.T) {
-	mermaids := NewMermaids()
-
-	ability := mermaids.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Mermaids should have a stronghold ability")
-	}
-}
 
 func TestMermaids_BuildStrongholdGrantsFreeShipping(t *testing.T) {
 	mermaids := NewMermaids()

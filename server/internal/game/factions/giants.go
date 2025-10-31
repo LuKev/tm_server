@@ -1,8 +1,6 @@
 package factions
 
 import (
-	"fmt"
-
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -64,14 +62,9 @@ func (f *Giants) GetTerraformSpades(distance int) int {
 	return 2 // Always 2 spades, regardless of terrain distance
 }
 
-// HasSpecialAbility returns true for spade efficiency (fixed 2 spades)
+// HasSpecialAbility returns true for spade efficiency (2 VP per spade)
 func (f *Giants) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilitySpadeEfficiency
-}
-
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Giants) GetStrongholdAbility() string {
-	return "Special action (once per Action phase): Get 2 free Spades to transform a reachable space. May immediately build a Dwelling on that space by paying its costs"
 }
 
 // BuildStronghold marks that the stronghold has been built
@@ -79,34 +72,9 @@ func (f *Giants) BuildStronghold() {
 	f.hasStronghold = true
 }
 
-// CanUseFreeSpades checks if the free spades special action can be used
-func (f *Giants) CanUseFreeSpades() bool {
-	return f.hasStronghold && !f.freeSpadesUsedThisRound
-}
+// Income methods (Giants-specific)
 
-// UseFreeSpades marks the free spades special action as used
-// Returns the number of free spades granted (2)
-// NOTE: Phase 6.2 (Action System) implements the actual terraform and optional dwelling placement
-func (f *Giants) UseFreeSpades() (int, error) {
-	if !f.hasStronghold {
-		return 0, fmt.Errorf("must build stronghold before using free spades")
-	}
-	
-	if f.freeSpadesUsedThisRound {
-		return 0, fmt.Errorf("free spades already used this Action phase")
-	}
-	
-	f.freeSpadesUsedThisRound = true
-	return 2, nil // Grant 2 free spades
-}
-
-// ResetFreeSpades resets the free spades for a new Action phase
-func (f *Giants) ResetFreeSpades() {
-	f.freeSpadesUsedThisRound = false
-}
-
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Giants) ExecuteStrongholdAbility(gameState interface{}) error {
-	_, err := f.UseFreeSpades()
-	return err
+func (f *Giants) GetStrongholdIncome() Income {
+	// Giants: 4 power
+	return Income{Power: 4}
 }

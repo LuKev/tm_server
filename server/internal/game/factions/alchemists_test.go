@@ -41,14 +41,6 @@ func TestAlchemists_HasConversionAbility(t *testing.T) {
 	}
 }
 
-func TestAlchemists_StrongholdAbility(t *testing.T) {
-	alchemists := NewAlchemists()
-
-	ability := alchemists.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Alchemists should have a stronghold ability")
-	}
-}
 
 func TestAlchemists_BuildStrongholdGrantsPower(t *testing.T) {
 	alchemists := NewAlchemists()

@@ -1,8 +1,6 @@
 package factions
 
 import (
-	"fmt"
-
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -50,61 +48,28 @@ func (f *Nomads) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilitySandstorm
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Nomads) GetStrongholdAbility() string {
-	return "Special action (once per Action phase): Transform a Terrain space directly adjacent to one of your Structures into your Home terrain (Sandstorm). May immediately build a Dwelling on that space by paying its costs. (Not applicable past River/Bridge. Sandstorm is not a Spade.)"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Nomads) BuildStronghold() {
 	f.hasStronghold = true
 }
 
-// CanUseSandstorm checks if the sandstorm special action can be used
-func (f *Nomads) CanUseSandstorm() bool {
-	return f.hasStronghold && !f.sandstormUsedThisRound
-}
+// Income methods (Nomads-specific)
 
-// UseSandstorm marks the sandstorm special action as used
-// NOTE: Phase 6.2 (Action System) implements the actual sandstorm logic
-// NOTE: Sandstorm is NOT considered a Spade (no VP bonuses for spade-related abilities)
-func (f *Nomads) UseSandstorm() error {
-	if !f.hasStronghold {
-		return fmt.Errorf("must build stronghold before using sandstorm")
+func (f *Nomads) GetTradingHouseIncome(tradingHouseCount int) Income {
+	// Nomads: 1st-2nd: 2c+1pw, 3rd: 3c+1pw, 4th: 4c+1pw
+	income := Income{}
+	for i := 1; i <= tradingHouseCount && i <= 4; i++ {
+		switch i {
+		case 1, 2:
+			income.Coins += 2
+			income.Power += 1
+		case 3:
+			income.Coins += 3
+			income.Power += 1
+		case 4:
+			income.Coins += 4
+			income.Power += 1
+		}
 	}
-	
-	if f.sandstormUsedThisRound {
-		return fmt.Errorf("sandstorm already used this Action phase")
-	}
-	
-	f.sandstormUsedThisRound = true
-	return nil
-}
-
-// ResetSandstorm resets the sandstorm for a new Action phase
-func (f *Nomads) ResetSandstorm() {
-	f.sandstormUsedThisRound = false
-}
-
-// StartsWithThreeDwellings returns true - Nomads start with 3 dwellings
-// NOTE: Game setup (Phase 1) uses this
-func (f *Nomads) StartsWithThreeDwellings() bool {
-	return true
-}
-
-// PlacesThirdDwellingAfterSecondRound returns true - Nomads place third dwelling after all players place their second
-// NOTE: Game setup (Phase 1) uses this
-func (f *Nomads) PlacesThirdDwellingAfterSecondRound() bool {
-	return true
-}
-
-// IsSandstormASpade returns false - Sandstorm is NOT considered a Spade
-// This means no VP bonuses from spade-related abilities (e.g., Halflings, Alchemists)
-func (f *Nomads) IsSandstormASpade() bool {
-	return false
-}
-
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Nomads) ExecuteStrongholdAbility(gameState interface{}) error {
-	return f.UseSandstorm()
+	return income
 }

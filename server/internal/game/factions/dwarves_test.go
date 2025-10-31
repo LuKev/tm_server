@@ -57,14 +57,6 @@ func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 	}
 }
 
-func TestDwarves_StrongholdAbility(t *testing.T) {
-	dwarves := NewDwarves()
-
-	ability := dwarves.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Dwarves should have a stronghold ability")
-	}
-}
 
 func TestDwarves_TunnelingCostBeforeStronghold(t *testing.T) {
 	dwarves := NewDwarves()

@@ -1,8 +1,6 @@
 package factions
 
 import (
-	"fmt"
-
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -70,39 +68,9 @@ func (f *ChaosMagicians) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityFavorTransform
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *ChaosMagicians) GetStrongholdAbility() string {
-	return "Special action (once per Action phase): Take a double-turn (any 2 Actions one after another, passing counts as an Action)"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *ChaosMagicians) BuildStronghold() {
 	f.hasStronghold = true
-}
-
-// CanUseDoubleTurn checks if the double-turn special action can be used
-func (f *ChaosMagicians) CanUseDoubleTurn() bool {
-	return f.hasStronghold && !f.doubleTurnUsedThisRound
-}
-
-// UseDoubleTurn marks the double-turn special action as used
-// NOTE: Phase 6.2 (Action System) implements the actual double-turn logic
-func (f *ChaosMagicians) UseDoubleTurn() error {
-	if !f.hasStronghold {
-		return fmt.Errorf("must build stronghold before using double-turn")
-	}
-	
-	if f.doubleTurnUsedThisRound {
-		return fmt.Errorf("double-turn already used this Action phase")
-	}
-	
-	f.doubleTurnUsedThisRound = true
-	return nil
-}
-
-// ResetDoubleTurn resets the double-turn for a new Action phase
-func (f *ChaosMagicians) ResetDoubleTurn() {
-	f.doubleTurnUsedThisRound = false
 }
 
 // GetFavorTilesForTemple returns how many favor tiles to get when building Temple
@@ -129,7 +97,9 @@ func (f *ChaosMagicians) PlacesDwellingLast() bool {
 	return true
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *ChaosMagicians) ExecuteStrongholdAbility(gameState interface{}) error {
-	return f.UseDoubleTurn()
+// Income methods (Chaos Magicians-specific)
+
+func (f *ChaosMagicians) GetStrongholdIncome() Income {
+	// Chaos Magicians: 2 workers, NO priest
+	return Income{Workers: 2}
 }

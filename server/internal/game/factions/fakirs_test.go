@@ -105,14 +105,6 @@ func TestFakirs_MaxDiggingLevel(t *testing.T) {
 	}
 }
 
-func TestFakirs_StrongholdAbility(t *testing.T) {
-	fakirs := NewFakirs()
-
-	ability := fakirs.GetStrongholdAbility()
-	if ability == "" {
-		t.Errorf("Fakirs should have a stronghold ability")
-	}
-}
 
 func TestFakirs_CarpetFlightCost(t *testing.T) {
 	fakirs := NewFakirs()

@@ -54,18 +54,9 @@ func (f *Mermaids) GetSanctuaryCost() Cost {
 	}
 }
 
-// HasSpecialAbility returns true for Mermaids' river-skipping ability
-// Note: This is NOT a town founding bonus like Witches/Swarmlings
-// It allows river hexes to count as connections when forming towns
+// HasSpecialAbility returns true for water building
 func (f *Mermaids) HasSpecialAbility(ability SpecialAbility) bool {
-	// Mermaids don't have a predefined special ability constant
-	// Their ability (skip river for town connectivity) is checked via CanSkipRiverForTown()
-	return false
-}
-
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Mermaids) GetStrongholdAbility() string {
-	return "Immediately and only once: Move forward 1 space on Shipping track (no cost)"
+	return ability == AbilityWaterBuilding
 }
 
 // BuildStronghold marks that the stronghold has been built
@@ -104,9 +95,9 @@ func (f *Mermaids) CanSkipRiverForTown() bool {
 	return true // Mermaids can always use this ability when founding a town
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Mermaids) ExecuteStrongholdAbility(gameState interface{}) error {
-	// Stronghold ability is the one-time free shipping upgrade
-	// This is handled by BuildStronghold()
-	return nil
+// Income methods (Mermaids-specific)
+
+func (f *Mermaids) GetStrongholdIncome() Income {
+	// Mermaids: 4 power, NO priest
+	return Income{Power: 4}
 }

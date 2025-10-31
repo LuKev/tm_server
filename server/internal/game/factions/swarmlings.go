@@ -1,8 +1,6 @@
 package factions
 
 import (
-	"fmt"
-
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -98,39 +96,9 @@ func (f *Swarmlings) HasSpecialAbility(ability SpecialAbility) bool {
 	return ability == AbilityCheapDwellings
 }
 
-// GetStrongholdAbility returns the description of the stronghold ability
-func (f *Swarmlings) GetStrongholdAbility() string {
-	return "Special action (once per Action phase): Upgrade Dwelling to Trading House for free (no coins, no workers)"
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Swarmlings) BuildStronghold() {
 	f.hasStronghold = true
-}
-
-// CanUseTradingHouseUpgrade checks if the trading house upgrade special action can be used
-func (f *Swarmlings) CanUseTradingHouseUpgrade() bool {
-	return f.hasStronghold && !f.tradingHouseUpgradeUsedThisRound
-}
-
-// UseTradingHouseUpgrade marks the trading house upgrade special action as used
-// NOTE: Phase 6.2 (Action System) implements the actual upgrade logic
-func (f *Swarmlings) UseTradingHouseUpgrade() error {
-	if !f.hasStronghold {
-		return fmt.Errorf("must build stronghold before using trading house upgrade")
-	}
-	
-	if f.tradingHouseUpgradeUsedThisRound {
-		return fmt.Errorf("trading house upgrade already used this Action phase")
-	}
-	
-	f.tradingHouseUpgradeUsedThisRound = true
-	return nil
-}
-
-// ResetTradingHouseUpgrade resets the trading house upgrade for a new Action phase
-func (f *Swarmlings) ResetTradingHouseUpgrade() {
-	f.tradingHouseUpgradeUsedThisRound = false
 }
 
 // GetTownFoundingWorkerBonus returns the worker bonus for founding a town
@@ -139,7 +107,34 @@ func (f *Swarmlings) GetTownFoundingWorkerBonus() int {
 	return 3 // Swarmlings get +3 workers when founding a town
 }
 
-// ExecuteStrongholdAbility implements the Faction interface
-func (f *Swarmlings) ExecuteStrongholdAbility(gameState interface{}) error {
-	return f.UseTradingHouseUpgrade()
+// Income methods (Swarmlings-specific)
+
+func (f *Swarmlings) GetBaseFactionIncome() Income {
+	// Swarmlings: 2 workers base income
+	return Income{Workers: 2}
+}
+
+func (f *Swarmlings) GetTradingHouseIncome(tradingHouseCount int) Income {
+	// Swarmlings: 1st-3rd: 2c+2pw, 4th: 3c+2pw
+	income := Income{}
+	for i := 1; i <= tradingHouseCount && i <= 4; i++ {
+		if i <= 3 {
+			income.Coins += 2
+			income.Power += 2
+		} else {
+			income.Coins += 3
+			income.Power += 2
+		}
+	}
+	return income
+}
+
+func (f *Swarmlings) GetSanctuaryIncome() Income {
+	// Swarmlings: 2 priests per sanctuary
+	return Income{Priests: 2}
+}
+
+func (f *Swarmlings) GetStrongholdIncome() Income {
+	// Swarmlings: 4 power, NO priest
+	return Income{Power: 4}
 }
