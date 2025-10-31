@@ -79,16 +79,10 @@ func TestMermaids_ExpensiveSanctuary(t *testing.T) {
 func TestMermaids_BuildStrongholdGrantsFreeShipping(t *testing.T) {
 	mermaids := NewMermaids()
 
-	// First time building stronghold should grant free shipping upgrade
+	// Building stronghold should grant free shipping upgrade
 	shouldGrantShipping := mermaids.BuildStronghold()
 	if !shouldGrantShipping {
 		t.Errorf("building stronghold should grant free shipping upgrade")
-	}
-
-	// Building again (hypothetically) should not grant another upgrade
-	shouldGrantShipping = mermaids.BuildStronghold()
-	if shouldGrantShipping {
-		t.Errorf("should only grant free shipping upgrade once")
 	}
 }
 

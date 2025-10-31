@@ -71,16 +71,10 @@ func TestCultists_ExpensiveStronghold(t *testing.T) {
 func TestCultists_BuildStrongholdGrantsVP(t *testing.T) {
 	cultists := NewCultists()
 
-	// First time building stronghold should grant 7 VP
+	// Building stronghold should grant 7 VP
 	vpBonus := cultists.BuildStronghold()
 	if vpBonus != 7 {
 		t.Errorf("expected 7 VP bonus, got %d", vpBonus)
-	}
-
-	// Building again (hypothetically) should not grant more VP
-	vpBonus = cultists.BuildStronghold()
-	if vpBonus != 0 {
-		t.Errorf("should only grant VP bonus once, got %d", vpBonus)
 	}
 }
 

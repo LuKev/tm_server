@@ -12,8 +12,7 @@ import (
 //             From now on, gain 2 Power for each Spade throughout remainder of game
 type Alchemists struct {
 	BaseFaction
-	hasStronghold           bool
-	hasReceivedStrongholdPower bool // One-time 12 power bonus
+	hasStronghold bool
 }
 
 func NewAlchemists() *Alchemists {
@@ -31,8 +30,7 @@ func NewAlchemists() *Alchemists {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:           false,
-		hasReceivedStrongholdPower: false,
+		hasStronghold: false,
 	}
 }
 
@@ -51,13 +49,7 @@ func (f *Alchemists) HasSpecialAbility(ability SpecialAbility) bool {
 // NOTE: Power system implementation in Phase 5.1
 func (f *Alchemists) BuildStronghold() int {
 	f.hasStronghold = true
-	
-	// Return one-time power bonus
-	if !f.hasReceivedStrongholdPower {
-		f.hasReceivedStrongholdPower = true
-		return 12 // Power added to bowl 1 (Phase 5.1: Power System)
-	}
-	return 0
+	return 12 // Power added to bowl 1 (Phase 5.1: Power System)
 }
 
 // GetPowerPerSpade returns how much power to gain per spade

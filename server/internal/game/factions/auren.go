@@ -12,9 +12,7 @@ import (
 // Special: Sanctuary costs 4 workers/8 coins (more expensive than standard)
 type Auren struct {
 	BaseFaction
-	hasStronghold              bool
-	hasReceivedFavorTile       bool // One-time bonus when stronghold is built
-	cultAdvanceUsedThisRound   bool // Special action usage tracking
+	hasStronghold bool
 }
 
 func NewAuren() *Auren {
@@ -32,9 +30,7 @@ func NewAuren() *Auren {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:            false,
-		hasReceivedFavorTile:     false,
-		cultAdvanceUsedThisRound: false,
+		hasStronghold: false,
 	}
 }
 
@@ -59,18 +55,11 @@ func (f *Auren) HasSpecialAbility(ability SpecialAbility) bool {
 }
 
 // BuildStronghold marks that the stronghold has been built
-// Returns true if the player should receive a favor tile
+// Returns true to indicate the player should receive a favor tile
 // NOTE: Phase 7.2 (Favor Tiles) handles favor tile selection
 func (f *Auren) BuildStronghold() bool {
 	f.hasStronghold = true
-	
-	// Return whether favor tile should be granted
-	// (only once, when stronghold is first built)
-	if !f.hasReceivedFavorTile {
-		f.hasReceivedFavorTile = true
-		return true
-	}
-	return false
+	return true // Grant favor tile
 }
 
 // GetCultAdvanceAmount returns how many spaces to advance on cult track

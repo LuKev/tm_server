@@ -15,8 +15,7 @@ import (
 //          Start with 1 Priest, 1 Worker, 15 Coins
 type Darklings struct {
 	BaseFaction
-	hasStronghold              bool
-	hasUsedPriestOrdination    bool // One-time worker->priest conversion
+	hasStronghold bool
 }
 
 func NewDarklings() *Darklings {
@@ -34,8 +33,7 @@ func NewDarklings() *Darklings {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:           false,
-		hasUsedPriestOrdination: false,
+		hasStronghold: false,
 	}
 }
 
@@ -66,26 +64,16 @@ func (f *Darklings) BuildStronghold() {
 
 // CanUsePriestOrdination checks if the priest ordination can be used
 func (f *Darklings) CanUsePriestOrdination() bool {
-	return f.hasStronghold && !f.hasUsedPriestOrdination
+	return f.hasStronghold
 }
 
 // UsePriestOrdination trades workers for priests (0-3 workers)
 // Returns the number of priests gained
-// Player can choose 0 to decline the conversion, but ability is still used up
+// NOTE: The pending ordination system ensures this is only used once
 func (f *Darklings) UsePriestOrdination(workersToTrade int) (int, error) {
-	if !f.hasStronghold {
-		return 0, fmt.Errorf("must build stronghold before using priest ordination")
-	}
-
-	if f.hasUsedPriestOrdination {
-		return 0, fmt.Errorf("priest ordination already used")
-	}
-
 	if workersToTrade < 0 || workersToTrade > 3 {
 		return 0, fmt.Errorf("can only trade 0-3 workers")
 	}
-
-	f.hasUsedPriestOrdination = true
 
 	// 1 Worker = 1 Priest
 	return workersToTrade, nil

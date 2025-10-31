@@ -13,9 +13,8 @@ import (
 //          Can advance Shipping to level 5 (not standard max of 3)
 type Mermaids struct {
 	BaseFaction
-	hasStronghold              bool
-	hasUsedStrongholdShipping  bool // One-time free shipping upgrade
-	shippingLevel              int  // Mermaids start at level 1
+	hasStronghold bool
+	shippingLevel int // Mermaids start at level 1
 }
 
 func NewMermaids() *Mermaids {
@@ -33,9 +32,8 @@ func NewMermaids() *Mermaids {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:             false,
-		hasUsedStrongholdShipping: false,
-		shippingLevel:             1, // Mermaids start with Shipping level 1
+		hasStronghold: false,
+		shippingLevel: 1, // Mermaids start with Shipping level 1
 	}
 }
 
@@ -60,16 +58,10 @@ func (f *Mermaids) HasSpecialAbility(ability SpecialAbility) bool {
 }
 
 // BuildStronghold marks that the stronghold has been built
-// Returns true if free shipping upgrade should be granted
+// Returns true to indicate free shipping upgrade should be granted
 func (f *Mermaids) BuildStronghold() bool {
 	f.hasStronghold = true
-	
-	// Return whether free shipping upgrade should be granted
-	if !f.hasUsedStrongholdShipping {
-		f.hasUsedStrongholdShipping = true
-		return true
-	}
-	return false
+	return true // Grant free shipping upgrade
 }
 
 // GetShippingLevel returns the current shipping level

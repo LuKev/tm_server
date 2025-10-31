@@ -62,11 +62,6 @@ func TestDarklings_PriestOrdinationBeforeStronghold(t *testing.T) {
 	if darklings.CanUsePriestOrdination() {
 		t.Errorf("should not be able to use priest ordination before building stronghold")
 	}
-
-	_, err := darklings.UsePriestOrdination(1)
-	if err == nil {
-		t.Errorf("expected error when using priest ordination without stronghold")
-	}
 }
 
 func TestDarklings_PriestOrdinationAfterStronghold(t *testing.T) {
@@ -87,17 +82,6 @@ func TestDarklings_PriestOrdinationAfterStronghold(t *testing.T) {
 	}
 	if priests != 2 {
 		t.Errorf("expected 2 priests, got %d", priests)
-	}
-
-	// Should not be able to use again
-	if darklings.CanUsePriestOrdination() {
-		t.Errorf("should not be able to use priest ordination twice")
-	}
-
-	// Try to use again (should fail)
-	_, err = darklings.UsePriestOrdination(1)
-	if err == nil {
-		t.Errorf("expected error when using priest ordination twice")
 	}
 }
 

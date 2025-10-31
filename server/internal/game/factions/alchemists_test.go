@@ -45,16 +45,10 @@ func TestAlchemists_HasConversionAbility(t *testing.T) {
 func TestAlchemists_BuildStrongholdGrantsPower(t *testing.T) {
 	alchemists := NewAlchemists()
 
-	// First time building stronghold should grant 12 power
+	// Building stronghold should grant 12 power
 	powerBonus := alchemists.BuildStronghold()
 	if powerBonus != 12 {
 		t.Errorf("expected 12 power bonus, got %d", powerBonus)
-	}
-
-	// Building again (hypothetically) should not grant more power
-	powerBonus = alchemists.BuildStronghold()
-	if powerBonus != 0 {
-		t.Errorf("should only grant power bonus once, got %d", powerBonus)
 	}
 }
 

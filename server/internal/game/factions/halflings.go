@@ -12,8 +12,7 @@ import (
 //          Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
 type Halflings struct {
 	BaseFaction
-	hasStronghold              bool
-	hasUsedStrongholdSpades    bool // One-time 3 spades bonus
+	hasStronghold bool
 }
 
 func NewHalflings() *Halflings {
@@ -31,8 +30,7 @@ func NewHalflings() *Halflings {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:           false,
-		hasUsedStrongholdSpades: false,
+		hasStronghold: false,
 	}
 }
 
@@ -44,7 +42,7 @@ func (f *Halflings) GetStartingCultPositions() CultPositions {
 // GetDiggingCost returns the cheaper digging upgrade cost for Halflings
 func (f *Halflings) GetDiggingCost(currentLevel int) Cost {
 	// Halflings pay less for digging upgrades
-	// Standard: 5 workers, 2 coins, 1 priest
+	// Standard: 2 workers, 5 coins, 1 priest
 	// Halflings: 2 workers, 1 coin, 1 priest
 	return Cost{
 		Coins:   1, // Cheaper than standard (5)
@@ -76,28 +74,16 @@ func (f *Halflings) BuildStronghold() {
 
 // CanUseStrongholdSpades checks if the stronghold spades can be used
 func (f *Halflings) CanUseStrongholdSpades() bool {
-	return f.hasStronghold && !f.hasUsedStrongholdSpades
+	return f.hasStronghold
 }
 
-// UseStrongholdSpades marks the stronghold spades as used
-// Returns the number of spades granted (3)
-// NOTE: Phase 6.2 (Action System) handles applying spades and optional dwelling placement
+// UseStrongholdSpades returns the number of spades granted (3)
+// NOTE: The pending spades system ensures this is only used once
 func (f *Halflings) UseStrongholdSpades() int {
-	if !f.hasStronghold {
-		return 0
-	}
-	
-	if f.hasUsedStrongholdSpades {
-		return 0
-	}
-	
-	f.hasUsedStrongholdSpades = true
 	return 3 // Grant 3 spades
 }
 
 // GetVPPerSpade returns the VP bonus for each spade
-// NOTE: Phase 8 (Scoring System) tracks VP
-// NOTE: Phase 6.2 (Action System) must apply this bonus whenever Halflings get spades
 func (f *Halflings) GetVPPerSpade() int {
 	return 1 // Halflings get +1 VP per spade
 }

@@ -87,11 +87,6 @@ func TestHalflings_StrongholdSpadesBeforeBuilding(t *testing.T) {
 	if halflings.CanUseStrongholdSpades() {
 		t.Errorf("should not be able to use stronghold spades before building stronghold")
 	}
-
-	spades := halflings.UseStrongholdSpades()
-	if spades != 0 {
-		t.Errorf("expected 0 spades before stronghold, got %d", spades)
-	}
 }
 
 func TestHalflings_StrongholdSpadesAfterBuilding(t *testing.T) {
@@ -109,17 +104,6 @@ func TestHalflings_StrongholdSpadesAfterBuilding(t *testing.T) {
 	spades := halflings.UseStrongholdSpades()
 	if spades != 3 {
 		t.Errorf("expected 3 spades from stronghold, got %d", spades)
-	}
-
-	// Should not be able to use again
-	if halflings.CanUseStrongholdSpades() {
-		t.Errorf("should not be able to use stronghold spades twice")
-	}
-
-	// Try to use again (should return 0)
-	spades = halflings.UseStrongholdSpades()
-	if spades != 0 {
-		t.Errorf("expected 0 spades on second use, got %d", spades)
 	}
 }
 

@@ -14,8 +14,7 @@ import (
 //          Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
 type Cultists struct {
 	BaseFaction
-	hasStronghold              bool
-	hasReceivedStrongholdVP    bool // One-time 7 VP bonus
+	hasStronghold bool
 }
 
 func NewCultists() *Cultists {
@@ -33,8 +32,7 @@ func NewCultists() *Cultists {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:           false,
-		hasReceivedStrongholdVP: false,
+		hasStronghold: false,
 	}
 }
 
@@ -73,13 +71,7 @@ func (f *Cultists) HasSpecialAbility(ability SpecialAbility) bool {
 // NOTE: Phase 8 (Scoring System) tracks VP
 func (f *Cultists) BuildStronghold() int {
 	f.hasStronghold = true
-	
-	// Return one-time VP bonus
-	if !f.hasReceivedStrongholdVP {
-		f.hasReceivedStrongholdVP = true
-		return 7 // Grant 7 VP
-	}
-	return 0
+	return 7 // Grant 7 VP
 }
 
 // GetCultAdvanceFromPowerLeech returns how many cult spaces to advance

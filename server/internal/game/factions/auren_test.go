@@ -71,16 +71,10 @@ func TestAuren_ExpensiveSanctuary(t *testing.T) {
 func TestAuren_BuildStrongholdGrantsFavorTile(t *testing.T) {
 	auren := NewAuren()
 
-	// First time building stronghold should grant favor tile
+	// Building stronghold should grant favor tile
 	shouldGrantFavor := auren.BuildStronghold()
 	if !shouldGrantFavor {
 		t.Errorf("building stronghold should grant favor tile")
-	}
-
-	// Building again (hypothetically) should not grant another favor tile
-	shouldGrantFavor = auren.BuildStronghold()
-	if shouldGrantFavor {
-		t.Errorf("should only grant favor tile once")
 	}
 }
 
