@@ -441,26 +441,36 @@ func (v *GameValidator) ValidateState(entry *LogEntry) error {
 }
 
 // executeConvertFromAction parses and executes resource conversion from an action string
+// Handles multiple convert statements in compound actions (e.g., "convert 1PW to 1C. send p to EARTH. convert 1PW to 1C")
 func (v *GameValidator) executeConvertFromAction(player *game.Player, actionStr string) {
-	// Parse the convert amount from action string
-	// Format: "convert XPW to YC" or "convert XW to YC" or "convert XP to YW"
-	var powerAmount, coinAmount, workerAmount, priestAmount int
-	if strings.Contains(actionStr, "PW to") && strings.Contains(actionStr, "C") {
-		fmt.Sscanf(actionStr, "convert %dPW to %dC", &powerAmount, &coinAmount)
-		if powerAmount > 0 && coinAmount > 0 {
-			player.Resources.ConvertPowerToCoins(powerAmount)
+	// Split by periods to find all convert statements
+	parts := strings.Split(actionStr, ".")
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if !strings.HasPrefix(part, "convert ") {
+			continue
 		}
-	} else if strings.Contains(actionStr, "W to") && strings.Contains(actionStr, "C") {
-		fmt.Sscanf(actionStr, "convert %dW to %dC", &workerAmount, &coinAmount)
-		if workerAmount > 0 && coinAmount > 0 {
-			player.Resources.Workers -= workerAmount
-			player.Resources.Coins += coinAmount
-		}
-	} else if strings.Contains(actionStr, "P to") && strings.Contains(actionStr, "W") {
-		fmt.Sscanf(actionStr, "convert %dP to %dW", &priestAmount, &workerAmount)
-		if priestAmount > 0 && workerAmount > 0 {
-			player.Resources.Priests -= priestAmount
-			player.Resources.Workers += workerAmount
+		
+		// Parse the convert amount from this part
+		// Format: "convert XPW to YC" or "convert XW to YC" or "convert XP to YW"
+		var powerAmount, coinAmount, workerAmount, priestAmount int
+		if strings.Contains(part, "PW to") && strings.Contains(part, "C") {
+			fmt.Sscanf(part, "convert %dPW to %dC", &powerAmount, &coinAmount)
+			if powerAmount > 0 && coinAmount > 0 {
+				player.Resources.ConvertPowerToCoins(powerAmount)
+			}
+		} else if strings.Contains(part, "W to") && strings.Contains(part, "C") {
+			fmt.Sscanf(part, "convert %dW to %dC", &workerAmount, &coinAmount)
+			if workerAmount > 0 && coinAmount > 0 {
+				player.Resources.Workers -= workerAmount
+				player.Resources.Coins += coinAmount
+			}
+		} else if strings.Contains(part, "P to") && strings.Contains(part, "W") {
+			fmt.Sscanf(part, "convert %dP to %dW", &priestAmount, &workerAmount)
+			if priestAmount > 0 && workerAmount > 0 {
+				player.Resources.Priests -= priestAmount
+				player.Resources.Workers += workerAmount
+			}
 		}
 	}
 }

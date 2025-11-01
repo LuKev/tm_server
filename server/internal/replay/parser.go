@@ -458,6 +458,21 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		// If we couldn't find the pass part, treat as convert only
 		return ActionConvert, params, nil
 
+	case strings.HasPrefix(actionStr, "convert ") && strings.Contains(actionStr, "send p to"):
+		// Compound action: convert 1PW to 1C. send p to EARTH. convert 1PW to 1C
+		// Extract the send priest action
+		parts := strings.Split(actionStr, ".")
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "send p to ") {
+				cult := strings.TrimPrefix(part, "send p to ")
+				params["cult"] = strings.Fields(cult)[0]
+				return ActionSendPriest, params, nil
+			}
+		}
+		// If we couldn't find the send part, treat as convert only
+		return ActionConvert, params, nil
+
 	case strings.HasPrefix(actionStr, "convert "):
 		return ActionConvert, params, nil
 
@@ -525,7 +540,13 @@ func parseCompoundActionParts(actionStr string, params map[string]string) {
 // parseResourceField parses a resource field with suffix and optional delta
 func parseResourceField(part string, suffix string, pendingDelta *int) (value int, delta int, hasDelta bool) {
 	if strings.HasSuffix(part, suffix) {
-		value, _ = strconv.Atoi(strings.TrimSpace(strings.TrimSuffix(part, suffix)))
+		numStr := strings.TrimSpace(strings.TrimSuffix(part, suffix))
+		parsedValue, err := strconv.Atoi(numStr)
+		if err != nil {
+			// Not a valid resource field, return false so it can be treated as action
+			return 0, 0, false
+		}
+		value = parsedValue
 		if pendingDelta != nil {
 			delta = *pendingDelta
 			hasDelta = true
@@ -564,7 +585,7 @@ const (
 	ActionAdvanceShipping
 	ActionAdvanceDigging
 	ActionSendPriest
-	ActionPowerAction
+	ActionPowerAction // Any action starting with "action" keyword (power/bonus/special)
 	ActionBurnPower
 	ActionLeech
 	ActionConvert
