@@ -166,7 +166,7 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	} else {
 		// All opponents declined - gain 1 power
 		powerBonus := cultists.GetPowerIfAllRefuse()
-		player.Resources.Power.Bowl1 += powerBonus
+		player.Resources.GainPower(powerBonus)
 	}
 
 	// Clean up

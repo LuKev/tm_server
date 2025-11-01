@@ -145,6 +145,17 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
+	// Handle "[all opponents declined power]" entries - Cultists gain power when all decline
+	// This is an informational entry showing state after cultists receive their power bonus
+	if strings.Contains(entry.Action, "[all opponents declined power]") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			v.syncPlayerState(player, entry.Faction.String(), entry)
+		}
+		// Skip normal action execution and validation
+		return nil
+	}
+
 	// Handle compound convert + dig + transform actions: sync resources and transform terrain
 	// Example: "convert 1PW to 1C. dig 1. transform H4 to green"
 	// The convert and dig are state changes (reflected in deltas), transform changes terrain

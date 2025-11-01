@@ -676,8 +676,9 @@ func TestCultists_PowerWhenAllDecline(t *testing.T) {
 	cultistsPlayer := gs.GetPlayer("cultists")
 	swarmlingsPlayer := gs.GetPlayer("swarmlings")
 	
-	// Set up power
-	cultistsPlayer.Resources.Power.Bowl1 = 10
+	// Set up power - Cultists have power in Bowl1 to cycle through
+	cultistsPlayer.Resources.Power.Bowl1 = 5
+	cultistsPlayer.Resources.Power.Bowl2 = 5
 	swarmlingsPlayer.Resources.Power.Bowl1 = 10
 	
 	// Place a Swarmlings dwelling adjacent to where Cultists will build
@@ -701,7 +702,8 @@ func TestCultists_PowerWhenAllDecline(t *testing.T) {
 	})
 	
 	// Trigger power leech
-	initialPower := cultistsPlayer.Resources.Power.Bowl1
+	initialBowl1 := cultistsPlayer.Resources.Power.Bowl1
+	initialBowl2 := cultistsPlayer.Resources.Power.Bowl2
 	gs.TriggerPowerLeech(cultistsHex, "cultists")
 	
 	// Verify leech offer was created for Swarmlings
@@ -718,10 +720,12 @@ func TestCultists_PowerWhenAllDecline(t *testing.T) {
 	}
 	
 	// Cultists should gain 1 power (all opponents declined)
-	powerGained := cultistsPlayer.Resources.Power.Bowl1 - initialPower
-	expectedPower := 1
-	if powerGained != expectedPower {
-		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+	// Gaining power cycles: 1 from Bowl1 → Bowl2
+	if cultistsPlayer.Resources.Power.Bowl1 != initialBowl1-1 {
+		t.Errorf("expected Bowl1=%d, got %d", initialBowl1-1, cultistsPlayer.Resources.Power.Bowl1)
+	}
+	if cultistsPlayer.Resources.Power.Bowl2 != initialBowl2+1 {
+		t.Errorf("expected Bowl2=%d, got %d", initialBowl2+1, cultistsPlayer.Resources.Power.Bowl2)
 	}
 	
 	// Verify the pending bonus was resolved
@@ -1072,7 +1076,8 @@ func TestCultists_CultTrackSelection_AllOpponentsDecline(t *testing.T) {
 		t.Fatalf("build failed: %v", err)
 	}
 	
-	initialPower := cultistsPlayer.Resources.Power.Bowl1
+	initialBowl1 := cultistsPlayer.Resources.Power.Bowl1
+	initialBowl2 := cultistsPlayer.Resources.Power.Bowl2
 	
 	// Auren declines power leech
 	declineAction := NewDeclinePowerLeechAction("auren", 0)
@@ -1087,8 +1092,12 @@ func TestCultists_CultTrackSelection_AllOpponentsDecline(t *testing.T) {
 	}
 	
 	// Verify Cultists gained 1 power (not cult advance)
-	if cultistsPlayer.Resources.Power.Bowl1 != initialPower+1 {
-		t.Errorf("expected %d power, got %d", initialPower+1, cultistsPlayer.Resources.Power.Bowl1)
+	// Gaining power cycles: 1 from Bowl1 → Bowl2
+	if cultistsPlayer.Resources.Power.Bowl1 != initialBowl1-1 {
+		t.Errorf("expected Bowl1=%d, got %d", initialBowl1-1, cultistsPlayer.Resources.Power.Bowl1)
+	}
+	if cultistsPlayer.Resources.Power.Bowl2 != initialBowl2+1 {
+		t.Errorf("expected Bowl2=%d, got %d", initialBowl2+1, cultistsPlayer.Resources.Power.Bowl2)
 	}
 }
 
