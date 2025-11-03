@@ -727,9 +727,24 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	// Check if already at max level
-	if player.DiggingLevel >= 2 {
-		return fmt.Errorf("digging already at max level")
+	// Check faction-specific max digging level
+	factionType := player.Faction.GetType()
+	var maxLevel int
+	switch factionType {
+	case models.FactionDarklings:
+		// Darklings cannot advance digging at all (they use priests for spades)
+		return fmt.Errorf("Darklings cannot advance digging level")
+	case models.FactionFakirs:
+		// Fakirs can only advance to level 1
+		maxLevel = 1
+	default:
+		// Most factions can advance to level 2
+		maxLevel = 2
+	}
+
+	// Check if already at faction's max level
+	if player.DiggingLevel >= maxLevel {
+		return fmt.Errorf("digging already at max level (%d) for %s", maxLevel, factionType)
 	}
 
 	// Check if player can afford digging upgrade
@@ -754,15 +769,8 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 		return fmt.Errorf("failed to pay for digging: %w", err)
 	}
 
-	// Advance digging
-	player.DiggingLevel++
-	
-	// Award VP based on new digging level
-	// Digging Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
-	vpBonus := player.DiggingLevel + 1
-	player.VictoryPoints += vpBonus
-
-	return nil
+	// Advance digging and award VP (includes scoring tile bonus if applicable)
+	return gs.AdvanceDiggingLevel(a.PlayerID)
 }
 
 // PassAction represents passing for the round
@@ -791,12 +799,12 @@ func (a *PassAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player has already passed")
 	}
 
-	// Validate bonus card selection
-	if a.BonusCard == nil {
+	// Validate bonus card selection (not required in final round 6)
+	if a.BonusCard == nil && gs.Round < 6 {
 		return fmt.Errorf("bonus card selection is required when passing")
 	}
 
-	if !gs.BonusCards.IsAvailable(*a.BonusCard) {
+	if a.BonusCard != nil && !gs.BonusCards.IsAvailable(*a.BonusCard) {
 		// Debug: show which cards ARE available
 		availableCards := []BonusCardType{}
 		for cardType := range gs.BonusCards.Available {
@@ -828,12 +836,14 @@ func (a *PassAction) Execute(gs *GameState) error {
 		player.VictoryPoints += bonusVP
 	}
 
-	// Take bonus card and get coins from it
-	coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
-	if err != nil {
-		return fmt.Errorf("failed to take bonus card: %w", err)
+	// Take bonus card and get coins from it (unless it's the final round)
+	if a.BonusCard != nil {
+		coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
+		if err != nil {
+			return fmt.Errorf("failed to take bonus card: %w", err)
+		}
+		player.Resources.Coins += coins
 	}
-	player.Resources.Coins += coins
 
 	// Award VP from Air+1 favor tile (VP based on Trading House count)
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)

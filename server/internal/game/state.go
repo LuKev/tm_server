@@ -626,6 +626,76 @@ func (gs *GameState) AdvanceShippingLevel(playerID string) error {
 	return nil
 }
 
+// AdvanceDiggingLevel increments the player's digging level and awards VP
+// This helper ensures consistent VP awards for digging advancements
+// VP awarded: Always +6 VP regardless of level (unlike shipping which varies)
+// Max levels: Most factions can advance to level 2, Fakirs to level 1, Darklings cannot advance at all
+func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Check faction-specific max digging level
+	factionType := player.Faction.GetType()
+	var maxLevel int
+	switch factionType {
+	case models.FactionDarklings:
+		// Darklings cannot advance digging at all (they use priests for spades)
+		return fmt.Errorf("Darklings cannot advance digging level")
+	case models.FactionFakirs:
+		// Fakirs can only advance to level 1
+		maxLevel = 1
+	default:
+		// Most factions can advance to level 2
+		maxLevel = 2
+	}
+
+	// Check if already at faction's max level
+	if player.DiggingLevel >= maxLevel {
+		return fmt.Errorf("digging already at max level (%d) for %s", maxLevel, factionType)
+	}
+
+	// Advance digging level
+	player.DiggingLevel++
+	
+	// Sync the faction's digging level (used for GetTerraformCost calculations)
+	// Use type assertion to get the base faction and update its digging level
+	switch f := player.Faction.(type) {
+	case *factions.Giants:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Witches:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Auren:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Swarmlings:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Cultists:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Alchemists:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Halflings:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.ChaosMagicians:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Nomads:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Fakirs:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Dwarves:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Engineers:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Mermaids:
+		f.DiggingLevel = player.DiggingLevel
+	}
+
+	// Award VP: Always +6 VP for advancing digging
+	player.VictoryPoints += 6
+
+	return nil
+}
+
 // AlchemistsConvertVPToCoins allows Alchemists to convert VP to Coins (1 VP -> 1 Coin)
 // This can be done at any time and does not count as an action
 func (gs *GameState) AlchemistsConvertVPToCoins(playerID string, vp int) error {

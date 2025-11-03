@@ -189,12 +189,12 @@ func (gs *GameState) CanFormTown(playerID string, hexes []Hex) bool {
 	if player == nil {
 		return false
 	}
-	
+
 	// Count buildings and calculate total power
 	buildingCount := 0
 	totalPower := 0
 	hasSanctuary := false
-	
+
 	for _, h := range hexes {
 		mapHex := gs.Map.GetHex(h)
 		if mapHex != nil && mapHex.Building != nil {
@@ -205,20 +205,20 @@ func (gs *GameState) CanFormTown(playerID string, hexes []Hex) bool {
 			}
 		}
 	}
-	
+
 	// Check building count requirement
 	minBuildings := 4
 	if hasSanctuary {
 		minBuildings = 3 // Sanctuary allows town with 3 buildings
 	}
-	
+
 	if buildingCount < minBuildings {
 		return false
 	}
-	
+
 	// Check power requirement (6 with Fire 2 favor tile, 7 otherwise)
 	minPower := gs.GetTownPowerRequirement(playerID)
-	
+
 	return totalPower >= minPower
 }
 

@@ -283,7 +283,8 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 			params["coord"] = fields[1]
 			params["building"] = fields[3]
 
-			// Check for favor tile or town tile selection
+			// Check for favor tile, town tile selection, or convert
+			hasConvert := false
 			if len(parts) > 1 {
 				for _, part := range parts[1:] {
 					part = strings.TrimSpace(part)
@@ -291,8 +292,16 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 						params["favor_tile"] = strings.TrimPrefix(part, "+")
 					} else if strings.HasPrefix(part, "+TW") {
 						params["town_tile"] = strings.TrimPrefix(part, "+")
+					} else if strings.HasPrefix(part, "convert ") {
+						hasConvert = true
 					}
 				}
+			}
+
+			// If this is an "upgrade ... convert" compound action, mark to skip validation
+			// because the validator will sync state to final values (including the convert)
+			if hasConvert {
+				params["skip_validation"] = "true"
 			}
 
 			return ActionUpgrade, params, nil
@@ -339,6 +348,11 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		parseCompoundActionParts(actionStr, params)
 		return ActionTransformAndBuild, params, nil
 
+	case strings.HasPrefix(actionStr, "dig ") && strings.Contains(actionStr, "transform"):
+		// dig 1. transform H8 to green
+		parseCompoundActionParts(actionStr, params)
+		return ActionTransform, params, nil
+
 	case strings.HasPrefix(actionStr, "advance ship"):
 		return ActionAdvanceShipping, params, nil
 
@@ -347,17 +361,23 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 
 	case strings.HasPrefix(actionStr, "send p to "):
 		// send p to WATER
+		// send p to FIRE. convert 1PW to 1C
 		cult := strings.TrimPrefix(actionStr, "send p to ")
-		params["cult"] = strings.Fields(cult)[0]
+		// Split by either space or period to get just the cult track name
+		cultName := strings.FieldsFunc(cult, func(r rune) bool {
+			return r == ' ' || r == '.'
+		})[0]
+		params["cult"] = cultName
 		return ActionSendPriest, params, nil
 
 	case strings.HasPrefix(actionStr, "action "):
 		// action ACT6, action BON1, action ACTW
 		// action ACT5. build F3
 		// action BON2. +WATER (bonus card cult advance)
+		// action ACT1. Bridge G4:H5 (bridge action)
 		parseCompoundActionParts(actionStr, params)
 
-		// Check for additional special parts (cult track, town tile)
+		// Check for additional special parts (cult track, town tile, bridge)
 		parts := strings.Split(actionStr, ".")
 		for _, part := range parts {
 			part = strings.TrimSpace(part)
@@ -368,6 +388,15 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 			} else if strings.HasPrefix(part, "+TW") {
 				// Town tile (e.g., "+TW5")
 				params["town_tile"] = strings.TrimSpace(part)
+			} else if strings.HasPrefix(part, "Bridge ") {
+				// Bridge action (e.g., "Bridge G4:H5")
+				bridgeCoords := strings.TrimPrefix(part, "Bridge ")
+				bridgeCoords = strings.TrimSpace(bridgeCoords)
+				// Split on colon to get the two hex coordinates
+				if coords := strings.Split(bridgeCoords, ":"); len(coords) == 2 {
+					params["bridge_from"] = strings.TrimSpace(coords[0])
+					params["bridge_to"] = strings.TrimSpace(coords[1])
+				}
 			}
 		}
 
@@ -466,7 +495,11 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 			part = strings.TrimSpace(part)
 			if strings.HasPrefix(part, "send p to ") {
 				cult := strings.TrimPrefix(part, "send p to ")
-				params["cult"] = strings.Fields(cult)[0]
+				// Split by either space or period to get just the cult track name
+				cultName := strings.FieldsFunc(cult, func(r rune) bool {
+					return r == ' ' || r == '.'
+				})[0]
+				params["cult"] = cultName
 				return ActionSendPriest, params, nil
 			}
 		}
@@ -580,6 +613,7 @@ const (
 	ActionSetup
 	ActionBuild
 	ActionUpgrade
+	ActionTransform // Transform terrain without building (e.g., "dig 1. transform H8 to green")
 	ActionTransformAndBuild
 	ActionPass
 	ActionAdvanceShipping

@@ -155,9 +155,14 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 		return 0, nil // Already at max or blocked
 	}
 
-	// Update position
+	// Update position in cult track state
 	cts.PlayerPositions[playerID][track] = targetPos
-	
+
+	// Also update player's local cult position copy (used for validation)
+	if player != nil {
+		player.CultPositions[track] = targetPos
+	}
+
 	// Mark position 10 as occupied if reached
 	if targetPos == 10 {
 		cts.Position10Occupied[track] = playerID

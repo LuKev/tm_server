@@ -156,6 +156,21 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
+	// Handle dig + transform actions: sync resources and transform terrain
+	// Example: "dig 1. transform H8 to green"
+	// The dig is a state change (reflected in deltas), transform changes terrain
+	if strings.HasPrefix(entry.Action, "dig ") && strings.Contains(entry.Action, "transform ") && !strings.Contains(entry.Action, "convert ") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			v.syncPlayerResources(player, entry)
+		}
+
+		// Parse and execute the transform part
+		v.executeTransformFromAction(entry.Action)
+		// Skip normal action execution
+		return nil
+	}
+
 	// Handle compound convert + dig + transform actions: sync resources and transform terrain
 	// Example: "convert 1PW to 1C. dig 1. transform H4 to green"
 	// The convert and dig are state changes (reflected in deltas), transform changes terrain
@@ -209,6 +224,16 @@ func (v *GameValidator) ValidateNextEntry() error {
 		// Examples:
 		//   "convert 1PW to 1C. action ACTW. build H4"
 		//   "convert 1P to 1W. dig 2. build D5"
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			v.executeConvertFromAction(player, entry.Action)
+		}
+		// Continue to execute the main action
+	} else if strings.Contains(entry.Action, "convert ") && !strings.Contains(entry.Action, "pass ") && !strings.Contains(entry.Action, "upgrade ") {
+		// Handle compound action + convert patterns (reverse order)
+		// Examples:
+		//   "action ACT6. convert 1W to 1C. build D7"
+		//   "burn 3. action ACT2. convert 1PW to 1C"
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
 			v.executeConvertFromAction(player, entry.Action)
@@ -315,6 +340,35 @@ func (v *GameValidator) ValidateNextEntry() error {
 					v.executeConvertFromAction(player, part)
 				} else if strings.HasPrefix(part, "send p to ") {
 					foundSendPriest = true
+				}
+			}
+		}
+	}
+
+	// Handle town tile selection for actions with "+TW" marker
+	// Example: "action BON1. build I7. +TW5"
+	// The main action creates a pending town formation, now we select the tile
+	// Note: Only process if there's actually a pending town formation (action_converter
+	// handles upgrade+town tile compounds, so those won't have pending formations here)
+	if strings.Contains(entry.Action, "+TW") {
+		playerID := entry.Faction.String()
+		// Only process if there's a pending town formation
+		if v.GameState.PendingTownFormations[playerID] != nil {
+			// Extract town tile marker (e.g., "+TW5")
+			parts := strings.Split(entry.Action, ".")
+			for _, part := range parts {
+				part = strings.TrimSpace(part)
+				if strings.HasPrefix(part, "+TW") {
+					townTileStr := strings.TrimPrefix(part, "+")
+					townTileType, err := ParseTownTile(townTileStr)
+					if err != nil {
+						return fmt.Errorf("failed to parse town tile %s: %v", townTileStr, err)
+					}
+
+					if err := v.GameState.SelectTownTile(playerID, townTileType); err != nil {
+						return fmt.Errorf("failed to select town tile: %v", err)
+					}
+					break
 				}
 			}
 		}
@@ -513,20 +567,33 @@ func (v *GameValidator) executeConvertFromAction(player *game.Player, actionStr 
 		}
 		
 		// Parse the convert amount from this part
-		// Format: "convert XPW to YC" or "convert XW to YC" or "convert XP to YW"
+		// Format: "convert XPW to YC" or "convert XW to YC" or "convert XP to YW" or "convert XPW to YW"
 		var powerAmount, coinAmount, workerAmount, priestAmount int
-		if strings.Contains(part, "PW to") && strings.Contains(part, "C") {
+		if strings.Contains(part, "PW to") && strings.Contains(part, "W") && !strings.Contains(part, "C") {
+			// Power to workers: "convert 3PW to 1W"
+			fmt.Sscanf(part, "convert %dPW to %dW", &powerAmount, &workerAmount)
+			if powerAmount > 0 && workerAmount > 0 {
+				// Spend power from Bowl 3, gain workers
+				err := player.Resources.Power.SpendPower(powerAmount)
+				if err == nil {
+					player.Resources.Workers += workerAmount
+				}
+			}
+		} else if strings.Contains(part, "PW to") && strings.Contains(part, "C") {
+			// Power to coins: "convert 1PW to 1C"
 			fmt.Sscanf(part, "convert %dPW to %dC", &powerAmount, &coinAmount)
 			if powerAmount > 0 && coinAmount > 0 {
 				player.Resources.ConvertPowerToCoins(powerAmount)
 			}
 		} else if strings.Contains(part, "W to") && strings.Contains(part, "C") {
+			// Workers to coins: "convert 1W to 1C"
 			fmt.Sscanf(part, "convert %dW to %dC", &workerAmount, &coinAmount)
 			if workerAmount > 0 && coinAmount > 0 {
 				player.Resources.Workers -= workerAmount
 				player.Resources.Coins += coinAmount
 			}
 		} else if strings.Contains(part, "P to") && strings.Contains(part, "W") {
+			// Priests to workers: "convert 1P to 1W"
 			fmt.Sscanf(part, "convert %dP to %dW", &priestAmount, &workerAmount)
 			if priestAmount > 0 && workerAmount > 0 {
 				player.Resources.Priests -= priestAmount

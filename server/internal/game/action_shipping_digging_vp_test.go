@@ -89,8 +89,8 @@ func TestAdvanceDigging_AwardsVP(t *testing.T) {
 		t.Errorf("expected digging level 1, got %d", player.DiggingLevel)
 	}
 
-	// Verify VP was awarded (Level 1 = 2 VP)
-	expectedVP := initialVP + 2
+	// Verify VP was awarded (always +6 VP for digging)
+	expectedVP := initialVP + 6
 	if player.VictoryPoints != expectedVP {
 		t.Errorf("expected %d VP for digging level 1, got %d", expectedVP, player.VictoryPoints)
 	}
@@ -103,8 +103,8 @@ func TestAdvanceDigging_AwardsVP(t *testing.T) {
 		t.Fatalf("failed to advance digging to level 2: %v", err)
 	}
 
-	// Verify VP was awarded (Level 2 = 3 VP)
-	expectedVP = initialVP + 3
+	// Verify VP was awarded (always +6 VP for digging)
+	expectedVP = initialVP + 6
 	if player.VictoryPoints != expectedVP {
 		t.Errorf("expected %d VP for digging level 2, got %d", expectedVP, player.VictoryPoints)
 	}
@@ -172,5 +172,70 @@ func TestShippingVPProgression(t *testing.T) {
 		if calculated != vp {
 			t.Errorf("VP calculation incorrect for level %d: expected %d, got %d", level, vp, calculated)
 		}
+	}
+}
+
+func TestDiggingLevelConstraints(t *testing.T) {
+	// Test that most factions can advance to level 2
+	gs := NewGameState()
+	auren := factions.NewAuren()
+	gs.AddPlayer("player1", auren)
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+	player.Resources.Priests = 100
+
+	// Advance to level 1
+	action1 := NewAdvanceDiggingAction("player1")
+	if err := action1.Execute(gs); err != nil {
+		t.Fatalf("should be able to advance to level 1: %v", err)
+	}
+
+	// Advance to level 2
+	action2 := NewAdvanceDiggingAction("player1")
+	if err := action2.Execute(gs); err != nil {
+		t.Fatalf("should be able to advance to level 2: %v", err)
+	}
+
+	// Try to advance to level 3 (should fail)
+	action3 := NewAdvanceDiggingAction("player1")
+	if err := action3.Execute(gs); err == nil {
+		t.Error("should not be able to advance to level 3")
+	}
+
+	// Test Fakirs can only advance to level 1
+	gs2 := NewGameState()
+	fakirs := factions.NewFakirs()
+	gs2.AddPlayer("player2", fakirs)
+	player2 := gs2.GetPlayer("player2")
+	player2.Resources.Coins = 100
+	player2.Resources.Workers = 100
+	player2.Resources.Priests = 100
+
+	// Advance to level 1
+	action4 := NewAdvanceDiggingAction("player2")
+	if err := action4.Execute(gs2); err != nil {
+		t.Fatalf("Fakirs should be able to advance to level 1: %v", err)
+	}
+
+	// Try to advance to level 2 (should fail for Fakirs)
+	action5 := NewAdvanceDiggingAction("player2")
+	if err := action5.Execute(gs2); err == nil {
+		t.Error("Fakirs should not be able to advance to level 2")
+	}
+
+	// Test Darklings cannot advance digging at all
+	gs3 := NewGameState()
+	darklings := factions.NewDarklings()
+	gs3.AddPlayer("player3", darklings)
+	player3 := gs3.GetPlayer("player3")
+	player3.Resources.Coins = 100
+	player3.Resources.Workers = 100
+	player3.Resources.Priests = 100
+
+	// Try to advance (should fail immediately)
+	action6 := NewAdvanceDiggingAction("player3")
+	if err := action6.Execute(gs3); err == nil {
+		t.Error("Darklings should not be able to advance digging at all")
 	}
 }

@@ -39,6 +39,12 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 	case ActionUpgrade:
 		return convertUpgradeAction(playerID, params, gs)
 
+	case ActionTransform:
+		// Pure transform action (e.g., "dig 1. transform H8 to green")
+		// The dig cost is already paid (reflected in deltas), we just need to transform the terrain
+		// Return nil - the validator will handle the transform via executeTransformFromAction
+		return nil, nil
+
 	case ActionTransformAndBuild:
 		return convertTransformAndBuildAction(playerID, params, gs)
 
@@ -177,7 +183,39 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			return nil, fmt.Errorf("power action with build but no transform not yet implemented")
 		}
 
-		// Standalone power action (ACT1=bridge, ACT2=priest, ACT3=workers, ACT4=coins)
+		// Check if this is a bridge action with coordinates
+		bridgeFrom, hasBridgeFrom := params["bridge_from"]
+		bridgeTo, hasBridgeTo := params["bridge_to"]
+		if powerActionType == game.PowerActionBridge && hasBridgeFrom && hasBridgeTo {
+			// Parse bridge endpoints
+			hex1, err := ConvertLogCoordToAxial(bridgeFrom)
+			if err != nil {
+				return nil, fmt.Errorf("invalid bridge coordinate %s: %v", bridgeFrom, err)
+			}
+			hex2, err := ConvertLogCoordToAxial(bridgeTo)
+			if err != nil {
+				return nil, fmt.Errorf("invalid bridge coordinate %s: %v", bridgeTo, err)
+			}
+
+			// Execute the power action to pay the cost
+			powerAction := game.NewPowerAction(playerID, powerActionType)
+			if err := powerAction.Validate(gs); err != nil {
+				return nil, fmt.Errorf("bridge power action validation failed: %v", err)
+			}
+			if err := powerAction.Execute(gs); err != nil {
+				return nil, fmt.Errorf("bridge power action execution failed: %v", err)
+			}
+
+			// Build the bridge
+			if err := gs.Map.BuildBridge(hex1, hex2); err != nil {
+				return nil, fmt.Errorf("failed to build bridge: %v", err)
+			}
+
+			// Return nil to indicate action was executed inline
+			return nil, nil
+		}
+
+		// Standalone power action (ACT2=priest, ACT3=workers, ACT4=coins, or ACT1=bridge without coords)
 		return game.NewPowerAction(playerID, powerActionType), nil
 
 	case ActionBurnPower:
@@ -340,12 +378,67 @@ func convertUpgradeAction(playerID string, params map[string]string, gs *game.Ga
 	// If there's a town tile specified, this is a compound action:
 	// upgrade + select town tile (e.g., upgrade to TP and form town). Execute both immediately.
 	if townTileStr, hasTownTile := params["town_tile"]; hasTownTile {
-		// Execute upgrade first
-		if err := upgradeAction.Validate(gs); err != nil {
-			return nil, fmt.Errorf("upgrade validation failed: %v", err)
-		}
-		if err := upgradeAction.Execute(gs); err != nil {
-			return nil, fmt.Errorf("upgrade execution failed: %v", err)
+		// If skipValidation is set, manually place the building (resources already synced)
+		// Otherwise, execute the upgrade normally
+		if skipValidation {
+			// Manually place the upgraded building
+			mapHex := gs.Map.GetHex(hex)
+			if mapHex == nil {
+				return nil, fmt.Errorf("hex does not exist: %v", hex)
+			}
+			player := gs.GetPlayer(playerID)
+			if player == nil {
+				return nil, fmt.Errorf("player not found: %s", playerID)
+			}
+
+			// Get new power value
+			var newPowerValue int
+			switch buildingType {
+			case models.BuildingTradingHouse:
+				newPowerValue = 2
+			case models.BuildingTemple, models.BuildingStronghold, models.BuildingSanctuary:
+				newPowerValue = 3
+			default:
+				newPowerValue = 1
+			}
+
+			// Upgrade the building
+			mapHex.Building.Type = buildingType
+			mapHex.Building.PowerValue = newPowerValue
+
+			// Trigger power leech
+			gs.TriggerPowerLeech(hex, playerID)
+
+			// Award VP from Water+1 favor tile if upgrading to Trading House
+			if buildingType == models.BuildingTradingHouse {
+				playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
+				if game.HasFavorTile(playerTiles, game.FavorWater1) {
+					player.VictoryPoints += 3
+				}
+			}
+
+			// Award VP from scoring tile
+			var scoringAction game.ScoringActionType
+			switch buildingType {
+			case models.BuildingTradingHouse:
+				scoringAction = game.ScoringActionTradingHouse
+			case models.BuildingTemple, models.BuildingSanctuary:
+				scoringAction = game.ScoringActionTemple
+			case models.BuildingStronghold:
+				scoringAction = game.ScoringActionStronghold
+			}
+			gs.AwardActionVP(playerID, scoringAction)
+
+			// Check for town formation
+			gs.CheckForTownFormation(playerID, hex)
+		} else {
+			// Normal execution: validate and execute upgrade
+			if err := upgradeAction.Validate(gs); err != nil {
+				return nil, fmt.Errorf("upgrade validation failed: %v", err)
+			}
+			if err := upgradeAction.Execute(gs); err != nil {
+				return nil, fmt.Errorf("upgrade execution failed: %v", err)
+			}
 		}
 
 		// Parse town tile
