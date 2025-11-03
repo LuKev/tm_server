@@ -171,12 +171,44 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
-	// Handle compound convert actions: execute the convert part before the main action
-	// Examples:
-	//   "convert 1PW to 1C. action ACTW. build H4"
-	//   "convert 1P to 1W. dig 2. build D5"
-	// Skip convert+pass and convert+upgrade as they have specialized handlers below
-	if strings.HasPrefix(entry.Action, "convert ") && !strings.Contains(entry.Action, "pass ") && !strings.Contains(entry.Action, "upgrade ") {
+	// Handle compound convert + send priest + convert actions
+	// Example: "convert 1PW to 1C. send p to EARTH. convert 1PW to 1C"
+	// The converts must happen in order: first convert, send priest (which grants power), second convert
+	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "send p to") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			parts := strings.Split(entry.Action, ".")
+			for i, part := range parts {
+				part = strings.TrimSpace(part)
+				
+				if strings.HasPrefix(part, "convert ") {
+					// Execute this specific convert
+					v.executeConvertFromAction(player, part)
+				} else if strings.HasPrefix(part, "send p to ") {
+					// Execute the send priest action
+					// The action conversion will happen normally below
+					// But we need to sync power bowls to reflect the converts so far
+					v.syncPlayerPowerBowls(player, entry)
+					
+					// Execute remaining parts after this as separate converts
+					for j := i + 1; j < len(parts); j++ {
+						remainingPart := strings.TrimSpace(parts[j])
+						if strings.HasPrefix(remainingPart, "convert ") {
+							// This convert happens after the send priest
+							// We'll handle it after the action executes
+							continue
+						}
+					}
+					break
+				}
+			}
+		}
+		// Continue to execute the send priest action normally
+	} else if strings.HasPrefix(entry.Action, "convert ") && !strings.Contains(entry.Action, "pass ") && !strings.Contains(entry.Action, "upgrade ") {
+		// Handle compound convert + action patterns where converts need to be executed first
+		// Examples:
+		//   "convert 1PW to 1C. action ACTW. build H4"
+		//   "convert 1P to 1W. dig 2. build D5"
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
 			v.executeConvertFromAction(player, entry.Action)
@@ -267,7 +299,25 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
 		}
-		
+	}
+
+	// Handle post-action converts for compound "convert + send p to + convert" actions
+	// After the send priest action grants power, we need to execute remaining converts
+	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "send p to") {
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			parts := strings.Split(entry.Action, ".")
+			foundSendPriest := false
+			for _, part := range parts {
+				part = strings.TrimSpace(part)
+				if foundSendPriest && strings.HasPrefix(part, "convert ") {
+					// Execute converts that come after "send p to"
+					v.executeConvertFromAction(player, part)
+				} else if strings.HasPrefix(part, "send p to ") {
+					foundSendPriest = true
+				}
+			}
+		}
 	}
 
 	// Then, validate state matches the log entry AFTER executing the action
