@@ -436,13 +436,19 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		for i, part := range parts {
 			part = strings.TrimSpace(part)
 			if strings.HasPrefix(part, "upgrade ") {
-				// Found the upgrade part - parse it and any following favor tile
-				// Look for favor tile in the same part or next part
+				// Found the upgrade part - parse it and any following favor/town tile
+				// Look for favor/town tile in the same part or next part
 				favorPart := ""
+				townPart := ""
 				if strings.Contains(part, "+FAV") {
 					favorPart = part
 				} else if i+1 < len(parts) && strings.Contains(parts[i+1], "+FAV") {
 					favorPart = parts[i+1]
+				}
+				if strings.Contains(part, "+TW") {
+					townPart = part
+				} else if i+1 < len(parts) && strings.Contains(parts[i+1], "+TW") {
+					townPart = parts[i+1]
 				}
 
 				// Parse the upgrade
@@ -458,6 +464,14 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 						favorMatch := regexp.MustCompile(`\+FAV(\d+)`).FindStringSubmatch(favorPart)
 						if len(favorMatch) > 1 {
 							params["favor_tile"] = "FAV" + favorMatch[1] // No "+" prefix for ParseFavorTile
+						}
+					}
+
+					// Parse town tile if present
+					if townPart != "" {
+						townMatch := regexp.MustCompile(`\+TW(\d+)`).FindStringSubmatch(townPart)
+						if len(townMatch) > 1 {
+							params["town_tile"] = "TW" + townMatch[1]
 						}
 					}
 

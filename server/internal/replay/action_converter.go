@@ -9,24 +9,17 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-// ConvertLogEntryToAction converts a parsed log entry to a game.Action
+// ConvertLogEntryToAction converts a log entry to a game action
 func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, error) {
 	if entry.IsComment {
-		return nil, nil // Skip comment entries
+		return nil, nil
 	}
 
-	if entry.Action == "" {
-		return nil, nil // Skip entries with no action
-	}
-
-	// Parse the action string
+	playerID := entry.Faction.String()
 	actionType, params, err := ParseAction(entry.Action)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse action: %v", err)
 	}
-
-	// Get player ID from faction (using faction name as player ID)
-	playerID := entry.Faction.String()
 
 	// Check if we're in setup phase
 	isSetup := (gs != nil && gs.Phase == game.PhaseSetup)
@@ -37,7 +30,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return convertBuildAction(playerID, params, isSetup)
 
 	case ActionUpgrade:
-		return convertUpgradeAction(playerID, params, gs)
+		return convertUpgradeAction(playerID, params, entry, gs)
 
 	case ActionTransform:
 		// Pure transform action (e.g., "dig 1. transform H8 to green")
@@ -258,7 +251,7 @@ func convertBuildAction(playerID string, params map[string]string, isSetup bool)
 	return game.NewTransformAndBuildAction(playerID, hex, true), nil
 }
 
-func convertUpgradeAction(playerID string, params map[string]string, gs *game.GameState) (game.Action, error) {
+func convertUpgradeAction(playerID string, params map[string]string, entry *LogEntry, gs *game.GameState) (game.Action, error) {
 	coordStr, ok := params["coord"]
 	if !ok {
 		return nil, fmt.Errorf("upgrade action missing coord")

@@ -319,11 +319,14 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
 	}
 
+
 	// Execute the action (if it's not nil)
 	if action != nil {
+		
 		if err := v.executeAction(action); err != nil {
 			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
 		}
+		
 	}
 
 	// Handle post-action converts for compound "convert + send p to + convert" actions

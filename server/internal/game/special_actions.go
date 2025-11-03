@@ -769,7 +769,10 @@ func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState, player *Playe
 	// Advance 1 space on the chosen cult track (free)
 	// This uses the cult track system which handles power bonuses automatically
 	// Use AdvanceCultTrack wrapper to properly sync both CultTrackState and player.CultPositions
-	gs.AdvanceCultTrack(a.PlayerID, *a.CultTrack, 1)
+	_, err := gs.AdvanceCultTrack(a.PlayerID, *a.CultTrack, 1)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
