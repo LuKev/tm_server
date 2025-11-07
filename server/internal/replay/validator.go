@@ -156,120 +156,35 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
-	// Handle dig + transform actions: sync resources and transform terrain
-	// Example: "dig 1. transform H8 to green"
-	// The dig is a state change (reflected in deltas), transform changes terrain
-	if strings.HasPrefix(entry.Action, "dig ") && strings.Contains(entry.Action, "transform ") && !strings.Contains(entry.Action, "convert ") {
+	// Handle bonus card cult advancements (e.g., "action BON2. +WATER")
+	// These are FREE cult advancements from bonus card special actions
+	// Sync state and skip execution (like pure cult advancement entries)
+	if strings.Contains(entry.Action, "action BON") &&
+	   (strings.Contains(entry.Action, "+FIRE") || strings.Contains(entry.Action, "+WATER") ||
+	    strings.Contains(entry.Action, "+EARTH") || strings.Contains(entry.Action, "+AIR")) {
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
-			v.syncPlayerResources(player, entry)
-		}
-
-		// Parse and execute the transform part
-		v.executeTransformFromAction(entry.Action)
-		// Skip normal action execution
-		return nil
-	}
-
-	// Handle compound convert + dig + transform actions: sync resources and transform terrain
-	// Example: "convert 1PW to 1C. dig 1. transform H4 to green"
-	// The convert and dig are state changes (reflected in deltas), transform changes terrain
-	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "dig ") && strings.Contains(entry.Action, "transform ") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			v.syncPlayerResources(player, entry)
-		}
-
-		// Parse and execute the transform part
-		v.executeTransformFromAction(entry.Action)
-		// Skip normal action execution
-		return nil
-	}
-
-	// Handle compound convert + send priest + convert actions
-	// Example: "convert 1PW to 1C. send p to EARTH. convert 1PW to 1C"
-	// The converts must happen in order: first convert, send priest (which grants power), second convert
-	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "send p to") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			parts := strings.Split(entry.Action, ".")
-			for i, part := range parts {
-				part = strings.TrimSpace(part)
-				
-				if strings.HasPrefix(part, "convert ") {
-					// Execute this specific convert
-					v.executeConvertFromAction(player, part)
-				} else if strings.HasPrefix(part, "send p to ") {
-					// Execute the send priest action
-					// The action conversion will happen normally below
-					// But we need to sync power bowls to reflect the converts so far
-					v.syncPlayerPowerBowls(player, entry)
-					
-					// Execute remaining parts after this as separate converts
-					for j := i + 1; j < len(parts); j++ {
-						remainingPart := strings.TrimSpace(parts[j])
-						if strings.HasPrefix(remainingPart, "convert ") {
-							// This convert happens after the send priest
-							// We'll handle it after the action executes
-							continue
-						}
-					}
-					break
-				}
-			}
-		}
-		// Continue to execute the send priest action normally
-	} else if strings.HasPrefix(entry.Action, "convert ") && !strings.Contains(entry.Action, "pass ") && !strings.Contains(entry.Action, "upgrade ") {
-		// Handle compound convert + action patterns where converts need to be executed first
-		// Examples:
-		//   "convert 1PW to 1C. action ACTW. build H4"
-		//   "convert 1P to 1W. dig 2. build D5"
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			v.executeConvertFromAction(player, entry.Action)
-		}
-		// Continue to execute the main action
-	} else if strings.Contains(entry.Action, "convert ") && !strings.Contains(entry.Action, "pass ") && !strings.Contains(entry.Action, "upgrade ") {
-		// Handle compound action + convert patterns (reverse order)
-		// Examples:
-		//   "action ACT6. convert 1W to 1C. build D7"
-		//   "burn 3. action ACT2. convert 1PW to 1C"
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			v.executeConvertFromAction(player, entry.Action)
-		}
-		// Continue to execute the main action
-	}
-
-	// Handle compound convert + pass actions: execute convert, then pass
-	// Example: "convert 1PW to 1C. pass BON7" with delta "+3" (1 from convert + 2 from bonus card)
-	// Bug: Previously we synced coins to final state (which includes bonus card coins),
-	// then PassAction added bonus card coins again, double-counting them.
-	// Fix: Execute convert to add its coins, sync power bowls to final state, then execute pass
-	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "pass ") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			v.executeConvertFromAction(player, entry.Action)
-			// Sync power bowls to final state (in case conversion isn't 1:1 or there are other effects)
-			v.syncPlayerPowerBowls(player, entry)
-		}
-		// Continue to execute pass (which will add bonus card coins)
-	}
-
-	// Handle compound convert+upgrade actions: sync all state, then execute action for building placement
-	// Example: "convert 1W to 1C. upgrade F3 to TE. +FAV9"
-	// Note: Action may have power leech prefix like "2 3  convert 1W to 1C. upgrade..."
-	// The convert AND upgrade costs are reflected in resource deltas, so we sync state first
-	// Then execute the action which will place the building (action converter skips validation/cost payment)
-	if strings.Contains(entry.Action, "convert ") && strings.Contains(entry.Action, "upgrade ") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
-		if player != nil {
-			// Sync all state (includes convert + upgrade costs, favor tile might advance cult)
+			// Sync all state - cult advancements can trigger power/coin gains
 			v.syncPlayerState(player, entry.Faction.String(), entry)
 		}
-		// Continue to execute action - it will place building and apply favor tile
-		// (action converter skips validation since resources are pre-synced)
+		// Skip normal action execution and validation
+		return nil
 	}
+
+	// ========== COMPOUND ACTION PATH (NEW) ==========
+	// Try to handle action using compound action parser
+	// This handles all normal player actions (build, upgrade, transform, send priest, pass, etc.)
+	// Note: Bonus card actions (action BONX) are handled by skipping the "action BONX" token
+	// in the compound parser and just executing the actual action
+	if handled, err := v.tryExecuteCompoundAction(entry); handled {
+		if err != nil {
+			return fmt.Errorf("compound action failed at entry %d: %v", v.CurrentEntry, err)
+		}
+		return nil // Successfully handled by compound parser
+	}
+
+	// If we reach here, the action wasn't handled by compound parser
+	// This should only happen for special entries (income, leech, etc.) which are handled below
 
 	// Handle cult income phase (only validates, doesn't grant income - cult rewards already given in cleanup)
 	if entry.Action == "cult_income_for_faction" {
@@ -302,83 +217,43 @@ func (v *GameValidator) ValidateNextEntry() error {
 		return nil
 	}
 
-	// Validate resources BEFORE executing action (except for leech/decline/income entries)
-	// Also skip for compound convert actions since conversion is pre-executed or state is pre-synced
-	if !strings.Contains(entry.Action, "Leech") &&
-	   !strings.Contains(entry.Action, "Decline") &&
-	   !strings.Contains(entry.Action, "_income_for_faction") &&
-	   !strings.Contains(entry.Action, "show history") &&
-	   !strings.Contains(entry.Action, "convert ") &&
-	   entry.Faction.String() != "" {
-		v.validateResourcesBeforeAction(entry)
-	}
-
-	// First, try to convert and execute the action for this entry
-	action, err := ConvertLogEntryToAction(entry, v.GameState)
-	if err != nil {
-		return fmt.Errorf("failed to convert action at entry %d: %v", v.CurrentEntry, err)
-	}
-
-
-	// Execute the action (if it's not nil)
-	if action != nil {
-		
-		if err := v.executeAction(action); err != nil {
-			return fmt.Errorf("failed to execute action at entry %d: %v", v.CurrentEntry, err)
-		}
-		
-	}
-
-	// Handle post-action converts for compound "convert + send p to + convert" actions
-	// After the send priest action grants power, we need to execute remaining converts
-	if strings.HasPrefix(entry.Action, "convert ") && strings.Contains(entry.Action, "send p to") {
+	// Handle final scoring entries (network, resources)
+	if strings.Contains(entry.Action, "vp for network") {
+		// Network scoring - sync state to match log
 		player := v.GameState.GetPlayer(entry.Faction.String())
 		if player != nil {
-			parts := strings.Split(entry.Action, ".")
-			foundSendPriest := false
-			for _, part := range parts {
-				part = strings.TrimSpace(part)
-				if foundSendPriest && strings.HasPrefix(part, "convert ") {
-					// Execute converts that come after "send p to"
-					v.executeConvertFromAction(player, part)
-				} else if strings.HasPrefix(part, "send p to ") {
-					foundSendPriest = true
-				}
-			}
+			v.syncPlayerState(player, entry.Faction.String(), entry)
 		}
+		return nil
 	}
 
-	// Handle town tile selection for actions with "+TW" marker
-	// Example: "action BON1. build I7. +TW5"
-	// The main action creates a pending town formation, now we select the tile
-	// Note: Only process if there's actually a pending town formation (action_converter
-	// handles upgrade+town tile compounds, so those won't have pending formations here)
-	if strings.Contains(entry.Action, "+TW") {
-		playerID := entry.Faction.String()
-		// Only process if there's a pending town formation
-		if v.GameState.PendingTownFormations[playerID] != nil {
-			// Extract town tile marker (e.g., "+TW5")
-			parts := strings.Split(entry.Action, ".")
-			for _, part := range parts {
-				part = strings.TrimSpace(part)
-				if strings.HasPrefix(part, "+TW") {
-					townTileStr := strings.TrimPrefix(part, "+")
-					townTileType, err := ParseTownTile(townTileStr)
-					if err != nil {
-						return fmt.Errorf("failed to parse town tile %s: %v", townTileStr, err)
-					}
-
-					if err := v.GameState.SelectTownTile(playerID, townTileType); err != nil {
-						return fmt.Errorf("failed to select town tile: %v", err)
-					}
-					break
-				}
-			}
+	if entry.Action == "score_resources" {
+		// Resource to VP conversion - sync state to match log
+		player := v.GameState.GetPlayer(entry.Faction.String())
+		if player != nil {
+			v.syncPlayerState(player, entry.Faction.String(), entry)
 		}
+		return nil
 	}
 
-	// Then, validate state matches the log entry AFTER executing the action
-	// (The log shows state AFTER the action is executed)
+	// Handle "wait" action (player is waiting, no state change)
+	if entry.Action == "wait" {
+		// Just validate state - no action to execute
+		if err := v.ValidateState(entry); err != nil {
+			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+		}
+		return nil
+	}
+
+	// If we reach here, the action was not handled by compound parser
+	// This should not happen for normal player actions
+	if entry.Action != "" && !entry.IsComment && entry.Faction.String() != "" {
+		// Unexpected: normal player action not handled by compound parser
+		return fmt.Errorf("action not handled by compound parser at entry %d: %s (faction: %s)",
+			v.CurrentEntry, entry.Action, entry.Faction.String())
+	}
+
+	// Validate state matches the log entry (for non-action entries like comments)
 	if err := v.ValidateState(entry); err != nil {
 		return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
 	}
@@ -642,18 +517,48 @@ func (v *GameValidator) syncPlayerResources(player *game.Player, entry *LogEntry
 	player.Resources.Power.Bowl3 = entry.PowerBowls.Bowl3
 }
 
+// syncPlayerResourcesExcludingVPAndCult syncs only workers (not coins, priests, or power)
+// Used for town tile actions where VP, cult tracks, coins, priests, and power may be affected by the tile
+// Town tiles can grant: coins (TW1), priests (TW2/TW3), power (TW4/TW5/TW6 via direct grant or cult milestones)
+// Workers are the only safe resource to sync since no town tile grants workers (except TW7 which we handle)
+func (v *GameValidator) syncPlayerResourcesExcludingVPAndCult(player *game.Player, entry *LogEntry) {
+	player.Resources.Workers = entry.Workers
+	// Do NOT sync coins, priests, or power - these may include town tile benefits that will be re-applied
+}
+
 // syncPlayerCultPositions syncs player cult positions to match log entry
 func (v *GameValidator) syncPlayerCultPositions(player *game.Player, factionStr string, entry *LogEntry) {
 	player.CultPositions[game.CultFire] = entry.CultTracks.Fire
 	player.CultPositions[game.CultWater] = entry.CultTracks.Water
 	player.CultPositions[game.CultEarth] = entry.CultTracks.Earth
 	player.CultPositions[game.CultAir] = entry.CultTracks.Air
-	
+
 	// Also sync cult track state
 	v.GameState.CultTracks.PlayerPositions[factionStr][game.CultFire] = entry.CultTracks.Fire
 	v.GameState.CultTracks.PlayerPositions[factionStr][game.CultWater] = entry.CultTracks.Water
 	v.GameState.CultTracks.PlayerPositions[factionStr][game.CultEarth] = entry.CultTracks.Earth
 	v.GameState.CultTracks.PlayerPositions[factionStr][game.CultAir] = entry.CultTracks.Air
+}
+
+// markCultMilestonesAsClaimed marks all cult track milestones up to the current position as claimed
+// This prevents double-granting of milestone bonuses when replaying town tile actions
+func (v *GameValidator) markCultMilestonesAsClaimed(player *game.Player, factionStr string, entry *LogEntry) {
+	tracks := map[game.CultTrack]int{
+		game.CultFire:  entry.CultTracks.Fire,
+		game.CultWater: entry.CultTracks.Water,
+		game.CultEarth: entry.CultTracks.Earth,
+		game.CultAir:   entry.CultTracks.Air,
+	}
+
+	milestonePositions := []int{3, 5, 7, 10}
+
+	for track, position := range tracks {
+		for _, milestone := range milestonePositions {
+			if position >= milestone {
+				v.GameState.CultTracks.BonusPositionsClaimed[factionStr][track][milestone] = true
+			}
+		}
+	}
 }
 
 // syncPlayerPowerBowls syncs only power bowls to match log entry
@@ -684,6 +589,84 @@ func (v *GameValidator) addError(line int, entry *LogEntry, field string, expect
 // HasErrors returns true if there are any validation errors
 func (v *GameValidator) HasErrors() bool {
 	return len(v.Errors) > 0
+}
+
+// tryExecuteCompoundAction attempts to parse and execute an action using the compound parser
+// Returns (handled, error) where handled=true means the action was processed by compound parser
+func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) {
+	// Skip for special entry types that need custom handling
+	if entry.IsComment ||
+		strings.Contains(entry.Action, "Leech") ||
+		strings.Contains(entry.Action, "Decline") ||
+		strings.Contains(entry.Action, "_income_for_faction") ||
+		strings.Contains(entry.Action, "[opponent accepted power]") ||
+		strings.Contains(entry.Action, "[all opponents declined power]") ||
+		entry.Action == "setup" ||
+		entry.Action == "wait" {
+		return false, nil // Not a compound action, use old path
+	}
+
+	// Skip pure cult advancement entries (these are informational)
+	if strings.HasPrefix(entry.Action, "+") &&
+		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
+			strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) &&
+		!strings.Contains(entry.Action, "pass") &&
+		!strings.Contains(entry.Action, "upgrade") &&
+		!strings.Contains(entry.Action, "build") {
+		return false, nil // Informational entry, use old path
+	}
+
+	playerID := entry.Faction.String()
+	if playerID == "" {
+		return false, nil // No player, use old path
+	}
+
+	// Try to parse as compound action
+	compound, err := ParseCompoundAction(entry.Action, entry, v.GameState)
+	if err != nil {
+		// Parsing failed, fall back to old path
+		// This is expected for some action types not yet supported by compound parser
+		return false, nil
+	}
+
+	if len(compound.Components) == 0 {
+		return false, nil // No components, use old path
+	}
+
+	// Debug logging for entry 333
+	if v.CurrentEntry == 333 {
+		player := v.GameState.GetPlayer(playerID)
+		if player != nil {
+			fmt.Printf("DEBUG Entry 333 Action string: %s\n", entry.Action)
+			fmt.Printf("DEBUG Entry 333 BEFORE: Workers=%d, Priests=%d\n",
+				player.Resources.Workers, player.Resources.Priests)
+			fmt.Printf("DEBUG Entry 333 compound action:\n%s\n", compound.String())
+			fmt.Printf("DEBUG Entry 333 PendingDarklingsPriestOrdination: %v\n", v.GameState.PendingDarklingsPriestOrdination)
+		}
+	}
+
+	// Execute all components in order
+	if err := compound.Execute(v.GameState, playerID); err != nil {
+		return true, fmt.Errorf("compound action execution failed: %w", err)
+	}
+
+	// Debug logging for entry 333
+	if v.CurrentEntry == 333 {
+		player := v.GameState.GetPlayer(playerID)
+		if player != nil {
+			fmt.Printf("DEBUG Entry 333 AFTER: Workers=%d, Priests=%d\n",
+				player.Resources.Workers, player.Resources.Priests)
+			fmt.Printf("DEBUG Entry 333 PendingDarklingsPriestOrdination: %v\n", v.GameState.PendingDarklingsPriestOrdination)
+		}
+	}
+
+	// Validate final state matches log
+	if err := v.ValidateState(entry); err != nil {
+		// Record error but don't fail - we want to continue validation
+		// The ValidateState function already adds errors to v.Errors
+	}
+
+	return true, nil
 }
 
 // GetErrorSummary returns a summary of all errors

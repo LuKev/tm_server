@@ -437,18 +437,30 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 			part = strings.TrimSpace(part)
 			if strings.HasPrefix(part, "upgrade ") {
 				// Found the upgrade part - parse it and any following favor/town tile
-				// Look for favor/town tile in the same part or next part
+				// Look for favor/town tile in the same part or any following parts
 				favorPart := ""
 				townPart := ""
 				if strings.Contains(part, "+FAV") {
 					favorPart = part
-				} else if i+1 < len(parts) && strings.Contains(parts[i+1], "+FAV") {
-					favorPart = parts[i+1]
+				} else {
+					// Check all remaining parts for +FAV
+					for j := i + 1; j < len(parts); j++ {
+						if strings.Contains(parts[j], "+FAV") {
+							favorPart = parts[j]
+							break
+						}
+					}
 				}
 				if strings.Contains(part, "+TW") {
 					townPart = part
-				} else if i+1 < len(parts) && strings.Contains(parts[i+1], "+TW") {
-					townPart = parts[i+1]
+				} else {
+					// Check all remaining parts for +TW
+					for j := i + 1; j < len(parts); j++ {
+						if strings.Contains(parts[j], "+TW") {
+							townPart = parts[j]
+							break
+						}
+					}
 				}
 
 				// Parse the upgrade

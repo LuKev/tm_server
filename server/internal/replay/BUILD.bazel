@@ -4,6 +4,8 @@ go_library(
     name = "replay",
     srcs = [
         "action_converter.go",
+        "compound_action.go",
+        "compound_parser.go",
         "coordinates.go",
         "game_setup.go",
         "notation.go",
@@ -21,9 +23,17 @@ go_library(
 
 go_test(
     name = "replay_test",
-    srcs = ["parser_test.go"],
+    srcs = [
+        "compound_integration_test.go",
+        "compound_parser_test.go",
+        "convert_upgrade_test.go",
+        "cult_spade_test.go",
+        "parser_test.go",
+    ],
     embed = [":replay"],
     deps = [
+        "//internal/game",
+        "//internal/game/factions",
         "//internal/models",
     ],
 )

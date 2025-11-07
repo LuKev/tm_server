@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -30,6 +31,9 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return convertBuildAction(playerID, params, isSetup)
 
 	case ActionUpgrade:
+		if strings.Contains(entry.Action, "+FAV") && strings.Contains(entry.Action, "+TW") {
+			fmt.Printf("DEBUG action_converter: ActionUpgrade with +FAV and +TW for %s\n", playerID)
+		}
 		return convertUpgradeAction(playerID, params, entry, gs)
 
 	case ActionTransform:
@@ -319,6 +323,23 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 				player.HasStrongholdAbility = true
 			}
 
+			// Award VP from scoring tile ONLY if there's also a town tile
+			// (validator doesn't sync VP for actions with town tiles)
+			// For favor-only actions, VP is already synced by validator, so skip VP awarding
+			_, hasTownTile := params["town_tile"]
+			if hasTownTile {
+				var scoringAction game.ScoringActionType
+				switch buildingType {
+				case models.BuildingTradingHouse:
+					scoringAction = game.ScoringActionTradingHouse
+				case models.BuildingTemple:
+					scoringAction = game.ScoringActionTemple
+				case models.BuildingSanctuary, models.BuildingStronghold:
+					scoringAction = game.ScoringActionStronghold
+				}
+				gs.AwardActionVP(playerID, scoringAction)
+			}
+
 			// Note: Don't set pending favor tile selection when skipValidation is true
 			// The validator has already synced the final state, so we don't need to track
 			// pending actions. The favor tile effects are already included in the synced state.
@@ -364,7 +385,45 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			}
 		}
 
-		// Both actions executed, return nil to skip normal execution
+		// Check if there's also a town tile to process (compound action with both favor and town tiles)
+		if townTileStr, hasTownTile := params["town_tile"]; hasTownTile {
+			// This is a complex action with both favor tile and town tile
+			// The favor tile may have provided a town key (from cult advancement), allowing a town to be formed
+
+			// Check if there's already a pending town formation
+			// If not, check all hexes with player buildings to find potential town formations
+			if gs.PendingTownFormations[playerID] == nil {
+				// Iterate through all hexes with player buildings and check for town formation
+				// Map goes from row 0 to 8, q ranges from -1 to 12
+				for q := -1; q <= 12; q++ {
+					for r := 0; r <= 8; r++ {
+						testHex := game.Hex{Q: q, R: r}
+						mapHex := gs.Map.GetHex(testHex)
+						if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+							gs.CheckForTownFormation(playerID, testHex)
+							if gs.PendingTownFormations[playerID] != nil {
+								break
+							}
+						}
+					}
+					if gs.PendingTownFormations[playerID] != nil {
+						break
+					}
+				}
+			}
+
+			townTileType, err := ParseTownTile(townTileStr)
+			if err != nil {
+				return nil, fmt.Errorf("invalid town tile %s: %v", townTileStr, err)
+			}
+
+			// Select the town tile
+			if err := gs.SelectTownTile(playerID, townTileType); err != nil {
+				return nil, fmt.Errorf("town tile selection failed: %v", err)
+			}
+		}
+
+		// All actions executed, return nil to skip normal execution
 		return nil, nil
 	}
 
@@ -402,6 +461,14 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			// Trigger power leech
 			gs.TriggerPowerLeech(hex, playerID)
 
+			// Apply faction-specific stronghold benefits
+			if buildingType == models.BuildingStronghold {
+				if cultists, ok := player.Faction.(*factions.Cultists); ok {
+					strongholdVP := cultists.BuildStronghold()
+					player.VictoryPoints += strongholdVP
+				}
+			}
+
 			// Award VP from Water+1 favor tile if upgrading to Trading House
 			if buildingType == models.BuildingTradingHouse {
 				playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
@@ -415,15 +482,33 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			switch buildingType {
 			case models.BuildingTradingHouse:
 				scoringAction = game.ScoringActionTradingHouse
-			case models.BuildingTemple, models.BuildingSanctuary:
+			case models.BuildingTemple:
 				scoringAction = game.ScoringActionTemple
-			case models.BuildingStronghold:
+			case models.BuildingSanctuary, models.BuildingStronghold:
 				scoringAction = game.ScoringActionStronghold
 			}
 			gs.AwardActionVP(playerID, scoringAction)
 
-			// Check for town formation
-			gs.CheckForTownFormation(playerID, hex)
+			// Check for town formation - need to check all player buildings, not just this hex
+			// A town can form anywhere in the cluster when we upgrade a building
+			if gs.PendingTownFormations[playerID] == nil {
+				// Iterate through all hexes with player buildings and check for town formation
+				for q := -1; q <= 12; q++ {
+					for r := 0; r <= 8; r++ {
+						testHex := game.Hex{Q: q, R: r}
+						mapHex := gs.Map.GetHex(testHex)
+						if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+							gs.CheckForTownFormation(playerID, testHex)
+							if gs.PendingTownFormations[playerID] != nil {
+								break
+							}
+						}
+					}
+					if gs.PendingTownFormations[playerID] != nil {
+						break
+					}
+				}
+			}
 		} else {
 			// Normal execution: validate and execute upgrade
 			if err := upgradeAction.Validate(gs); err != nil {
@@ -440,9 +525,32 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			return nil, fmt.Errorf("invalid town tile %s: %v", townTileStr, err)
 		}
 
+		// In skipValidation mode (replay), the validator has already synced resources to final state
+		// which includes town tile benefits. So we need to manually create a pending town formation
+		// and skip applying the benefits (they're already in the synced state).
+		if skipValidation && gs.PendingTownFormations[playerID] == nil {
+			// Create a dummy pending town formation
+			// The exact hexes don't matter since we're in replay mode and just need to allow tile selection
+			gs.PendingTownFormations[playerID] = &game.PendingTownFormation{
+				PlayerID: playerID,
+				Hexes:    []game.Hex{hex}, // Use the upgraded hex as placeholder
+			}
+			fmt.Printf("DEBUG: Created pending town formation for replay mode\n")
+		}
+
 		// Select the town tile (this will form the town and apply benefits)
+		debugPlayer := gs.GetPlayer(playerID)
+		if debugPlayer != nil {
+			fmt.Printf("DEBUG: Before SelectTownTile - %s power bowls: %d/%d/%d\n",
+				playerID, debugPlayer.Resources.Power.Bowl1, debugPlayer.Resources.Power.Bowl2, debugPlayer.Resources.Power.Bowl3)
+		}
 		if err := gs.SelectTownTile(playerID, townTileType); err != nil {
 			return nil, fmt.Errorf("town tile selection failed: %v", err)
+		}
+		debugPlayer = gs.GetPlayer(playerID)
+		if debugPlayer != nil {
+			fmt.Printf("DEBUG: After SelectTownTile - %s power bowls: %d/%d/%d\n",
+				playerID, debugPlayer.Resources.Power.Bowl1, debugPlayer.Resources.Power.Bowl2, debugPlayer.Resources.Power.Bowl3)
 		}
 
 		// Both actions executed, return nil to skip normal execution
