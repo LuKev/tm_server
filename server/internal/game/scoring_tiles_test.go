@@ -327,7 +327,7 @@ func TestAwardCultRewards_CultThreshold(t *testing.T) {
 	}
 	
 	// Advance player to position 4 on Water
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 4, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 4, player, gs)
 	
 	initialPriests := player.Resources.Priests
 	

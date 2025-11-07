@@ -37,7 +37,7 @@ func TestCultTrackState_AdvancePlayer(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 
 	// Advance 3 spaces on Fire track
-	advanced, err := gs.CultTracks.AdvancePlayer("player1", CultFire, 3, player)
+	advanced, err := gs.CultTracks.AdvancePlayer("player1", CultFire, 3, player, gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,10 +72,10 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 	player.Keys = 1
 
 	// Advance to position 8
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 8, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 8, player, gs)
 
 	// Try to advance 5 more spaces (should only advance 2 to reach max of 10)
-	advanced, err := gs.CultTracks.AdvancePlayer("player1", CultWater, 5, player)
+	advanced, err := gs.CultTracks.AdvancePlayer("player1", CultWater, 5, player, gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 	}
 
 	// Try to advance further (should return 0)
-	advanced, err = gs.CultTracks.AdvancePlayer("player1", CultWater, 3, player)
+	advanced, err = gs.CultTracks.AdvancePlayer("player1", CultWater, 3, player, gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -114,9 +114,9 @@ func TestCultTrackState_GetRankings(t *testing.T) {
 	player3.Resources.Power.Bowl1 = 20
 
 	// Advance players to different positions
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 7, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 3, player2)
-	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 7, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 3, player2, gs)
+	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3, gs)
 
 	// Get rankings
 	rankings := gs.CultTracks.GetRankings(CultFire)
@@ -155,9 +155,9 @@ func TestCultTrackState_EndGameScoring_Simple(t *testing.T) {
 	player1.Keys = 1
 
 	// Fire track: player1 (10), player2 (5), player3 (2)
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 5, player2)
-	gs.CultTracks.AdvancePlayer("player3", CultFire, 2, player3)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 5, player2, gs)
+	gs.CultTracks.AdvancePlayer("player3", CultFire, 2, player3, gs)
 
 	// Calculate scoring
 	vpByPlayer := gs.CultTracks.CalculateEndGameScoring()
@@ -192,9 +192,9 @@ func TestCultTrackState_EndGameScoring_Tie(t *testing.T) {
 	// Fire track: player1 (7), player2 (7), player3 (3)
 	// Tied for 1st: split 8+4=12 points -> 6 each
 	// 3rd place: 2 points
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 7, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 7, player2)
-	gs.CultTracks.AdvancePlayer("player3", CultFire, 3, player3)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 7, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 7, player2, gs)
+	gs.CultTracks.AdvancePlayer("player3", CultFire, 3, player3, gs)
 
 	// Calculate scoring
 	vpByPlayer := gs.CultTracks.CalculateEndGameScoring()
@@ -227,12 +227,12 @@ func TestCultTrackState_EndGameScoring_MultipleTracks(t *testing.T) {
 	player1.Keys = 1
 
 	// Fire track: player1 (10), player2 (5)
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 5, player2)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 5, player2, gs)
 
 	// Water track: player2 (8), player1 (3)
-	gs.CultTracks.AdvancePlayer("player2", CultWater, 8, player2)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 3, player1)
+	gs.CultTracks.AdvancePlayer("player2", CultWater, 8, player2, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 3, player1, gs)
 
 	// Calculate scoring
 	vpByPlayer := gs.CultTracks.CalculateEndGameScoring()
@@ -262,7 +262,7 @@ func TestCultTrackState_EndGameScoring_NoAdvancement(t *testing.T) {
 	player2.Resources.Power.Bowl1 = 20
 
 	// Only player1 advances on Fire
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player1)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player1, gs)
 	// player2 doesn't advance at all
 
 	// Calculate scoring
@@ -292,7 +292,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 	player.Keys = 1
 
 	// Advance to position 5 (should get 1 bonus at pos 3 + 2 bonus at pos 5 = 3 total, no base power)
-	advanced, err := gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player)
+	advanced, err := gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player, gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -311,7 +311,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 	}
 
 	// Advance to position 10 (should get 2 bonus at pos 7 + 3 bonus at pos 10)
-	advanced, err = gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player)
+	advanced, err = gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player, gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -346,14 +346,14 @@ func TestCultTrackState_Position10Blocked(t *testing.T) {
 	player1.Keys = 1
 
 	// Player 1 reaches position 10
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
 
 	if gs.CultTracks.GetPosition("player1", CultFire) != 10 {
 		t.Errorf("expected player1 at position 10")
 	}
 
 	// Player 2 tries to advance to position 10 (should be blocked at 9)
-	advanced, err := gs.CultTracks.AdvancePlayer("player2", CultFire, 10, player2)
+	advanced, err := gs.CultTracks.AdvancePlayer("player2", CultFire, 10, player2, gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -489,7 +489,7 @@ func TestSendPriestToCult_AlreadyAtMax(t *testing.T) {
 	player.Keys = 1
 
 	// Advance to position 10
-	gs.CultTracks.AdvancePlayer("player1", CultEarth, 10, player)
+	gs.CultTracks.AdvancePlayer("player1", CultEarth, 10, player, gs)
 
 	// Send priest even though already at max (valid move - priest is sacrificed)
 	action := &SendPriestToCultAction{
@@ -529,7 +529,7 @@ func TestTownCultBonus_8Points(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 
 	// Apply 8-point town bonus (+1 on all tracks)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile8Points, player)
+	gs.CultTracks.ApplyTownCultBonus("player1", TownTile8Points, player, gs)
 
 	// Verify all tracks advanced by 1
 	if gs.CultTracks.GetPosition("player1", CultFire) != 1 {
@@ -563,7 +563,7 @@ func TestTownCultBonus_2Keys(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 
 	// Apply 2-key town bonus (+2 on all tracks)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile2Points, player)
+	gs.CultTracks.ApplyTownCultBonus("player1", TownTile2Points, player, gs)
 
 	// Verify all tracks advanced by 2
 	if gs.CultTracks.GetPosition("player1", CultFire) != 2 {
@@ -597,13 +597,13 @@ func TestTownCultBonus_WithMilestones(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 
 	// Advance to position 2 on all tracks first
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 2, player)
-	gs.CultTracks.AdvancePlayer("player1", CultEarth, 2, player)
-	gs.CultTracks.AdvancePlayer("player1", CultAir, 2, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 2, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultEarth, 2, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultAir, 2, player, gs)
 
 	// Apply 8-point town bonus (+1 on all tracks, reaching position 3 on all)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile8Points, player)
+	gs.CultTracks.ApplyTownCultBonus("player1", TownTile8Points, player, gs)
 
 	// Verify all tracks advanced to position 3
 	if gs.CultTracks.GetPosition("player1", CultFire) != 3 {
@@ -640,12 +640,12 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 	player.Keys = 4
 
 	// Advance to position 10 on Fire track
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player, gs)
 	
 	// Advance to position 9 on other tracks
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 9, player)
-	gs.CultTracks.AdvancePlayer("player1", CultEarth, 9, player)
-	gs.CultTracks.AdvancePlayer("player1", CultAir, 9, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 9, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultEarth, 9, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultAir, 9, player, gs)
 
 	// Reset power for clean test
 	initialBowl2 := player.Resources.Power.Bowl2
@@ -653,7 +653,7 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 	// Apply 2-key town bonus (+2 on all tracks)
 	// Fire: 10 → 10 (capped, no advancement)
 	// Others: 9 → 10 (advance 1, not 2, due to cap)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile2Points, player)
+	gs.CultTracks.ApplyTownCultBonus("player1", TownTile2Points, player, gs)
 
 	// Verify Fire stayed at 10
 	if gs.CultTracks.GetPosition("player1", CultFire) != 10 {

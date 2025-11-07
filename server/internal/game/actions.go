@@ -161,14 +161,25 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		if distance == 0 {
 			return fmt.Errorf("terrain distance calculation failed")
 		}
-		
+
+		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
+		freeSpades := 0
+		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+			freeSpades = gs.PendingSpades[a.PlayerID]
+			if freeSpades > distance {
+				freeSpades = distance // Only use what we need
+			}
+		}
+
+		remainingSpades := distance - freeSpades
+
 		// Darklings pay priests for terraform (1 priest per spade)
 		if darklings, ok := player.Faction.(*factions.Darklings); ok {
-			totalPriestsNeeded = darklings.GetTerraformCostInPriests(distance)
+			totalPriestsNeeded = darklings.GetTerraformCostInPriests(remainingSpades)
 		} else {
 			// Other factions pay workers
 			// GetTerraformCost returns total workers needed (already accounts for distance)
-			totalWorkersNeeded = player.Faction.GetTerraformCost(distance)
+			totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
 		}
 	}
 	
@@ -192,12 +203,9 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		} else if mapHex.Terrain != player.Faction.GetHomeTerrain() {
 			return fmt.Errorf("cannot build dwelling: hex is not home terrain")
 		}
-		
+
 		// Check if player can afford dwelling (coins and priests)
 		dwellingCost := player.Faction.GetDwellingCost()
-		if a.PlayerID == "Witches" {
-			fmt.Printf("DEBUG TransformAndBuild.Validate: Witches dwelling check - need %dC, have %dC\n", dwellingCost.Coins, player.Resources.Coins)
-		}
 		if player.Resources.Coins < dwellingCost.Coins {
 			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
 		}
@@ -248,26 +256,40 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	// Step 1: Transform terrain to home terrain if needed
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
-	fmt.Printf("DEBUG TransformAndBuild: %s building on %v, terrain=%v, home=%v, needsTransform=%v\n",
-		a.PlayerID, a.TargetHex, mapHex.Terrain, player.Faction.GetHomeTerrain(), needsTransform)
 	if needsTransform {
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
 
-		// Darklings pay priests for terraform (instead of workers)
-		if darklings, ok := player.Faction.(*factions.Darklings); ok {
-			priestCost := darklings.GetTerraformCostInPriests(distance)
-			fmt.Printf("DEBUG: %s paying %d priests for %d spades of terraform\n", a.PlayerID, priestCost, distance)
-			player.Resources.Priests -= priestCost
-			
-			// Award Darklings VP bonus (+2 VP per spade)
-			vpBonus := darklings.GetTerraformVPBonus(distance)
-			player.VictoryPoints += vpBonus
-		} else {
-			// Other factions pay workers
-			totalWorkers := player.Faction.GetTerraformCost(distance)
-			fmt.Printf("DEBUG: %s paying %d workers for %d spades of terraform (before: %d W, after: %d W)\n",
-				a.PlayerID, totalWorkers, distance, player.Resources.Workers, player.Resources.Workers-totalWorkers)
-			player.Resources.Workers -= totalWorkers
+		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
+		freeSpades := 0
+		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+			freeSpades = gs.PendingSpades[a.PlayerID]
+			if freeSpades > distance {
+				freeSpades = distance // Only use what we need
+			}
+			// Consume free spades
+			gs.PendingSpades[a.PlayerID] -= freeSpades
+			if gs.PendingSpades[a.PlayerID] == 0 {
+				delete(gs.PendingSpades, a.PlayerID)
+			}
+		}
+
+		remainingSpades := distance - freeSpades
+
+		// Pay for remaining spades only
+		if remainingSpades > 0 {
+			// Darklings pay priests for terraform (instead of workers)
+			if darklings, ok := player.Faction.(*factions.Darklings); ok {
+				priestCost := darklings.GetTerraformCostInPriests(remainingSpades)
+				player.Resources.Priests -= priestCost
+
+				// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
+				vpBonus := darklings.GetTerraformVPBonus(remainingSpades)
+				player.VictoryPoints += vpBonus
+			} else {
+				// Other factions pay workers
+				totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
+				player.Resources.Workers -= totalWorkers
+			}
 		}
 
 		// Transform terrain to home terrain
@@ -533,10 +555,13 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 
 	// Trigger power leech when upgrading (adjacent players leech based by their adjacent buildings)
 	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
-	
+
 	// Check for town formation after upgrading
-	// CheckForTownFormation handles creating PendingTownFormation if needed
-	gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+	// For Temple/Sanctuary: defer town check until after favor tile is selected
+	// (favor tiles can reduce town power requirement from 7 to 6)
+	if a.NewBuildingType != models.BuildingTemple && a.NewBuildingType != models.BuildingSanctuary {
+		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+	}
 
 	return nil
 }
@@ -687,20 +712,9 @@ func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	cost := player.Faction.GetShippingCost(player.ShippingLevel)
 
-	if a.PlayerID == "Engineers" {
-		fmt.Printf("DEBUG AdvanceShippingAction: %s upgrading shipping level %d, cost=%dC %dW %dP, have %dC %dW %dP\n",
-			a.PlayerID, player.ShippingLevel, cost.Coins, cost.Workers, cost.Priests,
-			player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
-	}
-
 	// Pay for upgrade
 	if err := player.Resources.Spend(cost); err != nil {
 		return fmt.Errorf("failed to pay for shipping: %w", err)
-	}
-
-	if a.PlayerID == "Engineers" {
-		fmt.Printf("DEBUG AdvanceShippingAction: %s AFTER spending, have %dC %dW %dP\n",
-			a.PlayerID, player.Resources.Coins, player.Resources.Workers, player.Resources.Priests)
 	}
 
 	// Advance shipping and award VP
@@ -805,14 +819,11 @@ func (a *PassAction) Validate(gs *GameState) error {
 	}
 
 	if a.BonusCard != nil && !gs.BonusCards.IsAvailable(*a.BonusCard) {
-		// Debug: show which cards ARE available
 		availableCards := []BonusCardType{}
 		for cardType := range gs.BonusCards.Available {
 			availableCards = append(availableCards, cardType)
 		}
-		fmt.Printf("DEBUG: Player %s trying to take card %v, but available cards are: %v\n",
-			a.PlayerID, *a.BonusCard, availableCards)
-		return fmt.Errorf("bonus card %v is not available", *a.BonusCard)
+		return fmt.Errorf("bonus card %v is not available. Available: %v", *a.BonusCard, availableCards)
 	}
 
 	return nil

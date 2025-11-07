@@ -121,7 +121,8 @@ func (cts *CultTrackState) GetTotalPriestsOnCultTracks(playerID string) int {
 // AdvancePlayer advances a player on a cult track
 // Returns the number of spaces actually advanced (may be less if at max or blocked)
 // Also grants power for each space advanced AND bonus power at positions 3/5/7/10
-func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, spaces int, player *Player) (int, error) {
+// gs: GameState is optional - if provided, checks for pending town formations when validating position 10
+func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, spaces int, player *Player, gs *GameState) (int, error) {
 	if spaces < 0 {
 		return 0, fmt.Errorf("cannot advance negative spaces")
 	}
@@ -131,7 +132,7 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 
 	currentPos := cts.GetPosition(playerID, track)
 	targetPos := currentPos + spaces
-	
+
 	// Check if position 10 is occupied by another player
 	if targetPos >= 10 {
 		if occupier, occupied := cts.Position10Occupied[track]; occupied && occupier != playerID {
@@ -140,11 +141,23 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 		} else if targetPos > 10 {
 			targetPos = 10
 		}
-		
+
 		// Check if advancing to position 10 requires a key
 		if targetPos == 10 && currentPos < 10 && player != nil {
-			if player.Keys < 1 {
-				// Player doesn't have a key, can only advance to 9
+			// Check if player currently has a key OR will get one from pending town formation
+			hasOrWillHaveKey := player.Keys >= 1
+
+			// Check for pending town formation (which will grant a key)
+			// This allows cult advancement to position 10 when forming a town during the same turn
+			if !hasOrWillHaveKey && gs != nil {
+				if pendingTown, ok := gs.PendingTownFormations[playerID]; ok && pendingTown != nil {
+					// Player is forming a town this turn, which will grant a key
+					hasOrWillHaveKey = true
+				}
+			}
+
+			if !hasOrWillHaveKey {
+				// Player doesn't have a key and won't get one this turn, can only advance to 9
 				targetPos = 9
 			}
 		}
@@ -298,10 +311,11 @@ func (cts *CultTrackState) CalculateEndGameScoring() map[string]int {
 
 // ApplyTownCultBonus applies cult track advancement from founding a town
 // Returns the total power gained from milestone bonuses
-func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType TownTileType, player *Player) int {
+// gs: GameState is optional - passed to AdvancePlayer for position 10 validation
+func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType TownTileType, player *Player, gs *GameState) int {
 	totalPowerGained := 0
 	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
-	
+
 	var advanceAmount int
 	switch townTileType {
 	case TownTile8Points:
@@ -311,10 +325,10 @@ func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType Town
 	default:
 		return 0
 	}
-	
+
 	// Advance on all 4 cult tracks
 	for _, track := range tracks {
-		advanced, _ := cts.AdvancePlayer(playerID, track, advanceAmount, player)
+		advanced, _ := cts.AdvancePlayer(playerID, track, advanceAmount, player, gs)
 		
 		// Track power gained (AdvancePlayer handles milestone bonuses internally)
 		// We need to calculate how much power was actually gained

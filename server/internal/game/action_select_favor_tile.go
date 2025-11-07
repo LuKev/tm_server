@@ -64,11 +64,6 @@ func (a *SelectFavorTileAction) Execute(gs *GameState) error {
 		return fmt.Errorf("failed to take favor tile: %w", err)
 	}
 
-	// Apply immediate effects (cult advancement for +3 tiles)
-	if err := ApplyFavorTileImmediate(gs, a.PlayerID, a.TileType); err != nil {
-		return fmt.Errorf("failed to apply favor tile effect: %w", err)
-	}
-
 	// Add to selected tiles
 	gs.PendingFavorTileSelection.SelectedTiles = append(gs.PendingFavorTileSelection.SelectedTiles, a.TileType)
 
@@ -76,6 +71,31 @@ func (a *SelectFavorTileAction) Execute(gs *GameState) error {
 	if len(gs.PendingFavorTileSelection.SelectedTiles) >= gs.PendingFavorTileSelection.Count {
 		// Clear pending selection
 		gs.PendingFavorTileSelection = nil
+
+		// After selecting favor tiles, re-check town formation for all player buildings
+		// This is especially important for Fire+2 which reduces town power requirement from 7 to 6
+		// A building cluster that previously didn't meet the power requirement may now form a town
+		// IMPORTANT: Do this BEFORE applying immediate cult advancement so that PendingTownFormation
+		// is set when cult advancement checks for position 10 key requirement
+		player := gs.GetPlayer(a.PlayerID)
+		if player != nil {
+			// Check all hexes where player has buildings that aren't already part of a town
+			for hex, mapHex := range gs.Map.Hexes {
+				if mapHex.Building != nil && mapHex.Building.PlayerID == a.PlayerID && !mapHex.PartOfTown {
+					connected := gs.CheckForTownFormation(a.PlayerID, hex)
+					if connected != nil {
+						// Found a town! Stop checking (only one town can be formed per action)
+						break
+					}
+				}
+			}
+		}
+	}
+
+	// Apply immediate effects (cult advancement for +3 tiles)
+	// This happens AFTER town check so that pending town formation exists during cult advancement
+	if err := ApplyFavorTileImmediate(gs, a.PlayerID, a.TileType); err != nil {
+		return fmt.Errorf("failed to apply favor tile effect: %w", err)
 	}
 
 	return nil

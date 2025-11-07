@@ -294,7 +294,7 @@ func TestBonusCardCultAdvance_WithPowerBonus(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 	
 	// Advance to position 2 (so next advance to 3 gives power bonus)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 2, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 2, player, gs)
 	
 	initialBowl2 := player.Resources.Power.Bowl2
 	

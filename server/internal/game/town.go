@@ -2,7 +2,7 @@ package game
 
 import (
 	"fmt"
-	
+
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -163,7 +163,8 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 		if player.Faction.GetType() == models.FactionMermaids && skippedRiver != nil {
 			canBeDelayed = true
 		}
-		
+
+
 		// Create or update pending town formation with Mermaids-specific data
 		if gs.PendingTownFormations[playerID] == nil {
 			gs.PendingTownFormations[playerID] = &PendingTownFormation{
@@ -176,9 +177,10 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 			gs.PendingTownFormations[playerID].SkippedRiverHex = skippedRiver
 			gs.PendingTownFormations[playerID].CanBeDelayed = canBeDelayed
 		}
-		
+
 		return connected
 	}
+
 
 	return nil
 }
@@ -219,7 +221,11 @@ func (gs *GameState) CanFormTown(playerID string, hexes []Hex) bool {
 	// Check power requirement (6 with Fire 2 favor tile, 7 otherwise)
 	minPower := gs.GetTownPowerRequirement(playerID)
 
-	return totalPower >= minPower
+	if totalPower < minPower {
+		return false
+	}
+
+	return true
 }
 
 // GetTownPowerRequirement returns the minimum power required for a town
@@ -293,49 +299,64 @@ func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType TownTileTyp
 	if player == nil {
 		return
 	}
-	
+
+	// Check if we're in replay mode and should skip resource grants
+	skipResources := gs.ReplayMode != nil && gs.ReplayMode[playerID]
+	if skipResources {
+		// Clear the flag after use
+		delete(gs.ReplayMode, playerID)
+	}
+
 	switch tileType {
 	case TownTile5Points:
 		player.VictoryPoints += 5
-		player.Resources.Coins += 6
+		if !skipResources {
+			player.Resources.Coins += 6
+		}
 		player.Keys += 1
-		
+
 	case TownTile6Points:
 		player.VictoryPoints += 6
-		player.Resources.Power.GainPower(8)
+		if !skipResources {
+			player.Resources.Power.GainPower(8)
+		}
 		player.Keys += 1
-		
+
 	case TownTile7Points:
 		player.VictoryPoints += 7
-		player.Resources.Workers += 2
+		if !skipResources {
+			player.Resources.Workers += 2
+		}
 		player.Keys += 1
-		
+
 	case TownTile4Points:
 		player.VictoryPoints += 4
 		player.Keys += 1
 		// Advance shipping level by 1 and award VP
 		gs.AdvanceShippingLevel(playerID)
-		
+
 	case TownTile8Points:
 		player.VictoryPoints += 8
 		player.Keys += 1
 		// Advance 1 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(playerID, TownTile8Points, player)
-		
+		gs.CultTracks.ApplyTownCultBonus(playerID, TownTile8Points, player, gs)
+
 	case TownTile9Points:
 		player.VictoryPoints += 9
-		gs.GainPriests(playerID, 1)
+		if !skipResources {
+			gs.GainPriests(playerID, 1)
+		}
 		player.Keys += 1
-		
+
 	case TownTile11Points:
 		player.VictoryPoints += 11
 		player.Keys += 1
-		
+
 	case TownTile2Points:
 		player.VictoryPoints += 2
 		player.Keys += 2
 		// Advance 2 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(playerID, TownTile2Points, player)
+		gs.CultTracks.ApplyTownCultBonus(playerID, TownTile2Points, player, gs)
 	}
 }
 
@@ -345,7 +366,7 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 	if player == nil {
 		return
 	}
-	
+
 	// Apply town founding bonuses
 	// Only Witches and Swarmlings get bonuses when founding towns
 	switch player.Faction.GetType() {

@@ -1980,8 +1980,8 @@ func TestDarklings_PriestOrdination7PriestLimit(t *testing.T) {
 	
 	// Send 2 priests to cult tracks (using cult system directly)
 	gs.CultTracks.InitializePlayer("player1")
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 1, player)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 1, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 1, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 1, player, gs)
 	// Now: 4 in hand - 2 sent = 2 in hand, 2 on cults = 4 total
 	player.Resources.Priests = 2
 	
@@ -2016,8 +2016,8 @@ func TestDarklings_PriestOrdinationExceeds7PriestLimit(t *testing.T) {
 	player.Resources.Workers = 5
 	
 	gs.CultTracks.InitializePlayer("player1")
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 1, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 1, player, gs)
 	// Now: 4 in hand - 3 sent = 1 in hand, 3 on cults = 4 total
 	player.Resources.Priests = 1
 	
@@ -2157,7 +2157,7 @@ func Test7PriestLimit_Income(t *testing.T) {
 	// Give player 5 priests in hand and send 2 to cult tracks
 	player.Resources.Priests = 5
 	gs.CultTracks.InitializePlayer("player1")
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 2, player, gs)
 	player.Resources.Priests = 3 // 5 - 2 sent
 	
 	// Now player has 3 in hand + 2 on cults = 5 total

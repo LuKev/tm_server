@@ -34,6 +34,7 @@ type GameState struct {
 	PendingHalflingsSpades    *PendingHalflingsSpades           // Halflings player who needs to apply 3 stronghold spades
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination // Darklings player who needs to convert workers to priests
 	PendingCultistsCultSelection *PendingCultistsCultSelection // Cultists player who needs to select cult track for power leech bonus
+	ReplayMode                map[string]bool                   // Key: playerID, Value: skip resource grants in town tile benefits (for replay validation)
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -219,7 +220,8 @@ func (gs *GameState) AdvanceCultTrack(playerID string, track CultTrack, spaces i
 	}
 
 	// Use CultTrackState to advance (handles power gains, keys, position 10)
-	spacesAdvanced, err := gs.CultTracks.AdvancePlayer(playerID, track, spaces, player)
+	// Pass GameState to allow checking for pending town formations
+	spacesAdvanced, err := gs.CultTracks.AdvancePlayer(playerID, track, spaces, player, gs)
 	if err != nil {
 		return 0, err
 	}

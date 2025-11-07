@@ -25,7 +25,7 @@ func TestAwardCultRewards_MultipleThresholds(t *testing.T) {
 	}
 	
 	// Advance player to position 8 on Fire
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 8, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 8, player, gs)
 	
 	initialWorkers := player.Resources.Workers
 	
@@ -57,7 +57,7 @@ func TestAwardCultRewards_Spades(t *testing.T) {
 	}
 	
 	// Advance player to position 8 on Water
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 8, player)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 8, player, gs)
 	
 	// Award cult rewards
 	gs.AwardCultRewards()
@@ -303,10 +303,10 @@ func TestAwardCultRewards_Priests(t *testing.T) {
 	
 	// Player 1 at position 4 (should get 1 priest: 4/4 = 1)
 	// Note: Position 4 means 4 priests on cult track, leaving room for 3 in hand (7 max total)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 4, player1)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 4, player1, gs)
 	
 	// Player 2 at position 3 (should get 0 priests: 3/4 = 0)
-	gs.CultTracks.AdvancePlayer("player2", CultWater, 3, player2)
+	gs.CultTracks.AdvancePlayer("player2", CultWater, 3, player2, gs)
 	
 	// Give players some priests in hand
 	player1.Resources.Priests = 2 // 2 in hand + 4 on cult = 6 total, room for 1 more
@@ -350,7 +350,7 @@ func TestAwardCultRewards_Power(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 	
 	// Position 10 (should get 8 power: 10/4 = 2, 2*4 = 8)
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player, gs)
 	
 	initialBowl2 := player.Resources.Power.Bowl2
 	
@@ -380,7 +380,7 @@ func TestAwardCultRewards_Coins(t *testing.T) {
 	}
 	
 	// Position 7 (should get 7 coins)
-	gs.CultTracks.AdvancePlayer("player1", CultEarth, 7, player)
+	gs.CultTracks.AdvancePlayer("player1", CultEarth, 7, player, gs)
 	
 	initialCoins := player.Resources.Coins
 	
@@ -491,7 +491,7 @@ func TestAwardCultRewards_Position10(t *testing.T) {
 	player.Keys = 1
 	
 	// Player at position 10 (max: should get 5 workers: 10/2 = 5)
-	gs.CultTracks.AdvancePlayer("player1", CultAir, 10, player)
+	gs.CultTracks.AdvancePlayer("player1", CultAir, 10, player, gs)
 	
 	// Verify player actually reached position 10
 	position := gs.CultTracks.GetPosition("player1", CultAir)
@@ -581,9 +581,9 @@ func TestMultiplePlayers_DifferentRewards(t *testing.T) {
 	}
 	
 	// Different positions
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 10, player1) // 2 spades
-	gs.CultTracks.AdvancePlayer("player2", CultWater, 6, player2)  // 1 spade
-	gs.CultTracks.AdvancePlayer("player3", CultWater, 2, player3)  // 0 spades
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 10, player1, gs) // 2 spades
+	gs.CultTracks.AdvancePlayer("player2", CultWater, 6, player2, gs)  // 1 spade
+	gs.CultTracks.AdvancePlayer("player3", CultWater, 2, player3, gs)  // 0 spades
 	
 	gs.AwardCultRewards()
 	
@@ -654,8 +654,8 @@ func TestFullCleanupFlow(t *testing.T) {
 	}
 	
 	// Set up cult positions
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 6, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 4, player2)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 6, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 4, player2, gs)
 	
 	// Set up bonus cards
 	gs.BonusCards.Available[BonusCardPriest] = 1

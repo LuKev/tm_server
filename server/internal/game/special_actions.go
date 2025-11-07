@@ -675,7 +675,7 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) error {
 	// Advance 1 space on the chosen cult track
 	// This uses the cult track system which handles power bonuses automatically
-	gs.CultTracks.AdvancePlayer(a.PlayerID, *a.CultTrack, 1, player)
+	gs.CultTracks.AdvancePlayer(a.PlayerID, *a.CultTrack, 1, player, gs)
 
 	return nil
 }

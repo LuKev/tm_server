@@ -368,3 +368,141 @@ func TestSelectFavorTile_Fire3AppliesImmediately(t *testing.T) {
 		t.Errorf("expected Fire position to increase by 3, got %d → %d", initialFirePosition, newFirePosition)
 	}
 }
+
+func TestSelectFavorTile_Fire2EnablesTownFormation(t *testing.T) {
+	// Regression test for bug where Fire+2 favor tile didn't trigger town formation re-check
+	// A 6-power building cluster requires Fire+2 to form a town (reduces requirement from 7 to 6)
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 100
+	player.Resources.Workers = 100
+	player.Resources.Priests = 10
+
+	// Create a 6-power cluster: TradingHouse(2) + 4 Dwellings(1 each) = 6 power
+	// This is 5 buildings with exactly 6 total power - not enough for a town without Fire+2
+	// (need 4 buildings minimum, which we have)
+	// Use adjacent hexes from row 0 which are all in the base game map
+	tradingHouseHex := NewHex(0, 0)
+	dwelling1Hex := NewHex(1, 0)
+	dwelling2Hex := NewHex(2, 0)
+	dwelling3Hex := NewHex(3, 0)
+	dwelling4Hex := NewHex(4, 0)
+
+	// Place buildings on player's home terrain
+	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainForest)
+	gs.Map.TransformTerrain(dwelling1Hex, models.TerrainForest)
+	gs.Map.TransformTerrain(dwelling2Hex, models.TerrainForest)
+	gs.Map.TransformTerrain(dwelling3Hex, models.TerrainForest)
+	gs.Map.TransformTerrain(dwelling4Hex, models.TerrainForest)
+
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	})
+	gs.Map.PlaceBuilding(dwelling1Hex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	gs.Map.PlaceBuilding(dwelling2Hex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	gs.Map.PlaceBuilding(dwelling3Hex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	gs.Map.PlaceBuilding(dwelling4Hex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	// Verify these are connected buildings with 6 power
+	connected := gs.Map.GetConnectedBuildingsIncludingBridges(tradingHouseHex, "player1")
+	if len(connected) != 5 {
+		t.Fatalf("expected 5 connected buildings, got %d", len(connected))
+	}
+
+	totalPower := 0
+	for _, hex := range connected {
+		mapHex := gs.Map.GetHex(hex)
+		if mapHex != nil && mapHex.Building != nil {
+			totalPower += GetPowerValue(mapHex.Building.Type)
+		}
+	}
+	if totalPower != 6 {
+		t.Fatalf("expected total power 6, got %d", totalPower)
+	}
+
+	// Verify cannot form town yet (need 7 power without Fire+2)
+	if gs.CanFormTown("player1", connected) {
+		t.Error("should not be able to form town with 6 power without Fire+2")
+	}
+
+	// Upgrade trading house to temple (this creates pending favor tile selection)
+	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingTemple)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to upgrade to temple: %v", err)
+	}
+
+	// Verify pending favor tile selection was created
+	if gs.PendingFavorTileSelection == nil {
+		t.Fatal("expected pending favor tile selection after building temple")
+	}
+
+	// Verify no town formation yet (still only 6 power)
+	if gs.PendingTownFormations["player1"] != nil {
+		t.Error("should not have pending town formation yet (only 6 power)")
+	}
+
+	// Select Fire+2 favor tile (reduces town power requirement from 7 to 6)
+	selectAction := &SelectFavorTileAction{
+		BaseAction: BaseAction{
+			Type:     ActionSelectFavorTile,
+			PlayerID: "player1",
+		},
+		TileType: FavorFire2,
+	}
+
+	err = selectAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to select favor tile: %v", err)
+	}
+
+	// Verify player has Fire+2 tile
+	if !gs.FavorTiles.HasTileType("player1", FavorFire2) {
+		t.Error("player should have Fire+2 favor tile")
+	}
+
+	// REGRESSION TEST: After selecting Fire+2, town formation should be re-checked
+	// The 6-power cluster should now be eligible to form a town
+	if gs.PendingTownFormations["player1"] == nil {
+		t.Fatal("expected pending town formation after selecting Fire+2 (6 power is now enough)")
+	}
+
+	// Verify the pending town formation includes all 5 buildings
+	if len(gs.PendingTownFormations["player1"].Hexes) != 5 {
+		t.Errorf("expected 5 hexes in pending town formation, got %d", len(gs.PendingTownFormations["player1"].Hexes))
+	}
+
+	// Verify buildings are not yet marked as part of town (until town tile is selected)
+	for _, hex := range connected {
+		mapHex := gs.Map.GetHex(hex)
+		if mapHex != nil && mapHex.PartOfTown {
+			t.Error("buildings should not be marked as part of town until town tile is selected")
+		}
+	}
+}

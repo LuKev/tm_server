@@ -65,8 +65,8 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	})
 	
 	// Set cult positions
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
 	
 	// Set resources (clear power bowls first since Auren starts with power)
 	player1.Resources.Power.Bowl1 = 0
@@ -222,9 +222,9 @@ func TestCultBonus_SingleTrack(t *testing.T) {
 	
 	// Fire track: player1=10, player2=8, player3=5
 	player1.Keys = 1
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2)
-	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
+	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3, gs)
 	
 	scores := make(map[string]*PlayerFinalScore)
 	for playerID := range gs.Players {
@@ -263,9 +263,9 @@ func TestCultBonus_TieForFirst(t *testing.T) {
 	
 	// Fire track: player1=9, player2=9, player3=5 (both tied for 1st)
 	// Note: Position 10 can only be occupied by one player
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 9, player1)
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 9, player2)
-	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 9, player1, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 9, player2, gs)
+	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3, gs)
 	
 	scores := make(map[string]*PlayerFinalScore)
 	for playerID := range gs.Players {
@@ -299,13 +299,13 @@ func TestCultBonus_MultipleTracks(t *testing.T) {
 	
 	// Player1: 1st on Fire, 2nd on Water
 	player1.Keys = 2
-	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1)
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 7, player1)
+	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 7, player1, gs)
 	
 	// Player2: 1st on Water, 2nd on Fire
 	player2.Keys = 1
-	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2)
-	gs.CultTracks.AdvancePlayer("player2", CultWater, 10, player2)
+	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
+	gs.CultTracks.AdvancePlayer("player2", CultWater, 10, player2, gs)
 	
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
