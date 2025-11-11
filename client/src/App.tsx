@@ -1,7 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
-import Lobby from './components/Lobby'
-import Game from './components/Game'
-import { WebSocketProvider } from './services/WebSocketContext'
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { WebSocketProvider } from './services/WebSocketContext';
+import { Lobby } from './components/Lobby';
+import { Game } from './components/Game';
+import { MapTest } from './components/MapTest';
+import { CultTracksTest } from './components/CultTracks/CultTracksTest';
 
 function App() {
   return (
@@ -11,6 +13,8 @@ function App() {
           <Routes>
             <Route path="/" element={<Lobby />} />
             <Route path="/game/:gameId" element={<Game />} />
+            <Route path="/maptest" element={<MapTest />} />
+            <Route path="/culttrackstest" element={<CultTracksTest />} />
           </Routes>
         </div>
       </Router>

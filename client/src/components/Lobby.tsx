@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useWebSocket } from '../services/WebSocketContext'
-function Lobby() {
+
+export function Lobby() {
   const { isConnected, sendMessage, lastMessage, connectionStatus } = useWebSocket()
   const [playerName, setPlayerName] = useState('')
   const [testMessage, setTestMessage] = useState('')
@@ -218,5 +219,3 @@ function Lobby() {
     </div>
   )
 }
-
-export default Lobby

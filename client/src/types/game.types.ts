@@ -62,6 +62,13 @@ export interface Building {
   type: BuildingType
 }
 
+export interface Bridge {
+  ownerPlayerId: string
+  faction: FactionType
+  fromCoord: HexCoord
+  toCoord: HexCoord
+}
+
 export interface MapHex {
   coord: HexCoord
   terrain: TerrainType
