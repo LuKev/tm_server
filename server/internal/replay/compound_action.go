@@ -328,9 +328,10 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 
-	// Award VP from scoring tile (per spade used)
-	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings {
-		spadesUsed := player.Faction.GetTerraformSpades(distance)
+	// Award VP from scoring tile (per spade PAID FOR, not free spades)
+	// Only award VP for spades the player actually paid for (remainingSpades), not cult reward spades
+	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && remainingSpades > 0 {
+		spadesUsed := player.Faction.GetTerraformSpades(remainingSpades)
 		for i := 0; i < spadesUsed; i++ {
 			gs.AwardActionVP(playerID, game.ScoringActionSpades)
 		}

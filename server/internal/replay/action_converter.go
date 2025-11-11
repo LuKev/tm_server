@@ -705,16 +705,9 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 		return nil, fmt.Errorf("unexpected power action %s in transform-and-build", powerActionStr)
 	}
 
-	// Check if we need to transform (has transform_coord or spades)
-	_, hasTransform := params["transform_coord"]
-	_, hasSpades := params["spades"]
-
-	if !hasTransform && !hasSpades {
-		// No transformation, just building
-		return game.NewTransformAndBuildAction(playerID, hex, true), nil
-	}
-
-	// Has transformation - always build dwelling after transform
+	// Always return transform-and-build action - the action itself will check if transform is needed
+	// If terrain is already home terrain, it will skip transform automatically
+	// The "dig", "spades", or "transform_coord" parameters are just metadata
 	return game.NewTransformAndBuildAction(playerID, hex, true), nil
 }
 

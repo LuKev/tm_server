@@ -247,6 +247,11 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		// Everything else is part of the action
 		actionParts := parts[idx:]
 		entry.Action = strings.TrimSpace(strings.Join(actionParts, " "))
+
+		// Debug logging for F3 actions
+		if strings.Contains(entry.Action, "F3") {
+			fmt.Printf("DEBUG ParseLogLine: faction=%s, action='%s'\n", entry.Faction, entry.Action)
+		}
 		break
 	}
 

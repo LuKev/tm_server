@@ -78,19 +78,17 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 		return fmt.Errorf("failed to use pending spade")
 	}
 
-	// Award VP from scoring tile for spades used
-	// Even though this is a free spade, it still counts for scoring
+	// Cult reward spades do NOT award scoring tile VP
+	// These are bonus spades from the previous round's cult rewards
+	// However, faction-specific bonuses still apply (Halflings, Alchemists)
 	spadesUsed := 1 // Cult reward spades are always 1 spade at a time
-	for i := 0; i < spadesUsed; i++ {
-		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
-	}
-	
+
 	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
 	if halflings, ok := player.Faction.(*factions.Halflings); ok {
 		vpBonus := halflings.GetVPPerSpade() * spadesUsed
 		player.VictoryPoints += vpBonus
 	}
-	
+
 	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
 	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed

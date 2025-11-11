@@ -18,6 +18,11 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 		fmt.Printf("DEBUG: Tokens: %v\n", tokens)
 	}
 
+	// Debug logging for F3 building actions
+	if strings.Contains(actionStr, "F3") {
+		fmt.Printf("DEBUG Entry with F3: action='%s', tokens=%v\n", actionStr, tokens)
+	}
+
 	compound := &CompoundAction{
 		Components: []ActionComponent{},
 	}
@@ -26,6 +31,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 	var powerModifier *PowerActionModifier
 	var mainActionFound bool
 	var auxiliaries []*AuxiliaryComponent // Collect these to add after main action
+	var digAmount int // Track "dig X" for transform-and-build actions
 
 	for i := 0; i < len(tokens); i++ {
 		token := strings.TrimSpace(tokens[i])
@@ -71,7 +77,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 
 		// Parse action (which might be a power action modifier, bonus card action, or special faction action)
 		if strings.HasPrefix(token, "action ") {
-			actionType := strings.Fields(token)[1]
+			actionType := strings.ToUpper(strings.Fields(token)[1])
 
 			// Check if this is a bonus card action (BON1-BON12)
 			// Some bonus cards provide special actions with benefits
@@ -225,12 +231,25 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 				// For all factions, when cult advancement appears alongside other actions,
 				// it's informational (the actual cult advancement already happened)
 				// Skip parsing these as actions
+				if entry != nil && strings.Contains(entry.Faction.String(), "cultists") {
+					fmt.Printf("DEBUG: Skipping cult track token '%s' for faction %s\n", token, entry.Faction)
+				}
 				continue
+			} else {
+				// Debug: token starts with + but isn't a valid cult track
+				fmt.Printf("DEBUG: Token '%s' starts with + but ParseCultTrack failed: %v\n", token, err)
 			}
 		}
 
 		// Parse main action (build, upgrade, transform, send priest, pass, advance, etc.)
 		if main, ok := parseMainActionToken(token); ok {
+			// If this is a build action and we have a dig amount, convert to transform-and-build
+			if main.Type == ActionBuild && digAmount > 0 {
+				main.Type = ActionTransformAndBuild
+				main.Params["dig"] = fmt.Sprintf("%d", digAmount)
+				digAmount = 0 // Clear after use
+			}
+
 			action, err := convertMainActionPartToGameAction(main, entry, gs)
 			if err != nil {
 				return nil, fmt.Errorf("failed to convert main action: %w", err)
@@ -269,8 +288,9 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 
 		// Special handling for "dig X" - might be metadata or pure transform
 		if strings.HasPrefix(token, "dig ") {
-			// If we don't have a main action yet, this might be part of transform-and-build
-			// The main action will handle this, so skip for now
+			// Parse the dig amount and store it for the next action
+			fmt.Sscanf(token, "dig %d", &digAmount)
+			// The main action (build or transform) will use this dig amount
 			continue
 		}
 
@@ -386,8 +406,9 @@ func parseConversion(token string) (*ConversionComponent, bool) {
 	// convert XPW to YC
 	// convert XP to YW
 	// convert XW to YC
-	if strings.HasPrefix(token, "convert ") && strings.Contains(token, " to ") {
-		parts := strings.Split(strings.TrimPrefix(token, "convert "), " to ")
+	tokenLower := strings.ToLower(token)
+	if strings.HasPrefix(tokenLower, "convert ") && strings.Contains(tokenLower, " to ") {
+		parts := strings.Split(strings.TrimPrefix(tokenLower, "convert "), " to ")
 		if len(parts) != 2 {
 			return nil, false
 		}
@@ -399,29 +420,29 @@ func parseConversion(token string) (*ConversionComponent, bool) {
 		var fromAmount, toAmount int
 		var fromRes, toRes string
 
-		// Parse "from" part (e.g., "1PW", "3P", "5W")
-		if strings.Contains(fromPart, "PW") {
-			fmt.Sscanf(fromPart, "%dPW", &fromAmount)
+		// Parse "from" part (e.g., "1pw", "3p", "5w") - already lowercase from tokenLower
+		if strings.Contains(fromPart, "pw") {
+			fmt.Sscanf(fromPart, "%dpw", &fromAmount)
 			fromRes = "PW"
-		} else if strings.Contains(fromPart, "P") {
-			fmt.Sscanf(fromPart, "%dP", &fromAmount)
+		} else if strings.Contains(fromPart, "p") {
+			fmt.Sscanf(fromPart, "%dp", &fromAmount)
 			fromRes = "P"
-		} else if strings.Contains(fromPart, "W") {
-			fmt.Sscanf(fromPart, "%dW", &fromAmount)
+		} else if strings.Contains(fromPart, "w") {
+			fmt.Sscanf(fromPart, "%dw", &fromAmount)
 			fromRes = "W"
 		} else {
 			return nil, false
 		}
 
-		// Parse "to" part (e.g., "1C", "2W", "1P")
-		if strings.Contains(toPart, "C") {
-			fmt.Sscanf(toPart, "%dC", &toAmount)
+		// Parse "to" part (e.g., "1c", "2w", "1p") - already lowercase from tokenLower
+		if strings.Contains(toPart, "c") {
+			fmt.Sscanf(toPart, "%dc", &toAmount)
 			toRes = "C"
-		} else if strings.Contains(toPart, "W") {
-			fmt.Sscanf(toPart, "%dW", &toAmount)
+		} else if strings.Contains(toPart, "w") {
+			fmt.Sscanf(toPart, "%dw", &toAmount)
 			toRes = "W"
-		} else if strings.Contains(toPart, "P") {
-			fmt.Sscanf(toPart, "%dP", &toAmount)
+		} else if strings.Contains(toPart, "p") {
+			fmt.Sscanf(toPart, "%dp", &toAmount)
 			toRes = "P"
 		} else {
 			return nil, false
@@ -479,8 +500,8 @@ func parseDarklingsWorkerToPriest(token string, entry *LogEntry) (*DarklingsPrie
 			var workersToConvert int
 			fmt.Sscanf(fromPart, "%dW", &workersToConvert)
 
-			// Verify this is Darklings
-			playerID := entry.Faction.String()
+			// Verify this is Darklings (case-insensitive)
+			playerID := strings.ToLower(entry.Faction.String())
 			if playerID != "darklings" {
 				// Only Darklings can do W->P conversion
 				return nil, false
@@ -531,7 +552,7 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 	// build E7
 	if strings.HasPrefix(token, "build ") {
 		coord := strings.TrimPrefix(token, "build ")
-		coord = strings.Fields(coord)[0]
+		coord = strings.ToUpper(strings.Fields(coord)[0])
 		return &MainActionPart{
 			Type:   ActionBuild,
 			Params: map[string]string{"coord": coord},
@@ -545,8 +566,8 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 			return &MainActionPart{
 				Type: ActionUpgrade,
 				Params: map[string]string{
-					"coord":    parts[1],
-					"building": parts[3],
+					"coord":    strings.ToUpper(parts[1]),
+					"building": strings.ToUpper(parts[3]),
 				},
 			}, true
 		}
@@ -579,7 +600,7 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 			// Pass with bonus card
 			return &MainActionPart{
 				Type:   ActionPass,
-				Params: map[string]string{"bonus": fields[1]},
+				Params: map[string]string{"bonus": strings.ToUpper(fields[1])},
 			}, true
 		} else if len(fields) == 1 {
 			// Pass without bonus card (end of game)
@@ -703,6 +724,8 @@ func convertMainActionPartToGameAction(part *MainActionPart, entry *LogEntry, gs
 		// Check if we're in setup phase
 		isSetup := (gs.Phase == game.PhaseSetup)
 		return convertBuildAction(playerID, part.Params, isSetup)
+	case ActionTransformAndBuild:
+		return convertTransformAndBuildAction(playerID, part.Params, gs)
 	case ActionUpgrade:
 		return convertUpgradeAction(playerID, part.Params, entry, gs)
 	case ActionSendPriest:
@@ -749,9 +772,11 @@ func convertSpecialFactionAction(actionType string, tokens []string, currentInde
 
 	case "ACTA":
 		// Auren: Advance 2 spaces on cult track
-		// Pattern: "action ACTA. +WATER" or similar
+		// Pattern: "action ACTA. +WATER" or "action ACTA. +2AIR"
 		if strings.HasPrefix(nextToken, "+") {
 			cultStr := strings.TrimPrefix(nextToken, "+")
+			// Strip any leading digit and optional space (e.g., "2AIR" -> "AIR")
+			cultStr = strings.TrimLeft(cultStr, "0123456789 ")
 			cultType, err := ParseCultTrack(cultStr)
 			if err != nil {
 				return nil, 0, fmt.Errorf("invalid cult track %s: %w", cultStr, err)

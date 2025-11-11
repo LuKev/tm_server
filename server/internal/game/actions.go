@@ -296,21 +296,22 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		if err := gs.Map.TransformTerrain(a.TargetHex, player.Faction.GetHomeTerrain()); err != nil {
 			return fmt.Errorf("failed to transform terrain: %w", err)
 		}
-		
-		// Award VP from scoring tile (per spade used)
+
+		// Award VP from scoring tile (per spade PAID FOR, not free spades)
 		// Note: Darklings get their own VP bonus above, not from scoring tiles or Halflings
-		if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings {
-			spadesUsed := player.Faction.GetTerraformSpades(distance)
+		// Only award VP for spades the player actually paid for (remainingSpades), not cult reward spades
+		if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && remainingSpades > 0 {
+			spadesUsed := player.Faction.GetTerraformSpades(remainingSpades)
 			for i := 0; i < spadesUsed; i++ {
 				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 			}
-			
+
 			// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
 			if halflings, ok := player.Faction.(*factions.Halflings); ok {
 				vpBonus := halflings.GetVPPerSpade() * spadesUsed
 				player.VictoryPoints += vpBonus
 			}
-			
+
 			// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
 			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 				powerBonus := alchemists.GetPowerPerSpade() * spadesUsed

@@ -271,11 +271,11 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to use cult spade: %v", err)
 	}
-	
-	// Should get 2 VP from scoring tile
+
+	// Cult spades do NOT award scoring tile VP (they're bonus spades from previous round)
 	vpGained := player.VictoryPoints - initialVP
-	if vpGained != 2 {
-		t.Errorf("expected 2 VP from scoring tile, got %d", vpGained)
+	if vpGained != 0 {
+		t.Errorf("expected 0 VP from scoring tile (cult spades don't count), got %d", vpGained)
 	}
 }
 

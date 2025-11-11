@@ -60,8 +60,9 @@ func (gs *GameState) ResetRoundState() {
 	// Reset pending offers/formations
 	gs.PendingLeechOffers = make(map[string][]*PowerLeechOffer)
 	gs.PendingTownFormations = make(map[string]*PendingTownFormation)
-	
-	// Note: PendingSpades is NOT reset here - it's used at the start of the next round
+
+	// Note: PendingSpades will be cleared at the start of the next income phase
+	// This allows cult reward spades to be used for bonus transforms during cleanup
 }
 
 // HasPendingSpades checks if any player has pending spades to use

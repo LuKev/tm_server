@@ -154,10 +154,10 @@ func TestHalflings_CultSpadeScoring(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to use cult spade: %v", err)
 	}
-	
-	// 1 spade: 2 VP (scoring tile) + 1 VP (Halflings) = 3 VP
+
+	// 1 spade: 0 VP (cult spades don't award scoring tile VP) + 1 VP (Halflings faction bonus) = 1 VP
 	vpGained := player.VictoryPoints - initialVP
-	expectedVP := 3
+	expectedVP := 1
 	if vpGained != expectedVP {
 		t.Errorf("expected %d VP, got %d", expectedVP, vpGained)
 	}
