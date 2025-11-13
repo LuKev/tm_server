@@ -20,8 +20,8 @@ export function Lobby() {
     ])
 
     // Handle lobby messages
-    if (typeof lastMessage === 'object' && (lastMessage as object) !== null && 'type' in (lastMessage as any)) {
-      const msg = lastMessage as any
+    if (typeof lastMessage === 'object' && lastMessage !== null && 'type' in lastMessage) {
+      const msg = lastMessage as { type: string; payload?: unknown }
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload : [])
       }

@@ -7,13 +7,11 @@ import { FACTION_COLORS, getContrastColor } from '../../utils/colors';
 interface BuildingComponentProps {
   building: Building;
   center: { x: number; y: number };
-  hexSize: number;
 }
 
 export const BuildingComponent: React.FC<BuildingComponentProps> = ({
   building,
   center,
-  hexSize,
 }) => {
   const color = FACTION_COLORS[building.faction];
   const contrastColor = getContrastColor(color);

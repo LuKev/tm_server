@@ -88,6 +88,29 @@ export const MapTest: React.FC = () => {
     setHoveredHex(`${q},${r}`);
   };
   
+  const handleBonusTileClick = (cult: CultType, tileIndex: number) => {
+    const cultNames = ['Fire', 'Water', 'Earth', 'Air'];
+    const cultName = cultNames[cult];
+    const tiles = testBonusTiles.get(cult);
+    const tile = tiles?.[tileIndex];
+    
+    if (tile?.priests && tile?.faction !== undefined) {
+      const factionNames = {
+        [FactionType.Giants]: 'Giants',
+        [FactionType.Swarmlings]: 'Swarmlings',
+        [FactionType.Halflings]: 'Halflings',
+        [FactionType.Dwarves]: 'Dwarves',
+      };
+      const factionName = factionNames[tile.faction];
+      alert(`Clicked: ${cultName} cult - Priest tile (${factionName})`);
+    } else if (tile?.power) {
+      const spotName = tileIndex === 4 ? 'Return spot (1 power)' : `Power ${tile.power} spot`;
+      alert(`Clicked: ${cultName} cult - ${spotName}`);
+    } else {
+      alert(`Clicked: ${cultName} cult - Tile ${tileIndex + 1}`);
+    }
+  };
+  
   const highlightedHexes = new Set<string>();
   if (hoveredHex) {
     highlightedHexes.add(hoveredHex);
@@ -128,31 +151,35 @@ export const MapTest: React.FC = () => {
     { faction: FactionType.Dwarves, position: 3, hasKey: false },
   ]);
   
-  // Test bonus tiles with some priests
+  // Test bonus tiles with some priests (5 spots: 3, 2, 2, 2, 1 return)
   const testBonusTiles = new Map();
   testBonusTiles.set(CultType.Fire, [
     { priests: 1, faction: FactionType.Giants }, // Red priest on 3 spot
     { priests: 1, faction: FactionType.Swarmlings }, // Blue priest on 2 spot
     { power: 2 },
     { power: 2 },
+    { power: 1 }, // Return spot
   ]);
   testBonusTiles.set(CultType.Water, [
     { power: 3 },
     { power: 2 },
     { priests: 1, faction: FactionType.Halflings }, // Brown priest
     { power: 2 },
+    { power: 1 }, // Return spot
   ]);
   testBonusTiles.set(CultType.Earth, [
     { power: 3 },
     { power: 2 },
     { power: 2 },
     { priests: 1, faction: FactionType.Dwarves }, // Gray priest
+    { power: 1 }, // Return spot
   ]);
   testBonusTiles.set(CultType.Air, [
     { power: 3 },
     { power: 2 },
     { power: 2 },
     { power: 2 },
+    { power: 1 }, // Return spot
   ]);
   
   return (
@@ -214,9 +241,11 @@ export const MapTest: React.FC = () => {
           {/* Cult Tracks sidebar */}
           <div style={{ width: '280px', flexShrink: 0 }}>
             <div className="bg-white rounded-lg shadow-md p-4" style={{ position: 'sticky', top: '2rem' }}>
+              <h2 className="text-xl font-semibold mb-3">Cult Tracks</h2>
               <CultTracks 
                 cultPositions={testCultPositions} 
                 bonusTiles={testBonusTiles}
+                onBonusTileClick={handleBonusTileClick}
               />
             </div>
           </div>

@@ -1,7 +1,7 @@
 // Canvas-based hex grid renderer - based on terra-mystica/stc/game.js
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useCallback } from 'react';
 import type { MapHexData } from '../../data/baseGameMap';
-import { hexCenter, HEX_SIZE, HEX_WIDTH, HEX_HEIGHT } from '../../utils/hexUtils';
+import { hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
 import type { Building, Bridge } from '../../types/game.types';
 import { BuildingType } from '../../types/game.types';
@@ -66,7 +66,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   };
   
   // Draw hex for a given coordinate
-  const drawHex = (ctx: CanvasRenderingContext2D, hex: MapHexData, highlighted: boolean) => {
+  const drawHex = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
     const center = hexCenter(hex.coord.r, hex.coord.q);
     const x = center.x - Math.cos(Math.PI / 6) * HEX_SIZE;
     const y = center.y + Math.sin(Math.PI / 6) * HEX_SIZE;
@@ -93,23 +93,23 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       ctx.fillText(`${hex.coord.q},${hex.coord.r}`, center.x, center.y);
       ctx.restore();
     }
-  };
+  }, []);
   
   // Draw highlight border on top of everything
-  const drawHighlight = (ctx: CanvasRenderingContext2D, hex: MapHexData) => {
+  const drawHighlight = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
     const center = hexCenter(hex.coord.r, hex.coord.q);
     const x = center.x - Math.cos(Math.PI / 6) * HEX_SIZE;
     const y = center.y + Math.sin(Math.PI / 6) * HEX_SIZE;
     
     makeHexPath(ctx, x, y, HEX_SIZE);
     
-    ctx.strokeStyle = '#00ff00';
+    ctx.strokeStyle = '#FFD700'; // Gold color for highlight
     ctx.lineWidth = 3;
     ctx.stroke();
-  };
+  }, []);
   
   // Draw dwelling (from terra-mystica/stc/game.js)
-  const drawDwelling = (ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
+  const drawDwelling = useCallback((ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
     const loc = hexCenter(r, q);
     const contrastColor = getContrastColor(color);
     
@@ -128,10 +128,10 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
-  };
+  }, []);
   
   // Draw trading house (from terra-mystica/stc/game.js)
-  const drawTradingPost = (ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
+  const drawTradingPost = useCallback((ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
     const loc = hexCenter(r, q);
     const contrastColor = getContrastColor(color);
     
@@ -153,10 +153,10 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
-  };
+  }, []);
   
   // Draw temple (from terra-mystica/stc/game.js)
-  const drawTemple = (ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
+  const drawTemple = useCallback((ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
     const loc = hexCenter(r, q);
     const contrastColor = getContrastColor(color);
     
@@ -169,10 +169,10 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
-  };
+  }, []);
   
   // Draw stronghold (from terra-mystica/stc/game.js)
-  const drawStronghold = (ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
+  const drawStronghold = useCallback((ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
     const loc = hexCenter(r, q);
     const contrastColor = getContrastColor(color);
     const yOffset = loc.y - 5;
@@ -199,10 +199,10 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.stroke();
     
     ctx.restore();
-  };
+  }, []);
   
   // Draw sanctuary (from terra-mystica/stc/game.js)
-  const drawSanctuary = (ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
+  const drawSanctuary = useCallback((ctx: CanvasRenderingContext2D, r: number, q: number, color: string) => {
     const loc = hexCenter(r, q);
     const contrastColor = getContrastColor(color);
     const yOffset = loc.y - 5;
@@ -222,10 +222,10 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.stroke();
     
     ctx.restore();
-  };
+  }, []);
   
   // Draw a building
-  const drawBuilding = (ctx: CanvasRenderingContext2D, building: Building, r: number, q: number) => {
+  const drawBuilding = useCallback((ctx: CanvasRenderingContext2D, building: Building, r: number, q: number) => {
     const color = FACTION_COLORS[building.faction];
     
     switch (building.type) {
@@ -245,11 +245,11 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
         drawSanctuary(ctx, r, q, color);
         break;
     }
-  };
+  }, [drawDwelling, drawTradingPost, drawTemple, drawStronghold, drawSanctuary]);
   
   // Draw bridge along hex edge (from terra-mystica/stc/game.js)
   // Bridges connect hexes at distance 2 (not adjacent) across river edges
-  const drawBridge = (ctx: CanvasRenderingContext2D, bridge: Bridge) => {
+  const drawBridge = useCallback((ctx: CanvasRenderingContext2D, bridge: Bridge) => {
     const from = hexCenter(bridge.fromCoord.r, bridge.fromCoord.q);
     const to = hexCenter(bridge.toCoord.r, bridge.toCoord.q);
     const color = FACTION_COLORS[bridge.faction];
@@ -284,7 +284,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.stroke();
     
     ctx.restore();
-  };
+  }, []);
   
   // Render the canvas
   useEffect(() => {
@@ -306,7 +306,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     // 1. Draw river hexes first
     hexes.forEach(hex => {
       if (hex.isRiver) {
-        drawHex(ctx, hex, false);
+        drawHex(ctx, hex);
       }
     });
     
@@ -318,7 +318,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     // 3. Draw land hexes (non-river)
     hexes.forEach(hex => {
       if (!hex.isRiver) {
-        drawHex(ctx, hex, false);
+        drawHex(ctx, hex);
       }
     });
     
@@ -337,7 +337,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     });
     
     ctx.restore();
-  }, [hexes, buildings, bridges, highlightedHexes, dims.offsetX, dims.offsetY]);
+  }, [hexes, buildings, bridges, highlightedHexes, dims.offsetX, dims.offsetY, drawHex, drawBridge, drawBuilding, drawHighlight]);
   
   // Handle mouse events
   const handleMouseEvent = (e: React.MouseEvent<HTMLCanvasElement>, isClick: boolean) => {

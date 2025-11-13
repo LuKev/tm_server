@@ -2,13 +2,14 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 
 interface WebSocketContextType {
   isConnected: boolean
-  sendMessage: (message: any) => void
-  lastMessage: any
+  sendMessage: (message: unknown) => void
+  lastMessage: unknown
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext)
   if (!context) {
@@ -23,7 +24,7 @@ interface WebSocketProviderProps {
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false)
-  const [lastMessage, setLastMessage] = useState<any>(null)
+  const [lastMessage, setLastMessage] = useState<unknown>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected')
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
@@ -46,7 +47,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       try {
         const data = JSON.parse(event.data)
         setLastMessage(data)
-      } catch (e) {
+      } catch {
         // If not JSON, treat as plain text
         setLastMessage(event.data)
       }
@@ -72,7 +73,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     wsRef.current = ws
   }, [])
 
-  const sendMessage = useCallback((message: any) => {
+  const sendMessage = useCallback((message: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       const payload = typeof message === 'string' ? message : JSON.stringify(message)
       wsRef.current.send(payload)
