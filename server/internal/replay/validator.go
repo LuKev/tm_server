@@ -656,19 +656,24 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 		return false, nil // No components, use old path
 	}
 
-	// If the action starts with a cult track bonus, these are complex actions with
-	// automatic side effects (e.g., Cultists gaining cult from power leeches)
-	// Instead of trying to execute, just sync the final state
+	// If the action starts with a cult track bonus, handle specially
+	// The cult advancement is automatic (from opponents accepting power leeches)
 	if strings.HasPrefix(entry.Action, "+") {
 		player := v.GameState.GetPlayer(playerID)
 		if player != nil {
-			v.syncPlayerState(player, playerID, entry)
+			// For burn+action or other complex actions with power/resource usage,
+			// skip execution and sync final state (power state from leeches is hard to model)
+			if strings.Contains(entry.Action, "burn") || strings.Contains(entry.Action, "action ACT") {
+				v.syncPlayerState(player, playerID, entry)
+				if err := v.ValidateState(entry); err != nil {
+					// Errors already recorded
+				}
+				return true, nil
+			}
+
+			// For simpler actions (build, pass), sync cult positions and execute
+			v.syncPlayerCultPositions(player, playerID, entry)
 		}
-		// Don't execute - just validate the synced state
-		if err := v.ValidateState(entry); err != nil {
-			// Errors already recorded
-		}
-		return true, nil
 	}
 
 	// Execute all components in order

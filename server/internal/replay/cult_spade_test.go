@@ -87,14 +87,16 @@ func TestParseTransformOnly_WithoutCultSpade(t *testing.T) {
 		t.Fatalf("ParseCompoundAction() error = %v", err)
 	}
 
+	// Should have 1 component: TransformTerrainComponent
+	// Note: "dig 1" is just notation and doesn't create a GrantSpadesComponent anymore
 	if len(compound.Components) != 1 {
 		t.Fatalf("expected 1 component, got %d", len(compound.Components))
 	}
 
-	// Should contain a TransformTerrainComponent (not MainActionComponent)
+	// Component should be TransformTerrainComponent
 	transformComp, ok := compound.Components[0].(*TransformTerrainComponent)
 	if !ok {
-		t.Fatalf("expected *TransformTerrainComponent, got %T", compound.Components[0])
+		t.Fatalf("expected component to be *TransformTerrainComponent, got %T", compound.Components[0])
 	}
 
 	// Verify target hex is correct (H4)
@@ -139,7 +141,9 @@ func TestCultSpadeUsage_FullFlow(t *testing.T) {
 	}
 
 	// Transform at adjacent hex (Q=1, R=0)
+	// Set it to Swamp (1 spade away from Plains/Cultists home)
 	hex2 := game.Hex{Q: 1, R: 0}
+	gs.Map.GetHex(hex2).Terrain = models.TerrainSwamp
 
 	// Create UseCultSpadeAction directly since we know player has pending spades
 	action := game.NewUseCultSpadeAction("Cultists", hex2)
@@ -155,9 +159,10 @@ func TestCultSpadeUsage_FullFlow(t *testing.T) {
 		t.Errorf("expected 0 pending spades, got %d", gs.PendingSpades["Cultists"])
 	}
 
-	// Verify terrain was transformed
+	// Verify terrain was transformed BY 1 spade (Swamp -> Plains)
+	// Since Swamp is 1 spade away from Plains (home), cult spade should transform all the way
 	if gs.Map.GetHex(hex2).Terrain != cultists.GetHomeTerrain() {
-		t.Errorf("terrain was not transformed to home terrain")
+		t.Errorf("terrain should be Plains (home), got %v", gs.Map.GetHex(hex2).Terrain)
 	}
 
 	// Verify no workers were spent (still 0)

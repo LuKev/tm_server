@@ -705,9 +705,12 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 		return nil, fmt.Errorf("unexpected power action %s in transform-and-build", powerActionStr)
 	}
 
+	// Note: "dig X" and "spades X" parameters are handled by the compound parser
+	// which creates a DigAdvancementComponent that grants spades during execution
+	// We just need to return the appropriate action here
+
 	// Always return transform-and-build action - the action itself will check if transform is needed
 	// If terrain is already home terrain, it will skip transform automatically
-	// The "dig", "spades", or "transform_coord" parameters are just metadata
 	return game.NewTransformAndBuildAction(playerID, hex, true), nil
 }
 

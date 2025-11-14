@@ -12,17 +12,6 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 	// Split by periods to get tokens
 	tokens := splitIntoTokens(actionStr)
 
-	// Debug logging for entry 333
-	if entry.Faction.String() == "darklings" && strings.Contains(actionStr, "convert") && strings.Contains(actionStr, "3W") {
-		fmt.Printf("DEBUG: Parsing Darklings action: %s\n", actionStr)
-		fmt.Printf("DEBUG: Tokens: %v\n", tokens)
-	}
-
-	// Debug logging for F3 building actions
-	if strings.Contains(actionStr, "F3") {
-		fmt.Printf("DEBUG Entry with F3: action='%s', tokens=%v\n", actionStr, tokens)
-	}
-
 	compound := &CompoundAction{
 		Components: []ActionComponent{},
 	}
@@ -76,7 +65,8 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 		}
 
 		// Parse action (which might be a power action modifier, bonus card action, or special faction action)
-		if strings.HasPrefix(token, "action ") {
+		tokenLower := strings.ToLower(token)
+		if strings.HasPrefix(tokenLower, "action ") {
 			actionType := strings.ToUpper(strings.Fields(token)[1])
 
 			// Check if this is a bonus card action (BON1-BON12)
@@ -92,6 +82,46 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 					gs.PendingSpades[playerID] += 1
 				}
 				// Skip bonus card marker - the following token will be the actual action
+				continue
+			}
+
+			// Check if this is a favor tile special action (FAV1-FAV12)
+			// FAV6 (Water 2): Allows advancing 1 step on any cult track
+			if strings.HasPrefix(actionType, "FAV") {
+				if actionType == "FAV6" {
+					// Pattern: "action FAV6. +FIRE" or "action FAV6. +WATER"
+					// This is similar to ACTA but advances by 1 step instead of 2
+					playerID := entry.Faction.String()
+					if i+1 < len(tokens) {
+						nextToken := strings.TrimSpace(tokens[i+1])
+						if strings.HasPrefix(nextToken, "+") {
+							cultStr := strings.TrimPrefix(nextToken, "+")
+							// Strip any leading digit and optional space (e.g., "2AIR" -> "AIR")
+							cultStr = strings.TrimLeft(cultStr, "0123456789 ")
+							cultType, err := ParseCultTrack(cultStr)
+							if err != nil {
+								return nil, fmt.Errorf("invalid cult track %s: %w", cultStr, err)
+							}
+							// Create a Water+2 favor tile cult advance action for 1 step (FAV6)
+							action := game.NewWater2CultAdvanceAction(playerID, game.CultTrack(cultType))
+							mainAction := &MainActionComponent{Action: action}
+							compound.Components = append(compound.Components, mainAction)
+							mainActionFound = true
+
+							// Add any collected auxiliaries after the main action
+							for _, aux := range auxiliaries {
+								compound.Components = append(compound.Components, aux)
+							}
+							auxiliaries = nil
+
+							// Skip the cult track token
+							i += 1
+							continue
+						}
+					}
+				}
+				// Other favor tile actions might be handled here in the future
+				// For now, skip favor tile marker
 				continue
 			}
 
@@ -231,13 +261,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 				// For all factions, when cult advancement appears alongside other actions,
 				// it's informational (the actual cult advancement already happened)
 				// Skip parsing these as actions
-				if entry != nil && strings.Contains(entry.Faction.String(), "cultists") {
-					fmt.Printf("DEBUG: Skipping cult track token '%s' for faction %s\n", token, entry.Faction)
-				}
 				continue
-			} else {
-				// Debug: token starts with + but isn't a valid cult track
-				fmt.Printf("DEBUG: Token '%s' starts with + but ParseCultTrack failed: %v\n", token, err)
 			}
 		}
 
@@ -286,11 +310,15 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 			continue
 		}
 
-		// Special handling for "dig X" - might be metadata or pure transform
-		if strings.HasPrefix(token, "dig ") {
-			// Parse the dig amount and store it for the next action
-			fmt.Sscanf(token, "dig %d", &digAmount)
-			// The main action (build or transform) will use this dig amount
+		// Special handling for "dig X" or "Dig X" - this is just notation
+		// indicating the transformation uses X spades at current digging level cost
+		// We don't grant pending spades for this - the TransformAndBuildAction
+		// will calculate the terrain distance and charge workers accordingly
+		tokenLower = strings.ToLower(token)
+		if strings.HasPrefix(tokenLower, "dig ") {
+			// Parse the dig amount (might be used for validation later)
+			fmt.Sscanf(tokenLower, "dig %d", &digAmount)
+			// Just skip this token - it's informational only
 			continue
 		}
 
@@ -519,20 +547,21 @@ func parseDarklingsWorkerToPriest(token string, entry *LogEntry) (*DarklingsPrie
 // parseAuxiliary attempts to parse a token as an auxiliary action
 func parseAuxiliary(token string) (*AuxiliaryComponent, bool) {
 	token = strings.TrimSpace(token)
+	tokenUpper := strings.ToUpper(token)
 
-	// +FAV5
-	if strings.HasPrefix(token, "+FAV") {
+	// +FAV5 or +fav5
+	if strings.HasPrefix(tokenUpper, "+FAV") {
 		return &AuxiliaryComponent{
 			Type:   AuxFavorTile,
-			Params: map[string]string{"tile": token},
+			Params: map[string]string{"tile": tokenUpper},
 		}, true
 	}
 
-	// +TW3
-	if strings.HasPrefix(token, "+TW") {
+	// +TW3 or +tw3
+	if strings.HasPrefix(tokenUpper, "+TW") {
 		return &AuxiliaryComponent{
 			Type:   AuxTownTile,
-			Params: map[string]string{"tile": token},
+			Params: map[string]string{"tile": tokenUpper},
 		}, true
 	}
 
@@ -548,10 +577,11 @@ type MainActionPart struct {
 // parseMainActionToken attempts to parse a token as a main action
 func parseMainActionToken(token string) (*MainActionPart, bool) {
 	token = strings.TrimSpace(token)
+	tokenLower := strings.ToLower(token)
 
-	// build E7
-	if strings.HasPrefix(token, "build ") {
-		coord := strings.TrimPrefix(token, "build ")
+	// build E7 (case-insensitive)
+	if strings.HasPrefix(tokenLower, "build ") {
+		coord := strings.TrimPrefix(tokenLower, "build ")
 		coord = strings.ToUpper(strings.Fields(coord)[0])
 		return &MainActionPart{
 			Type:   ActionBuild,
@@ -559,9 +589,9 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 		}, true
 	}
 
-	// upgrade E5 to TP
-	if strings.HasPrefix(token, "upgrade ") {
-		parts := strings.Fields(token)
+	// upgrade E5 to TP (case-insensitive)
+	if strings.HasPrefix(tokenLower, "upgrade ") {
+		parts := strings.Fields(tokenLower)
 		if len(parts) >= 4 && parts[2] == "to" {
 			return &MainActionPart{
 				Type: ActionUpgrade,
@@ -573,9 +603,9 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 		}
 	}
 
-	// send p to WATER
-	if strings.HasPrefix(token, "send p to ") {
-		cult := strings.TrimPrefix(token, "send p to ")
+	// send p to WATER (case-insensitive)
+	if strings.HasPrefix(tokenLower, "send p to ") {
+		cult := strings.TrimPrefix(tokenLower, "send p to ")
 		cultName := strings.Fields(cult)[0]
 		return &MainActionPart{
 			Type:   ActionSendPriest,
@@ -583,13 +613,13 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 		}, true
 	}
 
-	// advance ship
-	if strings.HasPrefix(token, "advance ship") {
+	// advance ship (case-insensitive)
+	if strings.HasPrefix(tokenLower, "advance ship") {
 		return &MainActionPart{Type: ActionAdvanceShipping}, true
 	}
 
-	// advance dig
-	if strings.HasPrefix(token, "advance dig") {
+	// advance dig (case-insensitive)
+	if strings.HasPrefix(tokenLower, "advance dig") {
 		return &MainActionPart{Type: ActionAdvanceDigging}, true
 	}
 
@@ -617,15 +647,15 @@ func parseMainActionToken(token string) (*MainActionPart, bool) {
 // isMainActionToken checks if a token looks like a main action
 func isMainActionToken(token string) bool {
 	token = strings.TrimSpace(token)
-	return strings.HasPrefix(token, "build ") ||
-		strings.HasPrefix(token, "upgrade ") ||
-		strings.HasPrefix(token, "transform ") ||
-		strings.HasPrefix(token, "dig ") ||
-		strings.HasPrefix(token, "pass") ||
-		strings.HasPrefix(token, "Pass") ||
-		strings.HasPrefix(token, "send p to") ||
-		strings.HasPrefix(token, "advance ship") ||
-		strings.HasPrefix(token, "advance dig")
+	tokenLower := strings.ToLower(token)
+	return strings.HasPrefix(tokenLower, "build ") ||
+		strings.HasPrefix(tokenLower, "upgrade ") ||
+		strings.HasPrefix(tokenLower, "transform ") ||
+		strings.HasPrefix(tokenLower, "dig ") ||
+		strings.HasPrefix(tokenLower, "pass") ||
+		strings.HasPrefix(tokenLower, "send p to") ||
+		strings.HasPrefix(tokenLower, "advance ship") ||
+		strings.HasPrefix(tokenLower, "advance dig")
 }
 
 // hasFollowingBuild checks if there's a "build" token after the current index

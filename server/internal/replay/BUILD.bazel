@@ -28,6 +28,7 @@ go_test(
         "compound_parser_test.go",
         "convert_upgrade_test.go",
         "cult_spade_test.go",
+        "darklings_dig_test.go",
         "parser_test.go",
     ],
     embed = [":replay"],

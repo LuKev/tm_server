@@ -12,7 +12,7 @@ func TerrainDistance(from, to models.TerrainType) int {
 	if from == to {
 		return 0
 	}
-	
+
 	// Define terrain wheel order
 	wheel := []models.TerrainType{
 		models.TerrainPlains,
@@ -23,7 +23,7 @@ func TerrainDistance(from, to models.TerrainType) int {
 		models.TerrainWasteland,
 		models.TerrainDesert,
 	}
-	
+
 	// Find positions
 	fromIdx := -1
 	toIdx := -1
@@ -35,19 +35,70 @@ func TerrainDistance(from, to models.TerrainType) int {
 			toIdx = i
 		}
 	}
-	
+
 	if fromIdx == -1 || toIdx == -1 {
 		return -1 // Invalid terrain type
 	}
-	
+
 	// Calculate shortest distance around the wheel
 	forward := (toIdx - fromIdx + len(wheel)) % len(wheel)
 	backward := (fromIdx - toIdx + len(wheel)) % len(wheel)
-	
+
 	if forward < backward {
 		return forward
 	}
 	return backward
+}
+
+// CalculateIntermediateTerrain calculates the terrain that is 'steps' spades towards the target terrain
+// For example: if from=Desert, to=Swamp, steps=1, returns Plains (1 step towards Swamp)
+func CalculateIntermediateTerrain(from, to models.TerrainType, steps int) models.TerrainType {
+	if from == to || steps == 0 {
+		return from
+	}
+
+	// Define terrain wheel order
+	wheel := []models.TerrainType{
+		models.TerrainPlains,
+		models.TerrainSwamp,
+		models.TerrainLake,
+		models.TerrainForest,
+		models.TerrainMountain,
+		models.TerrainWasteland,
+		models.TerrainDesert,
+	}
+
+	// Find positions
+	fromIdx := -1
+	toIdx := -1
+	for i, t := range wheel {
+		if t == from {
+			fromIdx = i
+		}
+		if t == to {
+			toIdx = i
+		}
+	}
+
+	if fromIdx == -1 || toIdx == -1 {
+		return from // Invalid terrain type
+	}
+
+	// Calculate shortest direction
+	forward := (toIdx - fromIdx + len(wheel)) % len(wheel)
+	backward := (fromIdx - toIdx + len(wheel)) % len(wheel)
+
+	// Move 'steps' in the shortest direction
+	var newIdx int
+	if forward < backward {
+		// Move forward
+		newIdx = (fromIdx + steps) % len(wheel)
+	} else {
+		// Move backward
+		newIdx = (fromIdx - steps + len(wheel)) % len(wheel)
+	}
+
+	return wheel[newIdx]
 }
 
 // CalculateTerraformCost calculates the worker cost to terraform a hex

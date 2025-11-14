@@ -27,9 +27,11 @@ type BaseIncome struct {
 
 // GrantIncome grants income to all players at the start of a round
 func (gs *GameState) GrantIncome() {
-	// Clear any unused pending spades from the previous round's cult rewards
-	// Cult reward spades must be used during the cleanup/bonus phase or forfeited
-	gs.PendingSpades = make(map[string]int)
+	// Note: We do NOT clear PendingSpades here
+	// Cult reward spades from the previous round's cleanup phase persist into the new round
+	// and can be used during the action phase
+	// Example: A player reaches position 7 on a cult track at end of round 5,
+	// gets 1 spade reward, and can use it in round 6
 
 	for _, player := range gs.Players {
 		income := calculatePlayerIncome(gs, player)

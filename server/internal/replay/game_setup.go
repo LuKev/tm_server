@@ -210,9 +210,9 @@ func parseScoringTile(code string) (game.ScoringTile, error) {
 		"SCORE3": game.ScoringDwellingWater,     // 2 VP per dwelling | 4 steps Water = 1 priest
 		"SCORE4": game.ScoringStrongholdFire,    // 5 VP per SH/SA | 2 steps Fire = 1 worker
 		"SCORE5": game.ScoringDwellingFire,      // 2 VP per dwelling | 4 steps Fire = 4 power
-		"SCORE6": game.ScoringTradingHouseAir,   // 3 VP per trading house | 4 steps Air = 1 spade
+		"SCORE6": game.ScoringTradingHouseWater, // 3 VP per trading house | 4 steps Water = 1 spade
 		"SCORE7": game.ScoringStrongholdAir,     // 5 VP per SH/SA | 2 steps Air = 1 worker
-		"SCORE8": game.ScoringTradingHouseWater, // 3 VP per trading house | 4 steps Water = 1 spade
+		"SCORE8": game.ScoringTradingHouseAir,   // 3 VP per trading house | 4 steps Air = 1 spade (matches this game log)
 		"SCORE9": game.ScoringTemplePriest,      // 4 VP per temple | 2 coins per priest sent to cult
 	}
 	

@@ -67,9 +67,16 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	}
 
 	player := gs.GetPlayer(a.PlayerID)
+	mapHex := gs.Map.GetHex(a.TargetHex)
+	currentTerrain := mapHex.Terrain
+	homeTerrain := player.Faction.GetHomeTerrain()
 
-	// Transform terrain to home terrain (free - no workers needed)
-	if err := gs.Map.TransformTerrain(a.TargetHex, player.Faction.GetHomeTerrain()); err != nil {
+	// Cult spade actions transform BY 1 spade towards home terrain
+	// Not all the way to home terrain (unless it's only 1 spade away)
+	targetTerrain := CalculateIntermediateTerrain(currentTerrain, homeTerrain, 1)
+
+	// Transform terrain BY 1 spade (not all the way to home)
+	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 

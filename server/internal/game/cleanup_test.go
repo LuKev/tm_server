@@ -57,12 +57,14 @@ func TestAwardCultRewards_Spades(t *testing.T) {
 	}
 	
 	// Advance player to position 8 on Water
+	// This grants milestone bonuses: position 3 (1 power), position 5 (2 power), position 7 (2 power)
 	gs.CultTracks.AdvancePlayer("player1", CultWater, 8, player, gs)
-	
+
 	// Award cult rewards
+	// Scoring tile gives: 8 / 4 = 2 spades
 	gs.AwardCultRewards()
-	
-	// Should have 2 pending spades (8 / 4 = 2)
+
+	// Should have 2 pending spades (from scoring tile only, milestones grant power not spades)
 	if gs.PendingSpades == nil || gs.PendingSpades["player1"] != 2 {
 		t.Errorf("expected 2 pending spades, got %d", gs.PendingSpades["player1"])
 	}
@@ -581,12 +583,12 @@ func TestMultiplePlayers_DifferentRewards(t *testing.T) {
 	}
 	
 	// Different positions
-	gs.CultTracks.AdvancePlayer("player1", CultWater, 10, player1, gs) // 2 spades
-	gs.CultTracks.AdvancePlayer("player2", CultWater, 6, player2, gs)  // 1 spade
-	gs.CultTracks.AdvancePlayer("player3", CultWater, 2, player3, gs)  // 0 spades
-	
+	gs.CultTracks.AdvancePlayer("player1", CultWater, 10, player1, gs) // 2 spades from scoring (10/4), milestones grant power
+	gs.CultTracks.AdvancePlayer("player2", CultWater, 6, player2, gs)  // 1 spade from scoring (6/4)
+	gs.CultTracks.AdvancePlayer("player3", CultWater, 2, player3, gs)  // 0 spades from scoring (2/4)
+
 	gs.AwardCultRewards()
-	
+
 	if gs.PendingSpades["player1"] != 2 {
 		t.Errorf("player1: expected 2 spades, got %d", gs.PendingSpades["player1"])
 	}

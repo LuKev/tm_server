@@ -128,6 +128,18 @@ func NewAurenCultAdvanceAction(playerID string, cultTrack CultTrack) *SpecialAct
 	}
 }
 
+// NewWater2CultAdvanceAction creates a Water+2 favor tile cult advance action (FAV6)
+func NewWater2CultAdvanceAction(playerID string, cultTrack CultTrack) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionWater2CultAdvance,
+		CultTrack:  &cultTrack,
+	}
+}
+
 // NewWitchesRideAction creates a Witches' Ride special action
 func NewWitchesRideAction(playerID string, targetHex Hex) *SpecialAction {
 	return &SpecialAction{
@@ -582,6 +594,16 @@ func (a *SpecialAction) executeAurenCultAdvance(gs *GameState, player *Player) e
 	return nil
 }
 
+func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) error {
+	// Water+2 favor tile (FAV6): Advance 1 step on the chosen cult track
+	_, err := gs.AdvanceCultTrack(player.ID, *a.CultTrack, 1)
+	if err != nil {
+		return fmt.Errorf("failed to advance cult track: %w", err)
+	}
+
+	return nil
+}
+
 func (a *SpecialAction) executeWitchesRide(gs *GameState, player *Player) error {
 	// Build dwelling without paying workers or coins
 	buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
@@ -668,14 +690,6 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 		// Place dwelling and handle all VP bonuses
 		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
 	}
-
-	return nil
-}
-
-func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) error {
-	// Advance 1 space on the chosen cult track
-	// This uses the cult track system which handles power bonuses automatically
-	gs.CultTracks.AdvancePlayer(a.PlayerID, *a.CultTrack, 1, player, gs)
 
 	return nil
 }

@@ -191,7 +191,7 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 			7:  2, // 2 bonus power
 			10: 3, // 3 bonus power
 		}
-		
+
 		for pos, bonusPower := range bonusPositions {
 			// Check if we passed or reached this position
 			if currentPos < pos && targetPos >= pos {

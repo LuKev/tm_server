@@ -166,6 +166,29 @@ func (p *PowerActionFreeSpades) Execute(gs *game.GameState, playerID string) err
 	}
 	gs.PendingSpades[playerID] += freeSpades
 
+	// Award VP from scoring tile for power action spades
+	// Unlike cult reward spades, power action spades (ACT5/ACT6) count for scoring
+	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings {
+		spadesUsed := player.Faction.GetTerraformSpades(freeSpades)
+		for i := 0; i < spadesUsed; i++ {
+			gs.AwardActionVP(playerID, game.ScoringActionSpades)
+		}
+
+		// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+		if halflings, ok := player.Faction.(*factions.Halflings); ok {
+			vpBonus := halflings.GetVPPerSpade() * spadesUsed
+			player.VictoryPoints += vpBonus
+		}
+
+		// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+			if powerBonus > 0 {
+				player.Resources.Power.Bowl1 += powerBonus
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -174,6 +197,39 @@ func (p *PowerActionFreeSpades) String() string {
 		return fmt.Sprintf("PowerActionFreeSpades(%s, burned=%d)", p.PowerActionType, p.Burned)
 	}
 	return fmt.Sprintf("PowerActionFreeSpades(%s)", p.PowerActionType)
+}
+
+// GrantSpadesComponent grants free spades for terraform (from digging level or other sources)
+// Used for "dig X. build Y" patterns where X is the number of free spades
+type GrantSpadesComponent struct {
+	Spades int // Number of free spades to grant
+}
+
+func (d *GrantSpadesComponent) Execute(gs *game.GameState, playerID string) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player %s not found", playerID)
+	}
+
+	// For Darklings, "dig X" is just notation - they don't get free spades
+	// They pay priests directly in TransformAndBuildAction
+	if _, isDarklings := player.Faction.(*factions.Darklings); isDarklings {
+		return nil
+	}
+
+	// Grant free spades for dig advancement
+	// Note: VP will be awarded later by TransformAndBuildAction when spades are actually USED
+	// We don't award VP here because the transformation might not happen (hex already home terrain)
+	if gs.PendingSpades == nil {
+		gs.PendingSpades = make(map[string]int)
+	}
+	gs.PendingSpades[playerID] += d.Spades
+
+	return nil
+}
+
+func (d *GrantSpadesComponent) String() string {
+	return fmt.Sprintf("GrantSpades(spades=%d)", d.Spades)
 }
 
 // ========== ACTION MODIFIERS ==========
@@ -330,13 +386,15 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 
 	// Award VP from scoring tile (per spade PAID FOR, not free spades)
 	// Only award VP for spades the player actually paid for (remainingSpades), not cult reward spades
-	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && remainingSpades > 0 {
+	// Note: Darklings get BOTH their faction bonus AND scoring tile VP for paid spades
+	if remainingSpades > 0 {
 		spadesUsed := player.Faction.GetTerraformSpades(remainingSpades)
 		for i := 0; i < spadesUsed; i++ {
 			gs.AwardActionVP(playerID, game.ScoringActionSpades)
 		}
 
 		// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+		// Note: Darklings faction bonus is already awarded above when paying priests
 		if halflings, ok := player.Faction.(*factions.Halflings); ok {
 			vpBonus := halflings.GetVPPerSpade() * spadesUsed
 			player.VictoryPoints += vpBonus

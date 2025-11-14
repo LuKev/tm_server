@@ -338,7 +338,32 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	
 	// Transform the terrain
 	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
-	
+
+	// Award VP from scoring tile for ALL spades used (both free and paid)
+	// Power action spades (ACT5/ACT6) count for scoring, unlike cult reward spades
+	totalSpades := spadesFromFreeAction + remainingSpades
+	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && totalSpades > 0 {
+		// Convert worker/priest cost back to spades
+		spadesUsed := player.Faction.GetTerraformSpades(totalSpades)
+		for i := 0; i < spadesUsed; i++ {
+			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		}
+
+		// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+		if halflings, ok := player.Faction.(*factions.Halflings); ok {
+			vpBonus := halflings.GetVPPerSpade() * spadesUsed
+			player.VictoryPoints += vpBonus
+		}
+
+		// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+			if powerBonus > 0 {
+				player.Resources.Power.Bowl1 += powerBonus
+			}
+		}
+	}
+
 	// Build dwelling if requested
 	if a.BuildDwelling {
 		// Check building limit
