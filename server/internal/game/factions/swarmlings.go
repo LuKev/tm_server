@@ -23,7 +23,7 @@ func NewSwarmlings() *Swarmlings {
 			HomeTerrain: models.TerrainLake,
 			StartingRes: Resources{
 				Coins:   20, // Swarmlings start with 20 coins (not standard 15)
-				Workers: 12, // Swarmlings start with 12 workers (not standard 3)
+				Workers: 8,  // Swarmlings start with 8 workers (not standard 3)
 				Priests: 0,
 				Power1:  3, // Swarmlings start with 3/9 power (not standard 5/7)
 				Power2:  9,

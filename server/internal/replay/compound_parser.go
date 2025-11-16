@@ -40,12 +40,25 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 
 		// Parse conversion (check for Darklings W->P first)
 		if darklingsAction, ok := parseDarklingsWorkerToPriest(token, entry); ok {
+			// Flush any collected auxiliaries BEFORE the conversion to preserve order
+			for _, aux := range auxiliaries {
+				compound.Components = append(compound.Components, aux)
+			}
+			auxiliaries = nil
+
 			// This is Darklings priest ordination: "convert 3W to 3P"
 			compound.Components = append(compound.Components, darklingsAction)
 			continue
 		}
 
 		if conv, ok := parseConversion(token); ok {
+			// Flush any collected auxiliaries BEFORE the conversion to preserve order
+			// This ensures: upgrade. +FAV. convert => upgrade, +FAV, convert (not upgrade, convert, +FAV)
+			for _, aux := range auxiliaries {
+				compound.Components = append(compound.Components, aux)
+			}
+			auxiliaries = nil
+
 			// If we have a pending burn that hasn't been used, add it first
 			if burnAmount > 0 {
 				compound.Components = append(compound.Components, &ConversionComponent{
@@ -75,7 +88,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 				// BON1: Provides 1 free spade for building
 				// Grant free spade via PendingSpades before processing the next action
 				if actionType == "BON1" {
-					playerID := entry.Faction.String()
+					playerID := entry.GetPlayerID()
 					if gs.PendingSpades == nil {
 						gs.PendingSpades = make(map[string]int)
 					}
@@ -91,7 +104,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 				if actionType == "FAV6" {
 					// Pattern: "action FAV6. +FIRE" or "action FAV6. +WATER"
 					// This is similar to ACTA but advances by 1 step instead of 2
-					playerID := entry.Faction.String()
+					playerID := entry.GetPlayerID()
 					if i+1 < len(tokens) {
 						nextToken := strings.TrimSpace(tokens[i+1])
 						if strings.HasPrefix(nextToken, "+") {
@@ -133,7 +146,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 			   !strings.HasPrefix(actionType, "ACT4") && !strings.HasPrefix(actionType, "ACT5") &&
 			   !strings.HasPrefix(actionType, "ACT6") {
 				// Handle special faction actions
-				playerID := entry.Faction.String()
+				playerID := entry.GetPlayerID()
 				action, tokensConsumed, err := convertSpecialFactionAction(actionType, tokens, i, playerID, entry, gs)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert special faction action %s: %w", actionType, err)
@@ -322,10 +335,14 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 			continue
 		}
 
-		// Special handling for "transform X to Y" - might be pure transform or separate from build
-		if strings.HasPrefix(token, "transform ") {
+		// Special handling for "transform X to Y" or "transform X" (implied home terrain)
+		tokenLower = strings.ToLower(token)
+		if strings.HasPrefix(tokenLower, "transform ") {
+			// Use original token for field splitting to preserve coordinate case
 			fields := strings.Fields(token)
-			if len(fields) >= 4 && fields[2] == "to" {
+
+			// Case 1: "transform X to Y" (explicit target terrain)
+			if len(fields) >= 4 && strings.ToLower(fields[2]) == "to" {
 				transformHexStr := fields[1]
 
 				// Check if there's a build at the SAME hex (transform-and-build pattern)
@@ -341,14 +358,14 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 					return nil, fmt.Errorf("invalid coordinate in transform: %w", err)
 				}
 
-				// Parse target terrain from log
+				// Parse target terrain from log (use original case for terrain color)
 				targetTerrainStr := fields[3]
 				targetTerrain, err := ParseTerrainColor(targetTerrainStr)
 				if err != nil {
 					return nil, fmt.Errorf("invalid target terrain %s: %w", targetTerrainStr, err)
 				}
 
-				playerID := entry.Faction.String()
+				playerID := entry.GetPlayerID()
 
 				// Check if player has pending cult reward spades
 				if gs.PendingSpades != nil && gs.PendingSpades[playerID] > 0 {
@@ -363,6 +380,46 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 						TargetTerrain: targetTerrain,
 					}
 					compound.Components = append(compound.Components, transformComp)
+				}
+
+				mainActionFound = true
+
+				// Add any collected auxiliaries after the main action
+				for _, aux := range auxiliaries {
+					compound.Components = append(compound.Components, aux)
+				}
+				auxiliaries = nil // Clear for next potential main action
+
+				continue
+			}
+
+			// Case 2: "transform X" (implied home terrain)
+			if len(fields) == 2 {
+				transformHexStr := fields[1]
+				hex, err := ConvertLogCoordToAxial(transformHexStr)
+				if err != nil {
+					return nil, fmt.Errorf("invalid coordinate in transform: %w", err)
+				}
+
+				playerID := entry.GetPlayerID()
+
+				// Check if player has pending cult reward spades
+				if gs.PendingSpades != nil && gs.PendingSpades[playerID] > 0 {
+					// Use cult spade action (FREE, transforms BY 1 spade towards home)
+					action := game.NewUseCultSpadeAction(playerID, hex)
+					mainAction := &MainActionComponent{Action: action}
+					compound.Components = append(compound.Components, mainAction)
+				} else {
+					// Transform to home terrain using paid spades
+					player := gs.GetPlayer(playerID)
+					if player != nil {
+						targetTerrain := player.Faction.GetHomeTerrain()
+						transformComp := &TransformTerrainComponent{
+							TargetHex:     hex,
+							TargetTerrain: targetTerrain,
+						}
+						compound.Components = append(compound.Components, transformComp)
+					}
 				}
 
 				mainActionFound = true
@@ -529,7 +586,7 @@ func parseDarklingsWorkerToPriest(token string, entry *LogEntry) (*DarklingsPrie
 			fmt.Sscanf(fromPart, "%dW", &workersToConvert)
 
 			// Verify this is Darklings (case-insensitive)
-			playerID := strings.ToLower(entry.Faction.String())
+			playerID := strings.ToLower(entry.GetPlayerID())
 			if playerID != "darklings" {
 				// Only Darklings can do W->P conversion
 				return nil, false
@@ -736,18 +793,18 @@ func convertPowerActionToGameAction(actionType string, entry *LogEntry, gs *game
 					return nil, fmt.Errorf("invalid bridge hex2 %s: %w", hex2Str, err)
 				}
 
-				return game.NewPowerActionWithBridge(entry.Faction.String(), hex1, hex2), nil
+				return game.NewPowerActionWithBridge(entry.GetPlayerID(), hex1, hex2), nil
 			}
 		}
 	}
 
 	// Create a regular power action
-	return game.NewPowerAction(entry.Faction.String(), powerActionType), nil
+	return game.NewPowerAction(entry.GetPlayerID(), powerActionType), nil
 }
 
 func convertMainActionPartToGameAction(part *MainActionPart, entry *LogEntry, gs *game.GameState) (game.Action, error) {
 	// This will delegate to existing action converter functions
-	playerID := entry.Faction.String()
+	playerID := entry.GetPlayerID()
 
 	switch part.Type {
 	case ActionBuild:
@@ -814,6 +871,60 @@ func convertSpecialFactionAction(actionType string, tokens []string, currentInde
 			return game.NewAurenCultAdvanceAction(playerID, game.CultTrack(cultType)), 1, nil // Consumed 1 token (the cult track token)
 		}
 		return nil, 0, fmt.Errorf("ACTA requires a cult track advancement, got: %s", nextToken)
+
+	case "ACTN":
+		// Nomads Sandstorm: Transform hex to home terrain (yellow/desert) and/or build
+		// Pattern 1: "action ACTN. transform E5 to yellow" (transform only)
+		// Pattern 2: "action ACTN. transform E5 to yellow. build E5" (transform + build)
+		// Pattern 3: "action ACTN. build E4" (build only - terrain already home)
+		fields := strings.Fields(nextToken)
+
+		// Check for build-only pattern
+		if len(fields) >= 2 && fields[0] == "build" {
+			coordStr := fields[1]
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, 0, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
+			}
+			return game.NewNomadsSandstormAction(playerID, hex, true), 1, nil
+		}
+
+		// Check for transform pattern
+		if len(fields) >= 4 && fields[0] == "transform" {
+			coordStr := fields[1]
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, 0, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
+			}
+
+			// Check if there's a build action after the transform (in the next token)
+			buildDwelling := false
+			tokensConsumed := 1
+			if currentIndex+2 < len(tokens) {
+				buildToken := strings.TrimSpace(tokens[currentIndex+2])
+				if strings.HasPrefix(buildToken, "build ") {
+					buildDwelling = true
+					tokensConsumed = 2
+				}
+			}
+
+			return game.NewNomadsSandstormAction(playerID, hex, buildDwelling), tokensConsumed, nil
+		}
+		return nil, 0, fmt.Errorf("ACTN requires a transform or build action, got: %s", nextToken)
+
+	case "ACTS":
+		// Swarmlings Stronghold: Upgrade Dwelling to Trading House for free
+		// Pattern: "action ACTS. Upgrade D5 to TP"
+		fields := strings.Fields(nextToken)
+		if len(fields) >= 4 && strings.ToLower(fields[0]) == "upgrade" {
+			coordStr := fields[1]
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, 0, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
+			}
+			return game.NewSwarmlingsUpgradeAction(playerID, hex), 1, nil
+		}
+		return nil, 0, fmt.Errorf("ACTS requires an upgrade action, got: %s", nextToken)
 
 	default:
 		// For other special actions, return nil (not yet implemented)
