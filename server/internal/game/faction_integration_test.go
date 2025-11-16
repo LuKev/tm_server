@@ -476,9 +476,7 @@ func TestAlchemists_PowerPerSpadeAfterStronghold(t *testing.T) {
 	// Transform terrain (distance 3 = 2 spades for Alchemists, who use 2 workers per spade)
 	targetHex := NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
-	
-	initialPower := player.Resources.Power.Bowl1
-	
+
 	action := NewTransformAndBuildAction("player1", targetHex, false)
 	err := action.Execute(gs)
 	if err != nil {
@@ -486,10 +484,11 @@ func TestAlchemists_PowerPerSpadeAfterStronghold(t *testing.T) {
 	}
 	
 	// Should gain 2 spades * 2 power = 4 power
-	powerGained := player.Resources.Power.Bowl1 - initialPower
+	// GainPower() moves power from Bowl1 to Bowl2
+	powerGained := player.Resources.Power.Bowl2
 	expectedPower := 4
 	if powerGained != expectedPower {
-		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+		t.Errorf("expected %d power gained in Bowl2, got %d", expectedPower, powerGained)
 	}
 }
 
@@ -586,12 +585,12 @@ func TestAlchemists_PowerPerSpadeWithBonusCard(t *testing.T) {
 	
 	player.Resources.Workers = 20
 	player.Resources.Power.Bowl1 = 10
-	
+	player.Resources.Power.Bowl2 = 0
+	player.Resources.Power.Bowl3 = 0
+
 	targetHex := NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
-	
-	initialPower := player.Resources.Power.Bowl1
-	
+
 	// Use bonus card spade
 	action := &SpecialAction{
 		BaseAction: BaseAction{
@@ -608,10 +607,11 @@ func TestAlchemists_PowerPerSpadeWithBonusCard(t *testing.T) {
 	}
 	
 	// Should gain 2 spades * 2 power = 4 power (Alchemists use 2 workers per spade)
-	powerGained := player.Resources.Power.Bowl1 - initialPower
+	// GainPower() moves power from Bowl1 to Bowl2
+	powerGained := player.Resources.Power.Bowl2
 	expectedPower := 4
 	if powerGained != expectedPower {
-		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+		t.Errorf("expected %d power gained in Bowl2, got %d", expectedPower, powerGained)
 	}
 }
 
@@ -2293,10 +2293,10 @@ func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 	}
 	
 	// Verify that town formation was detected and pending
-	if gs.PendingTownFormations["player1"] == nil {
+	if len(gs.PendingTownFormations["player1"]) == 0 {
 		t.Error("expected pending town formation after bridge connects buildings")
 	} else {
-		pendingTown := gs.PendingTownFormations["player1"]
+		pendingTown := gs.PendingTownFormations["player1"][0]
 		if len(pendingTown.Hexes) != 4 {
 			t.Errorf("expected 4 connected buildings in town, got %d", len(pendingTown.Hexes))
 		}
@@ -2642,9 +2642,6 @@ func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
 	})
 	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainSwamp)
 
-	// Record initial Bowl1 power
-	initialBowl1 := player.Resources.Power.Bowl1
-
 	// Upgrade to stronghold via UpgradeBuilding action
 	action := NewUpgradeBuildingAction("player1", tradingHouseHex, models.BuildingStronghold)
 	err := action.Execute(gs)
@@ -2652,10 +2649,19 @@ func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
 		t.Fatalf("failed to upgrade to stronghold: %v", err)
 	}
 
-	// Verify +12 power was added to Bowl1
-	powerGained := player.Resources.Power.Bowl1 - initialBowl1
-	if powerGained != 12 {
-		t.Errorf("expected +12 power in Bowl1 from stronghold, got +%d", powerGained)
+	// Verify +12 power was gained via GainPower()
+	// GainPower(12) with initial 5/7/0 state:
+	// - 5 power moves Bowl1→Bowl2: 0/12/0
+	// - 7 power moves Bowl2→Bowl3: 0/5/7
+	// Final state should be: 0/5/7
+	if player.Resources.Power.Bowl1 != 0 {
+		t.Errorf("expected Bowl1=0 after gaining 12 power, got %d", player.Resources.Power.Bowl1)
+	}
+	if player.Resources.Power.Bowl2 != 5 {
+		t.Errorf("expected Bowl2=5 after gaining 12 power, got %d", player.Resources.Power.Bowl2)
+	}
+	if player.Resources.Power.Bowl3 != 7 {
+		t.Errorf("expected Bowl3=7 after gaining 12 power, got %d", player.Resources.Power.Bowl3)
 	}
 
 	// Verify stronghold ability is granted
