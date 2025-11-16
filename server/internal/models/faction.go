@@ -6,7 +6,8 @@ package models
 type FactionType int
 
 const (
-	FactionNomads FactionType = iota
+	FactionUnknown FactionType = iota // 0 = unknown/uninitialized
+	FactionNomads
 	FactionFakirs
 	FactionChaosMagicians
 	FactionGiants
@@ -24,6 +25,8 @@ const (
 
 func (f FactionType) String() string {
 	switch f {
+	case FactionUnknown:
+		return "Unknown"
 	case FactionNomads:
 		return "Nomads"
 	case FactionFakirs:
