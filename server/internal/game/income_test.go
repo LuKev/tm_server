@@ -475,7 +475,7 @@ func TestIncome_WithFavorTiles(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -495,7 +495,7 @@ func TestIncome_WithFavorTiles(t *testing.T) {
 	expectedCoins := 10 + 3
 	expectedWorkers := 5 + 1 + 1 // Base 1 + Earth+2 1
 	expectedPriests := 2
-	expectedBowl1 := 20 - 5
+	expectedBowl1 := 12 - 5
 	expectedBowl2 := 0 + 5
 
 	if player.Resources.Coins != expectedCoins {

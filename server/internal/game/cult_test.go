@@ -66,7 +66,7 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up power
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 
 	// Give player a key to reach position 10
 	player.Keys = 1
@@ -109,9 +109,9 @@ func TestCultTrackState_GetRankings(t *testing.T) {
 	player3 := gs.GetPlayer("player3")
 
 	// Set up power for all players
-	player1.Resources.Power.Bowl1 = 20
-	player2.Resources.Power.Bowl1 = 20
-	player3.Resources.Power.Bowl1 = 20
+	player1.Resources.Power.Bowl1 = 12
+	player2.Resources.Power.Bowl1 = 12
+	player3.Resources.Power.Bowl1 = 12
 
 	// Advance players to different positions
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 7, player1, gs)
@@ -147,9 +147,9 @@ func TestCultTrackState_EndGameScoring_Simple(t *testing.T) {
 	player3 := gs.GetPlayer("player3")
 
 	// Set up power
-	player1.Resources.Power.Bowl1 = 20
-	player2.Resources.Power.Bowl1 = 20
-	player3.Resources.Power.Bowl1 = 20
+	player1.Resources.Power.Bowl1 = 12
+	player2.Resources.Power.Bowl1 = 12
+	player3.Resources.Power.Bowl1 = 12
 
 	// Give player1 a key to reach position 10
 	player1.Keys = 1
@@ -185,9 +185,9 @@ func TestCultTrackState_EndGameScoring_Tie(t *testing.T) {
 	player3 := gs.GetPlayer("player3")
 
 	// Set up power
-	player1.Resources.Power.Bowl1 = 20
-	player2.Resources.Power.Bowl1 = 20
-	player3.Resources.Power.Bowl1 = 20
+	player1.Resources.Power.Bowl1 = 12
+	player2.Resources.Power.Bowl1 = 12
+	player3.Resources.Power.Bowl1 = 12
 
 	// Fire track: player1 (7), player2 (7), player3 (3)
 	// Tied for 1st: split 8+4=12 points -> 6 each
@@ -258,8 +258,8 @@ func TestCultTrackState_EndGameScoring_NoAdvancement(t *testing.T) {
 	player2 := gs.GetPlayer("player2")
 
 	// Set up power
-	player1.Resources.Power.Bowl1 = 20
-	player2.Resources.Power.Bowl1 = 20
+	player1.Resources.Power.Bowl1 = 12
+	player2.Resources.Power.Bowl1 = 12
 
 	// Only player1 advances on Fire
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 5, player1, gs)
@@ -284,7 +284,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up power
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -301,7 +301,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 	}
 
 	// Verify power gained: 1 (pos 3) + 2 (pos 5) = 3 total
-	expectedBowl1 := 20 - 3
+	expectedBowl1 := 12 - 3
 	expectedBowl2 := 3
 	if player.Resources.Power.Bowl1 != expectedBowl1 {
 		t.Errorf("expected %d power in Bowl1, got %d", expectedBowl1, player.Resources.Power.Bowl1)
@@ -320,7 +320,7 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 	}
 
 	// Verify power gained: previous 3 + 2 (pos 7) + 3 (pos 10) = 8 total
-	expectedBowl1 = 20 - 8
+	expectedBowl1 = 12 - 8
 	expectedBowl2 = 8
 	if player.Resources.Power.Bowl1 != expectedBowl1 {
 		t.Errorf("expected %d power in Bowl1, got %d", expectedBowl1, player.Resources.Power.Bowl1)
@@ -339,8 +339,8 @@ func TestCultTrackState_Position10Blocked(t *testing.T) {
 	player2 := gs.GetPlayer("player2")
 
 	// Set up power
-	player1.Resources.Power.Bowl1 = 20
-	player2.Resources.Power.Bowl1 = 20
+	player1.Resources.Power.Bowl1 = 12
+	player2.Resources.Power.Bowl1 = 12
 
 	// Give player1 a key to reach position 10
 	player1.Keys = 1
@@ -373,7 +373,7 @@ func TestSendPriestToCult_Basic(t *testing.T) {
 
 	// Set up resources (clear starting power and add priests)
 	player.Resources.Priests = 3
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -416,7 +416,7 @@ func TestSendPriestToCult_ReturnToSupply(t *testing.T) {
 
 	// Set up resources (clear starting power and add priests)
 	player.Resources.Priests = 3
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -483,7 +483,7 @@ func TestSendPriestToCult_AlreadyAtMax(t *testing.T) {
 
 	// Set up resources
 	player.Resources.Priests = 3
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 
 	// Give player a key to reach position 10
 	player.Keys = 1
@@ -524,7 +524,7 @@ func TestTownCultBonus_8Points(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up power
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -558,7 +558,7 @@ func TestTownCultBonus_2Keys(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up power
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -592,7 +592,7 @@ func TestTownCultBonus_WithMilestones(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up power
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -631,8 +631,8 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 
-	// Set up power
-	player.Resources.Power.Bowl1 = 50
+	// Set up power (need extra for advancing to position 10 on multiple tracks)
+	player.Resources.Power.Bowl1 = 35
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 

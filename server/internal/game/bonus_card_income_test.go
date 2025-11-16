@@ -16,7 +16,7 @@ func TestIncome_BonusCard_Priest(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -44,7 +44,7 @@ func TestIncome_BonusCard_WorkerPower(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -77,7 +77,7 @@ func TestIncome_BonusCard_6Coins(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -110,7 +110,7 @@ func TestIncome_BonusCard_DwellingVP(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -143,7 +143,7 @@ func TestIncome_BonusCard_TradingHouseVP(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -172,7 +172,7 @@ func TestIncome_BonusCard_Spade(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -205,7 +205,7 @@ func TestIncome_BonusCard_CultAdvance(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -238,7 +238,7 @@ func TestIncome_BonusCard_StrongholdSanctuary(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -267,7 +267,7 @@ func TestIncome_BonusCard_Shipping(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
@@ -300,7 +300,7 @@ func TestIncome_BonusCard_ShippingVP(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	player.Resources.Priests = 2
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 

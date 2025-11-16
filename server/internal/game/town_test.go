@@ -188,7 +188,7 @@ func TestTownFormation_6PointsTile(t *testing.T) {
 	// Form town with 6 points tile
 	initialVP := player.VictoryPoints
 	// Set up power for gaining (need power in Bowl1 to gain)
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 	initialKeys := player.Keys
@@ -246,7 +246,7 @@ func TestTownFormation_8PointsTile_CultAdvancement(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Set up power for cult advancement
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	
 	hexes := setupConnectedBuildings(gs, "player1", faction, 4, 7)
@@ -342,7 +342,7 @@ func TestTownFormation_2PointsTile_CultAdvancement(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Set up power for cult advancement
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	
 	hexes := setupConnectedBuildings(gs, "player1", faction, 4, 7)
@@ -655,13 +655,15 @@ func TestSelectTownTile(t *testing.T) {
 	hexes := setupConnectedBuildings(gs, "player1", faction, 4, 7)
 	
 	// Create a pending town formation
-	gs.PendingTownFormations["player1"] = &PendingTownFormation{
-		PlayerID: "player1",
-		Hexes:    hexes,
+	gs.PendingTownFormations["player1"] = []*PendingTownFormation{
+		{
+			PlayerID: "player1",
+			Hexes:    hexes,
+		},
 	}
-	
+
 	// Verify pending town exists
-	if gs.PendingTownFormations["player1"] == nil {
+	if len(gs.PendingTownFormations["player1"]) == 0 {
 		t.Fatal("expected pending town formation")
 	}
 	
@@ -677,7 +679,7 @@ func TestSelectTownTile(t *testing.T) {
 	}
 	
 	// Verify pending town was removed
-	if gs.PendingTownFormations["player1"] != nil {
+	if len(gs.PendingTownFormations["player1"]) > 0 {
 		t.Error("expected pending town formation to be removed")
 	}
 	
@@ -744,12 +746,12 @@ func TestBuildActionCreatesPendingTown(t *testing.T) {
 	}
 	
 	// Verify pending town formation was created
-	if gs.PendingTownFormations["player1"] == nil {
+	if len(gs.PendingTownFormations["player1"]) == 0 {
 		t.Fatal("expected pending town formation after building 4th trading house")
 	}
-	
-	if len(gs.PendingTownFormations["player1"].Hexes) != 4 {
-		t.Errorf("expected 4 hexes in pending town, got %d", len(gs.PendingTownFormations["player1"].Hexes))
+
+	if len(gs.PendingTownFormations["player1"][0].Hexes) != 4 {
+		t.Errorf("expected 4 hexes in pending town, got %d", len(gs.PendingTownFormations["player1"][0].Hexes))
 	}
 }
 

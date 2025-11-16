@@ -476,7 +476,7 @@ func TestUpgradeBuilding_FreesUpDwellingSlot(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	player.Resources.Coins = 1000
 	player.Resources.Workers = 1000
-	player.Resources.Priests = 1000
+	player.Resources.Priests = 5
 	
 	// Place 8 dwellings (the limit)
 	dwellingHexes := []Hex{

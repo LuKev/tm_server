@@ -85,7 +85,7 @@ func TestApplyFavorTileImmediate_CultAdvancement(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Set up power
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 

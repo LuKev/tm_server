@@ -548,11 +548,11 @@ func TestAlchemists_PowerPerSpadeWithCultSpade(t *testing.T) {
 	gs.PendingSpades["player1"] = 1
 	
 	player.Resources.Power.Bowl1 = 10
+	player.Resources.Power.Bowl2 = 0
+	player.Resources.Power.Bowl3 = 0
 	
 	targetHex := NewHex(1, 0) // Adjacent hex
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
-	
-	initialPower := player.Resources.Power.Bowl1
 	
 	// Use cult spade
 	action := NewUseCultSpadeAction("player1", targetHex)
@@ -561,11 +561,11 @@ func TestAlchemists_PowerPerSpadeWithCultSpade(t *testing.T) {
 		t.Fatalf("cult spade failed: %v", err)
 	}
 	
-	// Should gain 1 spade * 2 power = 2 power
-	powerGained := player.Resources.Power.Bowl1 - initialPower
+	// Should gain 1 spade * 2 power = 2 power (GainPower moves from Bowl1 to Bowl2)
+	powerGained := player.Resources.Power.Bowl2
 	expectedPower := 2
 	if powerGained != expectedPower {
-		t.Errorf("expected %d power gained, got %d", expectedPower, powerGained)
+		t.Errorf("expected %d power gained in Bowl2, got %d", expectedPower, powerGained)
 	}
 }
 
@@ -1293,7 +1293,38 @@ func TestEngineers_VPPerBridgeOnPass(t *testing.T) {
 	faction.BuildStronghold()
 	player.HasStrongholdAbility = true
 	
-	// Simulate building 2 bridges
+	// Place two structures with bridges connecting them
+	hex1 := NewHex(0, 0)
+	hex2 := NewHex(2, 0) // 2 spaces away, can be bridged
+	hex3 := NewHex(4, 0) // 2 spaces away from hex2, can be bridged
+	
+	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(hex1, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	gs.Map.GetHex(hex2).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(hex2, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	gs.Map.GetHex(hex3).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(hex3, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+	
+	// Add bridges directly to the map (for testing purposes, bypassing river validation)
+	gs.Map.Bridges[NewBridgeKey(hex1, hex2)] = true
+	gs.Map.Bridges[NewBridgeKey(hex2, hex3)] = true
 	player.BridgesBuilt = 2
 	
 	initialVP := player.VictoryPoints

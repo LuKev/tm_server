@@ -346,10 +346,13 @@ func TestAwardCultRewards_Power(t *testing.T) {
 		},
 	}
 	
-	// Set up power bowls
+	// Set up power bowls (need extra for advancement bonuses + cult rewards)
 	player.Resources.Power.Bowl1 = 20
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
+	
+	// Give player a key to reach position 10
+	player.Keys = 1
 	
 	// Position 10 (should get 8 power: 10/4 = 2, 2*4 = 8)
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player, gs)

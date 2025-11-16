@@ -15,7 +15,7 @@ func TestAdvanceShipping_AwardsVP(t *testing.T) {
 
 	// Give player resources to advance shipping
 	player.Resources.Coins = 100
-	player.Resources.Priests = 10
+	player.Resources.Priests = 5
 
 	// Advance shipping from 0 to 1
 	initialVP := player.VictoryPoints
@@ -74,7 +74,7 @@ func TestAdvanceDigging_AwardsVP(t *testing.T) {
 	// Give player resources to advance digging
 	player.Resources.Coins = 100
 	player.Resources.Workers = 10
-	player.Resources.Priests = 10
+	player.Resources.Priests = 5
 
 	// Advance digging from 0 to 1
 	initialVP := player.VictoryPoints
@@ -183,7 +183,7 @@ func TestDiggingLevelConstraints(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	player.Resources.Coins = 100
 	player.Resources.Workers = 100
-	player.Resources.Priests = 100
+	player.Resources.Priests = 5
 
 	// Advance to level 1
 	action1 := NewAdvanceDiggingAction("player1")
@@ -210,7 +210,7 @@ func TestDiggingLevelConstraints(t *testing.T) {
 	player2 := gs2.GetPlayer("player2")
 	player2.Resources.Coins = 100
 	player2.Resources.Workers = 100
-	player2.Resources.Priests = 100
+	player2.Resources.Priests = 5
 
 	// Advance to level 1
 	action4 := NewAdvanceDiggingAction("player2")
@@ -231,7 +231,7 @@ func TestDiggingLevelConstraints(t *testing.T) {
 	player3 := gs3.GetPlayer("player3")
 	player3.Resources.Coins = 100
 	player3.Resources.Workers = 100
-	player3.Resources.Priests = 100
+	player3.Resources.Priests = 5
 
 	// Try to advance (should fail immediately)
 	action6 := NewAdvanceDiggingAction("player3")

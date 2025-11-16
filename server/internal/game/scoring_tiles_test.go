@@ -79,7 +79,7 @@ func TestScoringTile_TradingHouseVP(t *testing.T) {
 	// Give player resources
 	player.Resources.Coins = 100
 	player.Resources.Workers = 100
-	player.Resources.Priests = 10
+	player.Resources.Priests = 5
 	
 	// Place a dwelling first
 	gs.Map.PlaceBuilding(NewHex(0, 0), &models.Building{
@@ -123,7 +123,7 @@ func TestScoringTile_StrongholdVP(t *testing.T) {
 	// Give player resources
 	player.Resources.Coins = 100
 	player.Resources.Workers = 100
-	player.Resources.Priests = 10
+	player.Resources.Priests = 5
 	
 	// Place a trading house first
 	gs.Map.PlaceBuilding(NewHex(0, 0), &models.Building{

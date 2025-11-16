@@ -289,7 +289,7 @@ func TestBonusCardCultAdvance_WithPowerBonus(t *testing.T) {
 	gs.BonusCards.PlayerHasCard["player1"] = true
 	
 	// Set up power for gaining
-	player.Resources.Power.Bowl1 = 20
+	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 	
