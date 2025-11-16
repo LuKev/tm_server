@@ -254,19 +254,19 @@ func TestIndirectAdjacency_CrossMapShipping(t *testing.T) {
 
 func TestBonusCard_ShippingBonus_IndirectAdjacency(t *testing.T) {
 	gs := NewGameState()
-	
+
 	// Add player with shipping level 1
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	player.ShippingLevel = 1
-	
-	// Set up bonus cards and give player the Shipping bonus card
+
+	// Set up bonus cards and give player the Shipping bonus card (+1 shipping)
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShipping})
 	bonusCard := BonusCardShipping
 	gs.BonusCards.TakeBonusCard("player1", bonusCard)
-	
-	// Place a building at b1 (Desert)
+
+	// Place a building at b1
 	b1 := NewHex(0, 1)
 	gs.Map.GetHex(b1).Terrain = faction.GetHomeTerrain()
 	gs.Map.GetHex(b1).Building = &models.Building{
@@ -275,31 +275,34 @@ func TestBonusCard_ShippingBonus_IndirectAdjacency(t *testing.T) {
 		PlayerID:   "player1",
 		PowerValue: 1,
 	}
-	
-	// b2 is Plains, requires shipping=2 to reach from b1
+
+	// b2 requires shipping=2 to reach from b1
 	b2 := NewHex(3, 1)
-	
-	// Without bonus card, shipping level 1 should NOT reach b2 from b1
-	if gs.IsAdjacentToPlayerBuilding(b2, "player1") {
-		t.Fatal("expected b2 to NOT be adjacent with base shipping=1")
-	}
-	
-	// Get effective shipping level with bonus card
+
+	// c2 requires shipping=3 to reach from b1
+	c2 := NewHex(5, 1)
+
+	// Verify effective shipping level with bonus card
 	if bonusCardType, ok := gs.BonusCards.GetPlayerCard("player1"); ok {
 		shippingBonus := GetBonusCardShippingBonus(bonusCardType, player.Faction.GetType())
 		effectiveShipping := player.ShippingLevel + shippingBonus
-		
-		// With bonus card, effective shipping should be 2
+
+		// With bonus card, effective shipping should be 2 (1 base + 1 bonus)
 		if effectiveShipping != 2 {
 			t.Errorf("expected effective shipping=2 with bonus card, got %d", effectiveShipping)
 		}
-		
-		// Now check if b2 is reachable with effective shipping level
-		if !gs.Map.IsIndirectlyAdjacent(b1, b2, effectiveShipping) {
-			t.Fatal("expected b2 to be indirectly adjacent with effective shipping=2")
-		}
 	} else {
 		t.Fatal("player should have bonus card")
+	}
+
+	// With bonus card (effective shipping=2), b2 SHOULD be reachable
+	if !gs.IsAdjacentToPlayerBuilding(b2, "player1") {
+		t.Fatal("expected b2 to be adjacent with effective shipping=2 (base 1 + bonus 1)")
+	}
+
+	// With bonus card (effective shipping=2), c2 should NOT be reachable (needs shipping=3)
+	if gs.IsAdjacentToPlayerBuilding(c2, "player1") {
+		t.Fatal("expected c2 to NOT be adjacent with effective shipping=2 (needs shipping=3)")
 	}
 }
 

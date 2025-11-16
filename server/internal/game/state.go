@@ -288,19 +288,26 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 		return true
 	}
 
+	// Calculate effective shipping level (base + bonus card bonus)
+	effectiveShipping := player.ShippingLevel
+	if bonusCard, hasCard := gs.BonusCards.GetPlayerCard(playerID); hasCard {
+		shippingBonus := GetBonusCardShippingBonus(bonusCard, player.Faction.GetType())
+		effectiveShipping += shippingBonus
+	}
+
 	// Check adjacency to each of the player's buildings
 	for _, mapHex := range gs.Map.Hexes {
 		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
 			buildingHex := mapHex.Coord
-			
+
 			// Check direct adjacency (includes bridges)
 			if gs.Map.IsDirectlyAdjacent(targetHex, buildingHex) {
 				return true
 			}
-			
+
 			// Check indirect adjacency via shipping (river navigation)
-			if player.ShippingLevel > 0 {
-				if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, player.ShippingLevel) {
+			if effectiveShipping > 0 {
+				if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, effectiveShipping) {
 					return true
 				}
 			}

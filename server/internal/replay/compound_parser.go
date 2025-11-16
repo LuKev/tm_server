@@ -365,22 +365,14 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 					return nil, fmt.Errorf("invalid target terrain %s: %w", targetTerrainStr, err)
 				}
 
-				playerID := entry.GetPlayerID()
-
-				// Check if player has pending cult reward spades
-				if gs.PendingSpades != nil && gs.PendingSpades[playerID] > 0 {
-					// Use cult spade action (FREE, transforms to home terrain)
-					action := game.NewUseCultSpadeAction(playerID, hex)
-					mainAction := &MainActionComponent{Action: action}
-					compound.Components = append(compound.Components, mainAction)
-				} else {
-					// Use TransformTerrainComponent for transform-only to specified terrain
-					transformComp := &TransformTerrainComponent{
-						TargetHex:     hex,
-						TargetTerrain: targetTerrain,
-					}
-					compound.Components = append(compound.Components, transformComp)
+				// For "transform X to Y" (with explicit target terrain), always use TransformTerrainComponent
+				// This handles both power action spades (ACT5/ACT6/BON1) and paid transforms
+				// TransformTerrainComponent will consume pending spades during execution
+				transformComp := &TransformTerrainComponent{
+					TargetHex:     hex,
+					TargetTerrain: targetTerrain,
 				}
+				compound.Components = append(compound.Components, transformComp)
 
 				mainActionFound = true
 
@@ -508,18 +500,33 @@ func parseConversion(token string) (*ConversionComponent, bool) {
 		// Parse "from" part (e.g., "1pw", "3p", "5w", "3vp", "2c") - already lowercase from tokenLower
 		if strings.Contains(fromPart, "pw") {
 			fmt.Sscanf(fromPart, "%dpw", &fromAmount)
+			if fromAmount == 0 {
+				fromAmount = 1 // Default to 1 if no number specified
+			}
 			fromRes = "PW"
 		} else if strings.Contains(fromPart, "vp") {
 			fmt.Sscanf(fromPart, "%dvp", &fromAmount)
+			if fromAmount == 0 {
+				fromAmount = 1 // Default to 1 if no number specified
+			}
 			fromRes = "VP"
 		} else if strings.Contains(fromPart, "p") {
 			fmt.Sscanf(fromPart, "%dp", &fromAmount)
+			if fromAmount == 0 {
+				fromAmount = 1 // Default to 1 if no number specified
+			}
 			fromRes = "P"
 		} else if strings.Contains(fromPart, "w") {
 			fmt.Sscanf(fromPart, "%dw", &fromAmount)
+			if fromAmount == 0 {
+				fromAmount = 1 // Default to 1 if no number specified
+			}
 			fromRes = "W"
 		} else if strings.Contains(fromPart, "c") {
 			fmt.Sscanf(fromPart, "%dc", &fromAmount)
+			if fromAmount == 0 {
+				fromAmount = 1 // Default to 1 if no number specified
+			}
 			fromRes = "C"
 		} else {
 			return nil, false
@@ -528,15 +535,27 @@ func parseConversion(token string) (*ConversionComponent, bool) {
 		// Parse "to" part (e.g., "1c", "2w", "1p", "1vp") - already lowercase from tokenLower
 		if strings.Contains(toPart, "vp") {
 			fmt.Sscanf(toPart, "%dvp", &toAmount)
+			if toAmount == 0 {
+				toAmount = 1 // Default to 1 if no number specified
+			}
 			toRes = "VP"
 		} else if strings.Contains(toPart, "c") {
 			fmt.Sscanf(toPart, "%dc", &toAmount)
+			if toAmount == 0 {
+				toAmount = 1 // Default to 1 if no number specified
+			}
 			toRes = "C"
 		} else if strings.Contains(toPart, "w") {
 			fmt.Sscanf(toPart, "%dw", &toAmount)
+			if toAmount == 0 {
+				toAmount = 1 // Default to 1 if no number specified
+			}
 			toRes = "W"
 		} else if strings.Contains(toPart, "p") {
 			fmt.Sscanf(toPart, "%dp", &toAmount)
+			if toAmount == 0 {
+				toAmount = 1 // Default to 1 if no number specified
+			}
 			toRes = "P"
 		} else {
 			return nil, false
@@ -618,6 +637,7 @@ func parseDarklingsWorkerToPriest(token string, entry *LogEntry) (*DarklingsPrie
 func parseAuxiliary(token string) (*AuxiliaryComponent, bool) {
 	token = strings.TrimSpace(token)
 	tokenUpper := strings.ToUpper(token)
+	tokenLower := strings.ToLower(token)
 
 	// +FAV5 or +fav5
 	if strings.HasPrefix(tokenUpper, "+FAV") {
@@ -632,6 +652,18 @@ func parseAuxiliary(token string) (*AuxiliaryComponent, bool) {
 		return &AuxiliaryComponent{
 			Type:   AuxTownTile,
 			Params: map[string]string{"tile": tokenUpper},
+		}, true
+	}
+
+	// connect r16 (Mermaids river-skip town formation)
+	// This is informational - the game logic already knows which river was skipped
+	// We parse it as an auxiliary action but it's a no-op
+	if strings.HasPrefix(tokenLower, "connect r") {
+		// Extract river hex number (e.g., "connect r16" -> "16")
+		riverNumStr := strings.TrimPrefix(tokenLower, "connect r")
+		return &AuxiliaryComponent{
+			Type:   AuxConnect,
+			Params: map[string]string{"river": riverNumStr},
 		}, true
 	}
 
@@ -938,6 +970,45 @@ func convertSpecialFactionAction(actionType string, tokens []string, currentInde
 			return game.NewSwarmlingsUpgradeAction(playerID, hex), 1, nil
 		}
 		return nil, 0, fmt.Errorf("ACTS requires an upgrade action, got: %s", nextToken)
+
+	case "ACTG":
+		// Giants Stronghold: Get 2 free spades to transform and optionally build dwelling
+		// Pattern 1: "action ACTG. build C3" (build only - terrain already home or will be transformed)
+		// Pattern 2: "action ACTG. transform C3 to red. build C3" (transform + build)
+		fields := strings.Fields(nextToken)
+
+		// Check for build-only pattern (most common)
+		if len(fields) >= 2 && fields[0] == "build" {
+			coordStr := fields[1]
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, 0, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
+			}
+			return game.NewGiantsTransformAction(playerID, hex, true), 1, nil
+		}
+
+		// Check for transform pattern
+		if len(fields) >= 4 && fields[0] == "transform" {
+			coordStr := fields[1]
+			hex, err := ConvertLogCoordToAxial(coordStr)
+			if err != nil {
+				return nil, 0, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
+			}
+
+			// Check if there's a build action after the transform (in the next token)
+			buildDwelling := false
+			tokensConsumed := 1
+			if currentIndex+2 < len(tokens) {
+				buildToken := strings.TrimSpace(tokens[currentIndex+2])
+				if strings.HasPrefix(buildToken, "build ") {
+					buildDwelling = true
+					tokensConsumed = 2
+				}
+			}
+
+			return game.NewGiantsTransformAction(playerID, hex, buildDwelling), tokensConsumed, nil
+		}
+		return nil, 0, fmt.Errorf("ACTG requires a transform or build action, got: %s", nextToken)
 
 	default:
 		// For other special actions, return nil (not yet implemented)

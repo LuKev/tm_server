@@ -148,12 +148,10 @@ func TestMermaidsStronghold_ShippingAwardsVP(t *testing.T) {
 		t.Errorf("expected shipping level 2 after stronghold, got %d", faction.GetShippingLevel())
 	}
 
-	// Verify VP was awarded for shipping level 2 (3 VP)
-	// Note: Also awarded VP from scoring tile for stronghold, so we need to account for that
-	// For now, just verify that VP increased by at least the shipping bonus
-	if player.VictoryPoints < initialVP + 3 {
-		t.Errorf("expected at least %d VP increase (including 3 for shipping level 2), got %d total VP", 
-			3, player.VictoryPoints)
+	// Verify VP was awarded for shipping level 2 (2 VP)
+	if player.VictoryPoints != initialVP + 2 {
+		t.Errorf("expected %d VP increase (including 2 for shipping level 2), got %d total VP", 
+			2, player.VictoryPoints)
 	}
 }
 

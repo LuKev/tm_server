@@ -5,15 +5,17 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/factions"
 )
 
 // GameValidator validates a game replay against a log file
 type GameValidator struct {
-	GameState      *game.GameState
-	LogEntries     []*LogEntry
-	CurrentEntry   int
-	Errors         []ValidationError
-	IncomeApplied  bool // Track if income has been applied for current round
+	GameState                    *game.GameState
+	LogEntries                   []*LogEntry
+	CurrentEntry                 int
+	Errors                       []ValidationError
+	IncomeApplied                bool           // Track if income has been applied for current round
+	AlchemistsSpadesWithPowerGranted map[string]int // Track cult spades that had power granted during cult income
 }
 
 // ValidationError represents a validation error
@@ -29,7 +31,8 @@ type ValidationError struct {
 // NewGameValidator creates a new validator
 func NewGameValidator() *GameValidator {
 	return &GameValidator{
-		Errors: make([]ValidationError, 0),
+		Errors:                       make([]ValidationError, 0),
+		AlchemistsSpadesWithPowerGranted: make(map[string]int),
 	}
 }
 
@@ -81,6 +84,8 @@ func (v *GameValidator) ValidateNextEntry() error {
 				v.GameState.StartNewRound()
 				// Reset income flag for new round
 				v.IncomeApplied = false
+				// Reset Alchemists cult spade power tracking
+				v.AlchemistsSpadesWithPowerGranted = make(map[string]int)
 				// Note: Bonus cards are selected when passing and players keep them across rounds.
 				// Cards are only returned when players pass and select a new card (handled in TakeBonusCard).
 			}
@@ -190,7 +195,30 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	// Handle cult income phase (only validates, doesn't grant income - cult rewards already given in cleanup)
 	if entry.Action == "cult_income_for_faction" {
-		// Just validate state - cult rewards were already given in ExecuteCleanupPhase
+		// Special handling for Alchemists: Grant power for cult spades during cult income
+		// This matches the replay file notation where Alchemists' power from cult spades
+		// is shown in the cult_income_for_faction entry, not when spades are used
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
+		if player != nil {
+			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+				powerPerSpade := alchemists.GetPowerPerSpade()
+				if powerPerSpade > 0 {
+					// Check if player has pending spades
+					if v.GameState.PendingSpades != nil {
+						if pendingSpades, hasPending := v.GameState.PendingSpades[entry.GetPlayerID()]; hasPending && pendingSpades > 0 {
+							// Grant power for all pending spades
+							totalPower := pendingSpades * powerPerSpade
+							player.Resources.Power.GainPower(totalPower)
+
+							// Track that these spades have had power granted
+							v.AlchemistsSpadesWithPowerGranted[entry.GetPlayerID()] = pendingSpades
+						}
+					}
+				}
+			}
+		}
+
+		// Validate state - cult rewards were already given in ExecuteCleanupPhase
 		if err := v.ValidateState(entry); err != nil {
 			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
 		}
@@ -227,8 +255,56 @@ func (v *GameValidator) ValidateNextEntry() error {
 				return fmt.Errorf("failed to parse income action at entry %d: %v", v.CurrentEntry, err)
 			}
 
+			// Check if this uses an Alchemists cult spade where power was already granted
+			playerID := tempEntry.GetPlayerID()
+			player := v.GameState.GetPlayer(playerID)
+			var powerAlreadyGranted bool
+			if player != nil {
+				if _, ok := player.Faction.(*factions.Alchemists); ok {
+					if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
+						// Check if this compound action contains a UseCultSpadeAction
+						for _, component := range compound.Components {
+							if mainComp, ok := component.(*MainActionComponent); ok {
+								if _, isCultSpade := mainComp.Action.(*game.UseCultSpadeAction); isCultSpade {
+									powerAlreadyGranted = true
+									break
+								}
+							}
+						}
+					}
+				}
+			}
+
+			// Capture power state before execution if needed
+			var powerBefore game.PowerSystem
+			if powerAlreadyGranted && player != nil {
+				powerBefore = *player.Resources.Power
+			}
+
 			if err := compound.Execute(v.GameState, tempEntry.GetPlayerID()); err != nil {
 				return fmt.Errorf("failed to execute income action at entry %d: %v", v.CurrentEntry, err)
+			}
+
+			// If power was already granted during cult_income, reverse the duplicate power gain
+			if powerAlreadyGranted && player != nil {
+				if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+					powerPerSpade := alchemists.GetPowerPerSpade()
+					if powerPerSpade > 0 {
+						// Reverse the power gain by moving power back
+						powerDiff := player.Resources.Power.Bowl3 - powerBefore.Bowl3
+						if powerDiff == powerPerSpade {
+							// Move power back from bowl 3 to bowl 2
+							player.Resources.Power.Bowl3 -= powerPerSpade
+							player.Resources.Power.Bowl2 += powerPerSpade
+						}
+
+						// Decrement the counter
+						v.AlchemistsSpadesWithPowerGranted[playerID]--
+						if v.AlchemistsSpadesWithPowerGranted[playerID] == 0 {
+							delete(v.AlchemistsSpadesWithPowerGranted, playerID)
+						}
+					}
+				}
 			}
 		}
 
@@ -708,9 +784,59 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 		}
 	}
 
+	// Check if this action uses a cult spade for Alchemists where power was already granted
+	var powerAlreadyGranted bool
+	player := v.GameState.GetPlayer(playerID)
+	if player != nil {
+		if _, ok := player.Faction.(*factions.Alchemists); ok {
+			// Check if we've already granted power for cult spades
+			if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
+				// Check if this compound action contains a UseCultSpadeAction
+				for _, component := range compound.Components {
+					if mainComp, ok := component.(*MainActionComponent); ok {
+						if _, isCultSpade := mainComp.Action.(*game.UseCultSpadeAction); isCultSpade {
+							powerAlreadyGranted = true
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Capture power state before execution if needed
+	var powerBefore game.PowerSystem
+	if powerAlreadyGranted && player != nil {
+		powerBefore = *player.Resources.Power
+	}
+
 	// Execute all components in order
 	if err := compound.Execute(v.GameState, playerID); err != nil {
 		return true, fmt.Errorf("compound action execution failed: %w", err)
+	}
+
+	// If power was already granted during cult_income, reverse the duplicate power gain
+	if powerAlreadyGranted && player != nil {
+		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+			powerPerSpade := alchemists.GetPowerPerSpade()
+			if powerPerSpade > 0 {
+				// Reverse the power gain by moving power back
+				// The UseCultSpadeAction would have granted powerPerSpade power
+				// We need to reverse this by moving power back from bowl 3 to bowl 2
+				powerDiff := player.Resources.Power.Bowl3 - powerBefore.Bowl3
+				if powerDiff == powerPerSpade {
+					// Move power back from bowl 3 to bowl 2
+					player.Resources.Power.Bowl3 -= powerPerSpade
+					player.Resources.Power.Bowl2 += powerPerSpade
+				}
+
+				// Decrement the counter
+				v.AlchemistsSpadesWithPowerGranted[playerID]--
+				if v.AlchemistsSpadesWithPowerGranted[playerID] == 0 {
+					delete(v.AlchemistsSpadesWithPowerGranted, playerID)
+				}
+			}
+		}
 	}
 
 	// Validate final state matches log

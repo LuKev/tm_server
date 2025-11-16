@@ -356,12 +356,15 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 		return fmt.Errorf("terrain distance calculation failed")
 	}
 
+	// Get actual spades needed (accounts for faction abilities like Giants who always use 2 spades)
+	spadesNeeded := player.Faction.GetTerraformSpades(distance)
+
 	// Check for free spades from power actions (ACT5/ACT6) or cult rewards
 	freeSpades := 0
 	if gs.PendingSpades != nil && gs.PendingSpades[playerID] > 0 {
 		freeSpades = gs.PendingSpades[playerID]
-		if freeSpades > distance {
-			freeSpades = distance // Only use what we need
+		if freeSpades > spadesNeeded {
+			freeSpades = spadesNeeded // Only use what we need
 		}
 		// Consume free spades
 		gs.PendingSpades[playerID] -= freeSpades
@@ -370,7 +373,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 		}
 	}
 
-	remainingSpades := distance - freeSpades
+	remainingSpades := spadesNeeded - freeSpades
 
 	// Validate and pay costs for remaining spades
 	if remainingSpades > 0 {
@@ -440,6 +443,7 @@ type AuxiliaryType int
 const (
 	AuxFavorTile AuxiliaryType = iota
 	AuxTownTile
+	AuxConnect // Mermaids river-skip town formation (informational only)
 )
 
 func (at AuxiliaryType) String() string {
@@ -448,6 +452,8 @@ func (at AuxiliaryType) String() string {
 		return "FavorTile"
 	case AuxTownTile:
 		return "TownTile"
+	case AuxConnect:
+		return "Connect"
 	default:
 		return "Unknown"
 	}
@@ -489,6 +495,39 @@ func (a *AuxiliaryComponent) Execute(gs *game.GameState, playerID string) error 
 		}
 		// Use GameState method directly
 		return gs.SelectTownTile(playerID, tileType)
+	case AuxConnect:
+		// Mermaids river-skip town formation: "connect r16"
+		// This triggers a check for town formation using river-skip
+		// We need to check all Mermaids buildings to find which ones form a town via this river
+		player := gs.GetPlayer(playerID)
+		if player == nil {
+			return fmt.Errorf("player not found: %s", playerID)
+		}
+
+		// Only Mermaids can use river-skip town formation
+		if player.Faction.GetType() != models.FactionMermaids {
+			return fmt.Errorf("only Mermaids can use river-skip town formation")
+		}
+
+		// Check for town formation on all Mermaids buildings
+		// Since PendingTownFormations may have been cleared during cleanup,
+		// we need to re-check for river-skip towns when explicitly triggered
+		for _, mapHex := range gs.Map.Hexes {
+			if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+				gs.CheckForTownFormation(playerID, mapHex.Coord)
+				// If we found a town, stop checking (avoid duplicates)
+				if len(gs.PendingTownFormations[playerID]) > 0 {
+					break
+				}
+			}
+		}
+
+		// After checking, there should be at least one pending town formation
+		if len(gs.PendingTownFormations[playerID]) == 0 {
+			return fmt.Errorf("no valid town formation found for river-skip connection")
+		}
+
+		return nil
 	default:
 		return fmt.Errorf("unknown auxiliary type: %v", a.Type)
 	}

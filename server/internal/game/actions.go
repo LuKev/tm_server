@@ -300,7 +300,6 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		// Award VP only for PAID spades (remainingSpades), not for free spades
 		// Free spades from power actions (ACT5/ACT6) already had VP awarded by PowerActionFreeSpades
 		// Free spades from cult rewards should NOT award VP at all
-		// Note: Darklings get BOTH their faction bonus AND scoring tile VP for paid spades
 		if remainingSpades > 0 {
 			spadesForVP := player.Faction.GetTerraformSpades(remainingSpades)
 
@@ -310,7 +309,6 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			}
 
 			// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-			// Note: Darklings have their own VP bonus awarded above when paying priests
 			if halflings, ok := player.Faction.(*factions.Halflings); ok {
 				vpBonus := halflings.GetVPPerSpade() * spadesForVP
 				player.VictoryPoints += vpBonus
@@ -487,39 +485,41 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			// Alchemists gain 12 power immediately when building stronghold
 			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 				powerBonus := alchemists.BuildStronghold()
-				if powerBonus > 0 {
-					// Gain power (cycles through bowls properly)
-					player.Resources.GainPower(powerBonus)
-				}
+				player.Resources.GainPower(powerBonus)
 			}
 		case models.FactionCultists:
 			// Cultists get +7 VP immediately when building stronghold
 			if cultists, ok := player.Faction.(*factions.Cultists); ok {
 				vpBonus := cultists.BuildStronghold()
-				if vpBonus > 0 {
-					player.VictoryPoints += vpBonus
-				}
+				player.VictoryPoints += vpBonus
 			}
 		case models.FactionAuren:
 			// Auren gets an immediate favor tile when building stronghold
 			if auren, ok := player.Faction.(*factions.Auren); ok {
-				shouldGrantFavorTile := auren.BuildStronghold()
-				if shouldGrantFavorTile {
-					// Create pending favor tile selection (1 tile for Auren)
-					gs.PendingFavorTileSelection = &PendingFavorTileSelection{
-						PlayerID:      a.PlayerID,
-						Count:         1,
-						SelectedTiles: []FavorTileType{},
-					}
+				auren.BuildStronghold()
+				// Create pending favor tile selection (1 tile for Auren)
+				gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+					PlayerID:      a.PlayerID,
+					Count:         1,
+					SelectedTiles: []FavorTileType{},
 				}
 			}
 		case models.FactionMermaids:
-			// Mermaids get +1 shipping level immediately when building stronghold
+			// Mermaids get +1 shipping level immediately when building stronghold (no cost, but awards VP)
 			if mermaids, ok := player.Faction.(*factions.Mermaids); ok {
-				shouldGrantShipping := mermaids.BuildStronghold()
-				if shouldGrantShipping {
-					// Advance shipping and award VP using centralized helper
-					gs.AdvanceShippingLevel(a.PlayerID)
+				mermaids.BuildStronghold()
+				// Advance shipping and award VP based on upgrade number (not level)
+				// Mermaids start at level 1, so upgrades award: 2/3/4/5 VP for 1st/2nd/3rd/4th upgrade
+				currentLevel := mermaids.GetShippingLevel()
+				newLevel := currentLevel + 1
+				if newLevel <= mermaids.GetMaxShippingLevel() {
+					mermaids.SetShippingLevel(newLevel)
+					player.ShippingLevel = newLevel
+
+					// Award VP: Mermaids' upgrade number = newLevel - 1
+					// So level 2 = 1st upgrade = 2 VP, level 3 = 2nd upgrade = 3 VP, etc.
+					vpBonus := newLevel - 1 + 1 // Simplifies to: newLevel
+					player.VictoryPoints += vpBonus
 				}
 			}
 		case models.FactionHalflings:
@@ -541,16 +541,26 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			// Player must choose how many workers (0-3) to convert to priests
 			if darklings, ok := player.Faction.(*factions.Darklings); ok {
 				darklings.BuildStronghold()
-				
+
 				// Create pending priest ordination
 				// Player must complete this immediately before continuing
 				gs.PendingDarklingsPriestOrdination = &PendingDarklingsPriestOrdination{
 					PlayerID: a.PlayerID,
 				}
 			}
+		case models.FactionEngineers:
+			// Engineers: Mark stronghold as built so GetVPPerBridgeOnPass() returns 3 VP/bridge
+			if engineers, ok := player.Faction.(*factions.Engineers); ok {
+				engineers.BuildStronghold()
+			}
+		case models.FactionGiants:
+			// Giants: Mark stronghold as built so ACTG special action becomes available
+			if giants, ok := player.Faction.(*factions.Giants); ok {
+				giants.BuildStronghold()
+			}
 		default:
 			// All other factions just mark stronghold as built (no immediate bonus)
-			// This includes: Witches, Swarmlings, Chaos Magicians, Giants, Nomads, Engineers, Dwarves, Fakirs
+			// This includes: Witches, Swarmlings, Chaos Magicians, Nomads, Dwarves, Fakirs
 		}
 
 		// Award VP from scoring tile

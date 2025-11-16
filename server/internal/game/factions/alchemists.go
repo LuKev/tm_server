@@ -46,14 +46,12 @@ func (f *Alchemists) HasSpecialAbility(ability SpecialAbility) bool {
 
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time power bonus (12 power gained via GainPower)
-// NOTE: Power system implementation in Phase 5.1
 func (f *Alchemists) BuildStronghold() int {
 	f.hasStronghold = true
 	return 12 // 12 power gained via GainPower (cycles through bowls)
 }
 
 // GetPowerPerSpade returns how much power to gain per spade
-// NOTE: This bonus must be applied in Phase 6.2 (Action System) when spades are gained
 func (f *Alchemists) GetPowerPerSpade() int {
 	if f.hasStronghold {
 		return 2 // After stronghold, gain 2 power per spade (Phase 5.1: Power System)
@@ -63,8 +61,6 @@ func (f *Alchemists) GetPowerPerSpade() int {
 
 // ConvertVPToCoins trades Victory Points for Coins (Philosopher's Stone)
 // Rate: 1 VP -> 1 Coin
-// NOTE: Full validation and VP tracking will be in Phase 6.2 (Action System)
-// NOTE: Phase 8 (Scoring System) tracks VP
 func (f *Alchemists) ConvertVPToCoins(vp int) (coins int, err error) {
 	if vp < 1 {
 		return 0, fmt.Errorf("must convert at least 1 VP")
@@ -75,8 +71,6 @@ func (f *Alchemists) ConvertVPToCoins(vp int) (coins int, err error) {
 
 // ConvertCoinsToVP trades Coins for Victory Points (Philosopher's Stone)
 // Rate: 2 Coins -> 1 VP
-// NOTE: Full validation and VP tracking will be in Phase 6.2 (Action System)
-// NOTE: Phase 8 (Scoring System) tracks VP
 func (f *Alchemists) ConvertCoinsToVP(coins int) (vp int, err error) {
 	if coins < 2 {
 		return 0, fmt.Errorf("must convert at least 2 coins")
