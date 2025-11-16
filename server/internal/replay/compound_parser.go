@@ -505,22 +505,31 @@ func parseConversion(token string) (*ConversionComponent, bool) {
 		var fromAmount, toAmount int
 		var fromRes, toRes string
 
-		// Parse "from" part (e.g., "1pw", "3p", "5w") - already lowercase from tokenLower
+		// Parse "from" part (e.g., "1pw", "3p", "5w", "3vp", "2c") - already lowercase from tokenLower
 		if strings.Contains(fromPart, "pw") {
 			fmt.Sscanf(fromPart, "%dpw", &fromAmount)
 			fromRes = "PW"
+		} else if strings.Contains(fromPart, "vp") {
+			fmt.Sscanf(fromPart, "%dvp", &fromAmount)
+			fromRes = "VP"
 		} else if strings.Contains(fromPart, "p") {
 			fmt.Sscanf(fromPart, "%dp", &fromAmount)
 			fromRes = "P"
 		} else if strings.Contains(fromPart, "w") {
 			fmt.Sscanf(fromPart, "%dw", &fromAmount)
 			fromRes = "W"
+		} else if strings.Contains(fromPart, "c") {
+			fmt.Sscanf(fromPart, "%dc", &fromAmount)
+			fromRes = "C"
 		} else {
 			return nil, false
 		}
 
-		// Parse "to" part (e.g., "1c", "2w", "1p") - already lowercase from tokenLower
-		if strings.Contains(toPart, "c") {
+		// Parse "to" part (e.g., "1c", "2w", "1p", "1vp") - already lowercase from tokenLower
+		if strings.Contains(toPart, "vp") {
+			fmt.Sscanf(toPart, "%dvp", &toAmount)
+			toRes = "VP"
+		} else if strings.Contains(toPart, "c") {
 			fmt.Sscanf(toPart, "%dc", &toAmount)
 			toRes = "C"
 		} else if strings.Contains(toPart, "w") {
@@ -562,6 +571,10 @@ func determineConversionType(from, to string) int {
 		return int(ConvPriestToWorker)
 	} else if from == "W" && to == "C" {
 		return int(ConvWorkerToCoin)
+	} else if from == "VP" && to == "C" {
+		return int(ConvVPToCoins)
+	} else if from == "C" && to == "VP" {
+		return int(ConvCoinsToVP)
 	}
 	return -1
 }

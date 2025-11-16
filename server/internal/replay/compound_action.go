@@ -32,6 +32,8 @@ const (
 	ConvPowerToPriests
 	ConvPriestToWorker
 	ConvWorkerToCoin
+	ConvVPToCoins    // Alchemists: VP -> Coins (1:1)
+	ConvCoinsToVP    // Alchemists: Coins -> VP (2:1)
 )
 
 func (ct ConversionType) String() string {
@@ -48,6 +50,10 @@ func (ct ConversionType) String() string {
 		return "P→W"
 	case ConvWorkerToCoin:
 		return "W→C"
+	case ConvVPToCoins:
+		return "VP→C"
+	case ConvCoinsToVP:
+		return "C→VP"
 	default:
 		return "Unknown"
 	}
@@ -80,6 +86,16 @@ func (c *ConversionComponent) Execute(gs *game.GameState, playerID string) error
 		return player.Resources.ConvertPriestToWorker(c.Amount)
 	case ConvWorkerToCoin:
 		return player.Resources.ConvertWorkerToCoin(c.Amount)
+	case ConvVPToCoins:
+		// Alchemists: VP -> Coins (1:1)
+		// c.Amount is target coins, but function expects source VP
+		// Since ratio is 1:1, source VP = target coins
+		return gs.AlchemistsConvertVPToCoins(playerID, c.Amount)
+	case ConvCoinsToVP:
+		// Alchemists: Coins -> VP (2:1, i.e., 2 coins = 1 VP)
+		// c.Amount is target VP, but function expects source coins
+		// source coins = target VP * 2
+		return gs.AlchemistsConvertCoinsToVP(playerID, c.Amount*2)
 	default:
 		return fmt.Errorf("unknown conversion type: %v", c.Type)
 	}
