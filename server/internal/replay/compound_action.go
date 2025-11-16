@@ -405,38 +405,55 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 
 	// Check if Fakirs/Dwarves are using carpet flight/tunneling
 	// This can happen when transforming during power actions (ACT5/ACT6)
+	// IMPORTANT: Can only use carpet flight/tunneling ONCE per action (not once per transform)
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(t.TargetHex, playerID)
 	if !isAdjacent {
-		// Fakirs carpet flight
-		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
-			if fakirs.CanCarpetFlight() {
-				// Charge priest cost
-				priestCost := fakirs.GetCarpetFlightCost()
-				if player.Resources.Priests < priestCost {
-					return fmt.Errorf("not enough priests for carpet flight: need %d, have %d", priestCost, player.Resources.Priests)
-				}
-				player.Resources.Priests -= priestCost
-
-				// Award VP bonus
-				vpBonus := fakirs.GetCarpetFlightVPBonus()
-				player.VictoryPoints += vpBonus
-			}
+		// Check if skip ability has already been used this action
+		if gs.SkipAbilityUsedThisAction == nil {
+			gs.SkipAbilityUsedThisAction = make(map[string]bool)
 		}
 
-		// Dwarves tunneling
-		if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
-			if dwarves.CanTunnel() {
-				// Charge worker cost
-				workerCost := dwarves.GetTunnelingCost()
-				if player.Resources.Workers < workerCost {
-					return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
-				}
-				player.Resources.Workers -= workerCost
+		if !gs.SkipAbilityUsedThisAction[playerID] {
+			// Fakirs carpet flight
+			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+				if fakirs.CanCarpetFlight() {
+					// Charge priest cost
+					priestCost := fakirs.GetCarpetFlightCost()
+					if player.Resources.Priests < priestCost {
+						return fmt.Errorf("not enough priests for carpet flight: need %d, have %d", priestCost, player.Resources.Priests)
+					}
+					player.Resources.Priests -= priestCost
 
-				// Award VP bonus
-				vpBonus := dwarves.GetTunnelingVPBonus()
-				player.VictoryPoints += vpBonus
+					// Award VP bonus
+					vpBonus := fakirs.GetCarpetFlightVPBonus()
+					player.VictoryPoints += vpBonus
+
+					// Mark that skip ability was used this action
+					gs.SkipAbilityUsedThisAction[playerID] = true
+				}
 			}
+
+			// Dwarves tunneling
+			if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+				if dwarves.CanTunnel() {
+					// Charge worker cost
+					workerCost := dwarves.GetTunnelingCost()
+					if player.Resources.Workers < workerCost {
+						return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
+					}
+					player.Resources.Workers -= workerCost
+
+					// Award VP bonus
+					vpBonus := dwarves.GetTunnelingVPBonus()
+					player.VictoryPoints += vpBonus
+
+					// Mark that skip ability was used this action
+					gs.SkipAbilityUsedThisAction[playerID] = true
+				}
+			}
+		} else {
+			// Skip ability already used, transformation must fail if not adjacent
+			return fmt.Errorf("hex is not adjacent and carpet flight/tunneling was already used this action")
 		}
 	}
 
@@ -603,6 +620,13 @@ func (d *DarklingsPriestOrdinationComponent) String() string {
 
 // Execute runs all components of the compound action in sequence
 func (ca *CompoundAction) Execute(gs *game.GameState, playerID string) error {
+	// Clear skip ability flag at the start of each action
+	// (carpet flight/tunneling can only be used once per action, not once per transform)
+	if gs.SkipAbilityUsedThisAction == nil {
+		gs.SkipAbilityUsedThisAction = make(map[string]bool)
+	}
+	delete(gs.SkipAbilityUsedThisAction, playerID)
+
 	for i, component := range ca.Components {
 		if err := component.Execute(gs, playerID); err != nil {
 			return fmt.Errorf("failed to execute component %d (%s): %w", i, component.String(), err)

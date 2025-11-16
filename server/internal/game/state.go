@@ -30,6 +30,7 @@ type GameState struct {
 	PendingTownFormations   map[string][]*PendingTownFormation  // Key: playerID, Value: slice of pending towns (can have multiple simultaneous towns)
 	PendingSpades           map[string]int                      // Key: playerID, Value: number of spades to use (from cult rewards)
 	PendingCultistsLeech    map[string]*CultistsLeechBonus      // Key: playerID (Cultists), tracks pending cult advance/power bonus
+	SkipAbilityUsedThisAction map[string]bool                   // Key: playerID, Value: whether carpet flight/tunneling was used in current action (max 1 per action)
 	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
 	PendingHalflingsSpades    *PendingHalflingsSpades           // Halflings player who needs to apply 3 stronghold spades
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination // Darklings player who needs to convert workers to priests
@@ -123,18 +124,19 @@ type Player struct {
 // NewGameState creates a new game state with an initialized map
 func NewGameState() *GameState {
 	return &GameState{
-		Map:                   NewTerraMysticaMap(),
-		Players:               make(map[string]*Player),
-		Round:                 1,
-		Phase:                 PhaseSetup,
-		PowerActions:          NewPowerActionState(),
-		CultTracks:            NewCultTrackState(),
-		FavorTiles:            NewFavorTileState(),
-		BonusCards:            NewBonusCardState(),
-		TownTiles:             NewTownTileState(),
-		ScoringTiles:          NewScoringTileState(),
-		PendingLeechOffers:    make(map[string][]*PowerLeechOffer),
-		PendingTownFormations: make(map[string][]*PendingTownFormation),
+		Map:                       NewTerraMysticaMap(),
+		Players:                   make(map[string]*Player),
+		Round:                     1,
+		Phase:                     PhaseSetup,
+		PowerActions:              NewPowerActionState(),
+		CultTracks:                NewCultTrackState(),
+		FavorTiles:                NewFavorTileState(),
+		BonusCards:                NewBonusCardState(),
+		TownTiles:                 NewTownTileState(),
+		ScoringTiles:              NewScoringTileState(),
+		PendingLeechOffers:        make(map[string][]*PowerLeechOffer),
+		PendingTownFormations:     make(map[string][]*PendingTownFormation),
+		SkipAbilityUsedThisAction: make(map[string]bool),
 	}
 }
 
