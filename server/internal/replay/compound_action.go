@@ -403,6 +403,43 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 
+	// Check if Fakirs/Dwarves are using carpet flight/tunneling
+	// This can happen when transforming during power actions (ACT5/ACT6)
+	isAdjacent := gs.IsAdjacentToPlayerBuilding(t.TargetHex, playerID)
+	if !isAdjacent {
+		// Fakirs carpet flight
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			if fakirs.CanCarpetFlight() {
+				// Charge priest cost
+				priestCost := fakirs.GetCarpetFlightCost()
+				if player.Resources.Priests < priestCost {
+					return fmt.Errorf("not enough priests for carpet flight: need %d, have %d", priestCost, player.Resources.Priests)
+				}
+				player.Resources.Priests -= priestCost
+
+				// Award VP bonus
+				vpBonus := fakirs.GetCarpetFlightVPBonus()
+				player.VictoryPoints += vpBonus
+			}
+		}
+
+		// Dwarves tunneling
+		if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			if dwarves.CanTunnel() {
+				// Charge worker cost
+				workerCost := dwarves.GetTunnelingCost()
+				if player.Resources.Workers < workerCost {
+					return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
+				}
+				player.Resources.Workers -= workerCost
+
+				// Award VP bonus
+				vpBonus := dwarves.GetTunnelingVPBonus()
+				player.VictoryPoints += vpBonus
+			}
+		}
+	}
+
 	// Award VP from scoring tile (per spade PAID FOR, not free spades)
 	// Only award VP for spades the player actually paid for (remainingSpades), not cult reward spades
 	// Note: Darklings get BOTH their faction bonus AND scoring tile VP for paid spades
