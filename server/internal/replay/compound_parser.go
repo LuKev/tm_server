@@ -855,7 +855,7 @@ func convertMainActionPartToGameAction(part *MainActionPart, entry *LogEntry, gs
 	case ActionBuild:
 		// Check if we're in setup phase
 		isSetup := (gs.Phase == game.PhaseSetup)
-		return convertBuildAction(playerID, part.Params, isSetup)
+		return convertBuildAction(playerID, part.Params, isSetup, entry, gs)
 	case ActionTransformAndBuild:
 		return convertTransformAndBuildAction(playerID, part.Params, gs)
 	case ActionUpgrade:

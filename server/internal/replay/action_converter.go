@@ -28,7 +28,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 	// Convert based on action type
 	switch actionType {
 	case ActionBuild:
-		return convertBuildAction(playerID, params, isSetup)
+		return convertBuildAction(playerID, params, isSetup, entry, gs)
 
 	case ActionUpgrade:
 		if strings.Contains(entry.Action, "+FAV") && strings.Contains(entry.Action, "+TW") {
@@ -235,7 +235,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 	}
 }
 
-func convertBuildAction(playerID string, params map[string]string, isSetup bool) (game.Action, error) {
+func convertBuildAction(playerID string, params map[string]string, isSetup bool, entry *LogEntry, gs *game.GameState) (game.Action, error) {
 	coordStr, ok := params["coord"]
 	if !ok {
 		return nil, fmt.Errorf("build action missing coord")
@@ -249,6 +249,26 @@ func convertBuildAction(playerID string, params map[string]string, isSetup bool)
 	// During setup, use setup dwelling action (no cost, no adjacency)
 	if isSetup {
 		return game.NewSetupDwellingAction(playerID, hex), nil
+	}
+
+	// Check if this is a Dwarves tunneling or Fakirs carpet flight action
+	// We check if the hex is adjacent - if not, Dwarves/Fakirs must be using their skip ability
+	player := gs.GetPlayer(playerID)
+	if player != nil {
+		isAdjacent := gs.IsAdjacentToPlayerBuilding(hex, playerID)
+
+		// If not adjacent, check if this faction can use skip ability
+		if !isAdjacent {
+			// Dwarves can use tunneling
+			if _, ok := player.Faction.(*factions.Dwarves); ok {
+				return game.NewTransformAndBuildActionWithSkip(playerID, hex, true), nil
+			}
+
+			// Fakirs can use carpet flight
+			if _, ok := player.Faction.(*factions.Fakirs); ok {
+				return game.NewTransformAndBuildActionWithSkip(playerID, hex, true), nil
+			}
+		}
 	}
 
 	// During normal gameplay, building a dwelling on home terrain (no transformation needed)

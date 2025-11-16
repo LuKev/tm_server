@@ -636,8 +636,17 @@ func (gs *GameState) AdvanceShippingLevel(playerID string) error {
 	}
 
 	// Award VP based on new shipping level
-	// Shipping Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP, Level 4: 5 VP, Level 5: 6 VP
-	vpBonus := player.ShippingLevel + 1
+	// Regular factions (start at 0): Level 1: 2 VP, Level 2: 3 VP, Level 3: 4 VP
+	// Mermaids (start at 1): Level 2: 2 VP, Level 3: 3 VP, Level 4: 4 VP, Level 5: 5 VP
+	var vpBonus int
+	if player.Faction.GetType() == models.FactionMermaids {
+		// Mermaids: VP = newLevel (since they start at level 1)
+		// 1st upgrade (1→2): 2 VP, 2nd upgrade (2→3): 3 VP, etc.
+		vpBonus = player.ShippingLevel
+	} else {
+		// Regular factions: VP = newLevel + 1
+		vpBonus = player.ShippingLevel + 1
+	}
 	player.VictoryPoints += vpBonus
 
 	return nil
