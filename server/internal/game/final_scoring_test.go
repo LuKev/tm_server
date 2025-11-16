@@ -442,7 +442,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 		})
 	}
 	
-	largestArea := gs.Map.GetLargestConnectedArea("player1", player.Faction)
+	largestArea := gs.Map.GetLargestConnectedArea("player1", player.Faction, player.ShippingLevel)
 	if largestArea != 3 {
 		t.Errorf("expected largest area 3, got %d", largestArea)
 	}

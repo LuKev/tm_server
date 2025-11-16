@@ -117,6 +117,23 @@ func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
 	return nil
 }
 
+// CountBridgesConnectingPlayerStructures counts bridges connecting two of the player's structures
+// This is used for Engineers' stronghold ability: 3 VP per bridge connecting two structures when passing
+func (m *TerraMysticaMap) CountBridgesConnectingPlayerStructures(playerID string) int {
+	count := 0
+	for bridgeKey := range m.Bridges {
+		// Check if both endpoints have the player's buildings
+		hex1 := m.GetHex(bridgeKey.H1)
+		hex2 := m.GetHex(bridgeKey.H2)
+
+		if hex1 != nil && hex1.Building != nil && hex1.Building.PlayerID == playerID &&
+		   hex2 != nil && hex2.Building != nil && hex2.Building.PlayerID == playerID {
+			count++
+		}
+	}
+	return count
+}
+
 // IsWithinSkipRange checks if a target hex is reachable with skip ability (Fakirs/Dwarves)
 // Skip allows reaching a hex by skipping OVER skipRange hexes
 // For example, with skipRange=1, you can reach distance 2 (skip 1 hex to get there)

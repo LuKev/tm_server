@@ -53,6 +53,16 @@ func (f *Nomads) BuildStronghold() {
 	f.hasStronghold = true
 }
 
+// GetStrongholdCost returns the expensive stronghold cost for Nomads (8 coins, 4 workers)
+func (f *Nomads) GetStrongholdCost() Cost {
+	return Cost{
+		Coins:   8,
+		Workers: 4,
+		Priests: 0,
+		Power:   0,
+	}
+}
+
 // Income methods (Nomads-specific)
 
 func (f *Nomads) GetTradingHouseIncome(tradingHouseCount int) Income {

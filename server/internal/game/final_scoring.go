@@ -56,9 +56,9 @@ func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 // calculateAreaBonuses awards VP for largest connected area
 // 18 VP for largest area (ties split the VP, rounded down)
 func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
-	// Calculate largest area for each player (faction-specific adjacency)
+	// Calculate largest area for each player (faction-specific adjacency + shipping)
 	for playerID, player := range gs.Players {
-		largestArea := gs.Map.GetLargestConnectedArea(playerID, player.Faction)
+		largestArea := gs.Map.GetLargestConnectedArea(playerID, player.Faction, player.ShippingLevel)
 		scores[playerID].LargestAreaSize = largestArea
 	}
 	

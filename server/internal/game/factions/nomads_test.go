@@ -61,7 +61,7 @@ func TestNomads_StandardCosts(t *testing.T) {
 	}
 
 	strongholdCost := nomads.GetStrongholdCost()
-	if strongholdCost.Workers != 4 || strongholdCost.Coins != 6 {
-		t.Errorf("unexpected stronghold cost: %+v", strongholdCost)
+	if strongholdCost.Workers != 4 || strongholdCost.Coins != 8 {
+		t.Errorf("unexpected stronghold cost: %+v (expected 4 workers, 8 coins)", strongholdCost)
 	}
 }

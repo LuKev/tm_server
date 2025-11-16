@@ -878,12 +878,14 @@ func (a *PassAction) Execute(gs *GameState) error {
 		player.VictoryPoints += vp
 	}
 
-	// Award VP for Engineers stronghold ability (3 VP per bridge when passing)
+	// Award VP for Engineers stronghold ability (3 VP per bridge connecting two structures when passing)
 	if player.Faction.GetType() == models.FactionEngineers && player.HasStrongholdAbility {
 		engineersFaction, ok := player.Faction.(*factions.Engineers)
 		if ok {
 			vpPerBridge := engineersFaction.GetVPPerBridgeOnPass()
-			bridgeVP := player.BridgesBuilt * vpPerBridge
+			// Count only bridges connecting two of the engineer's structures
+			bridgeCount := gs.Map.CountBridgesConnectingPlayerStructures(a.PlayerID)
+			bridgeVP := bridgeCount * vpPerBridge
 			player.VictoryPoints += bridgeVP
 		}
 	}

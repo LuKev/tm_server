@@ -27,7 +27,7 @@ type GameState struct {
 	TownTiles               *TownTileState                      // Tracks available town tiles
 	ScoringTiles            *ScoringTileState                   // Tracks scoring tiles for each round
 	PendingLeechOffers      map[string][]*PowerLeechOffer       // Key: playerID who can accept
-	PendingTownFormations   map[string]*PendingTownFormation    // Key: playerID who can form town
+	PendingTownFormations   map[string][]*PendingTownFormation  // Key: playerID, Value: slice of pending towns (can have multiple simultaneous towns)
 	PendingSpades           map[string]int                      // Key: playerID, Value: number of spades to use (from cult rewards)
 	PendingCultistsLeech    map[string]*CultistsLeechBonus      // Key: playerID (Cultists), tracks pending cult advance/power bonus
 	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
@@ -134,7 +134,7 @@ func NewGameState() *GameState {
 		TownTiles:             NewTownTileState(),
 		ScoringTiles:          NewScoringTileState(),
 		PendingLeechOffers:    make(map[string][]*PowerLeechOffer),
-		PendingTownFormations: make(map[string]*PendingTownFormation),
+		PendingTownFormations: make(map[string][]*PendingTownFormation),
 	}
 }
 
@@ -234,25 +234,33 @@ func (gs *GameState) AdvanceCultTrack(playerID string, track CultTrack, spaces i
 
 // SelectTownTile allows a player to select a town tile for their pending town formation
 func (gs *GameState) SelectTownTile(playerID string, tileType TownTileType) error {
-	// Check if player has a pending town formation
-	pending, ok := gs.PendingTownFormations[playerID]
-	if !ok || pending == nil {
+	// Check if player has any pending town formations
+	pendingTowns, ok := gs.PendingTownFormations[playerID]
+	if !ok || len(pendingTowns) == 0 {
 		return fmt.Errorf("no pending town formation for player %s", playerID)
 	}
-	
+
+	// Get the first pending town (FIFO order)
+	pending := pendingTowns[0]
+
 	// Check if tile is available
 	if !gs.TownTiles.IsAvailable(tileType) {
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
-	
+
 	// Form the town with the selected tile (and skipped river hex for Mermaids)
 	if err := gs.FormTown(playerID, pending.Hexes, tileType, pending.SkippedRiverHex); err != nil {
 		return err
 	}
-	
-	// Remove pending town formation
-	delete(gs.PendingTownFormations, playerID)
-	
+
+	// Remove the first pending town formation from the slice
+	gs.PendingTownFormations[playerID] = pendingTowns[1:]
+
+	// If no more pending towns, delete the map entry
+	if len(gs.PendingTownFormations[playerID]) == 0 {
+		delete(gs.PendingTownFormations, playerID)
+	}
+
 	return nil
 }
 

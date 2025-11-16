@@ -150,7 +150,7 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 			// Check for pending town formation (which will grant a key)
 			// This allows cult advancement to position 10 when forming a town during the same turn
 			if !hasOrWillHaveKey && gs != nil {
-				if pendingTown, ok := gs.PendingTownFormations[playerID]; ok && pendingTown != nil {
+				if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
 					// Player is forming a town this turn, which will grant a key
 					hasOrWillHaveKey = true
 				}

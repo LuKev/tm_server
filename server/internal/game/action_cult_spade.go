@@ -100,7 +100,7 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
 		if powerBonus > 0 {
-			player.Resources.Power.Bowl1 += powerBonus
+			player.Resources.GainPower(powerBonus)
 		}
 	}
 

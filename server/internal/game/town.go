@@ -165,18 +165,14 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 		}
 
 
-		// Create or update pending town formation with Mermaids-specific data
-		if gs.PendingTownFormations[playerID] == nil {
-			gs.PendingTownFormations[playerID] = &PendingTownFormation{
-				PlayerID:        playerID,
-				Hexes:           connected,
-				SkippedRiverHex: skippedRiver,
-				CanBeDelayed:    canBeDelayed,
-			}
-		} else {
-			gs.PendingTownFormations[playerID].SkippedRiverHex = skippedRiver
-			gs.PendingTownFormations[playerID].CanBeDelayed = canBeDelayed
+		// Append new pending town formation (supports multiple simultaneous towns)
+		newTown := &PendingTownFormation{
+			PlayerID:        playerID,
+			Hexes:           connected,
+			SkippedRiverHex: skippedRiver,
+			CanBeDelayed:    canBeDelayed,
 		}
+		gs.PendingTownFormations[playerID] = append(gs.PendingTownFormations[playerID], newTown)
 
 		return connected
 	}

@@ -296,7 +296,7 @@ func (gs *GameState) AwardCultRewards() {
 		
 		if rewardCount > 0 {
 			totalReward := rewardCount * tile.CultRewardAmount
-			
+
 			switch tile.CultRewardType {
 			case CultRewardPriest:
 				gs.GainPriests(playerID, totalReward)
@@ -304,6 +304,7 @@ func (gs *GameState) AwardCultRewards() {
 				player.Resources.Power.GainPower(totalReward)
 			case CultRewardSpade:
 				// Spades must be used immediately - track as pending
+				// Faction bonuses (e.g., Alchemists +2 power) are granted when spades are USED
 				if gs.PendingSpades == nil {
 					gs.PendingSpades = make(map[string]int)
 				}

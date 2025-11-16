@@ -464,7 +464,7 @@ func TestSelectFavorTile_Fire2EnablesTownFormation(t *testing.T) {
 	}
 
 	// Verify no town formation yet (still only 6 power)
-	if gs.PendingTownFormations["player1"] != nil {
+	if len(gs.PendingTownFormations["player1"]) > 0 {
 		t.Error("should not have pending town formation yet (only 6 power)")
 	}
 
@@ -489,13 +489,13 @@ func TestSelectFavorTile_Fire2EnablesTownFormation(t *testing.T) {
 
 	// REGRESSION TEST: After selecting Fire+2, town formation should be re-checked
 	// The 6-power cluster should now be eligible to form a town
-	if gs.PendingTownFormations["player1"] == nil {
+	if len(gs.PendingTownFormations["player1"]) == 0 {
 		t.Fatal("expected pending town formation after selecting Fire+2 (6 power is now enough)")
 	}
 
 	// Verify the pending town formation includes all 5 buildings
-	if len(gs.PendingTownFormations["player1"].Hexes) != 5 {
-		t.Errorf("expected 5 hexes in pending town formation, got %d", len(gs.PendingTownFormations["player1"].Hexes))
+	if len(gs.PendingTownFormations["player1"][0].Hexes) != 5 {
+		t.Errorf("expected 5 hexes in pending town formation, got %d", len(gs.PendingTownFormations["player1"][0].Hexes))
 	}
 
 	// Verify buildings are not yet marked as part of town (until town tile is selected)
