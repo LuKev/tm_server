@@ -13,9 +13,9 @@ import (
 // Now we want to test that conversions execute first, then upgrade validates costs
 func TestConvertAndUpgrade_PowerToCoins(t *testing.T) {
 	gs := game.NewGameState()
-	gs.AddPlayer("Engineers", &factions.Engineers{})
+	gs.AddPlayer("witches", &factions.Witches{})
 
-	player := gs.GetPlayer("Engineers")
+	player := gs.GetPlayer("witches")
 	player.Resources.Coins = 4       // Start with 4 coins (need 6 total, will get 2 from conversion)
 	player.Resources.Workers = 4     // Stronghold needs 4 workers
 	player.Resources.Priests = 0     // Don't need priests for Stronghold
@@ -26,14 +26,14 @@ func TestConvertAndUpgrade_PowerToCoins(t *testing.T) {
 	gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
 	gs.Map.GetHex(hex).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
-		Faction:    models.FactionEngineers,
-		PlayerID:   "Engineers",
+		Faction:    models.FactionWitches,
+		PlayerID:   "witches",
 		PowerValue: 2,
 	}
 
 	// Parse: "convert 2PW to 2C. upgrade E9 to SH"
 	entry := &LogEntry{
-		Faction: models.FactionEngineers,
+		Faction: models.FactionWitches,
 		Action:  "convert 2PW to 2C. upgrade E9 to SH",
 	}
 
@@ -69,7 +69,7 @@ func TestConvertAndUpgrade_PowerToCoins(t *testing.T) {
 	}
 
 	// Execute the compound action
-	err = compound.Execute(gs, "Engineers")
+	err = compound.Execute(gs, "witches")
 	if err != nil {
 		t.Fatalf("compound.Execute() error = %v", err)
 	}
@@ -91,9 +91,9 @@ func TestConvertAndUpgrade_PowerToCoins(t *testing.T) {
 // TestConvertAndUpgrade_WithFavorTile tests convert+upgrade with favor tile selection
 func TestConvertAndUpgrade_WithFavorTile(t *testing.T) {
 	gs := game.NewGameState()
-	gs.AddPlayer("Cultists", &factions.Cultists{})
+	gs.AddPlayer("cultists", &factions.Cultists{})
 
-	player := gs.GetPlayer("Cultists")
+	player := gs.GetPlayer("cultists")
 	player.Resources.Coins = 4     // Start with 4 coins (need 5 total, will get 1 from converting 1W)
 	player.Resources.Workers = 3   // Need 3 workers (1 for conversion, 2 for Temple upgrade)
 	player.Resources.Priests = 0   // Temple doesn't need priests
@@ -105,7 +105,7 @@ func TestConvertAndUpgrade_WithFavorTile(t *testing.T) {
 	gs.Map.GetHex(hex).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    models.FactionCultists,
-		PlayerID:   "Cultists",
+		PlayerID:   "cultists",
 		PowerValue: 2,
 	}
 
@@ -137,7 +137,7 @@ func TestConvertAndUpgrade_WithFavorTile(t *testing.T) {
 	}
 
 	// Execute the compound action
-	err = compound.Execute(gs, "Cultists")
+	err = compound.Execute(gs, "cultists")
 	if err != nil {
 		t.Fatalf("compound.Execute() error = %v", err)
 	}
@@ -159,9 +159,9 @@ func TestConvertAndUpgrade_WithFavorTile(t *testing.T) {
 // TestConvertAndUpgrade_MultipleConversions tests conversions before AND after upgrade
 func TestConvertAndUpgrade_MultipleConversions(t *testing.T) {
 	gs := game.NewGameState()
-	gs.AddPlayer("Darklings", &factions.Darklings{})
+	gs.AddPlayer("darklings", &factions.Darklings{})
 
-	player := gs.GetPlayer("Darklings")
+	player := gs.GetPlayer("darklings")
 	player.Resources.Coins = 5       // Start with 5 (need 6 total, will get 1 from converting 1PW)
 	player.Resources.Workers = 2     // TradingHouse needs 2 workers
 	player.Resources.Priests = 1     // For conversion after upgrade (1P -> 1W)
@@ -173,7 +173,7 @@ func TestConvertAndUpgrade_MultipleConversions(t *testing.T) {
 	gs.Map.GetHex(hex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    models.FactionDarklings,
-		PlayerID:   "Darklings",
+		PlayerID:   "darklings",
 		PowerValue: 1,
 	}
 
@@ -206,7 +206,7 @@ func TestConvertAndUpgrade_MultipleConversions(t *testing.T) {
 	}
 
 	// Execute the compound action
-	err = compound.Execute(gs, "Darklings")
+	err = compound.Execute(gs, "darklings")
 	if err != nil {
 		t.Fatalf("compound.Execute() error = %v", err)
 	}

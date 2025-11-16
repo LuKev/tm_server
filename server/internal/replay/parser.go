@@ -29,6 +29,12 @@ type LogEntry struct {
 	CommentText  string
 }
 
+// GetPlayerID returns the player ID (lowercase faction name) for this log entry
+// This ensures case-insensitive matching with game log entries
+func (e *LogEntry) GetPlayerID() string {
+	return strings.ToLower(e.Faction.String())
+}
+
 // PowerBowls represents the three power bowls
 type PowerBowls struct {
 	Bowl1 int

@@ -22,8 +22,9 @@ func (v *GameValidator) SetupGame() error {
 
 	// Add players with their factions
 	for _, factionType := range setupInfo.Factions {
-		// Use faction name as player ID for consistent mapping
-		playerID := factionType.String()
+		// Use lowercase faction name as player ID to match log entries
+		// Log entries use lowercase (e.g., "nomads" not "Nomads")
+		playerID := strings.ToLower(factionType.String())
 
 		// Create faction instance
 		faction, err := createFaction(factionType)
@@ -284,7 +285,7 @@ func (v *GameValidator) applySetupState(info *GameSetupInfo) error {
 		}
 
 		// Find the player for this faction
-		playerID := entry.Faction.String()
+		playerID := entry.GetPlayerID()
 		player, ok := v.GameState.Players[playerID]
 		if !ok {
 			return fmt.Errorf("player not found for faction %v during setup", entry.Faction)

@@ -12,18 +12,18 @@ import (
 // use UseCultSpadeAction when player has pending cult spades
 func TestParseTransformOnly_WithCultSpade(t *testing.T) {
 	gs := game.NewGameState()
-	gs.AddPlayer("Cultists", &factions.Cultists{})
+	gs.AddPlayer("cultists", &factions.Cultists{})
 
 	// Grant cult reward spade to Cultists
 	gs.PendingSpades = make(map[string]int)
-	gs.PendingSpades["Cultists"] = 1
+	gs.PendingSpades["cultists"] = 1
 
 	// Place a dwelling for adjacency
 	hex1 := game.Hex{Q: 0, R: 0}
 	gs.Map.GetHex(hex1).Building = &models.Building{
 		Type:     models.BuildingDwelling,
 		Faction:  models.FactionCultists,
-		PlayerID: "Cultists",
+		PlayerID: "cultists",
 	}
 
 	entry := &LogEntry{
@@ -71,7 +71,7 @@ func TestParseTransformOnly_WithCultSpade(t *testing.T) {
 // use TransformTerrainComponent when player has NO pending cult spades
 func TestParseTransformOnly_WithoutCultSpade(t *testing.T) {
 	gs := game.NewGameState()
-	gs.AddPlayer("Darklings", &factions.Darklings{})
+	gs.AddPlayer("darklings", &factions.Darklings{})
 
 	// NO cult spades
 	gs.PendingSpades = make(map[string]int)

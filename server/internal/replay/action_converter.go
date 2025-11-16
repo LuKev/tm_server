@@ -16,7 +16,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return nil, nil
 	}
 
-	playerID := entry.Faction.String()
+	playerID := entry.GetPlayerID()
 	actionType, params, err := ParseAction(entry.Action)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse action: %v", err)
@@ -528,12 +528,14 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 		// In skipValidation mode (replay), the validator has already synced resources to final state
 		// which includes town tile benefits. So we need to manually create a pending town formation
 		// and skip applying the benefits (they're already in the synced state).
-		if skipValidation && gs.PendingTownFormations[playerID] == nil {
+		if skipValidation && len(gs.PendingTownFormations[playerID]) == 0 {
 			// Create a dummy pending town formation
 			// The exact hexes don't matter since we're in replay mode and just need to allow tile selection
-			gs.PendingTownFormations[playerID] = &game.PendingTownFormation{
-				PlayerID: playerID,
-				Hexes:    []game.Hex{hex}, // Use the upgraded hex as placeholder
+			gs.PendingTownFormations[playerID] = []*game.PendingTownFormation{
+				{
+					PlayerID: playerID,
+					Hexes:    []game.Hex{hex}, // Use the upgraded hex as placeholder
+				},
 			}
 			fmt.Printf("DEBUG: Created pending town formation for replay mode\n")
 		}

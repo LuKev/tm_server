@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/models"
@@ -14,6 +15,9 @@ func ConvertLogCoordToAxial(coord string) (game.Hex, error) {
 	if len(coord) < 2 {
 		return game.Hex{}, fmt.Errorf("invalid coordinate: %s", coord)
 	}
+
+	// Convert to uppercase for case-insensitive parsing
+	coord = strings.ToUpper(coord)
 
 	// Parse row letter
 	row := int(coord[0] - 'A')

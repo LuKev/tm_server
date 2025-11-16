@@ -65,9 +65,9 @@ func ParseTownTile(townStr string) (game.TownTileType, error) {
 	case "TW1":
 		return game.TownTile5Points, nil
 	case "TW2":
-		return game.TownTile7Points, nil // 7 VP + 2 workers + 1 key
+		return game.TownTile7Points, nil
 	case "TW3":
-		return game.TownTile9Points, nil // 9 VP + 1 priest + 1 key
+		return game.TownTile9Points, nil
 	case "TW4":
 		return game.TownTile6Points, nil
 	case "TW5":

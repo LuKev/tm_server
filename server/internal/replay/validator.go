@@ -97,9 +97,9 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// Leech offers are created asynchronously and we don't track them across entries in replay
 	// So we just sync the entire state to match the log
 	if strings.Contains(entry.Action, "Leech") || strings.Contains(entry.Action, "Decline") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		// Skip normal action execution and validation
 		return nil
@@ -109,10 +109,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// Example: "+FIRE. pass BON10"
 	// The cult advancement is reflected in cult track positions, we sync first then execute pass
 	if strings.HasPrefix(entry.Action, "+") && strings.Contains(entry.Action, "pass ") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
 			// Sync cult positions and power bowls (in case leech happened)
-			v.syncPlayerCultPositions(player, entry.Faction.String(), entry)
+			v.syncPlayerCultPositions(player, entry.GetPlayerID(), entry)
 			v.syncPlayerPowerBowls(player, entry)
 		}
 		// Continue to execute pass action (don't return early)
@@ -127,10 +127,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 		!strings.Contains(entry.Action, ".") && // Don't skip compound actions like "+EARTH. build F3"
 		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
 		strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) {
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
 			// Sync all state - cult advancements can trigger power/coin gains
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		// Skip normal action execution and validation
 		return nil
@@ -139,9 +139,9 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// Handle "[opponent accepted power]" entries - these show state after leech resolution
 	// These are informational entries that show the updated cult track state
 	if strings.Contains(entry.Action, "[opponent accepted power]") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		// Skip normal action execution and validation
 		return nil
@@ -150,9 +150,9 @@ func (v *GameValidator) ValidateNextEntry() error {
 	// Handle "[all opponents declined power]" entries - Cultists gain power when all decline
 	// This is an informational entry showing state after cultists receive their power bonus
 	if strings.Contains(entry.Action, "[all opponents declined power]") {
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		// Skip normal action execution and validation
 		return nil
@@ -164,10 +164,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 	if strings.Contains(entry.Action, "action BON") &&
 	   (strings.Contains(entry.Action, "+FIRE") || strings.Contains(entry.Action, "+WATER") ||
 	    strings.Contains(entry.Action, "+EARTH") || strings.Contains(entry.Action, "+AIR")) {
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
 			// Sync all state - cult advancements can trigger power/coin gains
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		// Skip normal action execution and validation
 		return nil
@@ -198,7 +198,9 @@ func (v *GameValidator) ValidateNextEntry() error {
 	}
 
 	// Handle regular income phase (building/faction/bonus card income)
-	if entry.Action == "other_income_for_faction" {
+	// Some entries may have actions before "other_income_for_faction" marker (e.g., cult spade usage)
+	// Format: "transform H7 to black. other_income_for_faction" or just "other_income_for_faction"
+	if entry.Action == "other_income_for_faction" || strings.HasSuffix(entry.Action, ". other_income_for_faction") {
 		// Apply income once for all players when we see the first income entry
 		if !v.IncomeApplied {
 			// Note: StartNewRound() was already called when we saw "Round X income" comment
@@ -211,6 +213,25 @@ func (v *GameValidator) ValidateNextEntry() error {
 			v.IncomeApplied = true
 			v.GameState.StartActionPhase() // Transition to action phase
 		}
+
+		// If there's an action before the marker, process it first
+		if strings.HasSuffix(entry.Action, ". other_income_for_faction") {
+			actualAction := strings.TrimSuffix(entry.Action, ". other_income_for_faction")
+			// Create a temporary entry with just the action
+			tempEntry := *entry
+			tempEntry.Action = actualAction
+
+			// Parse and execute the action (likely a cult spade transform)
+			compound, err := ParseCompoundAction(actualAction, &tempEntry, v.GameState)
+			if err != nil {
+				return fmt.Errorf("failed to parse income action at entry %d: %v", v.CurrentEntry, err)
+			}
+
+			if err := compound.Execute(v.GameState, tempEntry.GetPlayerID()); err != nil {
+				return fmt.Errorf("failed to execute income action at entry %d: %v", v.CurrentEntry, err)
+			}
+		}
+
 		// Validate state matches after income
 		if err := v.ValidateState(entry); err != nil {
 			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
@@ -221,19 +242,30 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	// Handle final scoring entries (network, resources)
 	if strings.Contains(entry.Action, "vp for network") {
-		// Network scoring - sync state to match log
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		// Network scoring - calculate actual network size and print for verification
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			// Count total buildings for this player
+			totalBuildings := 0
+			for _, mapHex := range v.GameState.Map.Hexes {
+				if mapHex.Building != nil && mapHex.Building.PlayerID == player.ID {
+					totalBuildings++
+				}
+			}
+
+			networkSize := v.GameState.Map.GetLargestConnectedArea(player.ID, player.Faction, player.ShippingLevel)
+			fmt.Printf("%s: %d total buildings, shipping=%d, network: %d connected structures → %d VP (from log)\n",
+				entry.GetPlayerID(), totalBuildings, player.ShippingLevel, networkSize, entry.VPDelta)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		return nil
 	}
 
 	if entry.Action == "score_resources" {
 		// Resource to VP conversion - sync state to match log
-		player := v.GameState.GetPlayer(entry.Faction.String())
+		player := v.GameState.GetPlayer(entry.GetPlayerID())
 		if player != nil {
-			v.syncPlayerState(player, entry.Faction.String(), entry)
+			v.syncPlayerState(player, entry.GetPlayerID(), entry)
 		}
 		return nil
 	}
@@ -249,10 +281,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	// If we reach here, the action was not handled by compound parser
 	// This should not happen for normal player actions
-	if entry.Action != "" && !entry.IsComment && entry.Faction.String() != "" {
+	if entry.Action != "" && !entry.IsComment && entry.GetPlayerID() != "" {
 		// Unexpected: normal player action not handled by compound parser
 		return fmt.Errorf("action not handled by compound parser at entry %d: %s (faction: %s)",
-			v.CurrentEntry, entry.Action, entry.Faction.String())
+			v.CurrentEntry, entry.Action, entry.GetPlayerID())
 	}
 
 	// Validate state matches the log entry (for non-action entries like comments)
@@ -301,7 +333,7 @@ func (v *GameValidator) ReplayGame() error {
 // validateResourcesBeforeAction validates that the player's resources match expected state BEFORE executing the action
 // The log entry shows final state + deltas, so we calculate expected initial state by reversing the deltas
 func (v *GameValidator) validateResourcesBeforeAction(entry *LogEntry) {
-	playerState := v.GameState.GetPlayer(entry.Faction.String())
+	playerState := v.GameState.GetPlayer(entry.GetPlayerID())
 	if playerState == nil {
 		return // Skip if player not found
 	}
@@ -319,22 +351,22 @@ func (v *GameValidator) validateResourcesBeforeAction(entry *LogEntry) {
 	// Only validate if we have actual deltas (non-zero changes)
 	if entry.CoinsDelta != 0 && playerState.Resources.Coins != expectedCoins {
 		fmt.Printf("⚠️  Entry %d (%s) - Coins mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
-			v.CurrentEntry, entry.Faction.String(), expectedCoins, playerState.Resources.Coins,
+			v.CurrentEntry, entry.GetPlayerID(), expectedCoins, playerState.Resources.Coins,
 			entry.CoinsDelta, entry.Coins)
 	}
 	if entry.WorkersDelta != 0 && playerState.Resources.Workers != expectedWorkers {
 		fmt.Printf("⚠️  Entry %d (%s) - Workers mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
-			v.CurrentEntry, entry.Faction.String(), expectedWorkers, playerState.Resources.Workers,
+			v.CurrentEntry, entry.GetPlayerID(), expectedWorkers, playerState.Resources.Workers,
 			entry.WorkersDelta, entry.Workers)
 	}
 	if entry.PriestsDelta != 0 && playerState.Resources.Priests != expectedPriests {
 		fmt.Printf("⚠️  Entry %d (%s) - Priests mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
-			v.CurrentEntry, entry.Faction.String(), expectedPriests, playerState.Resources.Priests,
+			v.CurrentEntry, entry.GetPlayerID(), expectedPriests, playerState.Resources.Priests,
 			entry.PriestsDelta, entry.Priests)
 	}
 	if entry.VPDelta != 0 && playerState.VictoryPoints != expectedVP {
 		fmt.Printf("⚠️  Entry %d (%s) - VP mismatch BEFORE action: expected %d, got %d (delta=%d, final=%d)\n",
-			v.CurrentEntry, entry.Faction.String(), expectedVP, playerState.VictoryPoints,
+			v.CurrentEntry, entry.GetPlayerID(), expectedVP, playerState.VictoryPoints,
 			entry.VPDelta, entry.VP)
 	}
 }
@@ -427,10 +459,10 @@ func (v *GameValidator) ValidateState(entry *LogEntry) error {
 	playerState.CultPositions[game.CultAir] = entry.CultTracks.Air
 	
 	// Also sync cult track state
-	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultFire] = entry.CultTracks.Fire
-	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultWater] = entry.CultTracks.Water
-	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultEarth] = entry.CultTracks.Earth
-	v.GameState.CultTracks.PlayerPositions[entry.Faction.String()][game.CultAir] = entry.CultTracks.Air
+	v.GameState.CultTracks.PlayerPositions[entry.GetPlayerID()][game.CultFire] = entry.CultTracks.Fire
+	v.GameState.CultTracks.PlayerPositions[entry.GetPlayerID()][game.CultWater] = entry.CultTracks.Water
+	v.GameState.CultTracks.PlayerPositions[entry.GetPlayerID()][game.CultEarth] = entry.CultTracks.Earth
+	v.GameState.CultTracks.PlayerPositions[entry.GetPlayerID()][game.CultAir] = entry.CultTracks.Air
 
 	return nil
 }
@@ -639,7 +671,7 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 		return false, nil // Informational entry, use old path
 	}
 
-	playerID := entry.Faction.String()
+	playerID := entry.GetPlayerID()
 	if playerID == "" {
 		return false, nil // No player, use old path
 	}
