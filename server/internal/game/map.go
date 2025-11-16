@@ -271,11 +271,24 @@ func (m *TerraMysticaMap) riverNeighbors(h Hex) []Hex {
 // GetDirectNeighbors returns all directly adjacent hexes (including bridges)
 func (m *TerraMysticaMap) GetDirectNeighbors(h Hex) []Hex {
 	neighbors := []Hex{}
+
+	// Add natural neighbors (distance 1)
 	for _, neighbor := range h.Neighbors() {
 		if m.IsValidHex(neighbor) && m.IsDirectlyAdjacent(h, neighbor) {
 			neighbors = append(neighbors, neighbor)
 		}
 	}
+
+	// Add bridge-connected neighbors (distance 2)
+	// Bridges connect hexes that are not naturally adjacent
+	for bridgeKey := range m.Bridges {
+		if bridgeKey.H1.Equals(h) && m.IsValidHex(bridgeKey.H2) {
+			neighbors = append(neighbors, bridgeKey.H2)
+		} else if bridgeKey.H2.Equals(h) && m.IsValidHex(bridgeKey.H1) {
+			neighbors = append(neighbors, bridgeKey.H1)
+		}
+	}
+
 	return neighbors
 }
 
@@ -284,6 +297,10 @@ func (m *TerraMysticaMap) GetIndirectNeighbors(h Hex, shippingValue int) []Hex {
 	neighbors := []Hex{}
 	// Check all hexes within range
 	for candidate := range m.Hexes {
+		// Skip the source hex itself
+		if candidate == h {
+			continue
+		}
 		if m.IsIndirectlyAdjacent(h, candidate, shippingValue) {
 			neighbors = append(neighbors, candidate)
 		}
@@ -402,69 +419,93 @@ func (m *TerraMysticaMap) FindConnectedBuildings(h Hex, faction models.FactionTy
 }
 
 // GetLargestConnectedArea returns the size of the largest connected area for a player
-// Used for final scoring (18 VP for largest area)
-func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string, faction factions.Faction) int {
+// Used for final scoring (18/12/6 VP for 1st/2nd/3rd place)
+// Considers direct adjacency, bridges, and shipping for connectivity
+func (m *TerraMysticaMap) GetLargestConnectedArea(playerID string, faction factions.Faction, shippingLevel int) int {
 	visited := make(map[Hex]bool)
 	maxArea := 0
-	
+
 	// Find all buildings belonging to this player
 	for hex, mapHex := range m.Hexes {
 		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && !visited[hex] {
 			// Start a new connected component search
-			area := m.getConnectedAreaSize(hex, playerID, visited, faction)
+			component := m.getConnectedComponent(hex, playerID, visited, faction, shippingLevel)
+			area := len(component)
 			if area > maxArea {
 				maxArea = area
 			}
 		}
 	}
-	
+
 	return maxArea
+}
+
+// getConnectedComponent returns all hexes in the connected component starting from a hex
+func (m *TerraMysticaMap) getConnectedComponent(start Hex, playerID string, visited map[Hex]bool, faction factions.Faction, shippingLevel int) []Hex {
+	if visited[start] {
+		return nil
+	}
+
+	mapHex := m.GetHex(start)
+	if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+		return nil
+	}
+
+	visited[start] = true
+	component := []Hex{start}
+
+	neighbors := m.getNeighborsForAreaScoring(start, faction, shippingLevel)
+	for _, neighbor := range neighbors {
+		component = append(component, m.getConnectedComponent(neighbor, playerID, visited, faction, shippingLevel)...)
+	}
+
+	return component
 }
 
 // getConnectedAreaSize returns the size of the connected area starting from a hex
 // Uses DFS to explore all connected buildings
-// Handles faction-specific adjacency: Fakirs (carpet flight), Dwarves (tunneling)
-func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visited map[Hex]bool, faction factions.Faction) int {
+// Handles faction-specific adjacency: Fakirs (carpet flight), Dwarves (tunneling), and shipping
+func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visited map[Hex]bool, faction factions.Faction, shippingLevel int) int {
 	if visited[start] {
 		return 0
 	}
-	
+
 	mapHex := m.GetHex(start)
 	if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
 		return 0
 	}
-	
+
 	// Mark as visited
 	visited[start] = true
 	size := 1
-	
-	// Get neighbors based on faction-specific movement
-	neighbors := m.getNeighborsForAreaScoring(start, faction)
-	
+
+	// Get neighbors based on faction-specific movement and shipping
+	neighbors := m.getNeighborsForAreaScoring(start, faction, shippingLevel)
+
 	for _, neighbor := range neighbors {
-		size += m.getConnectedAreaSize(neighbor, playerID, visited, faction)
+		size += m.getConnectedAreaSize(neighbor, playerID, visited, faction, shippingLevel)
 	}
-	
+
 	return size
 }
 
-// getNeighborsForAreaScoring returns neighbors based on faction-specific movement
-// For final area scoring: Fakirs use carpet flight, Dwarves use tunneling, others use direct adjacency
-func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Faction) []Hex {
+// getNeighborsForAreaScoring returns neighbors based on faction-specific movement and shipping
+// For final area scoring: Fakirs use carpet flight, Dwarves use tunneling, others use direct adjacency + shipping
+func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Faction, shippingLevel int) []Hex {
 	neighbors := []Hex{}
-	
+
 	// Check for Fakirs (carpet flight)
 	if faction.HasSpecialAbility(factions.AbilityFlying) {
 		// Fakirs can connect via carpet flight (range 1-3 depending on upgrades)
 		if fakir, ok := faction.(*factions.Fakirs); ok {
 			flightRange := fakir.GetCarpetFlightRange()
-			
+
 			// Get all hexes within flight range
 			for candidate := range m.Hexes {
 				if candidate == h {
 					continue
 				}
-				
+
 				distance := h.Distance(candidate)
 				if distance <= flightRange {
 					neighbors = append(neighbors, candidate)
@@ -473,7 +514,7 @@ func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Fac
 			return neighbors
 		}
 	}
-	
+
 	// Check for Dwarves (tunneling - always range 2)
 	if faction.HasSpecialAbility(factions.AbilityTunnelDigging) {
 		// Dwarves can connect via tunneling (distance 2)
@@ -481,7 +522,7 @@ func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Fac
 			if candidate == h {
 				continue
 			}
-			
+
 			distance := h.Distance(candidate)
 			if distance <= 2 {
 				neighbors = append(neighbors, candidate)
@@ -489,7 +530,15 @@ func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Fac
 		}
 		return neighbors
 	}
-	
-	// Default: direct adjacency only (including bridges)
-	return m.GetDirectNeighbors(h)
+
+	// Default: direct adjacency (including bridges) + indirect adjacency via shipping
+	neighbors = m.GetDirectNeighbors(h)
+
+	// Add indirect neighbors via shipping (if shipping level > 0)
+	if shippingLevel > 0 {
+		indirectNeighbors := m.GetIndirectNeighbors(h, shippingLevel)
+		neighbors = append(neighbors, indirectNeighbors...)
+	}
+
+	return neighbors
 }
