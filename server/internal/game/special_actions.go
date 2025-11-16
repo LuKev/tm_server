@@ -761,7 +761,7 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
 		if powerBonus > 0 {
-			player.Resources.Power.Bowl1 += powerBonus
+			player.Resources.GainPower(powerBonus)
 		}
 	}
 

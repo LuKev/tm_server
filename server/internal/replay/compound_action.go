@@ -184,7 +184,7 @@ func (p *PowerActionFreeSpades) Execute(gs *game.GameState, playerID string) err
 		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
 			if powerBonus > 0 {
-				player.Resources.Power.Bowl1 += powerBonus
+				player.Resources.GainPower(powerBonus)
 			}
 		}
 	}
@@ -404,7 +404,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
 			if powerBonus > 0 {
-				player.Resources.Power.Bowl1 += powerBonus
+				player.Resources.GainPower(powerBonus)
 			}
 		}
 	}

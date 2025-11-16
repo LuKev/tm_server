@@ -233,11 +233,9 @@ func (a *PowerAction) Execute(gs *GameState) error {
 			
 			// Check for town formation after building bridge
 			// The bridge might connect buildings into a town
-			// Check from both endpoints - CheckForTownFormation handles creating PendingTownFormation
+			// Check from both endpoints - CheckForTownFormation handles appending to PendingTownFormations
 			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex1)
-			if gs.PendingTownFormations[a.PlayerID] == nil {
-				gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
-			}
+			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
 		}
 		
 		player.BridgesBuilt++
@@ -359,7 +357,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
 			if powerBonus > 0 {
-				player.Resources.Power.Bowl1 += powerBonus
+				player.Resources.GainPower(powerBonus)
 			}
 		}
 	}
