@@ -621,18 +621,21 @@ func (a *SpecialAction) executeSwarmlingsUpgrade(gs *GameState, player *Player) 
 		PlayerID:   a.PlayerID,
 		PowerValue: 2,
 	}
-	
+
 	// Award VP from Water+1 favor tile (+3 VP when upgrading Dwelling→Trading House)
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
 	if HasFavorTile(playerTiles, FavorWater1) {
 		player.VictoryPoints += 3
 	}
-	
+
 	// Award VP from scoring tile
 	gs.AwardActionVP(a.PlayerID, ScoringActionTradingHouse)
 
 	// Trigger power leech for adjacent players
 	gs.TriggerPowerLeech(*a.UpgradeHex, a.PlayerID)
+
+	// Check for town formation after upgrading
+	gs.CheckForTownFormation(a.PlayerID, *a.UpgradeHex)
 
 	return nil
 }
