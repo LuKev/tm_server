@@ -29,6 +29,81 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   const cultWidth = 250 / 4; // 62.5px per cult
   const height = 560; // Match game board height
   
+  // Draw hex path (simplified from makeHexPath)
+  const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+    let angle = 0;
+    ctx.moveTo(x, y);
+    for (let i = 0; i < 6; i++) {
+      ctx.lineTo(x, y);
+      angle += Math.PI / 3;
+      x += Math.sin(angle) * size;
+      y += Math.cos(angle) * size;
+    }
+    ctx.closePath();
+  }, []);
+  
+  // Get first letter of faction (all uppercase)
+  const getFactionLetter = useCallback((faction: FactionType): string => {
+    const names: Record<FactionType, string> = {
+      [FactionType.Nomads]: 'N',
+      [FactionType.Fakirs]: 'F',
+      [FactionType.ChaosMagicians]: 'C',
+      [FactionType.Giants]: 'G',
+      [FactionType.Swarmlings]: 'S',
+      [FactionType.Mermaids]: 'M',
+      [FactionType.Witches]: 'W',
+      [FactionType.Auren]: 'A',
+      [FactionType.Halflings]: 'H',
+      [FactionType.Cultists]: 'C',
+      [FactionType.Alchemists]: 'A',
+      [FactionType.Darklings]: 'D',
+      [FactionType.Engineers]: 'E',
+      [FactionType.Dwarves]: 'D',
+    };
+    return names[faction];
+  }, []);
+  
+  // Draw a single cult marker (from terra-mystica/stc/game.js)
+  const drawCultMarker = useCallback((
+    ctx: CanvasRenderingContext2D,
+    faction: FactionType,
+    isHex: boolean
+  ) => {
+    const color = FACTION_COLORS[faction];
+    const contrastColor = getContrastColor(color);
+    
+    ctx.save();
+    ctx.beginPath();
+    
+    if (isHex) {
+      // Draw hex shape for position 10 or with key
+      drawHexPath(ctx, -8, 14, 8.5);
+    } else {
+      // Draw circle
+      ctx.arc(0, 10, 8, 0, Math.PI * 2);
+    }
+    
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    
+    // Draw faction letter
+    ctx.save();
+    ctx.fillStyle = contrastColor;
+    ctx.strokeStyle = contrastColor;
+    ctx.textAlign = 'center';
+    ctx.font = 'bold 10px Verdana';
+    ctx.lineWidth = 0.1;
+    
+    const letter = getFactionLetter(faction);
+    ctx.fillText(letter, -1, 14);
+    ctx.strokeText(letter, -1, 14);
+    ctx.restore();
+  }, [drawHexPath, getFactionLetter]);
+  
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -339,81 +414,6 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
       }
     }
   };
-  
-  // Draw hex path (simplified from makeHexPath)
-  const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
-    let angle = 0;
-    ctx.moveTo(x, y);
-    for (let i = 0; i < 6; i++) {
-      ctx.lineTo(x, y);
-      angle += Math.PI / 3;
-      x += Math.sin(angle) * size;
-      y += Math.cos(angle) * size;
-    }
-    ctx.closePath();
-  }, []);
-  
-  // Get first letter of faction (all uppercase)
-  const getFactionLetter = useCallback((faction: FactionType): string => {
-    const names: Record<FactionType, string> = {
-      [FactionType.Nomads]: 'N',
-      [FactionType.Fakirs]: 'F',
-      [FactionType.ChaosMagicians]: 'C',
-      [FactionType.Giants]: 'G',
-      [FactionType.Swarmlings]: 'S',
-      [FactionType.Mermaids]: 'M',
-      [FactionType.Witches]: 'W',
-      [FactionType.Auren]: 'A',
-      [FactionType.Halflings]: 'H',
-      [FactionType.Cultists]: 'C',
-      [FactionType.Alchemists]: 'A',
-      [FactionType.Darklings]: 'D',
-      [FactionType.Engineers]: 'E',
-      [FactionType.Dwarves]: 'D',
-    };
-    return names[faction];
-  }, []);
-  
-  // Draw a single cult marker (from terra-mystica/stc/game.js)
-  const drawCultMarker = useCallback((
-    ctx: CanvasRenderingContext2D,
-    faction: FactionType,
-    isHex: boolean
-  ) => {
-    const color = FACTION_COLORS[faction];
-    const contrastColor = getContrastColor(color);
-    
-    ctx.save();
-    ctx.beginPath();
-    
-    if (isHex) {
-      // Draw hex shape for position 10 or with key
-      drawHexPath(ctx, -8, 14, 8.5);
-    } else {
-      // Draw circle
-      ctx.arc(0, 10, 8, 0, Math.PI * 2);
-    }
-    
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.restore();
-    
-    // Draw faction letter
-    ctx.save();
-    ctx.fillStyle = contrastColor;
-    ctx.strokeStyle = contrastColor;
-    ctx.textAlign = 'center';
-    ctx.font = 'bold 10px Verdana';
-    ctx.lineWidth = 0.1;
-    
-    const letter = getFactionLetter(faction);
-    ctx.fillText(letter, -1, 14);
-    ctx.strokeText(letter, -1, 14);
-    ctx.restore();
-  }, [drawHexPath, getFactionLetter]);
   
   return (
     <div className="cult-tracks w-full">
