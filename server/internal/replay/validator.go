@@ -203,10 +203,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
 				powerPerSpade := alchemists.GetPowerPerSpade()
 				if powerPerSpade > 0 {
-					// Check if player has pending spades
-					if v.GameState.PendingSpades != nil {
-						if pendingSpades, hasPending := v.GameState.PendingSpades[entry.GetPlayerID()]; hasPending && pendingSpades > 0 {
-							// Grant power for all pending spades
+					// Check if player has pending cult reward spades
+					if v.GameState.PendingCultRewardSpades != nil {
+						if pendingSpades, hasPending := v.GameState.PendingCultRewardSpades[entry.GetPlayerID()]; hasPending && pendingSpades > 0 {
+							// Grant power for all pending cult reward spades
 							totalPower := pendingSpades * powerPerSpade
 							player.Resources.Power.GainPower(totalPower)
 
@@ -259,17 +259,44 @@ func (v *GameValidator) ValidateNextEntry() error {
 			playerID := tempEntry.GetPlayerID()
 			player := v.GameState.GetPlayer(playerID)
 			var powerAlreadyGranted bool
+			var cultSpadesUsedInAction int
 			if player != nil {
 				if _, ok := player.Faction.(*factions.Alchemists); ok {
 					if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
-						// Check if this compound action contains a UseCultSpadeAction
+						// Check if this compound action will consume cult reward spades
 						for _, component := range compound.Components {
+							// Check for UseCultSpadeAction
 							if mainComp, ok := component.(*MainActionComponent); ok {
 								if _, isCultSpade := mainComp.Action.(*game.UseCultSpadeAction); isCultSpade {
-									powerAlreadyGranted = true
-									break
+									cultSpadesUsedInAction++
 								}
 							}
+							// Check for TransformTerrainComponent that will use cult reward spades
+							if transformComp, ok := component.(*TransformTerrainComponent); ok {
+								if v.GameState.PendingCultRewardSpades != nil && v.GameState.PendingCultRewardSpades[playerID] > 0 {
+									currentTerrain := v.GameState.Map.GetHex(transformComp.TargetHex).Terrain
+									targetTerrain := transformComp.TargetTerrain
+									distance := game.TerrainDistance(currentTerrain, targetTerrain)
+
+									availableCultSpades := v.GameState.PendingCultRewardSpades[playerID]
+									availableVPSpades := 0
+									if v.GameState.PendingSpades != nil {
+										availableVPSpades = v.GameState.PendingSpades[playerID]
+									}
+
+									if distance > availableVPSpades {
+										cultSpadesNeeded := distance - availableVPSpades
+										if cultSpadesNeeded > availableCultSpades {
+											cultSpadesNeeded = availableCultSpades
+										}
+										cultSpadesUsedInAction += cultSpadesNeeded
+									}
+								}
+							}
+						}
+
+						if cultSpadesUsedInAction > 0 {
+							powerAlreadyGranted = true
 						}
 					}
 				}
@@ -285,22 +312,17 @@ func (v *GameValidator) ValidateNextEntry() error {
 				return fmt.Errorf("failed to execute income action at entry %d: %v", v.CurrentEntry, err)
 			}
 
-			// If power was already granted during cult_income, reverse the duplicate power gain
+			// If power was already granted during cult_income, restore power state
 			if powerAlreadyGranted && player != nil {
-				if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-					powerPerSpade := alchemists.GetPowerPerSpade()
-					if powerPerSpade > 0 {
-						// Reverse the power gain by moving power back
-						powerDiff := player.Resources.Power.Bowl3 - powerBefore.Bowl3
-						if powerDiff == powerPerSpade {
-							// Move power back from bowl 3 to bowl 2
-							player.Resources.Power.Bowl3 -= powerPerSpade
-							player.Resources.Power.Bowl2 += powerPerSpade
-						}
+				if _, ok := player.Faction.(*factions.Alchemists); ok {
+					if cultSpadesUsedInAction > 0 {
+						// Restore the power state to before the action
+						// The power was already granted during cult_income, so we don't want to grant it again
+						*player.Resources.Power = powerBefore
 
-						// Decrement the counter
-						v.AlchemistsSpadesWithPowerGranted[playerID]--
-						if v.AlchemistsSpadesWithPowerGranted[playerID] == 0 {
+						// Decrement the counter by the number of cult spades used
+						v.AlchemistsSpadesWithPowerGranted[playerID] -= cultSpadesUsedInAction
+						if v.AlchemistsSpadesWithPowerGranted[playerID] <= 0 {
 							delete(v.AlchemistsSpadesWithPowerGranted, playerID)
 						}
 					}
@@ -786,19 +808,51 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 
 	// Check if this action uses a cult spade for Alchemists where power was already granted
 	var powerAlreadyGranted bool
+	var cultSpadesUsedInAction int
 	player := v.GameState.GetPlayer(playerID)
 	if player != nil {
 		if _, ok := player.Faction.(*factions.Alchemists); ok {
 			// Check if we've already granted power for cult spades
 			if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
-				// Check if this compound action contains a UseCultSpadeAction
+				// Check if this compound action will consume cult reward spades
+				// This can happen via UseCultSpadeAction or TransformTerrainComponent
 				for _, component := range compound.Components {
+					// Check for UseCultSpadeAction
 					if mainComp, ok := component.(*MainActionComponent); ok {
 						if _, isCultSpade := mainComp.Action.(*game.UseCultSpadeAction); isCultSpade {
-							powerAlreadyGranted = true
-							break
+							cultSpadesUsedInAction++
 						}
 					}
+					// Check for TransformTerrainComponent that will use cult reward spades
+					if transformComp, ok := component.(*TransformTerrainComponent); ok {
+						// Check if there are cult reward spades available
+						if v.GameState.PendingCultRewardSpades != nil && v.GameState.PendingCultRewardSpades[playerID] > 0 {
+							// Calculate how many spades this transform will need
+							currentTerrain := v.GameState.Map.GetHex(transformComp.TargetHex).Terrain
+							targetTerrain := transformComp.TargetTerrain
+							distance := game.TerrainDistance(currentTerrain, targetTerrain)
+
+							// The transform will consume cult reward spades (after any PendingSpades)
+							availableCultSpades := v.GameState.PendingCultRewardSpades[playerID]
+							availableVPSpades := 0
+							if v.GameState.PendingSpades != nil {
+								availableVPSpades = v.GameState.PendingSpades[playerID]
+							}
+
+							// Cult spades are used after VP-eligible spades
+							if distance > availableVPSpades {
+								cultSpadesNeeded := distance - availableVPSpades
+								if cultSpadesNeeded > availableCultSpades {
+									cultSpadesNeeded = availableCultSpades
+								}
+								cultSpadesUsedInAction += cultSpadesNeeded
+							}
+						}
+					}
+				}
+
+				if cultSpadesUsedInAction > 0 {
+					powerAlreadyGranted = true
 				}
 			}
 		}
@@ -815,24 +869,17 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 		return true, fmt.Errorf("compound action execution failed: %w", err)
 	}
 
-	// If power was already granted during cult_income, reverse the duplicate power gain
+	// If power was already granted during cult_income, restore power state
 	if powerAlreadyGranted && player != nil {
-		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-			powerPerSpade := alchemists.GetPowerPerSpade()
-			if powerPerSpade > 0 {
-				// Reverse the power gain by moving power back
-				// The UseCultSpadeAction would have granted powerPerSpade power
-				// We need to reverse this by moving power back from bowl 3 to bowl 2
-				powerDiff := player.Resources.Power.Bowl3 - powerBefore.Bowl3
-				if powerDiff == powerPerSpade {
-					// Move power back from bowl 3 to bowl 2
-					player.Resources.Power.Bowl3 -= powerPerSpade
-					player.Resources.Power.Bowl2 += powerPerSpade
-				}
+		if _, ok := player.Faction.(*factions.Alchemists); ok {
+			if cultSpadesUsedInAction > 0 {
+				// Restore the power state to before the action
+				// The power was already granted during cult_income, so we don't want to grant it again
+				*player.Resources.Power = powerBefore
 
-				// Decrement the counter
-				v.AlchemistsSpadesWithPowerGranted[playerID]--
-				if v.AlchemistsSpadesWithPowerGranted[playerID] == 0 {
+				// Decrement the counter by the number of cult spades used
+				v.AlchemistsSpadesWithPowerGranted[playerID] -= cultSpadesUsedInAction
+				if v.AlchemistsSpadesWithPowerGranted[playerID] <= 0 {
 					delete(v.AlchemistsSpadesWithPowerGranted, playerID)
 				}
 			}

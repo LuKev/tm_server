@@ -347,19 +347,8 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 		}
 
-		// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-		if halflings, ok := player.Faction.(*factions.Halflings); ok {
-			vpBonus := halflings.GetVPPerSpade() * spadesUsed
-			player.VictoryPoints += vpBonus
-		}
-
-		// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
-		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-			powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
-			if powerBonus > 0 {
-				player.Resources.GainPower(powerBonus)
-			}
-		}
+		// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
+		AwardFactionSpadeBonuses(player, spadesUsed)
 	}
 
 	// Build dwelling if requested

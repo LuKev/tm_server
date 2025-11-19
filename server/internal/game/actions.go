@@ -259,21 +259,37 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 	if needsTransform {
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
 
-		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
-		freeSpades := 0
+		// Check for free spades from BON1 (count for VP when used)
+		vpEligibleFreeSpades := 0
 		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-			freeSpades = gs.PendingSpades[a.PlayerID]
-			if freeSpades > distance {
-				freeSpades = distance // Only use what we need
+			vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
+			if vpEligibleFreeSpades > distance {
+				vpEligibleFreeSpades = distance // Only use what we need
 			}
-			// Consume free spades
-			gs.PendingSpades[a.PlayerID] -= freeSpades
+			// Consume VP-eligible free spades
+			gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
 			if gs.PendingSpades[a.PlayerID] == 0 {
 				delete(gs.PendingSpades, a.PlayerID)
 			}
 		}
 
-		remainingSpades := distance - freeSpades
+		// Check for cult reward spades (don't count for VP)
+		remainingDistance := distance - vpEligibleFreeSpades
+		cultRewardSpades := 0
+		if remainingDistance > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+			cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
+			if cultRewardSpades > remainingDistance {
+				cultRewardSpades = remainingDistance // Only use what we need
+			}
+			// Consume cult reward spades
+			gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
+			if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
+				delete(gs.PendingCultRewardSpades, a.PlayerID)
+			}
+		}
+
+		totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
+		remainingSpades := distance - totalFreeSpades
 
 		// Pay for remaining spades only
 		if remainingSpades > 0 {
@@ -297,30 +313,26 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			return fmt.Errorf("failed to transform terrain: %w", err)
 		}
 
-		// Award VP only for PAID spades (remainingSpades), not for free spades
-		// Free spades from power actions (ACT5/ACT6) already had VP awarded by PowerActionFreeSpades
-		// Free spades from cult rewards should NOT award VP at all
-		if remainingSpades > 0 {
-			spadesForVP := player.Faction.GetTerraformSpades(remainingSpades)
+		// Award VP for paid spades + VP-eligible free spades (BON1)
+		// Cult reward spades don't award VP
+		vpEligibleDistance := remainingSpades + vpEligibleFreeSpades
+		if vpEligibleDistance > 0 {
+			spadesForVP := player.Faction.GetTerraformSpades(vpEligibleDistance)
 
 			// Award scoring tile VP for ALL factions including Darklings
 			for i := 0; i < spadesForVP; i++ {
 				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 			}
 
-			// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-			if halflings, ok := player.Faction.(*factions.Halflings); ok {
-				vpBonus := halflings.GetVPPerSpade() * spadesForVP
-				player.VictoryPoints += vpBonus
-			}
+			// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
+			AwardFactionSpadeBonuses(player, spadesForVP)
+		}
 
-			// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
-			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-				powerBonus := alchemists.GetPowerPerSpade() * spadesForVP
-				if powerBonus > 0 {
-					player.Resources.GainPower(powerBonus)
-				}
-			}
+		// Award faction-specific spade bonuses for cult reward spades too
+		// Cult reward spades don't count for VP, but Alchemists still get power for them
+		if cultRewardSpades > 0 {
+			spadesUsed := player.Faction.GetTerraformSpades(cultRewardSpades)
+			AwardFactionSpadeBonuses(player, spadesUsed)
 		}
 	}
 
@@ -558,9 +570,19 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			if giants, ok := player.Faction.(*factions.Giants); ok {
 				giants.BuildStronghold()
 			}
+		case models.FactionDwarves:
+			// Dwarves: Mark stronghold as built so tunneling cost reduces from 2W to 1W
+			if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+				dwarves.BuildStronghold()
+			}
+		case models.FactionFakirs:
+			// Fakirs: Mark stronghold as built so carpet flight cost reduces from 1P to 0P
+			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+				fakirs.BuildStronghold()
+			}
 		default:
 			// All other factions just mark stronghold as built (no immediate bonus)
-			// This includes: Witches, Swarmlings, Chaos Magicians, Nomads, Dwarves, Fakirs
+			// This includes: Witches, Swarmlings, Chaos Magicians, Nomads
 		}
 
 		// Award VP from scoring tile

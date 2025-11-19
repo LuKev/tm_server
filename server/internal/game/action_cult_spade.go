@@ -2,8 +2,6 @@ package game
 
 import (
 	"fmt"
-
-	"github.com/lukev/tm_server/internal/game/factions"
 )
 
 // UseCultSpadeAction represents using a free spade from cult track rewards
@@ -31,8 +29,8 @@ func (a *UseCultSpadeAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	// Check if player has pending spades
-	if gs.PendingSpades == nil || gs.PendingSpades[a.PlayerID] <= 0 {
+	// Check if player has pending cult reward spades
+	if gs.PendingCultRewardSpades == nil || gs.PendingCultRewardSpades[a.PlayerID] <= 0 {
 		return fmt.Errorf("player has no pending spades from cult rewards")
 	}
 
@@ -80,9 +78,13 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 
-	// Use one pending spade
-	if !gs.UseSpadeFromReward(a.PlayerID) {
-		return fmt.Errorf("failed to use pending spade")
+	// Use one pending cult reward spade
+	if gs.PendingCultRewardSpades[a.PlayerID] <= 0 {
+		return fmt.Errorf("failed to use pending cult reward spade")
+	}
+	gs.PendingCultRewardSpades[a.PlayerID]--
+	if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
+		delete(gs.PendingCultRewardSpades, a.PlayerID)
 	}
 
 	// Cult reward spades do NOT award scoring tile VP
@@ -90,19 +92,7 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	// However, faction-specific bonuses still apply (Halflings, Alchemists)
 	spadesUsed := 1 // Cult reward spades are always 1 spade at a time
 
-	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-	if halflings, ok := player.Faction.(*factions.Halflings); ok {
-		vpBonus := halflings.GetVPPerSpade() * spadesUsed
-		player.VictoryPoints += vpBonus
-	}
-
-	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
-	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
-		if powerBonus > 0 {
-			player.Resources.GainPower(powerBonus)
-		}
-	}
-
+	// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
+	AwardFactionSpadeBonuses(player, spadesUsed)
 	return nil
 }

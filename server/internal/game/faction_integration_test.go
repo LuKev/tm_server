@@ -15,6 +15,7 @@ import (
 // - Swarmlings: Upgrade scoring
 // - Alchemists: VP/Coin conversion, power per spade
 // - Cultists: Power leech bonuses
+// - Mermaids: Starting shipping level
 
 // ============================================================================
 // HALFLINGS TESTS
@@ -142,8 +143,8 @@ func TestHalflings_CultSpadeScoring(t *testing.T) {
 	})
 	
 	// Give player a pending spade from cult reward
-	gs.PendingSpades = make(map[string]int)
-	gs.PendingSpades["player1"] = 1
+	gs.PendingCultRewardSpades = make(map[string]int)
+	gs.PendingCultRewardSpades["player1"] = 1
 	
 	targetHex := NewHex(1, 0) // Adjacent hex
 	initialVP := player.VictoryPoints
@@ -544,8 +545,8 @@ func TestAlchemists_PowerPerSpadeWithCultSpade(t *testing.T) {
 	})
 	
 	// Give player a pending spade from cult reward
-	gs.PendingSpades = make(map[string]int)
-	gs.PendingSpades["player1"] = 1
+	gs.PendingCultRewardSpades = make(map[string]int)
+	gs.PendingCultRewardSpades["player1"] = 1
 	
 	player.Resources.Power.Bowl1 = 10
 	player.Resources.Power.Bowl2 = 0
@@ -3542,5 +3543,136 @@ func TestHalflingsSpades_WithScoringTile(t *testing.T) {
 	expectedVP := initialVP + 3
 	if player.VictoryPoints != expectedVP {
 		t.Errorf("expected %d VP, got %d", expectedVP, player.VictoryPoints)
+	}
+}
+
+// ============================================================================
+// MERMAIDS TESTS
+// ============================================================================
+
+// TestMermaids_StartingShippingLevel tests that Mermaids start with shipping level 1
+func TestMermaids_StartingShippingLevel(t *testing.T) {
+	gs := NewGameState()
+
+	// Add Mermaids player
+	faction := factions.NewMermaids()
+	gs.AddPlayer("mermaids", faction)
+
+	player := gs.GetPlayer("mermaids")
+	if player == nil {
+		t.Fatalf("Failed to get mermaids player")
+	}
+
+	// Mermaids should start with shipping level 1
+	if player.ShippingLevel != 1 {
+		t.Errorf("Expected Mermaids to start with shipping level 1, got %d", player.ShippingLevel)
+	}
+}
+
+// TestMermaids_ShippingAdjacency tests that Mermaids can build across river hexes due to shipping level 1
+func TestMermaids_ShippingAdjacency(t *testing.T) {
+	gs := NewGameState()
+
+	// Add Mermaids player
+	faction := factions.NewMermaids()
+	gs.AddPlayer("mermaids", faction)
+
+	player := gs.GetPlayer("mermaids")
+	if player.ShippingLevel != 1 {
+		t.Fatalf("Expected Mermaids to start with shipping level 1, got %d", player.ShippingLevel)
+	}
+
+	// Place initial building at C3 (5, 2) - Forest terrain
+	c3 := NewHex(5, 2)
+	c3MapHex := gs.Map.GetHex(c3)
+	if c3MapHex == nil {
+		t.Fatalf("C3 hex not found")
+	}
+
+	// Transform C3 to Lake (Mermaids' home terrain)
+	err := gs.Map.TransformTerrain(c3, models.TerrainLake)
+	if err != nil {
+		t.Fatalf("Failed to transform C3: %v", err)
+	}
+
+	// Place dwelling at C3
+	c3MapHex.Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    models.FactionMermaids,
+		PlayerID:   "mermaids",
+		PowerValue: 1,
+	}
+
+	// C4 is at (7, 2) - separated from C3 by river at (6, 2)
+	c4 := NewHex(7, 2)
+	c4MapHex := gs.Map.GetHex(c4)
+	if c4MapHex == nil {
+		t.Fatalf("C4 hex not found")
+	}
+
+	// Verify that (6, 2) is a river
+	riverHex := NewHex(6, 2)
+	riverMapHex := gs.Map.GetHex(riverHex)
+	if riverMapHex == nil || riverMapHex.Terrain != models.TerrainRiver {
+		t.Fatalf("Expected river at (6, 2), got %v", riverMapHex.Terrain)
+	}
+
+	// Verify C3 and C4 are distance 2 apart
+	if c3.Distance(c4) != 2 {
+		t.Fatalf("Expected C3 and C4 to be distance 2, got %d", c3.Distance(c4))
+	}
+
+	// Test: Mermaids should be able to build at C4 (adjacent via shipping level 1)
+	if !gs.IsAdjacentToPlayerBuilding(c4, "mermaids") {
+		t.Errorf("Mermaids should be able to build at C4 (shipping level 1 allows building across 1 river hex from C3)")
+	}
+
+	// Test: Faction with shipping level 0 should NOT be able to build at C4 from C3
+	gs2 := NewGameState()
+	halflings := factions.NewHalflings()
+	gs2.AddPlayer("halflings", halflings)
+
+	halflingPlayer := gs2.GetPlayer("halflings")
+	if halflingPlayer.ShippingLevel != 0 {
+		t.Fatalf("Expected Halflings to start with shipping level 0, got %d", halflingPlayer.ShippingLevel)
+	}
+
+	// Place dwelling at C3 for halflings
+	c3MapHex2 := gs2.Map.GetHex(c3)
+	c3MapHex2.Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    models.FactionHalflings,
+		PlayerID:   "halflings",
+		PowerValue: 1,
+	}
+
+	// Halflings should NOT be adjacent to C4 (shipping level 0)
+	if gs2.IsAdjacentToPlayerBuilding(c4, "halflings") {
+		t.Errorf("Halflings should NOT be able to build at C4 from C3 (shipping level 0)")
+	}
+}
+
+// TestMermaids_DirectAdjacencyStillWorks tests that normal adjacency still works for Mermaids
+func TestMermaids_DirectAdjacencyStillWorks(t *testing.T) {
+	gs := NewGameState()
+
+	// Add Mermaids player
+	faction := factions.NewMermaids()
+	gs.AddPlayer("mermaids", faction)
+
+	// Place building at (5, 2)
+	hex1 := NewHex(5, 2)
+	hex1MapHex := gs.Map.GetHex(hex1)
+	hex1MapHex.Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    models.FactionMermaids,
+		PlayerID:   "mermaids",
+		PowerValue: 1,
+	}
+
+	// Check directly adjacent hex (5, 3) - should be adjacent
+	hex2 := NewHex(5, 3)
+	if !gs.IsAdjacentToPlayerBuilding(hex2, "mermaids") {
+		t.Errorf("Direct adjacency should still work for Mermaids")
 	}
 }

@@ -15,6 +15,7 @@ go_library(
         "bonus_cards.go",
         "cleanup.go",
         "cult.go",
+        "faction_spade_bonuses.go",
         "favor.go",
         "final_scoring.go",
         "hex.go",
@@ -80,7 +81,7 @@ go_test(
         "income_test.go",
         "map_bridge_shipping_test.go",
         "map_indirect_base_test.go",
-        "power_actions_test.go",  # Includes 5 bridge geometry validation tests
+        "power_actions_test.go",
         "power_test.go",
         "resources_test.go",
         "scoring_tiles_test.go",

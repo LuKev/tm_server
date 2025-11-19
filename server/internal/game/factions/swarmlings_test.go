@@ -25,8 +25,8 @@ func TestSwarmlings_StartingResources(t *testing.T) {
 	if resources.Coins != 20 {
 		t.Errorf("expected 20 coins (not standard 15), got %d", resources.Coins)
 	}
-	if resources.Workers != 12 {
-		t.Errorf("expected 12 workers (not standard 3), got %d", resources.Workers)
+	if resources.Workers != 8 {
+		t.Errorf("expected 8 workers (not standard 3), got %d", resources.Workers)
 	}
 	if resources.Priests != 0 {
 		t.Errorf("expected 0 priests, got %d", resources.Priests)

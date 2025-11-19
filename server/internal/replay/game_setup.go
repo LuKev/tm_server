@@ -32,12 +32,18 @@ func (v *GameValidator) SetupGame() error {
 			return fmt.Errorf("failed to create faction %v: %v", factionType, err)
 		}
 
+		// Get faction-specific starting shipping level (Mermaids start at 1, others at 0)
+		startingShippingLevel := 0
+		if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
+			startingShippingLevel = shippingFaction.GetShippingLevel()
+		}
+
 		// Create player
 		player := &game.Player{
 			ID:                   playerID,
 			Faction:              faction,
 			Resources:            game.NewResourcePool(faction.GetStartingResources()),
-			ShippingLevel:        0, // Default starting shipping
+			ShippingLevel:        startingShippingLevel,
 			DiggingLevel:         0, // Default starting digging
 			CultPositions:        make(map[game.CultTrack]int),
 			SpecialActionsUsed:   make(map[game.SpecialActionType]bool),

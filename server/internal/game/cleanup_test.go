@@ -64,9 +64,13 @@ func TestAwardCultRewards_Spades(t *testing.T) {
 	// Scoring tile gives: 8 / 4 = 2 spades
 	gs.AwardCultRewards()
 
-	// Should have 2 pending spades (from scoring tile only, milestones grant power not spades)
-	if gs.PendingSpades == nil || gs.PendingSpades["player1"] != 2 {
-		t.Errorf("expected 2 pending spades, got %d", gs.PendingSpades["player1"])
+	// Should have 2 pending cult reward spades (from scoring tile only, milestones grant power not spades)
+	if gs.PendingCultRewardSpades == nil || gs.PendingCultRewardSpades["player1"] != 2 {
+		pendingCount := 0
+		if gs.PendingCultRewardSpades != nil {
+			pendingCount = gs.PendingCultRewardSpades["player1"]
+		}
+		t.Errorf("expected 2 pending cult reward spades, got %d", pendingCount)
 	}
 }
 
@@ -175,8 +179,8 @@ func TestUseCultSpadeAction_Basic(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	
-	// Give player a pending spade
-	gs.PendingSpades = map[string]int{"player1": 1}
+	// Give player a pending cult reward spade
+	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
 	
 	// Place a dwelling to establish territory
 	hex1 := NewHex(0, 0)
@@ -213,8 +217,8 @@ func TestUseCultSpadeAction_NotAdjacent(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	
-	// Give player a pending spade
-	gs.PendingSpades = map[string]int{"player1": 1}
+	// Give player a pending cult reward spade
+	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
 	
 	// Place a dwelling to establish territory
 	hex1 := NewHex(0, 0)
@@ -251,8 +255,8 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 		},
 	}
 	
-	// Give player a pending spade
-	gs.PendingSpades = map[string]int{"player1": 1}
+	// Give player a pending cult reward spade
+	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
 	
 	// Place a dwelling to establish territory
 	hex1 := NewHex(0, 0)
@@ -592,14 +596,28 @@ func TestMultiplePlayers_DifferentRewards(t *testing.T) {
 
 	gs.AwardCultRewards()
 
-	if gs.PendingSpades["player1"] != 2 {
-		t.Errorf("player1: expected 2 spades, got %d", gs.PendingSpades["player1"])
+	player1Spades := 0
+	if gs.PendingCultRewardSpades != nil {
+		player1Spades = gs.PendingCultRewardSpades["player1"]
 	}
-	if gs.PendingSpades["player2"] != 1 {
-		t.Errorf("player2: expected 1 spade, got %d", gs.PendingSpades["player2"])
+	if player1Spades != 2 {
+		t.Errorf("player1: expected 2 cult reward spades, got %d", player1Spades)
 	}
-	if gs.PendingSpades["player3"] != 0 {
-		t.Errorf("player3: expected 0 spades, got %d", gs.PendingSpades["player3"])
+
+	player2Spades := 0
+	if gs.PendingCultRewardSpades != nil {
+		player2Spades = gs.PendingCultRewardSpades["player2"]
+	}
+	if player2Spades != 1 {
+		t.Errorf("player2: expected 1 cult reward spade, got %d", player2Spades)
+	}
+
+	player3Spades := 0
+	if gs.PendingCultRewardSpades != nil {
+		player3Spades = gs.PendingCultRewardSpades["player3"]
+	}
+	if player3Spades != 0 {
+		t.Errorf("player3: expected 0 cult reward spades, got %d", player3Spades)
 	}
 }
 

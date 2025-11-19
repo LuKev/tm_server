@@ -304,11 +304,12 @@ func (gs *GameState) AwardCultRewards() {
 				player.Resources.Power.GainPower(totalReward)
 			case CultRewardSpade:
 				// Spades must be used immediately - track as pending
+				// Cult reward spades don't count for VP (unlike BON1 or paid spades)
 				// Faction bonuses (e.g., Alchemists +2 power) are granted when spades are USED
-				if gs.PendingSpades == nil {
-					gs.PendingSpades = make(map[string]int)
+				if gs.PendingCultRewardSpades == nil {
+					gs.PendingCultRewardSpades = make(map[string]int)
 				}
-				gs.PendingSpades[playerID] += totalReward
+				gs.PendingCultRewardSpades[playerID] += totalReward
 			case CultRewardWorker:
 				player.Resources.Workers += totalReward
 			case CultRewardCoin:

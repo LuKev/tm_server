@@ -65,12 +65,12 @@ type FactionColor int
 
 const (
 	ColorYellow FactionColor = iota // Desert
-	ColorRed                         // Wasteland
-	ColorBlue                        // Lake
-	ColorGreen                       // Forest
-	ColorBrown                       // Plains
-	ColorBlack                       // Swamp
-	ColorGray                        // Mountain
+	ColorRed                        // Wasteland
+	ColorBlue                       // Lake
+	ColorGreen                      // Forest
+	ColorBrown                      // Plains
+	ColorBlack                      // Swamp
+	ColorGray                       // Mountain
 )
 
 // GetFactionColor returns the color/terrain type of a faction

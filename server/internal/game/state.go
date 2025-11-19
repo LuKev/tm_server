@@ -28,7 +28,8 @@ type GameState struct {
 	ScoringTiles            *ScoringTileState                   // Tracks scoring tiles for each round
 	PendingLeechOffers      map[string][]*PowerLeechOffer       // Key: playerID who can accept
 	PendingTownFormations   map[string][]*PendingTownFormation  // Key: playerID, Value: slice of pending towns (can have multiple simultaneous towns)
-	PendingSpades           map[string]int                      // Key: playerID, Value: number of spades to use (from cult rewards)
+	PendingSpades           map[string]int                      // Key: playerID, Value: number of spades (from BON1, count for VP when used)
+	PendingCultRewardSpades map[string]int                      // Key: playerID, Value: cult reward spades (don't count for VP)
 	PendingCultistsLeech    map[string]*CultistsLeechBonus      // Key: playerID (Cultists), tracks pending cult advance/power bonus
 	SkipAbilityUsedThisAction map[string]bool                   // Key: playerID, Value: whether carpet flight/tunneling was used in current action (max 1 per action)
 	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
@@ -155,11 +156,17 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 		}
 	}
 
+	// Get faction-specific starting shipping level (Mermaids start at 1, others at 0)
+	startingShippingLevel := 0
+	if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
+		startingShippingLevel = shippingFaction.GetShippingLevel()
+	}
+
 	player := &Player{
 		ID:            playerID,
 		Faction:       faction,
 		Resources:     NewResourcePool(faction.GetStartingResources()),
-		ShippingLevel: 0,
+		ShippingLevel: startingShippingLevel,
 		DiggingLevel:  0,
 		BridgesBuilt:  0,
 		CultPositions: map[CultTrack]int{
@@ -721,6 +728,72 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 	// Award VP: Always +6 VP for advancing digging
 	player.VictoryPoints += 6
 
+	return nil
+}
+
+// advanceDiggingLevelWithoutVP is an internal helper that advances digging level without awarding VP
+// Used for auto-granting digging from Earth cult track positions (5 and 10)
+func (gs *GameState) advanceDiggingLevelWithoutVP(playerID string) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	// Check faction-specific max digging level
+	factionType := player.Faction.GetType()
+	var maxLevel int
+	switch factionType {
+	case models.FactionDarklings:
+		// Darklings cannot advance digging at all
+		return fmt.Errorf("Darklings cannot advance digging level")
+	case models.FactionFakirs:
+		// Fakirs can only advance to level 1
+		maxLevel = 1
+	default:
+		// Most factions can advance to level 2
+		maxLevel = 2
+	}
+
+	// Check if already at faction's max level
+	if player.DiggingLevel >= maxLevel {
+		// Silently ignore if already at max level (don't error)
+		return nil
+	}
+
+	// Advance digging level
+	player.DiggingLevel++
+
+	// Sync the faction's digging level
+	switch f := player.Faction.(type) {
+	case *factions.Giants:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Witches:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Auren:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Swarmlings:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Cultists:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Alchemists:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Halflings:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.ChaosMagicians:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Nomads:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Fakirs:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Dwarves:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Engineers:
+		f.DiggingLevel = player.DiggingLevel
+	case *factions.Mermaids:
+		f.DiggingLevel = player.DiggingLevel
+	}
+
+	// No VP awarded for Earth cult auto-grants
 	return nil
 }
 

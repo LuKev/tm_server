@@ -15,8 +15,8 @@ func TestParseTransformOnly_WithCultSpade(t *testing.T) {
 	gs.AddPlayer("cultists", &factions.Cultists{})
 
 	// Grant cult reward spade to Cultists
-	gs.PendingSpades = make(map[string]int)
-	gs.PendingSpades["cultists"] = 1
+	gs.PendingCultRewardSpades = make(map[string]int)
+	gs.PendingCultRewardSpades["cultists"] = 1
 
 	// Place a dwelling for adjacency
 	hex1 := game.Hex{Q: 0, R: 0}
@@ -28,7 +28,7 @@ func TestParseTransformOnly_WithCultSpade(t *testing.T) {
 
 	entry := &LogEntry{
 		Faction: models.FactionCultists,
-		Action:  "transform G2 to yellow",
+		Action:  "transform G2",
 	}
 
 	// Parse the compound action
@@ -127,8 +127,8 @@ func TestCultSpadeUsage_FullFlow(t *testing.T) {
 	player.Resources.Workers = 0 // No workers!
 
 	// Grant cult reward spade
-	gs.PendingSpades = make(map[string]int)
-	gs.PendingSpades["Cultists"] = 1
+	gs.PendingCultRewardSpades = make(map[string]int)
+	gs.PendingCultRewardSpades["Cultists"] = 1
 
 	// Place a dwelling for adjacency (at hex with Q=0, R=0)
 	hex1 := game.Hex{Q: 0, R: 0}
@@ -154,9 +154,13 @@ func TestCultSpadeUsage_FullFlow(t *testing.T) {
 		t.Fatalf("action.Execute() error = %v", err)
 	}
 
-	// Verify spade was used
-	if gs.PendingSpades["Cultists"] != 0 {
-		t.Errorf("expected 0 pending spades, got %d", gs.PendingSpades["Cultists"])
+	// Verify cult reward spade was used
+	pendingCount := 0
+	if gs.PendingCultRewardSpades != nil {
+		pendingCount = gs.PendingCultRewardSpades["Cultists"]
+	}
+	if pendingCount != 0 {
+		t.Errorf("expected 0 pending cult reward spades, got %d", pendingCount)
 	}
 
 	// Verify terrain was transformed BY 1 spade (Swamp -> Plains)

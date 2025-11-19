@@ -396,7 +396,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 				playerID := entry.GetPlayerID()
 
 				// Check if player has pending cult reward spades
-				if gs.PendingSpades != nil && gs.PendingSpades[playerID] > 0 {
+				if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[playerID] > 0 {
 					// Use cult spade action (FREE, transforms BY 1 spade towards home)
 					action := game.NewUseCultSpadeAction(playerID, hex)
 					mainAction := &MainActionComponent{Action: action}
