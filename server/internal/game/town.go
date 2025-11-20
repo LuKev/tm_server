@@ -3,39 +3,40 @@ package game
 import (
 	"fmt"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
 // TownTileState tracks available town tiles
 type TownTileState struct {
-	Available map[TownTileType]int // How many of each tile remain
+	Available map[models.TownTileType]int // How many of each tile remain
 }
 
 // NewTownTileState creates a new town tile state with all tiles available
 func NewTownTileState() *TownTileState {
 	return &TownTileState{
-		Available: map[TownTileType]int{
-			TownTile5Points:  2, // 2 copies
-			TownTile6Points:  2, // 2 copies
-			TownTile7Points:  2, // 2 copies
-			TownTile4Points:  2, // 2 copies (shipping/range upgrade, TW7)
-			TownTile8Points:  2, // 2 copies
-			TownTile9Points:  2, // 2 copies
-			TownTile11Points: 1, // 1 copy
-			TownTile2Points:  1, // 1 copy
+		Available: map[models.TownTileType]int{
+			models.TownTile5Points:  2, // 2 copies
+			models.TownTile6Points:  2, // 2 copies
+			models.TownTile7Points:  2, // 2 copies
+			models.TownTile4Points:  2, // 2 copies (shipping/range upgrade, TW7)
+			models.TownTile8Points:  2, // 2 copies
+			models.TownTile9Points:  2, // 2 copies
+			models.TownTile11Points: 1, // 1 copy
+			models.TownTile2Points:  1, // 1 copy
 		},
 	}
 }
 
 // IsAvailable checks if a town tile is still available
-func (tts *TownTileState) IsAvailable(tileType TownTileType) bool {
+func (tts *TownTileState) IsAvailable(tileType models.TownTileType) bool {
 	count, ok := tts.Available[tileType]
 	return ok && count > 0
 }
 
 // TakeTile removes a town tile from the available pool
-func (tts *TownTileState) TakeTile(tileType TownTileType) error {
+func (tts *TownTileState) TakeTile(tileType models.TownTileType) error {
 	if !tts.IsAvailable(tileType) {
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
@@ -44,8 +45,8 @@ func (tts *TownTileState) TakeTile(tileType TownTileType) error {
 }
 
 // GetAvailableTiles returns a list of all available town tile types
-func (tts *TownTileState) GetAvailableTiles() []TownTileType {
-	tiles := []TownTileType{}
+func (tts *TownTileState) GetAvailableTiles() []models.TownTileType {
+	tiles := []models.TownTileType{}
 	for tileType, count := range tts.Available {
 		if count > 0 {
 			tiles = append(tiles, tileType)
@@ -56,7 +57,7 @@ func (tts *TownTileState) GetAvailableTiles() []TownTileType {
 
 // Town represents a connected group of buildings
 type Town struct {
-	Hexes       []Hex
+	Hexes       []board.Hex
 	TotalPower  int
 	Faction     models.FactionType
 	TownTileKey string // Empty if no town tile selected yet
@@ -82,7 +83,7 @@ func GetPowerValue(buildingType models.BuildingType) int {
 
 // CalculateAdjacencyBonus calculates coins gained from adjacent opponent buildings
 // when placing a new building
-func (m *TerraMysticaMap) CalculateAdjacencyBonus(h Hex, faction models.FactionType) int {
+func calculateAdjacencyBonus(m *board.TerraMysticaMap, h board.Hex, faction models.FactionType) int {
 	bonus := 0
 	
 	for _, neighbor := range m.GetDirectNeighbors(h) {
@@ -100,7 +101,7 @@ func (m *TerraMysticaMap) CalculateAdjacencyBonus(h Hex, faction models.FactionT
 
 // GetPowerLeechTargets returns all players who can leech power from a building placement
 // Returns map of faction -> power amount they can leech
-func (m *TerraMysticaMap) GetPowerLeechTargets(h Hex, placedFaction models.FactionType, powerValue int) map[models.FactionType]int {
+func getPowerLeechTargets(m *board.TerraMysticaMap, h board.Hex, placedFaction models.FactionType, powerValue int) map[models.FactionType]int {
 	targets := make(map[models.FactionType]int)
 	
 	for _, neighbor := range m.GetDirectNeighbors(h) {
@@ -124,7 +125,7 @@ func (m *TerraMysticaMap) GetPowerLeechTargets(h Hex, placedFaction models.Facti
 
 // CheckForTownFormation checks if a town can be formed after building/upgrading at the given hex
 // Returns the connected buildings if a town can be formed, nil otherwise
-func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
+func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []board.Hex {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return nil
@@ -137,8 +138,8 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 
 	// Find all connected buildings for this player
 	// Mermaids can skip one river hex when founding towns
-	var connected []Hex
-	var skippedRiver *Hex
+	var connected []board.Hex
+	var skippedRiver *board.Hex
 
 	if player.Faction.GetType() == models.FactionMermaids {
 		connected, skippedRiver = gs.Map.GetConnectedBuildingsForMermaids(hex, playerID)
@@ -182,7 +183,7 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex Hex) []Hex {
 }
 
 // CanFormTown checks if the given connected buildings meet town requirements
-func (gs *GameState) CanFormTown(playerID string, hexes []Hex) bool {
+func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return false
@@ -239,7 +240,7 @@ func (gs *GameState) GetTownPowerRequirement(playerID string) int {
 
 // FormTown marks the buildings as part of a town and applies town tile benefits
 // For Mermaids: if skippedRiverHex is provided, places the town tile on that river hex
-func (gs *GameState) FormTown(playerID string, hexes []Hex, tileType TownTileType, skippedRiverHex *Hex) error {
+func (gs *GameState) FormTown(playerID string, hexes []board.Hex, tileType models.TownTileType, skippedRiverHex *board.Hex) error {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", playerID)
@@ -290,7 +291,7 @@ func (gs *GameState) FormTown(playerID string, hexes []Hex, tileType TownTileTyp
 }
 
 // ApplyTownTileBenefits applies the immediate benefits of a town tile
-func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType TownTileType) {
+func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType models.TownTileType) {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return
@@ -304,55 +305,55 @@ func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType TownTileTyp
 	}
 
 	switch tileType {
-	case TownTile5Points:
+	case models.TownTile5Points:
 		player.VictoryPoints += 5
 		if !skipResources {
 			player.Resources.Coins += 6
 		}
 		player.Keys += 1
 
-	case TownTile6Points:
+	case models.TownTile6Points:
 		player.VictoryPoints += 6
 		if !skipResources {
 			player.Resources.Power.GainPower(8)
 		}
 		player.Keys += 1
 
-	case TownTile7Points:
+	case models.TownTile7Points:
 		player.VictoryPoints += 7
 		if !skipResources {
 			player.Resources.Workers += 2
 		}
 		player.Keys += 1
 
-	case TownTile4Points:
+	case models.TownTile4Points:
 		player.VictoryPoints += 4
 		player.Keys += 1
 		// Advance shipping level by 1 and award VP
 		gs.AdvanceShippingLevel(playerID)
 
-	case TownTile8Points:
+	case models.TownTile8Points:
 		player.VictoryPoints += 8
 		player.Keys += 1
 		// Advance 1 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(playerID, TownTile8Points, player, gs)
+		gs.CultTracks.ApplyTownCultBonus(playerID, models.TownTile8Points, player, gs)
 
-	case TownTile9Points:
+	case models.TownTile9Points:
 		player.VictoryPoints += 9
 		if !skipResources {
 			gs.GainPriests(playerID, 1)
 		}
 		player.Keys += 1
 
-	case TownTile11Points:
+	case models.TownTile11Points:
 		player.VictoryPoints += 11
 		player.Keys += 1
 
-	case TownTile2Points:
+	case models.TownTile2Points:
 		player.VictoryPoints += 2
 		player.Keys += 2
 		// Advance 2 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(playerID, TownTile2Points, player, gs)
+		gs.CultTracks.ApplyTownCultBonus(playerID, models.TownTile2Points, player, gs)
 	}
 }
 
@@ -379,10 +380,10 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 
 // GetConnectedBuildingsIncludingBridges finds all buildings connected to the starting hex
 // This includes connections via bridges
-func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playerID string) []Hex {
-	visited := make(map[Hex]bool)
-	connected := []Hex{}
-	queue := []Hex{start}
+func getConnectedBuildingsIncludingBridges(m *board.TerraMysticaMap, start board.Hex, playerID string) []board.Hex {
+	visited := make(map[board.Hex]bool)
+	connected := []board.Hex{}
+	queue := []board.Hex{start}
 	visited[start] = true
 
 	for len(queue) > 0 {
@@ -431,12 +432,12 @@ func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playe
 // GetConnectedBuildingsForMermaids finds all buildings connected to the starting hex
 // Mermaids can skip ONE river hex when forming towns (town tile goes on the skipped river)
 // Returns: connected buildings, and the skipped river hex (if any)
-func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID string) ([]Hex, *Hex) {
-	visited := make(map[Hex]bool)
-	connected := []Hex{}
-	queue := []Hex{start}
+func getConnectedBuildingsForMermaids(m *board.TerraMysticaMap, start board.Hex, playerID string) ([]board.Hex, *board.Hex) {
+	visited := make(map[board.Hex]bool)
+	connected := []board.Hex{}
+	queue := []board.Hex{start}
 	visited[start] = true
-	var skippedRiver *Hex
+	var skippedRiver *board.Hex
 
 	for len(queue) > 0 {
 		current := queue[0]

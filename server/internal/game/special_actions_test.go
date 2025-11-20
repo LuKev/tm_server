@@ -2,12 +2,14 @@ package game
 
 import (
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
 // Helper function to build a stronghold for a player
-func buildStrongholdForPlayer(gs *GameState, playerID string, hex Hex) {
+func buildStrongholdForPlayer(gs *GameState, playerID string, hex board.Hex) {
 	player := gs.GetPlayer(playerID)
 	mapHex := gs.Map.GetHex(hex)
 	
@@ -29,7 +31,7 @@ func TestAurenCultAdvance_Basic(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold to enable special ability
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Set initial cult position
@@ -62,7 +64,7 @@ func TestAurenCultAdvance_MaxPosition(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Set cult position near max
@@ -93,7 +95,7 @@ func TestAurenCultAdvance_AlreadyAtMax(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Set cult position at max
@@ -116,7 +118,7 @@ func TestAurenCultAdvance_OncePerRound(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Set cult positions
@@ -146,7 +148,7 @@ func TestAurenCultAdvance_ResetBetweenRounds(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Set cult positions
@@ -198,11 +200,11 @@ func TestWitchesRide_Basic(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Set target hex to Forest
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	// Use Witches' Ride
@@ -237,11 +239,11 @@ func TestWitchesRide_IgnoresAdjacency(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold at one location
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Target hex far away from any player buildings
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	// Witches' Ride should succeed despite no adjacency
@@ -265,11 +267,11 @@ func TestWitchesRide_OnlyOnForest(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Try to use Witches' Ride on non-Forest hex
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainPlains)
 	
 	action := NewWitchesRideAction("player1", targetHex)
@@ -286,12 +288,12 @@ func TestWitchesRide_BuildingLimitEnforced(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Place 8 dwellings (the limit)
 	for i := 0; i < 8; i++ {
-		hex := NewHex(i, 2)
+		hex := board.NewHex(i, 2)
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingDwelling,
 			Faction:    faction.GetType(),
@@ -301,7 +303,7 @@ func TestWitchesRide_BuildingLimitEnforced(t *testing.T) {
 	}
 	
 	// Try to use Witches' Ride to build 9th dwelling
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	action := NewWitchesRideAction("player1", targetHex)
@@ -320,11 +322,11 @@ func TestWitchesRide_PowerLeech(t *testing.T) {
 	gs.AddPlayer("player2", faction2)
 	
 	// Build stronghold for Witches
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Place player2's dwelling adjacent to target
-	player2Hex := NewHex(5, 4)
+	player2Hex := board.NewHex(5, 4)
 	gs.Map.GetHex(player2Hex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction2.GetType(),
@@ -333,7 +335,7 @@ func TestWitchesRide_PowerLeech(t *testing.T) {
 	}
 	
 	// Use Witches' Ride on adjacent Forest hex
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	action := NewWitchesRideAction("player1", targetHex)
@@ -361,11 +363,11 @@ func TestWitchesRide_OncePerRound(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Use Witches' Ride once
-	targetHex1 := NewHex(5, 5)
+	targetHex1 := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex1, models.TerrainForest)
 	
 	action1 := NewWitchesRideAction("player1", targetHex1)
@@ -375,7 +377,7 @@ func TestWitchesRide_OncePerRound(t *testing.T) {
 	}
 	
 	// Try to use it again - should fail
-	targetHex2 := NewHex(6, 6)
+	targetHex2 := board.NewHex(6, 6)
 	gs.Map.TransformTerrain(targetHex2, models.TerrainForest)
 	
 	action2 := NewWitchesRideAction("player1", targetHex2)
@@ -395,11 +397,11 @@ func TestSwarmlingsUpgrade_Basic(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Build stronghold to enable special ability
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Place a dwelling
-	dwellingHex := NewHex(1, 1)
+	dwellingHex := board.NewHex(1, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -436,11 +438,11 @@ func TestSwarmlingsUpgrade_OncePerRound(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Place two dwellings
-	dwelling1 := NewHex(1, 1)
+	dwelling1 := board.NewHex(1, 1)
 	gs.Map.GetHex(dwelling1).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -448,7 +450,7 @@ func TestSwarmlingsUpgrade_OncePerRound(t *testing.T) {
 		PowerValue: 1,
 	}
 	
-	dwelling2 := NewHex(2, 1)
+	dwelling2 := board.NewHex(2, 1)
 	gs.Map.GetHex(dwelling2).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -477,12 +479,12 @@ func TestSwarmlingsUpgrade_BuildingLimitEnforced(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Place 4 trading houses (the limit)
 	for i := 0; i < 4; i++ {
-		hex := NewHex(i, 2)
+		hex := board.NewHex(i, 2)
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingTradingHouse,
 			Faction:    faction.GetType(),
@@ -492,7 +494,7 @@ func TestSwarmlingsUpgrade_BuildingLimitEnforced(t *testing.T) {
 	}
 	
 	// Try to upgrade a 5th dwelling
-	dwellingHex := NewHex(5, 1)
+	dwellingHex := board.NewHex(5, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -521,11 +523,11 @@ func TestGiantsTransform_Basic(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Target hex adjacent to stronghold
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainLake)
 	
 	// Use Giants transform special action
@@ -557,11 +559,11 @@ func TestGiantsTransform_TransformOnly(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Target hex adjacent to stronghold
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	// Use Giants transform without building
@@ -597,11 +599,11 @@ func TestNomadsSandstorm_Basic(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 	
 	// Target hex directly adjacent to stronghold
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainSwamp)
 	
 	// Use Nomads sandstorm special action
@@ -633,11 +635,11 @@ func TestNomadsSandstorm_RequiresDirectAdjacency(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	buildStrongholdForPlayer(gs, "player1", strongholdHex)
 
 	// Target hex NOT adjacent to stronghold
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.TransformTerrain(targetHex, models.TerrainSwamp)
 
 	// Try to use sandstorm - should fail
@@ -659,7 +661,7 @@ func TestUpgradeToStronghold_GrantsAbility(t *testing.T) {
 	player.Resources.Workers = 100
 	
 	// Place a trading house
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.GetHex(tradingHouseHex).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -707,12 +709,12 @@ func TestBonusCardSpade_ProvidesFreeSpade(t *testing.T) {
 	gs.BonusCards.PlayerCards["player1"] = BonusCardSpade
 
 	// Set up a hex that needs 1 spade to transform (distance 1)
-	targetHex := NewHex(0, 1)
+	targetHex := board.NewHex(0, 1)
 	mapHex := gs.Map.GetHex(targetHex)
 	mapHex.Terrain = models.TerrainMountain // Witches are Forest, Mountain->Forest = 1 step
 
 	// Place a dwelling nearby for adjacency
-	adjacentHex := NewHex(0, 0)
+	adjacentHex := board.NewHex(0, 0)
 	adjacentMapHex := gs.Map.GetHex(adjacentHex)
 	adjacentMapHex.Terrain = models.TerrainForest
 	adjacentMapHex.Building = &models.Building{

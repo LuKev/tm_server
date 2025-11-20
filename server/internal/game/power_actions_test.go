@@ -2,6 +2,8 @@ package game
 
 import (
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -156,7 +158,7 @@ func TestPowerAction_Spade1WithTransform(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place player1's initial dwelling at (0, 1)
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -166,7 +168,7 @@ func TestPowerAction_Spade1WithTransform(t *testing.T) {
 	
 	// Target hex at (1, 0) - adjacent to initial dwelling
 	// Set it to Forest (1 spade away from Plains)
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	// Use 1 spade power action to transform and build
@@ -214,7 +216,7 @@ func TestPowerAction_Spade2WithTransform(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place player1's initial dwelling at (0, 1)
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -224,7 +226,7 @@ func TestPowerAction_Spade2WithTransform(t *testing.T) {
 	
 	// Target hex at (1, 0) - adjacent to initial dwelling
 	// Set it to Lake (2 spades away from Plains: Plains -> Swamp -> Lake)
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainLake)
 	
 	// Use 2 spade power action to transform and build
@@ -267,7 +269,7 @@ func TestPowerAction_Spade1WithAdditionalWorkers(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place player1's initial dwelling at (0, 1)
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -277,7 +279,7 @@ func TestPowerAction_Spade1WithAdditionalWorkers(t *testing.T) {
 	
 	// Target hex at (1, 0) - adjacent to initial dwelling
 	// Set it to Lake (2 spades away from Plains: Plains -> Swamp -> Lake)
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainLake)
 	
 	initialWorkers := player.Resources.Workers
@@ -319,7 +321,7 @@ func TestPowerAction_Spade2WithAdditionalWorkers(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place player1's initial dwelling at (0, 1)
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -329,7 +331,7 @@ func TestPowerAction_Spade2WithAdditionalWorkers(t *testing.T) {
 	
 	// Target hex at (1, 0) - adjacent to initial dwelling
 	// Set it to Forest (3 spades away from Plains: Plains -> Swamp -> Lake -> Forest)
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	initialWorkers := player.Resources.Workers
@@ -379,7 +381,7 @@ func TestPowerAction_Spade2TwoHexes(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place player1's initial dwelling at (1, 1)
-	initialHex := NewHex(1, 1)
+	initialHex := board.NewHex(1, 1)
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -389,12 +391,12 @@ func TestPowerAction_Spade2TwoHexes(t *testing.T) {
 	
 	// First target hex at (1, 0) - adjacent to initial dwelling
 	// Set it to Swamp (1 spade away from Plains)
-	targetHex1 := NewHex(1, 0)
+	targetHex1 := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex1, models.TerrainSwamp)
 	
 	// Second target hex at (2, 1) - adjacent to initial dwelling
 	// Set it to Swamp (1 spade away from Plains)
-	targetHex2 := NewHex(2, 1)
+	targetHex2 := board.NewHex(2, 1)
 	gs.Map.TransformTerrain(targetHex2, models.TerrainSwamp)
 	
 	// Use 2 spade power action - transform first hex and build dwelling
@@ -536,16 +538,16 @@ func TestBridge_ValidGeometry_BaseOrientation(t *testing.T) {
 	
 	// Test base orientation: delta (1,-2) with midpoints (0,-1) and (1,-1)
 	// This is the canonical valid bridge pattern
-	hex1 := NewHex(0, 0)
-	river1 := NewHex(0, -1)
-	river2 := NewHex(1, -1)
-	hex2 := NewHex(1, -2)
+	hex1 := board.NewHex(0, 0)
+	river1 := board.NewHex(0, -1)
+	river2 := board.NewHex(1, -1)
+	hex2 := board.NewHex(1, -2)
 	
 	// Set up map
-	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
-	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[river2] = &MapHex{Coord: river2, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &board.MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
 	gs.Map.RiverHexes[river1] = true
 	gs.Map.RiverHexes[river2] = true
 	
@@ -575,16 +577,16 @@ func TestBridge_ValidGeometry_BidirectionalBridge(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	
-	hex1 := NewHex(0, 0)
-	river1 := NewHex(0, -1)
-	river2 := NewHex(1, -1)
-	hex2 := NewHex(1, -2)
+	hex1 := board.NewHex(0, 0)
+	river1 := board.NewHex(0, -1)
+	river2 := board.NewHex(1, -1)
+	hex2 := board.NewHex(1, -2)
 	
 	// Set up map
-	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
-	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[river2] = &MapHex{Coord: river2, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &board.MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
 	gs.Map.RiverHexes[river1] = true
 	gs.Map.RiverHexes[river2] = true
 	
@@ -620,16 +622,16 @@ func TestBridge_InvalidGeometry_NonRiverMidpoint(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Try to build bridge where one midpoint is NOT a river
-	hex1 := NewHex(0, 0)
-	river1 := NewHex(0, -1)
-	notRiver := NewHex(1, -1) // This should be river but isn't
-	hex2 := NewHex(1, -2)
+	hex1 := board.NewHex(0, 0)
+	river1 := board.NewHex(0, -1)
+	notRiver := board.NewHex(1, -1) // This should be river but isn't
+	hex2 := board.NewHex(1, -2)
 	
 	// Set up map
-	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
-	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[notRiver] = &MapHex{Coord: notRiver, Terrain: models.TerrainPlains} // NOT river!
-	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[notRiver] = &board.MapHex{Coord: notRiver, Terrain: models.TerrainPlains} // NOT river!
+	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
 	gs.Map.RiverHexes[river1] = true
 	// notRiver is NOT marked as river
 	
@@ -654,12 +656,12 @@ func TestBridge_InvalidGeometry_WrongDistance(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Try to build bridge with wrong distance (adjacent hexes = distance 1, not distance 2)
-	hex1 := NewHex(0, 0)
-	hex2 := NewHex(1, 0) // Adjacent, but bridges must span distance 2
+	hex1 := board.NewHex(0, 0)
+	hex2 := board.NewHex(1, 0) // Adjacent, but bridges must span distance 2
 	
 	// Set up map
-	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
-	gs.Map.Hexes[hex2] = &MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
 	
 	// Try to build bridge
 	player.Resources.Power.Bowl3 = 3
@@ -682,16 +684,16 @@ func TestBridge_InvalidGeometry_RiverEndpoint(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Try to build bridge where one endpoint is a river (not allowed)
-	hex1 := NewHex(0, 0)
-	riverEndpoint := NewHex(1, -2)
-	river1 := NewHex(0, -1)
-	river2 := NewHex(1, -1)
+	hex1 := board.NewHex(0, 0)
+	riverEndpoint := board.NewHex(1, -2)
+	river1 := board.NewHex(0, -1)
+	river2 := board.NewHex(1, -1)
 	
 	// Set up map
-	gs.Map.Hexes[hex1] = &MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
-	gs.Map.Hexes[river1] = &MapHex{Coord: river1, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[river2] = &MapHex{Coord: river2, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[riverEndpoint] = &MapHex{Coord: riverEndpoint, Terrain: models.TerrainRiver} // Endpoint is river!
+	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &board.MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[riverEndpoint] = &board.MapHex{Coord: riverEndpoint, Terrain: models.TerrainRiver} // Endpoint is river!
 	gs.Map.RiverHexes[river1] = true
 	gs.Map.RiverHexes[river2] = true
 	gs.Map.RiverHexes[riverEndpoint] = true
@@ -802,8 +804,8 @@ func TestPowerActionSpade2_SplitTransformAndBuild(t *testing.T) {
 	// Set up two hexes:
 	// 1. Transform hex (F2): Forest -> needs to be transformed to Mountain
 	// 2. Build hex (D4): Wasteland -> needs to be transformed to Mountain for dwelling
-	transformHex := NewHex(-1, 5) // F2 in log notation
-	buildHex := NewHex(4, 3)      // D4 in log notation
+	transformHex := board.NewHex(-1, 5) // F2 in log notation
+	buildHex := board.NewHex(4, 3)      // D4 in log notation
 
 	transformMapHex := gs.Map.GetHex(transformHex)
 	transformMapHex.Terrain = models.TerrainForest // Will transform to Mountain
@@ -812,7 +814,7 @@ func TestPowerActionSpade2_SplitTransformAndBuild(t *testing.T) {
 	buildMapHex.Terrain = models.TerrainWasteland // Will transform to Mountain and build
 
 	// Place adjacent dwelling for build hex adjacency
-	adjacentHex := NewHex(3, 3)
+	adjacentHex := board.NewHex(3, 3)
 	adjacentMapHex := gs.Map.GetHex(adjacentHex)
 	adjacentMapHex.Terrain = models.TerrainMountain
 	adjacentMapHex.Building = &models.Building{

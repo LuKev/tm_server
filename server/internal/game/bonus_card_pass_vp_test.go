@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -71,9 +72,9 @@ func TestBonusCard_PassVP_DwellingCard(t *testing.T) {
 	player.Resources.Coins = 100
 	player.Resources.Workers = 100
 
-	hex1 := NewHex(0, 0)
-	hex2 := NewHex(1, 0)
-	hex3 := NewHex(2, 0)
+	hex1 := board.NewHex(0, 0)
+	hex2 := board.NewHex(1, 0)
+	hex3 := board.NewHex(2, 0)
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 	gs.Map.GetHex(hex2).Terrain = faction.GetHomeTerrain()
 	gs.Map.GetHex(hex3).Terrain = faction.GetHomeTerrain()
@@ -136,7 +137,7 @@ func TestBonusCard_PassVP_TradingHouseCard(t *testing.T) {
 	player.Resources.Coins = 100
 	player.Resources.Workers = 100
 
-	hex1 := NewHex(0, 0)
+	hex1 := board.NewHex(0, 0)
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 
 	// Build dwelling

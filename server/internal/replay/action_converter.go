@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -417,7 +418,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 				// Map goes from row 0 to 8, q ranges from -1 to 12
 				for q := -1; q <= 12; q++ {
 					for r := 0; r <= 8; r++ {
-						testHex := game.Hex{Q: q, R: r}
+						testHex := board.Hex{Q: q, R: r}
 						mapHex := gs.Map.GetHex(testHex)
 						if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
 							gs.CheckForTownFormation(playerID, testHex)
@@ -515,7 +516,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 				// Iterate through all hexes with player buildings and check for town formation
 				for q := -1; q <= 12; q++ {
 					for r := 0; r <= 8; r++ {
-						testHex := game.Hex{Q: q, R: r}
+						testHex := board.Hex{Q: q, R: r}
 						mapHex := gs.Map.GetHex(testHex)
 						if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
 							gs.CheckForTownFormation(playerID, testHex)
@@ -554,7 +555,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			gs.PendingTownFormations[playerID] = []*game.PendingTownFormation{
 				{
 					PlayerID: playerID,
-					Hexes:    []game.Hex{hex}, // Use the upgraded hex as placeholder
+					Hexes:    []board.Hex{hex}, // Use the upgraded hex as placeholder
 				},
 			}
 			fmt.Printf("DEBUG: Created pending town formation for replay mode\n")

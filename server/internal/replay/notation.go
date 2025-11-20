@@ -60,24 +60,24 @@ const (
 )
 
 // ParseTownTile converts a town tile string to the internal TownTileType
-func ParseTownTile(townStr string) (game.TownTileType, error) {
+func ParseTownTile(townStr string) (models.TownTileType, error) {
 	switch townStr {
 	case "TW1":
-		return game.TownTile5Points, nil
+		return models.TownTile5Points, nil
 	case "TW2":
-		return game.TownTile7Points, nil
+		return models.TownTile7Points, nil
 	case "TW3":
-		return game.TownTile9Points, nil
+		return models.TownTile9Points, nil
 	case "TW4":
-		return game.TownTile6Points, nil
+		return models.TownTile6Points, nil
 	case "TW5":
-		return game.TownTile8Points, nil
+		return models.TownTile8Points, nil
 	case "TW6":
-		return game.TownTile2Points, nil
+		return models.TownTile2Points, nil
 	case "TW7":
-		return game.TownTile4Points, nil
+		return models.TownTile4Points, nil
 	case "TW8":
-		return game.TownTile11Points, nil
+		return models.TownTile11Points, nil
 	default:
 		return 0, fmt.Errorf("unknown town tile: %s", townStr)
 	}

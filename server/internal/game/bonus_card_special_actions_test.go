@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -24,7 +25,7 @@ func TestBonusCardSpade_BasicTransform(t *testing.T) {
 	// Hex (0,0) is Plains, Auren home is Forest, distance is 3
 	// Normal cost: 3 spades * 3 workers = 9 workers
 	// With 1 free spade: 2 spades * 3 workers = 6 workers
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	
 	action := &SpecialAction{
 		BaseAction: BaseAction{
@@ -70,7 +71,7 @@ func TestBonusCardSpade_WithDwelling(t *testing.T) {
 	player.Resources.Workers = 10
 	player.Resources.Coins = 10
 	
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	
 	action := &SpecialAction{
 		BaseAction: BaseAction{
@@ -120,7 +121,7 @@ func TestBonusCardSpade_ScoringTileVP(t *testing.T) {
 	player.Resources.Workers = 10
 	player.Resources.Coins = 10
 	
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	initialVP := player.VictoryPoints
 	
 	action := &SpecialAction{
@@ -169,7 +170,7 @@ func TestBonusCardSpade_WithDwellingScoringTile(t *testing.T) {
 	player.Resources.Workers = 10
 	player.Resources.Coins = 10
 	
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	initialVP := player.VictoryPoints
 	
 	action := &SpecialAction{
@@ -219,7 +220,7 @@ func TestBonusCardSpade_WithDwellingScoringTileBoth(t *testing.T) {
 	player.Resources.Workers = 10
 	player.Resources.Coins = 10
 	
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	initialVP := player.VictoryPoints
 	
 	action := &SpecialAction{
@@ -333,7 +334,7 @@ func TestBonusCardSpade_WithoutCard(t *testing.T) {
 	
 	// Don't give player the spade bonus card
 	
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	action := &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,

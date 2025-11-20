@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -14,7 +15,7 @@ func TestUpgradeBuilding_DwellingToTradingHouse(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place a dwelling at (0, 1)
-	dwellingHex := NewHex(0, 1)
+	dwellingHex := board.NewHex(0, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -54,7 +55,7 @@ func TestUpgradeBuilding_TradingHouseDiscount(t *testing.T) {
 	player1 := gs.GetPlayer("player1")
 	
 	// Place player1's dwelling at (0, 1)
-	dwellingHex := NewHex(0, 1)
+	dwellingHex := board.NewHex(0, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction1.GetType(),
@@ -63,7 +64,7 @@ func TestUpgradeBuilding_TradingHouseDiscount(t *testing.T) {
 	}
 	
 	// Place player2's dwelling adjacent at (1, 0)
-	player2Hex := NewHex(1, 0)
+	player2Hex := board.NewHex(1, 0)
 	gs.Map.GetHex(player2Hex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction2.GetType(),
@@ -107,7 +108,7 @@ func TestUpgradeBuilding_TradingHouseToTemple(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place a trading house at (0, 1)
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.GetHex(tradingHouseHex).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -145,7 +146,7 @@ func TestUpgradeBuilding_TradingHouseToStronghold(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place a trading house at (0, 1)
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.GetHex(tradingHouseHex).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -183,7 +184,7 @@ func TestUpgradeBuilding_TempleToSanctuary(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place a temple at (0, 1)
-	templeHex := NewHex(0, 1)
+	templeHex := board.NewHex(0, 1)
 	gs.Map.GetHex(templeHex).Building = &models.Building{
 		Type:       models.BuildingTemple,
 		Faction:    faction.GetType(),
@@ -221,7 +222,7 @@ func TestUpgradeBuilding_InvalidUpgradePath(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place a dwelling at (0, 1)
-	dwellingHex := NewHex(0, 1)
+	dwellingHex := board.NewHex(0, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -250,7 +251,7 @@ func TestUpgradeBuilding_InsufficientResources(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place a dwelling at (0, 1)
-	dwellingHex := NewHex(0, 1)
+	dwellingHex := board.NewHex(0, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -281,7 +282,7 @@ func TestUpgradeBuilding_BuildingLimitTradingHouse(t *testing.T) {
 	
 	// Place 4 trading houses (the limit)
 	for i := 0; i < 4; i++ {
-		hex := NewHex(i, 1)
+		hex := board.NewHex(i, 1)
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingTradingHouse,
 			Faction:    faction.GetType(),
@@ -291,7 +292,7 @@ func TestUpgradeBuilding_BuildingLimitTradingHouse(t *testing.T) {
 	}
 	
 	// Try to upgrade a 5th dwelling to trading house
-	dwellingHex := NewHex(5, 1)
+	dwellingHex := board.NewHex(5, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -317,7 +318,7 @@ func TestUpgradeBuilding_BuildingLimitStronghold(t *testing.T) {
 	player.Resources.Workers = 1000
 	
 	// Place 1 stronghold (the limit)
-	hex1 := NewHex(0, 1)
+	hex1 := board.NewHex(0, 1)
 	gs.Map.GetHex(hex1).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -326,7 +327,7 @@ func TestUpgradeBuilding_BuildingLimitStronghold(t *testing.T) {
 	}
 	
 	// Try to upgrade another trading house to stronghold
-	tradingHouseHex := NewHex(2, 1)
+	tradingHouseHex := board.NewHex(2, 1)
 	gs.Map.GetHex(tradingHouseHex).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -353,7 +354,7 @@ func TestUpgradeBuilding_PowerLeech(t *testing.T) {
 	_ = gs.GetPlayer("player2") // player2 exists but we don't need to use it
 	
 	// Place player1's dwelling at (0, 1)
-	dwellingHex := NewHex(0, 1)
+	dwellingHex := board.NewHex(0, 1)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction1.GetType(),
@@ -362,7 +363,7 @@ func TestUpgradeBuilding_PowerLeech(t *testing.T) {
 	}
 	
 	// Place player2's dwelling adjacent at (1, 0)
-	player2Hex := NewHex(1, 0)
+	player2Hex := board.NewHex(1, 0)
 	gs.Map.GetHex(player2Hex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction2.GetType(),
@@ -413,7 +414,7 @@ func TestUpgradeBuilding_PowerLeechMultipleBuildings(t *testing.T) {
 	_ = gs.GetPlayer("player2") // player2 exists but we don't need to use it
 	
 	// Place player1's dwelling at (1, 2)
-	dwellingHex := NewHex(1, 2)
+	dwellingHex := board.NewHex(1, 2)
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction1.GetType(),
@@ -422,7 +423,7 @@ func TestUpgradeBuilding_PowerLeechMultipleBuildings(t *testing.T) {
 	}
 	
 	// Place player2's Temple at (1, 1) - adjacent to (1,2)
-	player2Temple := NewHex(1, 1)
+	player2Temple := board.NewHex(1, 1)
 	gs.Map.GetHex(player2Temple).Building = &models.Building{
 		Type:       models.BuildingTemple,
 		Faction:    faction2.GetType(),
@@ -431,7 +432,7 @@ func TestUpgradeBuilding_PowerLeechMultipleBuildings(t *testing.T) {
 	}
 	
 	// Place player2's Stronghold at (2, 2) - also adjacent to (1,2)
-	player2Stronghold := NewHex(2, 2)
+	player2Stronghold := board.NewHex(2, 2)
 	gs.Map.GetHex(player2Stronghold).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction2.GetType(),
@@ -479,15 +480,15 @@ func TestUpgradeBuilding_FreesUpDwellingSlot(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place 8 dwellings (the limit)
-	dwellingHexes := []Hex{
-		NewHex(0, 1),
-		NewHex(1, 1),
-		NewHex(2, 1),
-		NewHex(3, 1),
-		NewHex(4, 1),
-		NewHex(0, 2),
-		NewHex(1, 2),
-		NewHex(2, 2),
+	dwellingHexes := []board.Hex{
+		board.NewHex(0, 1),
+		board.NewHex(1, 1),
+		board.NewHex(2, 1),
+		board.NewHex(3, 1),
+		board.NewHex(4, 1),
+		board.NewHex(0, 2),
+		board.NewHex(1, 2),
+		board.NewHex(2, 2),
 	}
 	
 	for _, hex := range dwellingHexes {
@@ -500,7 +501,7 @@ func TestUpgradeBuilding_FreesUpDwellingSlot(t *testing.T) {
 	}
 	
 	// Verify we cannot build another dwelling (limit reached)
-	newDwellingHex := NewHex(3, 2)
+	newDwellingHex := board.NewHex(3, 2)
 	gs.Map.TransformTerrain(newDwellingHex, faction.GetHomeTerrain())
 	buildAction := NewTransformAndBuildAction("player1", newDwellingHex, true)
 	

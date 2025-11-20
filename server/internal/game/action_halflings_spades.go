@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -10,7 +11,7 @@ import (
 // ApplyHalflingsSpadeAction represents applying one of the 3 stronghold spades
 type ApplyHalflingsSpadeAction struct {
 	BaseAction
-	TargetHex Hex
+	TargetHex board.Hex
 }
 
 func (a *ApplyHalflingsSpadeAction) GetType() ActionType {
@@ -113,7 +114,7 @@ func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 // BuildHalflingsDwellingAction represents building a dwelling on one of the transformed hexes
 type BuildHalflingsDwellingAction struct {
 	BaseAction
-	TargetHex Hex
+	TargetHex board.Hex
 }
 
 func (a *BuildHalflingsDwellingAction) GetType() ActionType {

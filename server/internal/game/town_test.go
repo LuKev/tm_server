@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -30,12 +31,12 @@ func TestGetPowerValue(t *testing.T) {
 }
 
 func TestCalculateAdjacencyBonus(t *testing.T) {
-	m := NewTerraMysticaMap()
+	m := board.NewTerraMysticaMap()
 	faction1 := models.FactionNomads  // Desert (Yellow)
 	faction2 := models.FactionGiants  // Wasteland (Gray)
 
 	// Place building at (0,0)
-	h := NewHex(0, 0)
+	h := board.NewHex(0, 0)
 
 	// Place opponent buildings adjacent
 	neighbors := m.GetDirectNeighbors(h)
@@ -78,12 +79,12 @@ func TestCalculateAdjacencyBonus(t *testing.T) {
 }
 
 func TestGetPowerLeechTargets(t *testing.T) {
-	m := NewTerraMysticaMap()
+	m := board.NewTerraMysticaMap()
 	faction1 := models.FactionNomads   // Desert (Yellow)
 	faction2 := models.FactionWitches  // Forest (Green)
 	faction3 := models.FactionGiants   // Wasteland (Gray)
 
-	h := NewHex(0, 0)
+	h := board.NewHex(0, 0)
 	neighbors := m.GetDirectNeighbors(h)
 	if len(neighbors) < 3 {
 		t.Skip("not enough neighbors for test")
@@ -144,7 +145,7 @@ func TestTownFormation_5PointsTile(t *testing.T) {
 	initialCoins := player.Resources.Coins
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", connected, TownTile5Points, nil)
+	err := gs.FormTown("player1", connected, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -171,8 +172,8 @@ func TestTownFormation_5PointsTile(t *testing.T) {
 	}
 	
 	// Verify tile is no longer available
-	if gs.TownTiles.Available[TownTile5Points] != 1 {
-		t.Errorf("expected 1 copy of 5 points tile remaining, got %d", gs.TownTiles.Available[TownTile5Points])
+	if gs.TownTiles.Available[models.TownTile5Points] != 1 {
+		t.Errorf("expected 1 copy of 5 points tile remaining, got %d", gs.TownTiles.Available[models.TownTile5Points])
 	}
 }
 
@@ -193,7 +194,7 @@ func TestTownFormation_6PointsTile(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile6Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile6Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -222,7 +223,7 @@ func TestTownFormation_7PointsTile(t *testing.T) {
 	initialWorkers := player.Resources.Workers
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile7Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile7Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -254,7 +255,7 @@ func TestTownFormation_8PointsTile_CultAdvancement(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile8Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile8Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -288,7 +289,7 @@ func TestTownFormation_9PointsTile(t *testing.T) {
 	initialPriests := player.Resources.Priests
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile9Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile9Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -316,7 +317,7 @@ func TestTownFormation_11PointsTile(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile11Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile11Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -330,8 +331,8 @@ func TestTownFormation_11PointsTile(t *testing.T) {
 	}
 	
 	// Verify only 1 copy exists
-	if gs.TownTiles.Available[TownTile11Points] != 0 {
-		t.Errorf("expected 0 copies of 11 points tile remaining, got %d", gs.TownTiles.Available[TownTile11Points])
+	if gs.TownTiles.Available[models.TownTile11Points] != 0 {
+		t.Errorf("expected 0 copies of 11 points tile remaining, got %d", gs.TownTiles.Available[models.TownTile11Points])
 	}
 }
 
@@ -350,7 +351,7 @@ func TestTownFormation_2PointsTile_CultAdvancement(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialKeys := player.Keys
 	
-	err := gs.FormTown("player1", hexes, TownTile2Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile2Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -372,8 +373,8 @@ func TestTownFormation_2PointsTile_CultAdvancement(t *testing.T) {
 	}
 	
 	// Verify only 1 copy exists
-	if gs.TownTiles.Available[TownTile2Points] != 0 {
-		t.Errorf("expected 0 copies of 2 points tile remaining, got %d", gs.TownTiles.Available[TownTile2Points])
+	if gs.TownTiles.Available[models.TownTile2Points] != 0 {
+		t.Errorf("expected 0 copies of 2 points tile remaining, got %d", gs.TownTiles.Available[models.TownTile2Points])
 	}
 }
 
@@ -385,10 +386,10 @@ func TestTownFormation_WithSanctuary_3Buildings(t *testing.T) {
 	
 	// Set up 3 connected buildings with sanctuary (power = 3+2+2 = 7)
 	// Use hexes from row 0: (0,0), (1,0), (2,0)
-	hexes := []Hex{
-		NewHex(0, 0), // Plains
-		NewHex(1, 0), // Mountain
-		NewHex(2, 0), // Forest
+	hexes := []board.Hex{
+		board.NewHex(0, 0), // Plains
+		board.NewHex(1, 0), // Mountain
+		board.NewHex(2, 0), // Forest
 	}
 	
 	// Sanctuary + 2 trading houses
@@ -421,7 +422,7 @@ func TestTownFormation_WithSanctuary_3Buildings(t *testing.T) {
 	}
 	
 	// Form town
-	err := gs.FormTown("player1", connected, TownTile5Points, nil)
+	err := gs.FormTown("player1", connected, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -451,7 +452,7 @@ func TestTownFormation_Fire2FavorTile_PowerRequirement6(t *testing.T) {
 	}
 	
 	// Form town
-	err := gs.FormTown("player1", connected, TownTile5Points, nil)
+	err := gs.FormTown("player1", connected, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -476,11 +477,11 @@ func TestTownFormation_MultipleTownsInSameTurn(t *testing.T) {
 	cluster1 := setupConnectedBuildings(gs, "player1", faction, 4, 6)
 	
 	// Cluster 2: row 0, hexes 9-12 (Forest, Lake, Wasteland, Swamp) - far from cluster 1
-	cluster2 := []Hex{
-		NewHex(9, 0),  // Forest
-		NewHex(10, 0), // Lake
-		NewHex(11, 0), // Wasteland
-		NewHex(12, 0), // Swamp
+	cluster2 := []board.Hex{
+		board.NewHex(9, 0),  // Forest
+		board.NewHex(10, 0), // Lake
+		board.NewHex(11, 0), // Wasteland
+		board.NewHex(12, 0), // Swamp
 	}
 	
 	// Build cluster 2 (power = 6): 2 dwellings + 2 trading houses
@@ -509,7 +510,7 @@ func TestTownFormation_MultipleTownsInSameTurn(t *testing.T) {
 		t.Fatal("expected first town to be formable")
 	}
 	
-	err := gs.FormTown("player1", connected1, TownTile5Points, nil)
+	err := gs.FormTown("player1", connected1, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form first town: %v", err)
 	}
@@ -524,7 +525,7 @@ func TestTownFormation_MultipleTownsInSameTurn(t *testing.T) {
 		t.Fatal("expected second town to be formable")
 	}
 	
-	err = gs.FormTown("player1", connected2, TownTile6Points, nil)
+	err = gs.FormTown("player1", connected2, models.TownTile6Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form second town: %v", err)
 	}
@@ -554,7 +555,7 @@ func TestTownFormation_CannotReformSameTown(t *testing.T) {
 	hexes := setupConnectedBuildings(gs, "player1", faction, 4, 7)
 	
 	// Form town
-	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -593,7 +594,7 @@ func TestTownFormation_WithBridges(t *testing.T) {
 	}
 	
 	// Form town
-	err := gs.FormTown("player1", connected, TownTile5Points, nil)
+	err := gs.FormTown("player1", connected, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -613,7 +614,7 @@ func TestTownFormation_WitchesBonus(t *testing.T) {
 	
 	initialVP := player.VictoryPoints
 	
-	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -634,7 +635,7 @@ func TestTownFormation_SwarmlingsBonus(t *testing.T) {
 	
 	initialWorkers := player.Resources.Workers
 	
-	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -668,7 +669,7 @@ func TestSelectTownTile(t *testing.T) {
 	}
 	
 	// Select town tile
-	err := gs.SelectTownTile("player1", TownTile7Points)
+	err := gs.SelectTownTile("player1", models.TownTile7Points)
 	if err != nil {
 		t.Fatalf("failed to select town tile: %v", err)
 	}
@@ -684,8 +685,8 @@ func TestSelectTownTile(t *testing.T) {
 	}
 	
 	// Verify tile was taken
-	if gs.TownTiles.Available[TownTile7Points] != 1 {
-		t.Errorf("expected 1 copy of 7 points tile remaining, got %d", gs.TownTiles.Available[TownTile7Points])
+	if gs.TownTiles.Available[models.TownTile7Points] != 1 {
+		t.Errorf("expected 1 copy of 7 points tile remaining, got %d", gs.TownTiles.Available[models.TownTile7Points])
 	}
 }
 
@@ -695,7 +696,7 @@ func TestSelectTownTile_NoPendingTown(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	
 	// Try to select town tile without pending town
-	err := gs.SelectTownTile("player1", TownTile5Points)
+	err := gs.SelectTownTile("player1", models.TownTile5Points)
 	if err == nil {
 		t.Error("expected error when no pending town formation")
 	}
@@ -712,10 +713,10 @@ func TestBuildActionCreatesPendingTown(t *testing.T) {
 	player.Resources.Workers = 100
 	
 	// Build 3 trading houses first (manually)
-	hexes := []Hex{
-		NewHex(0, 0),
-		NewHex(1, 0),
-		NewHex(2, 0),
+	hexes := []board.Hex{
+		board.NewHex(0, 0),
+		board.NewHex(1, 0),
+		board.NewHex(2, 0),
 	}
 	
 	for _, h := range hexes {
@@ -729,16 +730,16 @@ func TestBuildActionCreatesPendingTown(t *testing.T) {
 	}
 	
 	// Build 4th trading house which should trigger town formation
-	action := NewUpgradeBuildingAction("player1", NewHex(3, 0), models.BuildingTradingHouse)
+	action := NewUpgradeBuildingAction("player1", board.NewHex(3, 0), models.BuildingTradingHouse)
 	
 	// First need to place a dwelling there
-	gs.Map.PlaceBuilding(NewHex(3, 0), &models.Building{
+	gs.Map.PlaceBuilding(board.NewHex(3, 0), &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	})
-	gs.Map.GetHex(NewHex(3, 0)).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(board.NewHex(3, 0)).Terrain = faction.GetHomeTerrain()
 	
 	err := action.Execute(gs)
 	if err != nil {
@@ -757,13 +758,13 @@ func TestBuildActionCreatesPendingTown(t *testing.T) {
 
 // Helper function to set up connected buildings for testing
 // Uses valid hexes from row 0 of the base map: (0,0), (1,0), (2,0), (3,0) are all adjacent
-func setupConnectedBuildings(gs *GameState, playerID string, faction factions.Faction, count int, totalPower int) []Hex {
+func setupConnectedBuildings(gs *GameState, playerID string, faction factions.Faction, count int, totalPower int) []board.Hex {
 	// Use hexes from row 0 which are adjacent: (0,0), (1,0), (2,0), (3,0)
-	hexes := []Hex{
-		NewHex(0, 0), // Plains
-		NewHex(1, 0), // Mountain
-		NewHex(2, 0), // Forest
-		NewHex(3, 0), // Lake
+	hexes := []board.Hex{
+		board.NewHex(0, 0), // Plains
+		board.NewHex(1, 0), // Mountain
+		board.NewHex(2, 0), // Forest
+		board.NewHex(3, 0), // Lake
 	}
 	hexes = hexes[:count]
 	

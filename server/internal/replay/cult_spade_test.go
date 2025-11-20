@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -19,7 +20,7 @@ func TestParseTransformOnly_WithCultSpade(t *testing.T) {
 	gs.PendingCultRewardSpades["cultists"] = 1
 
 	// Place a dwelling for adjacency
-	hex1 := game.Hex{Q: 0, R: 0}
+	hex1 := board.Hex{Q: 0, R: 0}
 	gs.Map.GetHex(hex1).Building = &models.Building{
 		Type:     models.BuildingDwelling,
 		Faction:  models.FactionCultists,
@@ -131,7 +132,7 @@ func TestCultSpadeUsage_FullFlow(t *testing.T) {
 	gs.PendingCultRewardSpades["Cultists"] = 1
 
 	// Place a dwelling for adjacency (at hex with Q=0, R=0)
-	hex1 := game.Hex{Q: 0, R: 0}
+	hex1 := board.Hex{Q: 0, R: 0}
 	gs.Map.GetHex(hex1).Terrain = cultists.GetHomeTerrain()
 	gs.Map.GetHex(hex1).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -142,7 +143,7 @@ func TestCultSpadeUsage_FullFlow(t *testing.T) {
 
 	// Transform at adjacent hex (Q=1, R=0)
 	// Set it to Swamp (1 spade away from Plains/Cultists home)
-	hex2 := game.Hex{Q: 1, R: 0}
+	hex2 := board.Hex{Q: 1, R: 0}
 	gs.Map.GetHex(hex2).Terrain = models.TerrainSwamp
 
 	// Create UseCultSpadeAction directly since we know player has pending spades

@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -10,11 +11,11 @@ import (
 // Setup dwellings are placed without cost and without adjacency requirements
 type SetupDwellingAction struct {
 	BaseAction
-	Hex Hex
+	Hex board.Hex
 }
 
 // NewSetupDwellingAction creates a new setup dwelling action
-func NewSetupDwellingAction(playerID string, hex Hex) *SetupDwellingAction {
+func NewSetupDwellingAction(playerID string, hex board.Hex) *SetupDwellingAction {
 	return &SetupDwellingAction{
 		BaseAction: BaseAction{
 			Type:     ActionSetupDwelling,

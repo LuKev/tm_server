@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -64,12 +65,12 @@ type PowerAction struct {
 	BaseAction
 	ActionType PowerActionType
 	// For spade actions, these fields specify the transform details
-	TargetHex      *Hex // Optional: for spade actions
+	TargetHex      *board.Hex // Optional: for spade actions
 	BuildDwelling  bool // Optional: for spade actions
 	UseSkip        bool // Optional: for spade actions (Fakirs/Dwarves skip)
 	// For bridge action, these fields specify the bridge endpoints
-	BridgeHex1 *Hex // Optional: for bridge action
-	BridgeHex2 *Hex // Optional: for bridge action
+	BridgeHex1 *board.Hex // Optional: for bridge action
+	BridgeHex2 *board.Hex // Optional: for bridge action
 }
 
 func NewPowerAction(playerID string, actionType PowerActionType) *PowerAction {
@@ -83,7 +84,7 @@ func NewPowerAction(playerID string, actionType PowerActionType) *PowerAction {
 }
 
 // NewPowerActionWithTransform creates a power action that includes a transform
-func NewPowerActionWithTransform(playerID string, actionType PowerActionType, targetHex Hex, buildDwelling bool) *PowerAction {
+func NewPowerActionWithTransform(playerID string, actionType PowerActionType, targetHex board.Hex, buildDwelling bool) *PowerAction {
 	return &PowerAction{
 		BaseAction: BaseAction{
 			Type:     ActionPowerAction,
@@ -96,7 +97,7 @@ func NewPowerActionWithTransform(playerID string, actionType PowerActionType, ta
 }
 
 // NewPowerActionWithBridge creates a power action for building a bridge
-func NewPowerActionWithBridge(playerID string, hex1, hex2 Hex) *PowerAction {
+func NewPowerActionWithBridge(playerID string, hex1, hex2 board.Hex) *PowerAction {
 	return &PowerAction{
 		BaseAction: BaseAction{
 			Type:     ActionPowerAction,

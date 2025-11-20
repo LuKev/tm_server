@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -49,7 +50,7 @@ func TestScoringTile_DwellingVP(t *testing.T) {
 	initialVP := player.VictoryPoints
 	
 	// Build a dwelling
-	action := NewTransformAndBuildAction("player1", NewHex(0, 0), true)
+	action := NewTransformAndBuildAction("player1", board.NewHex(0, 0), true)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to build dwelling: %v", err)
@@ -82,18 +83,18 @@ func TestScoringTile_TradingHouseVP(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place a dwelling first
-	gs.Map.PlaceBuilding(NewHex(0, 0), &models.Building{
+	gs.Map.PlaceBuilding(board.NewHex(0, 0), &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	})
-	gs.Map.GetHex(NewHex(0, 0)).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(board.NewHex(0, 0)).Terrain = faction.GetHomeTerrain()
 	
 	initialVP := player.VictoryPoints
 	
 	// Upgrade to trading house
-	action := NewUpgradeBuildingAction("player1", NewHex(0, 0), models.BuildingTradingHouse)
+	action := NewUpgradeBuildingAction("player1", board.NewHex(0, 0), models.BuildingTradingHouse)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to upgrade to trading house: %v", err)
@@ -126,18 +127,18 @@ func TestScoringTile_StrongholdVP(t *testing.T) {
 	player.Resources.Priests = 5
 	
 	// Place a trading house first
-	gs.Map.PlaceBuilding(NewHex(0, 0), &models.Building{
+	gs.Map.PlaceBuilding(board.NewHex(0, 0), &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 2,
 	})
-	gs.Map.GetHex(NewHex(0, 0)).Terrain = faction.GetHomeTerrain()
+	gs.Map.GetHex(board.NewHex(0, 0)).Terrain = faction.GetHomeTerrain()
 	
 	initialVP := player.VictoryPoints
 	
 	// Upgrade to stronghold
-	action := NewUpgradeBuildingAction("player1", NewHex(0, 0), models.BuildingStronghold)
+	action := NewUpgradeBuildingAction("player1", board.NewHex(0, 0), models.BuildingStronghold)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to upgrade to stronghold: %v", err)
@@ -181,7 +182,7 @@ func TestScoringTile_SpadesVP(t *testing.T) {
 	t.Logf("Initial VP: %d", initialVP)
 	
 	// Check terrain at (0,0)
-	hex := NewHex(0, 0)
+	hex := board.NewHex(0, 0)
 	mapHex := gs.Map.GetHex(hex)
 	t.Logf("Hex (0,0) terrain: %v, Giants home: %v", mapHex.Terrain, faction.GetHomeTerrain())
 	
@@ -227,11 +228,11 @@ func TestScoringTile_TownVP(t *testing.T) {
 	}
 	
 	// Set up 4 connected buildings with power = 7
-	hexes := []Hex{
-		NewHex(0, 0),
-		NewHex(1, 0),
-		NewHex(2, 0),
-		NewHex(3, 0),
+	hexes := []board.Hex{
+		board.NewHex(0, 0),
+		board.NewHex(1, 0),
+		board.NewHex(2, 0),
+		board.NewHex(3, 0),
 	}
 	
 	for i, h := range hexes {
@@ -254,7 +255,7 @@ func TestScoringTile_TownVP(t *testing.T) {
 	initialVP := player.VictoryPoints
 	
 	// Form town
-	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}

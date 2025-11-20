@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -57,12 +58,12 @@ func (a *BaseAction) GetPlayerID() string {
 // changed its type to your Home terrain, you may immediately build a Dwelling on that space."
 type TransformAndBuildAction struct {
 	BaseAction
-	TargetHex      Hex
+	TargetHex      board.Hex
 	BuildDwelling  bool // Whether to build a dwelling after transforming
 	UseSkip        bool // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
 }
 
-func NewTransformAndBuildAction(playerID string, targetHex Hex, buildDwelling bool) *TransformAndBuildAction {
+func NewTransformAndBuildAction(playerID string, targetHex board.Hex, buildDwelling bool) *TransformAndBuildAction {
 	return &TransformAndBuildAction{
 		BaseAction: BaseAction{
 			Type:     ActionTransformAndBuild,
@@ -75,7 +76,7 @@ func NewTransformAndBuildAction(playerID string, targetHex Hex, buildDwelling bo
 }
 
 // NewTransformAndBuildActionWithSkip creates a transform action with carpet flight/tunneling
-func NewTransformAndBuildActionWithSkip(playerID string, targetHex Hex, buildDwelling bool) *TransformAndBuildAction {
+func NewTransformAndBuildActionWithSkip(playerID string, targetHex board.Hex, buildDwelling bool) *TransformAndBuildAction {
 	return &TransformAndBuildAction{
 		BaseAction: BaseAction{
 			Type:     ActionTransformAndBuild,
@@ -354,11 +355,11 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 // UpgradeBuildingAction represents upgrading a building
 type UpgradeBuildingAction struct {
 	BaseAction
-	TargetHex      Hex
+	TargetHex      board.Hex
 	NewBuildingType models.BuildingType
 }
 
-func NewUpgradeBuildingAction(playerID string, targetHex Hex, newType models.BuildingType) *UpgradeBuildingAction {
+func NewUpgradeBuildingAction(playerID string, targetHex board.Hex, newType models.BuildingType) *UpgradeBuildingAction {
 	return &UpgradeBuildingAction{
 		BaseAction: BaseAction{
 			Type:     ActionUpgradeBuilding,
@@ -545,7 +546,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 				gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 					PlayerID:       a.PlayerID,
 					SpadesRemaining: 3,
-					TransformedHexes: []Hex{},
+					TransformedHexes: []board.Hex{},
 				}
 			}
 		case models.FactionDarklings:
@@ -665,7 +666,7 @@ func checkBuildingLimit(gs *GameState, playerID string, buildingType models.Buil
 }
 
 // getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent
-func getUpgradeCost(gs *GameState, player *Player, mapHex *MapHex, newBuildingType models.BuildingType) factions.Cost {
+func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuildingType models.BuildingType) factions.Cost {
 	var baseCost factions.Cost
 
 	switch newBuildingType {
@@ -693,7 +694,7 @@ func getUpgradeCost(gs *GameState, player *Player, mapHex *MapHex, newBuildingTy
 }
 
 // hasAdjacentOpponent checks if there's an opponent building adjacent to the hex
-func hasAdjacentOpponent(gs *GameState, hex Hex, playerID string) bool {
+func hasAdjacentOpponent(gs *GameState, hex board.Hex, playerID string) bool {
 	neighbors := hex.Neighbors()
 	for _, neighbor := range neighbors {
 		mapHex := gs.Map.GetHex(neighbor)
@@ -999,7 +1000,7 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 // - Awarding VP from scoring tiles
 // - Triggering power leech for adjacent players
 // - Checking for town formation
-func buildDwelling(gs *GameState, playerID string, targetHex Hex, player *Player) {
+func buildDwelling(gs *GameState, playerID string, targetHex board.Hex, player *Player) {
 	mapHex := gs.Map.GetHex(targetHex)
 	
 	// Place dwelling

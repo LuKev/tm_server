@@ -51,7 +51,7 @@ func (v *GameValidator) SetupGame() error {
 			VictoryPoints:        20, // Starting VP
 			Keys:                 0,
 			TownsFormed:          0,
-			TownTiles:            make([]game.TownTileType, 0),
+			TownTiles:            make([]models.TownTileType, 0),
 			HasStrongholdAbility: false,
 		}
 

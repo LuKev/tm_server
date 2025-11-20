@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -183,7 +184,7 @@ func TestUseCultSpadeAction_Basic(t *testing.T) {
 	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
 	
 	// Place a dwelling to establish territory
-	hex1 := NewHex(0, 0)
+	hex1 := board.NewHex(0, 0)
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex1, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -193,7 +194,7 @@ func TestUseCultSpadeAction_Basic(t *testing.T) {
 	})
 	
 	// Try to terraform an adjacent hex
-	hex2 := NewHex(1, 0)
+	hex2 := board.NewHex(1, 0)
 	action := NewUseCultSpadeAction("player1", hex2)
 	
 	err := action.Execute(gs)
@@ -221,7 +222,7 @@ func TestUseCultSpadeAction_NotAdjacent(t *testing.T) {
 	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
 	
 	// Place a dwelling to establish territory
-	hex1 := NewHex(0, 0)
+	hex1 := board.NewHex(0, 0)
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex1, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -231,7 +232,7 @@ func TestUseCultSpadeAction_NotAdjacent(t *testing.T) {
 	})
 	
 	// Try to terraform a non-adjacent hex
-	hex2 := NewHex(5, 5)
+	hex2 := board.NewHex(5, 5)
 	action := NewUseCultSpadeAction("player1", hex2)
 	
 	err := action.Execute(gs)
@@ -259,7 +260,7 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
 	
 	// Place a dwelling to establish territory
-	hex1 := NewHex(0, 0)
+	hex1 := board.NewHex(0, 0)
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex1, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -271,7 +272,7 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 	initialVP := player.VictoryPoints
 	
 	// Use cult spade
-	hex2 := NewHex(1, 0)
+	hex2 := board.NewHex(1, 0)
 	action := NewUseCultSpadeAction("player1", hex2)
 	err := action.Execute(gs)
 	if err != nil {

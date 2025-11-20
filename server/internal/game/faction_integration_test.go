@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -42,7 +43,7 @@ func TestHalflings_RegularTransformScoring(t *testing.T) {
 	player.Resources.Workers = 20
 	
 	// Find a hex that needs transformation (not already home terrain)
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	// Make sure it's not already home terrain
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Plains
 	
@@ -87,7 +88,7 @@ func TestHalflings_BonusCardSpadeScoring(t *testing.T) {
 	
 	player.Resources.Workers = 20
 	
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Plains
 	
 	initialVP := player.VictoryPoints
@@ -133,7 +134,7 @@ func TestHalflings_CultSpadeScoring(t *testing.T) {
 	}
 	
 	// Place a dwelling first to make hex adjacent
-	startHex := NewHex(0, 0)
+	startHex := board.NewHex(0, 0)
 	gs.Map.GetHex(startHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(startHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -146,7 +147,7 @@ func TestHalflings_CultSpadeScoring(t *testing.T) {
 	gs.PendingCultRewardSpades = make(map[string]int)
 	gs.PendingCultRewardSpades["player1"] = 1
 	
-	targetHex := NewHex(1, 0) // Adjacent hex
+	targetHex := board.NewHex(1, 0) // Adjacent hex
 	initialVP := player.VictoryPoints
 	
 	// Use cult spade
@@ -223,7 +224,7 @@ func TestSwarmlings_UpgradeWithScoringTile(t *testing.T) {
 	}
 	
 	// Place a dwelling first
-	upgradeHex := NewHex(0, 0)
+	upgradeHex := board.NewHex(0, 0)
 	gs.Map.GetHex(upgradeHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(upgradeHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -268,7 +269,7 @@ func TestSwarmlings_UpgradeWithWater1FavorTile(t *testing.T) {
 	gs.FavorTiles.PlayerTiles["player1"] = []FavorTileType{FavorWater1}
 	
 	// Place a dwelling
-	upgradeHex := NewHex(0, 0)
+	upgradeHex := board.NewHex(0, 0)
 	gs.Map.GetHex(upgradeHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(upgradeHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -318,7 +319,7 @@ func TestSwarmlings_UpgradeWithBothScoringAndFavor(t *testing.T) {
 	gs.FavorTiles.PlayerTiles["player1"] = []FavorTileType{FavorWater1}
 	
 	// Place a dwelling
-	upgradeHex := NewHex(0, 0)
+	upgradeHex := board.NewHex(0, 0)
 	gs.Map.GetHex(upgradeHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(upgradeHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -475,7 +476,7 @@ func TestAlchemists_PowerPerSpadeAfterStronghold(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 	
 	// Transform terrain (distance 3 = 2 spades for Alchemists, who use 2 workers per spade)
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
 
 	action := NewTransformAndBuildAction("player1", targetHex, false)
@@ -506,7 +507,7 @@ func TestAlchemists_PowerPerSpadeBeforeStronghold(t *testing.T) {
 	player.Resources.Power.Bowl1 = 10
 	
 	// Transform terrain
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 	
 	initialPower := player.Resources.Power.Bowl1
@@ -535,7 +536,7 @@ func TestAlchemists_PowerPerSpadeWithCultSpade(t *testing.T) {
 	player.HasStrongholdAbility = true
 	
 	// Place a dwelling first
-	startHex := NewHex(0, 0)
+	startHex := board.NewHex(0, 0)
 	gs.Map.GetHex(startHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(startHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -552,7 +553,7 @@ func TestAlchemists_PowerPerSpadeWithCultSpade(t *testing.T) {
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 	
-	targetHex := NewHex(1, 0) // Adjacent hex
+	targetHex := board.NewHex(1, 0) // Adjacent hex
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 	
 	// Use cult spade
@@ -589,7 +590,7 @@ func TestAlchemists_PowerPerSpadeWithBonusCard(t *testing.T) {
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 0
 
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
 
 	// Use bonus card spade
@@ -635,7 +636,7 @@ func TestAlchemists_ConversionDuringAction(t *testing.T) {
 	
 	// Now build a dwelling (costs 2 coins + 1 worker for Alchemists)
 	// First need to transform terrain
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = faction.GetHomeTerrain()
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
@@ -683,7 +684,7 @@ func TestCultists_PowerWhenAllDecline(t *testing.T) {
 	swarmlingsPlayer.Resources.Power.Bowl1 = 10
 	
 	// Place a Swarmlings dwelling adjacent to where Cultists will build
-	adjacentHex := NewHex(1, 0)
+	adjacentHex := board.NewHex(1, 0)
 	gs.Map.GetHex(adjacentHex).Terrain = swarmlingsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -693,7 +694,7 @@ func TestCultists_PowerWhenAllDecline(t *testing.T) {
 	})
 	
 	// Cultists build a dwelling
-	cultistsHex := NewHex(0, 0)
+	cultistsHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistsHex).Terrain = cultistsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(cultistsHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -752,7 +753,7 @@ func TestCultists_CultAdvanceWhenOneAccepts(t *testing.T) {
 	swarmlingsPlayer.VictoryPoints = 10
 	
 	// Place a Swarmlings dwelling adjacent to where Cultists will build
-	adjacentHex := NewHex(1, 0)
+	adjacentHex := board.NewHex(1, 0)
 	gs.Map.GetHex(adjacentHex).Terrain = swarmlingsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -762,7 +763,7 @@ func TestCultists_CultAdvanceWhenOneAccepts(t *testing.T) {
 	})
 	
 	// Cultists build a dwelling
-	cultistsHex := NewHex(0, 0)
+	cultistsHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistsHex).Terrain = cultistsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(cultistsHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -824,7 +825,7 @@ func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
 	nomadsPlayer.VictoryPoints = 10
 	
 	// Place Swarmlings dwelling adjacent to Cultists
-	hex1 := NewHex(1, 0)
+	hex1 := board.NewHex(1, 0)
 	gs.Map.GetHex(hex1).Terrain = swarmlingsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex1, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -834,7 +835,7 @@ func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
 	})
 	
 	// Place Nomads dwelling adjacent to Cultists
-	hex2 := NewHex(0, 1)
+	hex2 := board.NewHex(0, 1)
 	gs.Map.GetHex(hex2).Terrain = nomadsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex2, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -844,7 +845,7 @@ func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
 	})
 	
 	// Cultists build a dwelling
-	cultistsHex := NewHex(0, 0)
+	cultistsHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistsHex).Terrain = cultistsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(cultistsHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -906,7 +907,7 @@ func TestCultists_OnlyCultistsGetBonus(t *testing.T) {
 	nomadsPlayer.Resources.Power.Bowl1 = 10
 	
 	// Place a Nomads dwelling adjacent to where Halflings will build
-	adjacentHex := NewHex(1, 0)
+	adjacentHex := board.NewHex(1, 0)
 	gs.Map.GetHex(adjacentHex).Terrain = nomadsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -916,7 +917,7 @@ func TestCultists_OnlyCultistsGetBonus(t *testing.T) {
 	})
 	
 	// Halflings build a dwelling
-	halflingsHex := NewHex(0, 0)
+	halflingsHex := board.NewHex(0, 0)
 	gs.Map.GetHex(halflingsHex).Terrain = halflingsFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(halflingsHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -979,7 +980,7 @@ func TestCultists_CultTrackSelection_OpponentAccepts(t *testing.T) {
 	cultistsPlayer.CultPositions[CultFire] = 2
 	
 	// Place an Auren dwelling adjacent to where Cultists will build
-	adjacentHex := NewHex(1, 0)
+	adjacentHex := board.NewHex(1, 0)
 	gs.Map.GetHex(adjacentHex).Terrain = aurenFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -989,7 +990,7 @@ func TestCultists_CultTrackSelection_OpponentAccepts(t *testing.T) {
 	})
 	
 	// Cultists place a dwelling (triggers power leech)
-	cultistHex := NewHex(0, 0)
+	cultistHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistHex).Terrain = cultistsFaction.GetHomeTerrain()
 	action := NewTransformAndBuildAction("cultists", cultistHex, true)
 	err = action.Execute(gs)
@@ -1059,7 +1060,7 @@ func TestCultists_CultTrackSelection_AllOpponentsDecline(t *testing.T) {
 	cultistsPlayer.CultPositions = make(map[CultTrack]int)
 	
 	// Place an Auren dwelling adjacent to where Cultists will build
-	adjacentHex := NewHex(1, 0)
+	adjacentHex := board.NewHex(1, 0)
 	gs.Map.GetHex(adjacentHex).Terrain = aurenFaction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(adjacentHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -1069,7 +1070,7 @@ func TestCultists_CultTrackSelection_AllOpponentsDecline(t *testing.T) {
 	})
 	
 	// Cultists place a dwelling (triggers power leech)
-	cultistHex := NewHex(0, 0)
+	cultistHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistHex).Terrain = cultistsFaction.GetHomeTerrain()
 	action := NewTransformAndBuildAction("cultists", cultistHex, true)
 	err = action.Execute(gs)
@@ -1191,7 +1192,7 @@ func TestGiants_TransformAwardsScoringTileVP(t *testing.T) {
 	}
 	
 	// Find a hex to transform
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	
 	initialVP := player.VictoryPoints
 	
@@ -1229,7 +1230,7 @@ func TestGiants_TransformWithDwelling(t *testing.T) {
 	player.Resources.Coins = 10
 	player.Resources.Workers = 5
 	
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	
 	// Execute Giants Transform with dwelling
 	action := NewGiantsTransformAction("player1", targetHex, true)
@@ -1262,8 +1263,8 @@ func TestGiants_TransformOncePerRound(t *testing.T) {
 	
 	player.HasStrongholdAbility = true
 	
-	targetHex1 := NewHex(0, 0)
-	targetHex2 := NewHex(1, 0)
+	targetHex1 := board.NewHex(0, 0)
+	targetHex2 := board.NewHex(1, 0)
 	
 	// First use should succeed
 	action1 := NewGiantsTransformAction("player1", targetHex1, false)
@@ -1295,9 +1296,9 @@ func TestEngineers_VPPerBridgeOnPass(t *testing.T) {
 	player.HasStrongholdAbility = true
 	
 	// Place two structures with bridges connecting them
-	hex1 := NewHex(0, 0)
-	hex2 := NewHex(2, 0) // 2 spaces away, can be bridged
-	hex3 := NewHex(4, 0) // 2 spaces away from hex2, can be bridged
+	hex1 := board.NewHex(0, 0)
+	hex2 := board.NewHex(2, 0) // 2 spaces away, can be bridged
+	hex3 := board.NewHex(4, 0) // 2 spaces away from hex2, can be bridged
 	
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex1, &models.Building{
@@ -1324,8 +1325,8 @@ func TestEngineers_VPPerBridgeOnPass(t *testing.T) {
 	})
 	
 	// Add bridges directly to the map (for testing purposes, bypassing river validation)
-	gs.Map.Bridges[NewBridgeKey(hex1, hex2)] = true
-	gs.Map.Bridges[NewBridgeKey(hex2, hex3)] = true
+	gs.Map.Bridges[board.NewBridgeKey(hex1, hex2)] = true
+	gs.Map.Bridges[board.NewBridgeKey(hex2, hex3)] = true
 	player.BridgesBuilt = 2
 	
 	initialVP := player.VictoryPoints
@@ -1426,16 +1427,16 @@ func TestWitches_TownFoundingBonus(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Set up 4 connected buildings with total power >= 7
-	hexes := []Hex{
-		NewHex(0, 0),
-		NewHex(1, 0),
-		NewHex(2, 0),
-		NewHex(3, 0),
+	hexes := []board.Hex{
+		board.NewHex(0, 0),
+		board.NewHex(1, 0),
+		board.NewHex(2, 0),
+		board.NewHex(3, 0),
 	}
 	
 	// Place buildings: 1 Dwelling + 3 Trading Houses = 1 + 2 + 2 + 2 = 7 power
 	for i, hex := range hexes {
-		gs.Map.Hexes[hex] = &MapHex{Coord: hex, Terrain: faction.GetHomeTerrain()}
+		gs.Map.Hexes[hex] = &board.MapHex{Coord: hex, Terrain: faction.GetHomeTerrain()}
 		buildingType := models.BuildingDwelling
 		powerValue := 1
 		if i > 0 {
@@ -1454,7 +1455,7 @@ func TestWitches_TownFoundingBonus(t *testing.T) {
 	initialVP := player.VictoryPoints
 	
 	// Form town
-	err := gs.FormTown("player1", hexes, TownTile5Points, nil)
+	err := gs.FormTown("player1", hexes, models.TownTile5Points, nil)
 	if err != nil {
 		t.Fatalf("failed to form town: %v", err)
 	}
@@ -1479,8 +1480,8 @@ func TestWitches_RideIgnoresAdjacency(t *testing.T) {
 	player.HasStrongholdAbility = true
 	
 	// Place a building for the player
-	startHex := NewHex(0, 0)
-	gs.Map.Hexes[startHex] = &MapHex{Coord: startHex, Terrain: faction.GetHomeTerrain()}
+	startHex := board.NewHex(0, 0)
+	gs.Map.Hexes[startHex] = &board.MapHex{Coord: startHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(startHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1489,8 +1490,8 @@ func TestWitches_RideIgnoresAdjacency(t *testing.T) {
 	})
 	
 	// Target hex is far away (not adjacent) but is Forest
-	targetHex := NewHex(10, 10)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainForest}
+	targetHex := board.NewHex(10, 10)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainForest}
 	
 	// Use Witches' Ride to place dwelling far away (ignoring adjacency)
 	action := NewWitchesRideAction("player1", targetHex)
@@ -1523,8 +1524,8 @@ func TestWitches_RideOnlyOnForest(t *testing.T) {
 	player.HasStrongholdAbility = true
 	
 	// Target hex is NOT forest
-	targetHex := NewHex(5, 5)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(5, 5)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Witches' Ride should fail on non-forest
 	action := NewWitchesRideAction("player1", targetHex)
@@ -1551,8 +1552,8 @@ func TestFakirs_CarpetFlightBasic(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place initial dwelling at (0,0)
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1562,8 +1563,8 @@ func TestFakirs_CarpetFlightBasic(t *testing.T) {
 	
 	// Target hex is distance 2 away (not directly adjacent) - requires carpet flight
 	// Fakirs with range 1 can reach distance 2 (skip over 1 hex)
-	targetHex := NewHex(2, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player resources
 	player.Resources.Workers = 10
@@ -1611,8 +1612,8 @@ func TestFakirs_CarpetFlightAfterStronghold(t *testing.T) {
 	faction.BuildStronghold()
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1621,8 +1622,8 @@ func TestFakirs_CarpetFlightAfterStronghold(t *testing.T) {
 	})
 	
 	// Target hex is 2 spaces away - only possible with stronghold
-	targetHex := NewHex(2, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player resources
 	player.Resources.Workers = 10
@@ -1653,8 +1654,8 @@ func TestFakirs_CarpetFlightWithPowerAction(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1663,8 +1664,8 @@ func TestFakirs_CarpetFlightWithPowerAction(t *testing.T) {
 	})
 	
 	// Target hex is 1 space away
-	targetHex := NewHex(1, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(1, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player power and priests
 	player.Resources.Power.Bowl3 = 5
@@ -1715,8 +1716,8 @@ func TestDwarves_TunnelingBasic(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place initial dwelling at (0,0)
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1726,8 +1727,8 @@ func TestDwarves_TunnelingBasic(t *testing.T) {
 	
 	// Target hex is distance 2 away (not adjacent) - use (2,0)
 	// (1,0) is directly adjacent to (0,0), so it won't work for testing tunneling
-	targetHex := NewHex(2, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player resources (2 extra workers for tunneling + terraform + dwelling)
 	player.Resources.Workers = 15
@@ -1781,8 +1782,8 @@ func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
 	faction.BuildStronghold()
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1791,8 +1792,8 @@ func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
 	})
 	
 	// Target hex is distance 2 away
-	targetHex := NewHex(2, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player resources
 	player.Resources.Workers = 15
@@ -1835,8 +1836,8 @@ func TestDwarves_TunnelingWithPowerAction(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1845,8 +1846,8 @@ func TestDwarves_TunnelingWithPowerAction(t *testing.T) {
 	})
 	
 	// Target hex is distance 2 away
-	targetHex := NewHex(2, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	targetHex := board.NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
 	
 	// Give player power and workers
 	player.Resources.Power.Bowl3 = 5
@@ -1903,8 +1904,8 @@ func TestDarklings_TerraformWithPriests(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place initial dwelling at (0,0)
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -1913,8 +1914,8 @@ func TestDarklings_TerraformWithPriests(t *testing.T) {
 	})
 	
 	// Target hex is adjacent - terraform Mountain to Swamp (3 spades)
-	targetHex := NewHex(1, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainMountain}
+	targetHex := board.NewHex(1, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainMountain}
 	
 	// Give player resources (priests, not workers)
 	player.Resources.Priests = 5
@@ -2132,8 +2133,8 @@ func TestDarklings_PowerActionWithPriests(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 0)
-	gs.Map.Hexes[initialHex] = &MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
@@ -2142,8 +2143,8 @@ func TestDarklings_PowerActionWithPriests(t *testing.T) {
 	})
 	
 	// Target hex is adjacent
-	targetHex := NewHex(1, 0)
-	gs.Map.Hexes[targetHex] = &MapHex{Coord: targetHex, Terrain: models.TerrainMountain}
+	targetHex := board.NewHex(1, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainMountain}
 	
 	// Give player power and priests
 	player.Resources.Power.Bowl3 = 5
@@ -2226,35 +2227,35 @@ func TestEngineers_BridgeAndTownFormation(t *testing.T) {
 	// This creates two groups of buildings that will form a town when connected
 	
 	// Group 1: Buildings at and near (0,0)
-	hex1 := NewHex(0, 0)
-	hex2 := NewHex(-1, 0)
+	hex1 := board.NewHex(0, 0)
+	hex2 := board.NewHex(-1, 0)
 	
 	// River hexes that separate the groups
-	river1 := NewHex(0, -1)
-	river2 := NewHex(1, -1)
+	river1 := board.NewHex(0, -1)
+	river2 := board.NewHex(1, -1)
 	
 	// Group 2: Buildings at and near (1,-2)
-	hex3 := NewHex(1, -2)
-	hex4 := NewHex(2, -2)
+	hex3 := board.NewHex(1, -2)
+	hex4 := board.NewHex(2, -2)
 	
 	// Ensure hexes exist in map and set up terrain
 	if gs.Map.GetHex(hex1) == nil {
-		gs.Map.Hexes[hex1] = &MapHex{Coord: hex1}
+		gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1}
 	}
 	if gs.Map.GetHex(hex2) == nil {
-		gs.Map.Hexes[hex2] = &MapHex{Coord: hex2}
+		gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2}
 	}
 	if gs.Map.GetHex(river1) == nil {
-		gs.Map.Hexes[river1] = &MapHex{Coord: river1}
+		gs.Map.Hexes[river1] = &board.MapHex{Coord: river1}
 	}
 	if gs.Map.GetHex(river2) == nil {
-		gs.Map.Hexes[river2] = &MapHex{Coord: river2}
+		gs.Map.Hexes[river2] = &board.MapHex{Coord: river2}
 	}
 	if gs.Map.GetHex(hex3) == nil {
-		gs.Map.Hexes[hex3] = &MapHex{Coord: hex3}
+		gs.Map.Hexes[hex3] = &board.MapHex{Coord: hex3}
 	}
 	if gs.Map.GetHex(hex4) == nil {
-		gs.Map.Hexes[hex4] = &MapHex{Coord: hex4}
+		gs.Map.Hexes[hex4] = &board.MapHex{Coord: hex4}
 	}
 	
 	// Set up terrain
@@ -2349,7 +2350,7 @@ func TestChaosMagicians_DoubleTurnBasic(t *testing.T) {
 	player.Resources.Power.Bowl3 = 10
 
 	// Build stronghold to enable double turn
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -2360,7 +2361,7 @@ func TestChaosMagicians_DoubleTurnBasic(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// Place a dwelling for first action (upgrade to trading house)
-	dwellingHex := NewHex(1, 0)
+	dwellingHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(dwellingHex, models.TerrainWasteland)
 	gs.Map.PlaceBuilding(dwellingHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -2370,7 +2371,7 @@ func TestChaosMagicians_DoubleTurnBasic(t *testing.T) {
 	})
 
 	// Prepare second action target (transform and build)
-	targetHex := NewHex(1, 1)
+	targetHex := board.NewHex(1, 1)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialCoins := player.Resources.Coins
@@ -2431,7 +2432,7 @@ func TestChaosMagicians_DoubleTurnTwoTransforms(t *testing.T) {
 	player.Resources.Priests = 5
 
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -2442,11 +2443,11 @@ func TestChaosMagicians_DoubleTurnTwoTransforms(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// First transform target
-	targetHex1 := NewHex(1, 0)
+	targetHex1 := board.NewHex(1, 0)
 	gs.Map.GetHex(targetHex1).Terrain = models.TerrainForest
 
 	// Second transform target
-	targetHex2 := NewHex(1, 1)
+	targetHex2 := board.NewHex(1, 1)
 	gs.Map.GetHex(targetHex2).Terrain = models.TerrainLake
 
 	// Create double turn with two transform actions
@@ -2489,7 +2490,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 	player.Resources.Workers = 50
 
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -2500,7 +2501,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// Place two dwellings
-	dwelling1Hex := NewHex(1, 0)
+	dwelling1Hex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(dwelling1Hex, models.TerrainWasteland)
 	gs.Map.PlaceBuilding(dwelling1Hex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -2509,7 +2510,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 		PowerValue: 1,
 	})
 
-	dwelling2Hex := NewHex(1, 1)
+	dwelling2Hex := board.NewHex(1, 1)
 	gs.Map.TransformTerrain(dwelling2Hex, models.TerrainWasteland)
 	gs.Map.PlaceBuilding(dwelling2Hex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -2520,7 +2521,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 
 	// First double turn
 	firstAction1 := NewUpgradeBuildingAction("player1", dwelling1Hex, models.BuildingTradingHouse)
-	targetHex1 := NewHex(2, 0)
+	targetHex1 := board.NewHex(2, 0)
 	gs.Map.GetHex(targetHex1).Terrain = models.TerrainForest
 	secondAction1 := NewTransformAndBuildAction("player1", targetHex1, false)
 	action1 := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
@@ -2534,7 +2535,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 
 	// Try to use double turn again in same round - should fail
 	firstAction2 := NewUpgradeBuildingAction("player1", dwelling2Hex, models.BuildingTradingHouse)
-	targetHex2 := NewHex(2, 1)
+	targetHex2 := board.NewHex(2, 1)
 	gs.Map.GetHex(targetHex2).Terrain = models.TerrainSwamp
 	secondAction2 := NewTransformAndBuildAction("player1", targetHex2, false)
 	action2 := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
@@ -2560,7 +2561,7 @@ func TestNomads_SandstormBasic(t *testing.T) {
 	player.Resources.Priests = 5
 
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -2571,7 +2572,7 @@ func TestNomads_SandstormBasic(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// Target hex directly adjacent to stronghold
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainSwamp)
 
 	// Use Nomads sandstorm special action
@@ -2614,7 +2615,7 @@ func TestNomads_SandstormCanOnlyUseOnce(t *testing.T) {
 	player.Resources.Workers = 50
 
 	// Build stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -2625,7 +2626,7 @@ func TestNomads_SandstormCanOnlyUseOnce(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// First sandstorm target
-	targetHex1 := NewHex(1, 0)
+	targetHex1 := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex1, models.TerrainSwamp)
 
 	// Use sandstorm once
@@ -2639,7 +2640,7 @@ func TestNomads_SandstormCanOnlyUseOnce(t *testing.T) {
 	}
 
 	// Try to use sandstorm again in same round - should fail
-	targetHex2 := NewHex(0, 2)
+	targetHex2 := board.NewHex(0, 2)
 	gs.Map.TransformTerrain(targetHex2, models.TerrainForest)
 
 	action2 := NewSpecialAction("player1", SpecialActionNomadsSandstorm)
@@ -2665,7 +2666,7 @@ func TestAlchemists_StrongholdGrants12Power(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -2718,7 +2719,7 @@ func TestCultists_StrongholdGrants7VP(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -2765,7 +2766,7 @@ func TestCultists_StrongholdBonusOnlyOnce(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -2797,7 +2798,7 @@ func TestMermaids_StrongholdGrants1Shipping(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -2852,7 +2853,7 @@ func TestMermaids_StrongholdBonusOnlyOnce(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -2884,7 +2885,7 @@ func TestAuren_StrongholdMarksFavorTilePending(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -2928,7 +2929,7 @@ func TestDarklingsStronghold_CreatesPendingOrdination(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -3218,7 +3219,7 @@ func TestHalflingsStronghold_Creates3PendingSpades(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -3259,11 +3260,11 @@ func TestApplyHalflingsSpade_TransformsHexAndAwardsVP(t *testing.T) {
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 3,
-		TransformedHexes: []Hex{},
+		TransformedHexes: []board.Hex{},
 	}
 
 	// Target hex that needs transformation
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Not home terrain
 
 	initialVP := player.VictoryPoints
@@ -3314,11 +3315,11 @@ func TestApplyHalflingsSpade_AllThreeSpades(t *testing.T) {
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 3,
-		TransformedHexes: []Hex{},
+		TransformedHexes: []board.Hex{},
 	}
 
 	// Apply 3 spades
-	hexes := []Hex{NewHex(0, 0), NewHex(1, 0), NewHex(2, 0)}
+	hexes := []board.Hex{board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(2, 0)}
 	for i, hex := range hexes {
 		gs.Map.GetHex(hex).Terrain = models.TerrainForest
 
@@ -3362,11 +3363,11 @@ func TestBuildHalflingsDwelling_OnTransformedHex(t *testing.T) {
 	player.Resources.Workers = 10
 
 	// Create pending spades with all spades applied
-	transformedHex := NewHex(0, 0)
+	transformedHex := board.NewHex(0, 0)
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 0,
-		TransformedHexes: []Hex{transformedHex, NewHex(1, 0), NewHex(2, 0)},
+		TransformedHexes: []board.Hex{transformedHex, board.NewHex(1, 0), board.NewHex(2, 0)},
 	}
 
 	// Transform the hex
@@ -3410,12 +3411,12 @@ func TestBuildHalflingsDwelling_CannotBuildOnUntransformedHex(t *testing.T) {
 	player.Resources.Workers = 10
 
 	// Create pending spades with all spades applied
-	transformedHex := NewHex(0, 0)
-	untransformedHex := NewHex(5, 5)
+	transformedHex := board.NewHex(0, 0)
+	untransformedHex := board.NewHex(5, 5)
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 0,
-		TransformedHexes: []Hex{transformedHex, NewHex(1, 0), NewHex(2, 0)},
+		TransformedHexes: []board.Hex{transformedHex, board.NewHex(1, 0), board.NewHex(2, 0)},
 	}
 
 	// Try to build dwelling on a non-transformed hex
@@ -3442,11 +3443,11 @@ func TestBuildHalflingsDwelling_MustApplyAllSpadesFirst(t *testing.T) {
 	player.Resources.Workers = 10
 
 	// Create pending spades with spades still remaining
-	transformedHex := NewHex(0, 0)
+	transformedHex := board.NewHex(0, 0)
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 2, // Still have 2 spades left
-		TransformedHexes: []Hex{transformedHex},
+		TransformedHexes: []board.Hex{transformedHex},
 	}
 
 	// Try to build dwelling before applying all spades
@@ -3473,7 +3474,7 @@ func TestSkipHalflingsDwelling_ClearsPendingSpades(t *testing.T) {
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 0,
-		TransformedHexes: []Hex{NewHex(0, 0), NewHex(1, 0), NewHex(2, 0)},
+		TransformedHexes: []board.Hex{board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(2, 0)},
 	}
 
 	// Skip the optional dwelling
@@ -3517,10 +3518,10 @@ func TestHalflingsSpades_WithScoringTile(t *testing.T) {
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:       "player1",
 		SpadesRemaining: 3,
-		TransformedHexes: []Hex{},
+		TransformedHexes: []board.Hex{},
 	}
 
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialVP := player.VictoryPoints
@@ -3583,7 +3584,7 @@ func TestMermaids_ShippingAdjacency(t *testing.T) {
 	}
 
 	// Place initial building at C3 (5, 2) - Forest terrain
-	c3 := NewHex(5, 2)
+	c3 := board.NewHex(5, 2)
 	c3MapHex := gs.Map.GetHex(c3)
 	if c3MapHex == nil {
 		t.Fatalf("C3 hex not found")
@@ -3604,14 +3605,14 @@ func TestMermaids_ShippingAdjacency(t *testing.T) {
 	}
 
 	// C4 is at (7, 2) - separated from C3 by river at (6, 2)
-	c4 := NewHex(7, 2)
+	c4 := board.NewHex(7, 2)
 	c4MapHex := gs.Map.GetHex(c4)
 	if c4MapHex == nil {
 		t.Fatalf("C4 hex not found")
 	}
 
 	// Verify that (6, 2) is a river
-	riverHex := NewHex(6, 2)
+	riverHex := board.NewHex(6, 2)
 	riverMapHex := gs.Map.GetHex(riverHex)
 	if riverMapHex == nil || riverMapHex.Terrain != models.TerrainRiver {
 		t.Fatalf("Expected river at (6, 2), got %v", riverMapHex.Terrain)
@@ -3661,7 +3662,7 @@ func TestMermaids_DirectAdjacencyStillWorks(t *testing.T) {
 	gs.AddPlayer("mermaids", faction)
 
 	// Place building at (5, 2)
-	hex1 := NewHex(5, 2)
+	hex1 := board.NewHex(5, 2)
 	hex1MapHex := gs.Map.GetHex(hex1)
 	hex1MapHex.Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -3671,7 +3672,7 @@ func TestMermaids_DirectAdjacencyStillWorks(t *testing.T) {
 	}
 
 	// Check directly adjacent hex (5, 3) - should be adjacent
-	hex2 := NewHex(5, 3)
+	hex2 := board.NewHex(5, 3)
 	if !gs.IsAdjacentToPlayerBuilding(hex2, "mermaids") {
 		t.Errorf("Direct adjacency should still work for Mermaids")
 	}

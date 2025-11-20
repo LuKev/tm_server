@@ -16,6 +16,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//internal/game",
+        "//internal/game/board",
         "//internal/game/factions",
         "//internal/models",
     ],
@@ -34,6 +35,7 @@ go_test(
     embed = [":replay"],
     deps = [
         "//internal/game",
+        "//internal/game/board",
         "//internal/game/factions",
         "//internal/models",
     ],

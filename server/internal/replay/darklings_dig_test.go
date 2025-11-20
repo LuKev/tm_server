@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -32,7 +33,7 @@ func TestDarklingsDig_BothBonuses(t *testing.T) {
 	gs.Round = 2
 
 	// Place a dwelling for adjacency
-	hex1 := game.Hex{Q: 0, R: 0}
+	hex1 := board.Hex{Q: 0, R: 0}
 	gs.Map.GetHex(hex1).Terrain = darklings.GetHomeTerrain()
 	gs.Map.GetHex(hex1).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -43,7 +44,7 @@ func TestDarklingsDig_BothBonuses(t *testing.T) {
 
 	// Target hex for build (adjacent to dwelling)
 	// Set terrain to be 1 distance from Swamp (Darklings' home terrain)
-	hex2 := game.Hex{Q: 1, R: 0}
+	hex2 := board.Hex{Q: 1, R: 0}
 	// Terrain wheel: Plains -> Swamp -> Lake -> Forest -> Mountain -> Wasteland -> Desert -> Plains
 	// Swamp is 1 distance from Plains and Lake
 	gs.Map.GetHex(hex2).Terrain = models.TerrainPlains // 1 distance from Swamp
@@ -130,7 +131,7 @@ func TestDarklingsDig_NoScoringTile(t *testing.T) {
 	gs.Round = 3
 
 	// Place a dwelling for adjacency
-	hex1 := game.Hex{Q: 0, R: 0}
+	hex1 := board.Hex{Q: 0, R: 0}
 	gs.Map.GetHex(hex1).Terrain = darklings.GetHomeTerrain()
 	gs.Map.GetHex(hex1).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -142,7 +143,7 @@ func TestDarklingsDig_NoScoringTile(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Target hex for build (adjacent to dwelling)
-	hex2 := game.Hex{Q: 1, R: 0}
+	hex2 := board.Hex{Q: 1, R: 0}
 	gs.Map.GetHex(hex2).Terrain = models.TerrainPlains // 1 distance from Swamp
 
 	// For Darklings, "dig 1" is just notation - create a normal TransformAndBuildAction

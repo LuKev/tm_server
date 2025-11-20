@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
 // ConvertLogCoordToAxial converts log notation (e.g., "D5") to axial (q, r)
 // Letter = row (A=0, B=1, ..., I=8)
 // Number = nth non-river hex in that row (1-indexed)
-func ConvertLogCoordToAxial(coord string) (game.Hex, error) {
+func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 	if len(coord) < 2 {
-		return game.Hex{}, fmt.Errorf("invalid coordinate: %s", coord)
+		return board.Hex{}, fmt.Errorf("invalid coordinate: %s", coord)
 	}
 
 	// Convert to uppercase for case-insensitive parsing
@@ -22,21 +22,21 @@ func ConvertLogCoordToAxial(coord string) (game.Hex, error) {
 	// Parse row letter
 	row := int(coord[0] - 'A')
 	if row < 0 || row > 8 {
-		return game.Hex{}, fmt.Errorf("invalid row: %c (must be A-I)", coord[0])
+		return board.Hex{}, fmt.Errorf("invalid row: %c (must be A-I)", coord[0])
 	}
 
 	// Parse hex number (1-indexed)
 	var hexNum int
 	_, err := fmt.Sscanf(coord[1:], "%d", &hexNum)
 	if err != nil {
-		return game.Hex{}, fmt.Errorf("invalid hex number in %s: %v", coord, err)
+		return board.Hex{}, fmt.Errorf("invalid hex number in %s: %v", coord, err)
 	}
 	if hexNum < 1 {
-		return game.Hex{}, fmt.Errorf("hex number must be >= 1, got %d", hexNum)
+		return board.Hex{}, fmt.Errorf("hex number must be >= 1, got %d", hexNum)
 	}
 
 	// Get terrain layout
-	layout := game.BaseGameTerrainLayout()
+	layout := board.BaseGameTerrainLayout()
 
 	// Find the starting q for this row
 	// Pattern from terrain_layout.go:
@@ -55,7 +55,7 @@ func ConvertLogCoordToAxial(coord string) (game.Hex, error) {
 	count := 0
 	r := row
 	for q := startQ; ; q++ {
-		h := game.NewHex(q, r)
+		h := board.NewHex(q, r)
 		terrain, exists := layout[h]
 		if !exists {
 			break // End of row
@@ -68,12 +68,12 @@ func ConvertLogCoordToAxial(coord string) (game.Hex, error) {
 		}
 	}
 
-	return game.Hex{}, fmt.Errorf("hex %s not found (row %d, hex %d): only %d non-river hexes in row", coord, row, hexNum, count)
+	return board.Hex{}, fmt.Errorf("hex %s not found (row %d, hex %d): only %d non-river hexes in row", coord, row, hexNum, count)
 }
 
 // ValidateCoordinateConversion tests the coordinate conversion logic
 func ValidateCoordinateConversion() error {
-	layout := game.BaseGameTerrainLayout()
+	layout := board.BaseGameTerrainLayout()
 
 	// Test D5 - should be Lake terrain (blue)
 	hex, err := ConvertLogCoordToAxial("D5")
@@ -91,7 +91,7 @@ func ValidateCoordinateConversion() error {
 
 // ValidateTerrainLayout verifies our terrain layout against known setup positions from game logs
 func ValidateTerrainLayout() error {
-	layout := game.BaseGameTerrainLayout()
+	layout := board.BaseGameTerrainLayout()
 
 	// From game log setup - these are home terrain builds (no transformation)
 	expected := map[string]models.TerrainType{

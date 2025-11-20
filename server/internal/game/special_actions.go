@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -93,14 +94,14 @@ type SpecialAction struct {
 	// For Auren cult advance
 	CultTrack *CultTrack
 	// For Witches' Ride, Giants, Nomads, Bonus Card Spade
-	TargetHex     *Hex
+	TargetHex     *board.Hex
 	BuildDwelling bool // For Giants and Nomads - whether to build dwelling after transform
 	UseSkip       bool // For bonus card spade with Fakirs/Dwarves
 	// For Alchemists conversion and Darklings priest ordination
 	ConvertVPToCoins bool // true = VP->Coins, false = Coins->VP
 	Amount          int  // Number of conversions (Alchemists) or workers to convert (Darklings)
 	// For Swarmlings upgrade
-	UpgradeHex *Hex
+	UpgradeHex *board.Hex
 	// For Chaos Magicians double turn
 	FirstAction  Action
 	SecondAction Action
@@ -141,7 +142,7 @@ func NewWater2CultAdvanceAction(playerID string, cultTrack CultTrack) *SpecialAc
 }
 
 // NewWitchesRideAction creates a Witches' Ride special action
-func NewWitchesRideAction(playerID string, targetHex Hex) *SpecialAction {
+func NewWitchesRideAction(playerID string, targetHex board.Hex) *SpecialAction {
 	return &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,
@@ -153,7 +154,7 @@ func NewWitchesRideAction(playerID string, targetHex Hex) *SpecialAction {
 }
 
 // NewSwarmlingsUpgradeAction creates a Swarmlings free upgrade action
-func NewSwarmlingsUpgradeAction(playerID string, upgradeHex Hex) *SpecialAction {
+func NewSwarmlingsUpgradeAction(playerID string, upgradeHex board.Hex) *SpecialAction {
 	return &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,
@@ -178,7 +179,7 @@ func NewChaosMagiciansDoubleTurnAction(playerID string, firstAction, secondActio
 }
 
 // NewGiantsTransformAction creates a Giants 2-spade transform action
-func NewGiantsTransformAction(playerID string, targetHex Hex, buildDwelling bool) *SpecialAction {
+func NewGiantsTransformAction(playerID string, targetHex board.Hex, buildDwelling bool) *SpecialAction {
 	return &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,
@@ -191,7 +192,7 @@ func NewGiantsTransformAction(playerID string, targetHex Hex, buildDwelling bool
 }
 
 // NewNomadsSandstormAction creates a Nomads sandstorm action
-func NewNomadsSandstormAction(playerID string, targetHex Hex, buildDwelling bool) *SpecialAction {
+func NewNomadsSandstormAction(playerID string, targetHex board.Hex, buildDwelling bool) *SpecialAction {
 	return &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,
@@ -204,7 +205,7 @@ func NewNomadsSandstormAction(playerID string, targetHex Hex, buildDwelling bool
 }
 
 // NewBonusCardSpadeAction creates a bonus card spade special action
-func NewBonusCardSpadeAction(playerID string, targetHex Hex, buildDwelling bool) *SpecialAction {
+func NewBonusCardSpadeAction(playerID string, targetHex board.Hex, buildDwelling bool) *SpecialAction {
 	return &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,

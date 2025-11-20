@@ -2,6 +2,8 @@ package game
 
 import (
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -34,13 +36,13 @@ func TestTransformAndBuild_ValidAction(t *testing.T) {
 	player.Resources.Workers = 10
 	
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 1) // Desert terrain
+	initialHex := board.NewHex(0, 1) // Desert terrain
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Transform and build adjacent
 	// Neighbors of (0,1) include (1,1), (0,2), (-1,2), (-1,1), (0,0), (1,0)
 	// (1,1) is Plains (already home terrain), so use (0,0) which is Forest
-	targetHex := NewHex(0, 0) // Forest terrain - directly adjacent to (0,1)
+	targetHex := board.NewHex(0, 0) // Forest terrain - directly adjacent to (0,1)
 	initialTerrain := gs.Map.GetHex(targetHex).Terrain
 	action := NewTransformAndBuildAction("player1", targetHex, true) // true = build dwelling
 	
@@ -74,12 +76,12 @@ func TestTransformAndBuild_NotAdjacent(t *testing.T) {
 	player.Resources.Workers = 10
 	
 	// Place initial dwelling at (0,1)
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Try to build at a non-adjacent location (5,5)
 	// (5,5) is far from (0,1) and not adjacent
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
 	err := action.Execute(gs)
@@ -99,11 +101,11 @@ func TestTransformAndBuild_InsufficientResources(t *testing.T) {
 	player.Resources.Workers = 0
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Use adjacent hex (0,0) which is Forest
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
 	err := action.Execute(gs)
@@ -122,12 +124,12 @@ func TestTransformAndBuild_SkipTerraform(t *testing.T) {
 	player.Resources.Workers = 10
 	
 	// Place initial dwelling on Plains
-	initialHex := NewHex(3, 1) // Plains terrain
+	initialHex := board.NewHex(3, 1) // Plains terrain
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Build on adjacent home terrain (Plains for Halflings) - no transform needed
 	// Use adjacent hex (4,1) which should also be Plains or transform it to Plains first
-	targetHex := NewHex(4, 1)
+	targetHex := board.NewHex(4, 1)
 	// Ensure target is Plains (home terrain)
 	gs.Map.TransformTerrain(targetHex, models.TerrainPlains)
 	
@@ -161,17 +163,19 @@ func TestTransformAndBuild_PowerLeech(t *testing.T) {
 	player1.Resources.Coins = 10
 	player1.Resources.Workers = 10
 	
-	// Place player1's initial dwelling
-	initialHex := NewHex(0, 1)
+	// Place player1's initial dwelling at (0, 0) - Plains (Halflings home)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
 	
-	// Place player2's dwelling adjacent to where player1 will build
-	player2Hex := NewHex(2, 2)
+	// Place player2's dwelling at (1, 0) - Mountain
+	// Override terrain to Lake so it's valid for Swarmlings
+	player2Hex := board.NewHex(1, 0)
+	gs.Map.GetHex(player2Hex).Terrain = models.TerrainLake
 	gs.Map.GetHex(player2Hex).Building = testBuilding("player2", faction2.GetType(), models.BuildingDwelling)
 	
-	// Player1 builds adjacent to both buildings
-	// Use (1,1) which is adjacent to (0,1) and close to (2,2)
-	targetHex := NewHex(1, 1)
+	// Player1 builds at (0, 1) - Desert
+	// (0, 1) is adjacent to (0, 0) and (1, 0)
+	targetHex := board.NewHex(0, 1)
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
 	// Record player2's initial power
@@ -211,7 +215,7 @@ func TestTransformAndBuild_HexAlreadyOccupied(t *testing.T) {
 	player.Resources.Workers = 10
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Try to build on occupied hex
@@ -233,12 +237,12 @@ func TestTransformAndBuild_TransformOnly(t *testing.T) {
 	player.Resources.Workers = 10
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Transform adjacent hex WITHOUT building (buildDwelling = false)
 	// Use (0,0) which is Forest
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	action := NewTransformAndBuildAction("player1", targetHex, false)
 	
 	err := action.Execute(gs)
@@ -268,13 +272,13 @@ func TestTransformAndBuild_InsufficientWorkersForTransform(t *testing.T) {
 	player.Resources.Workers = 2 // Not enough for transform + dwelling
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Try to transform and build on non-Plains terrain
 	// Use (1,0) which should be adjacent to (0,1)
 	// We need to ensure it's NOT Plains
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	// Force it to be Forest to ensure transform is needed
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
@@ -309,12 +313,12 @@ func TestTransformAndBuild_IndirectAdjacency(t *testing.T) {
 	// via river path: (0,1) -> river neighbor -> (1,2)
 	
 	// Place initial dwelling at (0, 1) - Desert
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Try to build at (1, 2) - Swamp
 	// This is indirectly adjacent to (0,1) with shipping level 1
-	targetHex := NewHex(1, 2)
+	targetHex := board.NewHex(1, 2)
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
 	
@@ -348,14 +352,14 @@ func TestTransformAndBuild_AdvancedDiggingLevel(t *testing.T) {
 	player.Faction.(*factions.Halflings).DiggingLevel = 2
 	
 	// Place initial dwelling
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 	
 	// Transform and build on Forest terrain
 	// Forest -> Plains: distance 3
 	// With digging level 2: 1 worker per spade * 3 = 3 workers for terraform
 	// Plus 1 worker for dwelling = 4 workers total
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
@@ -398,17 +402,17 @@ func TestTransformAndBuild_PowerLeechOffers(t *testing.T) {
 	player1.Resources.Workers = 20
 	
 	// Place player1's initial dwelling at (0, 1)
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
 	
 	// Place player2's dwelling adjacent to where player1 will build
 	// Neighbors of (0,0) are: (1,0), (0,1), (-1,1), (-1,0), (0,-1), (1,-1)
 	// We'll place player2 at (1,0) which is adjacent to (0,0)
-	player2Hex := NewHex(1, 0)
+	player2Hex := board.NewHex(1, 0)
 	gs.Map.GetHex(player2Hex).Building = testBuilding("player2", faction2.GetType(), models.BuildingDwelling)
 	
 	// Player1 builds at (0,0) which is adjacent to both (0,1) and (1,0)
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
@@ -481,16 +485,16 @@ func TestTransformAndBuild_DeclineLeechOffer(t *testing.T) {
 	player1.Resources.Workers = 20
 	
 	// Place player1's initial dwelling
-	initialHex := NewHex(0, 1)
+	initialHex := board.NewHex(0, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
 	
 	// Place player2's dwelling adjacent to where player1 will build
 	// We'll place player2 at (1,0) which is adjacent to (0,0)
-	player2Hex := NewHex(1, 0)
+	player2Hex := board.NewHex(1, 0)
 	gs.Map.GetHex(player2Hex).Building = testBuilding("player2", faction2.GetType(), models.BuildingDwelling)
 	
 	// Player1 builds at (0,0) which is adjacent to both (0,1) and (1,0)
-	targetHex := NewHex(0, 0)
+	targetHex := board.NewHex(0, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)
@@ -555,11 +559,11 @@ func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	player1.Resources.Workers = 20
 	
 	// Place player1's initial dwelling at (2, 1) - River
-	initialHex := NewHex(2, 1)
+	initialHex := board.NewHex(2, 1)
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction1.GetType(), models.BuildingDwelling)
 	
 	// Place player2's Temple (power value 2) at (1, 1) - adjacent to (1,2)
-	player2Temple := NewHex(1, 1)
+	player2Temple := board.NewHex(1, 1)
 	gs.Map.GetHex(player2Temple).Building = &models.Building{
 		Type:       models.BuildingTemple,
 		Faction:    faction2.GetType(),
@@ -568,7 +572,7 @@ func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	}
 	
 	// Place player2's Stronghold (power value 3) at (2, 2) - also adjacent to (1,2)
-	player2Stronghold := NewHex(2, 2)
+	player2Stronghold := board.NewHex(2, 2)
 	gs.Map.GetHex(player2Stronghold).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction2.GetType(),
@@ -581,7 +585,7 @@ func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	// - player2's Temple at (1,1) ✓
 	// - player2's Stronghold at (2,2) ✓
 	// Neighbors of (1,2): (2,2), (1,3), (0,3), (0,2), (1,1), (2,1)
-	targetHex := NewHex(1, 2)
+	targetHex := board.NewHex(1, 2)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 	
 	action := NewTransformAndBuildAction("player1", targetHex, true)

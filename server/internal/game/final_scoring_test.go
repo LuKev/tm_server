@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -21,9 +22,9 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	player2.VictoryPoints = 45
 	
 	// Build some buildings for player1 (connected area of 3)
-	hex1 := NewHex(0, 0)
-	hex2 := NewHex(1, 0)
-	hex3 := NewHex(2, 0)
+	hex1 := board.NewHex(0, 0)
+	hex2 := board.NewHex(1, 0)
+	hex3 := board.NewHex(2, 0)
 	gs.Map.GetHex(hex1).Terrain = faction1.GetHomeTerrain()
 	gs.Map.GetHex(hex2).Terrain = faction1.GetHomeTerrain()
 	gs.Map.GetHex(hex3).Terrain = faction1.GetHomeTerrain()
@@ -47,8 +48,8 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	})
 	
 	// Build for player2 (connected area of 2)
-	hex4 := NewHex(5, 5)
-	hex5 := NewHex(6, 5)
+	hex4 := board.NewHex(5, 5)
+	hex5 := board.NewHex(6, 5)
 	gs.Map.GetHex(hex4).Terrain = faction2.GetHomeTerrain()
 	gs.Map.GetHex(hex5).Terrain = faction2.GetHomeTerrain()
 	gs.Map.PlaceBuilding(hex4, &models.Building{
@@ -121,7 +122,7 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 	
 	// Player1: 5 connected buildings
 	for i := 0; i < 5; i++ {
-		hex := NewHex(i, 0)
+		hex := board.NewHex(i, 0)
 		gs.Map.GetHex(hex).Terrain = faction1.GetHomeTerrain()
 		gs.Map.PlaceBuilding(hex, &models.Building{
 			Type:       models.BuildingDwelling,
@@ -133,7 +134,7 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 	
 	// Player2: 3 connected buildings
 	for i := 0; i < 3; i++ {
-		hex := NewHex(i, 5)
+		hex := board.NewHex(i, 5)
 		gs.Map.GetHex(hex).Terrain = faction2.GetHomeTerrain()
 		gs.Map.PlaceBuilding(hex, &models.Building{
 			Type:       models.BuildingDwelling,
@@ -182,7 +183,7 @@ func TestAreaBonus_Tie(t *testing.T) {
 		}
 		
 		for i := 0; i < 4; i++ {
-			hex := NewHex(i, row)
+			hex := board.NewHex(i, row)
 			gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
 			gs.Map.PlaceBuilding(hex, &models.Building{
 				Type:       models.BuildingDwelling,
@@ -420,7 +421,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 	// Create two separate areas: 3 buildings and 2 buildings
 	// Area 1: (0,0), (1,0), (2,0)
 	for i := 0; i < 3; i++ {
-		hex := NewHex(i, 0)
+		hex := board.NewHex(i, 0)
 		gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
 		gs.Map.PlaceBuilding(hex, &models.Building{
 			Type:       models.BuildingDwelling,
@@ -432,7 +433,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 	
 	// Area 2: (5,5), (6,5) - not connected to Area 1
 	for i := 5; i < 7; i++ {
-		hex := NewHex(i, 5)
+		hex := board.NewHex(i, 5)
 		gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
 		gs.Map.PlaceBuilding(hex, &models.Building{
 			Type:       models.BuildingDwelling,

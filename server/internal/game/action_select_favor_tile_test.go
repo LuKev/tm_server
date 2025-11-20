@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -17,7 +18,7 @@ func TestSelectFavorTile_AfterTemple(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to temple
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -86,7 +87,7 @@ func TestSelectFavorTile_AfterSanctuary(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a temple to upgrade to sanctuary
-	templeHex := NewHex(0, 1)
+	templeHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(templeHex, &models.Building{
 		Type:       models.BuildingTemple,
 		Faction:    faction.GetType(),
@@ -137,7 +138,7 @@ func TestSelectFavorTile_ChaosMagiciansGetTwoTiles(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to temple
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -219,7 +220,7 @@ func TestSelectFavorTile_AurenStronghold(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
@@ -385,11 +386,11 @@ func TestSelectFavorTile_Fire2EnablesTownFormation(t *testing.T) {
 	// This is 5 buildings with exactly 6 total power - not enough for a town without Fire+2
 	// (need 4 buildings minimum, which we have)
 	// Use adjacent hexes from row 0 which are all in the base game map
-	tradingHouseHex := NewHex(0, 0)
-	dwelling1Hex := NewHex(1, 0)
-	dwelling2Hex := NewHex(2, 0)
-	dwelling3Hex := NewHex(3, 0)
-	dwelling4Hex := NewHex(4, 0)
+	tradingHouseHex := board.NewHex(0, 0)
+	dwelling1Hex := board.NewHex(1, 0)
+	dwelling2Hex := board.NewHex(2, 0)
+	dwelling3Hex := board.NewHex(3, 0)
+	dwelling4Hex := board.NewHex(4, 0)
 
 	// Place buildings on player's home terrain
 	gs.Map.TransformTerrain(tradingHouseHex, models.TerrainForest)

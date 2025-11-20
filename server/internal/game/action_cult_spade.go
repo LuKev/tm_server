@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+
+	"github.com/lukev/tm_server/internal/game/board"
 )
 
 // UseCultSpadeAction represents using a free spade from cult track rewards
@@ -9,11 +11,11 @@ import (
 // The temporary shipping bonus from bonus cards does NOT extend the range
 type UseCultSpadeAction struct {
 	BaseAction
-	TargetHex Hex
+	TargetHex board.Hex
 }
 
 // NewUseCultSpadeAction creates a new cult spade action
-func NewUseCultSpadeAction(playerID string, targetHex Hex) *UseCultSpadeAction {
+func NewUseCultSpadeAction(playerID string, targetHex board.Hex) *UseCultSpadeAction {
 	return &UseCultSpadeAction{
 		BaseAction: BaseAction{
 			Type:     ActionUseCultSpade,
@@ -71,7 +73,7 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 
 	// Cult spade actions transform BY 1 spade towards home terrain
 	// Not all the way to home terrain (unless it's only 1 spade away)
-	targetTerrain := CalculateIntermediateTerrain(currentTerrain, homeTerrain, 1)
+	targetTerrain := board.CalculateIntermediateTerrain(currentTerrain, homeTerrain, 1)
 
 	// Transform terrain BY 1 spade (not all the way to home)
 	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -120,7 +121,7 @@ func TestMermaidsStronghold_ShippingAwardsVP(t *testing.T) {
 	player.Resources.Workers = 100
 
 	// Place a trading house to upgrade to stronghold
-	tradingHouseHex := NewHex(0, 1)
+	tradingHouseHex := board.NewHex(0, 1)
 	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),

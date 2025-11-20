@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -310,7 +311,7 @@ func (s *SpecialActionModifier) String() string {
 // This is used for "dig X. transform Y to Z" patterns where the target
 // terrain Z is explicitly specified and may not be the player's home terrain
 type TransformTerrainComponent struct {
-	TargetHex     game.Hex
+	TargetHex     board.Hex
 	TargetTerrain models.TerrainType
 }
 

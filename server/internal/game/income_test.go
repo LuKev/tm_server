@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -15,7 +16,7 @@ func TestStrongholdIncome_Auren(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Place a stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -43,7 +44,7 @@ func TestStrongholdIncome_Swarmlings(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Place a stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -71,7 +72,7 @@ func TestStrongholdIncome_Alchemists(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Place a stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -99,7 +100,7 @@ func TestStrongholdIncome_ChaosMagicians(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Place a stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -127,7 +128,7 @@ func TestStrongholdIncome_Fakirs(t *testing.T) {
 	player := gs.GetPlayer("player1")
 
 	// Place a stronghold
-	strongholdHex := NewHex(0, 1)
+	strongholdHex := board.NewHex(0, 1)
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
@@ -162,13 +163,13 @@ func TestBuildingIncome_Mixed(t *testing.T) {
 
 	// Place various buildings
 	// 2 dwellings
-	gs.Map.GetHex(NewHex(0, 0)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(0, 0)).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	}
-	gs.Map.GetHex(NewHex(0, 1)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(0, 1)).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
@@ -176,7 +177,7 @@ func TestBuildingIncome_Mixed(t *testing.T) {
 	}
 
 	// 1 trading house
-	gs.Map.GetHex(NewHex(1, 0)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(1, 0)).Building = &models.Building{
 		Type:       models.BuildingTradingHouse,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
@@ -184,7 +185,7 @@ func TestBuildingIncome_Mixed(t *testing.T) {
 	}
 
 	// 1 temple
-	gs.Map.GetHex(NewHex(1, 1)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(1, 1)).Building = &models.Building{
 		Type:       models.BuildingTemple,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
@@ -192,7 +193,7 @@ func TestBuildingIncome_Mixed(t *testing.T) {
 	}
 
 	// 1 stronghold (Halflings: 2 power + 1 priest)
-	gs.Map.GetHex(NewHex(2, 0)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(2, 0)).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
@@ -419,13 +420,13 @@ func TestGrantIncome_AppliesCorrectly(t *testing.T) {
 	player.Resources.Power.Bowl3 = 3
 
 	// Place a dwelling and stronghold
-	gs.Map.GetHex(NewHex(0, 0)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(0, 0)).Building = &models.Building{
 		Type:       models.BuildingDwelling,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",
 		PowerValue: 1,
 	}
-	gs.Map.GetHex(NewHex(0, 1)).Building = &models.Building{
+	gs.Map.GetHex(board.NewHex(0, 1)).Building = &models.Building{
 		Type:       models.BuildingStronghold,
 		Faction:    faction.GetType(),
 		PlayerID:   "player1",

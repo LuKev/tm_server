@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // Cult Track System Implementation
@@ -23,19 +25,6 @@ import (
 // CultTrack is already defined in state.go as an enum
 // We'll add methods and tracking here
 
-// TownTileType represents the type of town tile bonus
-type TownTileType int
-
-const (
-	TownTile5Points TownTileType = iota // +5 VP, +6 coins, +1 key (immediate)
-	TownTile6Points                     // +6 VP, +8 power, +1 key (immediate)
-	TownTile7Points                     // +7 VP, +2 workers, +1 key (immediate)
-	TownTile4Points                     // +4 VP, +1 shipping/range, +1 key (TW7)
-	TownTile8Points                     // +8 VP, +1 on all cult tracks, +1 key
-	TownTile9Points                     // +9 VP, +1 priest, +1 key (immediate)
-	TownTile11Points                    // +11 VP, +1 key
-	TownTile2Points                     // +2 VP, +2 on all cult tracks, +2 keys
-)
 
 // CultTrackState tracks all players' positions on all cult tracks
 type CultTrackState struct {
@@ -312,15 +301,15 @@ func (cts *CultTrackState) CalculateEndGameScoring() map[string]int {
 // ApplyTownCultBonus applies cult track advancement from founding a town
 // Returns the total power gained from milestone bonuses
 // gs: GameState is optional - passed to AdvancePlayer for position 10 validation
-func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType TownTileType, player *Player, gs *GameState) int {
+func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType models.TownTileType, player *Player, gs *GameState) int {
 	totalPowerGained := 0
 	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
 
 	var advanceAmount int
 	switch townTileType {
-	case TownTile8Points:
+	case models.TownTile8Points:
 		advanceAmount = 1 // +1 on all tracks
-	case TownTile2Points:
+	case models.TownTile2Points:
 		advanceAmount = 2 // +2 on all tracks
 	default:
 		return 0

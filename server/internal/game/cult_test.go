@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 func TestCultTrackState_InitializePlayer(t *testing.T) {
@@ -529,7 +530,7 @@ func TestTownCultBonus_8Points(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 
 	// Apply 8-point town bonus (+1 on all tracks)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile8Points, player, gs)
+	gs.CultTracks.ApplyTownCultBonus("player1", models.TownTile8Points, player, gs)
 
 	// Verify all tracks advanced by 1
 	if gs.CultTracks.GetPosition("player1", CultFire) != 1 {
@@ -563,7 +564,7 @@ func TestTownCultBonus_2Keys(t *testing.T) {
 	player.Resources.Power.Bowl3 = 0
 
 	// Apply 2-key town bonus (+2 on all tracks)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile2Points, player, gs)
+	gs.CultTracks.ApplyTownCultBonus("player1", models.TownTile2Points, player, gs)
 
 	// Verify all tracks advanced by 2
 	if gs.CultTracks.GetPosition("player1", CultFire) != 2 {
@@ -603,7 +604,7 @@ func TestTownCultBonus_WithMilestones(t *testing.T) {
 	gs.CultTracks.AdvancePlayer("player1", CultAir, 2, player, gs)
 
 	// Apply 8-point town bonus (+1 on all tracks, reaching position 3 on all)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile8Points, player, gs)
+	gs.CultTracks.ApplyTownCultBonus("player1", models.TownTile8Points, player, gs)
 
 	// Verify all tracks advanced to position 3
 	if gs.CultTracks.GetPosition("player1", CultFire) != 3 {
@@ -653,7 +654,7 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 	// Apply 2-key town bonus (+2 on all tracks)
 	// Fire: 10 → 10 (capped, no advancement)
 	// Others: 9 → 10 (advance 1, not 2, due to cap)
-	gs.CultTracks.ApplyTownCultBonus("player1", TownTile2Points, player, gs)
+	gs.CultTracks.ApplyTownCultBonus("player1", models.TownTile2Points, player, gs)
 
 	// Verify Fire stayed at 10
 	if gs.CultTracks.GetPosition("player1", CultFire) != 10 {

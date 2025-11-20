@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 )
 
@@ -276,7 +277,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 								if v.GameState.PendingCultRewardSpades != nil && v.GameState.PendingCultRewardSpades[playerID] > 0 {
 									currentTerrain := v.GameState.Map.GetHex(transformComp.TargetHex).Terrain
 									targetTerrain := transformComp.TargetTerrain
-									distance := game.TerrainDistance(currentTerrain, targetTerrain)
+									distance := board.TerrainDistance(currentTerrain, targetTerrain)
 
 									availableCultSpades := v.GameState.PendingCultRewardSpades[playerID]
 									availableVPSpades := 0
@@ -830,7 +831,7 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 							// Calculate how many spades this transform will need
 							currentTerrain := v.GameState.Map.GetHex(transformComp.TargetHex).Terrain
 							targetTerrain := transformComp.TargetTerrain
-							distance := game.TerrainDistance(currentTerrain, targetTerrain)
+							distance := board.TerrainDistance(currentTerrain, targetTerrain)
 
 							// The transform will consume cult reward spades (after any PendingSpades)
 							availableCultSpades := v.GameState.PendingCultRewardSpades[playerID]

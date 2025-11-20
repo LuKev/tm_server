@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -19,7 +20,7 @@ func TestBonusCard_DwellingVP(t *testing.T) {
 
 	// Place 4 dwellings on the map
 	for i := 0; i < 4; i++ {
-		hex := NewHex(i, 0)
+		hex := board.NewHex(i, 0)
 		gs.Map.GetHex(hex).Terrain = models.TerrainForest
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingDwelling,
@@ -69,7 +70,7 @@ func TestBonusCard_TradingHouseVP(t *testing.T) {
 
 	// Place 3 trading houses on the map
 	for i := 0; i < 3; i++ {
-		hex := NewHex(i, 0)
+		hex := board.NewHex(i, 0)
 		gs.Map.GetHex(hex).Terrain = models.TerrainForest
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingTradingHouse,
@@ -118,7 +119,7 @@ func TestBonusCard_StrongholdSanctuaryVP(t *testing.T) {
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardStrongholdSanctuary, BonusCardPriest})
 
 	// Place a stronghold
-	strongholdHex := NewHex(0, 0)
+	strongholdHex := board.NewHex(0, 0)
 	gs.Map.GetHex(strongholdHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,
@@ -128,7 +129,7 @@ func TestBonusCard_StrongholdSanctuaryVP(t *testing.T) {
 	}
 
 	// Place a sanctuary
-	sanctuaryHex := NewHex(1, 0)
+	sanctuaryHex := board.NewHex(1, 0)
 	gs.Map.GetHex(sanctuaryHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(sanctuaryHex).Building = &models.Building{
 		Type:       models.BuildingSanctuary,
@@ -176,7 +177,7 @@ func TestBonusCard_StrongholdOnlyVP(t *testing.T) {
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardStrongholdSanctuary, BonusCardPriest})
 
 	// Place only a stronghold
-	strongholdHex := NewHex(0, 0)
+	strongholdHex := board.NewHex(0, 0)
 	gs.Map.GetHex(strongholdHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(strongholdHex).Building = &models.Building{
 		Type:       models.BuildingStronghold,

@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -23,7 +24,7 @@ func TestBuildDwelling_Earth1VP(t *testing.T) {
 	gs.FavorTiles.TakeFavorTile("player1", FavorEarth1)
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -33,7 +34,7 @@ func TestBuildDwelling_Earth1VP(t *testing.T) {
 	}
 
 	// Build a new dwelling on adjacent hex
-	targetHex := NewHex(0, 1)
+	targetHex := board.NewHex(0, 1)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialVP := player.VictoryPoints
@@ -65,7 +66,7 @@ func TestBuildDwelling_NoEarth1(t *testing.T) {
 	// No Earth+1 favor tile
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(initialHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -75,7 +76,7 @@ func TestBuildDwelling_NoEarth1(t *testing.T) {
 	}
 
 	// Build a new dwelling on adjacent hex
-	targetHex := NewHex(0, 1)
+	targetHex := board.NewHex(0, 1)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialVP := player.VictoryPoints
@@ -107,7 +108,7 @@ func TestUpgradeToTradingHouse_Water1VP(t *testing.T) {
 	gs.FavorTiles.TakeFavorTile("player1", FavorWater1)
 
 	// Place a dwelling
-	dwellingHex := NewHex(0, 0)
+	dwellingHex := board.NewHex(0, 0)
 	gs.Map.GetHex(dwellingHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -145,7 +146,7 @@ func TestUpgradeToTradingHouse_NoWater1(t *testing.T) {
 	// No Water+1 favor tile
 
 	// Place a dwelling
-	dwellingHex := NewHex(0, 0)
+	dwellingHex := board.NewHex(0, 0)
 	gs.Map.GetHex(dwellingHex).Terrain = models.TerrainForest
 	gs.Map.GetHex(dwellingHex).Building = &models.Building{
 		Type:       models.BuildingDwelling,
@@ -182,7 +183,7 @@ func TestPass_Air1VP(t *testing.T) {
 
 	// Place 3 trading houses on the map
 	for i := 0; i < 3; i++ {
-		hex := NewHex(i, 0)
+		hex := board.NewHex(i, 0)
 		gs.Map.GetHex(hex).Terrain = models.TerrainForest
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingTradingHouse,
@@ -234,7 +235,7 @@ func TestPass_Air1VP_Scaling(t *testing.T) {
 
 		// Place trading houses
 		for i := 0; i < tc.tradingHouses; i++ {
-			hex := NewHex(i, 0)
+			hex := board.NewHex(i, 0)
 			gs.Map.GetHex(hex).Terrain = models.TerrainForest
 			gs.Map.GetHex(hex).Building = &models.Building{
 				Type:       models.BuildingTradingHouse,
@@ -273,7 +274,7 @@ func TestPass_NoAir1(t *testing.T) {
 
 	// Place 3 trading houses on the map
 	for i := 0; i < 3; i++ {
-		hex := NewHex(i, 0)
+		hex := board.NewHex(i, 0)
 		gs.Map.GetHex(hex).Terrain = models.TerrainForest
 		gs.Map.GetHex(hex).Building = &models.Building{
 			Type:       models.BuildingTradingHouse,

@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -13,7 +14,7 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map                *TerraMysticaMap
+	Map                *board.TerraMysticaMap
 	Players            map[string]*Player
 	Round              int
 	Phase              GamePhase
@@ -42,8 +43,8 @@ type GameState struct {
 // PendingTownFormation represents a town that can be formed but awaits tile selection
 type PendingTownFormation struct {
 	PlayerID        string
-	Hexes           []Hex // The connected buildings that form the town
-	SkippedRiverHex *Hex  // For Mermaids: the river hex that was skipped to form the town (town tile goes here)
+	Hexes           []board.Hex // The connected buildings that form the town
+	SkippedRiverHex *board.Hex  // For Mermaids: the river hex that was skipped to form the town (town tile goes here)
 	CanBeDelayed    bool  // For Mermaids: true if town uses river skipping (can be claimed later), false if only land tiles (must claim now)
 }
 
@@ -68,7 +69,7 @@ type PendingFavorTileSelection struct {
 type PendingHalflingsSpades struct {
 	PlayerID       string
 	SpadesRemaining int    // Number of spades left to apply (starts at 3)
-	TransformedHexes []Hex // Hexes that have been transformed
+	TransformedHexes []board.Hex // Hexes that have been transformed
 }
 
 // PendingDarklingsPriestOrdination represents Darklings player who needs to convert workers to priests
@@ -119,13 +120,13 @@ type Player struct {
 	VictoryPoints           int
 	Keys                    int // Keys for advancing to position 10 on cult tracks
 	TownsFormed             int // Number of towns formed
-	TownTiles               []TownTileType // Town tiles selected by this player
+	TownTiles               []models.TownTileType // Town tiles selected by this player
 }
 
 // NewGameState creates a new game state with an initialized map
 func NewGameState() *GameState {
 	return &GameState{
-		Map:                       NewTerraMysticaMap(),
+		Map:                       board.NewTerraMysticaMap(),
 		Players:                   make(map[string]*Player),
 		Round:                     1,
 		Phase:                     PhaseSetup,
@@ -181,7 +182,7 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 		VictoryPoints:         20, // Starting VP
 		Keys:                  0,
 		TownsFormed:           0,
-		TownTiles:             []TownTileType{},
+		TownTiles:             []models.TownTileType{},
 	}
 
 	gs.Players[playerID] = player
@@ -242,7 +243,7 @@ func (gs *GameState) AdvanceCultTrack(playerID string, track CultTrack, spaces i
 }
 
 // SelectTownTile allows a player to select a town tile for their pending town formation
-func (gs *GameState) SelectTownTile(playerID string, tileType TownTileType) error {
+func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileType) error {
 	// Check if player has any pending town formations
 	pendingTowns, ok := gs.PendingTownFormations[playerID]
 	if !ok || len(pendingTowns) == 0 {
@@ -277,7 +278,7 @@ func (gs *GameState) SelectTownTile(playerID string, tileType TownTileType) erro
 // According to Terra Mystica rules, adjacency can be:
 // 1. Direct adjacency (shared edge or connected via bridge)
 // 2. Indirect adjacency (connected via river navigation with shipping)
-func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) bool {
+func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex board.Hex, playerID string) bool {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return false
@@ -333,9 +334,9 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex Hex, playerID string) 
 // According to Terra Mystica rules, each adjacent player receives ONE offer equal to
 // the sum of power values from ALL their buildings adjacent to the new building
 // Special: If building player is Cultists, they get cult advance or power bonus based on responses
-func (gs *GameState) TriggerPowerLeech(buildingHex Hex, buildingPlayerID string) {
+func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID string) {
 	// Find all adjacent players and calculate total power from their adjacent buildings
-	neighbors := buildingHex.Neighbors()
+	neighbors := gs.Map.GetDirectNeighbors(buildingHex)
 	adjacentPlayerPower := make(map[string]int) // playerID -> total power from their adjacent buildings
 
 	for _, neighbor := range neighbors {
@@ -611,6 +612,8 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 func (gs *GameState) IsGameOver() bool {
 	return gs.Round > 6
 }
+
+
 
 // AdvanceShippingLevel increments the player's shipping level and awards VP
 // This helper ensures consistent VP awards across all shipping advancements:
