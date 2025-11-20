@@ -62,162 +62,119 @@ func (v *GameValidator) ValidateNextEntry() error {
 	entry := v.LogEntries[v.CurrentEntry]
 	v.CurrentEntry++
 	
-	// Handle comment lines - detect round transitions
+	// Handle comment lines
 	if entry.IsComment {
-		// Check if this is a "Round X income" comment
-		if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
-		   strings.Contains(entry.CommentText, "income") {
-			// Parse the round number to avoid duplicate increments
-			var roundNum int
-			fmt.Sscanf(entry.CommentText, "Round %d", &roundNum)
-			
-			// Only start a new round if this is actually a new round
-			// (Log may have duplicate "Round X income" comments)
-			if roundNum > v.GameState.Round {
-				// Execute cleanup phase BEFORE starting new round
-				// This awards cult rewards and adds coins to leftover bonus cards
-				// Cleanup happens at end of rounds 1-5 (ExecuteCleanupPhase skips round 6)
-				if v.GameState.Round >= 1 && v.GameState.Round < 6 {
-					v.GameState.ExecuteCleanupPhase()
-				}
-				
-				// Start new round (this resets HasPassed, power actions, etc.)
-				v.GameState.StartNewRound()
-				// Reset income flag for new round
-				v.IncomeApplied = false
-				// Reset Alchemists cult spade power tracking
-				v.AlchemistsSpadesWithPowerGranted = make(map[string]int)
-				// Note: Bonus cards are selected when passing and players keep them across rounds.
-				// Cards are only returned when players pass and select a new card (handled in TakeBonusCard).
-			}
-		}
-		return nil
+		return v.handleComment(entry)
 	}
 
-	// Skip "setup" entries - they just show initial state, no action to execute
+	// Skip "setup" entries
 	if entry.Action == "setup" {
 		return nil
 	}
 
-	// Handle leech entries by manually syncing state
-	// Leech offers are created asynchronously and we don't track them across entries in replay
-	// So we just sync the entire state to match the log
+	// Handle leech entries
 	if strings.Contains(entry.Action, "Leech") || strings.Contains(entry.Action, "Decline") {
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
-		// Skip normal action execution and validation
-		return nil
+		return v.handleLeech(entry)
 	}
 
 	// Handle compound cult advance + pass actions FIRST (before standalone cult advancement)
 	// Example: "+FIRE. pass BON10"
-	// The cult advancement is reflected in cult track positions, we sync first then execute pass
 	if strings.HasPrefix(entry.Action, "+") && strings.Contains(entry.Action, "pass ") {
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			// Sync cult positions and power bowls (in case leech happened)
-			v.syncPlayerCultPositions(player, entry.GetPlayerID(), entry)
-			v.syncPlayerPowerBowls(player, entry)
-		}
+		v.syncGameState(entry)
 		// Continue to execute pass action (don't return early)
 	}
 
 	// Handle cult advancement entries (e.g., "+WATER", "+EARTH")
-	// These are state-change entries that show cult track position changes
-	// The cult advancement happens due to power actions, favor tiles, etc. from previous entries
-	// EXCLUDE compound actions with "pass" (handled above)
-	// EXCLUDE compound actions with other actions (e.g., "+EARTH. build F3") - these are NOT informational
 	if strings.HasPrefix(entry.Action, "+") && !strings.Contains(entry.Action, "pass ") &&
-		!strings.Contains(entry.Action, ".") && // Don't skip compound actions like "+EARTH. build F3"
+		!strings.Contains(entry.Action, ".") && 
 		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
 		strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) {
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			// Sync all state - cult advancements can trigger power/coin gains
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
-		// Skip normal action execution and validation
-		return nil
+		return v.handleCultAdvancement(entry)
 	}
 
-	// Handle "[opponent accepted power]" entries - these show state after leech resolution
-	// These are informational entries that show the updated cult track state
-	if strings.Contains(entry.Action, "[opponent accepted power]") {
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
-		// Skip normal action execution and validation
-		return nil
-	}
-
-	// Handle "[all opponents declined power]" entries - Cultists gain power when all decline
-	// This is an informational entry showing state after cultists receive their power bonus
-	if strings.Contains(entry.Action, "[all opponents declined power]") {
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
-		// Skip normal action execution and validation
+	// Handle informational entries
+	if strings.Contains(entry.Action, "[opponent accepted power]") || 
+	   strings.Contains(entry.Action, "[all opponents declined power]") {
+		v.syncGameState(entry)
 		return nil
 	}
 
 	// Handle bonus card cult advancements (e.g., "action BON2. +WATER")
-	// These are FREE cult advancements from bonus card special actions
-	// Sync state and skip execution (like pure cult advancement entries)
 	if strings.Contains(entry.Action, "action BON") &&
 	   (strings.Contains(entry.Action, "+FIRE") || strings.Contains(entry.Action, "+WATER") ||
 	    strings.Contains(entry.Action, "+EARTH") || strings.Contains(entry.Action, "+AIR")) {
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			// Sync all state - cult advancements can trigger power/coin gains
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
-		// Skip normal action execution and validation
+		v.syncGameState(entry)
 		return nil
 	}
 
-	// ========== COMPOUND ACTION PATH (NEW) ==========
-	// Try to handle action using compound action parser
-	// This handles all normal player actions (build, upgrade, transform, send priest, pass, etc.)
-	// Note: Bonus card actions (action BONX) are handled by skipping the "action BONX" token
-	// in the compound parser and just executing the actual action
-	if handled, err := v.tryExecuteCompoundAction(entry); handled {
-		if err != nil {
-			return fmt.Errorf("compound action failed at entry %d: %v", v.CurrentEntry, err)
-		}
-		return nil // Successfully handled by compound parser
+	// Handle income phase
+	if entry.Action == "cult_income_for_faction" || 
+	   entry.Action == "other_income_for_faction" || 
+	   strings.HasSuffix(entry.Action, ". other_income_for_faction") {
+		return v.handleIncome(entry)
 	}
 
-	// If we reach here, the action wasn't handled by compound parser
-	// This should only happen for special entries (income, leech, etc.) which are handled below
+	// Handle standard actions
+	return v.handleAction(entry)
+}// handleComment handles comment lines in the log
+func (v *GameValidator) handleComment(entry *LogEntry) error {
+	// Check if this is a "Round X income" comment
+	if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
+		strings.Contains(entry.CommentText, "income") {
+		// Parse the round number to avoid duplicate increments
+		var roundNum int
+		fmt.Sscanf(entry.CommentText, "Round %d", &roundNum)
 
+		// Only start a new round if this is actually a new round
+		// (Log may have duplicate "Round X income" comments)
+		if roundNum > v.GameState.Round {
+			// Execute cleanup phase BEFORE starting new round
+			// This awards cult rewards and adds coins to leftover bonus cards
+			// Cleanup happens at end of rounds 1-5 (ExecuteCleanupPhase skips round 6)
+			if v.GameState.Round >= 1 && v.GameState.Round < 6 {
+				v.GameState.ExecuteCleanupPhase()
+			}
+
+			// Start new round (this resets HasPassed, power actions, etc.)
+			v.GameState.StartNewRound()
+			// Reset income flag for new round
+			v.IncomeApplied = false
+			// Reset Alchemists cult spade power tracking
+			v.AlchemistsSpadesWithPowerGranted = make(map[string]int)
+			// Note: Bonus cards are selected when passing and players keep them across rounds.
+			// Cards are only returned when players pass and select a new card (handled in TakeBonusCard).
+		}
+	}
+	return nil
+}
+
+// handleLeech handles leech and decline entries
+func (v *GameValidator) handleLeech(entry *LogEntry) error {
+	player := v.GameState.GetPlayer(entry.GetPlayerID())
+	if player != nil {
+		v.syncPlayerState(player, entry.GetPlayerID(), entry)
+	}
+	// Skip normal action execution and validation
+	return nil
+}
+
+// handleCultAdvancement handles cult advancement entries
+func (v *GameValidator) handleCultAdvancement(entry *LogEntry) error {
+	player := v.GameState.GetPlayer(entry.GetPlayerID())
+	if player != nil {
+		// Sync all state - cult advancements can trigger power/coin gains
+		v.syncPlayerState(player, entry.GetPlayerID(), entry)
+	}
+	// Skip normal action execution and validation
+	return nil
+}
+
+// handleIncome handles income phase entries
+func (v *GameValidator) handleIncome(entry *LogEntry) error {
 	// Handle cult income phase (only validates, doesn't grant income - cult rewards already given in cleanup)
 	if entry.Action == "cult_income_for_faction" {
 		// Special handling for Alchemists: Grant power for cult spades during cult income
-		// This matches the replay file notation where Alchemists' power from cult spades
-		// is shown in the cult_income_for_faction entry, not when spades are used
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-				powerPerSpade := alchemists.GetPowerPerSpade()
-				if powerPerSpade > 0 {
-					// Check if player has pending cult reward spades
-					if v.GameState.PendingCultRewardSpades != nil {
-						if pendingSpades, hasPending := v.GameState.PendingCultRewardSpades[entry.GetPlayerID()]; hasPending && pendingSpades > 0 {
-							// Grant power for all pending cult reward spades
-							totalPower := pendingSpades * powerPerSpade
-							player.Resources.Power.GainPower(totalPower)
-
-							// Track that these spades have had power granted
-							v.AlchemistsSpadesWithPowerGranted[entry.GetPlayerID()] = pendingSpades
-						}
-					}
-				}
-			}
-		}
+		v.handleAlchemistsCultIncome(entry)
 
 		// Validate state - cult rewards were already given in ExecuteCleanupPhase
 		if err := v.ValidateState(entry); err != nil {
@@ -227,18 +184,10 @@ func (v *GameValidator) ValidateNextEntry() error {
 	}
 
 	// Handle regular income phase (building/faction/bonus card income)
-	// Some entries may have actions before "other_income_for_faction" marker (e.g., cult spade usage)
-	// Format: "transform H7 to black. other_income_for_faction" or just "other_income_for_faction"
 	if entry.Action == "other_income_for_faction" || strings.HasSuffix(entry.Action, ". other_income_for_faction") {
 		// Apply income once for all players when we see the first income entry
 		if !v.IncomeApplied {
-			// Note: StartNewRound() was already called when we saw "Round X income" comment
-			// It set phase to PhaseIncome, so now we just grant income
-			// Do NOT return bonus cards here - players keep their cards for the entire round
-			// Cards are only returned at the end of the round during cleanup phase
-
 			v.GameState.GrantIncome()
-
 			v.IncomeApplied = true
 			v.GameState.StartActionPhase() // Transition to action phase
 		}
@@ -256,78 +205,9 @@ func (v *GameValidator) ValidateNextEntry() error {
 				return fmt.Errorf("failed to parse income action at entry %d: %v", v.CurrentEntry, err)
 			}
 
-			// Check if this uses an Alchemists cult spade where power was already granted
-			playerID := tempEntry.GetPlayerID()
-			player := v.GameState.GetPlayer(playerID)
-			var powerAlreadyGranted bool
-			var cultSpadesUsedInAction int
-			if player != nil {
-				if _, ok := player.Faction.(*factions.Alchemists); ok {
-					if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
-						// Check if this compound action will consume cult reward spades
-						for _, component := range compound.Components {
-							// Check for UseCultSpadeAction
-							if mainComp, ok := component.(*MainActionComponent); ok {
-								if _, isCultSpade := mainComp.Action.(*game.UseCultSpadeAction); isCultSpade {
-									cultSpadesUsedInAction++
-								}
-							}
-							// Check for TransformTerrainComponent that will use cult reward spades
-							if transformComp, ok := component.(*TransformTerrainComponent); ok {
-								if v.GameState.PendingCultRewardSpades != nil && v.GameState.PendingCultRewardSpades[playerID] > 0 {
-									currentTerrain := v.GameState.Map.GetHex(transformComp.TargetHex).Terrain
-									targetTerrain := transformComp.TargetTerrain
-									distance := board.TerrainDistance(currentTerrain, targetTerrain)
-
-									availableCultSpades := v.GameState.PendingCultRewardSpades[playerID]
-									availableVPSpades := 0
-									if v.GameState.PendingSpades != nil {
-										availableVPSpades = v.GameState.PendingSpades[playerID]
-									}
-
-									if distance > availableVPSpades {
-										cultSpadesNeeded := distance - availableVPSpades
-										if cultSpadesNeeded > availableCultSpades {
-											cultSpadesNeeded = availableCultSpades
-										}
-										cultSpadesUsedInAction += cultSpadesNeeded
-									}
-								}
-							}
-						}
-
-						if cultSpadesUsedInAction > 0 {
-							powerAlreadyGranted = true
-						}
-					}
-				}
-			}
-
-			// Capture power state before execution if needed
-			var powerBefore game.PowerSystem
-			if powerAlreadyGranted && player != nil {
-				powerBefore = *player.Resources.Power
-			}
-
-			if err := compound.Execute(v.GameState, tempEntry.GetPlayerID()); err != nil {
-				return fmt.Errorf("failed to execute income action at entry %d: %v", v.CurrentEntry, err)
-			}
-
-			// If power was already granted during cult_income, restore power state
-			if powerAlreadyGranted && player != nil {
-				if _, ok := player.Faction.(*factions.Alchemists); ok {
-					if cultSpadesUsedInAction > 0 {
-						// Restore the power state to before the action
-						// The power was already granted during cult_income, so we don't want to grant it again
-						*player.Resources.Power = powerBefore
-
-						// Decrement the counter by the number of cult spades used
-						v.AlchemistsSpadesWithPowerGranted[playerID] -= cultSpadesUsedInAction
-						if v.AlchemistsSpadesWithPowerGranted[playerID] <= 0 {
-							delete(v.AlchemistsSpadesWithPowerGranted, playerID)
-						}
-					}
-				}
+			// Execute the action
+			if err := v.executeCompoundActionWithAlchemistsCheck(compound, &tempEntry); err != nil {
+				return err
 			}
 		}
 
@@ -335,63 +215,186 @@ func (v *GameValidator) ValidateNextEntry() error {
 		if err := v.ValidateState(entry); err != nil {
 			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
 		}
-		// Skip further processing - income is not a player action
+		return nil
+	}
+	return nil
+}
+
+// handleAlchemistsCultIncome handles special Alchemists power grant during cult income
+func (v *GameValidator) handleAlchemistsCultIncome(entry *LogEntry) {
+	player := v.GameState.GetPlayer(entry.GetPlayerID())
+	if player != nil {
+		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+			powerPerSpade := alchemists.GetPowerPerSpade()
+			if powerPerSpade > 0 {
+				// Check if player has pending cult reward spades
+				if v.GameState.PendingCultRewardSpades != nil {
+					if pendingSpades, hasPending := v.GameState.PendingCultRewardSpades[entry.GetPlayerID()]; hasPending && pendingSpades > 0 {
+						// Grant power for all pending cult reward spades
+						totalPower := pendingSpades * powerPerSpade
+						player.Resources.Power.GainPower(totalPower)
+
+						// Track that these spades have had power granted
+						v.AlchemistsSpadesWithPowerGranted[entry.GetPlayerID()] = pendingSpades
+					}
+				}
+			}
+		}
+	}
+}
+
+// executeCompoundActionWithAlchemistsCheck executes a compound action and handles Alchemists power restoration
+func (v *GameValidator) executeCompoundActionWithAlchemistsCheck(compound *CompoundAction, entry *LogEntry) error {
+	playerID := entry.GetPlayerID()
+	player := v.GameState.GetPlayer(playerID)
+	
+	// Check if this uses an Alchemists cult spade where power was already granted
+	var powerAlreadyGranted bool
+	var cultSpadesUsedInAction int
+	
+	if player != nil {
+		if _, ok := player.Faction.(*factions.Alchemists); ok {
+			if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
+				// Check if this compound action will consume cult reward spades
+				cultSpadesUsedInAction = v.countCultSpadesInAction(compound, playerID)
+				if cultSpadesUsedInAction > 0 {
+					powerAlreadyGranted = true
+				}
+			}
+		}
+	}
+
+	// Capture power state before execution if needed
+	var powerBefore game.PowerSystem
+	if powerAlreadyGranted && player != nil {
+		powerBefore = *player.Resources.Power
+	}
+
+	if err := compound.Execute(v.GameState, playerID); err != nil {
+		return fmt.Errorf("failed to execute action: %v", err)
+	}
+
+	// If power was already granted during cult_income, restore power state
+	if powerAlreadyGranted && player != nil {
+		if _, ok := player.Faction.(*factions.Alchemists); ok {
+			if cultSpadesUsedInAction > 0 {
+				// Restore the power state to before the action
+				*player.Resources.Power = powerBefore
+
+				// Decrement the counter by the number of cult spades used
+				v.AlchemistsSpadesWithPowerGranted[playerID] -= cultSpadesUsedInAction
+				if v.AlchemistsSpadesWithPowerGranted[playerID] <= 0 {
+					delete(v.AlchemistsSpadesWithPowerGranted, playerID)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// countCultSpadesInAction counts how many cult reward spades are used in an action
+func (v *GameValidator) countCultSpadesInAction(compound *CompoundAction, playerID string) int {
+	count := 0
+	for _, component := range compound.Components {
+		// Check for UseCultSpadeAction
+		if mainComp, ok := component.(*MainActionComponent); ok {
+			if _, isCultSpade := mainComp.Action.(*game.UseCultSpadeAction); isCultSpade {
+				count++
+			}
+		}
+		// Check for TransformTerrainComponent that will use cult reward spades
+		if transformComp, ok := component.(*TransformTerrainComponent); ok {
+			if v.GameState.PendingCultRewardSpades != nil && v.GameState.PendingCultRewardSpades[playerID] > 0 {
+				currentTerrain := v.GameState.Map.GetHex(transformComp.TargetHex).Terrain
+				targetTerrain := transformComp.TargetTerrain
+				distance := board.TerrainDistance(currentTerrain, targetTerrain)
+
+				availableCultSpades := v.GameState.PendingCultRewardSpades[playerID]
+				availableVPSpades := 0
+				if v.GameState.PendingSpades != nil {
+					availableVPSpades = v.GameState.PendingSpades[playerID]
+				}
+
+				if distance > availableVPSpades {
+					cultSpadesNeeded := distance - availableVPSpades
+					if cultSpadesNeeded > availableCultSpades {
+						cultSpadesNeeded = availableCultSpades
+					}
+					count += cultSpadesNeeded
+				}
+			}
+		}
+	}
+	return count
+}
+
+// handleAction handles standard player actions
+func (v *GameValidator) handleAction(entry *LogEntry) error {
+	// Try to handle action using compound action parser
+	if handled, err := v.tryExecuteCompoundAction(entry); handled {
+		if err != nil {
+			return fmt.Errorf("compound action failed at entry %d: %v", v.CurrentEntry, err)
+		}
 		return nil
 	}
 
-	// Handle final scoring entries (network, resources)
+	// Handle final scoring entries
 	if strings.Contains(entry.Action, "vp for network") {
-		// Network scoring - calculate actual network size and print for verification
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			// Count total buildings for this player
-			totalBuildings := 0
-			for _, mapHex := range v.GameState.Map.Hexes {
-				if mapHex.Building != nil && mapHex.Building.PlayerID == player.ID {
-					totalBuildings++
-				}
-			}
-
-			networkSize := v.GameState.Map.GetLargestConnectedArea(player.ID, player.Faction, player.ShippingLevel)
-			fmt.Printf("%s: %d total buildings, shipping=%d, network: %d connected structures → %d VP (from log)\n",
-				entry.GetPlayerID(), totalBuildings, player.ShippingLevel, networkSize, entry.VPDelta)
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
-		return nil
+		return v.handleNetworkScoring(entry)
 	}
 
 	if entry.Action == "score_resources" {
-		// Resource to VP conversion - sync state to match log
-		player := v.GameState.GetPlayer(entry.GetPlayerID())
-		if player != nil {
-			v.syncPlayerState(player, entry.GetPlayerID(), entry)
-		}
+		v.syncGameState(entry)
 		return nil
 	}
 
-	// Handle "wait" action (player is waiting, no state change)
 	if entry.Action == "wait" {
-		// Just validate state - no action to execute
 		if err := v.ValidateState(entry); err != nil {
 			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
 		}
 		return nil
 	}
 
-	// If we reach here, the action was not handled by compound parser
-	// This should not happen for normal player actions
+	// If we reach here, the action was not handled
 	if entry.Action != "" && !entry.IsComment && entry.GetPlayerID() != "" {
-		// Unexpected: normal player action not handled by compound parser
 		return fmt.Errorf("action not handled by compound parser at entry %d: %s (faction: %s)",
 			v.CurrentEntry, entry.Action, entry.GetPlayerID())
 	}
 
-	// Validate state matches the log entry (for non-action entries like comments)
+	// Validate state matches the log entry (for non-action entries)
 	if err := v.ValidateState(entry); err != nil {
 		return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
 	}
 
 	return nil
+}
+
+// handleNetworkScoring handles network scoring entries
+func (v *GameValidator) handleNetworkScoring(entry *LogEntry) error {
+	player := v.GameState.GetPlayer(entry.GetPlayerID())
+	if player != nil {
+		// Count total buildings for this player
+		totalBuildings := 0
+		for _, mapHex := range v.GameState.Map.Hexes {
+			if mapHex.Building != nil && mapHex.Building.PlayerID == player.ID {
+				totalBuildings++
+			}
+		}
+
+		networkSize := v.GameState.Map.GetLargestConnectedArea(player.ID, player.Faction, player.ShippingLevel)
+		fmt.Printf("%s: %d total buildings, shipping=%d, network: %d connected structures → %d VP (from log)\n",
+			entry.GetPlayerID(), totalBuildings, player.ShippingLevel, networkSize, entry.VPDelta)
+		v.syncPlayerState(player, entry.GetPlayerID(), entry)
+	}
+	return nil
+}
+
+// syncGameState syncs the game state with the log entry
+func (v *GameValidator) syncGameState(entry *LogEntry) {
+	player := v.GameState.GetPlayer(entry.GetPlayerID())
+	if player != nil {
+		v.syncPlayerState(player, entry.GetPlayerID(), entry)
+	}
 }
 
 // executeAction executes an action and updates game state
