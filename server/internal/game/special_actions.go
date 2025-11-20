@@ -218,9 +218,9 @@ func NewBonusCardSpadeAction(playerID string, targetHex board.Hex, buildDwelling
 }
 
 func (a *SpecialAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	// Check if this specific special action has already been used this round
@@ -322,7 +322,7 @@ func (a *SpecialAction) validateWitchesRide(gs *GameState, player *Player) error
 	}
 
 	// Check building limit (max 8 dwellings)
-	if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingDwelling); err != nil {
+	if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 		return err
 	}
 
@@ -359,7 +359,7 @@ func (a *SpecialAction) validateSwarmlingsUpgrade(gs *GameState, player *Player)
 	}
 
 	// Check trading house limit
-	if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingTradingHouse); err != nil {
+	if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingTradingHouse); err != nil {
 		return err
 	}
 
@@ -414,7 +414,7 @@ func (a *SpecialAction) validateGiantsTransform(gs *GameState, player *Player) e
 
 	// If building dwelling, check limit
 	if a.BuildDwelling {
-		if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingDwelling); err != nil {
+		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
 		}
 	}
@@ -458,7 +458,7 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 
 	// If building dwelling, check limit
 	if a.BuildDwelling {
-		if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingDwelling); err != nil {
+		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
 		}
 	}
@@ -607,7 +607,9 @@ func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) 
 
 func (a *SpecialAction) executeWitchesRide(gs *GameState, player *Player) error {
 	// Build dwelling without paying workers or coins
-	buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
+	if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -673,7 +675,9 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 		}
 
 		// Place dwelling and handle all VP bonuses
-		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
+		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -692,7 +696,9 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 		}
 
 		// Place dwelling and handle all VP bonuses
-		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
+		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -766,7 +772,9 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		}
 
 		// Place dwelling and handle all VP bonuses
-		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
+		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
+			return err
+		}
 	}
 
 	return nil

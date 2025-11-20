@@ -355,7 +355,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	// Build dwelling if requested
 	if a.BuildDwelling {
 		// Check building limit
-		if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingDwelling); err != nil {
+		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
 		}
 		
@@ -366,7 +366,9 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		}
 		
 		// Place dwelling and handle all VP bonuses
-		buildDwelling(gs, a.PlayerID, *a.TargetHex, player)
+		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
+			return err
+		}
 	}
 	
 	return nil

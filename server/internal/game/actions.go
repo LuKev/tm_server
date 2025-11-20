@@ -89,15 +89,15 @@ func NewTransformAndBuildActionWithSkip(playerID string, targetHex board.Hex, bu
 }
 
 func (a *TransformAndBuildAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	// Check if hex exists and is empty (no building)
-	mapHex := gs.Map.GetHex(a.TargetHex)
-	if mapHex == nil {
-		return fmt.Errorf("hex does not exist: %v", a.TargetHex)
+	mapHex, err := gs.ValidateHex(a.TargetHex)
+	if err != nil {
+		return err
 	}
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building: %v", a.TargetHex)
@@ -194,7 +194,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
 		// Check building limit (max 8 dwellings)
-		if err := checkBuildingLimit(gs, a.PlayerID, models.BuildingDwelling); err != nil {
+		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
 		}
 		
@@ -346,7 +346,9 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		}
 
 		// Place dwelling and handle all VP bonuses
-		buildDwelling(gs, a.PlayerID, a.TargetHex, player)
+		if err := gs.BuildDwelling(a.PlayerID, a.TargetHex); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -371,15 +373,15 @@ func NewUpgradeBuildingAction(playerID string, targetHex board.Hex, newType mode
 }
 
 func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	// Check if hex has player's building
-	mapHex := gs.Map.GetHex(a.TargetHex)
-	if mapHex == nil {
-		return fmt.Errorf("hex does not exist: %v", a.TargetHex)
+	mapHex, err := gs.ValidateHex(a.TargetHex)
+	if err != nil {
+		return err
 	}
 	if mapHex.Building == nil {
 		return fmt.Errorf("no building at hex: %v", a.TargetHex)
@@ -394,7 +396,7 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	}
 
 	// Check building limits
-	if err := checkBuildingLimit(gs, a.PlayerID, a.NewBuildingType); err != nil {
+	if err := gs.CheckBuildingLimit(a.PlayerID, a.NewBuildingType); err != nil {
 		return err
 	}
 
@@ -632,38 +634,7 @@ func isValidUpgrade(from, to models.BuildingType) bool {
 	return false
 }
 
-// checkBuildingLimit checks if player has reached the building limit for a type
-// Limits: 8 dwellings, 4 trading houses, 3 temples, 1 sanctuary, 1 stronghold
-func checkBuildingLimit(gs *GameState, playerID string, buildingType models.BuildingType) error {
-	// Count existing buildings of this type
-	count := 0
-	for _, mapHex := range gs.Map.Hexes {
-		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && mapHex.Building.Type == buildingType {
-			count++
-		}
-	}
 
-	// Check limits
-	var limit int
-	switch buildingType {
-	case models.BuildingDwelling:
-		limit = 8
-	case models.BuildingTradingHouse:
-		limit = 4
-	case models.BuildingTemple:
-		limit = 3
-	case models.BuildingSanctuary, models.BuildingStronghold:
-		limit = 1
-	default:
-		return nil
-	}
-
-	if count >= limit {
-		return fmt.Errorf("building limit reached: cannot have more than %d %v", limit, buildingType)
-	}
-
-	return nil
-}
 
 // getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent
 func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuildingType models.BuildingType) factions.Cost {
@@ -720,9 +691,9 @@ func NewAdvanceShippingAction(playerID string) *AdvanceShippingAction {
 }
 
 func (a *AdvanceShippingAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	// Check if player can advance shipping (some factions like Dwarves/Fakirs cannot)
@@ -774,9 +745,9 @@ func NewAdvanceDiggingAction(playerID string) *AdvanceDiggingAction {
 }
 
 func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	// Check faction-specific max digging level
@@ -842,9 +813,9 @@ func NewPassAction(playerID string, bonusCard *BonusCardType) *PassAction {
 }
 
 func (a *PassAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	if player.HasPassed {
@@ -938,9 +909,9 @@ func (a *SendPriestToCultAction) GetType() ActionType {
 }
 
 func (a *SendPriestToCultAction) Validate(gs *GameState) error {
-	player := gs.GetPlayer(a.PlayerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
+	player, err := gs.ValidatePlayer(a.PlayerID)
+	if err != nil {
+		return err
 	}
 
 	// Check if player has passed
@@ -994,36 +965,4 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	return nil
 }
 
-// buildDwelling is a helper function that handles all dwelling placement logic including:
-// - Placing the dwelling building on the map
-// - Awarding VP from Earth+1 favor tile (+2 VP when building Dwelling)
-// - Awarding VP from scoring tiles
-// - Triggering power leech for adjacent players
-// - Checking for town formation
-func buildDwelling(gs *GameState, playerID string, targetHex board.Hex, player *Player) {
-	mapHex := gs.Map.GetHex(targetHex)
-	
-	// Place dwelling
-	dwelling := &models.Building{
-		Type:       models.BuildingDwelling,
-		Faction:    player.Faction.GetType(),
-		PlayerID:   playerID,
-		PowerValue: 1, // Dwellings provide 1 power to neighbors
-	}
-	mapHex.Building = dwelling
-	
-	// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
-	playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
-	if HasFavorTile(playerTiles, FavorEarth1) {
-		player.VictoryPoints += 2
-	}
-	
-	// Award VP from scoring tile
-	gs.AwardActionVP(playerID, ScoringActionDwelling)
-	
-	// Trigger power leech
-	gs.TriggerPowerLeech(targetHex, playerID)
-	
-	// Check for town formation
-	gs.CheckForTownFormation(playerID, targetHex)
-}
+

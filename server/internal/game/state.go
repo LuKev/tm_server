@@ -450,6 +450,101 @@ func (gs *GameState) ClearPendingLeechOffers(playerID string) {
 	delete(gs.PendingLeechOffers, playerID)
 }
 
+// ValidatePlayer checks if a player exists
+func (gs *GameState) ValidatePlayer(playerID string) (*Player, error) {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return nil, fmt.Errorf("player not found: %s", playerID)
+	}
+	return player, nil
+}
+
+// ValidateHex checks if a hex exists
+func (gs *GameState) ValidateHex(hex board.Hex) (*board.MapHex, error) {
+	mapHex := gs.Map.GetHex(hex)
+	if mapHex == nil {
+		return nil, fmt.Errorf("hex does not exist: %v", hex)
+	}
+	return mapHex, nil
+}
+
+// CheckBuildingLimit checks if player has reached the building limit for a type
+// Limits: 8 dwellings, 4 trading houses, 3 temples, 1 sanctuary, 1 stronghold
+func (gs *GameState) CheckBuildingLimit(playerID string, buildingType models.BuildingType) error {
+	// Count existing buildings of this type
+	count := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && mapHex.Building.Type == buildingType {
+			count++
+		}
+	}
+
+	// Check limits
+	var limit int
+	switch buildingType {
+	case models.BuildingDwelling:
+		limit = 8
+	case models.BuildingTradingHouse:
+		limit = 4
+	case models.BuildingTemple:
+		limit = 3
+	case models.BuildingSanctuary, models.BuildingStronghold:
+		limit = 1
+	default:
+		return nil
+	}
+
+	if count >= limit {
+		return fmt.Errorf("building limit reached: cannot have more than %d %v", limit, buildingType)
+	}
+
+	return nil
+}
+
+// BuildDwelling handles all dwelling placement logic including:
+// - Placing the dwelling building on the map
+// - Awarding VP from Earth+1 favor tile (+2 VP when building Dwelling)
+// - Awarding VP from scoring tiles
+// - Triggering power leech for adjacent players
+// - Checking for town formation
+func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
+	player, err := gs.ValidatePlayer(playerID)
+	if err != nil {
+		return err
+	}
+
+	mapHex, err := gs.ValidateHex(targetHex)
+	if err != nil {
+		return err
+	}
+	
+	// Place dwelling
+	dwelling := &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   playerID,
+		PowerValue: 1, // Dwellings provide 1 power to neighbors
+	}
+	mapHex.Building = dwelling
+	
+	// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
+	playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
+	if HasFavorTile(playerTiles, FavorEarth1) {
+		player.VictoryPoints += 2
+	}
+	
+	// Award VP from scoring tile
+	gs.AwardActionVP(playerID, ScoringActionDwelling)
+	
+	// Trigger power leech
+	gs.TriggerPowerLeech(targetHex, playerID)
+	
+	// Check for town formation
+	gs.CheckForTownFormation(playerID, targetHex)
+
+	return nil
+}
+
 // GetCurrentPlayer returns the player whose turn it is
 func (gs *GameState) GetCurrentPlayer() *Player {
 	if len(gs.TurnOrder) == 0 || gs.CurrentPlayerIndex >= len(gs.TurnOrder) {
