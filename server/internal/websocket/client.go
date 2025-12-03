@@ -7,6 +7,9 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 const (
@@ -106,6 +109,74 @@ func (c *Client) readPump() {
 			out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
 			c.send <- out
 
+		case "get_game_state":
+			var p struct {
+				GameID string `json:"gameID"`
+			}
+			if err := json.Unmarshal(env.Payload, &p); err != nil {
+				log.Printf("error parsing get_game_state payload: %v", err)
+				continue
+			}
+			gameState := c.deps.Games.SerializeGameState(p.GameID)
+			if gameState != nil {
+				gameStateMsg, _ := json.Marshal(map[string]any{
+					"type":    "game_state_update",
+					"payload": gameState,
+				})
+				c.send <- gameStateMsg
+			}
+
+		case "start_game":
+			var p struct {
+				GameID string `json:"gameID"`
+			}
+			if err := json.Unmarshal(env.Payload, &p); err != nil {
+				log.Printf("error parsing start_game payload: %v", err)
+				continue
+			}
+
+			// Get game info from lobby
+			meta, ok := c.deps.Lobby.GetGame(p.GameID)
+			if !ok {
+				log.Printf("game not found in lobby: %s", p.GameID)
+				errorMsg, _ := json.Marshal(map[string]any{
+					"type":    "error",
+					"payload": "game_not_found",
+				})
+				c.send <- errorMsg
+				continue
+			}
+
+			// Validate all slots are filled
+			if len(meta.Players) < meta.MaxPlayers {
+				log.Printf("game %s not full: %d/%d players", p.GameID, len(meta.Players), meta.MaxPlayers)
+				errorMsg, _ := json.Marshal(map[string]any{
+					"type":    "error",
+					"payload": map[string]any{
+						"error":       "game_not_full",
+						"playerCount": len(meta.Players),
+						"maxPlayers":  meta.MaxPlayers,
+					},
+				})
+				c.send <- errorMsg
+				continue
+			}
+
+			// Initialize game state
+			err := c.deps.Games.CreateGame(p.GameID, meta.Players)
+			if err != nil {
+				log.Printf("error creating game: %v", err)
+				// If game already exists, we might just want to broadcast the state anyway
+				// continue
+			}
+
+			// Broadcast initial state
+			gameState := c.deps.Games.SerializeGameState(p.GameID)
+			gameStateMsg, _ := json.Marshal(map[string]any{
+				"type":    "game_state_update",
+				"payload": gameState,
+			})
+			c.hub.broadcast <- gameStateMsg
 		case "create_game":
 			var p createGamePayload
 			if err := json.Unmarshal(env.Payload, &p); err != nil {
@@ -119,6 +190,12 @@ func (c *Client) readPump() {
 			if p.Creator != "" {
 				// Auto-join creator; ignore join failure silently
 				_ = c.deps.Lobby.JoinGame(meta.ID, p.Creator)
+				// Send game_created message to creator
+				createdMsg, _ := json.Marshal(map[string]any{
+					"type": "game_created",
+					"payload": map[string]string{"gameId": meta.ID, "playerId": p.Creator},
+				})
+				c.send <- createdMsg
 			}
 			games := c.deps.Lobby.ListGames()
 			out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
@@ -138,9 +215,110 @@ func (c *Client) readPump() {
 				c.send <- out
 				continue
 			}
+			// Send success to the joining client
+			successMsg, _ := json.Marshal(map[string]any{
+				"type": "game_joined", 
+				"payload": map[string]string{"gameId": p.ID, "playerId": p.Name},
+			})
+			c.send <- successMsg
+
 			games := c.deps.Lobby.ListGames()
 			out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
 			c.hub.broadcast <- out
+
+		case "perform_action":
+			// Handle game actions (setup dwelling, transform & build, etc.)
+			log.Printf("Received perform_action from client %s: %s", c.id, string(env.Payload))
+			
+			// Parse action payload
+			var actionPayload struct {
+				Type     string `json:"type"`
+				PlayerID string `json:"playerID"`
+				Faction  string `json:"faction,omitempty"`
+				Hex      *struct {
+					Q int `json:"q"`
+					R int `json:"r"`
+				} `json:"hex,omitempty"`
+				GameID string `json:"gameID"` // Added GameID to payload
+			}
+			if err := json.Unmarshal(env.Payload, &actionPayload); err != nil {
+				log.Printf("perform_action payload error: %v", err)
+				errorMsg, _ := json.Marshal(map[string]any{
+					"type": "error",
+					"payload": "invalid_action_payload",
+				})
+				c.send <- errorMsg
+				continue
+			}
+			
+			// Use GameID from payload if present, otherwise default (for backward compatibility/testing)
+			gameID := actionPayload.GameID
+			if gameID == "" {
+				gameID = "2" // Fallback for now
+			}
+			
+			// Create appropriate action based on type
+			var action game.Action
+			switch actionPayload.Type {
+			case "select_faction":
+				if actionPayload.Faction == "" {
+					log.Printf("select_faction missing faction")
+					errorMsg, _ := json.Marshal(map[string]any{
+						"type": "error",
+						"payload": "missing_faction",
+					})
+					c.send <- errorMsg
+					continue
+				}
+				action = &game.SelectFactionAction{
+					PlayerID:    actionPayload.PlayerID,
+					FactionType: models.FactionTypeFromString(actionPayload.Faction),
+				}
+			case "setup_dwelling":
+				if actionPayload.Hex == nil {
+					log.Printf("setup_dwelling missing hex")
+					errorMsg, _ := json.Marshal(map[string]any{
+						"type": "error",
+						"payload": "missing_hex",
+					})
+					c.send <- errorMsg
+					continue
+				}
+				hex := board.NewHex(actionPayload.Hex.Q, actionPayload.Hex.R)
+				action = game.NewSetupDwellingAction(actionPayload.PlayerID, hex)
+			default:
+				log.Printf("unknown action type: %s", actionPayload.Type)
+				errorMsg, _ := json.Marshal(map[string]any{
+					"type": "error",
+					"payload": "unknown_action_type",
+				})
+				c.send <- errorMsg
+				continue
+			}
+			
+			// Execute action via game manager
+			err := c.deps.Games.ExecuteAction(gameID, action)
+			if err != nil {
+				log.Printf("action execution failed: %v", err)
+				errorMsg, _ := json.Marshal(map[string]any{
+					"type": "action_rejected",
+					"payload": map[string]string{
+						"error": err.Error(),
+						"action": actionPayload.Type,
+					},
+				})
+				c.send <- errorMsg
+				continue
+			}
+			
+			// Action succeeded - broadcast updated game state to all clients
+			log.Printf("Action executed successfully: %s", actionPayload.Type)
+			gameState := c.deps.Games.SerializeGameState(gameID)
+			stateMsg, _ := json.Marshal(map[string]any{
+				"type": "game_state_update",
+				"payload": gameState,
+			})
+			c.hub.broadcast <- stateMsg
 
 		default:
 			log.Printf("Unknown message type: %s", env.Type)

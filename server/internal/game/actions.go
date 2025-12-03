@@ -19,16 +19,17 @@ const (
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
-	ActionSetupDwelling        // Place initial dwelling during setup (no cost, no adjacency)
-	ActionUseCultSpade         // Use a spade from cult track reward (cleanup phase)
-	ActionAcceptPowerLeech     // Accept a power leech offer
-	ActionDeclinePowerLeech    // Decline a power leech offer
-	ActionSelectFavorTile      // Select a favor tile after Temple/Sanctuary/Auren Stronghold
-	ActionApplyHalflingsSpade  // Apply one of 3 stronghold spades (Halflings only)
-	ActionBuildHalflingsDwelling // Build dwelling on transformed hex (Halflings optional)
-	ActionSkipHalflingsDwelling  // Skip optional dwelling (Halflings)
+	ActionSetupDwelling                // Place initial dwelling during setup (no cost, no adjacency)
+	ActionUseCultSpade                 // Use a spade from cult track reward (cleanup phase)
+	ActionAcceptPowerLeech             // Accept a power leech offer
+	ActionDeclinePowerLeech            // Decline a power leech offer
+	ActionSelectFavorTile              // Select a favor tile after Temple/Sanctuary/Auren Stronghold
+	ActionApplyHalflingsSpade          // Apply one of 3 stronghold spades (Halflings only)
+	ActionBuildHalflingsDwelling       // Build dwelling on transformed hex (Halflings optional)
+	ActionSkipHalflingsDwelling        // Skip optional dwelling (Halflings)
 	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
-	ActionSelectCultistsCultTrack // Select cult track for power leech bonus (Cultists only)
+	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
+	ActionSelectFaction                // Select faction at start of game
 )
 
 // Action represents a player action

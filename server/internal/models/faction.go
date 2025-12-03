@@ -94,3 +94,39 @@ func (f FactionType) GetFactionColor() FactionColor {
 		return ColorYellow // Default
 	}
 }
+
+// FactionTypeFromString converts a string representation to FactionType
+func FactionTypeFromString(s string) FactionType {
+	switch s {
+	case "Nomads":
+		return FactionNomads
+	case "Fakirs":
+		return FactionFakirs
+	case "ChaosMagicians":
+		return FactionChaosMagicians
+	case "Giants":
+		return FactionGiants
+	case "Swarmlings":
+		return FactionSwarmlings
+	case "Mermaids":
+		return FactionMermaids
+	case "Witches":
+		return FactionWitches
+	case "Auren":
+		return FactionAuren
+	case "Halflings":
+		return FactionHalflings
+	case "Cultists":
+		return FactionCultists
+	case "Alchemists":
+		return FactionAlchemists
+	case "Darklings":
+		return FactionDarklings
+	case "Engineers":
+		return FactionEngineers
+	case "Dwarves":
+		return FactionDwarves
+	default:
+		return FactionUnknown
+	}
+}

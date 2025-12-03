@@ -4,14 +4,16 @@ go_library(
     name = "websocket",
     srcs = [
         "client.go",
-        "handler.go",
         "hub.go",
+        "handler.go",
     ],
     importpath = "github.com/lukev/tm_server/internal/websocket",
-    visibility = ["//:__subpackages__"],
+    visibility = ["//visibility:public"],
     deps = [
         "//internal/game",
+        "//internal/game/board",
         "//internal/lobby",
-        "@com_github_gorilla_websocket//:go_default_library",
+        "//internal/models:models",
+        "@com_github_gorilla_websocket//:websocket",
     ],
 )

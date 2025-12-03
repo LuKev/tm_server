@@ -89,6 +89,7 @@ type GamePhase int
 
 const (
 	PhaseSetup   GamePhase = iota // Initial game setup
+	PhaseFactionSelection         // Players select factions
 	PhaseIncome                   // Players receive resources
 	PhaseAction                   // Players take actions
 	PhaseCleanup                  // End-of-round maintenance and scoring
@@ -143,30 +144,40 @@ func NewGameState() *GameState {
 }
 
 // AddPlayer adds a player to the game
+// AddPlayer adds a player to the game
 func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error {
 	if _, exists := gs.Players[playerID]; exists {
 		return fmt.Errorf("player already exists: %s", playerID)
 	}
 	
-	// Check if another player already has the same home terrain
-	newHomeTerrain := faction.GetHomeTerrain()
-	for _, existingPlayer := range gs.Players {
-		if existingPlayer.Faction.GetHomeTerrain() == newHomeTerrain {
-			return fmt.Errorf("faction %s cannot be added: another player already has home terrain %v (faction %s)", 
-				faction.GetType(), newHomeTerrain, existingPlayer.Faction.GetType())
+	// Check if another player already has the same home terrain (only if faction is provided)
+	if faction != nil {
+		newHomeTerrain := faction.GetHomeTerrain()
+		for _, existingPlayer := range gs.Players {
+			if existingPlayer.Faction != nil && existingPlayer.Faction.GetHomeTerrain() == newHomeTerrain {
+				return fmt.Errorf("faction %s cannot be added: another player already has home terrain %v (faction %s)", 
+					faction.GetType(), newHomeTerrain, existingPlayer.Faction.GetType())
+			}
 		}
 	}
 
 	// Get faction-specific starting shipping level (Mermaids start at 1, others at 0)
 	startingShippingLevel := 0
-	if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
-		startingShippingLevel = shippingFaction.GetShippingLevel()
+	var startingResources factions.Resources
+	
+	if faction != nil {
+		if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
+			startingShippingLevel = shippingFaction.GetShippingLevel()
+		}
+		startingResources = faction.GetStartingResources()
+	} else {
+		startingResources = factions.Resources{}
 	}
 
 	player := &Player{
 		ID:            playerID,
 		Faction:       faction,
-		Resources:     NewResourcePool(faction.GetStartingResources()),
+		Resources:     NewResourcePool(startingResources),
 		ShippingLevel: startingShippingLevel,
 		DiggingLevel:  0,
 		BridgesBuilt:  0,

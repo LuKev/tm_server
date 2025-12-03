@@ -81,3 +81,11 @@ func StandardStartingResources() Resources {
 		Power3:  0,
 	}
 }
+
+// NewFaction creates a new instance of a faction by type
+func NewFaction(t models.FactionType) Faction {
+	// This is a bit inefficient but simple for now
+	r := NewRegistry()
+	f, _ := r.Get(t)
+	return f
+}

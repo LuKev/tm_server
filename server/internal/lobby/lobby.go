@@ -36,6 +36,13 @@ func (m *Manager) CreateGame(name string, maxPlayers int) *GameMeta {
     return g
 }
 
+func (m *Manager) GetGame(id string) (*GameMeta, bool) {
+    m.mu.RLock()
+    defer m.mu.RUnlock()
+    g, ok := m.games[id]
+    return g, ok
+}
+
 func (m *Manager) JoinGame(id string, playerName string) bool {
     m.mu.Lock()
     defer m.mu.Unlock()
