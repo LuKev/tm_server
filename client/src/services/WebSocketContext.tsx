@@ -1,4 +1,10 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
+import { useGameStore } from '../stores/gameStore'
+
+interface WebSocketMessage {
+  type: string
+  payload?: any
+}
 
 interface WebSocketContextType {
   isConnected: boolean
@@ -45,7 +51,15 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data)
+        const data = JSON.parse(event.data) as WebSocketMessage
+
+        // Handle game_state_update messages
+        if (data.type === 'game_state_update' && data.payload) {
+          console.log('WebSocketContext: Received game_state_update:', data.payload)
+          useGameStore.getState().setGameState(data.payload)
+          console.log('WebSocketContext: Game state updated in store')
+        }
+
         setLastMessage(data)
       } catch {
         // If not JSON, treat as plain text
@@ -62,7 +76,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       console.log('WebSocket disconnected')
       setIsConnected(false)
       setConnectionStatus('disconnected')
-      
+
       // Attempt to reconnect after 3 seconds
       reconnectTimeoutRef.current = setTimeout(() => {
         console.log('Attempting to reconnect...')

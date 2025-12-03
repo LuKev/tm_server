@@ -95,8 +95,16 @@ export interface RoundState {
   round: number // 1..6
 }
 
+export enum GamePhase {
+  Setup = 0,
+  FactionSelection = 1,
+  Game = 2,
+  End = 3,
+}
+
 export interface GameState {
   id: string
+  phase: GamePhase
   players: Record<string, PlayerState>
   order: string[]
   activeIndex: number

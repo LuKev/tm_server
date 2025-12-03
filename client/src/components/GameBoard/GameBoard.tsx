@@ -5,10 +5,14 @@ import { BASE_GAME_MAP } from '../../data/baseGameMap';
 import { useGameStore } from '../../stores/gameStore';
 import type { Building } from '../../types/game.types';
 
-export const GameBoard: React.FC = () => {
+interface GameBoardProps {
+  onHexClick?: (q: number, r: number) => void
+}
+
+export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }) => {
   const gameState = useGameStore(s => s.gameState);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
-  
+
   // Get buildings from game state
   const buildings = new Map<string, Building>();
   if (gameState?.map?.hexes) {
@@ -18,36 +22,24 @@ export const GameBoard: React.FC = () => {
       }
     });
   }
-  
+
   const handleHexClick = (q: number, r: number) => {
-    console.log(`Hex clicked: (${q}, ${r})`);
-    // TODO: Implement action handling based on game state
+    console.log(`GameBoard: Hex clicked: (${q}, ${r})`);
+    onHexClick?.(q, r);
   };
-  
+
   const handleHexHover = (q: number, r: number) => {
     setHoveredHex(`${q},${r}`);
   };
-  
+
   // Highlight hovered hex
   const highlightedHexes = new Set<string>();
   if (hoveredHex) {
     highlightedHexes.add(hoveredHex);
   }
-  
+
   return (
     <div className="game-board-container bg-white rounded-lg shadow-md p-4">
-      <div className="mb-4 text-sm text-gray-600">
-        {gameState ? (
-          <div>
-            <p>Game ID: {gameState.id}</p>
-            <p>Players: {Object.keys(gameState.players).length}</p>
-            {hoveredHex && <p>Hovered: {hoveredHex}</p>}
-          </div>
-        ) : (
-          <p>Loading game state...</p>
-        )}
-      </div>
-      
       <div className="overflow-auto">
         <HexGridCanvas
           hexes={BASE_GAME_MAP}

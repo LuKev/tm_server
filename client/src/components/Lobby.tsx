@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useWebSocket } from '../services/WebSocketContext'
+import { useGameStore } from '../stores/gameStore'
 
 export function Lobby() {
   const { isConnected, sendMessage, lastMessage, connectionStatus } = useWebSocket()
+  const navigate = useNavigate()
   const [playerName, setPlayerName] = useState('')
   const [testMessage, setTestMessage] = useState('')
   const [messages, setMessages] = useState<string[]>([])
@@ -21,12 +24,24 @@ export function Lobby() {
 
     // Handle lobby messages
     if (typeof lastMessage === 'object' && lastMessage !== null && 'type' in lastMessage) {
-      const msg = lastMessage as { type: string; payload?: unknown }
+      const msg = lastMessage as { type: string; payload?: any }
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload : [])
+      } else if (msg.type === 'game_joined') {
+        // Don't navigate immediately, wait for start
+        console.log('Joined game:', msg.payload.gameId)
+      } else if (msg.type === 'game_created') {
+        // Don't navigate immediately, wait for start
+        console.log('Created game:', msg.payload.gameId)
+      } else if (msg.type === 'game_state_update') {
+        const gameState = msg.payload
+        // If we are in this game AND it has started, navigate to it
+        if (gameState && gameState.id && gameState.players && gameState.players[playerName] && gameState.started) {
+          navigate(`/game/${gameState.id}`)
+        }
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, navigate, playerName])
 
   // Request games list on connect
   useEffect(() => {
@@ -53,6 +68,7 @@ export function Lobby() {
 
   const handleCreateGame = () => {
     if (!playerName.trim() || !newGameName.trim()) return
+    useGameStore.getState().setLocalPlayerId(playerName.trim())
     sendMessage({
       type: 'create_game',
       payload: { name: newGameName.trim(), maxPlayers: newGameMaxPlayers, creator: playerName.trim() },
@@ -62,6 +78,7 @@ export function Lobby() {
 
   const handleJoinGame = (id: string) => {
     if (!playerName.trim()) return
+    useGameStore.getState().setLocalPlayerId(playerName.trim())
     sendMessage({ type: 'join_game', payload: { id, name: playerName.trim() } })
   }
 
@@ -141,7 +158,7 @@ export function Lobby() {
             {/* Test WebSocket Section */}
             <div className="border-t border-white/20 pt-6">
               <h2 className="text-xl font-semibold text-white mb-4">Test WebSocket Connection</h2>
-              
+
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
@@ -191,19 +208,34 @@ export function Lobby() {
                 <p className="text-gray-400 text-sm">No open games. Create one above.</p>
               ) : (
                 <div className="space-y-2">
-                  {games.map((g) => (
-                    <div key={g.id} className="flex items-center justify-between bg-white/10 border border-white/20 rounded-md p-3">
-                      <div>
-                        <div className="text-white font-medium">{g.name} <span className="text-xs text-gray-300">({g.id})</span></div>
-                        <div className="text-xs text-gray-300">Players: {g.players?.length ?? 0}/{g.maxPlayers}</div>
+                  {games.map((g) => {
+                    const isFull = (g.players?.length ?? 0) >= g.maxPlayers
+                    return (
+                      <div key={g.id} className="flex items-center justify-between bg-white/10 border border-white/20 rounded-md p-3">
+                        <div>
+                          <div className="text-white font-medium">{g.name} <span className="text-xs text-gray-300">({g.id})</span></div>
+                          <div className="text-xs text-gray-300">Players: {g.players?.length ?? 0}/{g.maxPlayers}</div>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleJoinGame(g.id)}
+                            disabled={!isConnected || !playerName.trim() || isFull}
+                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium"
+                          >Join</button>
+                          <button
+                            onClick={() => sendMessage({ type: 'start_game', payload: { gameID: g.id } })}
+                            disabled={!isConnected || !isFull}
+                            className={`px-4 py-2 ${isFull
+                              ? 'bg-green-600 hover:bg-green-700'
+                              : 'bg-gray-600 cursor-not-allowed'
+                              } disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium`}
+                          >
+                            {isFull ? 'Start' : `Waiting (${g.players?.length ?? 0}/${g.maxPlayers})`}
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => handleJoinGame(g.id)}
-                        disabled={!isConnected || !playerName.trim()}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium"
-                      >Join</button>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
