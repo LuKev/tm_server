@@ -1,0 +1,177 @@
+.scoring-tiles-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  padding: 8px;
+  gap: 8px;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.scoring-tile {
+  display: flex;
+  flex-direction: row;
+  border: 2px solid black;
+  background-color: white;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+
+.scoring-tile.current-round {
+  outline: 4px solid #facc15;
+  /* yellow-400 */
+  outline-offset: -2px;
+  /* Pull inside slightly or outside depending on preference, but ring usually implies outside-ish */
+  z-index: 10;
+}
+
+.scoring-tile.past-round {
+  opacity: 0.5;
+}
+
+.tile-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.tile-section.left {
+  border-right: 2px solid black;
+}
+
+.content-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vp-text {
+  font-weight: bold;
+  font-size: 1.125rem;
+  /* text-lg */
+}
+
+.final-round-text {
+  color: #9ca3af;
+  /* gray-400 */
+  font-size: 0.875rem;
+  /* text-sm */
+  font-style: italic;
+}
+
+/* Icon sizing helpers */
+.icon-lg {
+  width: 32px;
+  height: 32px;
+}
+
+.icon-md {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-sm {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-xs {
+  width: 12px;
+  height: 12px;
+}
+
+/* Cult Dots */
+.cult-dots-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cult-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.bg-red-500 {
+  background-color: #ef4444;
+}
+
+.bg-blue-500 {
+  background-color: #3b82f6;
+}
+
+.bg-amber-700 {
+  background-color: #b45309;
+}
+
+.bg-gray-400 {
+  background-color: #9ca3af;
+}
+
+/* Town Key Icon */
+.town-icon {
+  border: 2px solid #4b5563;
+  /* gray-600 */
+  border-radius: 9999px;
+  background-color: #e5e7eb;
+  /* gray-200 */
+  color: #1f2937;
+  /* gray-800 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.6rem;
+  /* smaller than text-xs */
+}
+
+/* Reward Icons */
+.reward-power {
+  background-color: #7e22ce;
+  /* purple-700 */
+  color: white;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 12px;
+  width: 24px;
+  height: 24px;
+}
+
+.reward-worker {
+  background-color: white;
+  border: 2px solid #9ca3af;
+  /* gray-400 */
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.reward-coin {
+  background-color: #facc15;
+  /* yellow-400 */
+  border: 1px solid #ca8a04;
+  /* yellow-600 */
+  border-radius: 9999px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Priest Icon Container (0 steps) */
+.priest-icon-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.arrow-rotated {
+  transform: rotate(90deg);
+  color: #9ca3af;
+  /* gray-400 */
+}

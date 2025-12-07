@@ -107,9 +107,10 @@ export interface GameState {
   phase: GamePhase
   players: Record<string, PlayerState>
   order: string[]
-  activeIndex: number
+  currentTurn: number
   map: MapState
   round: RoundState
   started: boolean
   finished: boolean
+  scoringTiles?: number[]
 }

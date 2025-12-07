@@ -79,6 +79,9 @@ func (m *Manager) CreateGame(id string, playerIDs []string) error {
 	}
 
 	gs := NewGameState()
+	if err := gs.ScoringTiles.InitializeForGame(); err != nil {
+		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
+	}
 
 	// Add players without factions initially
 	for _, pid := range playerIDs {
@@ -173,5 +176,15 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 		},
 		"started":  gs.Phase != PhaseSetup,
 		"finished": gs.Phase == PhaseEnd,
+		"scoringTiles": func() []int {
+			if gs.ScoringTiles == nil {
+				return nil
+			}
+			tiles := make([]int, len(gs.ScoringTiles.Tiles))
+			for i, t := range gs.ScoringTiles.Tiles {
+				tiles[i] = int(t.Type)
+			}
+			return tiles
+		}(),
 	}
 }

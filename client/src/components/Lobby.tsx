@@ -133,6 +133,7 @@ export function Lobby() {
                   className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   disabled={!isConnected}
                 >
+                  <option value={1}>1 player</option>
                   <option value={2}>2 players</option>
                   <option value={3}>3 players</option>
                   <option value={4}>4 players</option>

@@ -1,6 +1,7 @@
 import { useParams } from 'react-router-dom'
-import { useMemo, useEffect } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
+import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { CultTracks } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
 import { FACTIONS } from '../data/factions'
@@ -8,6 +9,11 @@ import { useGameStore } from '../stores/gameStore'
 import { useActionService } from '../services/actionService'
 import { CultType, GamePhase } from '../types/game.types'
 import { useWebSocket } from '../services/WebSocketContext'
+import { Responsive, WidthProvider, Layouts } from 'react-grid-layout'
+import 'react-grid-layout/css/styles.css'
+import 'react-resizable/css/styles.css'
+
+const ResponsiveGridLayout = WidthProvider(Responsive)
 
 export function Game() {
   const { gameId } = useParams()
@@ -17,6 +23,17 @@ export function Game() {
 
   console.log('Game.tsx: Render', { gameId, gameState, localPlayerId })
   const { submitSetupDwelling, submitSelectFaction } = useActionService()
+
+  // Default layout configuration
+  const defaultLayouts = {
+    lg: [
+      { i: 'scoring', x: 0, y: 0, w: 2, h: 14, minW: 2, minH: 6 },
+      { i: 'board', x: 2, y: 0, w: 8, h: 14, minW: 6, minH: 10 },
+      { i: 'cult', x: 10, y: 0, w: 2, h: 14, minW: 2, minH: 6 }
+    ]
+  }
+
+  const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
 
   useEffect(() => {
     if (isConnected && gameId && !gameState) {
@@ -137,7 +154,15 @@ export function Game() {
   return (
     <div className="min-h-screen p-4 bg-gray-100">
       <div className="max-w-[1800px] mx-auto">
-        <h1 className="text-3xl font-bold text-gray-800 mb-4">Terra Mystica - Game {gameId}</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-3xl font-bold text-gray-800">Terra Mystica - Game {gameId}</h1>
+          <button
+            onClick={() => setLayouts(defaultLayouts)}
+            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+          >
+            Reset Layout
+          </button>
+        </div>
 
         {/* Faction Selector - shown above game board during faction selection phase */}
         {gameState?.phase === GamePhase.FactionSelection && (
@@ -149,16 +174,48 @@ export function Game() {
           />
         )}
 
-        {/* Game Board and Cult Tracks - side by side */}
-        <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start' }}>
+        {/* Draggable Grid Layout */}
+        <ResponsiveGridLayout
+          className="layout"
+          layouts={layouts}
+          breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
+          rowHeight={60}
+          onLayoutChange={(layout, allLayouts) => setLayouts(allLayouts)}
+          isDraggable={true}
+          isResizable={true}
+          resizeHandles={['e']}
+          draggableHandle=".drag-handle"
+        >
+          {/* Scoring Tiles */}
+          <div key="scoring" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+            <div className="drag-handle relative z-10 bg-gray-300 p-1 cursor-move flex justify-center border-b border-gray-400 hover:bg-gray-400 transition-colors">
+              <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+            </div>
+            <div className="flex-1 overflow-auto">
+              <ScoringTiles
+                tiles={gameState?.scoringTiles || []}
+                currentRound={gameState?.round?.round || 1}
+              />
+            </div>
+          </div>
+
           {/* Main game board */}
-          <div style={{ marginRight: '1rem' }}>
-            <GameBoard onHexClick={handleHexClick} />
+          <div key="board" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+            <div className="drag-handle relative z-10 bg-gray-300 p-1 cursor-move flex justify-center border-b border-gray-400 hover:bg-gray-400 transition-colors">
+              <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
+              <GameBoard onHexClick={handleHexClick} />
+            </div>
           </div>
 
           {/* Cult Tracks sidebar */}
-          <div style={{ width: '280px', flexShrink: 0 }}>
-            <div className="bg-white rounded-lg shadow-md p-4" style={{ position: 'sticky', top: '1rem' }}>
+          <div key="cult" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+            <div className="drag-handle relative z-10 bg-gray-300 p-1 cursor-move flex justify-center border-b border-gray-400 hover:bg-gray-400 transition-colors">
+              <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+            </div>
+            <div className="flex-1 overflow-auto p-2">
               <CultTracks
                 cultPositions={
                   gameState?.phase === GamePhase.FactionSelection
@@ -173,7 +230,7 @@ export function Game() {
               />
             </div>
           </div>
-        </div>
+        </ResponsiveGridLayout>
       </div>
     </div>
   )
