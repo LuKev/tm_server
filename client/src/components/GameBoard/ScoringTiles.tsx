@@ -1,9 +1,19 @@
-import React from 'react';
 import {
-    Shovel,
     ArrowRight
 } from 'lucide-react';
 import './ScoringTiles.css';
+import {
+    DwellingIcon,
+    TradingHouseIcon,
+    TempleIcon,
+    StrongholdIcon,
+    SanctuaryIcon,
+    SpadeIcon,
+    PriestIcon,
+    WorkerIcon,
+    CoinIcon,
+    PowerIcon
+} from '../shared/Icons';
 
 // Types for tile configuration
 enum ActionType {
@@ -53,43 +63,6 @@ const TILE_CONFIGS: Record<number, TileConfig> = {
     8: { id: 8, action: ActionType.Town, vp: 5, cult: CultType.Earth, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
 };
 
-// SVG Components from Building.tsx
-// SVG Components from Building.tsx
-const DwellingIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 30 30" className={`icon-lg ${className || ''}`}>
-        <path d="M 15 5 L 25 15 L 25 25 L 5 25 L 5 15 Z" fill="#D4B483" stroke="#5C4033" strokeWidth="2" />
-    </svg>
-);
-
-const TradingHouseIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 40 40" className={`icon-lg ${className || ''}`}>
-        <path d="M 10 10 L 20 20 L 20 27 L 30 27 L 30 40 L 0 40 L 0 30 L 0 20 Z" transform="translate(5, -5)" fill="#D4B483" stroke="#5C4033" strokeWidth="2" />
-    </svg>
-);
-
-const TempleIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 30 30" className={`icon-lg ${className || ''}`}>
-        <circle cx="15" cy="15" r="12" fill="#D4B483" stroke="#5C4033" strokeWidth="2" />
-    </svg>
-);
-
-const SanctuaryIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 40 30" className={`icon-lg ${className || ''}`}>
-        {/* Pill shape: Two arcs connected by lines */}
-        {/* Left arc center roughly (13, 15), Right arc center roughly (27, 15) for 40 width */}
-        {/* Let's try to match the canvas logic: center +/- 7. Radius 12. */}
-        {/* Canvas coords were relative to hex center. Here we fit in 40x30 box. Center (20, 15). */}
-        {/* Left center: (13, 15). Right center: (27, 15). Radius 12. */}
-        <path d="M 13 27 A 12 12 0 0 1 13 3 L 27 3 A 12 12 0 0 1 27 27 Z" fill="#D4B483" stroke="#5C4033" strokeWidth="2" />
-    </svg>
-);
-
-const StrongholdIcon = ({ className }: { className?: string }) => (
-    <svg viewBox="0 0 30 30" className={`icon-lg ${className || ''}`}>
-        <path d="M 5 5 Q 10 15 5 25 Q 15 20 25 25 Q 20 15 25 5 Q 15 10 5 5 Z" fill="#D4B483" stroke="#5C4033" strokeWidth="2" />
-    </svg>
-);
-
 const TownIcon = ({ className }: { className?: string }) => (
     <div className={`icon-lg town-icon ${className || ''}`}>
         TOWN
@@ -98,16 +71,16 @@ const TownIcon = ({ className }: { className?: string }) => (
 
 const ActionIcon = ({ type, className }: { type: ActionType, className?: string }) => {
     switch (type) {
-        case ActionType.Dwelling: return <DwellingIcon className={className} />;
-        case ActionType.TradingHouse: return <TradingHouseIcon className={className} />;
-        case ActionType.Temple: return <TempleIcon className={className} />;
+        case ActionType.Dwelling: return <DwellingIcon className={`icon-lg ${className || ''}`} />;
+        case ActionType.TradingHouse: return <TradingHouseIcon className={`icon-lg ${className || ''}`} />;
+        case ActionType.Temple: return <TempleIcon className={`icon-lg ${className || ''}`} />;
         case ActionType.Stronghold: return (
             <div className="flex items-center gap-1">
-                <StrongholdIcon className={className} />
-                <SanctuaryIcon className={className} />
+                <StrongholdIcon className={`icon-md ${className || ''}`} />
+                <SanctuaryIcon className={`icon-md ${className || ''}`} />
             </div>
         );
-        case ActionType.Spade: return <Shovel className={`icon-lg ${className || ''}`} color="#5C4033" />;
+        case ActionType.Spade: return <SpadeIcon className={`icon-lg ${className || ''}`} />;
         case ActionType.Town: return <TownIcon className={className} />;
         default: return null;
     }
@@ -115,21 +88,11 @@ const ActionIcon = ({ type, className }: { type: ActionType, className?: string 
 
 const RewardIcon = ({ type, amount, className }: { type: RewardType, amount: number, className?: string }) => {
     switch (type) {
-        case RewardType.Priest: return (
-            <svg viewBox="0 0 20 20" className={`icon-md ${className || ''}`}>
-                <path d="M 10 2 L 14 6 L 14 18 L 6 18 L 6 6 Z" fill="#A0A0A0" stroke="#404040" strokeWidth="1" />
-            </svg>
-        );
-        case RewardType.Power: return (
-            <div className={`icon-xs reward-power ${className || ''}`}>
-                {amount}
-            </div>
-        );
-        case RewardType.Spade: return <Shovel className={`icon-md ${className || ''}`} color="#5C4033" />;
-        case RewardType.Worker: return <div className={`icon-sm reward-worker ${className || ''}`} />;
-        case RewardType.Coin: return (
-            <div className={`icon-sm reward-coin ${className || ''}`} />
-        );
+        case RewardType.Priest: return <PriestIcon className={`icon-md ${className || ''}`} />;
+        case RewardType.Power: return <PowerIcon amount={amount} className={`icon-xs reward-power ${className || ''}`} />;
+        case RewardType.Spade: return <SpadeIcon className={`icon-md ${className || ''}`} />;
+        case RewardType.Worker: return <WorkerIcon className={`icon-sm reward-worker ${className || ''}`} />;
+        case RewardType.Coin: return <CoinIcon className={`icon-sm reward-coin ${className || ''}`} />;
         default: return null;
     }
 };
@@ -149,9 +112,7 @@ const CultDots = ({ type, count }: { type: CultType, count: number }) => {
         return (
             <div className="priest-icon-container">
                 {/* Priest Icon */}
-                <svg viewBox="0 0 20 20" className="icon-sm">
-                    <path d="M 10 2 L 14 6 L 14 18 L 6 18 L 6 6 Z" fill="#A0A0A0" stroke="#404040" strokeWidth="1" />
-                </svg>
+                <PriestIcon className="icon-sm" />
                 <ArrowRight className="icon-xs arrow-rotated" />
                 <div className={`cult-dot ${getColorClass(type)}`} />
             </div>

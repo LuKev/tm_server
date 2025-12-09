@@ -42,6 +42,15 @@ export enum CultType {
   Air = 3,
 }
 
+export enum PowerActionType {
+  Bridge = 0,
+  Priest = 1,
+  Workers = 2,
+  Coins = 3,
+  Spade = 4,
+  DoubleSpade = 5,
+}
+
 export interface Resources {
   coins: number
   workers: number

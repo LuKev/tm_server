@@ -345,8 +345,14 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left - dims.offsetX;
-    const y = e.clientY - rect.top - dims.offsetY;
+
+    // Calculate scaling factor between CSS size (rect) and internal canvas size (dims)
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    // Apply scaling to mouse coordinates
+    const x = (e.clientX - rect.left) * scaleX - dims.offsetX;
+    const y = (e.clientY - rect.top) * scaleY - dims.offsetY;
 
     // Find which hex was clicked (simple distance check)
     let closestHex: MapHexData | null = null;
@@ -379,11 +385,14 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       width={dims.width}
       height={dims.height}
       style={{
+        width: '100%',
+        height: 'auto', // Maintain aspect ratio
         maxWidth: '100%',
         maxHeight: '100%',
         border: '1px solid #ccc',
         backgroundColor: '#f0f0f0',
-        cursor: 'pointer'
+        cursor: 'pointer',
+        display: 'block' // Remove inline spacing
       }}
       onClick={(e) => handleMouseEvent(e, true)}
       onMouseMove={(e) => handleMouseEvent(e, false)}

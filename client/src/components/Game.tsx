@@ -12,6 +12,7 @@ import { useWebSocket } from '../services/WebSocketContext'
 import { Responsive, WidthProvider, Layouts } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
+import './Game.css'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -27,9 +28,9 @@ export function Game() {
   // Default layout configuration
   const defaultLayouts = {
     lg: [
-      { i: 'scoring', x: 0, y: 0, w: 2, h: 14, minW: 2, minH: 6 },
-      { i: 'board', x: 2, y: 0, w: 8, h: 14, minW: 6, minH: 10 },
-      { i: 'cult', x: 10, y: 0, w: 2, h: 14, minW: 2, minH: 6 }
+      { i: 'scoring', x: 0, y: 0, w: 2, h: 10, minW: 2, minH: 6 },
+      { i: 'board', x: 2, y: 0, w: 8, h: 11, minW: 6, minH: 10 },
+      { i: 'cult', x: 10, y: 0, w: 2, h: 10, minW: 2, minH: 6 }
     ]
   }
 
@@ -189,8 +190,8 @@ export function Game() {
         >
           {/* Scoring Tiles */}
           <div key="scoring" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-            <div className="drag-handle relative z-10 bg-gray-300 p-1 cursor-move flex justify-center border-b border-gray-400 hover:bg-gray-400 transition-colors">
-              <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
             </div>
             <div className="flex-1 overflow-auto">
               <ScoringTiles
@@ -202,8 +203,8 @@ export function Game() {
 
           {/* Main game board */}
           <div key="board" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-            <div className="drag-handle relative z-10 bg-gray-300 p-1 cursor-move flex justify-center border-b border-gray-400 hover:bg-gray-400 transition-colors">
-              <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
               <GameBoard onHexClick={handleHexClick} />
@@ -212,8 +213,8 @@ export function Game() {
 
           {/* Cult Tracks sidebar */}
           <div key="cult" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
-            <div className="drag-handle relative z-10 bg-gray-300 p-1 cursor-move flex justify-center border-b border-gray-400 hover:bg-gray-400 transition-colors">
-              <div className="w-12 h-1.5 bg-gray-600 rounded-full" />
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
             </div>
             <div className="flex-1 overflow-auto p-2">
               <CultTracks

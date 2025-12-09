@@ -1,0 +1,203 @@
+.power-actions-container {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 4px;
+    /* Reduced from 8px */
+    width: 100%;
+    height: 100%;
+    /* Fill parent */
+    padding: 4px;
+    /* Reduced from 8px */
+    background-color: white;
+    box-sizing: border-box;
+}
+
+.power-action-tile {
+    display: flex;
+    flex-direction: column;
+    /* Stack vertically to fit 6 columns */
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    /* Reduced from 4px */
+    border: 2px solid black;
+    background-color: white;
+    padding: 2px;
+    /* Reduced from 4px */
+    min-height: 0;
+    height: 100%;
+    /* Fill grid cell */
+    cursor: pointer;
+    transition: background-color 0.2s;
+    overflow: hidden;
+}
+
+.power-action-tile:hover {
+    background-color: #f3f4f6;
+}
+
+.power-cost {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0;
+    /* Removed margin */
+}
+
+.power-cost-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #7e22ce;
+    /* purple-700 */
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #581c87;
+    /* purple-900 */
+}
+
+.action-arrow {
+    color: #6b7280;
+    transform: rotate(90deg);
+    /* Point down for vertical stack */
+    width: 16px;
+    height: 16px;
+}
+
+.action-result {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+}
+
+/* Octagon Wrapper */
+.octagon-wrapper {
+    width: auto;
+    height: 100%;
+    aspect-ratio: 1;
+    max-width: 48px;
+    max-height: 48px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.octagon-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.octagon-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+/* Icon Styles */
+.icon-bridge {
+    width: 32px;
+    height: 16px;
+}
+
+.icon-priest {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-spade {
+    width: 20px;
+    height: 20px;
+}
+
+.icon-spade-small {
+    width: 16px;
+    height: 16px;
+}
+
+/* Workers Action */
+.workers-container {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+}
+
+.worker-icon-styled {
+    width: 12px;
+    height: 12px;
+    background-color: white;
+    border: 1px solid #6b7280;
+    /* gray-500 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Coins Action */
+.coin-icon-large {
+    width: 24px;
+    height: 24px;
+    background-color: #facc15;
+    /* yellow-400 */
+    border: 1px solid #ca8a04;
+    /* yellow-600 */
+    border-radius: 9999px;
+    /* rounded-full */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    /* shadow-sm */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.coins-text {
+    font-weight: bold;
+    color: black;
+    /* Black text on yellow coin */
+    font-size: 12px;
+    line-height: 1;
+}
+
+/* Double Spade Action */
+.double-spade-container {
+    display: flex;
+    gap: 0;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Helper to center icon in octagon */
+.action-octagon-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    /* or black depending on icon */
+}
+
+/* Specific icon adjustments */
+.icon-white {
+    color: white;
+    stroke: white;
+    fill: white;
+}
+
+.icon-black {
+    color: black;
+    stroke: black;
+}
