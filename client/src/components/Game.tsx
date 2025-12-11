@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom'
 import { useMemo, useEffect, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
+import { TownTiles } from './GameBoard/TownTiles'
 import { CultTracks } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
 import { FACTIONS } from '../data/factions'
@@ -30,7 +31,8 @@ export function Game() {
     lg: [
       { i: 'scoring', x: 0, y: 0, w: 2, h: 10, minW: 2, minH: 6 },
       { i: 'board', x: 2, y: 0, w: 8, h: 11, minW: 6, minH: 10 },
-      { i: 'cult', x: 10, y: 0, w: 2, h: 10, minW: 2, minH: 6 }
+      { i: 'cult', x: 10, y: 0, w: 2, h: 10, minW: 2, minH: 6 },
+      { i: 'towns', x: 0, y: 10, w: 4, h: 4, minW: 2, minH: 3 }
     ]
   }
 
@@ -229,6 +231,16 @@ export function Game() {
                     : getCultPositions()
                 }
               />
+            </div>
+          </div>
+
+          {/* Town Tiles */}
+          <div key="towns" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
+            </div>
+            <div className="flex-1 overflow-auto p-2">
+              <TownTiles availableTiles={gameState?.townTiles} />
             </div>
           </div>
         </ResponsiveGridLayout>
