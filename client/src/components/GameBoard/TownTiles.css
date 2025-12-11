@@ -1,0 +1,149 @@
+.town-tiles-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+}
+
+/* Individual tile slot */
+.town-tile-slot {
+    position: relative;
+    width: 100%;
+    padding-top: 115%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    container-type: inline-size;
+    /* Enable container queries */
+}
+
+.town-tile {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #ffffff;
+    background-image:
+        url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 115"><polygon points="50,0 100,28.75 100,86.25 50,115 0,86.25 0,28.75" fill="white" stroke="black" stroke-width="4" vector-effect="non-scaling-stroke"/></svg>');
+    background-size: 100% 100%;
+    background-repeat: no-repeat;
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    /* Font size: 16% of tile width (doubled from 8%) */
+    font-size: 16cqw;
+    /* Container query width - falls back gracefully */
+    font-weight: bold;
+    color: #333;
+    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+    transition: transform 0.2s;
+}
+
+/* Fallback for browsers without container query support */
+@supports not (font-size: 1cqw) {
+    .town-tile {
+        font-size: clamp(0.8rem, 1.6vw, 2rem);
+    }
+}
+
+/* Inner content styling */
+.town-tile-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 60%;
+    width: 70%;
+    position: relative;
+    z-index: 1;
+}
+
+.town-tile-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2em 0.4em;
+    width: 100%;
+}
+
+.town-tile-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.1em;
+}
+
+/* Icon sizing for town tiles - ensure proper aspect ratio */
+.town-tile-bottom .icon-md {
+    width: 1.5em;
+    height: 1.5em;
+    min-width: 1.5em;
+    min-height: 1.5em;
+    font-size: 1em;
+}
+
+/* Stacking offsets */
+.town-tile-stack-0 {
+    z-index: 10;
+    transform: translateY(0);
+}
+
+.town-tile-stack-1 {
+    z-index: 9;
+    transform: translateY(-6px) translateX(3px);
+    filter: brightness(0.9);
+}
+
+.town-tile-stack-2 {
+    z-index: 8;
+    transform: translateY(-12px) translateX(6px);
+    filter: brightness(0.8);
+}
+
+.vp-value {
+    font-size: 1.75em;
+    font-weight: 800;
+    color: #1F2937;
+    margin-right: 0.1em;
+}
+
+.vp-label {
+    font-size: 0.7em;
+    font-weight: 600;
+    color: #6B7280;
+    text-transform: uppercase;
+}
+
+.reward-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2em;
+    margin-top: -0.6em;
+}
+
+.reward-amount {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #1F2937;
+}
+
+.reward-text {
+    font-size: 0.65em;
+    font-weight: 600;
+    color: #374151;
+    text-align: center;
+    line-height: 0.9;
+}
+
+.empty-slot {
+    opacity: 0.2;
+    font-size: 0.75rem;
+    text-align: center;
+}

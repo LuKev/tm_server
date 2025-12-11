@@ -52,18 +52,57 @@ export const SpadeIcon = ({ className }: { className?: string }) => (
     <Shovel className={className} color="#5C4033" />
 );
 
-export const WorkerIcon = ({ className }: { className?: string }) => (
-    <div className={`bg-white border-2 border-gray-400 shadow-sm ${className}`} />
+export const WorkerIcon = ({ className, children }: { className?: string, children?: React.ReactNode }) => (
+    <div className={className} style={{ backgroundColor: 'white', border: '0.1em solid #9CA3AF', boxShadow: '0 0.05em 0.1em rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1em' }}>
+        {children}
+    </div>
 );
 
 export const CoinIcon = ({ className, children }: { className?: string, children?: React.ReactNode }) => (
-    <div className={`rounded-full bg-yellow-400 border border-yellow-600 shadow-sm flex items-center justify-center ${className}`}>
+    <div className={className} style={{ borderRadius: '50%', backgroundColor: '#FBBF24', border: '0.05em solid #D97706', boxShadow: '0 0.05em 0.1em rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1em' }}>
         {children}
     </div>
 );
 
 export const PowerIcon = ({ amount, className }: { amount: number, className?: string }) => (
-    <div className={`flex items-center justify-center bg-purple-700 text-white rounded-full font-bold ${className}`}>
+    <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#7C3AED', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '1em' }}>
         {amount}
     </div>
 );
+
+export const CultIcon = ({ className }: { className?: string }) => (
+    <div className={className} style={{ borderRadius: '50%', backgroundColor: '#E5E7EB', border: '1px solid #9CA3AF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem' }}>
+        C
+    </div>
+);
+
+export const CultRhombusIcon = ({ className, showNumber = false }: { className?: string, showNumber?: boolean }) => {
+    // Rhombus where circles just touch at their borders (not intersecting)
+    // Using em units for responsive scaling
+    // Base: container 2.47em × 2em (matches ratio 37:30)
+
+    const horizontalOffset = 0.866; // em units: ~35% of width for rhombus geometry
+
+    return (
+        <div className={className} style={{ position: 'relative', width: '2.47em', height: '2em', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Top circle - white (Air) */}
+            <div style={{ position: 'absolute', top: '0.5em', left: '50%', transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#E5E7EB', border: '0.1em solid #333' }} />
+
+            {/* Left circle - brown (Earth) */}
+            <div style={{ position: 'absolute', top: '50%', left: `calc(50% - ${horizontalOffset}em)`, transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#92400E', border: '0.1em solid #333' }} />
+
+            {/* Right circle - blue (Water) */}
+            <div style={{ position: 'absolute', top: '50%', left: `calc(50% + ${horizontalOffset}em)`, transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#3B82F6', border: '0.1em solid #333' }} />
+
+            {/* Bottom circle - red (Fire) */}
+            <div style={{ position: 'absolute', top: '1.5em', left: '50%', transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#EF4444', border: '0.1em solid #333' }} />
+
+            {/* Number "2" in the center - only for 2VP town */}
+            {showNumber && (
+                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '1em', fontWeight: 'bold', color: '#333', textShadow: '0 0 0.2em rgba(255, 255, 255, 0.8)', zIndex: 10 }}>
+                    2
+                </div>
+            )}
+        </div>
+    );
+};

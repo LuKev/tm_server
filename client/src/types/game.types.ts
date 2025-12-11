@@ -51,6 +51,17 @@ export enum PowerActionType {
   DoubleSpade = 5,
 }
 
+export enum TownTileId {
+  Vp5Coins6 = 0,
+  Vp7Workers2 = 1,
+  Vp9Priest1 = 2,
+  Vp6Power8 = 3,
+  Vp8Cult1 = 4,
+  Vp2Ship1 = 5, // Mini expansion
+  Vp4Carpet1 = 6, // Mini expansion
+  Vp11 = 7, // Mini expansion
+}
+
 export interface Resources {
   coins: number
   workers: number
@@ -122,4 +133,5 @@ export interface GameState {
   started: boolean
   finished: boolean
   scoringTiles?: number[]
+  townTiles?: number[]
 }
