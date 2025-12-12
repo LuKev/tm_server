@@ -394,8 +394,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
         cursor: 'pointer',
         display: 'block' // Remove inline spacing
       }}
-      onClick={(e) => handleMouseEvent(e, true)}
-      onMouseMove={(e) => handleMouseEvent(e, false)}
+      onClick={(e) => { handleMouseEvent(e, true); }}
+      onMouseMove={(e) => { handleMouseEvent(e, false); }}
     />
   );
 };

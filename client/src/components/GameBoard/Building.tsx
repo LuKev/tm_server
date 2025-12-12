@@ -15,7 +15,7 @@ export const BuildingComponent: React.FC<BuildingComponentProps> = ({
 }) => {
   const color = FACTION_COLORS[building.faction];
   const contrastColor = getContrastColor(color);
-  
+
   switch (building.type) {
     case BuildingType.Dwelling:
       return <Dwelling center={center} color={color} contrastColor={contrastColor} />;
@@ -34,21 +34,21 @@ export const BuildingComponent: React.FC<BuildingComponentProps> = ({
 
 // Dwelling - simple house shape (pentagon)
 // Based on terra-mystica/stc/game.js drawDwelling
-const Dwelling: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({ 
-  center, 
-  color, 
-  contrastColor 
+const Dwelling: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({
+  center,
+  color,
+  contrastColor
 }) => {
   const { x, y } = center;
   const path = `
-    M ${x} ${y - 10}
-    L ${x + 10} ${y}
-    L ${x + 10} ${y + 10}
-    L ${x - 10} ${y + 10}
-    L ${x - 10} ${y}
+    M ${String(x)} ${String(y - 10)}
+    L ${String(x + 10)} ${String(y)}
+    L ${String(x + 10)} ${String(y + 10)}
+    L ${String(x - 10)} ${String(y + 10)}
+    L ${String(x - 10)} ${String(y)}
     Z
   `;
-  
+
   return (
     <path
       d={path}
@@ -61,24 +61,24 @@ const Dwelling: React.FC<{ center: { x: number; y: number }; color: string; cont
 
 // Trading House - house with chimney
 // Based on terra-mystica/stc/game.js drawTradingPost
-const TradingHouse: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({ 
-  center, 
-  color, 
-  contrastColor 
+const TradingHouse: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({
+  center,
+  color,
+  contrastColor
 }) => {
   const { x, y } = center;
   const path = `
-    M ${x} ${y - 20}
-    L ${x + 10} ${y - 10}
-    L ${x + 10} ${y - 3}
-    L ${x + 20} ${y - 3}
-    L ${x + 20} ${y + 10}
-    L ${x - 10} ${y + 10}
-    L ${x - 10} ${y}
-    L ${x - 10} ${y - 10}
+    M ${String(x)} ${String(y - 20)}
+    L ${String(x + 10)} ${String(y - 10)}
+    L ${String(x + 10)} ${String(y - 3)}
+    L ${String(x + 20)} ${String(y - 3)}
+    L ${String(x + 20)} ${String(y + 10)}
+    L ${String(x - 10)} ${String(y + 10)}
+    L ${String(x - 10)} ${String(y)}
+    L ${String(x - 10)} ${String(y - 10)}
     Z
   `;
-  
+
   return (
     <path
       d={path}
@@ -91,10 +91,10 @@ const TradingHouse: React.FC<{ center: { x: number; y: number }; color: string; 
 
 // Temple - circle
 // Based on terra-mystica/stc/game.js drawTemple
-const Temple: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({ 
-  center, 
-  color, 
-  contrastColor 
+const Temple: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({
+  center,
+  color,
+  contrastColor
 }) => {
   return (
     <circle
@@ -110,15 +110,15 @@ const Temple: React.FC<{ center: { x: number; y: number }; color: string; contra
 
 // Stronghold - rounded square shape
 // Based on terra-mystica/stc/game.js drawStronghold
-const Stronghold: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({ 
-  center, 
-  color, 
-  contrastColor 
+const Stronghold: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({
+  center,
+  color,
+  contrastColor
 }) => {
   const { x, y } = center;
   const size = 15;
   const yOffset = y - 5;
-  
+
   return (
     <rect
       x={x - size}
@@ -136,16 +136,16 @@ const Stronghold: React.FC<{ center: { x: number; y: number }; color: string; co
 
 // Sanctuary - double circle (peanut shape)
 // Based on terra-mystica/stc/game.js drawSanctuary
-const Sanctuary: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({ 
-  center, 
-  color, 
-  contrastColor 
+const Sanctuary: React.FC<{ center: { x: number; y: number }; color: string; contrastColor: string }> = ({
+  center,
+  color,
+  contrastColor
 }) => {
   const { x, y } = center;
   const yOffset = y - 5;
   const circleSize = 12;
   const separation = 7;
-  
+
   return (
     <g>
       <circle

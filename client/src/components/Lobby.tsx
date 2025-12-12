@@ -9,7 +9,7 @@ export function Lobby() {
   const [playerName, setPlayerName] = useState('')
   const [testMessage, setTestMessage] = useState('')
   const [messages, setMessages] = useState<string[]>([])
-  const [games, setGames] = useState<Array<{ id: string; name: string; players: string[]; maxPlayers: number }>>([])
+  const [games, setGames] = useState<{ id: string; name: string; players: string[]; maxPlayers: number }[]>([])
   const [newGameName, setNewGameName] = useState('')
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
 
@@ -36,7 +36,7 @@ export function Lobby() {
       } else if (msg.type === 'game_state_update') {
         const gameState = msg.payload
         // If we are in this game AND it has started, navigate to it
-        if (gameState && gameState.id && gameState.players && gameState.players[playerName] && gameState.started) {
+        if (gameState?.id && gameState.players?.[playerName] && gameState.started) {
           navigate(`/game/${gameState.id}`)
         }
       }
@@ -106,7 +106,7 @@ export function Lobby() {
               <input
                 type="text"
                 value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                onChange={(e) => { setPlayerName(e.target.value); }}
                 className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="Enter your name"
               />
@@ -122,14 +122,14 @@ export function Lobby() {
                 <input
                   type="text"
                   value={newGameName}
-                  onChange={(e) => setNewGameName(e.target.value)}
+                  onChange={(e) => { setNewGameName(e.target.value); }}
                   className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="Game Name"
                   disabled={!isConnected}
                 />
                 <select
                   value={newGameMaxPlayers}
-                  onChange={(e) => setNewGameMaxPlayers(Number(e.target.value))}
+                  onChange={(e) => { setNewGameMaxPlayers(Number(e.target.value)); }}
                   className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                   disabled={!isConnected}
                 >
@@ -147,7 +147,7 @@ export function Lobby() {
                   Create
                 </button>
                 <button
-                  onClick={() => sendMessage({ type: 'list_games' })}
+                  onClick={() => { sendMessage({ type: 'list_games' }); }}
                   disabled={!isConnected}
                   className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg font-medium transition-colors"
                 >
@@ -164,7 +164,7 @@ export function Lobby() {
                 <input
                   type="text"
                   value={testMessage}
-                  onChange={(e) => setTestMessage(e.target.value)}
+                  onChange={(e) => { setTestMessage(e.target.value); }}
                   onKeyPress={(e) => e.key === 'Enter' && handleSendTest()}
                   className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="Type a message..."
@@ -200,7 +200,7 @@ export function Lobby() {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-semibold text-white">Open Games</h2>
                 <button
-                  onClick={() => sendMessage({ type: 'list_games' })}
+                  onClick={() => { sendMessage({ type: 'list_games' }); }}
                   disabled={!isConnected}
                   className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 text-white rounded-md"
                 >Refresh</button>
@@ -219,12 +219,12 @@ export function Lobby() {
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleJoinGame(g.id)}
+                            onClick={() => { handleJoinGame(g.id); }}
                             disabled={!isConnected || !playerName.trim() || isFull}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium"
                           >Join</button>
                           <button
-                            onClick={() => sendMessage({ type: 'start_game', payload: { gameID: g.id } })}
+                            onClick={() => { sendMessage({ type: 'start_game', payload: { gameID: g.id } }); }}
                             disabled={!isConnected || !isFull}
                             className={`px-4 py-2 ${isFull
                               ? 'bg-green-600 hover:bg-green-700'

@@ -70,10 +70,10 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
     const tiles = availableTiles && availableTiles.length > 0 ? availableTiles : defaultTiles;
 
     // Group tiles by ID
-    const tileCounts = tiles.reduce((acc, id) => {
+    const tileCounts = tiles.reduce<Record<number, number>>((acc, id) => {
         acc[id] = (acc[id] || 0) + 1;
         return acc;
-    }, {} as Record<number, number>);
+    }, {});
 
     // Only show slots that have tiles
     const filledSlots = Object.keys(tileCounts).map(Number).sort((a, b) => a - b);

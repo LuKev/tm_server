@@ -127,7 +127,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
       // Background
       ctx.beginPath();
       ctx.rect(0, 0, cultWidth, height);
-      ctx.fillStyle = CULT_COLORS[cult as CultType];
+      ctx.fillStyle = CULT_COLORS[cult];
       ctx.fill();
 
       ctx.translate(0, 10); // Small padding at top
@@ -219,7 +219,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
         ctx.fill();
 
         // Check if this spot has a priest (not clickable if it does)
-        const hasPriest = tile && tile.priests && tile.priests > 0 && tile.faction !== undefined;
+        const hasPriest = tile?.priests && tile.priests > 0 && tile.faction !== undefined;
 
         // Draw border (green if hovered and no priest, gray otherwise)
         if (hoveredTile && hoveredTile.cult === cult && hoveredTile.index === tileIndex && !hasPriest) {
@@ -334,7 +334,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
           y >= tileY && y <= tileY + tileHeight * 2) {
           // Only hover if spot doesn't have a priest
           const tile = tiles[tileIndex];
-          const hasPriest = tile && tile.priests && tile.priests > 0 && tile.faction !== undefined;
+          const hasPriest = tile?.priests && tile.priests > 0 && tile.faction !== undefined;
 
           if (!hasPriest) {
             setHoveredTile({ cult, index: tileIndex });
@@ -404,7 +404,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
           y >= tileY && y <= tileY + tileHeight * 2) {
           // Only click if spot doesn't have a priest
           const tile = tiles[tileIndex];
-          const hasPriest = tile && tile.priests && tile.priests > 0 && tile.faction !== undefined;
+          const hasPriest = tile?.priests && tile.priests > 0 && tile.faction !== undefined;
 
           if (!hasPriest) {
             onBonusTileClick(cult, tileIndex);
@@ -430,7 +430,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
           cursor: hoveredTile ? 'pointer' : 'default'
         }}
         onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredTile(null)}
+        onMouseLeave={() => { setHoveredTile(null); }}
         onClick={handleClick}
       />
     </div>

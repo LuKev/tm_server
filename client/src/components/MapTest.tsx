@@ -197,7 +197,7 @@ export const MapTest: React.FC = () => {
               <input
                 type="checkbox"
                 checked={showBuildings}
-                onChange={(e) => setShowBuildings(e.target.checked)}
+                onChange={(e) => { setShowBuildings(e.target.checked); }}
                 className="w-4 h-4"
               />
               <span>Show test buildings</span>
@@ -207,7 +207,7 @@ export const MapTest: React.FC = () => {
               <input
                 type="checkbox"
                 checked={showBridges}
-                onChange={(e) => setShowBridges(e.target.checked)}
+                onChange={(e) => { setShowBridges(e.target.checked); }}
                 className="w-4 h-4"
               />
               <span>Show test bridges</span>

@@ -24,13 +24,13 @@ export const HEX_HEIGHT = Math.sin(Math.PI / 6) * HEX_SIZE + HEX_SIZE;
  */
 export function hexCenter(row: number, col: number, hasA1 = true): PixelCoord {
   const yOffset = hasA1 ? 0 : -HEX_HEIGHT;
-  
+
   // Odd rows get half-hex offset
   const oddRowOffset = row % 2 ? HEX_WIDTH / 2 : 0;
-  
+
   // Progressive shift: each pair of rows shifts right by one full hex
   const progressiveOffset = Math.floor(row / 2) * HEX_WIDTH;
-  
+
   return {
     x: 5 + HEX_SIZE + col * HEX_WIDTH + oddRowOffset + progressiveOffset,
     y: 5 + HEX_SIZE + row * HEX_HEIGHT + yOffset,
@@ -58,14 +58,14 @@ export function getHexCorners(center: PixelCoord, size = HEX_SIZE): PixelCoord[]
   let x = center.x - Math.cos(Math.PI / 6) * size;
   let y = center.y + Math.sin(Math.PI / 6) * size;
   let angle = 0;
-  
+
   for (let i = 0; i < 6; i++) {
     corners.push({ x, y });
     angle += Math.PI / 3;
     x += Math.sin(angle) * size;
     y += Math.cos(angle) * size;
   }
-  
+
   return corners;
 }
 
@@ -74,14 +74,14 @@ export function getHexCorners(center: PixelCoord, size = HEX_SIZE): PixelCoord[]
  */
 export function getNeighbors(coord: AxialCoord): AxialCoord[] {
   const directions = [
-    { q: +1, r: 0 },
-    { q: +1, r: -1 },
+    { q: 1, r: 0 },
+    { q: 1, r: -1 },
     { q: 0, r: -1 },
     { q: -1, r: 0 },
-    { q: -1, r: +1 },
-    { q: 0, r: +1 },
+    { q: -1, r: 1 },
+    { q: 0, r: 1 },
   ];
-  
+
   return directions.map(dir => ({
     q: coord.q + dir.q,
     r: coord.r + dir.r,
@@ -103,7 +103,7 @@ export function distance(a: AxialCoord, b: AxialCoord): number {
  * Convert coordinate to string key for maps/sets
  */
 export function coordToKey(coord: AxialCoord): string {
-  return `${coord.q},${coord.r}`;
+  return `${String(coord.q)},${String(coord.r)}`;
 }
 
 /**

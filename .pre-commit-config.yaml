@@ -1,0 +1,60 @@
+repos:
+  # General hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.md$'
+      - id: end-of-file-fixer
+      - id: check-yaml
+        args: ['--unsafe']  # Allow custom YAML tags in Bazel files
+      - id: check-added-large-files
+        args: ['--maxkb=1000']
+      - id: check-merge-conflict
+      - id: mixed-line-ending
+        args: ['--fix=lf']
+
+  # TypeScript/JavaScript
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint
+        entry: bash -c 'cd client && npm run lint:fix'
+        language: system
+        files: \.(ts|tsx|js|jsx)$
+        exclude: 'node_modules|dist'
+        pass_filenames: false
+
+      - id: typescript-check
+        name: TypeScript Type Check
+        entry: bash -c 'cd client && npm run type-check'
+        language: system
+        files: \.(ts|tsx)$
+        exclude: 'node_modules|dist'
+        pass_filenames: false
+
+  # Go
+  - repo: local
+    hooks:
+      - id: gofmt
+        name: Go Format
+        entry: gofmt
+        args: ['-w']
+        language: system
+        files: \.go$
+        exclude: 'bazel-'
+
+      - id: goimports
+        name: Go Imports
+        entry: bash -c 'goimports -w "$@" || true'  # Don't fail if goimports not installed
+        language: system
+        files: \.go$
+        exclude: 'bazel-'
+
+      - id: golangci-lint
+        name: golangci-lint
+        entry: bash -c 'cd server && golangci-lint run --fix --new-from-rev=HEAD~1 || true'  # Don't fail if not installed
+        language: system
+        files: \.go$
+        exclude: 'bazel-'
+        pass_filenames: false

@@ -10,7 +10,7 @@ import { useGameStore } from '../stores/gameStore'
 import { useActionService } from '../services/actionService'
 import { CultType, GamePhase } from '../types/game.types'
 import { useWebSocket } from '../services/WebSocketContext'
-import { Responsive, WidthProvider, Layouts } from 'react-grid-layout'
+import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './Game.css'
@@ -69,7 +69,7 @@ export function Game() {
   const selectedFactionsMap = useMemo(() => {
     const map = new Map<string, { playerNumber: number, vp: number }>()
 
-    if (!gameState || !gameState.players || !gameState.order) return map
+    if (!gameState?.players || !gameState.order) return map
 
     gameState.order.forEach((playerId: string, index: number) => {
       const player = gameState.players[playerId] as any
@@ -104,7 +104,7 @@ export function Game() {
 
   // Get current player's position in turn order
   const currentPlayerPosition = useMemo(() => {
-    if (!gameState || !gameState.order || !localPlayerId) return 1
+    if (!gameState?.order || !localPlayerId) return 1
     const index = gameState.order.indexOf(localPlayerId)
     return index >= 0 ? index + 1 : 1
   }, [gameState, localPlayerId])
@@ -140,7 +140,7 @@ export function Game() {
             if (position !== undefined) {
               positions.get(cult)?.push({
                 faction: player.faction,
-                position: position as number,
+                position: position,
                 hasKey: false, // TODO: Track power keys from game state
               })
             }
@@ -160,7 +160,7 @@ export function Game() {
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-gray-800">Terra Mystica - Game {gameId}</h1>
           <button
-            onClick={() => setLayouts(defaultLayouts)}
+            onClick={() => { setLayouts(defaultLayouts); }}
             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
           >
             Reset Layout
@@ -184,7 +184,7 @@ export function Game() {
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
           cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
           rowHeight={60}
-          onLayoutChange={(layout, allLayouts) => setLayouts(allLayouts)}
+          onLayoutChange={(_layout, allLayouts) => { setLayouts(allLayouts); }}
           isDraggable={true}
           isResizable={true}
           resizeHandles={['e']}

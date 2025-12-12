@@ -28,7 +28,7 @@ export interface ActionMessage {
 export function useActionService() {
     const { sendMessage } = useWebSocket()
 
-    const submitSetupDwelling = (playerID: string, q: number, r: number, gameID: string = "2") => {
+    const submitSetupDwelling = (playerID: string, q: number, r: number, gameID = "2") => {
         const action: ActionMessage = {
             type: 'perform_action',
             payload: {
