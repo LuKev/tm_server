@@ -5,7 +5,7 @@ import { BASE_GAME_MAP } from '../../data/baseGameMap';
 import { useGameStore } from '../../stores/gameStore';
 import type { Building } from '../../types/game.types';
 import { PowerActions } from './PowerActions';
-import { PowerActionType } from '../../types/game.types';
+import { type PowerActionType } from '../../types/game.types';
 
 interface GameBoardProps {
   onHexClick?: (q: number, r: number) => void
@@ -31,7 +31,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
   };
 
   const handleHexHover = (q: number, r: number): void => {
-    setHoveredHex(`${q},${r}`);
+    setHoveredHex(`${String(q)},${String(r)}`);
   };
 
   // Highlight hovered hex

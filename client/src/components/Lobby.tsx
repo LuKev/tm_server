@@ -27,7 +27,7 @@ export function Lobby(): React.ReactElement {
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
 
   useEffect(() => {
-    if (lastMessage == null) return
+    if (lastMessage === null) return
 
     // Collect raw messages for debugging
     setMessages(prev => [
@@ -50,7 +50,7 @@ export function Lobby(): React.ReactElement {
         const gameState = msg.payload as GameState | undefined
         // If we are in this game AND it has started, navigate to it
         if (gameState?.id && gameState.players?.[playerName] && gameState.started) {
-          navigate(`/game/${String(gameState.id)}`)
+          void navigate(`/game/${gameState.id}`)
         }
       }
     }
@@ -178,7 +178,11 @@ export function Lobby(): React.ReactElement {
                   type="text"
                   value={testMessage}
                   onChange={(e) => { setTestMessage(e.target.value); }}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendTest()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSendTest()
+                    }
+                  }}
                   className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   placeholder="Type a message..."
                   disabled={!isConnected}

@@ -109,6 +109,9 @@ export interface PlayerState {
   digging: number
   cults: Partial<Record<CultType, number>>
   buildings: Record<string, Building>
+  victoryPoints?: number
+  VictoryPoints?: number
+  Faction?: FactionType | { Type: FactionType }
 }
 
 export interface RoundState {

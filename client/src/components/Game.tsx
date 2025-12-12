@@ -4,6 +4,7 @@ import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
 import { CultTracks } from './CultTracks/CultTracks'
+import type { CultPosition } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
 import { FACTIONS } from '../data/factions'
 import { useGameStore } from '../stores/gameStore'
@@ -70,27 +71,32 @@ export function Game(): React.ReactElement {
     if (!gameState?.players || !gameState.order) return map
 
     gameState.order.forEach((playerId: string, index: number) => {
-      const player = gameState.players[playerId] as any
-      // Check both lowercase and PascalCase for faction and VP
-      const factionRaw = player.faction || player.Faction
+      const player = gameState.players[playerId]
+      if (!player) return
 
-      if (player && factionRaw !== undefined) {
+      // Check both lowercase and PascalCase for faction and VP
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+      const factionRaw = player.faction ?? player.Faction
+
+      if (factionRaw !== undefined) {
         let factionId: number | undefined
 
-        if (typeof factionRaw === 'object' && factionRaw !== null) {
+        if (typeof factionRaw === 'object' && factionRaw !== null && 'Type' in factionRaw) {
           // Handle Faction object (Go struct marshalled to JSON)
-          // Go fields are usually capitalized (Type), but check both
-          factionId = factionRaw.Type || factionRaw.type
+          factionId = (factionRaw as { Type: number }).Type
+        } else if (typeof factionRaw === 'object' && factionRaw !== null && 'type' in factionRaw) {
+          factionId = (factionRaw as { type: number }).type
         } else if (typeof factionRaw === 'number') {
           factionId = factionRaw
         }
 
         if (factionId !== undefined) {
-          const factionType = FACTIONS.find(f => f.id === factionId)?.type
+          const factionType = FACTIONS.find(f => f.id === (factionId as FactionType))?.type
           if (factionType) {
             map.set(factionType, {
               playerNumber: index + 1,
-              vp: player.VictoryPoints || player.victoryPoints || 20
+              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+              vp: player.victoryPoints ?? player.VictoryPoints ?? 20
             })
           }
         }
@@ -108,8 +114,8 @@ export function Game(): React.ReactElement {
   }, [gameState, localPlayerId])
 
   // Convert player cult positions to CultTracks format
-  const getCultPositions = () => {
-    const positions = new Map()
+  const getCultPositions = (): Map<CultType, CultPosition[]> => {
+    const positions = new Map<CultType, CultPosition[]>()
 
     if (!gameState) {
       // Return empty positions if no game state

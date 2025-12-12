@@ -1,0 +1,83 @@
+
+> client@0.0.0 lint
+> eslint .
+
+
+/Users/kevin/projects/tm_server/client/src/components/CultTracks/CultTracks.tsx
+  137:49  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  189:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  222:31  warning  Unnecessary optional chain on a non-nullish value                                                          @typescript-eslint/no-unnecessary-condition
+  239:13  warning  Unnecessary conditional, value is always truthy                                                            @typescript-eslint/no-unnecessary-condition
+  242:36  error    Forbidden non-null assertion                                                                               @typescript-eslint/no-non-null-assertion
+  315:31  warning  Unnecessary optional chain on a non-nullish value                                                          @typescript-eslint/no-unnecessary-condition
+  315:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  337:33  warning  Unnecessary optional chain on a non-nullish value                                                          @typescript-eslint/no-unnecessary-condition
+  385:31  warning  Unnecessary optional chain on a non-nullish value                                                          @typescript-eslint/no-unnecessary-condition
+  385:43  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  407:33  warning  Unnecessary optional chain on a non-nullish value                                                          @typescript-eslint/no-unnecessary-condition
+
+/Users/kevin/projects/tm_server/client/src/components/FactionSelector.tsx
+  82:40  warning  Unnecessary conditional, value is always truthy  @typescript-eslint/no-unnecessary-condition
+
+/Users/kevin/projects/tm_server/client/src/components/Game.tsx
+   61:53  warning  Missing return type on function                                                                                 @typescript-eslint/explicit-function-return-type
+   71:32  warning  Unnecessary conditional, value is always falsy                                                                  @typescript-eslint/no-unnecessary-condition
+   75:11  warning  Unnecessary conditional, value is always falsy                                                                  @typescript-eslint/no-unnecessary-condition
+   81:11  warning  Unnecessary conditional, the types have no overlap                                                              @typescript-eslint/no-unnecessary-condition
+   84:47  warning  Unnecessary conditional, the types have no overlap                                                              @typescript-eslint/no-unnecessary-condition
+   87:54  warning  Unnecessary conditional, the types have no overlap                                                              @typescript-eslint/no-unnecessary-condition
+   94:50  error    The two values in this comparison do not have a shared enum type                                                @typescript-eslint/no-unsafe-enum-comparison
+   98:15  warning  Unused eslint-disable directive (no problems were reported from '@typescript-eslint/no-unnecessary-condition')
+  136:9   warning  Unnecessary conditional, value is always truthy                                                                 @typescript-eslint/no-unnecessary-condition
+  136:28  warning  Unnecessary conditional, value is always truthy                                                                 @typescript-eslint/no-unnecessary-condition
+  139:13  warning  Unnecessary conditional, value is always falsy                                                                  @typescript-eslint/no-unnecessary-condition
+  141:13  warning  Unnecessary conditional, value is always truthy                                                                 @typescript-eslint/no-unnecessary-condition
+  144:17  warning  Unnecessary conditional, the types have no overlap                                                              @typescript-eslint/no-unnecessary-condition
+  204:48  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+  205:47  warning  Unnecessary optional chain on a non-nullish value                                                               @typescript-eslint/no-unnecessary-condition
+  205:55  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator       @typescript-eslint/prefer-nullish-coalescing
+
+/Users/kevin/projects/tm_server/client/src/components/GameBoard/GameBoard.tsx
+  20:21  warning  Unnecessary optional chain on a non-nullish value  @typescript-eslint/no-unnecessary-condition
+
+/Users/kevin/projects/tm_server/client/src/components/GameBoard/HexGrid.tsx
+  29:11  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+  39:19  error  Unsafe assignment of an `any` value  @typescript-eslint/no-unsafe-assignment
+
+/Users/kevin/projects/tm_server/client/src/components/GameBoard/HexGridCanvas.tsx
+  326:19  error    Unsafe argument of type error typed assigned to a parameter of type `{ [s: string]: unknown; } | ArrayLike<unknown>`    @typescript-eslint/no-unsafe-argument
+  326:29  error    Unsafe member access .players on an `error` typed value                                                                 @typescript-eslint/no-unsafe-member-access
+  327:8   error    This assertion is unnecessary since it does not change the type of the expression                                       @typescript-eslint/no-unnecessary-type-assertion
+  327:23  error    Unsafe argument of type error typed assigned to a parameter of type `{ [s: string]: Building; } | ArrayLike<Building>`  @typescript-eslint/no-unsafe-argument
+  327:30  error    Unsafe member access .buildings on an `error` typed value                                                               @typescript-eslint/no-unsafe-member-access
+  375:9   warning  Unnecessary conditional, value is always truthy                                                                         @typescript-eslint/no-unnecessary-condition
+
+/Users/kevin/projects/tm_server/client/src/components/GameBoard/ScoringTiles.tsx
+   67:52   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   74:88   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   75:96   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   76:84   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   79:65   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   80:64   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   83:82   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   91:84   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   92:111  warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   93:82   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   94:98   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+   95:92   warning  Prefer using nullish coalescing operator (`??`) instead of a logical or (`||`), as it is a safer operator  @typescript-eslint/prefer-nullish-coalescing
+  137:9    warning  Unnecessary conditional, value is always falsy                                                             @typescript-eslint/no-unnecessary-condition
+  150:21   warning  Unnecessary conditional, value is always falsy                                                             @typescript-eslint/no-unnecessary-condition
+
+/Users/kevin/projects/tm_server/client/src/components/GameBoard/TownTiles.tsx
+  87:21  warning  Unnecessary conditional, value is always falsy  @typescript-eslint/no-unnecessary-condition
+
+/Users/kevin/projects/tm_server/client/src/components/Lobby.tsx
+   39:44  warning  Unnecessary conditional, the types have no overlap                                                  @typescript-eslint/no-unnecessary-condition
+   52:30  warning  Unnecessary conditional, value is always truthy                                                     @typescript-eslint/no-unnecessary-condition
+   52:47  warning  Unnecessary optional chain on a non-nullish value                                                   @typescript-eslint/no-unnecessary-condition
+  230:37  warning  Unnecessary conditional, expected left-hand side of `??` operator to be possibly null or undefined  @typescript-eslint/no-unnecessary-condition
+  230:46  warning  Unnecessary optional chain on a non-nullish value                                                   @typescript-eslint/no-unnecessary-condition
+
+✖ 57 problems (9 errors, 48 warnings)
+  1 error and 1 warning potentially fixable with the `--fix` option.
+
