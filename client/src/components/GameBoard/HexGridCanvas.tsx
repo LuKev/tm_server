@@ -370,12 +370,16 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       }
     });
 
-    if (closestHex) {
-      if (isClick) {
-        onHexClick?.(closestHex.coord.q, closestHex.coord.r);
-      } else {
-        onHexHover?.(closestHex.coord.q, closestHex.coord.r);
-      }
+    if (!closestHex) {
+      return;
+    }
+
+    // Type assertion: we know closestHex is not null here
+    const hex = closestHex as MapHexData;
+    if (isClick) {
+      onHexClick?.(hex.coord.q, hex.coord.r);
+    } else {
+      onHexHover?.(hex.coord.q, hex.coord.r);
     }
   };
 
