@@ -3,7 +3,7 @@ import { useGameStore } from '../stores/gameStore'
 
 interface WebSocketMessage {
   type: string
-  payload?: any
+  payload?: unknown
 }
 
 interface WebSocketContextType {
@@ -16,7 +16,7 @@ interface WebSocketContextType {
 const WebSocketContext = createContext<WebSocketContextType | null>(null)
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const useWebSocket = () => {
+export const useWebSocket = (): WebSocketContextType => {
   const context = useContext(WebSocketContext)
   if (!context) {
     throw new Error('useWebSocket must be used within a WebSocketProvider')
@@ -33,7 +33,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const [lastMessage, setLastMessage] = useState<unknown>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected')
   const wsRef = useRef<WebSocket | null>(null)
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout>()
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   const connect = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -56,7 +56,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         // Handle game_state_update messages
         if (data.type === 'game_state_update' && data.payload) {
           console.log('WebSocketContext: Received game_state_update:', data.payload)
-          useGameStore.getState().setGameState(data.payload)
+          useGameStore.getState().setGameState(data.payload as import('../types/game.types').GameState)
           console.log('WebSocketContext: Game state updated in store')
         }
 

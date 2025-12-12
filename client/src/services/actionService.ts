@@ -25,10 +25,10 @@ export interface ActionMessage {
     payload: ActionPayload
 }
 
-export function useActionService() {
+export function useActionService(): { submitSetupDwelling: (playerID: string, q: number, r: number, gameID?: string) => void; submitSelectFaction: (playerID: string, faction: string, gameID: string) => void } {
     const { sendMessage } = useWebSocket()
 
-    const submitSetupDwelling = (playerID: string, q: number, r: number, gameID = "2") => {
+    const submitSetupDwelling = (playerID: string, q: number, r: number, gameID = "2"): void => {
         const action: ActionMessage = {
             type: 'perform_action',
             payload: {
@@ -43,7 +43,7 @@ export function useActionService() {
         sendMessage(action)
     }
 
-    const submitSelectFaction = (playerID: string, faction: string, gameID: string) => {
+    const submitSelectFaction = (playerID: string, faction: string, gameID: string): void => {
         const action: ActionMessage = {
             type: 'perform_action',
             payload: {
