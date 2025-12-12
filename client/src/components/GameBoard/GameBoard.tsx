@@ -11,7 +11,7 @@ interface GameBoardProps {
   onHexClick?: (q: number, r: number) => void
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }) => {
+export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.ReactElement => {
   const gameState = useGameStore(s => s.gameState);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
 
@@ -25,12 +25,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }) => {
     });
   }
 
-  const handleHexClick = (q: number, r: number) => {
-    console.log(`GameBoard: Hex clicked: (${q}, ${r})`);
+  const handleHexClick = (q: number, r: number): void => {
+    // console.log(`GameBoard: Hex clicked: (${q}, ${r})`);
     onHexClick?.(q, r);
   };
 
-  const handleHexHover = (q: number, r: number) => {
+  const handleHexHover = (q: number, r: number): void => {
     setHoveredHex(`${q},${r}`);
   };
 
@@ -40,8 +40,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }) => {
     highlightedHexes.add(hoveredHex);
   }
 
-  const handlePowerActionClick = (action: PowerActionType) => {
-    console.log(`Power Action clicked: ${PowerActionType[action]}`);
+  const handlePowerActionClick = (_action: PowerActionType): void => {
+    // console.log(`Power Action clicked: ${PowerActionType[action]}`);
     // TODO: Implement power action submission
   };
 

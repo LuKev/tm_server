@@ -44,20 +44,21 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     const ws = new WebSocket('ws://localhost:8080/ws')
 
     ws.onopen = () => {
-      console.log('WebSocket connected')
+      // console.log('WebSocket connected')
       setIsConnected(true)
       setConnectionStatus('connected')
     }
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as WebSocketMessage
+        const payload = typeof event.data === 'string' ? event.data : ''
+        const data = JSON.parse(payload) as WebSocketMessage
 
         // Handle game_state_update messages
         if (data.type === 'game_state_update' && data.payload) {
-          console.log('WebSocketContext: Received game_state_update:', data.payload)
+          // console.log('WebSocketContext: Received game_state_update:', data.payload)
           useGameStore.getState().setGameState(data.payload as import('../types/game.types').GameState)
-          console.log('WebSocketContext: Game state updated in store')
+          // console.log('WebSocketContext: Game state updated in store')
         }
 
         setLastMessage(data)
@@ -67,13 +68,13 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       }
     }
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error)
+    ws.onerror = (_error) => {
+      // console.error('WebSocket error:', error)
       setConnectionStatus('error')
     }
 
     ws.onclose = () => {
-      console.log('WebSocket disconnected')
+      // console.log('WebSocket disconnected')
       setIsConnected(false)
       setConnectionStatus('disconnected')
 

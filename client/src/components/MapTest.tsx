@@ -2,11 +2,12 @@
 import React, { useState } from 'react';
 import { HexGridCanvas } from './GameBoard/HexGridCanvas';
 import { CultTracks } from './CultTracks/CultTracks';
+import type { CultPosition, PriestSpot } from './CultTracks/CultTracks';
 import { BASE_GAME_MAP } from '../data/baseGameMap';
 import { BuildingType, FactionType, CultType } from '../types/game.types';
 import type { Building, Bridge } from '../types/game.types';
 
-export const MapTest: React.FC = () => {
+export const MapTest: React.FC = (): React.ReactElement => {
   const [showBuildings, setShowBuildings] = useState(false);
   const [showBridges, setShowBridges] = useState(false);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
@@ -79,13 +80,13 @@ export const MapTest: React.FC = () => {
     });
   }
 
-  const handleHexClick = (q: number, r: number) => {
-    console.log(`Clicked hex (${q}, ${r})`);
-    alert(`Clicked hex (${q}, ${r})`);
+  const handleHexClick = (q: number, r: number): void => {
+    // console.log(`Clicked hex (${q}, ${r})`);
+    alert(`Clicked hex (${String(q)}, ${String(r)})`);
   };
 
-  const handleHexHover = (q: number, r: number) => {
-    setHoveredHex(`${q},${r}`);
+  const handleHexHover = (q: number, r: number): void => {
+    setHoveredHex(`${String(q)},${String(r)}`);
   };
 
   const handleBonusTileClick = (cult: CultType, tileIndex: number): void => {
@@ -104,10 +105,10 @@ export const MapTest: React.FC = () => {
       const factionName = factionNames[tile.faction as FactionType] ?? 'Unknown';
       alert(`Clicked: ${cultName} cult - Priest tile (${factionName})`);
     } else if (tile?.power) {
-      const spotName = tileIndex === 4 ? 'Return spot (1 power)' : `Power ${tile.power} spot`;
+      const spotName = tileIndex === 4 ? 'Return spot (1 power)' : `Power ${String(tile.power)} spot`;
       alert(`Clicked: ${cultName} cult - ${spotName}`);
     } else {
-      alert(`Clicked: ${cultName} cult - Tile ${tileIndex + 1}`);
+      alert(`Clicked: ${cultName} cult - Tile ${String(tileIndex + 1)}`);
     }
   };
 
@@ -117,7 +118,7 @@ export const MapTest: React.FC = () => {
   }
 
   // Create test cult positions - 4 factions per cult with ties and position 10
-  const testCultPositions = new Map();
+  const testCultPositions = new Map<CultType, CultPosition[]>();
 
   // Fire: Giants at position 10 (hex), Swarmlings and Halflings tied at 6
   testCultPositions.set(CultType.Fire, [
@@ -152,7 +153,7 @@ export const MapTest: React.FC = () => {
   ]);
 
   // Test bonus tiles with some priests (5 spots: 3, 2, 2, 2, 1 return)
-  const testBonusTiles = new Map();
+  const testBonusTiles = new Map<CultType, PriestSpot[]>();
   testBonusTiles.set(CultType.Fire, [
     { priests: 1, faction: FactionType.Giants }, // Red priest on 3 spot
     { priests: 1, faction: FactionType.Swarmlings }, // Blue priest on 2 spot

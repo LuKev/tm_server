@@ -17,13 +17,12 @@ import './Game.css'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
-export function Game() {
+export function Game(): React.ReactElement {
   const { gameId } = useParams()
   const { sendMessage, isConnected } = useWebSocket()
   const gameState = useGameStore((state) => state.gameState)
   const localPlayerId = useGameStore((state) => state.localPlayerId)
 
-  console.log('Game.tsx: Render', { gameId, gameState, localPlayerId })
   const { submitSetupDwelling, submitSelectFaction } = useActionService()
 
   // Default layout configuration
@@ -40,19 +39,18 @@ export function Game() {
 
   useEffect(() => {
     if (isConnected && gameId && !gameState) {
-      console.log('Game.tsx: Requesting game state for', gameId)
       sendMessage({ type: 'get_game_state', payload: { gameID: gameId } })
     }
   }, [isConnected, gameId, gameState, sendMessage])
 
   // Handle hex clicks
-  const handleHexClick = (q: number, r: number) => {
+  const handleHexClick = (q: number, r: number): void => {
     if (!localPlayerId) {
       console.warn('No local player ID set')
       return
     }
 
-    console.log(`Hex clicked: q=${q}, r=${r}`)
+    // console.log(`Hex clicked: q=${q}, r=${r}`)
 
     // For now, always submit setup dwelling action
     // TODO: Add logic to determine action type based on game phase and hex state

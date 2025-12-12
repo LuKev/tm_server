@@ -13,7 +13,7 @@ export function FactionSelector({
     onSelect,
     isMyTurn,
     currentPlayerPosition
-}: FactionSelectorProps) {
+}: FactionSelectorProps): React.ReactElement {
     // Get all factions in order (14 total) - 2 rows of 7
     // Row 1: Auren, Mermaids, Alchemists, Halflings, Fakirs, Giants, Dwarves
     // Row 2: Witches, Swarmlings, Darklings, Cultists, Nomads, Chaos Magicians, Engineers
@@ -84,7 +84,7 @@ export function FactionSelector({
                         return (
                             <button
                                 key={factionType}
-                                onClick={() => isMyTurn && isAvailable && onSelect(factionType)}
+                                onClick={() => { if (isMyTurn && isAvailable) onSelect(factionType); }}
                                 disabled={!isMyTurn || !isAvailable}
                                 style={{
                                     backgroundColor: colors.bg,

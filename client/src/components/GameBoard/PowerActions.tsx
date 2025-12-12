@@ -17,7 +17,7 @@ interface PowerActionConfig {
 }
 
 // Octagon SVG background wrapper
-const OctagonWrapper = ({ children }: { children: React.ReactNode }) => (
+const OctagonWrapper = ({ children }: { children: React.ReactNode }): React.ReactElement => (
     <div className="octagon-wrapper">
         <svg viewBox="0 0 40 40" className="octagon-svg">
             <path
@@ -90,7 +90,7 @@ interface PowerActionsProps {
     onActionClick?: (action: PowerActionType) => void;
 }
 
-export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }) => {
+export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): React.ReactElement => {
     return (
         <div className="power-actions-container">
             {ACTIONS.map((action) => (

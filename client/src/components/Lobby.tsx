@@ -2,14 +2,27 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
+import type { GameState } from '../types/game.types'
 
-export function Lobby() {
+interface GameInfo {
+  id: string
+  name: string
+  players: string[]
+  maxPlayers: number
+}
+
+interface LobbyMessage {
+  type: string
+  payload?: unknown
+}
+
+export function Lobby(): React.ReactElement {
   const { isConnected, sendMessage, lastMessage, connectionStatus } = useWebSocket()
   const navigate = useNavigate()
   const [playerName, setPlayerName] = useState('')
   const [testMessage, setTestMessage] = useState('')
   const [messages, setMessages] = useState<string[]>([])
-  const [games, setGames] = useState<{ id: string; name: string; players: string[]; maxPlayers: number }[]>([])
+  const [games, setGames] = useState<GameInfo[]>([])
   const [newGameName, setNewGameName] = useState('')
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
 
@@ -24,20 +37,20 @@ export function Lobby() {
 
     // Handle lobby messages
     if (typeof lastMessage === 'object' && lastMessage !== null && 'type' in lastMessage) {
-      const msg = lastMessage as { type: string; payload?: any }
+      const msg = lastMessage as LobbyMessage
       if (msg.type === 'lobby_state') {
-        setGames(Array.isArray(msg.payload) ? msg.payload : [])
+        setGames(Array.isArray(msg.payload) ? msg.payload as GameInfo[] : [])
       } else if (msg.type === 'game_joined') {
         // Don't navigate immediately, wait for start
-        console.log('Joined game:', msg.payload.gameId)
+        // console.log('Joined game:', msg.payload.gameId)
       } else if (msg.type === 'game_created') {
         // Don't navigate immediately, wait for start
-        console.log('Created game:', msg.payload.gameId)
+        // console.log('Created game:', msg.payload.gameId)
       } else if (msg.type === 'game_state_update') {
-        const gameState = msg.payload
+        const gameState = msg.payload as GameState | undefined
         // If we are in this game AND it has started, navigate to it
         if (gameState?.id && gameState.players?.[playerName] && gameState.started) {
-          navigate(`/game/${gameState.id}`)
+          navigate(`/game/${String(gameState.id)}`)
         }
       }
     }
@@ -50,14 +63,14 @@ export function Lobby() {
     }
   }, [isConnected, sendMessage])
 
-  const handleSendTest = () => {
+  const handleSendTest = (): void => {
     if (testMessage.trim()) {
       sendMessage(testMessage)
       setTestMessage('')
     }
   }
 
-  const getStatusColor = () => {
+  const getStatusColor = (): string => {
     switch (connectionStatus) {
       case 'connected': return 'bg-green-500'
       case 'connecting': return 'bg-yellow-500'
@@ -66,7 +79,7 @@ export function Lobby() {
     }
   }
 
-  const handleCreateGame = () => {
+  const handleCreateGame = (): void => {
     if (!playerName.trim() || !newGameName.trim()) return
     useGameStore.getState().setLocalPlayerId(playerName.trim())
     sendMessage({
@@ -76,7 +89,7 @@ export function Lobby() {
     setNewGameName('')
   }
 
-  const handleJoinGame = (id: string) => {
+  const handleJoinGame = (id: string): void => {
     if (!playerName.trim()) return
     useGameStore.getState().setLocalPlayerId(playerName.trim())
     sendMessage({ type: 'join_game', payload: { id, name: playerName.trim() } })
@@ -231,7 +244,7 @@ export function Lobby() {
                               : 'bg-gray-600 cursor-not-allowed'
                               } disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium`}
                           >
-                            {isFull ? 'Start' : `Waiting (${g.players?.length ?? 0}/${g.maxPlayers})`}
+                            {isFull ? 'Start' : `Waiting (${String(g.players?.length ?? 0)}/${String(g.maxPlayers)})`}
                           </button>
                         </div>
                       </div>

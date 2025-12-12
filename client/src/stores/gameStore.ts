@@ -32,7 +32,7 @@ export const useGameStore = create<GameStore>()(
       getCurrentPlayer: () => {
         const { gameState, localPlayerId } = get();
         if (!gameState || !localPlayerId) return null;
-        return gameState.players[localPlayerId] || null;
+        return (gameState.players[localPlayerId] as import('../types/game.types').PlayerState | undefined) ?? null;
       },
 
       isMyTurn: () => {

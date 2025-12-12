@@ -39,7 +39,7 @@ export function useActionService(): { submitSetupDwelling: (playerID: string, q:
             }
         }
 
-        console.log('Submitting setup dwelling action:', action)
+        // console.log('Submitting setup dwelling action:', action)
         sendMessage(action)
     }
 
@@ -54,7 +54,7 @@ export function useActionService(): { submitSetupDwelling: (playerID: string, q:
             }
         }
 
-        console.log('Submitting select faction action:', action)
+        // console.log('Submitting select faction action:', action)
         sendMessage(action)
     }
 

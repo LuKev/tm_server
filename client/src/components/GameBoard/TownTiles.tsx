@@ -92,7 +92,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
                         {Array.from({ length: Math.min(count, 3) }).map((_, index) => (
                             <div
                                 key={index}
-                                className={`town-tile town-tile-stack-${index}`}
+                                className={`town-tile town-tile-stack-${String(index)}`}
                             >
                                 <div className="town-tile-content">
                                     <div className="town-tile-top">

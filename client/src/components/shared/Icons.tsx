@@ -76,7 +76,7 @@ export const CultIcon = ({ className }: { className?: string }): React.ReactElem
     </div>
 );
 
-export const CultRhombusIcon = ({ className, showNumber = false }: { className?: string, showNumber?: boolean }) => {
+export const CultRhombusIcon = ({ className, showNumber = false }: { className?: string, showNumber?: boolean }): React.ReactElement => {
     // Rhombus where circles just touch at their borders (not intersecting)
     // Using em units for responsive scaling
     // Base: container 2.47em × 2em (matches ratio 37:30)

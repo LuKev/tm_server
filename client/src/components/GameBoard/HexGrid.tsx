@@ -23,16 +23,16 @@ export const HexGrid: React.FC<HexGridProps> = ({
   // Calculate actual min/max from the hexes data
   let minQ = Infinity, maxQ = -Infinity;
   let minR = Infinity, maxR = -Infinity;
-  
+
   hexes.forEach(hex => {
     minQ = Math.min(minQ, hex.coord.q);
     maxQ = Math.max(maxQ, hex.coord.q);
     minR = Math.min(minR, hex.coord.r);
     maxR = Math.max(maxR, hex.coord.r);
   });
-  
-  console.log(`Q range: ${minQ} to ${maxQ}, R range: ${minR} to ${maxR}`);
-  
+
+  // console.log(`Q range: ${minQ} to ${maxQ}, R range: ${minR} to ${maxR}`);
+
   // Find actual leftmost/rightmost and top/bottom hex positions
   let minX = Infinity, maxX = -Infinity;
   let minY = Infinity, maxY = -Infinity;
@@ -43,32 +43,32 @@ export const HexGrid: React.FC<HexGridProps> = ({
     minY = Math.min(minY, center.y);
     maxY = Math.max(maxY, center.y);
   });
-  
+
   const paddingY = HEX_SIZE * 2; // Vertical padding (70px)
   const paddingX = HEX_SIZE; // Horizontal padding (35px)
-  
+
   // Calculate bounds from actual positions
   const width = maxX - minX + paddingX * 2;
   const height = maxY - minY + paddingY * 2;
-  
+
   // Offset to position the grid
   const offsetX = -minX + paddingX;
   const offsetY = -minY + paddingY;
-  
+
   return (
     <svg
       width={width}
       height={height}
       style={{ border: '1px solid #ccc', backgroundColor: '#f0f0f0' }}
     >
-      <g transform={`translate(${offsetX}, ${offsetY})`}>
+      <g transform={`translate(${String(offsetX)}, ${String(offsetY)})`}>
         {hexes.map((hexData) => {
           const { coord, terrain, isRiver } = hexData;
           const center = hexCenter(coord.r, coord.q);
-          const key = `${coord.q},${coord.r}`;
+          const key = `${String(coord.q)},${String(coord.r)}`;
           const building = buildings.get(key);
           const isHighlighted = highlightedHexes.has(key);
-          
+
           return (
             <Hex
               key={key}

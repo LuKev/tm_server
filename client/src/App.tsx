@@ -5,7 +5,7 @@ import { Game } from './components/Game';
 import { MapTest } from './components/MapTest';
 import { CultTracksTest } from './components/CultTracks/CultTracksTest';
 
-function App() {
+function App(): React.ReactElement {
   return (
     <WebSocketProvider>
       <Router>

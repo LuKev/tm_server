@@ -22,11 +22,11 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   highlightedHexes = new Set(),
   onHexClick,
   onHexHover,
-}) => {
+}): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Calculate canvas dimensions
-  const getDimensions = () => {
+  const getDimensions = (): { width: number; height: number; offsetX: number; offsetY: number } => {
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
@@ -52,7 +52,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   const dims = getDimensions();
 
   // Draw a hex path (from terra-mystica/stc/game.js makeHexPath)
-  const makeHexPath = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const makeHexPath = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
     let angle = 0;
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -90,7 +90,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${hex.coord.q},${hex.coord.r}`, center.x, center.y);
+      ctx.fillText(`${String(hex.coord.q)},${String(hex.coord.r)}`, center.x, center.y);
       ctx.restore();
     }
   }, []);
@@ -330,7 +330,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
 
     // 5. Draw highlights on top of everything
     hexes.forEach(hex => {
-      const key = `${hex.coord.q},${hex.coord.r}`;
+      const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
       if (highlightedHexes.has(key)) {
         drawHighlight(ctx, hex);
       }
@@ -340,7 +340,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   }, [hexes, buildings, bridges, highlightedHexes, dims.offsetX, dims.offsetY, drawHex, drawBridge, drawBuilding, drawHighlight]);
 
   // Handle mouse events
-  const handleMouseEvent = (e: React.MouseEvent<HTMLCanvasElement>, isClick: boolean) => {
+  const handleMouseEvent = (e: React.MouseEvent<HTMLCanvasElement>, isClick: boolean): void => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 

@@ -34,7 +34,7 @@ export const Hex: React.FC<HexProps> = ({
 
   // Create SVG path from corners
   const pathData = corners
-    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x},${p.y}`)
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${String(p.x)},${String(p.y)}`)
     .join(' ') + ' Z';
 
   // River hexes use a special light blue color

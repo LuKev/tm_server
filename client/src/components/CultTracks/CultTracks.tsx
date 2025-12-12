@@ -3,13 +3,13 @@ import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { CultType, FactionType } from '../../types/game.types';
 import { FACTION_COLORS, CULT_COLORS, getContrastColor } from '../../utils/colors';
 
-interface CultPosition {
+export interface CultPosition {
   faction: FactionType;
   position: number;
   hasKey: boolean; // Power key (shows hex instead of circle at position 10)
 }
 
-interface PriestSpot {
+export interface PriestSpot {
   priests?: number;
   power?: number;
   faction?: FactionType; // For colored priest markers
@@ -21,7 +21,7 @@ interface CultTracksProps {
   onBonusTileClick?: (cult: CultType, tileIndex: number) => void; // Click handler for priest spots
 }
 
-export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTiles, onBonusTileClick }) => {
+export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTiles, onBonusTileClick }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredTile, setHoveredTile] = useState<{ cult: CultType, index: number } | null>(null);
 
@@ -30,7 +30,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   const height = 560; // Match game board height
 
   // Draw hex path (simplified from makeHexPath)
-  const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number) => {
+  const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
     let angle = 0;
     ctx.moveTo(x, y);
     for (let i = 0; i < 6; i++) {
@@ -68,7 +68,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
     ctx: CanvasRenderingContext2D,
     faction: FactionType,
     isHex: boolean
-  ) => {
+  ): void => {
     const color = FACTION_COLORS[faction];
     const contrastColor = getContrastColor(color);
 
@@ -282,7 +282,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   }, [cultPositions, bonusTiles, hoveredTile, cultWidth, cults, drawCultMarker]);
 
   // Handle mouse move for hover effects
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>): void => {
     const canvas = canvasRef.current;
     if (!canvas || !bonusTiles) return;
 
@@ -352,7 +352,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   };
 
   // Handle mouse click for priest spots
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>): void => {
     const canvas = canvasRef.current;
     if (!canvas || !bonusTiles) return;
 

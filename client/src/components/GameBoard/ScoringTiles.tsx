@@ -63,13 +63,13 @@ const TILE_CONFIGS: Record<number, TileConfig> = {
     8: { id: 8, action: ActionType.Town, vp: 5, cult: CultType.Earth, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
 };
 
-const TownIcon = ({ className }: { className?: string }) => (
+const TownIcon = ({ className }: { className?: string }): React.ReactElement => (
     <div className={`icon-lg town-icon ${className || ''}`}>
         TOWN
     </div>
 );
 
-const ActionIcon = ({ type, className }: { type: ActionType, className?: string }) => {
+const ActionIcon = ({ type, className }: { type: ActionType, className?: string }): React.ReactElement | null => {
     switch (type) {
         case ActionType.Dwelling: return <DwellingIcon className={`icon-lg ${className || ''}`} />;
         case ActionType.TradingHouse: return <TradingHouseIcon className={`icon-lg ${className || ''}`} />;
@@ -86,7 +86,7 @@ const ActionIcon = ({ type, className }: { type: ActionType, className?: string 
     }
 };
 
-const RewardIcon = ({ type, amount, className }: { type: RewardType, amount: number, className?: string }) => {
+const RewardIcon = ({ type, amount, className }: { type: RewardType, amount: number, className?: string }): React.ReactElement | null => {
     switch (type) {
         case RewardType.Priest: return <PriestIcon className={`icon-md ${className || ''}`} />;
         case RewardType.Power: return <PowerIcon amount={amount} className={`icon-xs reward-power ${className || ''}`} />;
@@ -97,8 +97,8 @@ const RewardIcon = ({ type, amount, className }: { type: RewardType, amount: num
     }
 };
 
-const CultDots = ({ type, count }: { type: CultType, count: number }) => {
-    const getColorClass = (t: CultType) => {
+const CultDots = ({ type, count }: { type: CultType, count: number }): React.ReactElement => {
+    const getColorClass = (t: CultType): string => {
         switch (t) {
             case CultType.Fire: return 'bg-red-500';
             case CultType.Water: return 'bg-blue-500';
@@ -133,12 +133,12 @@ interface ScoringTilesProps {
     currentRound: number;
 }
 
-export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound }) => {
+export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound }): React.ReactElement | null => {
     if (!tiles || tiles.length === 0) {
         return null;
     }
 
-    console.log('ScoringTiles rendering', { tiles, currentRound, timestamp: Date.now() });
+    // console.log('ScoringTiles rendering', { tiles, currentRound, timestamp: Date.now() });
 
     // Reverse tiles to show R6 at top, R1 at bottom
     const reversedTiles = [...tiles].reverse();
@@ -156,7 +156,7 @@ export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound 
 
                 return (
                     <div
-                        key={`${tileId}-${roundNum}`}
+                        key={`${String(tileId)}-${String(roundNum)}`}
                         className={`scoring-tile ${isCurrentRound ? 'current-round' : ''} ${isPastRound ? 'past-round' : ''}`}
                     >
                         {/* Left Side: Scoring Action */}
