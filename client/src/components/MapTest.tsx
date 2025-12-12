@@ -95,14 +95,14 @@ export const MapTest: React.FC = (): React.ReactElement => {
     const tiles = testBonusTiles.get(cult);
     const tile = tiles?.[tileIndex];
 
-    if (tile?.priests && tile?.faction !== undefined) {
+    if (tile?.priests && tile.faction !== undefined) {
       const factionNames: Partial<Record<FactionType, string>> = {
         [FactionType.Giants]: 'Giants',
         [FactionType.Swarmlings]: 'Swarmlings',
         [FactionType.Halflings]: 'Halflings',
         [FactionType.Dwarves]: 'Dwarves',
       };
-      const factionName = factionNames[tile.faction as FactionType] ?? 'Unknown';
+      const factionName = factionNames[tile.faction] ?? 'Unknown';
       alert(`Clicked: ${cultName} cult - Priest tile (${factionName})`);
     } else if (tile?.power) {
       const spotName = tileIndex === 4 ? 'Return spot (1 power)' : `Power ${String(tile.power)} spot`;

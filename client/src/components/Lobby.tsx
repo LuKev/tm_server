@@ -228,7 +228,7 @@ export function Lobby(): React.ReactElement {
                       <div key={g.id} className="flex items-center justify-between bg-white/10 border border-white/20 rounded-md p-3">
                         <div>
                           <div className="text-white font-medium">{g.name} <span className="text-xs text-gray-300">({g.id})</span></div>
-                          <div className="text-xs text-gray-300">Players: {g.players?.length ?? 0}/{g.maxPlayers}</div>
+                          <span className="text-sm text-gray-500">Players: {String(g.players.length)}/{String(g.maxPlayers)}</span>
                         </div>
                         <div className="flex gap-2">
                           <button
@@ -244,7 +244,7 @@ export function Lobby(): React.ReactElement {
                               : 'bg-gray-600 cursor-not-allowed'
                               } disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium`}
                           >
-                            {isFull ? 'Start' : `Waiting (${String(g.players?.length ?? 0)}/${String(g.maxPlayers)})`}
+                            {isFull ? 'Start' : `Waiting (${String(g.players.length)}/${String(g.maxPlayers)})`}
                           </button>
                         </div>
                       </div>

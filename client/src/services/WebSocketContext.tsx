@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react'
 import { useGameStore } from '../stores/gameStore'
+import type { GameState } from '../types/game.types'
 
 interface WebSocketMessage {
   type: string
@@ -57,7 +58,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
         // Handle game_state_update messages
         if (data.type === 'game_state_update' && data.payload) {
           // console.log('WebSocketContext: Received game_state_update:', data.payload)
-          useGameStore.getState().setGameState(data.payload as import('../types/game.types').GameState)
+          useGameStore.getState().setGameState(data.payload as GameState)
           // console.log('WebSocketContext: Game state updated in store')
         }
 
@@ -80,7 +81,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
 
       // Attempt to reconnect after 3 seconds
       reconnectTimeoutRef.current = setTimeout(() => {
-        console.log('Attempting to reconnect...')
+        // console.log('Attempting to reconnect...')
         connect()
       }, 3000)
     }
