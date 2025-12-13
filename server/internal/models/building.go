@@ -11,6 +11,8 @@ const (
 	BuildingTemple
 	BuildingSanctuary
 	BuildingStronghold
+	BuildingBridge                   // For snapshot purposes, though usually an edge
+	BuildingTypeUnknown BuildingType = -1
 )
 
 func (b BuildingType) String() string {

@@ -2,8 +2,9 @@ package game
 
 import (
 	"fmt"
-	"github.com/lukev/tm_server/internal/game/factions"
+
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -11,13 +12,33 @@ import (
 type PowerActionType int
 
 const (
-	PowerActionBridge PowerActionType = iota // 3 Power: Build a bridge
-	PowerActionPriest                        // 3 Power: Gain 1 priest
-	PowerActionWorkers                       // 4 Power: Gain 2 workers
-	PowerActionCoins                         // 4 Power: Gain 7 coins
-	PowerActionSpade1                        // 4 Power: 1 free spade for transform
-	PowerActionSpade2                        // 6 Power: 2 free spades for transform
+	PowerActionBridge  PowerActionType = iota // 3 Power: Build a bridge
+	PowerActionPriest                         // 3 Power: Gain 1 priest
+	PowerActionWorkers                        // 4 Power: Gain 2 workers
+	PowerActionCoins                          // 4 Power: Gain 7 coins
+	PowerActionSpade1                         // 4 Power: 1 free spade for transform
+	PowerActionSpade2                         // 6 Power: 2 free spades for transform
+	PowerActionUnknown PowerActionType = -1
 )
+
+func PowerActionTypeFromString(s string) PowerActionType {
+	switch s {
+	case "Bridge":
+		return PowerActionBridge
+	case "Priest":
+		return PowerActionPriest
+	case "2 Workers":
+		return PowerActionWorkers
+	case "7 Coins":
+		return PowerActionCoins
+	case "Spade":
+		return PowerActionSpade1
+	case "2 Spades":
+		return PowerActionSpade2
+	default:
+		return PowerActionUnknown
+	}
+}
 
 // PowerActionState tracks which power actions have been used this round
 type PowerActionState struct {
@@ -65,9 +86,9 @@ type PowerAction struct {
 	BaseAction
 	ActionType PowerActionType
 	// For spade actions, these fields specify the transform details
-	TargetHex      *board.Hex // Optional: for spade actions
-	BuildDwelling  bool // Optional: for spade actions
-	UseSkip        bool // Optional: for spade actions (Fakirs/Dwarves skip)
+	TargetHex     *board.Hex // Optional: for spade actions
+	BuildDwelling bool       // Optional: for spade actions
+	UseSkip       bool       // Optional: for spade actions (Fakirs/Dwarves skip)
 	// For bridge action, these fields specify the bridge endpoints
 	BridgeHex1 *board.Hex // Optional: for bridge action
 	BridgeHex2 *board.Hex // Optional: for bridge action
@@ -131,7 +152,7 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		if a.TargetHex == nil {
 			return fmt.Errorf("spade power action requires a target hex")
 		}
-		
+
 		// Validate the transform would be legal
 		// This is similar to TransformAndBuild validation
 		mapHex := gs.Map.GetHex(*a.TargetHex)
@@ -141,7 +162,7 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		if mapHex.Building != nil {
 			return fmt.Errorf("hex already has a building")
 		}
-		
+
 		// Check adjacency (or skip range for Fakirs/Dwarves)
 		if a.UseSkip {
 			// Validate skip ability usage (same as TransformAndBuildAction)
@@ -183,14 +204,14 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		if player.BridgesBuilt >= 3 {
 			return fmt.Errorf("player has already built 3 bridges (maximum)")
 		}
-		
+
 		// If bridge hex coordinates are provided, validate the bridge placement
 		if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
 			// Check if bridge already exists
 			if gs.Map.HasBridge(*a.BridgeHex1, *a.BridgeHex2) {
 				return fmt.Errorf("bridge already exists between these hexes")
 			}
-			
+
 			// Validate hex coordinates are on the map
 			if gs.Map.GetHex(*a.BridgeHex1) == nil {
 				return fmt.Errorf("bridge hex1 is not on the map")
@@ -198,7 +219,7 @@ func (a *PowerAction) Validate(gs *GameState) error {
 			if gs.Map.GetHex(*a.BridgeHex2) == nil {
 				return fmt.Errorf("bridge hex2 is not on the map")
 			}
-			
+
 			// Note: Full geometry validation happens in BuildBridge during Execute
 		}
 		// Note: Bridge coordinates are optional for backward compatibility
@@ -231,39 +252,39 @@ func (a *PowerAction) Execute(gs *GameState) error {
 			if err := gs.Map.BuildBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
 				return fmt.Errorf("failed to build bridge: %w", err)
 			}
-			
+
 			// Check for town formation after building bridge
 			// The bridge might connect buildings into a town
 			// Check from both endpoints - CheckForTownFormation handles appending to PendingTownFormations
 			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex1)
 			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
 		}
-		
+
 		player.BridgesBuilt++
-		
+
 	case PowerActionPriest:
 		// Grant priest with 7-priest limit enforcement
 		// If at limit, action still succeeds (power is spent) but no priest is gained
 		gs.GainPriests(a.PlayerID, 1)
-		
+
 	case PowerActionWorkers:
 		player.Resources.Workers += 2
-		
+
 	case PowerActionCoins:
 		player.Resources.Coins += 7
-		
+
 	case PowerActionSpade1, PowerActionSpade2:
 		// The spade action gives free spades for a transform
 		// The actual transform happens as part of this action
 		if a.TargetHex == nil {
 			return fmt.Errorf("spade action requires target hex")
 		}
-		
+
 		freeSpadesFromAction := 1
 		if a.ActionType == PowerActionSpade2 {
 			freeSpadesFromAction = 2
 		}
-		
+
 		// Execute the transform with free spades
 		err := a.executeTransformWithFreeSpades(gs, player, freeSpadesFromAction)
 		if err != nil {
@@ -277,7 +298,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 // executeTransformWithFreeSpades handles the transform part of spade power actions
 func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Player, freeSpades int) error {
 	mapHex := gs.Map.GetHex(*a.TargetHex)
-	
+
 	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
 		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
@@ -293,25 +314,25 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 			player.VictoryPoints += dwarves.GetTunnelingVPBonus()
 		}
 	}
-	
+
 	// Calculate spades needed
 	currentTerrain := mapHex.Terrain
 	targetTerrain := player.Faction.GetHomeTerrain()
 	distance := gs.Map.GetTerrainDistance(currentTerrain, targetTerrain)
-	
+
 	if distance == 0 {
 		return fmt.Errorf("hex is already home terrain")
 	}
-	
+
 	// Use free spades first, then pay workers/priests for remaining
 	spadesNeeded := distance
 	spadesFromFreeAction := freeSpades
 	if spadesFromFreeAction > spadesNeeded {
 		spadesFromFreeAction = spadesNeeded
 	}
-	
+
 	remainingSpades := spadesNeeded - spadesFromFreeAction
-	
+
 	// Pay for remaining spades
 	if remainingSpades > 0 {
 		// Darklings pay priests (instead of workers)
@@ -321,7 +342,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 				return fmt.Errorf("not enough priests: need %d, have %d", priestsNeeded, player.Resources.Priests)
 			}
 			player.Resources.Priests -= priestsNeeded
-			
+
 			// Award Darklings VP bonus (+2 VP per remaining spade)
 			vpBonus := darklings.GetTerraformVPBonus(remainingSpades)
 			player.VictoryPoints += vpBonus
@@ -334,7 +355,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 			player.Resources.Workers -= workersNeeded
 		}
 	}
-	
+
 	// Transform the terrain
 	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
 
@@ -358,18 +379,18 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
 		}
-		
+
 		// Pay for dwelling
 		dwellingCost := player.Faction.GetDwellingCost()
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
-		
+
 		// Place dwelling and handle all VP bonuses
 		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
 			return err
 		}
 	}
-	
+
 	return nil
 }

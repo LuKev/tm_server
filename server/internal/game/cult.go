@@ -25,19 +25,35 @@ import (
 // CultTrack is already defined in state.go as an enum
 // We'll add methods and tracking here
 
+const CultUnknown CultTrack = -1
+
+func CultTrackFromString(s string) CultTrack {
+	switch s {
+	case "Fire":
+		return CultFire
+	case "Water":
+		return CultWater
+	case "Earth":
+		return CultEarth
+	case "Air":
+		return CultAir
+	default:
+		return CultUnknown
+	}
+}
 
 // CultTrackState tracks all players' positions on all cult tracks
 type CultTrackState struct {
 	// Map of playerID -> cult track -> position (0-10)
 	PlayerPositions map[string]map[CultTrack]int
-	
+
 	// Track which players have reached position 10 on each track (only one allowed per track)
 	Position10Occupied map[CultTrack]string // Track -> PlayerID who occupies position 10
-	
+
 	// Track which cult track bonus spaces have been claimed by each player
 	// Key: playerID, Value: map of track -> set of bonus positions claimed (3, 5, 7, 10)
 	BonusPositionsClaimed map[string]map[CultTrack]map[int]bool
-	
+
 	// Track priests placed on cult track action spaces (below each track)
 	// Each track has 4 action spaces: one 3-step space and three 2-step spaces
 	// Priests placed here stay permanently and count toward the 7-priest limit
@@ -63,13 +79,13 @@ func (cts *CultTrackState) InitializePlayer(playerID string) {
 		CultEarth: 0,
 		CultAir:   0,
 	}
-	
+
 	// Initialize bonus positions tracking
 	cts.BonusPositionsClaimed[playerID] = make(map[CultTrack]map[int]bool)
 	for _, track := range []CultTrack{CultFire, CultWater, CultEarth, CultAir} {
 		cts.BonusPositionsClaimed[playerID][track] = make(map[int]bool)
 	}
-	
+
 	// Initialize priests on action spaces tracking
 	cts.PriestsOnActionSpaces[playerID] = map[CultTrack]int{
 		CultFire:  0,
@@ -151,7 +167,7 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 			}
 		}
 	}
-	
+
 	actualAdvancement := targetPos - currentPos
 	if actualAdvancement == 0 {
 		return 0, nil // Already at max or blocked
@@ -272,25 +288,25 @@ func (cts *CultTrackState) CalculateEndGameScoring() map[string]int {
 			}
 
 			players := positionGroups[pos]
-			
+
 			// Calculate points for this group (may span multiple ranks if tied)
 			totalPoints := 0
 			playersInGroup := len(players)
 			ranksOccupied := 0
-			
+
 			// Determine how many ranks this group occupies and total points
 			for i := pointIndex; i < len(pointsAvailable) && ranksOccupied < playersInGroup; i++ {
 				totalPoints += pointsAvailable[i]
 				ranksOccupied++
 			}
-			
+
 			// Split points among tied players (rounded down)
 			pointsPerPlayer := totalPoints / playersInGroup
-			
+
 			for _, playerID := range players {
 				vpByPlayer[playerID] += pointsPerPlayer
 			}
-			
+
 			pointIndex += ranksOccupied
 		}
 	}
@@ -318,7 +334,7 @@ func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType mode
 	// Advance on all 4 cult tracks
 	for _, track := range tracks {
 		advanced, _ := cts.AdvancePlayer(playerID, track, advanceAmount, player, gs)
-		
+
 		// Track power gained (AdvancePlayer handles milestone bonuses internally)
 		// We need to calculate how much power was actually gained
 		// This is a bit tricky since AdvancePlayer modifies the player's power directly
@@ -328,6 +344,6 @@ func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType mode
 			totalPowerGained += advanced // This is just for tracking, actual power already applied
 		}
 	}
-	
+
 	return totalPowerGained
 }

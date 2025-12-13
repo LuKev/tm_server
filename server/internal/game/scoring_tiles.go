@@ -9,16 +9,42 @@ import (
 type ScoringTileType int
 
 const (
-	ScoringDwellingWater ScoringTileType = iota // 2 VP per dwelling | 4 steps Water = 1 priest
-	ScoringDwellingFire                         // 2 VP per dwelling | 4 steps Fire = 4 power
-	ScoringTradingHouseWater                    // 3 VP per trading house | 4 steps Water = 1 spade
-	ScoringTradingHouseAir                      // 3 VP per trading house | 4 steps Air = 1 spade
-	ScoringTemplePriest                         // 4 VP per temple | 2 coins per priest sent to cult (SCORE5)
-	ScoringStrongholdFire                       // 5 VP per SH/SA | 2 steps Fire = 1 worker
-	ScoringStrongholdAir                        // 5 VP per SH/SA | 2 steps Air = 1 worker
-	ScoringSpades                               // 2 VP per spade | 1 step Earth = 1 coin
-	ScoringTown                                 // 5 VP per town | 4 steps Earth = 1 spade
+	ScoringDwellingWater     ScoringTileType = iota // 2 VP per dwelling | 4 steps Water = 1 priest
+	ScoringDwellingFire                             // 2 VP per dwelling | 4 steps Fire = 4 power
+	ScoringTradingHouseWater                        // 3 VP per trading house | 4 steps Water = 1 spade
+	ScoringTradingHouseAir                          // 3 VP per trading house | 4 steps Air = 1 spade
+	ScoringTemplePriest                             // 4 VP per temple | 2 coins per priest sent to cult (SCORE5)
+	ScoringStrongholdFire                           // 5 VP per SH/SA | 2 steps Fire = 1 worker
+	ScoringStrongholdAir                            // 5 VP per SH/SA | 2 steps Air = 1 worker
+	ScoringSpades                                   // 2 VP per spade | 1 step Earth = 1 coin
+	ScoringTown                                     // 5 VP per town | 4 steps Earth = 1 spade
+	ScoringTileUnknown       ScoringTileType = -1
 )
+
+func ScoringTileTypeFromString(s string) ScoringTileType {
+	switch s {
+	case "Dwelling (Water)":
+		return ScoringDwellingWater
+	case "Dwelling (Fire)":
+		return ScoringDwellingFire
+	case "Trading House (Water)":
+		return ScoringTradingHouseWater
+	case "Trading House (Air)":
+		return ScoringTradingHouseAir
+	case "Temple (Priest)":
+		return ScoringTemplePriest
+	case "Stronghold (Fire)":
+		return ScoringStrongholdFire
+	case "Stronghold (Air)":
+		return ScoringStrongholdAir
+	case "Spades":
+		return ScoringSpades
+	case "Town":
+		return ScoringTown
+	default:
+		return ScoringTileUnknown
+	}
+}
 
 // ActionType for scoring
 type ScoringActionType int
@@ -46,13 +72,13 @@ const (
 
 // ScoringTile represents a scoring tile with action rewards and cult rewards
 type ScoringTile struct {
-	Type           ScoringTileType
-	ActionType     ScoringActionType
-	ActionVP       int // VP awarded per action
-	CultTrack      CultTrack
-	CultThreshold  int            // Steps needed on cult track
-	CultRewardType CultRewardType // Type of reward
-	CultRewardAmount int          // Amount of reward
+	Type             ScoringTileType
+	ActionType       ScoringActionType
+	ActionVP         int // VP awarded per action
+	CultTrack        CultTrack
+	CultThreshold    int            // Steps needed on cult track
+	CultRewardType   CultRewardType // Type of reward
+	CultRewardAmount int            // Amount of reward
 }
 
 // GetAllScoringTiles returns all 9 scoring tiles
@@ -144,7 +170,7 @@ func GetAllScoringTiles() []ScoringTile {
 
 // ScoringTileState tracks the scoring tiles for the game
 type ScoringTileState struct {
-	Tiles       []ScoringTile // 6 tiles, one per round (index 0 = round 1)
+	Tiles       []ScoringTile  // 6 tiles, one per round (index 0 = round 1)
 	PriestsSent map[string]int // Track priests sent to cult per player (for tile #5)
 }
 
@@ -160,36 +186,36 @@ func NewScoringTileState() *ScoringTileState {
 // Spades tile cannot be in rounds 5 or 6
 func (sts *ScoringTileState) InitializeForGame() error {
 	allTiles := GetAllScoringTiles()
-	
+
 	// Shuffle tiles
 	rand.Shuffle(len(allTiles), func(i, j int) {
 		allTiles[i], allTiles[j] = allTiles[j], allTiles[i]
 	})
-	
+
 	// Select 6 tiles, ensuring spades is not in rounds 5 or 6
 	selected := make([]ScoringTile, 0, 6)
-	
+
 	// If spades tile is selected, ensure it's not in the last 2 rounds
 	for _, tile := range allTiles {
 		if len(selected) >= 6 {
 			break
 		}
-		
+
 		// If this is the spades tile and we're filling rounds 5 or 6, skip it
 		if tile.Type == ScoringSpades && len(selected) >= 4 {
 			continue
 		}
-		
+
 		selected = append(selected, tile)
 	}
-	
+
 	// If we don't have 6 tiles yet (because we skipped spades), add remaining tiles
 	if len(selected) < 6 {
 		for _, tile := range allTiles {
 			if len(selected) >= 6 {
 				break
 			}
-			
+
 			// Check if this tile is already selected
 			found := false
 			for _, s := range selected {
@@ -198,17 +224,17 @@ func (sts *ScoringTileState) InitializeForGame() error {
 					break
 				}
 			}
-			
+
 			if !found {
 				selected = append(selected, tile)
 			}
 		}
 	}
-	
+
 	if len(selected) != 6 {
 		return fmt.Errorf("failed to select 6 scoring tiles, got %d", len(selected))
 	}
-	
+
 	sts.Tiles = selected
 	return nil
 }
@@ -242,12 +268,12 @@ func (gs *GameState) AwardActionVP(playerID string, actionType ScoringActionType
 	if gs.ScoringTiles == nil || len(gs.ScoringTiles.Tiles) == 0 {
 		return
 	}
-	
+
 	tile := gs.ScoringTiles.GetTileForRound(gs.Round)
 	if tile == nil {
 		return
 	}
-	
+
 	// Check if this action matches the scoring tile
 	if tile.ActionType == actionType {
 		player := gs.GetPlayer(playerID)
@@ -262,12 +288,12 @@ func (gs *GameState) AwardCultRewards() {
 	if gs.ScoringTiles == nil {
 		return
 	}
-	
+
 	tile := gs.ScoringTiles.GetTileForRound(gs.Round)
 	if tile == nil {
 		return
 	}
-	
+
 	// Special case: Temple + Priest tile (SCORE5)
 	if tile.Type == ScoringTemplePriest {
 		for playerID, priestCount := range gs.ScoringTiles.PriestsSent {
@@ -280,20 +306,20 @@ func (gs *GameState) AwardCultRewards() {
 		gs.ScoringTiles.ResetPriestsSent()
 		return
 	}
-	
+
 	// Regular cult threshold rewards
 	// Award rewards based on how many thresholds the player has crossed
 	// e.g., "2 steps = 1 worker" means position 8 gives 4 workers (8/2 = 4)
 	for playerID, player := range gs.Players {
 		position := gs.CultTracks.GetPosition(playerID, tile.CultTrack)
-		
+
 		if tile.CultThreshold == 0 {
 			continue // Skip if no threshold (shouldn't happen for regular tiles)
 		}
-		
+
 		// Calculate how many times the threshold was crossed
 		rewardCount := position / tile.CultThreshold
-		
+
 		if rewardCount > 0 {
 			totalReward := rewardCount * tile.CultRewardAmount
 

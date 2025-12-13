@@ -3,6 +3,7 @@ package game
 import (
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -23,7 +24,7 @@ func TestFavorEarth1_BuildDwelling(t *testing.T) {
 	player.Resources.Workers = 10
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -33,7 +34,7 @@ func TestFavorEarth1_BuildDwelling(t *testing.T) {
 	})
 
 	// Build a dwelling on home terrain (no transformation needed)
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.GetHex(targetHex).Terrain = faction.GetHomeTerrain()
 
 	initialVP := player.VictoryPoints
@@ -75,7 +76,7 @@ func TestFavorEarth1_PowerAction(t *testing.T) {
 	player.Resources.Power.Bowl3 = 10
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -85,7 +86,7 @@ func TestFavorEarth1_PowerAction(t *testing.T) {
 	})
 
 	// Build a dwelling via ACT5 (1 free spade power action)
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainLake // 1 spade away from Plains
 
 	initialVP := player.VictoryPoints
@@ -125,7 +126,7 @@ func TestFavorEarth1_WitchesRide(t *testing.T) {
 	gs.FavorTiles.TakeFavorTile("player1", FavorEarth1)
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -138,7 +139,7 @@ func TestFavorEarth1_WitchesRide(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// Use Witches' Ride to build on any Forest hex (no adjacency required)
-	targetHex := NewHex(5, 5)
+	targetHex := board.NewHex(5, 5)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialVP := player.VictoryPoints
@@ -185,7 +186,7 @@ func TestFavorEarth1_BonusCardSpade(t *testing.T) {
 	player.Resources.Workers = 10
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -195,7 +196,7 @@ func TestFavorEarth1_BonusCardSpade(t *testing.T) {
 	})
 
 	// Build a dwelling using bonus card spade
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainLake // 1 spade away from Plains
 
 	initialVP := player.VictoryPoints
@@ -239,7 +240,7 @@ func TestFavorEarth1_GiantsTransform(t *testing.T) {
 	player.Resources.Workers = 10
 
 	// Place initial dwelling to establish adjacency
-	initialHex := NewHex(0, 0)
+	initialHex := board.NewHex(0, 0)
 	gs.Map.GetHex(initialHex).Terrain = faction.GetHomeTerrain()
 	gs.Map.PlaceBuilding(initialHex, &models.Building{
 		Type:       models.BuildingDwelling,
@@ -252,7 +253,7 @@ func TestFavorEarth1_GiantsTransform(t *testing.T) {
 	player.HasStrongholdAbility = true
 
 	// Use Giants special action to transform and build
-	targetHex := NewHex(1, 0)
+	targetHex := board.NewHex(1, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainLake // 2 spades away from Wasteland
 
 	initialVP := player.VictoryPoints

@@ -11,7 +11,8 @@ const (
 	TerrainMountain
 	TerrainWasteland
 	TerrainDesert
-	TerrainRiver // River hexes - cannot be built on, used for shipping
+	TerrainRiver                   // River hexes - cannot be built on, used for shipping
+	TerrainTypeUnknown TerrainType = -1
 )
 
 func (t TerrainType) String() string {

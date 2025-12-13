@@ -10,6 +10,8 @@ go_library(
         "game_setup.go",
         "notation.go",
         "parser.go",
+        "snapshot_generator.go",
+        "snapshot_parser.go",
         "validator.go",
     ],
     importpath = "github.com/lukev/tm_server/internal/replay",
@@ -31,6 +33,7 @@ go_test(
         "cult_spade_test.go",
         "darklings_dig_test.go",
         "parser_test.go",
+        "snapshot_test.go",
     ],
     embed = [":replay"],
     deps = [

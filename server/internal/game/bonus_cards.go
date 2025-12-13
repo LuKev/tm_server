@@ -21,17 +21,45 @@ import (
 type BonusCardType int
 
 const (
-	BonusCardPriest BonusCardType = iota // +1 Priest income
-	BonusCardShipping                     // +3 Power income, +1 Shipping for the round
-	BonusCardDwellingVP                   // +2 Coins income, VP for Dwellings when passing
-	BonusCardWorkerPower                  // +1 Worker, +3 Power income
-	BonusCardSpade                        // +2 Coins income, Special action: 1 free spade
-	BonusCardTradingHouseVP               // +1 Worker income, VP for Trading Houses when passing
-	BonusCard6Coins                       // +6 Coins income
-	BonusCardCultAdvance                  // +4 Coins income, Special action: Advance 1 on cult track
-	BonusCardStrongholdSanctuary          // +2 Workers income, VP for Stronghold/Sanctuary when passing
-	BonusCardShippingVP                   // +3 Power income, VP based on shipping level when passing
+	BonusCardPriest              BonusCardType = iota // +1 Priest income
+	BonusCardShipping                                 // +3 Power income, +1 Shipping for the round
+	BonusCardDwellingVP                               // +2 Coins income, VP for Dwellings when passing
+	BonusCardWorkerPower                              // +1 Worker, +3 Power income
+	BonusCardSpade                                    // +2 Coins income, Special action: 1 free spade
+	BonusCardTradingHouseVP                           // +1 Worker income, VP for Trading Houses when passing
+	BonusCard6Coins                                   // +6 Coins income
+	BonusCardCultAdvance                              // +4 Coins income, Special action: Advance 1 on cult track
+	BonusCardStrongholdSanctuary                      // +2 Workers income, VP for Stronghold/Sanctuary when passing
+	BonusCardShippingVP                               // +3 Power income, VP based on shipping level when passing
+	BonusCardUnknown             BonusCardType = -1
 )
+
+func BonusCardTypeFromString(s string) BonusCardType {
+	switch s {
+	case "Priest Income":
+		return BonusCardPriest
+	case "Shipping Bonus":
+		return BonusCardShipping
+	case "Dwelling VP":
+		return BonusCardDwellingVP
+	case "Worker & Power":
+		return BonusCardWorkerPower
+	case "Free Spade":
+		return BonusCardSpade
+	case "Trading House VP":
+		return BonusCardTradingHouseVP
+	case "6 Coins":
+		return BonusCard6Coins
+	case "Cult Advance":
+		return BonusCardCultAdvance
+	case "Stronghold/Sanctuary VP":
+		return BonusCardStrongholdSanctuary
+	case "Shipping VP":
+		return BonusCardShippingVP
+	default:
+		return BonusCardUnknown
+	}
+}
 
 // BonusCard represents a bonus card with its properties
 type BonusCard struct {

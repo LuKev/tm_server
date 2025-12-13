@@ -3,8 +3,8 @@ package game
 import (
 	"testing"
 
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -38,12 +38,13 @@ func TestBonusCard_PassVP_AwardedOnReturn(t *testing.T) {
 
 	// Should NOT have gained VP (no old card to return)
 	if player.VictoryPoints != initialVP {
-		t.Errorf("should not gain VP when taking first bonus card, expected %d VP, got %d VP", 
+		t.Errorf("should not gain VP when taking first bonus card, expected %d VP, got %d VP",
 			initialVP, player.VictoryPoints)
 	}
 
 	// Advance to next round, player passes and takes BON2
 	// NOW should get VP from returning BON10
+	gs.StartNewRound()
 	initialVP = player.VictoryPoints
 	bonusCard2 := BonusCardPriest
 	passAction2 := NewPassAction("player1", &bonusCard2)
@@ -55,7 +56,7 @@ func TestBonusCard_PassVP_AwardedOnReturn(t *testing.T) {
 	// Should have gained 3 VP (1 shipping level * 3 VP per level)
 	expectedVP := initialVP + 3
 	if player.VictoryPoints != expectedVP {
-		t.Errorf("expected %d VP from returning BON10 (1 shipping * 3 VP), got %d VP", 
+		t.Errorf("expected %d VP from returning BON10 (1 shipping * 3 VP), got %d VP",
 			expectedVP, player.VictoryPoints)
 	}
 }
@@ -104,11 +105,12 @@ func TestBonusCard_PassVP_DwellingCard(t *testing.T) {
 
 	// Should NOT gain VP when taking the card
 	if player.VictoryPoints != initialVP {
-		t.Errorf("should not gain VP when taking first bonus card, expected %d VP, got %d VP", 
+		t.Errorf("should not gain VP when taking first bonus card, expected %d VP, got %d VP",
 			initialVP, player.VictoryPoints)
 	}
 
 	// Pass and take a different card (return dwelling VP card)
+	gs.StartNewRound()
 	initialVP = player.VictoryPoints
 	bonusCard2 := BonusCardPriest
 	passAction2 := NewPassAction("player1", &bonusCard2)
@@ -120,7 +122,7 @@ func TestBonusCard_PassVP_DwellingCard(t *testing.T) {
 	// Should gain 3 VP (3 dwellings * 1 VP per dwelling)
 	expectedVP := initialVP + 3
 	if player.VictoryPoints != expectedVP {
-		t.Errorf("expected %d VP from returning dwelling card (3 dwellings * 1 VP), got %d VP", 
+		t.Errorf("expected %d VP from returning dwelling card (3 dwellings * 1 VP), got %d VP",
 			expectedVP, player.VictoryPoints)
 	}
 }
@@ -165,11 +167,12 @@ func TestBonusCard_PassVP_TradingHouseCard(t *testing.T) {
 
 	// Should NOT gain VP when taking the card
 	if player.VictoryPoints != initialVP {
-		t.Errorf("should not gain VP when taking first bonus card, expected %d VP, got %d VP", 
+		t.Errorf("should not gain VP when taking first bonus card, expected %d VP, got %d VP",
 			initialVP, player.VictoryPoints)
 	}
 
 	// Pass and take a different card (return trading house VP card)
+	gs.StartNewRound()
 	initialVP = player.VictoryPoints
 	bonusCard2 := BonusCardPriest
 	passAction2 := NewPassAction("player1", &bonusCard2)
@@ -181,7 +184,7 @@ func TestBonusCard_PassVP_TradingHouseCard(t *testing.T) {
 	// Should gain 2 VP (1 trading house * 2 VP per trading house)
 	expectedVP := initialVP + 2
 	if player.VictoryPoints != expectedVP {
-		t.Errorf("expected %d VP from returning trading house card (1 TH * 2 VP), got %d VP", 
+		t.Errorf("expected %d VP from returning trading house card (1 TH * 2 VP), got %d VP",
 			expectedVP, player.VictoryPoints)
 	}
 }

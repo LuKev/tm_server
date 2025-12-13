@@ -33,8 +33,8 @@ const (
 	ConvPowerToPriests
 	ConvPriestToWorker
 	ConvWorkerToCoin
-	ConvVPToCoins    // Alchemists: VP -> Coins (1:1)
-	ConvCoinsToVP    // Alchemists: Coins -> VP (2:1)
+	ConvVPToCoins // Alchemists: VP -> Coins (1:1)
+	ConvCoinsToVP // Alchemists: Coins -> VP (2:1)
 )
 
 func (ct ConversionType) String() string {
@@ -137,7 +137,7 @@ func (m *MainActionComponent) String() string {
 	if len(m.Modifiers) > 0 {
 		modStr = fmt.Sprintf(" [%d modifiers]", len(m.Modifiers))
 	}
-	return fmt.Sprintf("MainAction(%s%s)", m.Action.GetType(), modStr)
+	return fmt.Sprintf("MainAction(%v%s)", m.Action.GetType(), modStr)
 }
 
 // ========== POWER ACTION FOR FREE SPADES ==========
@@ -192,9 +192,9 @@ func (p *PowerActionFreeSpades) Execute(gs *game.GameState, playerID string) err
 
 func (p *PowerActionFreeSpades) String() string {
 	if p.Burned > 0 {
-		return fmt.Sprintf("PowerActionFreeSpades(%s, burned=%d)", p.PowerActionType, p.Burned)
+		return fmt.Sprintf("PowerActionFreeSpades(%v, burned=%d)", p.PowerActionType, p.Burned)
 	}
-	return fmt.Sprintf("PowerActionFreeSpades(%s)", p.PowerActionType)
+	return fmt.Sprintf("PowerActionFreeSpades(%v)", p.PowerActionType)
 }
 
 // GrantSpadesComponent grants free spades for terraform (from digging level or other sources)
@@ -285,9 +285,9 @@ func (p *PowerActionModifier) Apply(gs *game.GameState, playerID string, mainAct
 
 func (p *PowerActionModifier) String() string {
 	if p.Burned > 0 {
-		return fmt.Sprintf("PowerAction(%s, burned=%d)", p.PowerActionType, p.Burned)
+		return fmt.Sprintf("PowerAction(%v, burned=%d)", p.PowerActionType, p.Burned)
 	}
-	return fmt.Sprintf("PowerAction(%s)", p.PowerActionType)
+	return fmt.Sprintf("PowerAction: %v", p.PowerActionType)
 }
 
 // SpecialActionModifier for faction-specific special actions

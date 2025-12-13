@@ -23,9 +23,9 @@ type FavorTileType int
 const (
 	// +3 Cult advancement only (no special ability)
 	FavorFire3  FavorTileType = iota // Fire +3
-	FavorWater3                       // Water +3
-	FavorEarth3                       // Earth +3
-	FavorAir3                         // Air +3
+	FavorWater3                      // Water +3
+	FavorEarth3                      // Earth +3
+	FavorAir3                        // Air +3
 
 	// +2 Cult advancement with special ability
 	FavorFire2  // Fire +2: Town power requirement reduced to 6
@@ -34,21 +34,53 @@ const (
 	FavorAir2   // Air +2: Income +4 power
 
 	// +1 Cult advancement with special ability
-	FavorFire1  // Fire +1: Income +3 coins
-	FavorWater1 // Water +1: +3 VP when upgrading Dwelling→Trading House
-	FavorEarth1 // Earth +1: +2 VP when building Dwelling
-	FavorAir1   // Air +1: VP at pass based on Trading Houses (2/3/3/4 for 1/2/3/4 TH)
+	FavorFire1                     // Fire +1: Income +3 coins
+	FavorWater1                    // Water +1: +3 VP when upgrading Dwelling→Trading House
+	FavorEarth1                    // Earth +1: +2 VP when building Dwelling
+	FavorAir1                      // Air +1: VP at pass based on Trading Houses (2/3/3/4 for 1/2/3/4 TH)
+	FavorTileUnknown FavorTileType = -1
 )
+
+func FavorTileTypeFromString(s string) FavorTileType {
+	switch s {
+	case "Fire +3":
+		return FavorFire3
+	case "Water +3":
+		return FavorWater3
+	case "Earth +3":
+		return FavorEarth3
+	case "Air +3":
+		return FavorAir3
+	case "Fire +2: Town Power":
+		return FavorFire2
+	case "Water +2: Cult Advance":
+		return FavorWater2
+	case "Earth +2: Worker Income":
+		return FavorEarth2
+	case "Air +2: Power Income":
+		return FavorAir2
+	case "Fire +1: Coin Income":
+		return FavorFire1
+	case "Water +1: Trading House VP":
+		return FavorWater1
+	case "Earth +1: Dwelling VP":
+		return FavorEarth1
+	case "Air +1: Trading House Pass VP":
+		return FavorAir1
+	default:
+		return FavorTileUnknown
+	}
+}
 
 // FavorTile represents a favor tile with its properties
 type FavorTile struct {
-	Type          FavorTileType
-	CultTrack     CultTrack
-	CultAdvance   int    // How many spaces to advance on the cult track
-	Name          string // Human-readable name
-	Description   string // Description of the special ability
-	HasAbility    bool   // Whether this tile has an ongoing ability
-	AvailableQty  int    // How many of this tile are available (1 for +3, 3 for others)
+	Type         FavorTileType
+	CultTrack    CultTrack
+	CultAdvance  int    // How many spaces to advance on the cult track
+	Name         string // Human-readable name
+	Description  string // Description of the special ability
+	HasAbility   bool   // Whether this tile has an ongoing ability
+	AvailableQty int    // How many of this tile are available (1 for +3, 3 for others)
 }
 
 // GetAllFavorTiles returns all favor tiles with their properties
