@@ -3,13 +3,14 @@ import { useMemo, useEffect, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
+import { FavorTiles } from './GameBoard/FavorTiles'
 import { CultTracks } from './CultTracks/CultTracks'
 import type { CultPosition } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
 import { FACTIONS } from '../data/factions'
 import { useGameStore } from '../stores/gameStore'
 import { useActionService } from '../services/actionService'
-import { CultType, GamePhase } from '../types/game.types'
+import { CultType, GamePhase, type FactionType } from '../types/game.types'
 import { useWebSocket } from '../services/WebSocketContext'
 import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
@@ -18,25 +19,37 @@ import './Game.css'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
-export function Game(): React.ReactElement {
+export const Game = () => {
   const { gameId } = useParams()
-  const { sendMessage, isConnected } = useWebSocket()
+  const { isConnected, sendMessage } = useWebSocket()
   const gameState = useGameStore((state) => state.gameState)
   const localPlayerId = useGameStore((state) => state.localPlayerId)
 
   const { submitSetupDwelling, submitSelectFaction } = useActionService()
 
   // Default layout configuration
+  // Adjusted for square grid cells (rowHeight = colWidth)
+  // Granularity doubled (24 cols for lg, 20 for md)
   const defaultLayouts = {
     lg: [
-      { i: 'scoring', x: 0, y: 0, w: 2, h: 10, minW: 2, minH: 6 },
-      { i: 'board', x: 2, y: 0, w: 8, h: 11, minW: 6, minH: 10 },
-      { i: 'cult', x: 10, y: 0, w: 2, h: 10, minW: 2, minH: 6 },
-      { i: 'towns', x: 0, y: 10, w: 4, h: 4, minW: 2, minH: 3 }
+      { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
+      { i: 'board', x: 4, y: 0, w: 16, h: 16, minW: 12, minH: 10 },
+      { i: 'cult', x: 20, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
+      { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
+      { i: 'favor', x: 4, y: 16, w: 6, h: 4, minW: 4, minH: 2 }
+    ],
+    md: [
+      { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
+      { i: 'board', x: 4, y: 0, w: 12, h: 12, minW: 8, minH: 8 },
+      { i: 'cult', x: 16, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
+      { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
+      { i: 'favor', x: 4, y: 12, w: 6, h: 4, minW: 4, minH: 2 }
     ]
   }
 
   const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
+  const [isLayoutLocked, setIsLayoutLocked] = useState(false)
+  const [rowHeight, setRowHeight] = useState(60)
 
   useEffect(() => {
     if (isConnected && gameId && !gameState) {
@@ -50,11 +63,6 @@ export function Game(): React.ReactElement {
       console.warn('No local player ID set')
       return
     }
-
-    // console.log(`Hex clicked: q=${q}, r=${r}`)
-
-    // For now, always submit setup dwelling action
-    // TODO: Add logic to determine action type based on game phase and hex state
     submitSetupDwelling(localPlayerId, q, r, gameId)
   }
 
@@ -74,7 +82,6 @@ export function Game(): React.ReactElement {
       const player = gameState.players[playerId]
       if (!player) return
 
-      // Check both lowercase and PascalCase for faction and VP
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
       const factionRaw = player.faction ?? player.Faction
 
@@ -82,7 +89,6 @@ export function Game(): React.ReactElement {
         let factionId: number | undefined
 
         if (typeof factionRaw === 'object' && factionRaw !== null && 'Type' in factionRaw) {
-          // Handle Faction object (Go struct marshalled to JSON)
           factionId = (factionRaw as { Type: number }).Type
         } else if (typeof factionRaw === 'object' && factionRaw !== null && 'type' in factionRaw) {
           factionId = (factionRaw as { type: number }).type
@@ -106,19 +112,18 @@ export function Game(): React.ReactElement {
     return map
   }, [gameState])
 
-  // Get current player's position in turn order
+  // Get current player's position (1-based index)
   const currentPlayerPosition = useMemo(() => {
     if (!gameState?.order || !localPlayerId) return 1
     const index = gameState.order.indexOf(localPlayerId)
-    return index >= 0 ? index + 1 : 1
+    return index !== -1 ? index + 1 : 1
   }, [gameState, localPlayerId])
 
-  // Convert player cult positions to CultTracks format
+  // Helper to get cult positions
   const getCultPositions = (): Map<CultType, CultPosition[]> => {
     const positions = new Map<CultType, CultPosition[]>()
 
     if (!gameState) {
-      // Return empty positions if no game state
       positions.set(CultType.Fire, [])
       positions.set(CultType.Water, [])
       positions.set(CultType.Earth, [])
@@ -126,13 +131,11 @@ export function Game(): React.ReactElement {
       return positions
     }
 
-    // Initialize each cult with empty array
     positions.set(CultType.Fire, [])
     positions.set(CultType.Water, [])
     positions.set(CultType.Earth, [])
     positions.set(CultType.Air, [])
 
-    // Collect all player positions on each cult track
     if (gameState.order && gameState.players) {
       gameState.order.forEach((playerId: string) => {
         const player = gameState.players[playerId]
@@ -158,17 +161,79 @@ export function Game(): React.ReactElement {
 
   const isMyTurn = gameState?.order[gameState.currentTurn] === localPlayerId
 
+  const handleWidthChange = (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => {
+    const safeMargin = margin || [10, 10]
+    const safePadding = containerPadding || [10, 10]
+    const totalMargin = safeMargin[0] * (cols - 1)
+    const totalPadding = safePadding[0] * 2
+    const colWidth = (containerWidth - totalMargin - totalPadding) / cols
+    setRowHeight(colWidth)
+  }
+
+  const handleLayoutChange = (_currentLayout: ReactGridLayout.Layout[], allLayouts: Layouts) => {
+    // Enforce aspect ratios based on width
+    // Scoring/Cult: h = w * 2
+    // Board: h = ceil(w * 0.9)
+    // Towns: h = ceil(w * 2/3)
+    // Favor: h = ceil(w * 0.625) (8:5 ratio)
+
+    const updatedLayouts = { ...allLayouts }
+    let hasChanges = false
+
+    Object.keys(updatedLayouts).forEach(key => {
+      const layout = updatedLayouts[key]
+      const newLayout = layout.map(item => {
+        let newH = item.h
+        if (item.i === 'scoring') {
+          newH = item.w * 2
+        } else if (item.i === 'cult') {
+          newH = Math.ceil(item.w * 2.25)
+        } else if (item.i === 'board') {
+          newH = Math.ceil(item.w * 0.9)
+        } else if (item.i === 'towns') {
+          newH = Math.ceil(item.w * 2 / 3)
+        } else if (item.i === 'favor') {
+          newH = Math.ceil(item.w * 0.625)
+        }
+
+        if (newH !== item.h) {
+          hasChanges = true
+          return { ...item, h: newH }
+        }
+        return item
+      })
+      updatedLayouts[key] = newLayout
+    })
+
+    if (hasChanges) {
+      setLayouts(updatedLayouts)
+    } else {
+      setLayouts(allLayouts)
+    }
+  }
+
   return (
     <div className="min-h-screen p-4 bg-gray-100">
       <div className="max-w-[1800px] mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-gray-800">Terra Mystica - Game {gameId}</h1>
-          <button
-            onClick={() => { setLayouts(defaultLayouts); }}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
-          >
-            Reset Layout
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setIsLayoutLocked(!isLayoutLocked) }}
+              className={`px-4 py-2 rounded text-sm font-medium transition-colors ${isLayoutLocked
+                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+            >
+              {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
+            </button>
+            <button
+              onClick={() => { setLayouts(defaultLayouts); }}
+              className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+            >
+              Reset Layout
+            </button>
+          </div>
         </div>
 
         {/* Faction Selector - shown above game board during faction selection phase */}
@@ -183,14 +248,15 @@ export function Game(): React.ReactElement {
 
         {/* Draggable Grid Layout */}
         <ResponsiveGridLayout
-          className="layout"
+          className={`layout ${isLayoutLocked ? 'layout-locked' : ''}`}
           layouts={layouts}
           breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-          cols={{ lg: 12, md: 10, sm: 6, xs: 4, xxs: 2 }}
-          rowHeight={60}
-          onLayoutChange={(_layout, allLayouts) => { setLayouts(allLayouts); }}
-          isDraggable={true}
-          isResizable={true}
+          cols={{ lg: 24, md: 20, sm: 12, xs: 8, xxs: 4 }}
+          rowHeight={rowHeight}
+          onLayoutChange={handleLayoutChange}
+          onWidthChange={handleWidthChange}
+          isDraggable={!isLayoutLocked}
+          isResizable={!isLayoutLocked}
           resizeHandles={['e']}
           draggableHandle=".drag-handle"
         >
@@ -245,6 +311,16 @@ export function Game(): React.ReactElement {
             </div>
             <div className="flex-1 overflow-auto p-2">
               <TownTiles availableTiles={gameState?.townTiles} />
+            </div>
+          </div>
+
+          {/* Favor Tiles */}
+          <div key="favor" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
+            </div>
+            <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
+              <FavorTiles />
             </div>
           </div>
         </ResponsiveGridLayout>

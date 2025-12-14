@@ -1,0 +1,149 @@
+.favor-tiles-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 8px 2px;
+    width: 100%;
+    height: 100%;
+    padding: 8px 2px;
+    box-sizing: border-box;
+    background-color: white;
+    overflow: hidden;
+}
+
+.favor-tile {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: inline-size;
+    overflow: hidden;
+}
+
+.favor-tile-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.favor-tile-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5%;
+    box-sizing: border-box;
+}
+
+.favor-cult-steps {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5cqw;
+    width: 40%;
+}
+
+.cult-step-circle {
+    width: 10cqw;
+    height: 10cqw;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.favor-tile-content.justify-center {
+    justify-content: center;
+}
+
+.favor-cult-steps.w-full {
+    width: 100%;
+    flex-direction: row;
+    gap: 2cqw;
+}
+
+.favor-reward {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 60%;
+    font-size: 15cqw;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    line-height: 1;
+}
+
+.favor-icon {
+    width: 1em;
+    height: 1em;
+    font-size: inherit;
+}
+
+/* Cult Colors */
+.bg-fire {
+    background-color: #f97316;
+}
+
+/* orange-500 */
+.bg-water {
+    background-color: #3b82f6;
+}
+
+/* blue-500 */
+.bg-earth {
+    background-color: #a16207;
+}
+
+/* yellow-800 (brownish) */
+.bg-air {
+    background-color: #9ca3af;
+}
+
+/* gray-400 */
+
+.text-fire {
+    color: #c2410c;
+}
+
+.text-water {
+    color: #1d4ed8;
+}
+
+.text-earth {
+    color: #713f12;
+}
+
+.text-air {
+    color: #4b5563;
+}
+
+.border-fire {
+    border-color: #c2410c;
+}
+
+.border-water {
+    border-color: #1d4ed8;
+}
+
+.border-earth {
+    border-color: #713f12;
+}
+
+.border-air {
+    border-color: #4b5563;
+}
