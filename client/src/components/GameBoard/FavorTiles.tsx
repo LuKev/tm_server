@@ -1,6 +1,6 @@
 import React from 'react';
 import { CultType } from '../../types/game.types';
-import { CoinIcon, WorkerIcon, PowerIcon, SpadeIcon, DwellingIcon, TradingHouseIcon } from '../shared/Icons';
+import { CoinIcon, WorkerIcon, PowerIcon, DwellingIcon, TradingHouseIcon, CultActionIcon } from '../shared/Icons';
 import './FavorTiles.css';
 
 interface FavorTileData {
@@ -20,7 +20,7 @@ const FAVOR_TILES: FavorTileData[] = [
 
     // Row 2: Level 2s
     { id: 'fav_fire_2', cult: CultType.Fire, steps: 2, reward: <div style={{ lineHeight: '1.1' }}>Town<br />Size 6</div>, initialCount: 3 },
-    { id: 'fav_water_2', cult: CultType.Water, steps: 2, reward: <SpadeIcon className="favor-icon" />, initialCount: 3 },
+    { id: 'fav_water_2', cult: CultType.Water, steps: 2, reward: <CultActionIcon className="favor-icon" style={{ fontSize: '1.5em' }} />, initialCount: 3 },
     { id: 'fav_earth_2', cult: CultType.Earth, steps: 2, reward: <div className="flex items-center gap-1"><WorkerIcon className="favor-icon">1</WorkerIcon><PowerIcon amount={1} className="favor-icon" /></div>, initialCount: 3 },
     { id: 'fav_air_2', cult: CultType.Air, steps: 2, reward: <PowerIcon amount={4} className="favor-icon" />, initialCount: 3 },
 

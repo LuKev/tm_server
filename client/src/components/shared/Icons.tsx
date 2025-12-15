@@ -108,6 +108,28 @@ export const CultRhombusIcon = ({ className, showNumber = false }: { className?:
 };
 export const VPIcon = ({ className, children }: { className?: string, children?: React.ReactNode }): React.ReactElement => (
     <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D4B483', border: '2px solid #8B4513', borderRadius: '50%', width: '1.5em', height: '1.5em', fontWeight: 'bold', fontSize: '1em', color: '#5C4033' }}>
-        {children || 'VP'}
+        {children ?? 'VP'}
     </div>
+);
+
+export const CultActionIcon = ({ className, style }: { className?: string, style?: React.CSSProperties }): React.ReactElement => (
+    <svg viewBox="0 0 100 100" className={className} style={style}>
+        {/* Octagon Background - Orange/Brownish for action */}
+        <polygon points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30" fill="#D97706" stroke="#92400E" strokeWidth="2" />
+
+        {/* Split Circle Group - Centered */}
+        <g transform="translate(50, 50)">
+            {/* Top Left - Red */}
+            <path d="M 0 0 L 0 -35 A 35 35 0 0 0 -35 0 Z" fill="#EF4444" stroke="white" strokeWidth="1" />
+
+            {/* Bottom Left - Blue */}
+            <path d="M 0 0 L -35 0 A 35 35 0 0 0 0 35 Z" fill="#3B82F6" stroke="white" strokeWidth="1" />
+
+            {/* Bottom Right - Orange */}
+            <path d="M 0 0 L 0 35 A 35 35 0 0 0 35 0 Z" fill="#F59E0B" stroke="white" strokeWidth="1" />
+
+            {/* Top Right - White/Gray */}
+            <path d="M 0 0 L 35 0 A 35 35 0 0 0 0 -35 Z" fill="#E5E7EB" stroke="white" strokeWidth="1" />
+        </g>
+    </svg>
 );
