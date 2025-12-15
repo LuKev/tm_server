@@ -27,3 +27,17 @@
     border-radius: 9999px;
     /* rounded-full */
 }
+
+/* Layout Lock Styles */
+.layout-locked .drag-handle {
+    display: none !important;
+}
+
+.layout-locked .react-resizable-handle {
+    display: none !important;
+}
+
+/* Ensure resize handles are always on top */
+.react-resizable-handle {
+    z-index: 1000 !important;
+}

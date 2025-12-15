@@ -49,7 +49,7 @@ export const BridgeIcon = ({ className }: { className?: string }): React.ReactEl
 );
 
 export const SpadeIcon = ({ className }: { className?: string }): React.ReactElement => (
-    <Shovel className={className} color="#5C4033" />
+    <Shovel className={className} color="#5C4033" size="1em" />
 );
 
 export const WorkerIcon = ({ className, children }: { className?: string, children?: React.ReactNode }): React.ReactElement => (
@@ -106,3 +106,8 @@ export const CultRhombusIcon = ({ className, showNumber = false }: { className?:
         </div>
     );
 };
+export const VPIcon = ({ className, children }: { className?: string, children?: React.ReactNode }): React.ReactElement => (
+    <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D4B483', border: '2px solid #8B4513', borderRadius: '50%', width: '1.5em', height: '1.5em', fontWeight: 'bold', fontSize: '1em', color: '#5C4033' }}>
+        {children || 'VP'}
+    </div>
+);

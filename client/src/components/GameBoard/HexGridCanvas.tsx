@@ -323,11 +323,9 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     });
 
     // 4. Draw buildings
-    Object.values(gameState.players).forEach((player: PlayerState) => {
-      (Object.entries(player.buildings) as [string, Building][]).forEach(([key, building]) => {
-        const [q, r] = key.split(',').map(Number);
-        drawBuilding(ctx, building, r, q);
-      });
+    buildings.forEach((building, key) => {
+      const [q, r] = key.split(',').map(Number);
+      drawBuilding(ctx, building, r, q);
     });
 
     // 5. Draw highlights on top of everything

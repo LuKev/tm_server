@@ -19,7 +19,7 @@ interface PowerActionConfig {
 // Octagon SVG background wrapper
 const OctagonWrapper = ({ children }: { children: React.ReactNode }): React.ReactElement => (
     <div className="octagon-wrapper">
-        <svg viewBox="0 0 40 40" className="octagon-svg">
+        <svg viewBox="-2 -2 44 44" className="octagon-svg">
             <path
                 d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z"
                 fill="#f97316" // orange-500
