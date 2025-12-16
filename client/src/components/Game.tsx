@@ -4,6 +4,7 @@ import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
 import { FavorTiles } from './GameBoard/FavorTiles'
+import { PassingTiles } from './GameBoard/PassingTiles'
 import { CultTracks } from './CultTracks/CultTracks'
 import type { CultPosition } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
@@ -27,25 +28,29 @@ export const Game = () => {
 
   const { submitSetupDwelling, submitSelectFaction } = useActionService()
 
+  const numCards = gameState?.bonusCards?.length ?? 9
+
   // Default layout configuration
   // Adjusted for square grid cells (rowHeight = colWidth)
   // Granularity doubled (24 cols for lg, 20 for md)
-  const defaultLayouts = {
+  const defaultLayouts = useMemo(() => ({
     lg: [
       { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
       { i: 'board', x: 4, y: 0, w: 16, h: 16, minW: 12, minH: 10 },
       { i: 'cult', x: 20, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
       { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
-      { i: 'favor', x: 4, y: 16, w: 6, h: 4, minW: 4, minH: 2 }
+      { i: 'favor', x: 20, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
+      { i: 'passing', x: 24 - numCards, y: 16, w: numCards, h: 4, minW: 4, minH: 2 }
     ],
     md: [
       { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
       { i: 'board', x: 4, y: 0, w: 12, h: 12, minW: 8, minH: 8 },
       { i: 'cult', x: 16, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
       { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
-      { i: 'favor', x: 4, y: 12, w: 6, h: 4, minW: 4, minH: 2 }
+      { i: 'favor', x: 16, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
+      { i: 'passing', x: 20 - numCards, y: 16, w: numCards, h: 4, minW: 4, minH: 2 }
     ]
-  }
+  }), [numCards])
 
   const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
   const [isLayoutLocked, setIsLayoutLocked] = useState(false)
@@ -56,6 +61,28 @@ export const Game = () => {
       sendMessage({ type: 'get_game_state', payload: { gameID: gameId } })
     }
   }, [isConnected, gameId, gameState, sendMessage])
+
+  // Update layout when numCards changes to ensure correct default size
+  useEffect(() => {
+    setLayouts((currentLayouts) => {
+      const newLayouts = { ...currentLayouts }
+      let hasChanges = false
+
+      Object.keys(newLayouts).forEach((key) => {
+        newLayouts[key] = newLayouts[key].map((item) => {
+          if (item.i === 'passing') {
+            if (item.w !== numCards || item.h !== 4) {
+              hasChanges = true
+              return { ...item, w: numCards, h: 4 }
+            }
+          }
+          return item
+        })
+      })
+
+      return hasChanges ? newLayouts : currentLayouts
+    })
+  }, [numCards])
 
   // Handle hex clicks
   const handleHexClick = (q: number, r: number): void => {
@@ -194,6 +221,8 @@ export const Game = () => {
           newH = Math.ceil(item.w * 2 / 3)
         } else if (item.i === 'favor') {
           newH = Math.ceil(item.w * 0.625)
+        } else if (item.i === 'passing') {
+          newH = Math.ceil(item.w * (4 / numCards))
         }
 
         if (newH !== item.h) {
@@ -321,6 +350,16 @@ export const Game = () => {
             </div>
             <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
               <FavorTiles />
+            </div>
+          </div>
+
+          {/* Passing Tiles (Bonus Cards) */}
+          <div key="passing" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
+            </div>
+            <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
+              <PassingTiles />
             </div>
           </div>
         </ResponsiveGridLayout>

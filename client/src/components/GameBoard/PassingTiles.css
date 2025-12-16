@@ -1,0 +1,100 @@
+.passing-tiles-container {
+    display: grid;
+    gap: 0.5cqw;
+    width: 100%;
+    height: 100%;
+    container-type: inline-size;
+    padding: 0.5cqw;
+    box-sizing: border-box;
+}
+
+.passing-tile {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 4;
+    display: flex;
+    flex-direction: column;
+    border-radius: 0.5cqw;
+    overflow: hidden;
+    box-shadow: 0 0.2cqw 0.5cqw rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+    cursor: pointer;
+    container-type: inline-size;
+    font-size: 20cqw;
+}
+
+.passing-tile:hover {
+    transform: translateY(-0.5cqw);
+}
+
+.passing-tile-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+}
+
+.passing-tile-content {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.passing-tile-top {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2cqw;
+}
+
+.passing-tile-bottom {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.2);
+    padding: 0.2cqw;
+}
+
+.passing-tile-single {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5cqw;
+}
+
+.vp-number {
+    font-weight: bold;
+    font-size: 20cqw;
+    color: #8B4513;
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.5);
+}
+
+.passing-tile-arrow {
+    font-size: 15cqw;
+    color: #5C4033;
+    margin: 0.2cqw 0;
+}
+
+.passing-tile-coin-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+    background-color: rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    padding: 0.2cqw;
+    box-shadow: 0 0.2cqw 0.5cqw rgba(0, 0, 0, 0.3);
+}
