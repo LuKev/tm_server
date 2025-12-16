@@ -125,6 +125,25 @@ export enum GamePhase {
   End = 3,
 }
 
+export enum BonusCardType {
+  Priest = 0,
+  Shipping = 1,
+  DwellingVP = 2,
+  WorkerPower = 3,
+  Spade = 4,
+  TradingHouseVP = 5,
+  Coins6 = 6,
+  CultAdvance = 7,
+  StrongholdSanctuaryVP = 8,
+  ShippingVP = 9,
+}
+
+export interface BonusCardState {
+  available: Record<BonusCardType, number>
+  playerCards: Record<string, BonusCardType>
+  playerHasCard: Record<string, boolean>
+}
+
 export interface GameState {
   id: string
   phase: GamePhase
@@ -137,4 +156,5 @@ export interface GameState {
   finished: boolean
   scoringTiles?: number[]
   townTiles?: number[]
+  bonusCards?: number[] // Array of available BonusCardTypes (as numbers) from serialization
 }

@@ -3,8 +3,6 @@ package game
 import (
 	"fmt"
 	"sync"
-
-
 )
 
 // Manager owns and guards access to game state instances in-memory.
@@ -12,7 +10,7 @@ import (
 
 type Manager struct {
 	mu    sync.RWMutex
-	games map[string]*GameState  // Changed from models.GameState to game.GameState
+	games map[string]*GameState // Changed from models.GameState to game.GameState
 }
 
 func NewManager() *Manager {
@@ -83,6 +81,9 @@ func (m *Manager) CreateGame(id string, playerIDs []string) error {
 		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
 	}
 
+	// Initialize bonus cards
+	gs.BonusCards.SelectRandomBonusCards(len(playerIDs))
+
 	// Add players without factions initially
 	for _, pid := range playerIDs {
 		gs.AddPlayer(pid, nil)
@@ -117,18 +118,18 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 		if player.Faction != nil {
 			factionType = player.Faction.GetType().String()
 		}
-		
+
 		players[playerID] = map[string]interface{}{
-			"id":       playerID,
-			"name":     playerID, // TODO: Get actual player name
-			"faction":  factionType,
+			"id":      playerID,
+			"name":    playerID, // TODO: Get actual player name
+			"faction": factionType,
 			"resources": map[string]interface{}{
-				"coins":     player.Resources.Coins,
-				"workers":   player.Resources.Workers,
-				"priests":   player.Resources.Priests,
-				"powerI":    player.Resources.Power.Bowl1,
-				"powerII":   player.Resources.Power.Bowl2,
-				"powerIII":  player.Resources.Power.Bowl3,
+				"coins":    player.Resources.Coins,
+				"workers":  player.Resources.Workers,
+				"priests":  player.Resources.Priests,
+				"powerI":   player.Resources.Power.Bowl1,
+				"powerII":  player.Resources.Power.Bowl2,
+				"powerIII": player.Resources.Power.Bowl3,
 			},
 			"shipping": player.ShippingLevel,
 			"digging":  player.DiggingLevel,
@@ -185,6 +186,17 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 				tiles[i] = int(t.Type)
 			}
 			return tiles
+		}(),
+		"bonusCards": func() []int {
+			if gs.BonusCards == nil {
+				return nil
+			}
+			// Return all available cards (keys in Available map)
+			cards := make([]int, 0, len(gs.BonusCards.Available))
+			for cardType := range gs.BonusCards.Available {
+				cards = append(cards, int(cardType))
+			}
+			return cards
 		}(),
 	}
 }
