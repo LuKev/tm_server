@@ -52,8 +52,8 @@ const ACTIONS: PowerActionConfig[] = [
         label: "2 Workers",
         icon: (
             <div className="workers-container">
-                <WorkerIcon className="worker-icon-styled" />
-                <WorkerIcon className="worker-icon-styled" />
+                <WorkerIcon className="worker-icon-styled" style={{ width: '12px', height: '12px' }} />
+                <WorkerIcon className="worker-icon-styled" style={{ width: '12px', height: '12px' }} />
             </div>
         )
     },
@@ -62,7 +62,7 @@ const ACTIONS: PowerActionConfig[] = [
         cost: 4,
         label: "7 Coins",
         icon: (
-            <CoinIcon className="coin-icon-large">
+            <CoinIcon className="coin-icon-large" style={{ width: '24px', height: '24px' }}>
                 <span className="coins-text">7</span>
             </CoinIcon>
         )

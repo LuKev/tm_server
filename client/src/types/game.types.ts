@@ -121,8 +121,10 @@ export interface RoundState {
 export enum GamePhase {
   Setup = 0,
   FactionSelection = 1,
-  Game = 2,
-  End = 3,
+  Income = 2,
+  Action = 3,
+  Cleanup = 4,
+  End = 5,
 }
 
 export enum BonusCardType {

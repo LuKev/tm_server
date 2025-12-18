@@ -79,35 +79,37 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
     const filledSlots = Object.keys(tileCounts).map(Number).sort((a, b) => a - b);
 
     return (
-        <div className="town-tiles-container">
-            {filledSlots.map((id) => {
-                const count = tileCounts[id] || 0;
-                const config = TOWN_TILE_CONFIGS[id as TownTileId];
+        <div className="tt-resize-container">
+            <div className="town-tiles-container">
+                {filledSlots.map((id) => {
+                    const count = tileCounts[id] || 0;
+                    const config = TOWN_TILE_CONFIGS[id as TownTileId];
 
-                if (!config || count === 0) return null;
+                    if (!config || count === 0) return null;
 
-                return (
-                    <div key={id} className="town-tile-slot">
-                        {/* Render stack */}
-                        {Array.from({ length: Math.min(count, 3) }).map((_, index) => (
-                            <div
-                                key={index}
-                                className={`town-tile town-tile-stack-${String(index)}`}
-                            >
-                                <div className="town-tile-content">
-                                    <div className="town-tile-top">
-                                        <span className="vp-value">{config.vp}</span>
-                                        <span className="vp-label">VP</span>
-                                    </div>
-                                    <div className="town-tile-bottom">
-                                        {config.rewards}
+                    return (
+                        <div key={id} className="town-tile-slot">
+                            {/* Render stack */}
+                            {Array.from({ length: Math.min(count, 3) }).map((_, index) => (
+                                <div
+                                    key={index}
+                                    className={`town-tile town-tile-stack-${String(index)}`}
+                                >
+                                    <div className="town-tile-content">
+                                        <div className="town-tile-top">
+                                            <span className="vp-value">{config.vp}</span>
+                                            <span className="vp-label">VP</span>
+                                        </div>
+                                        <div className="town-tile-bottom">
+                                            {config.rewards}
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
-                    </div>
-                );
-            })}
+                            ))}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 };

@@ -1,11 +1,19 @@
+.tt-resize-container {
+    container-type: inline-size;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
 .town-tiles-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(2, 1fr);
-    gap: 8px;
+    gap: 2%;
     width: 100%;
     height: 100%;
-    padding: 10px;
+    padding: 2%;
+    box-sizing: border-box;
 }
 
 /* Individual tile slot */
@@ -41,7 +49,7 @@
     /* Container query width - falls back gracefully */
     font-weight: bold;
     color: #333;
-    filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.3));
+    filter: drop-shadow(0.1em 0.1em 0.2em rgba(0, 0, 0, 0.3));
     transition: transform 0.2s;
 }
 
@@ -96,13 +104,13 @@
 
 .town-tile-stack-1 {
     z-index: 9;
-    transform: translateY(-6px) translateX(3px);
+    transform: translateY(-0.4em) translateX(0.2em);
     filter: brightness(0.9);
 }
 
 .town-tile-stack-2 {
     z-index: 8;
-    transform: translateY(-12px) translateX(6px);
+    transform: translateY(-0.8em) translateX(0.4em);
     filter: brightness(0.8);
 }
 

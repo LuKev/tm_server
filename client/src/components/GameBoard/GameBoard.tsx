@@ -5,6 +5,7 @@ import { BASE_GAME_MAP } from '../../data/baseGameMap';
 import { useGameStore } from '../../stores/gameStore';
 import type { Building } from '../../types/game.types';
 import { PowerActions } from './PowerActions';
+
 import { type PowerActionType } from '../../types/game.types';
 
 interface GameBoardProps {
@@ -46,7 +47,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
   };
 
   return (
-    <div className="game-board-container bg-white rounded-lg shadow-md p-4 flex flex-col gap-4 h-full w-full">
+    <div className="game-board-container bg-white rounded-lg shadow-md p-4 flex flex-col gap-4 h-full w-full overflow-y-auto">
       <div className="overflow-auto flex-shrink-0">
         <HexGridCanvas
           hexes={BASE_GAME_MAP}
@@ -61,6 +62,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
       {/* Power Actions Section */}
       <div className="border-t pt-4 flex-1 min-h-0">
         <PowerActions onActionClick={handlePowerActionClick} />
+      </div>
+
+      {/* Player Boards Section */}
+      <div className="border-t pt-4">
+
       </div>
     </div>
   );
