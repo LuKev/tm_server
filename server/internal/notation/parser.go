@@ -1,228 +1,307 @@
 package notation
 
 import (
-	"bufio"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
+	"unicode"
+
+	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
+	"github.com/lukev/tm_server/internal/replay"
 )
 
-// ParseConciseLog parses the concise log string into a Log struct
-func ParseConciseLog(content string) (*Log, error) {
-	log := &Log{
-		Rounds: []*RoundLog{},
-	}
+// ParseConciseLog parses a concise log string into GameActions
+func ParseConciseLog(content string) ([]game.Action, error) {
+	lines := strings.Split(content, "\n")
+	actions := make([]game.Action, 0)
 
-	scanner := bufio.NewScanner(strings.NewReader(content))
-	var currentRound *RoundLog
-	var turnOrder []string
+	// State for grid parsing
+	colToPlayer := make(map[int]string)
+	headerFound := false
 
-	inGrid := false
-
-	for scanner.Scan() {
-		line := scanner.Text()
-		trimmed := strings.TrimSpace(line)
-
-		if trimmed == "" {
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
 			continue
 		}
 
-		// Header parsing
-		if strings.HasPrefix(line, "Game: ") {
-			log.MapName = strings.TrimPrefix(line, "Game: ")
-			continue
-		}
-		if strings.HasPrefix(line, "ScoringTiles: ") {
-			log.ScoringTiles = strings.Split(strings.TrimPrefix(line, "ScoringTiles: "), ", ")
-			continue
-		}
-		if strings.HasPrefix(line, "BonusCards: ") {
-			log.BonusCards = strings.Split(strings.TrimPrefix(line, "BonusCards: "), ", ")
-			continue
-		}
-		if strings.HasPrefix(line, "Options: ") {
-			log.Options = strings.Split(strings.TrimPrefix(line, "Options: "), ", ")
-			continue
-		}
-
-		// Round parsing
-		if strings.HasPrefix(line, "Round ") {
-			roundNumStr := strings.TrimPrefix(line, "Round ")
-			roundNum, err := strconv.Atoi(roundNumStr)
-			if err != nil {
-				return nil, fmt.Errorf("invalid round number: %s", roundNumStr)
-			}
-			currentRound = &RoundLog{
-				RoundNumber: roundNum,
-				Actions:     []*GameAction{},
-			}
-			log.Rounds = append(log.Rounds, currentRound)
-			inGrid = false
-			continue
-		}
-
-		if strings.HasPrefix(line, "TurnOrder: ") {
-			if currentRound == nil {
-				return nil, fmt.Errorf("TurnOrder found outside of round")
-			}
-			orderStr := strings.TrimPrefix(line, "TurnOrder: ")
-			turnOrder = strings.Split(orderStr, ", ")
-			currentRound.TurnOrder = turnOrder
-			continue
-		}
-
-		// Grid parsing
+		// Skip separator lines
 		if strings.HasPrefix(line, "---") {
-			// Separator line
 			continue
 		}
 
+		// Skip Game Settings headers (Key: Value)
+		if strings.Contains(line, ": ") && !strings.Contains(line, "|") {
+			// Could be "Game: Base Game" or "TurnOrder: ..."
+			// We skip these for now as we only return []game.Action
+			continue
+		}
+
+		// Skip Round headers
+		if strings.HasPrefix(line, "Round ") {
+			continue
+		}
+
+		// Check for grid header line
 		if strings.Contains(line, "|") {
-			// Grid row
-			parts := strings.Split(line, "|")
+			// Check if this is a header row or data row
+			// Header row usually has faction names. Data row has codes.
 
-			// Check if this is the header row (contains faction names)
-			cleanParts := []string{}
-			for _, p := range parts {
-				cleanParts = append(cleanParts, strings.TrimSpace(p))
-			}
+			// If we see "Nomads" or "Witches" etc.
+			// Let's assume if it doesn't have "S-", "UP-", "->", "PASS", "T-", it's a header?
+			// But "PASS" is short.
+			// Let's use the fact that headers are usually Title Case words, actions are codes.
 
-			// If parts match turn order, it's the header
-			if len(cleanParts) == len(turnOrder) {
-				match := true
-				for i, p := range cleanParts {
-					if p != turnOrder[i] {
-						match = false
-						break
+			if strings.Contains(line, "Nomads") || strings.Contains(line, "Witches") ||
+				strings.Contains(line, "Halflings") || strings.Contains(line, "Darklings") ||
+				strings.Contains(line, "Fakirs") || strings.Contains(line, "Giants") ||
+				strings.Contains(line, "Chaos Magicians") || strings.Contains(line, "Swarmlings") ||
+				strings.Contains(line, "Engineers") || strings.Contains(line, "Dwarves") ||
+				strings.Contains(line, "Alchemists") || strings.Contains(line, "Mermaids") ||
+				strings.Contains(line, "Auren") || strings.Contains(line, "Cultists") {
+
+				// It's a header
+				parts := strings.Split(line, "|")
+				colToPlayer = make(map[int]string) // Reset for new block
+				for i, part := range parts {
+					playerID := strings.TrimSpace(part)
+					if playerID != "" {
+						colToPlayer[i] = playerID
 					}
 				}
-				if match {
-					inGrid = true
-					continue
-				}
+				headerFound = true
+				continue
 			}
+		}
 
-			if !inGrid {
-				// Maybe header row didn't match exactly or something?
-				// But we should assume we are in grid if we see pipes after TurnOrder
-				// Let's assume if it's not the header, it's data
-			}
-
-			// Parse actions from cells
+		// Parse data line
+		if headerFound && strings.Contains(line, "|") {
+			parts := strings.Split(line, "|")
 			for i, part := range parts {
-				if i >= len(turnOrder) {
-					break
-				}
-				actionStr := strings.TrimSpace(part)
-				if actionStr == "" {
+				part = strings.TrimSpace(part)
+				if part == "" {
 					continue
 				}
 
-				// Split multiple actions in one cell
-				subActions := strings.Split(actionStr, ";")
-				for _, sub := range subActions {
-					sub = strings.TrimSpace(sub)
-					if sub == "" {
+				playerID, ok := colToPlayer[i]
+				if !ok {
+					// fmt.Printf("Warning: No player for col %d in line: %s\n", i, line)
+					continue
+				}
+
+				// Handle chained actions (e.g. "S-C4.S-D5")
+				codes := strings.Split(part, ".")
+				for _, code := range codes {
+					code = strings.TrimSpace(code)
+					if code == "" {
 						continue
 					}
 
-					action, err := ParseActionString(turnOrder[i], sub)
+					action, err := parseActionCode(playerID, code)
 					if err != nil {
-						return nil, fmt.Errorf("failed to parse action '%s': %v", sub, err)
+						// If we fail to parse, maybe it was a header we missed?
+						// But we should have caught it above.
+						return nil, fmt.Errorf("failed to parse code '%s' for player '%s': %w", code, playerID, err)
 					}
-					currentRound.Actions = append(currentRound.Actions, action)
+					actions = append(actions, action)
 				}
 			}
+		} else if !headerFound && strings.Contains(line, ": ") {
+			// Fallback for linear format "Player: Code"
+			// But we are skipping ": " lines above (Settings).
+			// So this block is unreachable if we skip all ": " lines.
+			// We should only skip ": " if it's NOT a player action line.
+			// Player action line: "Nomads: S-F3"
+			// Settings line: "Game: Base Game"
+			// We can check if the key is a known faction?
+			// Or check if value is an action code?
+			// For now, the concise log is GRID only. So we can ignore linear format support or make it stricter.
+			// Let's assume Grid only for now.
 		}
 	}
 
-	return log, nil
+	return actions, nil
 }
 
-// ParseActionString parses a single action string into a GameAction
-func ParseActionString(faction, actionStr string) (*GameAction, error) {
-	params := make(map[string]string)
-	var actionType ActionType
+func parseActionCode(playerID, code string) (game.Action, error) {
+	// Simple parser based on prefixes
+	if code == "PASS" {
+		var bonusCard *game.BonusCardType
+		return game.NewPassAction(playerID, bonusCard), nil
+	}
+	if code == "+SHIP" {
+		return game.NewAdvanceShippingAction(playerID), nil
+	}
+	if code == "DL" {
+		// Return standard action or Log action?
+		// Generator uses "DL" -> DeclinePowerLeechAction
+		// But standard action requires amount. Log doesn't have amount for DL (usually).
+		// Wait, BGAParser emits Decline with amount. Generator prints "DL".
+		// So we lose the amount in concise log for Decline.
+		// That's fine, usually amount doesn't matter for decline (except for stats).
+		return game.NewDeclinePowerLeechAction(playerID, 0), nil
+	}
 
-	// Basic matching logic
-	// TODO: Use regex for robust matching
-
-	if strings.HasPrefix(actionStr, "Pass-") {
-		actionType = ActionPass
-		params["bonus"] = strings.TrimPrefix(actionStr, "Pass-")
-	} else if strings.HasPrefix(actionStr, "L") || actionStr == "DL" {
-		actionType = ActionLeech
-		if actionStr == "DL" {
-			params["decline"] = "true"
-		}
-	} else if strings.HasPrefix(actionStr, "CULT-") {
-		actionType = ActionCultReaction
-		params["track"] = strings.TrimPrefix(actionStr, "CULT-")
-	} else if strings.HasPrefix(actionStr, "ORD-") {
-		actionType = ActionDarklingsOrdination
-		params["amount"] = strings.TrimPrefix(actionStr, "ORD-")
-	} else if strings.HasPrefix(actionStr, "ACT-") {
-		// Faction special actions
-		actionType = ActionSpecial
-		params["code"] = actionStr
-	} else if strings.HasPrefix(actionStr, "ACT") {
-		// Power actions ACT1-6
-		actionType = ActionPower
-		// Check for params like ACT1-C4-C5
-		parts := strings.Split(actionStr, "-")
-		params["code"] = parts[0]
-		if len(parts) > 1 {
-			params["args"] = strings.Join(parts[1:], "-")
-		}
-		if parts[0] == "ACTS" {
-			actionType = ActionBonusSpade
-		}
-	} else if strings.HasPrefix(actionStr, "->") {
-		actionType = ActionSendPriest
-		params["target"] = strings.TrimPrefix(actionStr, "->")
-	} else if strings.HasPrefix(actionStr, "B") && len(actionStr) > 1 && actionStr[1] >= '0' && actionStr[1] <= '9' {
-		actionType = ActionBurn
-		params["amount"] = strings.TrimPrefix(actionStr, "B")
-	} else if strings.HasPrefix(actionStr, "C") && strings.Contains(actionStr, ":") {
-		actionType = ActionConvert
-		parts := strings.Split(actionStr, ":")
-		params["in"] = strings.TrimPrefix(parts[0], "C")
-		params["out"] = parts[1]
-	} else if strings.HasPrefix(actionStr, "+") {
-		actionType = ActionAdvance
-		params["track"] = strings.TrimPrefix(actionStr, "+")
-	} else if strings.Contains(actionStr, "-") {
-		// Upgrade or Dig
-		parts := strings.Split(actionStr, "-")
-		if parts[0] == "D" || parts[0] == "DD" || parts[0] == "DDD" {
-			actionType = ActionDigBuild
-			params["spades"] = parts[0]
-			params["coord"] = parts[1]
-			if len(parts) > 2 && parts[2] == "T" {
-				actionType = ActionTransform
-			}
-		} else {
-			actionType = ActionUpgrade
-			params["building"] = parts[0]
-			params["coord"] = parts[1]
-		}
-	} else {
-		// Build (Coordinate only)
-		// Assume coordinate like C4, F5
-		if regexp.MustCompile(`^[A-Z][0-9]+$`).MatchString(actionStr) {
-			actionType = ActionBuild
-			params["coord"] = actionStr
-		} else {
-			// Fallback
-			return nil, fmt.Errorf("unknown action format: %s", actionStr)
+	// Burn: BURN<N>
+	if strings.HasPrefix(code, "BURN") {
+		amountStr := strings.TrimPrefix(code, "BURN")
+		amount, err := strconv.Atoi(amountStr)
+		if err == nil {
+			return &LogBurnAction{
+				PlayerID: playerID,
+				Amount:   amount,
+			}, nil
 		}
 	}
 
-	return &GameAction{
-		Faction:  faction,
-		Type:     actionType,
-		Params:   params,
-		Original: actionStr,
-	}, nil
+	// Favor Tile: FAV-<Code>
+	if strings.HasPrefix(code, "FAV-") {
+		return &LogFavorTileAction{
+			PlayerID: playerID,
+			Tile:     code,
+		}, nil
+	}
+
+	// Special Action: ACT-SH-D-<Coord> (Witches Ride)
+	if strings.HasPrefix(code, "ACT-SH-D-") {
+		return &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: code,
+		}, nil
+	}
+
+	// Digging: +DIG
+	if code == "+DIG" {
+		return game.NewAdvanceDiggingAction(playerID), nil
+	}
+
+	// Leech: L<N> or just L
+	if strings.HasPrefix(code, "L") {
+		if len(code) > 1 && unicode.IsDigit(rune(code[1])) {
+			amount, err := strconv.Atoi(code[1:])
+			if err == nil {
+				return &LogAcceptLeechAction{
+					PlayerID:    playerID,
+					PowerAmount: amount,
+				}, nil
+			}
+		}
+		// Just "L" -> assume 1 for now
+		return &LogAcceptLeechAction{
+			PlayerID:    playerID,
+			PowerAmount: 1,
+		}, nil
+	}
+
+	if strings.HasPrefix(code, "ACT") {
+		// ACT1, ACT2...
+		return &LogPowerAction{
+			PlayerID:   playerID,
+			ActionCode: code,
+		}, nil
+	}
+
+	if strings.HasPrefix(code, "->") {
+		// ->F
+		trackCode := strings.TrimPrefix(code, "->")
+		track := parseCultShortCode(trackCode)
+		return &game.SendPriestToCultAction{
+			BaseAction:    game.BaseAction{Type: game.ActionSendPriestToCult, PlayerID: playerID},
+			Track:         track,
+			SpacesToClimb: 3, // Default
+		}, nil
+	}
+	if strings.HasPrefix(code, "UP-") {
+		// UP-TH-C4
+		parts := strings.Split(code, "-")
+		if len(parts) != 3 {
+			return nil, fmt.Errorf("invalid upgrade code")
+		}
+		buildingType := parseBuildingShortCode(parts[1])
+		hex := parseHex(parts[2])
+		return game.NewUpgradeBuildingAction(playerID, hex, buildingType), nil
+	}
+	if strings.HasPrefix(code, "S-") {
+		// S-C4
+		coord := strings.TrimPrefix(code, "S-")
+		hex := parseHex(coord)
+		return game.NewSetupDwellingAction(playerID, hex), nil
+	}
+	if strings.HasPrefix(code, "T-") {
+		// T-C4
+		coord := strings.TrimPrefix(code, "T-")
+		hex := parseHex(coord)
+		return game.NewTransformAndBuildAction(playerID, hex, false), nil
+	}
+
+	// Default: Build Dwelling (e.g. "C4")
+	if isCoord(code) {
+		hex := parseHex(code)
+		return game.NewTransformAndBuildAction(playerID, hex, true), nil
+	}
+
+	return nil, fmt.Errorf("unknown code: %s", code)
+}
+
+func parseCultShortCode(s string) game.CultTrack {
+	switch s {
+	case "F":
+		return game.CultFire
+	case "W":
+		return game.CultWater
+	case "E":
+		return game.CultEarth
+	case "A":
+		return game.CultAir
+	}
+	return game.CultFire
+}
+
+func parseBuildingShortCode(s string) models.BuildingType {
+	switch s {
+	case "D":
+		return models.BuildingDwelling
+	case "TH":
+		return models.BuildingTradingHouse
+	case "TE":
+		return models.BuildingTemple
+	case "SA":
+		return models.BuildingSanctuary
+	case "SH":
+		return models.BuildingStronghold
+	}
+	return models.BuildingDwelling
+}
+
+func parseHex(s string) board.Hex {
+	s = strings.Trim(s, "()")
+	// Try parsing as (Q,R) first (legacy/internal format)
+	parts := strings.Split(s, ",")
+	if len(parts) == 2 {
+		q, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+		r, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+		if err1 == nil && err2 == nil {
+			return board.Hex{Q: q, R: r}
+		}
+	}
+
+	// Try parsing as Log Coord (e.g. F3)
+	h, err := replay.ConvertLogCoordToAxial(s)
+	if err != nil {
+		fmt.Printf("Error parsing hex %s: %v\n", s, err)
+		return board.Hex{}
+	}
+	return h
+}
+
+func isCoord(s string) bool {
+	// Check for (Q,R) format
+	if strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
+		return true
+	}
+	// Check for Log format (e.g. F3)
+	_, err := replay.ConvertLogCoordToAxial(s)
+	return err == nil
 }

@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
@@ -55,13 +56,13 @@ func (a *BaseAction) GetPlayerID() string {
 }
 
 // TransformAndBuildAction represents terraforming a hex and optionally building a dwelling
-// Per rulebook: "First, you may change the type of one Terrain space. Then, if you have 
+// Per rulebook: "First, you may change the type of one Terrain space. Then, if you have
 // changed its type to your Home terrain, you may immediately build a Dwelling on that space."
 type TransformAndBuildAction struct {
 	BaseAction
-	TargetHex      board.Hex
-	BuildDwelling  bool // Whether to build a dwelling after transforming
-	UseSkip        bool // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
+	TargetHex     board.Hex
+	BuildDwelling bool // Whether to build a dwelling after transforming
+	UseSkip       bool // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
 }
 
 func NewTransformAndBuildAction(playerID string, targetHex board.Hex, buildDwelling bool) *TransformAndBuildAction {
@@ -70,9 +71,9 @@ func NewTransformAndBuildAction(playerID string, targetHex board.Hex, buildDwell
 			Type:     ActionTransformAndBuild,
 			PlayerID: playerID,
 		},
-		TargetHex:      targetHex,
-		BuildDwelling:  buildDwelling,
-		UseSkip:        false,
+		TargetHex:     targetHex,
+		BuildDwelling: buildDwelling,
+		UseSkip:       false,
 	}
 }
 
@@ -83,9 +84,9 @@ func NewTransformAndBuildActionWithSkip(playerID string, targetHex board.Hex, bu
 			Type:     ActionTransformAndBuild,
 			PlayerID: playerID,
 		},
-		TargetHex:      targetHex,
-		BuildDwelling:  buildDwelling,
-		UseSkip:        true,
+		TargetHex:     targetHex,
+		BuildDwelling: buildDwelling,
+		UseSkip:       true,
 	}
 }
 
@@ -105,10 +106,10 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	}
 
 	// Check adjacency - required for both transforming and building
-	// "Even when transforming a Terrain space without building a Dwelling, the transformed 
+	// "Even when transforming a Terrain space without building a Dwelling, the transformed
 	// Terrain space needs to be directly or indirectly adjacent to one of your Structures"
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)
-	
+
 	// If using skip (Fakirs/Dwarves), check if player can skip and if range is valid
 	if a.UseSkip {
 		// Check if player's faction can use skip ability
@@ -140,7 +141,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		} else {
 			return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
 		}
-		
+
 		if !canSkip {
 			return fmt.Errorf("player cannot use skip ability")
 		}
@@ -153,10 +154,10 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 
 	// Check if terrain needs transformation to home terrain
 	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
-	
+
 	totalWorkersNeeded := 0
 	totalPriestsNeeded := 0
-	
+
 	if needsTransform {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
@@ -184,7 +185,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 			totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
 		}
 	}
-	
+
 	// Add tunneling cost to total if using skip (Dwarves)
 	if a.UseSkip {
 		if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
@@ -198,7 +199,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
 		}
-		
+
 		// After transformation (if any), hex must be player's home terrain
 		if needsTransform {
 			// Will be home terrain after transform
@@ -214,16 +215,16 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		if player.Resources.Priests < dwellingCost.Priests {
 			return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
 		}
-		
+
 		// Add dwelling workers to total needed (checked separately below)
 		totalWorkersNeeded += dwellingCost.Workers
 	}
-	
+
 	// Check total workers needed (terraform + dwelling)
 	if player.Resources.Workers < totalWorkersNeeded {
 		return fmt.Errorf("not enough workers: need %d, have %d", totalWorkersNeeded, player.Resources.Workers)
 	}
-	
+
 	// Check total priests needed (Darklings terraform cost)
 	if player.Resources.Priests < totalPriestsNeeded {
 		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
@@ -358,7 +359,7 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 // UpgradeBuildingAction represents upgrading a building
 type UpgradeBuildingAction struct {
 	BaseAction
-	TargetHex      board.Hex
+	TargetHex       board.Hex
 	NewBuildingType models.BuildingType
 }
 
@@ -368,7 +369,7 @@ func NewUpgradeBuildingAction(playerID string, targetHex board.Hex, newType mode
 			Type:     ActionUpgradeBuilding,
 			PlayerID: playerID,
 		},
-		TargetHex:      targetHex,
+		TargetHex:       targetHex,
 		NewBuildingType: newType,
 	}
 }
@@ -460,10 +461,9 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		if HasFavorTile(playerTiles, FavorWater1) {
 			player.VictoryPoints += 3
 		}
-		
+
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionTradingHouse)
-		break
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
 		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
@@ -475,14 +475,14 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 				count = chaosMagicians.GetFavorTilesForSanctuary()
 			}
 		}
-		
+
 		// Create pending favor tile selection
 		gs.PendingFavorTileSelection = &PendingFavorTileSelection{
 			PlayerID:      a.PlayerID,
 			Count:         count,
 			SelectedTiles: []FavorTileType{},
 		}
-		
+
 		// Award VP from scoring tile
 		if a.NewBuildingType == models.BuildingTemple {
 			// SCORE5 (Temple+Priest): 4 VP per temple + 2 coins per priest at end of round
@@ -490,7 +490,6 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		} else if a.NewBuildingType == models.BuildingSanctuary {
 			gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
 		}
-		break
 	case models.BuildingStronghold:
 		// Grant stronghold special ability
 		player.HasStrongholdAbility = true
@@ -543,12 +542,12 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			// May build a dwelling on exactly one of these spaces by paying its costs
 			if halflings, ok := player.Faction.(*factions.Halflings); ok {
 				halflings.BuildStronghold()
-				
+
 				// Create pending spades application
 				// Player must apply these 3 spades before continuing
 				gs.PendingHalflingsSpades = &PendingHalflingsSpades{
-					PlayerID:       a.PlayerID,
-					SpadesRemaining: 3,
+					PlayerID:         a.PlayerID,
+					SpadesRemaining:  3,
 					TransformedHexes: []board.Hex{},
 				}
 			}
@@ -591,7 +590,6 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
-		break
 	}
 
 	// Trigger power leech when upgrading (adjacent players leech based by their adjacent buildings)
@@ -634,8 +632,6 @@ func isValidUpgrade(from, to models.BuildingType) bool {
 	}
 	return false
 }
-
-
 
 // getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent
 func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuildingType models.BuildingType) factions.Cost {
@@ -846,7 +842,7 @@ func (a *PassAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	player.HasPassed = true
-	
+
 	// Record pass order (determines turn order for next round)
 	gs.PassOrder = append(gs.PassOrder, a.PlayerID)
 
@@ -872,13 +868,13 @@ func (a *PassAction) Execute(gs *GameState) error {
 		// Count trading houses on the map
 		tradingHouseCount := 0
 		for _, mapHex := range gs.Map.Hexes {
-			if mapHex.Building != nil && 
-			   mapHex.Building.PlayerID == a.PlayerID && 
-			   mapHex.Building.Type == models.BuildingTradingHouse {
+			if mapHex.Building != nil &&
+				mapHex.Building.PlayerID == a.PlayerID &&
+				mapHex.Building.Type == models.BuildingTradingHouse {
 				tradingHouseCount++
 			}
 		}
-		
+
 		vp := GetAir1PassVP(playerTiles, tradingHouseCount)
 		player.VictoryPoints += vp
 	}
@@ -955,7 +951,7 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	if a.SpacesToClimb >= 2 {
 		// Priest is placed on an action space (2-step or 3-step)
 		gs.CultTracks.PriestsOnActionSpaces[a.PlayerID][a.Track]++
-		
+
 		// Record priest sent for scoring tile #5 (Temple + Priest: 2 coins per priest on action space)
 		if gs.ScoringTiles != nil {
 			gs.ScoringTiles.RecordPriestSent(a.PlayerID)
@@ -965,5 +961,3 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 
 	return nil
 }
-
-

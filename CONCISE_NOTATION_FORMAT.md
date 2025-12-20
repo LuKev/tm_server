@@ -39,29 +39,35 @@ TurnOrder: [Faction1], [Faction2], ...
 
 Actions are represented by short, uppercase codes. Parameters are appended with hyphens.
 
+### Setup
+
+*   **Setup Dwelling**: `S-[Coord]`
+    *   Example: `S-F3`, `S-C4`
+    *   *Used during the initial dwelling placement phase.*
+
 ### Building & Upgrading
 
 *   **Build Dwelling**: `[Coord]`
     *   Example: `C4`, `F5`
-    *   *Note: Implicitly means "Build Dwelling" if the hex is empty.*
-*   **Upgrade**: `[Building]-[Coord]`
-    *   `TP`: Trading House
+    *   *Note: Implicitly means "Transform & Build Dwelling" (usually with 0 spades if already home terrain).*
+*   **Upgrade**: `UP-[Building]-[Coord]`
+    *   `D`: Dwelling (rare, usually initial)
+    *   `TH`: Trading House
     *   `TE`: Temple
     *   `SH`: Stronghold
     *   `SA`: Sanctuary
-    *   Example: `TP-C4`, `SH-F5`
+    *   Example: `UP-TH-C4`, `UP-SH-F5`
 
 ### Terraforming
 
-*   **Dig & Build**: `[Spades]-[Coord]`
-    *   `D`: 1 Spade
-    *   `DD`: 2 Spades
-    *   `DDD`: 3 Spades
-    *   Example: `D-C4` (Dig 1 spade and build), `DD-F5`
-*   **Transform Only**: `[Spades]-[Coord]-T`
-    *   Example: `D-C4-T` (Dig 1 spade, do not build)
+*   **Transform Only**: `T-[Coord]`
+    *   Example: `T-C4` (Transform but do not build)
+*   **Dig & Build**: `[Coord]` (same as Build Dwelling, context implies digging if needed)
+    *   *Note: The notation simplifies Transform & Build into just the target coordinate if a dwelling is built.*
 *   **Bonus Spades**: `ACTS-[Coord]`
     *   Used for spades from Power Actions 5/6 or Bonus Cards.
+
+### Power Actions
 
 ### Power Actions
 
@@ -72,9 +78,7 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
     *   `ACT4`: Coins
     *   `ACT5`: Spade
     *   `ACT6`: 2 Spades
-*   **With Targets**:
-    *   Bridge: `ACT1-[From]-[To]` (e.g., `ACT1-C4-C5`)
-    *   Spade: `ACT5-[Coord]` (e.g., `ACT5-C4`)
+    *   Example: `ACT4`, `ACT6`
 
 ### Special Actions
 
@@ -95,13 +99,18 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
     *   Example: `->F`
 *   **Conversions**: `C[In]:[Out]`
     *   Example: `C3PW:1W` (3 Power to 1 Worker), `C1P:1W`
-*   **Burn Power**: `B[N]`
-    *   Example: `B3` (Burn 3 power)
+*   **Burn Power**: `BURN[N]`
+    *   Example: `BURN3` (Burn 3 power)
+*   **Favor Tiles**: `FAV-[Track][Amount]`
+    *   `FAV-F1`: Fire 1 (+3 Coins)
+    *   `FAV-W2`: Water 2 (Cult Action)
+    *   `FAV-E3`: Earth 3
+    *   Example: `FAV-F1`, `FAV-A2`
 
 ### Passing
 
-*   **Pass**: `Pass-[BonusTile]`
-    *   Example: `Pass-BON1`
+*   **Pass**: `PASS`
+    *   *Note: Bonus card selection is currently implicit or not yet fully notated.*
 
 ### Reactions
 
