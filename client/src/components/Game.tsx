@@ -41,7 +41,7 @@ export const Game = () => {
       { i: 'cult', x: 20, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
       { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
       { i: 'favor', x: 20, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
-      { i: 'playerBoards', x: 4, y: 16, w: 16, h: 6, minW: 8, minH: 4 },
+      { i: 'playerBoards', x: 0, y: 16, w: 20, h: 6, minW: 8, minH: 4 },
       { i: 'passing', x: 24 - numCards, y: 24, w: numCards, h: 4, minW: 4, minH: 2 }
     ],
     md: [
@@ -50,7 +50,7 @@ export const Game = () => {
       { i: 'cult', x: 16, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
       { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
       { i: 'favor', x: 16, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
-      { i: 'playerBoards', x: 4, y: 12, w: 12, h: 6, minW: 8, minH: 4 },
+      { i: 'playerBoards', x: 0, y: 12, w: 16, h: 6, minW: 8, minH: 4 },
       { i: 'passing', x: 20 - numCards, y: 20, w: numCards, h: 4, minW: 4, minH: 2 }
     ]
   }), [numCards])
@@ -219,7 +219,7 @@ export const Game = () => {
         } else if (item.i === 'cult') {
           newH = Math.ceil(item.w * 2.25)
         } else if (item.i === 'board') {
-          newH = Math.ceil(item.w * 0.9)
+          newH = Math.ceil(item.w * 0.83)
         } else if (item.i === 'towns') {
           newH = Math.ceil(item.w * 2 / 3)
         } else if (item.i === 'favor') {

@@ -281,26 +281,8 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
 export const PlayerBoards: React.FC = () => {
     const gameState = useGameStore(s => s.gameState);
 
-    if (!gameState || !gameState.players) return null;
-
-    // Only show after faction selection
-    if (gameState.phase === GamePhase.FactionSelection) {
-        return (
-            <div className="pb-waiting">
-                Waiting for all players to select factions...
-            </div>
-        );
-    }
-
-    // Sort players by turn order
-    const sortedPlayerIds = [...(gameState.order || [])];
-
-    // If order is not set yet (should be), fallback to keys
-    if (sortedPlayerIds.length === 0) {
-        Object.keys(gameState.players).forEach(id => sortedPlayerIds.push(id));
-    }
-
     // JS-based scaling to ensure reliability
+    // Hooks must be called unconditionally
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [scaleFontSize, setScaleFontSize] = React.useState<number>(16); // Default 16px
 
@@ -319,6 +301,25 @@ export const PlayerBoards: React.FC = () => {
         observer.observe(containerRef.current);
         return () => observer.disconnect();
     }, []);
+
+    if (!gameState || !gameState.players) return null;
+
+    // Only show after faction selection
+    if (gameState.phase === GamePhase.FactionSelection) {
+        return (
+            <div className="pb-waiting">
+                Waiting for all players to select factions...
+            </div>
+        );
+    }
+
+    // Sort players by turn order
+    const sortedPlayerIds = [...(gameState.order || [])];
+
+    // If order is not set yet (should be), fallback to keys
+    if (sortedPlayerIds.length === 0) {
+        Object.keys(gameState.players).forEach(id => sortedPlayerIds.push(id));
+    }
 
     return (
         <div className="pb-resize-container" ref={containerRef}>
