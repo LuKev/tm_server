@@ -133,11 +133,6 @@ func TestEngineersTempleIncome(t *testing.T) {
 	}
 
 	// Check power gain (2nd temple should give +5 power)
-	// Check power gain (2nd temple should give +5 power)
-	// Note: GainPower cycles power, it doesn't increase total tokens
-	// Engineers start with 3/9/0. Gain 5:
-	// 3 from Bowl1 -> Bowl2 (Bowl1=0, Bowl2=12)
-	// 2 from Bowl2 -> Bowl3 (Bowl2=10, Bowl3=2)
 	if player.Resources.Power.Bowl3 != 2 {
 		t.Errorf("expected 2 power in Bowl 3 after gaining 5 power, got %d", player.Resources.Power.Bowl3)
 	}

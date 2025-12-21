@@ -33,14 +33,6 @@ func TestChaosMagicians_StartingResources(t *testing.T) {
 	}
 }
 
-func TestChaosMagicians_HasFavorTransformAbility(t *testing.T) {
-	cm := NewChaosMagicians()
-
-	if !cm.HasSpecialAbility(AbilityFavorTransform) {
-		t.Errorf("Chaos Magicians should have favor transform ability")
-	}
-}
-
 func TestChaosMagicians_ExpensiveSanctuary(t *testing.T) {
 	cm := NewChaosMagicians()
 

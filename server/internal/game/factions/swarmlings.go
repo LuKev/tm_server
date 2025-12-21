@@ -7,12 +7,15 @@ import (
 // Swarmlings faction - Blue/Lake
 // Ability: Collect 3 additional Workers when founding a Town
 // Stronghold: After building, take an Action token
-//             Special action (once per Action phase): Upgrade Dwelling to Trading House for free (no coins, no workers)
+//
+//	Special action (once per Action phase): Upgrade Dwelling to Trading House for free (no coins, no workers)
+//
 // Special: All buildings are more expensive
-//          Start with 12 workers and 20 coins (not standard 3 workers and 15 coins)
+//
+//	Start with 12 workers and 20 coins (not standard 3 workers and 15 coins)
 type Swarmlings struct {
 	BaseFaction
-	hasStronghold                  bool
+	hasStronghold                    bool
 	tradingHouseUpgradeUsedThisRound bool // Special action usage tracking
 }
 
@@ -31,7 +34,7 @@ func NewSwarmlings() *Swarmlings {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:                  false,
+		hasStronghold:                    false,
 		tradingHouseUpgradeUsedThisRound: false,
 	}
 }
@@ -91,18 +94,12 @@ func (f *Swarmlings) GetStrongholdCost() Cost {
 	}
 }
 
-// HasSpecialAbility returns true for cheap dwellings (they get workers from towns)
-func (f *Swarmlings) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityCheapDwellings
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Swarmlings) BuildStronghold() {
 	f.hasStronghold = true
 }
 
 // GetTownFoundingWorkerBonus returns the worker bonus for founding a town
-// NOTE: Phase 3.2 (Town Formation) and Phase 6.2 (Action System) apply this
 func (f *Swarmlings) GetTownFoundingWorkerBonus() int {
 	return 3 // Swarmlings get +3 workers when founding a town
 }

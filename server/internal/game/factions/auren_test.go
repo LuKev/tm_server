@@ -42,18 +42,6 @@ func TestAuren_StartingResources(t *testing.T) {
 	}
 }
 
-func TestAuren_NoPassiveAbility(t *testing.T) {
-	auren := NewAuren()
-
-	// Auren has no passive abilities
-	if auren.HasSpecialAbility(AbilityTownBonus) {
-		t.Errorf("Auren should not have town bonus ability")
-	}
-	if auren.HasSpecialAbility(AbilityFlying) {
-		t.Errorf("Auren should not have flying ability")
-	}
-}
-
 func TestAuren_ExpensiveSanctuary(t *testing.T) {
 	auren := NewAuren()
 
@@ -67,7 +55,6 @@ func TestAuren_ExpensiveSanctuary(t *testing.T) {
 	}
 }
 
-
 func TestAuren_BuildStrongholdGrantsFavorTile(t *testing.T) {
 	auren := NewAuren()
 
@@ -75,16 +62,6 @@ func TestAuren_BuildStrongholdGrantsFavorTile(t *testing.T) {
 	shouldGrantFavor := auren.BuildStronghold()
 	if !shouldGrantFavor {
 		t.Errorf("building stronghold should grant favor tile")
-	}
-}
-
-func TestAuren_CultAdvanceAmount(t *testing.T) {
-	auren := NewAuren()
-
-	// Auren advances 2 spaces on cult track
-	amount := auren.GetCultAdvanceAmount()
-	if amount != 2 {
-		t.Errorf("expected cult advance of 2 spaces, got %d", amount)
 	}
 }
 

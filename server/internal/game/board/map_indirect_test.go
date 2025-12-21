@@ -34,7 +34,7 @@ func TestIndirectAdjacency_Shipping1_SingleRiverNeighbor(t *testing.T) {
 	if ok := m.IsIndirectlyAdjacent(b2, c1, 1); !ok {
 		t.Fatalf("expected shipping=1 to reach from %v to %v", b2, c1)
 	}
-	
+
 }
 
 func TestIndirectAdjacency_Shipping2_RiverChain(t *testing.T) {
@@ -84,9 +84,9 @@ func TestIndirectAdjacency_DirectAdjacencyExcluded_BaseMap(t *testing.T) {
 func TestIndirectAdjacency_Shipping3_LongerChain(t *testing.T) {
 	m := NewTerraMysticaMap()
 	// Test western mermaid 3 ship path
-    a4 := NewHex(3, 0)
-    d2 := NewHex(0, 3)
-    e4 := NewHex(1, 4)
+	a4 := NewHex(3, 0)
+	d2 := NewHex(0, 3)
+	e4 := NewHex(1, 4)
 	h4 := NewHex(3, 7)
 	i4 := NewHex(-1, 8)
 
@@ -111,7 +111,7 @@ func TestIndirectAdjacency_Shipping3_VerifyReachability(t *testing.T) {
 	m := NewTerraMysticaMap()
 	// Test various shipping=3 scenarios to verify the algorithm works correctly
 	h1 := NewHex(0, 1) // Desert
-	
+
 	// Test that we can reach various land hexes with shipping=3
 	// Just verify the algorithm handles shipping=3 correctly
 	reachable := false
@@ -138,7 +138,7 @@ func TestIndirectAdjacency_Shipping4_VerifyReachability(t *testing.T) {
 	m := NewTerraMysticaMap()
 	// Test that shipping=4 works correctly (may reach same or more hexes than shipping=3)
 	h1 := NewHex(0, 1) // Desert
-	
+
 	count3 := 0
 	count4 := 0
 	for q := 0; q < 13; q++ {
@@ -168,7 +168,7 @@ func TestIndirectAdjacency_Shipping5_VerifyReachability(t *testing.T) {
 	m := NewTerraMysticaMap()
 	// Test that shipping=5 works correctly
 	h1 := NewHex(0, 1) // Desert
-	
+
 	count4 := 0
 	count5 := 0
 	for q := 0; q < 13; q++ {
@@ -194,7 +194,7 @@ func TestIndirectAdjacency_Shipping6_MaxReachability(t *testing.T) {
 	m := NewTerraMysticaMap()
 	// Test that shipping=6 (max) works correctly
 	h1 := NewHex(0, 1) // Desert
-	
+
 	count5 := 0
 	count6 := 0
 	for q := 0; q < 13; q++ {
@@ -226,7 +226,7 @@ func TestIndirectAdjacency_NoRiverPath(t *testing.T) {
 	// (0,0) Plains and (12,0) Swamp - opposite ends of row 0, no river between
 	h1 := NewHex(0, 0)
 	h2 := NewHex(12, 0)
-	
+
 	// Even with max shipping, cannot reach if no river path exists
 	if ok := m.IsIndirectlyAdjacent(h1, h2, 6); ok {
 		t.Fatalf("expected no river path from %v to %v even with shipping=6", h1, h2)
@@ -238,7 +238,7 @@ func TestIndirectAdjacency_CrossMapShipping(t *testing.T) {
 	// Test a 6 ship path
 	d5 := NewHex(5, 3)
 	i10 := NewHex(6, 8)
-	
+
 	// Check if reachable via river path with appropriate shipping
 	if ok := m.IsIndirectlyAdjacent(d5, i10, 6); !ok {
 		t.Fatalf("expected shipping=6 to potentially reach from %v to %v if river path exists", d5, i10)

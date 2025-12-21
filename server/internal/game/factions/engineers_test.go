@@ -42,14 +42,6 @@ func TestEngineers_StartingResources(t *testing.T) {
 	}
 }
 
-func TestEngineers_HasBridgeBuildingAbility(t *testing.T) {
-	engineers := NewEngineers()
-
-	if !engineers.HasSpecialAbility(AbilityBridgeBuilding) {
-		t.Errorf("Engineers should have bridge building ability")
-	}
-}
-
 func TestEngineers_CheaperDwellingCost(t *testing.T) {
 	engineers := NewEngineers()
 

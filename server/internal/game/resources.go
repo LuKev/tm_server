@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+
 	"github.com/lukev/tm_server/internal/game/factions"
 )
 
@@ -52,7 +53,7 @@ func (rp *ResourcePool) Spend(cost factions.Cost) error {
 	rp.Coins -= cost.Coins
 	rp.Workers -= cost.Workers
 	rp.Priests -= cost.Priests
-	
+
 	if cost.Power > 0 {
 		if err := rp.Power.SpendPower(cost.Power); err != nil {
 			return fmt.Errorf("failed to spend power: %w", err)
@@ -180,8 +181,8 @@ func (rp *ResourcePool) ToResources() factions.Resources {
 
 // PowerLeechOffer represents an offer to gain power from a neighbor's building
 type PowerLeechOffer struct {
-	Amount       int  // Amount of power offered (may be less than building value if bowls are limited)
-	VPCost       int  // VP cost to accept (usually Amount - 1)
+	Amount       int // Amount of power offered (may be less than building value if bowls are limited)
+	VPCost       int // VP cost to accept (usually Amount - 1)
 	FromPlayerID string
 }
 
@@ -193,21 +194,21 @@ func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *Pow
 	if buildingValue <= 0 {
 		return nil
 	}
-	
+
 	// Calculate maximum power that can be gained
 	// Power can move from bowl 1 to bowl 2, or from bowl 2 to bowl 3
 	maxGain := targetPower.Bowl1 + targetPower.Bowl2
-	
+
 	// Offer is limited by the smaller of building value or max gain
 	actualAmount := buildingValue
 	if maxGain < buildingValue {
 		actualAmount = maxGain
 	}
-	
+
 	if actualAmount <= 0 {
 		return nil
 	}
-	
+
 	return &PowerLeechOffer{
 		Amount:       actualAmount,
 		VPCost:       actualAmount - 1,
@@ -216,13 +217,13 @@ func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *Pow
 }
 
 // AcceptPowerLeech accepts a power leech offer
-// Player gains power but loses VP (handled by scoring system in Phase 8)
+// Player gains power but loses VP
 // Returns the VP cost that should be deducted
 func (rp *ResourcePool) AcceptPowerLeech(offer *PowerLeechOffer) int {
 	if offer == nil {
 		return 0
 	}
-	
+
 	rp.GainPower(offer.Amount)
 	return offer.VPCost
 }

@@ -33,14 +33,6 @@ func TestNomads_StartingResources(t *testing.T) {
 	}
 }
 
-func TestNomads_HasSandstormAbility(t *testing.T) {
-	nomads := NewNomads()
-
-	if !nomads.HasSpecialAbility(AbilitySandstorm) {
-		t.Errorf("Nomads should have sandstorm ability")
-	}
-}
-
 func TestNomads_StandardCosts(t *testing.T) {
 	nomads := NewNomads()
 

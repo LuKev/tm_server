@@ -6,17 +6,20 @@ import (
 
 // Fakirs faction - Yellow/Desert
 // Ability: When taking "Transform and Build" action, may skip one Terrain or River space by paying 1 more Priest (Carpet Flight)
-//          Get 4 VP each time doing Carpet Flight
-//          In final Area scoring, Structures reachable via Carpet Flight are considered connected
+//
+//	Get 4 VP each time doing Carpet Flight
+//	In final Area scoring, Structures reachable via Carpet Flight are considered connected
+//
 // Stronghold: After building, may skip 2 Terrain, or 2 River spaces, or one each when doing Carpet Flight
 // Special: Start with 7/5 power (not standard 5/7)
-//          Cannot upgrade Shipping
-//          Can only upgrade Digging by 1 level (max level 1, not 2)
-//          Expensive Stronghold (4 workers, 10 coins vs standard 4 workers, 6 coins)
-//          Shipping town tile increases Carpet Flight range by 1
+//
+//	Cannot upgrade Shipping
+//	Can only upgrade Digging by 1 level (max level 1, not 2)
+//	Expensive Stronghold (4 workers, 10 coins vs standard 4 workers, 6 coins)
+//	Shipping town tile increases Carpet Flight range by 1
 type Fakirs struct {
 	BaseFaction
-	hasStronghold      bool
+	hasStronghold       bool
 	hasShippingTownTile bool // Shipping town tile bonus
 }
 
@@ -35,7 +38,7 @@ func NewFakirs() *Fakirs {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:      false,
+		hasStronghold:       false,
 		hasShippingTownTile: false,
 	}
 }
@@ -57,7 +60,6 @@ func (f *Fakirs) GetStrongholdCost() Cost {
 
 // GetShippingCost overrides the base method
 // Fakirs cannot increase shipping
-// NOTE: Phase 6.2 (Action System) must prevent Fakirs from taking shipping actions
 func (f *Fakirs) GetShippingCost(currentLevel int) Cost {
 	// Fakirs cannot upgrade shipping
 	return Cost{
@@ -70,7 +72,6 @@ func (f *Fakirs) GetShippingCost(currentLevel int) Cost {
 
 // GetDiggingCost overrides the base method
 // Fakirs can only upgrade digging once (to level 1)
-// NOTE: Phase 6.2 (Action System) must prevent Fakirs from upgrading past level 1
 func (f *Fakirs) GetDiggingCost(currentLevel int) Cost {
 	if currentLevel >= 1 {
 		// Cannot upgrade past level 1
@@ -90,11 +91,6 @@ func (f *Fakirs) GetMaxDiggingLevel() int {
 	return 1 // Fakirs can only reach digging level 1 (not 2)
 }
 
-// HasSpecialAbility returns true for carpet flying
-func (f *Fakirs) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityCarpetFlying
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Fakirs) BuildStronghold() {
 	f.hasStronghold = true
@@ -106,7 +102,6 @@ func (f *Fakirs) HasStronghold() bool {
 }
 
 // GetCarpetFlightCost returns the priest cost for carpet flight
-// NOTE: Phase 6.2 (Action System) implements carpet flight mechanic
 func (f *Fakirs) GetCarpetFlightCost() int {
 	return 1 // Pay 1 priest to skip one space
 }
@@ -115,30 +110,26 @@ func (f *Fakirs) GetCarpetFlightCost() int {
 // Base: 1 space
 // +1 if Stronghold built
 // +1 if Shipping town tile acquired
-// NOTE: Phase 7.3 (Town Tiles) handles shipping town tile acquisition
 func (f *Fakirs) GetCarpetFlightRange() int {
 	range_ := 1 // Base range
-	
+
 	if f.hasStronghold {
 		range_++ // Stronghold adds +1
 	}
-	
+
 	if f.hasShippingTownTile {
 		range_++ // Shipping town tile adds +1
 	}
-	
+
 	return range_
 }
 
 // SetShippingTownTile marks that the Fakirs have acquired the Shipping town tile
-// NOTE: Phase 7.3 (Town Tiles) calls this when Fakirs select the Shipping town tile
 func (f *Fakirs) SetShippingTownTile(has bool) {
 	f.hasShippingTownTile = has
 }
 
 // GetCarpetFlightVPBonus returns the VP bonus for carpet flight
-// NOTE: Phase 8 (Scoring System) tracks VP
-// NOTE: Phase 6.2 (Action System) must apply this bonus when Fakirs use carpet flight
 func (f *Fakirs) GetCarpetFlightVPBonus() int {
 	return 4 // 4 VP each time doing carpet flight
 }

@@ -3,8 +3,8 @@ package game
 import (
 	"fmt"
 
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -82,9 +82,9 @@ const (
 	SpecialActionChaosMagiciansDoubleTurn
 	SpecialActionGiantsTransform
 	SpecialActionNomadsSandstorm
-	SpecialActionWater2CultAdvance        // Water+2 favor tile: Advance 1 on any cult track
-	SpecialActionBonusCardSpade            // Bonus card: 1 free spade
-	SpecialActionBonusCardCultAdvance      // Bonus card: Advance 1 on any cult track
+	SpecialActionWater2CultAdvance    // Water+2 favor tile: Advance 1 on any cult track
+	SpecialActionBonusCardSpade       // Bonus card: 1 free spade
+	SpecialActionBonusCardCultAdvance // Bonus card: Advance 1 on any cult track
 )
 
 // SpecialAction represents a faction-specific special action
@@ -99,7 +99,7 @@ type SpecialAction struct {
 	UseSkip       bool // For bonus card spade with Fakirs/Dwarves
 	// For Alchemists conversion and Darklings priest ordination
 	ConvertVPToCoins bool // true = VP->Coins, false = Coins->VP
-	Amount          int  // Number of conversions (Alchemists) or workers to convert (Darklings)
+	Amount           int  // Number of conversions (Alchemists) or workers to convert (Darklings)
 	// For Swarmlings upgrade
 	UpgradeHex *board.Hex
 	// For Chaos Magicians double turn
@@ -237,7 +237,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionGiantsTransform,
 		SpecialActionNomadsSandstorm,
 	}
-	
+
 	isStrongholdAction := false
 	for _, sa := range strongholdActions {
 		if a.ActionType == sa {
@@ -245,7 +245,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 			break
 		}
 	}
-	
+
 	if isStrongholdAction && !player.HasStrongholdAbility {
 		return fmt.Errorf("player does not have stronghold special ability")
 	}
@@ -286,13 +286,11 @@ func (a *SpecialAction) validateAurenCultAdvance(gs *GameState, player *Player) 
 
 	// Check current position on cult track
 	currentPos := player.CultPositions[*a.CultTrack]
-	
+
 	// Can advance 2 spaces, but cannot go beyond 10
 	if currentPos == 10 {
 		return fmt.Errorf("already at maximum position on cult track")
 	}
-
-	// Note: Advancing to space 10 and key mechanics are future enhancements
 
 	return nil
 }
@@ -325,8 +323,6 @@ func (a *SpecialAction) validateWitchesRide(gs *GameState, player *Player) error
 	if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 		return err
 	}
-
-	// Note: Adjacency rule is ignored for Witches' Ride
 
 	return nil
 }
@@ -661,12 +657,12 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 	// Transform terrain to home terrain (2 free spades)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
-	
+
 	// Award VP from scoring tile (2 spades used)
 	// Giants always use 2 spades, so award VP twice
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
-	
+
 	// Build dwelling if requested
 	if a.BuildDwelling {
 		dwellingCost := player.Faction.GetDwellingCost()
@@ -731,10 +727,10 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 	}
 
 	totalWorkers := player.Faction.GetTerraformCost(distance)
-	
+
 	// Calculate workers per spade (to subtract for the free spade)
 	workersPerSpade := player.Faction.GetTerraformCost(1)
-	
+
 	// Subtract workers for 1 free spade (minimum 0)
 	workersNeeded := totalWorkers - workersPerSpade
 	if workersNeeded < 0 {

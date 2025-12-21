@@ -1,13 +1,11 @@
 package game
 
-// Cleanup Phase (Phase 3)
+// Cleanup Phase
 // Executes at the end of each round (rounds 1-5, not round 6)
 // Order of operations:
 // 1. Award cult track rewards (based on scoring tile)
 // 2. Add coins to leftover bonus cards (players keep their cards across rounds)
 // 3. Reset round-specific state
-// Note: Bonus cards are NOT returned during cleanup - players keep them across rounds.
-// Cards are only returned when players pass and select a new card (handled in TakeBonusCard).
 
 // ExecuteCleanupPhase performs all cleanup tasks at the end of a round
 // This should be called after all players have passed
@@ -18,22 +16,22 @@ func (gs *GameState) ExecuteCleanupPhase() bool {
 		gs.Phase = PhaseEnd
 		return false
 	}
-	
+
 	gs.Phase = PhaseCleanup
-	
+
 	// 1. Award cult track rewards based on the current round's scoring tile
 	gs.AwardCultRewards()
-	
+
 	// 2. Add 1 coin to each available (unselected) bonus card
 	// NOTE: Players keep their bonus cards across rounds - cards are only returned when
 	// players pass and select a new card. Coins accumulate on cards in the Available pool.
 	if gs.BonusCards != nil {
 		gs.BonusCards.AddCoinsToLeftoverCards()
 	}
-	
+
 	// 3. Reset round-specific state
 	gs.ResetRoundState()
-	
+
 	// Game continues to next round
 	return true
 }
@@ -45,18 +43,15 @@ func (gs *GameState) ResetRoundState() {
 	if gs.PowerActions != nil {
 		gs.PowerActions.ResetForNewRound()
 	}
-	
+
 	// Reset player round-specific flags
 	for _, player := range gs.Players {
 		player.HasPassed = false
-		// Note: Bonus card special actions are tied to having the card,
-		// which is reset when cards are returned
-		// Note: Stronghold abilities are tracked per-faction, not on Player
 	}
-	
+
 	// Clear pass order (will be rebuilt next round)
 	gs.PassOrder = []string{}
-	
+
 	// Reset pending offers/formations
 	gs.PendingLeechOffers = make(map[string][]*PowerLeechOffer)
 	gs.PendingTownFormations = make(map[string][]*PendingTownFormation)
@@ -70,13 +65,13 @@ func (gs *GameState) HasPendingSpades() bool {
 	if gs.PendingSpades == nil {
 		return false
 	}
-	
+
 	for _, count := range gs.PendingSpades {
 		if count > 0 {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -86,14 +81,14 @@ func (gs *GameState) GetNextPlayerWithSpades() string {
 	if gs.PendingSpades == nil || len(gs.PassOrder) == 0 {
 		return ""
 	}
-	
+
 	// Check players in pass order
 	for _, playerID := range gs.PassOrder {
 		if count, ok := gs.PendingSpades[playerID]; ok && count > 0 {
 			return playerID
 		}
 	}
-	
+
 	return ""
 }
 
@@ -103,7 +98,7 @@ func (gs *GameState) UseSpadeFromReward(playerID string) bool {
 	if gs.PendingSpades == nil {
 		return false
 	}
-	
+
 	if count, ok := gs.PendingSpades[playerID]; ok && count > 0 {
 		gs.PendingSpades[playerID]--
 		if gs.PendingSpades[playerID] == 0 {
@@ -111,7 +106,7 @@ func (gs *GameState) UseSpadeFromReward(playerID string) bool {
 		}
 		return true
 	}
-	
+
 	return false
 }
 

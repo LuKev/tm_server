@@ -158,7 +158,7 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	if bonus.AcceptedCount > 0 {
 		// At least one opponent accepted power - Cultists must choose a cult track to advance
 		_ = cultists.GetCultAdvanceFromPowerLeech() // Returns 1
-		
+
 		// Create pending cult track selection
 		gs.PendingCultistsCultSelection = &PendingCultistsCultSelection{
 			PlayerID: cultistsPlayerID,

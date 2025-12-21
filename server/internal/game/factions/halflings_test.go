@@ -42,14 +42,6 @@ func TestHalflings_StartingResources(t *testing.T) {
 	}
 }
 
-func TestHalflings_HasSpadeEfficiencyAbility(t *testing.T) {
-	halflings := NewHalflings()
-
-	if !halflings.HasSpecialAbility(AbilitySpadeEfficiency) {
-		t.Errorf("Halflings should have spade efficiency ability")
-	}
-}
-
 func TestHalflings_CheaperDiggingCost(t *testing.T) {
 	halflings := NewHalflings()
 
@@ -78,7 +70,6 @@ func TestHalflings_ExpensiveStronghold(t *testing.T) {
 		t.Errorf("expected stronghold to cost 4 workers, got %d", strongholdCost.Workers)
 	}
 }
-
 
 func TestHalflings_StrongholdSpadesBeforeBuilding(t *testing.T) {
 	halflings := NewHalflings()

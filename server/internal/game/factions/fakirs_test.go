@@ -42,14 +42,6 @@ func TestFakirs_StartingResources(t *testing.T) {
 	}
 }
 
-func TestFakirs_HasCarpetFlyingAbility(t *testing.T) {
-	fakirs := NewFakirs()
-
-	if !fakirs.HasSpecialAbility(AbilityCarpetFlying) {
-		t.Errorf("Fakirs should have carpet flying ability")
-	}
-}
-
 func TestFakirs_ExpensiveStronghold(t *testing.T) {
 	fakirs := NewFakirs()
 
@@ -104,7 +96,6 @@ func TestFakirs_MaxDiggingLevel(t *testing.T) {
 		t.Errorf("expected max digging level 1, got %d", maxDigging)
 	}
 }
-
 
 func TestFakirs_CarpetFlightCost(t *testing.T) {
 	fakirs := NewFakirs()

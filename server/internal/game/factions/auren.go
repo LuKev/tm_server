@@ -7,8 +7,10 @@ import (
 // Auren faction - Green/Forest
 // Ability: None (no passive ability)
 // Stronghold: After building, immediately get 1 Favor tile (once)
-//             Special action (once per Action phase): Advance 2 spaces on a Cult track
-//             (only advancing to space 10 if you have a key)
+//
+//	Special action (once per Action phase): Advance 2 spaces on a Cult track
+//	(only advancing to space 10 if you have a key)
+//
 // Special: Sanctuary costs 4 workers/8 coins (more expensive than standard)
 type Auren struct {
 	BaseFaction
@@ -49,21 +51,9 @@ func (f *Auren) GetSanctuaryCost() Cost {
 	}
 }
 
-// HasSpecialAbility - Auren has no passive ability
-func (f *Auren) HasSpecialAbility(ability SpecialAbility) bool {
-	return false
-}
-
 // BuildStronghold marks that the stronghold has been built
 // Returns true to indicate the player should receive a favor tile
-// NOTE: Phase 7.2 (Favor Tiles) handles favor tile selection
 func (f *Auren) BuildStronghold() bool {
 	f.hasStronghold = true
 	return true // Grant favor tile
-}
-
-// GetCultAdvanceAmount returns how many spaces to advance on cult track
-// NOTE: Phase 7.1 (Cult Track System) uses this value
-func (f *Auren) GetCultAdvanceAmount() int {
-	return 2
 }

@@ -3,8 +3,8 @@ package game
 import (
 	"testing"
 
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -150,8 +150,8 @@ func TestMermaidsStronghold_ShippingAwardsVP(t *testing.T) {
 	}
 
 	// Verify VP was awarded for shipping level 2 (2 VP)
-	if player.VictoryPoints != initialVP + 2 {
-		t.Errorf("expected %d VP increase (including 2 for shipping level 2), got %d total VP", 
+	if player.VictoryPoints != initialVP+2 {
+		t.Errorf("expected %d VP increase (including 2 for shipping level 2), got %d total VP",
 			2, player.VictoryPoints)
 	}
 }

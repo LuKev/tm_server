@@ -10,19 +10,19 @@ import (
 // TerraMysticaMap represents the game board
 // Terra Mystica uses a pointy-top hex grid with 9 rows alternating 13/12 hexagons
 type TerraMysticaMap struct {
-	Hexes     map[Hex]*MapHex
-	Bridges   map[BridgeKey]bool // Tracks built bridges between hexes
-	RiverHexes map[Hex]bool      // Tracks which hexes are rivers
+	Hexes      map[Hex]*MapHex
+	Bridges    map[BridgeKey]bool // Tracks built bridges between hexes
+	RiverHexes map[Hex]bool       // Tracks which hexes are rivers
 }
 
 // MapHex represents a single hex on the map
 type MapHex struct {
-	Coord         Hex
-	Terrain       models.TerrainType
-	Building      *models.Building // nil if no building
-	PartOfTown    bool             // true if this building is part of a town
-	HasTownTile   bool             // For Mermaids: true if a town tile is placed on this hex (river)
-	TownTileType  models.TownTileType     // For Mermaids: the type of town tile placed on this hex
+	Coord        Hex
+	Terrain      models.TerrainType
+	Building     *models.Building    // nil if no building
+	PartOfTown   bool                // true if this building is part of a town
+	HasTownTile  bool                // For Mermaids: true if a town tile is placed on this hex (river)
+	TownTileType models.TownTileType // For Mermaids: the type of town tile placed on this hex
 }
 
 // BridgeKey represents a bridge between two hexes (order-independent)
@@ -40,27 +40,27 @@ func NewBridgeKey(h1, h2 Hex) BridgeKey {
 
 // NewTerraMysticaMap creates a new game map
 func NewTerraMysticaMap() *TerraMysticaMap {
-    m := &TerraMysticaMap{
-        Hexes:      make(map[Hex]*MapHex),
-        Bridges:    make(map[BridgeKey]bool),
-        RiverHexes: make(map[Hex]bool),
-    }
-    m.initializeBaseMap()
-    return m
+	m := &TerraMysticaMap{
+		Hexes:      make(map[Hex]*MapHex),
+		Bridges:    make(map[BridgeKey]bool),
+		RiverHexes: make(map[Hex]bool),
+	}
+	m.initializeBaseMap()
+	return m
 }
 
 // initializeBaseMap sets up the standard Terra Mystica base game map
 // 9 rows alternating 13/12 hexagons, pointy-top orientation
 func (m *TerraMysticaMap) initializeBaseMap() {
-    // Load predefined layout
-    layout := BaseGameTerrainLayout()
-    m.RiverHexes = make(map[Hex]bool)
-    for h, t := range layout {
-        m.Hexes[h] = &MapHex{Coord: h, Terrain: t}
-        if t == models.TerrainRiver {
-            m.RiverHexes[h] = true
-        }
-    }
+	// Load predefined layout
+	layout := BaseGameTerrainLayout()
+	m.RiverHexes = make(map[Hex]bool)
+	for h, t := range layout {
+		m.Hexes[h] = &MapHex{Coord: h, Terrain: t}
+		if t == models.TerrainRiver {
+			m.RiverHexes[h] = true
+		}
+	}
 }
 
 // GetHex returns the MapHex at the given coordinates, or nil if not found
@@ -91,10 +91,10 @@ func (m *TerraMysticaMap) HasBridge(h1, h2 Hex) bool {
 
 // BuildBridge creates a bridge between two land hexes.
 // A valid bridge must:
-// - Connect two non-river hexes
-// - Span across the edge of a river hex: the vector (h2 - h1) must be one of the 6 allowed
-//   distance-2 offsets: (1,-2), (2,-1), (2,0), (0,2), (-2,2), (-2,0) up to rotation,
-//   and the two intermediate hexes along that edge must both be river hexes.
+//   - Connect two non-river hexes
+//   - Span across the edge of a river hex: the vector (h2 - h1) must be one of the 6 allowed
+//     distance-2 offsets: (1,-2), (2,-1), (2,0), (0,2), (-2,2), (-2,0) up to rotation,
+//     and the two intermediate hexes along that edge must both be river hexes.
 func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
 	if !m.IsValidHex(h1) || !m.IsValidHex(h2) {
 		return fmt.Errorf("cannot build bridge: invalid hex coordinates")
@@ -127,7 +127,7 @@ func (m *TerraMysticaMap) CountBridgesConnectingPlayerStructures(playerID string
 		hex2 := m.GetHex(bridgeKey.H2)
 
 		if hex1 != nil && hex1.Building != nil && hex1.Building.PlayerID == playerID &&
-		   hex2 != nil && hex2.Building != nil && hex2.Building.PlayerID == playerID {
+			hex2 != nil && hex2.Building != nil && hex2.Building.PlayerID == playerID {
 			count++
 		}
 	}
@@ -223,66 +223,74 @@ func rotate60(h Hex, k int) Hex {
 // 1. They share a hex edge (distance = 1), OR
 // 2. They are separated by a river but connected via a bridge
 func (m *TerraMysticaMap) IsIndirectlyAdjacent(h1, h2 Hex, shippingValue int) bool {
-    // If directly adjacent, not indirectly adjacent
-    if m.IsDirectlyAdjacent(h1, h2) {
-        return false
-    }
-    // Endpoints must be land
-    if m.isRiver(h1) || m.isRiver(h2) {
-        return false
-    }
+	// If directly adjacent, not indirectly adjacent
+	if m.IsDirectlyAdjacent(h1, h2) {
+		return false
+	}
+	// Endpoints must be land
+	if m.isRiver(h1) || m.isRiver(h2) {
+		return false
+	}
 
-    // River-only BFS: from river neighbors of h1, walk through river hexes
-    // up to 'shippingValue' steps; success if any frontier river hex is
-    // directly adjacent (edge-sharing) to h2.
-    if shippingValue <= 0 {
-        return false
-    }
+	// River-only BFS: from river neighbors of h1, walk through river hexes
+	// up to 'shippingValue' steps; success if any frontier river hex is
+	// directly adjacent (edge-sharing) to h2.
+	if shippingValue <= 0 {
+		return false
+	}
 
-    // Seed with river neighbors of h1
-    start := m.riverNeighbors(h1)
-    if len(start) == 0 {
-        return false
-    }
+	// Seed with river neighbors of h1
+	start := m.riverNeighbors(h1)
+	if len(start) == 0 {
+		return false
+	}
 
-    visited := make(map[Hex]bool)
-    frontier := start
-    steps := 1
-    for _, v := range frontier { visited[v] = true }
+	visited := make(map[Hex]bool)
+	frontier := start
+	steps := 1
+	for _, v := range frontier {
+		visited[v] = true
+	}
 
-    for steps <= shippingValue {
-        // Check if any river in frontier touches h2
-        for _, rv := range frontier {
-            if rv.IsDirectlyAdjacent(h2) { // river hex shares edge with h2
-                return true
-            }
-        }
-        // Expand frontier if we have remaining steps
-        if steps == shippingValue { break }
-        next := []Hex{}
-        for _, rv := range frontier {
-            for _, nbr := range rv.Neighbors() {
-                if !m.IsValidHex(nbr) || !m.isRiver(nbr) { continue }
-                if visited[nbr] { continue }
-                visited[nbr] = true
-                next = append(next, nbr)
-            }
-        }
-        frontier = next
-        steps++
-    }
-    return false
+	for steps <= shippingValue {
+		// Check if any river in frontier touches h2
+		for _, rv := range frontier {
+			if rv.IsDirectlyAdjacent(h2) { // river hex shares edge with h2
+				return true
+			}
+		}
+		// Expand frontier if we have remaining steps
+		if steps == shippingValue {
+			break
+		}
+		next := []Hex{}
+		for _, rv := range frontier {
+			for _, nbr := range rv.Neighbors() {
+				if !m.IsValidHex(nbr) || !m.isRiver(nbr) {
+					continue
+				}
+				if visited[nbr] {
+					continue
+				}
+				visited[nbr] = true
+				next = append(next, nbr)
+			}
+		}
+		frontier = next
+		steps++
+	}
+	return false
 }
 
 // riverNeighbors returns all river hexes sharing an edge with h.
 func (m *TerraMysticaMap) riverNeighbors(h Hex) []Hex {
-    out := []Hex{}
-    for _, nbr := range h.Neighbors() {
-        if m.IsValidHex(nbr) && m.isRiver(nbr) {
-            out = append(out, nbr)
-        }
-    }
-    return out
+	out := []Hex{}
+	for _, nbr := range h.Neighbors() {
+		if m.IsValidHex(nbr) && m.isRiver(nbr) {
+			out = append(out, nbr)
+		}
+	}
+	return out
 }
 
 // GetDirectNeighbors returns all directly adjacent hexes (including bridges)
@@ -512,28 +520,26 @@ func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Fac
 	neighbors := []Hex{}
 
 	// Check for Fakirs (carpet flight)
-	if faction.HasSpecialAbility(factions.AbilityFlying) {
-		// Fakirs can connect via carpet flight (range 1-3 depending on upgrades)
-		if fakir, ok := faction.(*factions.Fakirs); ok {
-			flightRange := fakir.GetCarpetFlightRange()
+	// Fakirs can connect via carpet flight (range 1-3 depending on upgrades)
+	if fakir, ok := faction.(*factions.Fakirs); ok {
+		flightRange := fakir.GetCarpetFlightRange()
 
-			// Get all hexes within flight range
-			for candidate := range m.Hexes {
-				if candidate == h {
-					continue
-				}
-
-				distance := h.Distance(candidate)
-				if distance <= flightRange {
-					neighbors = append(neighbors, candidate)
-				}
+		// Get all hexes within flight range
+		for candidate := range m.Hexes {
+			if candidate == h {
+				continue
 			}
-			return neighbors
+
+			distance := h.Distance(candidate)
+			if distance <= flightRange {
+				neighbors = append(neighbors, candidate)
+			}
 		}
+		return neighbors
 	}
 
 	// Check for Dwarves (tunneling - always range 2)
-	if faction.HasSpecialAbility(factions.AbilityTunnelDigging) {
+	if faction.GetType() == models.FactionDwarves {
 		// Dwarves can connect via tunneling (distance 2)
 		for candidate := range m.Hexes {
 			if candidate == h {
@@ -564,7 +570,7 @@ func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Fac
 // when placing a new building
 func (m *TerraMysticaMap) CalculateAdjacencyBonus(h Hex, faction models.FactionType) int {
 	bonus := 0
-	
+
 	for _, neighbor := range m.GetDirectNeighbors(h) {
 		mapHex := m.GetHex(neighbor)
 		if mapHex != nil && mapHex.Building != nil {
@@ -574,7 +580,7 @@ func (m *TerraMysticaMap) CalculateAdjacencyBonus(h Hex, faction models.FactionT
 			}
 		}
 	}
-	
+
 	return bonus
 }
 
@@ -582,7 +588,7 @@ func (m *TerraMysticaMap) CalculateAdjacencyBonus(h Hex, faction models.FactionT
 // Returns map of faction -> power amount they can leech
 func (m *TerraMysticaMap) GetPowerLeechTargets(h Hex, placedFaction models.FactionType, powerValue int) map[models.FactionType]int {
 	targets := make(map[models.FactionType]int)
-	
+
 	for _, neighbor := range m.GetDirectNeighbors(h) {
 		mapHex := m.GetHex(neighbor)
 		if mapHex != nil && mapHex.Building != nil {
@@ -598,7 +604,7 @@ func (m *TerraMysticaMap) GetPowerLeechTargets(h Hex, placedFaction models.Facti
 			}
 		}
 	}
-	
+
 	return targets
 }
 
@@ -739,15 +745,15 @@ func (m *TerraMysticaMap) CanTerraform(h Hex) error {
 	if mapHex == nil {
 		return fmt.Errorf("hex %s is not on the map", h)
 	}
-	
+
 	if mapHex.Terrain == models.TerrainRiver {
 		return fmt.Errorf("cannot terraform river hexes")
 	}
-	
+
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex %s already has a building", h)
 	}
-	
+
 	return nil
 }
 
@@ -756,12 +762,12 @@ func (m *TerraMysticaMap) Terraform(h Hex, terrain models.TerrainType) error {
 	if err := m.CanTerraform(h); err != nil {
 		return err
 	}
-	
+
 	mapHex := m.GetHex(h)
 	if mapHex.Terrain == terrain {
 		return fmt.Errorf("hex is already %s", terrain)
 	}
-	
+
 	mapHex.Terrain = terrain
 	return nil
 }
@@ -772,25 +778,25 @@ func (m *TerraMysticaMap) ValidateBuildingPlacement(h Hex, faction models.Factio
 	if mapHex == nil {
 		return fmt.Errorf("hex %s is not on the map", h)
 	}
-	
+
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex %s already has a building", h)
 	}
-	
+
 	if mapHex.Terrain == models.TerrainRiver {
 		return fmt.Errorf("cannot build on river hexes")
 	}
-	
+
 	// Terrain must match faction's home terrain
 	if mapHex.Terrain != homeTerrain {
 		return fmt.Errorf("terrain must be %s for this faction", homeTerrain)
 	}
-	
+
 	// First dwelling can be placed anywhere on home terrain
 	if isFirstDwelling {
 		return nil
 	}
-	
+
 	// Subsequent dwellings must be adjacent (directly or indirectly via shipping) to existing buildings
 	hasAdjacentBuilding := false
 	for hex := range m.Hexes {
@@ -803,11 +809,11 @@ func (m *TerraMysticaMap) ValidateBuildingPlacement(h Hex, faction models.Factio
 			// Note: Indirect adjacency via shipping is checked by the calling action (state.CanPlaceBuilding)
 		}
 	}
-	
+
 	if !hasAdjacentBuilding {
 		return fmt.Errorf("building must be adjacent to an existing building of your faction")
 	}
-	
+
 	return nil
 }
 
@@ -816,7 +822,7 @@ func CanUpgradeBuilding(current models.BuildingType, target models.BuildingType)
 	// Valid upgrade paths:
 	// Dwelling -> Trading House
 	// Trading House -> Temple or Stronghold or Sanctuary
-	
+
 	switch current {
 	case models.BuildingDwelling:
 		if target != models.BuildingTradingHouse {
@@ -831,6 +837,6 @@ func CanUpgradeBuilding(current models.BuildingType, target models.BuildingType)
 	default:
 		return fmt.Errorf("unknown building type: %s", current)
 	}
-	
+
 	return nil
 }

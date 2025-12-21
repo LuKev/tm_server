@@ -75,7 +75,6 @@ func TestMermaids_ExpensiveSanctuary(t *testing.T) {
 	}
 }
 
-
 func TestMermaids_BuildStrongholdGrantsFreeShipping(t *testing.T) {
 	mermaids := NewMermaids()
 

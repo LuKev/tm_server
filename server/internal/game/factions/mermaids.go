@@ -7,10 +7,13 @@ import (
 // Mermaids faction - Blue/Lake
 // Ability: May skip one River space when founding a Town (put Town tile on skipped River space)
 // Stronghold: After building, immediately and only once move forward 1 space on Shipping track
-//             (no cost: neither 1 Priest nor 4 Coins)
+//
+//	(no cost: neither 1 Priest nor 4 Coins)
+//
 // Special: Expensive Sanctuary (4 workers, 8 coins vs standard 4 workers, 6 coins)
-//          Start with Shipping level 1 (not 0)
-//          Can advance Shipping to level 5 (not standard max of 3)
+//
+//	Start with Shipping level 1 (not 0)
+//	Can advance Shipping to level 5 (not standard max of 3)
 type Mermaids struct {
 	BaseFaction
 	hasStronghold bool
@@ -50,11 +53,6 @@ func (f *Mermaids) GetSanctuaryCost() Cost {
 		Priests: 0,
 		Power:   0,
 	}
-}
-
-// HasSpecialAbility returns true for water building
-func (f *Mermaids) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityWaterBuilding
 }
 
 // BuildStronghold marks that the stronghold has been built

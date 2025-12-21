@@ -17,21 +17,21 @@ func TestBonusCards_CoinsAfterSetup(t *testing.T) {
 
 	// Set up 7 bonus cards for a 4-player game (4 players + 3 = 7 cards)
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
-		BonusCardSpade,              // BON1
-		BonusCardPriest,             // BON2
-		BonusCardWorkerPower,        // BON3
-		BonusCardDwellingVP,         // BON5
-		BonusCardTradingHouseVP,     // BON6
-		BonusCardShipping,           // BON7
-		BonusCardShippingVP,         // BON10
+		BonusCardSpade,          // BON1
+		BonusCardPriest,         // BON2
+		BonusCardWorkerPower,    // BON3
+		BonusCardDwellingVP,     // BON5
+		BonusCardTradingHouseVP, // BON6
+		BonusCardShipping,       // BON7
+		BonusCardShippingVP,     // BON10
 	})
 
 	// During setup, players pass and take 4 cards (BON1, 5, 6, 10)
 	// leaving BON2, BON3, BON7 with 0 coins
-	gs.BonusCards.TakeBonusCard("player1", BonusCardSpade)             // BON1
-	gs.BonusCards.TakeBonusCard("player2", BonusCardDwellingVP)        // BON5
-	gs.BonusCards.TakeBonusCard("player3", BonusCardTradingHouseVP)    // BON6
-	gs.BonusCards.TakeBonusCard("player4", BonusCardShippingVP)        // BON10
+	gs.BonusCards.TakeBonusCard("player1", BonusCardSpade)          // BON1
+	gs.BonusCards.TakeBonusCard("player2", BonusCardDwellingVP)     // BON5
+	gs.BonusCards.TakeBonusCard("player3", BonusCardTradingHouseVP) // BON6
+	gs.BonusCards.TakeBonusCard("player4", BonusCardShippingVP)     // BON10
 
 	// Verify leftover cards have 0 coins initially
 	if gs.BonusCards.Available[BonusCardPriest] != 0 {
@@ -71,8 +71,8 @@ func TestBonusCards_GetCoinsWhenPassingInRound1(t *testing.T) {
 
 	// Set up bonus cards
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
-		BonusCardPriest,        // BON2
-		BonusCardWorkerPower,   // BON3
+		BonusCardPriest,      // BON2
+		BonusCardWorkerPower, // BON3
 	})
 
 	// During setup, player1 takes BON3, leaving BON2

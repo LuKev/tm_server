@@ -101,7 +101,7 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 
 func TestCultTrackState_GetRankings(t *testing.T) {
 	gs := NewGameState()
-	gs.AddPlayer("player1", factions.NewAuren()) // Forest
+	gs.AddPlayer("player1", factions.NewAuren())      // Forest
 	gs.AddPlayer("player2", factions.NewAlchemists()) // Swamp - different from Auren
 	gs.AddPlayer("player3", factions.NewGiants())
 
@@ -511,7 +511,7 @@ func TestSendPriestToCult_AlreadyAtMax(t *testing.T) {
 	if player.Resources.Priests != 2 {
 		t.Errorf("expected 2 priests (priest consumed), got %d", player.Resources.Priests)
 	}
-	
+
 	// Position should still be 10
 	if gs.CultTracks.GetPosition("player1", CultEarth) != 10 {
 		t.Errorf("expected position to remain at 10, got %d", gs.CultTracks.GetPosition("player1", CultEarth))
@@ -642,7 +642,7 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 
 	// Advance to position 10 on Fire track
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player, gs)
-	
+
 	// Advance to position 9 on other tracks
 	gs.CultTracks.AdvancePlayer("player1", CultWater, 9, player, gs)
 	gs.CultTracks.AdvancePlayer("player1", CultEarth, 9, player, gs)
@@ -650,7 +650,7 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 
 	// Reset power for clean test
 	initialBowl2 := player.Resources.Power.Bowl2
-	
+
 	// Apply 2-key town bonus (+2 on all tracks)
 	// Fire: 10 → 10 (capped, no advancement)
 	// Others: 9 → 10 (advance 1, not 2, due to cap)
@@ -660,7 +660,7 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 	if gs.CultTracks.GetPosition("player1", CultFire) != 10 {
 		t.Errorf("expected Fire position 10 (capped), got %d", gs.CultTracks.GetPosition("player1", CultFire))
 	}
-	
+
 	// Verify others advanced to 10
 	if gs.CultTracks.GetPosition("player1", CultWater) != 10 {
 		t.Errorf("expected Water position 10, got %d", gs.CultTracks.GetPosition("player1", CultWater))

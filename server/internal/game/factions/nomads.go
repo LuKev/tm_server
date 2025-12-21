@@ -6,16 +6,20 @@ import (
 
 // Nomads faction - Yellow/Desert
 // Ability: Start with 3 Dwellings instead of 2
-//          Place third Dwelling after all players have placed their second ones (but before Chaos Magicians)
+//
+//	Place third Dwelling after all players have placed their second ones (but before Chaos Magicians)
+//
 // Stronghold: After building, take an Action token
-//             Special action (once per Action phase): Transform a Terrain space directly adjacent to one of your Structures
-//             into your Home terrain (Sandstorm). May immediately build a Dwelling on that space by paying its costs.
-//             (Not applicable past a River space or Bridge. Sandstorm is not considered a Spade.)
+//
+//	Special action (once per Action phase): Transform a Terrain space directly adjacent to one of your Structures
+//	into your Home terrain (Sandstorm). May immediately build a Dwelling on that space by paying its costs.
+//	(Not applicable past a River space or Bridge. Sandstorm is not considered a Spade.)
+//
 // Special: Start with 2 workers, 15 coins (not standard 3 workers, 15 coins)
 type Nomads struct {
 	BaseFaction
-	hasStronghold           bool
-	sandstormUsedThisRound  bool // Special action usage tracking
+	hasStronghold          bool
+	sandstormUsedThisRound bool // Special action usage tracking
 }
 
 func NewNomads() *Nomads {
@@ -41,11 +45,6 @@ func NewNomads() *Nomads {
 // GetStartingCultPositions returns Nomads starting cult track positions
 func (f *Nomads) GetStartingCultPositions() CultPositions {
 	return CultPositions{Fire: 1, Water: 0, Earth: 1, Air: 0}
-}
-
-// HasSpecialAbility returns true for sandstorm
-func (f *Nomads) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilitySandstorm
 }
 
 // BuildStronghold marks that the stronghold has been built

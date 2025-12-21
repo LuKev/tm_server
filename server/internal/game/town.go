@@ -85,7 +85,7 @@ func GetPowerValue(buildingType models.BuildingType) int {
 // when placing a new building
 func calculateAdjacencyBonus(m *board.TerraMysticaMap, h board.Hex, faction models.FactionType) int {
 	bonus := 0
-	
+
 	for _, neighbor := range m.GetDirectNeighbors(h) {
 		mapHex := m.GetHex(neighbor)
 		if mapHex != nil && mapHex.Building != nil {
@@ -95,7 +95,7 @@ func calculateAdjacencyBonus(m *board.TerraMysticaMap, h board.Hex, faction mode
 			}
 		}
 	}
-	
+
 	return bonus
 }
 
@@ -103,7 +103,7 @@ func calculateAdjacencyBonus(m *board.TerraMysticaMap, h board.Hex, faction mode
 // Returns map of faction -> power amount they can leech
 func getPowerLeechTargets(m *board.TerraMysticaMap, h board.Hex, placedFaction models.FactionType, powerValue int) map[models.FactionType]int {
 	targets := make(map[models.FactionType]int)
-	
+
 	for _, neighbor := range m.GetDirectNeighbors(h) {
 		mapHex := m.GetHex(neighbor)
 		if mapHex != nil && mapHex.Building != nil {
@@ -119,7 +119,7 @@ func getPowerLeechTargets(m *board.TerraMysticaMap, h board.Hex, placedFaction m
 			}
 		}
 	}
-	
+
 	return targets
 }
 
@@ -165,7 +165,6 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 			canBeDelayed = true
 		}
 
-
 		// Append new pending town formation (supports multiple simultaneous towns)
 		newTown := &PendingTownFormation{
 			PlayerID:        playerID,
@@ -177,7 +176,6 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 
 		return connected
 	}
-
 
 	return nil
 }
@@ -245,12 +243,12 @@ func (gs *GameState) FormTown(playerID string, hexes []board.Hex, tileType model
 	if player == nil {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
-	
+
 	// Check if tile is available
 	if !gs.TownTiles.IsAvailable(tileType) {
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
-	
+
 	// Mark all buildings as part of a town
 	for _, h := range hexes {
 		mapHex := gs.Map.GetHex(h)
@@ -258,7 +256,7 @@ func (gs *GameState) FormTown(playerID string, hexes []board.Hex, tileType model
 			mapHex.PartOfTown = true
 		}
 	}
-	
+
 	// For Mermaids: Place town tile on the skipped river hex
 	if skippedRiverHex != nil {
 		riverMapHex := gs.Map.GetHex(*skippedRiverHex)
@@ -268,25 +266,25 @@ func (gs *GameState) FormTown(playerID string, hexes []board.Hex, tileType model
 		}
 	}
 	// For other factions: Town tile placement is tracked per player, not on the map
-	
+
 	// Take the tile
 	if err := gs.TownTiles.TakeTile(tileType); err != nil {
 		return err
 	}
-	
+
 	// Add to player's town tiles
 	player.TownTiles = append(player.TownTiles, tileType)
 	player.TownsFormed++
-	
+
 	// Apply immediate benefits
 	gs.ApplyTownTileBenefits(playerID, tileType)
-	
+
 	// Apply faction-specific town bonuses
 	gs.ApplyFactionTownBonus(playerID)
-	
+
 	// Award VP from scoring tile
 	gs.AwardActionVP(playerID, ScoringActionTown)
-	
+
 	return nil
 }
 

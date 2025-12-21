@@ -43,26 +43,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_test")
 go_test(
     name = "game_test",
     srcs = [
-        # Faction integration tests (consolidated):
-        # - Halflings: Spade VP bonuses (4 tests)
-        # - Swarmlings: Upgrade scoring (3 tests)
-        # - Alchemists: VP/Coin conversion, power per spade (11 tests)
-        # - Cultists: Power leech bonuses (4 tests)
-        # - Giants: Transform special action (3 tests)
-        # - Engineers: VP per bridge on pass, bridge+town formation (4 tests)
-        # - Witches: Town founding bonus, Witches' Ride (3 tests)
-        # - Fakirs: Carpet flight (basic, after stronghold, power action, no shipping) (4 tests)
-        # - Dwarves: Tunneling (basic, after stronghold, power action, no shipping) (4 tests)
-        # - Darklings: Priest terraform, VP bonus, priest ordination w/ 7-priest limit, cannot upgrade digging, power action (6 tests)
-        # - Darklings Ordination: Stronghold immediate priest ordination (0-3 workers→priests, 7-priest limit, one-time) (7 tests)
-        # - 7-Priest Limit: Income capping (1 test)
-        # - Mermaids: River skipping for towns, delayed town formation, stronghold shipping (7 tests)
-        # - Halflings Spades: Stronghold 3 spades + optional dwelling (9 tests)
-        # - Cultists Cult Selection: Power leech bonus cult track selection (4 tests)
-        # Total: 54 + 7 (Darklings ordination) + 9 (Halflings) + 4 (Cultists cult selection) = 74 faction integration tests
-        # Note: Alchemists tests (11) already included in the original 54 count
         "faction_integration_test.go",
-        # Action tests
         "action_scoring_test.go",
         "action_select_favor_tile_test.go",
         "action_shipping_digging_vp_test.go",

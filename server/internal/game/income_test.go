@@ -338,7 +338,7 @@ func TestTradingHouseIncome_Nomads(t *testing.T) {
 	}{
 		{1, 2, 1},
 		{2, 4, 2},
-		{3, 7, 3}, // 2+2+3 coins, 1+1+1 power
+		{3, 7, 3},  // 2+2+3 coins, 1+1+1 power
 		{4, 11, 4}, // 2+2+3+4 coins, 1+1+1+1 power
 	}
 
@@ -363,7 +363,7 @@ func TestTradingHouseIncome_Dwarves(t *testing.T) {
 	}{
 		{1, 3, 1},
 		{2, 5, 2},
-		{3, 7, 4}, // 3+2+2 coins, 1+1+2 power
+		{3, 7, 4},  // 3+2+2 coins, 1+1+2 power
 		{4, 10, 6}, // 3+2+2+3 coins, 1+1+2+2 power
 	}
 
@@ -443,11 +443,11 @@ func TestGrantIncome_AppliesCorrectly(t *testing.T) {
 	// Total: 2 workers, 0 priests, 4 power
 	// Power cycles: 4 power from Bowl1 -> Bowl2
 
-	expectedCoins := 5 // No change
+	expectedCoins := 5       // No change
 	expectedWorkers := 3 + 2 // Base 1 + dwelling 1
 	expectedPriests := 1 + 0 // No priest income from stronghold
-	expectedBowl1 := 10 - 4 // 4 power moved from Bowl1
-	expectedBowl2 := 2 + 4 // 4 power moved to Bowl2
+	expectedBowl1 := 10 - 4  // 4 power moved from Bowl1
+	expectedBowl2 := 2 + 4   // 4 power moved to Bowl2
 
 	if player.Resources.Coins != expectedCoins {
 		t.Errorf("expected %d coins, got %d", expectedCoins, player.Resources.Coins)

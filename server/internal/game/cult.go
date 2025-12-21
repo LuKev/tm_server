@@ -188,7 +188,6 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 
 	// Grant bonus power ONLY for passing milestone positions (3, 5, 7, 10)
 	// Bonus: 1/2/2/3 power at positions 3/5/7/10
-	// Note: No "base power" is granted for advancing on cult tracks
 	if player != nil && actualAdvancement > 0 {
 		bonusPositions := map[int]int{
 			3:  1, // 1 bonus power

@@ -37,7 +37,7 @@ func (ps *PowerSystem) GainPower(amount int) int {
 	if amount <= 0 {
 		return 0
 	}
-	
+
 	remaining := amount
 
 	// Moving from bowl 1 to bowl 2
@@ -72,14 +72,14 @@ func (ps *PowerSystem) SpendPower(amount int) error {
 	if amount < 0 {
 		return fmt.Errorf("cannot spend negative power")
 	}
-	
+
 	if amount > ps.Bowl3 {
 		return fmt.Errorf("cannot spend %d power, only %d available in Bowl 3", amount, ps.Bowl3)
 	}
-	
+
 	ps.Bowl3 -= amount
 	ps.Bowl1 += amount
-	
+
 	return nil
 }
 
@@ -96,15 +96,15 @@ func (ps *PowerSystem) BurnPower(amount int) error {
 	if amount < 0 {
 		return fmt.Errorf("cannot burn negative power")
 	}
-	
+
 	cost := amount * 2
 	if cost > ps.Bowl2 {
 		return fmt.Errorf("cannot burn for %d power, need %d in Bowl 2 but only have %d", amount, cost, ps.Bowl2)
 	}
-	
+
 	ps.Bowl2 -= cost
 	ps.Bowl3 += amount
-	
+
 	return nil
 }
 

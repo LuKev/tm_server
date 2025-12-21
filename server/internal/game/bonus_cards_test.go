@@ -19,8 +19,8 @@ func TestBonusCards_RetainedForNextRoundIncome(t *testing.T) {
 
 	// Give players bonus cards
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
-		BonusCard6Coins,        // +6 coins
-		BonusCardWorkerPower,   // +1 worker, +3 power
+		BonusCard6Coins,      // +6 coins
+		BonusCardWorkerPower, // +1 worker, +3 power
 	})
 
 	// Simulate players passing and selecting bonus cards in Round 1

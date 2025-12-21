@@ -33,14 +33,6 @@ func TestDarklings_StartingResources(t *testing.T) {
 	}
 }
 
-func TestDarklings_HasPriestBenefitsAbility(t *testing.T) {
-	darklings := NewDarklings()
-
-	if !darklings.HasSpecialAbility(AbilityPriestBenefits) {
-		t.Errorf("Darklings should have priest benefits ability")
-	}
-}
-
 func TestDarklings_ExpensiveSanctuary(t *testing.T) {
 	darklings := NewDarklings()
 
@@ -53,7 +45,6 @@ func TestDarklings_ExpensiveSanctuary(t *testing.T) {
 		t.Errorf("expected sanctuary to cost 4 workers, got %d", sanctuaryCost.Workers)
 	}
 }
-
 
 func TestDarklings_PriestOrdinationBeforeStronghold(t *testing.T) {
 	darklings := NewDarklings()
@@ -143,9 +134,9 @@ func TestDarklings_TerraformVPBonus(t *testing.T) {
 		distance int
 		expected int
 	}{
-		{1, 2},  // 1 spade = 2 VP
-		{2, 4},  // 2 spades = 4 VP
-		{3, 6},  // 3 spades = 6 VP
+		{1, 2}, // 1 spade = 2 VP
+		{2, 4}, // 2 spades = 4 VP
+		{3, 6}, // 3 spades = 6 VP
 	}
 
 	for _, tt := range tests {

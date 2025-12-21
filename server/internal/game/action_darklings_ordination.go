@@ -52,7 +52,7 @@ func (a *UseDarklingsPriestOrdinationAction) Validate(gs *GameState) error {
 
 	// Check if player has enough workers
 	if player.Resources.Workers < a.WorkersToConvert {
-		return fmt.Errorf("not enough workers (have %d, need %d)", 
+		return fmt.Errorf("not enough workers (have %d, need %d)",
 			player.Resources.Workers, a.WorkersToConvert)
 	}
 

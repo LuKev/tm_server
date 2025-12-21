@@ -6,9 +6,11 @@ import (
 
 // Dwarves faction - Gray/Mountain
 // Ability: When taking "Transform and Build" action, may skip one Terrain or River space by paying 2 more Workers (Tunneling)
-//          Get 4 VP each time when Tunneling
-//          Have no Shipping (cannot increase shipping level)
-//          In final Area scoring, Structures reachable via Tunneling are considered connected
+//
+//	Get 4 VP each time when Tunneling
+//	Have no Shipping (cannot increase shipping level)
+//	In final Area scoring, Structures reachable via Tunneling are considered connected
+//
 // Stronghold: After building, only pay 1 more Worker instead of 2 when Tunneling
 // Special: Cannot increase shipping level
 type Dwarves struct {
@@ -42,7 +44,6 @@ func (f *Dwarves) GetStartingCultPositions() CultPositions {
 
 // GetShippingCost overrides the base method
 // Dwarves cannot increase shipping (they have no shipping)
-// NOTE: Phase 6.2 (Action System) must prevent Dwarves from taking shipping actions
 func (f *Dwarves) GetShippingCost(currentLevel int) Cost {
 	// Dwarves cannot upgrade shipping
 	return Cost{
@@ -51,11 +52,6 @@ func (f *Dwarves) GetShippingCost(currentLevel int) Cost {
 		Priests: 0,
 		Power:   0,
 	}
-}
-
-// HasSpecialAbility returns true for tunnel digging
-func (f *Dwarves) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityTunnelDigging
 }
 
 // BuildStronghold marks that the stronghold has been built
@@ -69,7 +65,6 @@ func (f *Dwarves) HasStronghold() bool {
 }
 
 // GetTunnelingCost returns the worker cost for tunneling
-// NOTE: Phase 6.2 (Action System) implements tunneling mechanic
 func (f *Dwarves) GetTunnelingCost() int {
 	if f.hasStronghold {
 		return 1 // After stronghold, only 1 extra worker
@@ -78,8 +73,6 @@ func (f *Dwarves) GetTunnelingCost() int {
 }
 
 // GetTunnelingVPBonus returns the VP bonus for tunneling
-// NOTE: Phase 8 (Scoring System) tracks VP
-// NOTE: Phase 6.2 (Action System) must apply this bonus when Dwarves tunnel
 func (f *Dwarves) GetTunnelingVPBonus() int {
 	return 4 // 4 VP each time tunneling
 }

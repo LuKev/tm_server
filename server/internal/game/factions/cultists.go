@@ -6,12 +6,15 @@ import (
 
 // Cultists faction - Brown/Plains
 // Ability: When at least one opponent takes Power from your building, advance 1 space on a Cult track
-//          (Only 1 space total regardless of number of opponents)
-//          If all opponents refuse Power, gain 1 Power instead
-//          If no opponents can take Power, gain nothing
+//
+//	(Only 1 space total regardless of number of opponents)
+//	If all opponents refuse Power, gain 1 Power instead
+//	If no opponents can take Power, gain nothing
+//
 // Stronghold: After building, immediately and only once get 7 VP
 // Special: Sanctuary costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
-//          Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
+//
+//	Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
 type Cultists struct {
 	BaseFaction
 	hasStronghold bool
@@ -61,14 +64,8 @@ func (f *Cultists) GetStrongholdCost() Cost {
 	}
 }
 
-// HasSpecialAbility returns true for cult track bonuses
-func (f *Cultists) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityCultTrackBonus
-}
-
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time VP bonus (7 VP)
-// NOTE: Phase 8 (Scoring System) tracks VP
 func (f *Cultists) BuildStronghold() int {
 	f.hasStronghold = true
 	return 7 // Grant 7 VP
@@ -76,15 +73,11 @@ func (f *Cultists) BuildStronghold() int {
 
 // GetCultAdvanceFromPowerLeech returns how many cult spaces to advance
 // when opponents take power from Cultists' building
-// NOTE: Phase 5.1 (Power System) implements power leech
-// NOTE: Phase 7.1 (Cult Track System) handles cult advancement
-// NOTE: Phase 6.2 (Action System) must trigger this when building
 func (f *Cultists) GetCultAdvanceFromPowerLeech() int {
 	return 1 // Advance 1 space on cult track (if at least one opponent takes power)
 }
 
 // GetPowerIfAllRefuse returns how much power to gain if all opponents refuse power
-// NOTE: Phase 5.1 (Power System) implements this
 func (f *Cultists) GetPowerIfAllRefuse() int {
 	return 1 // Gain 1 power if all opponents refuse
 }

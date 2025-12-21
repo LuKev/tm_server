@@ -33,14 +33,6 @@ func TestCultists_StartingResources(t *testing.T) {
 	}
 }
 
-func TestCultists_HasCultTrackBonusAbility(t *testing.T) {
-	cultists := NewCultists()
-
-	if !cultists.HasSpecialAbility(AbilityCultTrackBonus) {
-		t.Errorf("Cultists should have cult track bonus ability")
-	}
-}
-
 func TestCultists_ExpensiveSanctuary(t *testing.T) {
 	cultists := NewCultists()
 
@@ -66,7 +58,6 @@ func TestCultists_ExpensiveStronghold(t *testing.T) {
 		t.Errorf("expected stronghold to cost 4 workers, got %d", strongholdCost.Workers)
 	}
 }
-
 
 func TestCultists_BuildStrongholdGrantsVP(t *testing.T) {
 	cultists := NewCultists()

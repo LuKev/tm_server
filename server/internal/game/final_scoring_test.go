@@ -10,17 +10,17 @@ import (
 
 func TestCalculateFinalScoring_Complete(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren() // Forest
+	faction1 := factions.NewAuren()      // Forest
 	faction2 := factions.NewSwarmlings() // Lake - different from Auren, no special resource conversion
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
-	
+
 	// Set base VP
 	player1.VictoryPoints = 50
 	player2.VictoryPoints = 45
-	
+
 	// Build some buildings for player1 (connected area of 3)
 	hex1 := board.NewHex(0, 0)
 	hex2 := board.NewHex(1, 0)
@@ -46,7 +46,7 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 		PlayerID:   "player1",
 		PowerValue: 1,
 	})
-	
+
 	// Build for player2 (connected area of 2)
 	hex4 := board.NewHex(5, 5)
 	hex5 := board.NewHex(6, 5)
@@ -64,29 +64,29 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 		PlayerID:   "player2",
 		PowerValue: 1,
 	})
-	
+
 	// Set cult positions
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
 	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
-	
+
 	// Set resources (clear power bowls first since Auren starts with power)
 	player1.Resources.Power.Bowl1 = 0
 	player1.Resources.Power.Bowl2 = 0
 	player1.Resources.Power.Bowl3 = 0
-	player1.Resources.Coins = 9  // 3 VP
+	player1.Resources.Coins = 9   // 3 VP
 	player1.Resources.Workers = 2 // 2 VP
 	player1.Resources.Priests = 1 // 1 VP
-	
+
 	player2.Resources.Power.Bowl1 = 0
 	player2.Resources.Power.Bowl2 = 0
 	player2.Resources.Power.Bowl3 = 0
-	player2.Resources.Coins = 6  // 2 VP
+	player2.Resources.Coins = 6   // 2 VP
 	player2.Resources.Workers = 3 // 3 VP
 	player2.Resources.Priests = 0 // 0 VP
-	
+
 	// Calculate final scoring
 	scores := gs.CalculateFinalScoring()
-	
+
 	// Verify player1
 	if scores["player1"].BaseVP != 50 {
 		t.Errorf("player1 BaseVP: expected 50, got %d", scores["player1"].BaseVP)
@@ -103,7 +103,7 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 	if scores["player1"].TotalVP != 82 {
 		t.Errorf("player1 TotalVP: expected 82, got %d", scores["player1"].TotalVP)
 	}
-	
+
 	// Verify player2
 	if scores["player2"].CultVP != 4 {
 		t.Errorf("player2 CultVP: expected 4, got %d", scores["player2"].CultVP)
@@ -115,11 +115,11 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 
 func TestAreaBonus_SingleWinner(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren() // Forest
+	faction1 := factions.NewAuren()      // Forest
 	faction2 := factions.NewSwarmlings() // Lake
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
-	
+
 	// Player1: 5 connected buildings
 	for i := 0; i < 5; i++ {
 		hex := board.NewHex(i, 0)
@@ -131,7 +131,7 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 			PowerValue: 1,
 		})
 	}
-	
+
 	// Player2: 3 connected buildings
 	for i := 0; i < 3; i++ {
 		hex := board.NewHex(i, 5)
@@ -143,13 +143,13 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 			PowerValue: 1,
 		})
 	}
-	
+
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
 	scores["player2"] = &PlayerFinalScore{PlayerID: "player2"}
-	
+
 	gs.calculateAreaBonuses(scores)
-	
+
 	// Player1 should get 18 VP
 	if scores["player1"].AreaVP != 18 {
 		t.Errorf("player1: expected 18 VP, got %d", scores["player1"].AreaVP)
@@ -157,7 +157,7 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 	if scores["player1"].LargestAreaSize != 5 {
 		t.Errorf("player1: expected area size 5, got %d", scores["player1"].LargestAreaSize)
 	}
-	
+
 	// Player2 should get 0 VP
 	if scores["player2"].AreaVP != 0 {
 		t.Errorf("player2: expected 0 VP, got %d", scores["player2"].AreaVP)
@@ -166,13 +166,13 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 
 func TestAreaBonus_Tie(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren() // Forest
+	faction1 := factions.NewAuren()      // Forest
 	faction2 := factions.NewSwarmlings() // Lake
-	faction3 := factions.NewHalflings() // Plains
+	faction3 := factions.NewHalflings()  // Plains
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	gs.AddPlayer("player3", faction3)
-	
+
 	// All players: 4 connected buildings each
 	for playerID, player := range gs.Players {
 		row := 0
@@ -181,7 +181,7 @@ func TestAreaBonus_Tie(t *testing.T) {
 		} else if playerID == "player3" {
 			row = 6
 		}
-		
+
 		for i := 0; i < 4; i++ {
 			hex := board.NewHex(i, row)
 			gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
@@ -193,14 +193,14 @@ func TestAreaBonus_Tie(t *testing.T) {
 			})
 		}
 	}
-	
+
 	scores := make(map[string]*PlayerFinalScore)
 	for playerID := range gs.Players {
 		scores[playerID] = &PlayerFinalScore{PlayerID: playerID}
 	}
-	
+
 	gs.calculateAreaBonuses(scores)
-	
+
 	// All players tied: 18 / 3 = 6 VP each
 	for playerID, score := range scores {
 		if score.AreaVP != 6 {
@@ -211,39 +211,39 @@ func TestAreaBonus_Tie(t *testing.T) {
 
 func TestCultBonus_SingleTrack(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren() // Forest
+	faction1 := factions.NewAuren()      // Forest
 	faction2 := factions.NewSwarmlings() // Lake
-	faction3 := factions.NewHalflings() // Plains
+	faction3 := factions.NewHalflings()  // Plains
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	gs.AddPlayer("player3", faction3)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
-	
+
 	// Fire track: player1=10, player2=8, player3=5
 	player1.Keys = 1
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
 	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
 	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3, gs)
-	
+
 	scores := make(map[string]*PlayerFinalScore)
 	for playerID := range gs.Players {
 		scores[playerID] = &PlayerFinalScore{PlayerID: playerID}
 	}
-	
+
 	gs.calculateCultBonuses(scores)
-	
+
 	// Player1: 8 VP (1st place)
 	if scores["player1"].CultVP != 8 {
 		t.Errorf("player1: expected 8 VP, got %d", scores["player1"].CultVP)
 	}
-	
+
 	// Player2: 4 VP (2nd place)
 	if scores["player2"].CultVP != 4 {
 		t.Errorf("player2: expected 4 VP, got %d", scores["player2"].CultVP)
 	}
-	
+
 	// Player3: 2 VP (3rd place)
 	if scores["player3"].CultVP != 2 {
 		t.Errorf("player3: expected 2 VP, got %d", scores["player3"].CultVP)
@@ -252,29 +252,29 @@ func TestCultBonus_SingleTrack(t *testing.T) {
 
 func TestCultBonus_TieForFirst(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren() // Forest
+	faction1 := factions.NewAuren()      // Forest
 	faction2 := factions.NewSwarmlings() // Lake
-	faction3 := factions.NewHalflings() // Plains
+	faction3 := factions.NewHalflings()  // Plains
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	gs.AddPlayer("player3", faction3)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
-	
+
 	// Fire track: player1=9, player2=9, player3=5 (both tied for 1st)
 	// Note: Position 10 can only be occupied by one player
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 9, player1, gs)
 	gs.CultTracks.AdvancePlayer("player2", CultFire, 9, player2, gs)
 	gs.CultTracks.AdvancePlayer("player3", CultFire, 5, player3, gs)
-	
+
 	scores := make(map[string]*PlayerFinalScore)
 	for playerID := range gs.Players {
 		scores[playerID] = &PlayerFinalScore{PlayerID: playerID}
 	}
-	
+
 	gs.calculateCultBonuses(scores)
-	
+
 	// Player1 and Player2 tied for 1st: (8+4)/2 = 6 VP each
 	if scores["player1"].CultVP != 6 {
 		t.Errorf("player1: expected 6 VP, got %d", scores["player1"].CultVP)
@@ -282,7 +282,7 @@ func TestCultBonus_TieForFirst(t *testing.T) {
 	if scores["player2"].CultVP != 6 {
 		t.Errorf("player2: expected 6 VP, got %d", scores["player2"].CultVP)
 	}
-	
+
 	// Player3: 2 VP (3rd place)
 	if scores["player3"].CultVP != 2 {
 		t.Errorf("player3: expected 2 VP, got %d", scores["player3"].CultVP)
@@ -291,34 +291,34 @@ func TestCultBonus_TieForFirst(t *testing.T) {
 
 func TestCultBonus_MultipleTracks(t *testing.T) {
 	gs := NewGameState()
-	faction1 := factions.NewAuren() // Forest
+	faction1 := factions.NewAuren()      // Forest
 	faction2 := factions.NewSwarmlings() // Lake
 	gs.AddPlayer("player1", faction1)
 	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
-	
+
 	// Player1: 1st on Fire, 2nd on Water
 	player1.Keys = 2
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
 	gs.CultTracks.AdvancePlayer("player1", CultWater, 7, player1, gs)
-	
+
 	// Player2: 1st on Water, 2nd on Fire
 	player2.Keys = 1
 	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
 	gs.CultTracks.AdvancePlayer("player2", CultWater, 10, player2, gs)
-	
+
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
 	scores["player2"] = &PlayerFinalScore{PlayerID: "player2"}
-	
+
 	gs.calculateCultBonuses(scores)
-	
+
 	// Player1: 8 (Fire 1st) + 4 (Water 2nd) = 12 VP
 	if scores["player1"].CultVP != 12 {
 		t.Errorf("player1: expected 12 VP, got %d", scores["player1"].CultVP)
 	}
-	
+
 	// Player2: 4 (Fire 2nd) + 8 (Water 1st) = 12 VP
 	if scores["player2"].CultVP != 12 {
 		t.Errorf("player2: expected 12 VP, got %d", scores["player2"].CultVP)
@@ -330,23 +330,23 @@ func TestResourceConversion(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
-	
+
 	// Set resources
-	player.Resources.Coins = 10         // 10/3 = 3 VP
-	player.Resources.Power.Bowl2 = 6    // 3 coins -> total 13/3 = 4 VP
-	player.Resources.Workers = 5        // 5 VP
-	player.Resources.Priests = 2        // 2 VP
-	
+	player.Resources.Coins = 10      // 10/3 = 3 VP
+	player.Resources.Power.Bowl2 = 6 // 3 coins -> total 13/3 = 4 VP
+	player.Resources.Workers = 5     // 5 VP
+	player.Resources.Priests = 2     // 2 VP
+
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
-	
+
 	gs.calculateResourceConversion(scores)
-	
+
 	// Total: 4 (coins with power) + 5 (workers) + 2 (priests) = 11 VP
 	if scores["player1"].ResourceVP != 11 {
 		t.Errorf("expected 11 VP, got %d", scores["player1"].ResourceVP)
 	}
-	
+
 	// Tiebreaker value: 13 (coins+power) + 5 + 2 = 20
 	if scores["player1"].TotalResourceValue != 20 {
 		t.Errorf("expected resource value 20, got %d", scores["player1"].TotalResourceValue)
@@ -355,13 +355,13 @@ func TestResourceConversion(t *testing.T) {
 
 func TestGetWinner_Clear(t *testing.T) {
 	gs := NewGameState()
-	
+
 	scores := map[string]*PlayerFinalScore{
 		"player1": {PlayerID: "player1", TotalVP: 100, TotalResourceValue: 10},
 		"player2": {PlayerID: "player2", TotalVP: 95, TotalResourceValue: 15},
 		"player3": {PlayerID: "player3", TotalVP: 90, TotalResourceValue: 20},
 	}
-	
+
 	winner := gs.GetWinner(scores)
 	if winner != "player1" {
 		t.Errorf("expected player1 to win, got %s", winner)
@@ -370,13 +370,13 @@ func TestGetWinner_Clear(t *testing.T) {
 
 func TestGetWinner_Tiebreaker(t *testing.T) {
 	gs := NewGameState()
-	
+
 	scores := map[string]*PlayerFinalScore{
 		"player1": {PlayerID: "player1", TotalVP: 100, TotalResourceValue: 10},
 		"player2": {PlayerID: "player2", TotalVP: 100, TotalResourceValue: 15},
 		"player3": {PlayerID: "player3", TotalVP: 95, TotalResourceValue: 20},
 	}
-	
+
 	winner := gs.GetWinner(scores)
 	if winner != "player2" {
 		t.Errorf("expected player2 to win (tiebreaker), got %s", winner)
@@ -389,23 +389,23 @@ func TestGetRankedPlayers(t *testing.T) {
 		"player2": {PlayerID: "player2", TotalVP: 100, TotalResourceValue: 15},
 		"player3": {PlayerID: "player3", TotalVP: 100, TotalResourceValue: 20},
 	}
-	
+
 	ranked := GetRankedPlayers(scores)
-	
+
 	if len(ranked) != 3 {
 		t.Fatalf("expected 3 players, got %d", len(ranked))
 	}
-	
+
 	// 1st: player3 (100 VP, 20 resources)
 	if ranked[0].PlayerID != "player3" {
 		t.Errorf("1st place: expected player3, got %s", ranked[0].PlayerID)
 	}
-	
+
 	// 2nd: player2 (100 VP, 15 resources)
 	if ranked[1].PlayerID != "player2" {
 		t.Errorf("2nd place: expected player2, got %s", ranked[1].PlayerID)
 	}
-	
+
 	// 3rd: player1 (95 VP)
 	if ranked[2].PlayerID != "player1" {
 		t.Errorf("3rd place: expected player1, got %s", ranked[2].PlayerID)
@@ -417,7 +417,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
-	
+
 	// Create two separate areas: 3 buildings and 2 buildings
 	// Area 1: (0,0), (1,0), (2,0)
 	for i := 0; i < 3; i++ {
@@ -430,7 +430,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 			PowerValue: 1,
 		})
 	}
-	
+
 	// Area 2: (5,5), (6,5) - not connected to Area 1
 	for i := 5; i < 7; i++ {
 		hex := board.NewHex(i, 5)
@@ -442,7 +442,7 @@ func TestGetLargestConnectedArea(t *testing.T) {
 			PowerValue: 1,
 		})
 	}
-	
+
 	largestArea := gs.Map.GetLargestConnectedArea("player1", player.Faction, player.ShippingLevel)
 	if largestArea != 3 {
 		t.Errorf("expected largest area 3, got %d", largestArea)
@@ -454,20 +454,20 @@ func TestResourceConversion_WithPower(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
-	
+
 	// Set resources
-	player.Resources.Coins = 3          // 3 coins
-	player.Resources.Power.Bowl2 = 10   // 10/2 = 5 coins (burn to Bowl 3, then convert)
-	player.Resources.Power.Bowl3 = 4    // 4 coins (direct conversion)
+	player.Resources.Coins = 3        // 3 coins
+	player.Resources.Power.Bowl2 = 10 // 10/2 = 5 coins (burn to Bowl 3, then convert)
+	player.Resources.Power.Bowl3 = 4  // 4 coins (direct conversion)
 	// Total: 3 + 5 + 4 = 12 coins / 3 = 4 VP
-	player.Resources.Workers = 2        // 2 VP
-	player.Resources.Priests = 1        // 1 VP
-	
+	player.Resources.Workers = 2 // 2 VP
+	player.Resources.Priests = 1 // 1 VP
+
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
-	
+
 	gs.calculateResourceConversion(scores)
-	
+
 	// Total: 4 (coins) + 2 (workers) + 1 (priests) = 7 VP
 	if scores["player1"].ResourceVP != 7 {
 		t.Errorf("expected 7 VP, got %d", scores["player1"].ResourceVP)
@@ -479,19 +479,19 @@ func TestResourceConversion_Alchemists(t *testing.T) {
 	faction := factions.NewAlchemists()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
-	
+
 	// Set resources
-	player.Resources.Coins = 8           // 8 coins
-	player.Resources.Power.Bowl2 = 4     // 4/2 = 2 coins -> total 10/2 = 5 VP (Alchemists)
-	player.Resources.Power.Bowl3 = 0     // 0 coins
-	player.Resources.Workers = 1         // 1 VP
-	player.Resources.Priests = 0         // 0 VP
-	
+	player.Resources.Coins = 8       // 8 coins
+	player.Resources.Power.Bowl2 = 4 // 4/2 = 2 coins -> total 10/2 = 5 VP (Alchemists)
+	player.Resources.Power.Bowl3 = 0 // 0 coins
+	player.Resources.Workers = 1     // 1 VP
+	player.Resources.Priests = 0     // 0 VP
+
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
-	
+
 	gs.calculateResourceConversion(scores)
-	
+
 	// Total: 5 (coins with Alchemists bonus) + 1 (workers) = 6 VP
 	if scores["player1"].ResourceVP != 6 {
 		t.Errorf("expected 6 VP, got %d", scores["player1"].ResourceVP)
@@ -503,19 +503,19 @@ func TestResourceConversion_AlchemistsWithPower(t *testing.T) {
 	faction := factions.NewAlchemists()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
-	
+
 	// Set resources
-	player.Resources.Coins = 2          // 2 coins
-	player.Resources.Power.Bowl2 = 6    // 6/2 = 3 coins
-	player.Resources.Power.Bowl3 = 1    // 1 coin
+	player.Resources.Coins = 2       // 2 coins
+	player.Resources.Power.Bowl2 = 6 // 6/2 = 3 coins
+	player.Resources.Power.Bowl3 = 1 // 1 coin
 	// Total: 2 + 3 + 1 = 6 coins / 2 = 3 VP (Alchemists)
-	player.Resources.Workers = 1        // 1 VP
-	
+	player.Resources.Workers = 1 // 1 VP
+
 	scores := make(map[string]*PlayerFinalScore)
 	scores["player1"] = &PlayerFinalScore{PlayerID: "player1"}
-	
+
 	gs.calculateResourceConversion(scores)
-	
+
 	// Total: 3 (coins) + 1 (workers) = 4 VP
 	if scores["player1"].ResourceVP != 4 {
 		t.Errorf("expected 4 VP, got %d", scores["player1"].ResourceVP)

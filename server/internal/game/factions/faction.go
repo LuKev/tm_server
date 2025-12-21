@@ -36,7 +36,7 @@ type Faction interface {
 	GetStrongholdIncome() Income
 
 	// Special abilities
-	HasSpecialAbility(ability SpecialAbility) bool
+
 	CanUseSpecialAction(action string, gameState interface{}) bool
 	ExecuteSpecialAction(action string, gameState interface{}) error
 }
@@ -83,28 +83,6 @@ type Income struct {
 	Power   int
 }
 
-// SpecialAbility represents unique faction abilities
-type SpecialAbility int
-
-const (
-	AbilityNone SpecialAbility = iota
-	AbilityFlying
-	AbilityWaterBuilding
-	AbilityBridgeBuilding
-	AbilityTunnelDigging
-	AbilitySandstorm
-	AbilityCarpetFlying
-	AbilityFavorTransform
-	AbilityCheapDwellings
-	AbilityTownBonus
-	AbilityFavorBenefits
-	AbilitySpadeEfficiency
-	AbilityCultBonus
-	AbilityCultTrackBonus
-	AbilityConversionEfficiency
-	AbilityPriestBenefits
-)
-
 // Standard building costs (can be overridden by factions)
 var (
 	StandardDwellingCost = Cost{
@@ -113,28 +91,28 @@ var (
 		Priests: 0,
 		Power:   0,
 	}
-	
+
 	StandardTradingHouseCost = Cost{
 		Coins:   6,
 		Workers: 2,
 		Priests: 0,
 		Power:   0,
 	}
-	
+
 	StandardTempleCost = Cost{
 		Coins:   5,
 		Workers: 2,
 		Priests: 0,
 		Power:   0,
 	}
-	
+
 	StandardSanctuaryCost = Cost{
 		Coins:   6,
 		Workers: 4,
 		Priests: 0,
 		Power:   0,
 	}
-	
+
 	StandardStrongholdCost = Cost{
 		Coins:   6,
 		Workers: 4,
@@ -225,10 +203,6 @@ func (f *BaseFaction) GetShippingCost(currentLevel int) Cost {
 
 func (f *BaseFaction) GetDiggingCost(currentLevel int) Cost {
 	return StandardDiggingCost(currentLevel)
-}
-
-func (f *BaseFaction) HasSpecialAbility(ability SpecialAbility) bool {
-	return false // Override in specific factions
 }
 
 func (f *BaseFaction) CanUseSpecialAction(action string, gameState interface{}) bool {

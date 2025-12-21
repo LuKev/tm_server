@@ -6,15 +6,19 @@ import (
 
 // Giants faction - Red/Wasteland
 // Ability: Always pay exactly 2 Spades to transform terrain (even for Mountains and Desert)
-//          (A single Spade will be forfeit when gained in Phase III as a Cult bonus)
+//
+//	(A single Spade will be forfeit when gained in Phase III as a Cult bonus)
+//
 // Stronghold: After building, take an Action token
-//             Special action (once per Action phase): Get 2 free Spades to transform a reachable space
-//             May immediately build a Dwelling on that space by paying its costs
+//
+//	Special action (once per Action phase): Get 2 free Spades to transform a reachable space
+//	May immediately build a Dwelling on that space by paying its costs
+//
 // Special: All standard building costs
 type Giants struct {
 	BaseFaction
-	hasStronghold              bool
-	freeSpadesUsedThisRound    bool // Special action usage tracking
+	hasStronghold           bool
+	freeSpadesUsedThisRound bool // Special action usage tracking
 }
 
 func NewGiants() *Giants {
@@ -44,7 +48,6 @@ func (f *Giants) GetStartingCultPositions() CultPositions {
 
 // GetTerraformCost overrides the base method
 // Giants always pay exactly 2 spades (regardless of terrain distance)
-// NOTE: Phase 6.2 (Action System) must use this for Giants
 func (f *Giants) GetTerraformCost(distance int) int {
 	// Giants always pay 2 spades, regardless of distance
 	// This is in terms of workers needed
@@ -60,11 +63,6 @@ func (f *Giants) GetTerraformCost(distance int) int {
 // Giants always need exactly 2 spades (overrides BaseFaction)
 func (f *Giants) GetTerraformSpades(distance int) int {
 	return 2 // Always 2 spades, regardless of terrain distance
-}
-
-// HasSpecialAbility returns true for spade efficiency (2 VP per spade)
-func (f *Giants) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilitySpadeEfficiency
 }
 
 // BuildStronghold marks that the stronghold has been built

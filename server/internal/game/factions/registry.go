@@ -16,7 +16,7 @@ func NewRegistry() *Registry {
 	r := &Registry{
 		factions: make(map[models.FactionType]Faction),
 	}
-	
+
 	// Register all 14 factions
 	r.Register(NewNomads())
 	r.Register(NewFakirs())
@@ -32,7 +32,7 @@ func NewRegistry() *Registry {
 	r.Register(NewDarklings())
 	r.Register(NewEngineers())
 	r.Register(NewDwarves())
-	
+
 	return r
 }
 

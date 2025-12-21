@@ -57,8 +57,8 @@ func TestIncome_BonusCard_WorkerPower(t *testing.T) {
 
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+1 worker, +3 power)
 	expectedWorkers := 5 + 1 + 1 // Base 1 + bonus 1
-	expectedBowl2 := 3 // Bonus card power
-	
+	expectedBowl2 := 3           // Bonus card power
+
 	if player.Resources.Workers != expectedWorkers {
 		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
 	}
@@ -91,7 +91,7 @@ func TestIncome_BonusCard_6Coins(t *testing.T) {
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+6 coins)
 	expectedCoins := 10 + 6
 	expectedWorkers := 5 + 1 // Base worker
-	
+
 	if player.Resources.Coins != expectedCoins {
 		t.Errorf("expected %d coins, got %d", expectedCoins, player.Resources.Coins)
 	}
@@ -124,7 +124,7 @@ func TestIncome_BonusCard_DwellingVP(t *testing.T) {
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+2 coins)
 	expectedCoins := 10 + 2
 	expectedWorkers := 5 + 1 // Base worker
-	
+
 	if player.Resources.Coins != expectedCoins {
 		t.Errorf("expected %d coins, got %d", expectedCoins, player.Resources.Coins)
 	}
@@ -156,7 +156,7 @@ func TestIncome_BonusCard_TradingHouseVP(t *testing.T) {
 
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+1 worker)
 	expectedWorkers := 5 + 1 + 1 // Base 1 + bonus 1
-	
+
 	if player.Resources.Workers != expectedWorkers {
 		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
 	}
@@ -186,7 +186,7 @@ func TestIncome_BonusCard_Spade(t *testing.T) {
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+2 coins)
 	expectedCoins := 10 + 2
 	expectedWorkers := 5 + 1 // Base worker
-	
+
 	if player.Resources.Coins != expectedCoins {
 		t.Errorf("expected %d coins, got %d", expectedCoins, player.Resources.Coins)
 	}
@@ -219,7 +219,7 @@ func TestIncome_BonusCard_CultAdvance(t *testing.T) {
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+4 coins)
 	expectedCoins := 10 + 4
 	expectedWorkers := 5 + 1 // Base worker
-	
+
 	if player.Resources.Coins != expectedCoins {
 		t.Errorf("expected %d coins, got %d", expectedCoins, player.Resources.Coins)
 	}
@@ -251,7 +251,7 @@ func TestIncome_BonusCard_StrongholdSanctuary(t *testing.T) {
 
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+2 workers)
 	expectedWorkers := 5 + 1 + 2 // Base 1 + bonus 2
-	
+
 	if player.Resources.Workers != expectedWorkers {
 		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
 	}
@@ -280,8 +280,8 @@ func TestIncome_BonusCard_Shipping(t *testing.T) {
 
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+3 power)
 	expectedWorkers := 5 + 1 // Base worker
-	expectedBowl2 := 3 // Bonus card power
-	
+	expectedBowl2 := 3       // Bonus card power
+
 	if player.Resources.Workers != expectedWorkers {
 		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
 	}
@@ -313,8 +313,8 @@ func TestIncome_BonusCard_ShippingVP(t *testing.T) {
 
 	// Expected income: Base (Auren: 1 worker) + Bonus card (+3 power)
 	expectedWorkers := 5 + 1 // Base worker
-	expectedBowl2 := 3 // Bonus card power
-	
+	expectedBowl2 := 3       // Bonus card power
+
 	if player.Resources.Workers != expectedWorkers {
 		t.Errorf("expected %d workers, got %d", expectedWorkers, player.Resources.Workers)
 	}

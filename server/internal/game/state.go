@@ -14,30 +14,30 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map                *board.TerraMysticaMap
-	Players            map[string]*Player
-	Round              int
-	Phase              GamePhase
-	TurnOrder          []string                      // Player IDs in turn order
-	CurrentPlayerIndex int                           // Index into TurnOrder
-	PassOrder          []string                      // Player IDs in the order they passed (for next round's turn order)
-	PowerActions       *PowerActionState             // Tracks which power actions have been used this round
-	CultTracks         *CultTrackState               // Tracks all players' cult track positions
-	FavorTiles         *FavorTileState               // Tracks available favor tiles and player selections
-	BonusCards         *BonusCardState               // Tracks available bonus cards and player selections
-	TownTiles               *TownTileState                      // Tracks available town tiles
-	ScoringTiles            *ScoringTileState                   // Tracks scoring tiles for each round
-	PendingLeechOffers      map[string][]*PowerLeechOffer       // Key: playerID who can accept
-	PendingTownFormations   map[string][]*PendingTownFormation  // Key: playerID, Value: slice of pending towns (can have multiple simultaneous towns)
-	PendingSpades           map[string]int                      // Key: playerID, Value: number of spades (from BON1, count for VP when used)
-	PendingCultRewardSpades map[string]int                      // Key: playerID, Value: cult reward spades (don't count for VP)
-	PendingCultistsLeech    map[string]*CultistsLeechBonus      // Key: playerID (Cultists), tracks pending cult advance/power bonus
-	SkipAbilityUsedThisAction map[string]bool                   // Key: playerID, Value: whether carpet flight/tunneling was used in current action (max 1 per action)
-	PendingFavorTileSelection *PendingFavorTileSelection        // Player who needs to select favor tile(s)
-	PendingHalflingsSpades    *PendingHalflingsSpades           // Halflings player who needs to apply 3 stronghold spades
-	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination // Darklings player who needs to convert workers to priests
-	PendingCultistsCultSelection *PendingCultistsCultSelection // Cultists player who needs to select cult track for power leech bonus
-	ReplayMode                map[string]bool                   // Key: playerID, Value: skip resource grants in town tile benefits (for replay validation)
+	Map                              *board.TerraMysticaMap
+	Players                          map[string]*Player
+	Round                            int
+	Phase                            GamePhase
+	TurnOrder                        []string                           // Player IDs in turn order
+	CurrentPlayerIndex               int                                // Index into TurnOrder
+	PassOrder                        []string                           // Player IDs in the order they passed (for next round's turn order)
+	PowerActions                     *PowerActionState                  // Tracks which power actions have been used this round
+	CultTracks                       *CultTrackState                    // Tracks all players' cult track positions
+	FavorTiles                       *FavorTileState                    // Tracks available favor tiles and player selections
+	BonusCards                       *BonusCardState                    // Tracks available bonus cards and player selections
+	TownTiles                        *TownTileState                     // Tracks available town tiles
+	ScoringTiles                     *ScoringTileState                  // Tracks scoring tiles for each round
+	PendingLeechOffers               map[string][]*PowerLeechOffer      // Key: playerID who can accept
+	PendingTownFormations            map[string][]*PendingTownFormation // Key: playerID, Value: slice of pending towns (can have multiple simultaneous towns)
+	PendingSpades                    map[string]int                     // Key: playerID, Value: number of spades (from BON1, count for VP when used)
+	PendingCultRewardSpades          map[string]int                     // Key: playerID, Value: cult reward spades (don't count for VP)
+	PendingCultistsLeech             map[string]*CultistsLeechBonus     // Key: playerID (Cultists), tracks pending cult advance/power bonus
+	SkipAbilityUsedThisAction        map[string]bool                    // Key: playerID, Value: whether carpet flight/tunneling was used in current action (max 1 per action)
+	PendingFavorTileSelection        *PendingFavorTileSelection         // Player who needs to select favor tile(s)
+	PendingHalflingsSpades           *PendingHalflingsSpades            // Halflings player who needs to apply 3 stronghold spades
+	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  // Darklings player who needs to convert workers to priests
+	PendingCultistsCultSelection     *PendingCultistsCultSelection      // Cultists player who needs to select cult track for power leech bonus
+	ReplayMode                       map[string]bool                    // Key: playerID, Value: skip resource grants in town tile benefits (for replay validation)
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -45,30 +45,30 @@ type PendingTownFormation struct {
 	PlayerID        string
 	Hexes           []board.Hex // The connected buildings that form the town
 	SkippedRiverHex *board.Hex  // For Mermaids: the river hex that was skipped to form the town (town tile goes here)
-	CanBeDelayed    bool  // For Mermaids: true if town uses river skipping (can be claimed later), false if only land tiles (must claim now)
+	CanBeDelayed    bool        // For Mermaids: true if town uses river skipping (can be claimed later), false if only land tiles (must claim now)
 }
 
 // CultistsLeechBonus tracks Cultists' pending cult advance or power bonus from power leech
 type CultistsLeechBonus struct {
-	PlayerID       string
-	OffersCreated  int  // Number of offers created
-	AcceptedCount  int  // Number of offers accepted
-	DeclinedCount  int  // Number of offers declined
+	PlayerID      string
+	OffersCreated int // Number of offers created
+	AcceptedCount int // Number of offers accepted
+	DeclinedCount int // Number of offers declined
 }
 
 // PendingFavorTileSelection represents a player who needs to select favor tile(s)
 // Triggered by: Temple, Sanctuary, or Auren Stronghold
 type PendingFavorTileSelection struct {
 	PlayerID      string
-	Count         int  // Number of tiles to select (1 for most factions, 2 for Chaos Magicians)
+	Count         int             // Number of tiles to select (1 for most factions, 2 for Chaos Magicians)
 	SelectedTiles []FavorTileType // Tiles selected so far
 }
 
 // PendingHalflingsSpades represents Halflings player who needs to apply 3 stronghold spades
 // Triggered by: Building Stronghold (one-time only)
 type PendingHalflingsSpades struct {
-	PlayerID       string
-	SpadesRemaining int    // Number of spades left to apply (starts at 3)
+	PlayerID         string
+	SpadesRemaining  int         // Number of spades left to apply (starts at 3)
 	TransformedHexes []board.Hex // Hexes that have been transformed
 }
 
@@ -88,12 +88,12 @@ type PendingCultistsCultSelection struct {
 type GamePhase int
 
 const (
-	PhaseSetup   GamePhase = iota // Initial game setup
-	PhaseFactionSelection         // Players select factions
-	PhaseIncome                   // Players receive resources
-	PhaseAction                   // Players take actions
-	PhaseCleanup                  // End-of-round maintenance and scoring
-	PhaseEnd                      // Game over (after round 6)
+	PhaseSetup            GamePhase = iota // Initial game setup
+	PhaseFactionSelection                  // Players select factions
+	PhaseIncome                            // Players receive resources
+	PhaseAction                            // Players take actions
+	PhaseCleanup                           // End-of-round maintenance and scoring
+	PhaseEnd                               // Game over (after round 6)
 )
 
 // CultTrack represents the four cult tracks
@@ -108,20 +108,20 @@ const (
 
 // Player represents a player in the game
 type Player struct {
-	ID                      string
-	Faction                 factions.Faction
-	Resources               *ResourcePool
-	ShippingLevel           int
-	DiggingLevel            int
-	BridgesBuilt            int // Number of bridges built (max 3)
-	CultPositions           map[CultTrack]int // Position on each cult track (0-10)
-	HasStrongholdAbility    bool // Whether the stronghold special ability is available
-	SpecialActionsUsed      map[SpecialActionType]bool // Track which special actions have been used this round
-	HasPassed               bool
-	VictoryPoints           int
-	Keys                    int // Keys for advancing to position 10 on cult tracks
-	TownsFormed             int // Number of towns formed
-	TownTiles               []models.TownTileType // Town tiles selected by this player
+	ID                   string
+	Faction              factions.Faction
+	Resources            *ResourcePool
+	ShippingLevel        int
+	DiggingLevel         int
+	BridgesBuilt         int                        // Number of bridges built (max 3)
+	CultPositions        map[CultTrack]int          // Position on each cult track (0-10)
+	HasStrongholdAbility bool                       // Whether the stronghold special ability is available
+	SpecialActionsUsed   map[SpecialActionType]bool // Track which special actions have been used this round
+	HasPassed            bool
+	VictoryPoints        int
+	Keys                 int                   // Keys for advancing to position 10 on cult tracks
+	TownsFormed          int                   // Number of towns formed
+	TownTiles            []models.TownTileType // Town tiles selected by this player
 }
 
 // NewGameState creates a new game state with an initialized map
@@ -149,13 +149,13 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	if _, exists := gs.Players[playerID]; exists {
 		return fmt.Errorf("player already exists: %s", playerID)
 	}
-	
+
 	// Check if another player already has the same home terrain (only if faction is provided)
 	if faction != nil {
 		newHomeTerrain := faction.GetHomeTerrain()
 		for _, existingPlayer := range gs.Players {
 			if existingPlayer.Faction != nil && existingPlayer.Faction.GetHomeTerrain() == newHomeTerrain {
-				return fmt.Errorf("faction %s cannot be added: another player already has home terrain %v (faction %s)", 
+				return fmt.Errorf("faction %s cannot be added: another player already has home terrain %v (faction %s)",
 					faction.GetType(), newHomeTerrain, existingPlayer.Faction.GetType())
 			}
 		}
@@ -164,7 +164,7 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	// Get faction-specific starting shipping level (Mermaids start at 1, others at 0)
 	startingShippingLevel := 0
 	var startingResources factions.Resources
-	
+
 	if faction != nil {
 		if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
 			startingShippingLevel = shippingFaction.GetShippingLevel()
@@ -187,26 +187,26 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 			CultEarth: 0,
 			CultAir:   0,
 		},
-		HasStrongholdAbility:  false,
-		SpecialActionsUsed:    make(map[SpecialActionType]bool),
-		HasPassed:             false,
-		VictoryPoints:         20, // Starting VP
-		Keys:                  0,
-		TownsFormed:           0,
-		TownTiles:             []models.TownTileType{},
+		HasStrongholdAbility: false,
+		SpecialActionsUsed:   make(map[SpecialActionType]bool),
+		HasPassed:            false,
+		VictoryPoints:        20, // Starting VP
+		Keys:                 0,
+		TownsFormed:          0,
+		TownTiles:            []models.TownTileType{},
 	}
 
 	gs.Players[playerID] = player
-	
+
 	// Initialize cult track positions for this player
 	gs.CultTracks.InitializePlayer(playerID)
-	
+
 	// Initialize favor tiles for this player
 	gs.FavorTiles.InitializePlayer(playerID)
-	
+
 	// Initialize bonus cards for this player
 	gs.BonusCards.InitializePlayer(playerID)
-	
+
 	return nil
 }
 
@@ -303,7 +303,7 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex board.Hex, playerID st
 			break
 		}
 	}
-	
+
 	// If player has no buildings yet, allow placement anywhere (first dwelling)
 	if !hasAnyBuilding {
 		return true
@@ -363,7 +363,7 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 
 	// Track if any offers were created (for Cultists ability)
 	offersCreated := 0
-	
+
 	// Create ONE power leech offer per adjacent player based on their total adjacent power
 	for neighborPlayerID, totalPower := range adjacentPlayerPower {
 		neighborPlayer := gs.GetPlayer(neighborPlayerID)
@@ -382,7 +382,7 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 			offersCreated++
 		}
 	}
-	
+
 	// Cultists special ability: If at least one offer was created, mark for cult advance/power bonus
 	// The actual bonus is applied when all offers are resolved (accepted/declined)
 	if offersCreated > 0 {
@@ -528,7 +528,7 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Place dwelling
 	dwelling := &models.Building{
 		Type:       models.BuildingDwelling,
@@ -537,19 +537,19 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 		PowerValue: 1, // Dwellings provide 1 power to neighbors
 	}
 	mapHex.Building = dwelling
-	
+
 	// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
 	playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
 	if HasFavorTile(playerTiles, FavorEarth1) {
 		player.VictoryPoints += 2
 	}
-	
+
 	// Award VP from scoring tile
 	gs.AwardActionVP(playerID, ScoringActionDwelling)
-	
+
 	// Trigger power leech
 	gs.TriggerPowerLeech(targetHex, playerID)
-	
+
 	// Check for town formation
 	gs.CheckForTownFormation(playerID, targetHex)
 
@@ -570,11 +570,11 @@ func (gs *GameState) NextTurn() bool {
 	// Skip players who have passed
 	for {
 		gs.CurrentPlayerIndex++
-		
+
 		// If we've gone through all players, check if everyone has passed
 		if gs.CurrentPlayerIndex >= len(gs.TurnOrder) {
 			gs.CurrentPlayerIndex = 0
-			
+
 			// Check if all players have passed
 			allPassed := true
 			for _, playerID := range gs.TurnOrder {
@@ -584,24 +584,24 @@ func (gs *GameState) NextTurn() bool {
 					break
 				}
 			}
-			
+
 			if allPassed {
 				return true // Round complete
 			}
 		}
-		
+
 		// Get current player
 		currentPlayer := gs.GetCurrentPlayer()
 		if currentPlayer == nil {
 			continue
 		}
-		
+
 		// If player hasn't passed, it's their turn
 		if !currentPlayer.HasPassed {
 			break
 		}
 	}
-	
+
 	return false
 }
 
@@ -614,16 +614,16 @@ func (gs *GameState) StartNewRound() {
 	if gs.Phase == PhaseSetup && gs.BonusCards != nil {
 		gs.BonusCards.AddCoinsToLeftoverCards()
 	}
-	
+
 	gs.Round++
 	gs.CurrentPlayerIndex = 0
-	
+
 	// Set turn order based on pass order (first to pass goes first next round)
 	if len(gs.PassOrder) > 0 {
 		gs.TurnOrder = make([]string, len(gs.PassOrder))
 		copy(gs.TurnOrder, gs.PassOrder)
 	}
-	
+
 	// Reset pass order for the new round
 	gs.PassOrder = []string{}
 
@@ -719,8 +719,6 @@ func (gs *GameState) IsGameOver() bool {
 	return gs.Round > 6
 }
 
-
-
 // AdvanceShippingLevel increments the player's shipping level and awards VP
 // This helper ensures consistent VP awards across all shipping advancements:
 // - AdvanceShippingAction (paid upgrade)
@@ -802,7 +800,7 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 
 	// Advance digging level
 	player.DiggingLevel++
-	
+
 	// Sync the faction's digging level (used for GetTerraformCost calculations)
 	// Use type assertion to get the base faction and update its digging level
 	switch f := player.Faction.(type) {
@@ -913,28 +911,28 @@ func (gs *GameState) AlchemistsConvertVPToCoins(playerID string, vp int) error {
 	if player == nil {
 		return fmt.Errorf("player not found")
 	}
-	
+
 	// Check if player is Alchemists
 	alchemists, ok := player.Faction.(*factions.Alchemists)
 	if !ok {
 		return fmt.Errorf("only Alchemists can use Philosopher's Stone")
 	}
-	
+
 	// Validate conversion
 	coins, err := alchemists.ConvertVPToCoins(vp)
 	if err != nil {
 		return err
 	}
-	
+
 	// Check if player has enough VP
 	if player.VictoryPoints < vp {
 		return fmt.Errorf("not enough VP (have %d, need %d)", player.VictoryPoints, vp)
 	}
-	
+
 	// Execute conversion
 	player.VictoryPoints -= vp
 	player.Resources.Coins += coins
-	
+
 	return nil
 }
 
@@ -945,27 +943,27 @@ func (gs *GameState) AlchemistsConvertCoinsToVP(playerID string, coins int) erro
 	if player == nil {
 		return fmt.Errorf("player not found")
 	}
-	
+
 	// Check if player is Alchemists
 	alchemists, ok := player.Faction.(*factions.Alchemists)
 	if !ok {
 		return fmt.Errorf("only Alchemists can use Philosopher's Stone")
 	}
-	
+
 	// Validate conversion
 	vp, err := alchemists.ConvertCoinsToVP(coins)
 	if err != nil {
 		return err
 	}
-	
+
 	// Check if player has enough coins
 	if player.Resources.Coins < coins {
 		return fmt.Errorf("not enough coins (have %d, need %d)", player.Resources.Coins, coins)
 	}
-	
+
 	// Execute conversion
 	player.Resources.Coins -= coins
 	player.VictoryPoints += vp
-	
+
 	return nil
 }

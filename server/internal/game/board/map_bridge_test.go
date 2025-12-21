@@ -107,11 +107,11 @@ func TestShipping_RiverOnlyBFS_ReachesAtExactShipping(t *testing.T) {
 	rv3 := NewHex(3, 0)
 	h2 := NewHex(4, 0)
 	cells := map[Hex]models.TerrainType{
-		h1: models.TerrainPlains,
+		h1:  models.TerrainPlains,
 		rv1: models.TerrainRiver,
 		rv2: models.TerrainRiver,
 		rv3: models.TerrainRiver,
-		h2: models.TerrainForest,
+		h2:  models.TerrainForest,
 	}
 	m := makeMap(cells)
 

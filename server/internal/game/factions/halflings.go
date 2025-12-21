@@ -7,9 +7,12 @@ import (
 // Halflings faction - Brown/Plains
 // Ability: Get 1 additional VP for each Spade throughout the game
 // Stronghold: After building, immediately and only once get 3 Spades to apply on Terrain spaces
-//             May build a Dwelling on exactly one of these spaces by paying its costs
+//
+//	May build a Dwelling on exactly one of these spaces by paying its costs
+//
 // Special: Digging upgrade costs 2 workers, 1 coin, 1 priest (cheaper than standard 2 workers, 5 coins, 1 priest)
-//          Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
+//
+//	Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
 type Halflings struct {
 	BaseFaction
 	hasStronghold bool
@@ -60,11 +63,6 @@ func (f *Halflings) GetStrongholdCost() Cost {
 		Priests: 0,
 		Power:   0,
 	}
-}
-
-// HasSpecialAbility returns true for spade efficiency
-func (f *Halflings) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilitySpadeEfficiency
 }
 
 // BuildStronghold marks that the stronghold has been built

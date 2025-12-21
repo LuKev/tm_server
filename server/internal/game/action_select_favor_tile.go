@@ -32,7 +32,7 @@ func (a *SelectFavorTileAction) Validate(gs *GameState) error {
 
 	// Check if this is the correct player
 	if gs.PendingFavorTileSelection.PlayerID != a.PlayerID {
-		return fmt.Errorf("pending favor tile selection is for player %s, not %s", 
+		return fmt.Errorf("pending favor tile selection is for player %s, not %s",
 			gs.PendingFavorTileSelection.PlayerID, a.PlayerID)
 	}
 

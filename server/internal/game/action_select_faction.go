@@ -55,7 +55,7 @@ func (a *SelectFactionAction) Execute(gs *GameState) error {
 	// Assign faction
 	player.Faction = faction
 	player.Resources = NewResourcePool(faction.GetStartingResources())
-	
+
 	// Initialize shipping level
 	if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
 		player.ShippingLevel = shippingFaction.GetShippingLevel()
@@ -65,7 +65,7 @@ func (a *SelectFactionAction) Execute(gs *GameState) error {
 	if allPlayersHaveFactions(gs) {
 		gs.Phase = PhaseSetup
 		// Reset turn order for setup (usually reverse order for second dwelling, but standard for now)
-		// Standard rules: 
+		// Standard rules:
 		// 1. Faction selection: Player 1 -> Player N
 		// 2. Dwelling placement: Player 1 -> Player N, then Player N -> Player 1
 		// For now, we just switch phase.

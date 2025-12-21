@@ -42,14 +42,6 @@ func TestSwarmlings_StartingResources(t *testing.T) {
 	}
 }
 
-func TestSwarmlings_HasCheapDwellingsAbility(t *testing.T) {
-	swarmlings := NewSwarmlings()
-
-	if !swarmlings.HasSpecialAbility(AbilityCheapDwellings) {
-		t.Errorf("Swarmlings should have cheap dwellings ability")
-	}
-}
-
 func TestSwarmlings_ExpensiveDwellingCost(t *testing.T) {
 	swarmlings := NewSwarmlings()
 

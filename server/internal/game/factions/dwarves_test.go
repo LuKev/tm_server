@@ -33,14 +33,6 @@ func TestDwarves_StartingResources(t *testing.T) {
 	}
 }
 
-func TestDwarves_HasTunnelDiggingAbility(t *testing.T) {
-	dwarves := NewDwarves()
-
-	if !dwarves.HasSpecialAbility(AbilityTunnelDigging) {
-		t.Errorf("Dwarves should have tunnel digging ability")
-	}
-}
-
 func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 	dwarves := NewDwarves()
 
@@ -56,7 +48,6 @@ func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 		t.Errorf("Dwarves should not be able to upgrade shipping at any level, got cost: %+v", shippingCost)
 	}
 }
-
 
 func TestDwarves_TunnelingCostBeforeStronghold(t *testing.T) {
 	dwarves := NewDwarves()

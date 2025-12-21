@@ -8,11 +8,14 @@ import (
 
 // Darklings faction - Black/Swamp
 // Ability: Pay Priests (instead of Workers) when transforming Terrain
-//          Pay 1 Priest and get 2 VP for each step of transformation
-//          IMPORTANT: Darklings can NEVER upgrade digging (cannot use workers for spades)
+//
+//	Pay 1 Priest and get 2 VP for each step of transformation
+//	IMPORTANT: Darklings can NEVER upgrade digging (cannot use workers for spades)
+//
 // Stronghold: After building, immediately and only once trade up to 3 Workers for 1 Priest each
 // Special: Sanctuary costs 4 workers/10 coins (more expensive than standard)
-//          Start with 1 Priest, 1 Worker, 15 Coins
+//
+//	Start with 1 Priest, 1 Worker, 15 Coins
 type Darklings struct {
 	BaseFaction
 	hasStronghold bool
@@ -52,11 +55,6 @@ func (f *Darklings) GetSanctuaryCost() Cost {
 	}
 }
 
-// HasSpecialAbility returns true for priest benefits
-func (f *Darklings) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityPriestBenefits
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Darklings) BuildStronghold() {
 	f.hasStronghold = true
@@ -81,7 +79,6 @@ func (f *Darklings) UsePriestOrdination(workersToTrade int) (int, error) {
 
 // GetTerraformCostInPriests returns the priest cost for terraforming
 // Darklings pay priests instead of workers
-// NOTE: Phase 6.2 (Action System) must use this instead of GetTerraformCost()
 func (f *Darklings) GetTerraformCostInPriests(distance int) int {
 	// Darklings pay 1 priest per spade (instead of 3 workers per spade)
 	return distance
@@ -89,15 +86,12 @@ func (f *Darklings) GetTerraformCostInPriests(distance int) int {
 
 // GetTerraformVPBonus returns the VP bonus for terraforming
 // Darklings get 2 VP per step of transformation
-// NOTE: Phase 8 (Scoring System) tracks VP
-// NOTE: Phase 6.2 (Action System) must apply this bonus when Darklings terraform
 func (f *Darklings) GetTerraformVPBonus(distance int) int {
 	return distance * 2 // 2 VP per spade
 }
 
 // GetTerraformCost overrides the base method
 // Darklings don't use workers for terraform, they use priests
-// NOTE: Phase 6.2 (Action System) must use GetTerraformCostInPriests() for Darklings
 func (f *Darklings) GetTerraformCost(distance int) int {
 	// Return 0 workers (Darklings use priests instead)
 	return 0
@@ -105,7 +99,6 @@ func (f *Darklings) GetTerraformCost(distance int) int {
 
 // GetDiggingCost overrides the base method
 // Darklings can NEVER upgrade digging (they use priests, not workers for spades)
-// NOTE: Phase 6.2 (Action System) must prevent Darklings from taking digging actions
 func (f *Darklings) GetDiggingCost(currentLevel int) Cost {
 	// Darklings cannot upgrade digging
 	return Cost{

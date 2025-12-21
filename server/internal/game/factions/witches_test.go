@@ -42,18 +42,6 @@ func TestWitches_StartingResources(t *testing.T) {
 	}
 }
 
-func TestWitches_HasTownBonusAbility(t *testing.T) {
-	witches := NewWitches()
-
-	if !witches.HasSpecialAbility(AbilityTownBonus) {
-		t.Errorf("Witches should have town bonus ability")
-	}
-
-	if witches.HasSpecialAbility(AbilityFlying) {
-		t.Errorf("Witches should not have flying ability (that's a different mechanic)")
-	}
-}
-
 func TestWitches_TownFoundingBonus(t *testing.T) {
 	witches := NewWitches()
 

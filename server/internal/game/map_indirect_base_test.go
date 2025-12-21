@@ -74,28 +74,28 @@ func TestBonusCard_ShippingBonus_IndirectAdjacency(t *testing.T) {
 
 func TestBonusCard_ShippingBonus_DwarvesNoEffect(t *testing.T) {
 	gs := NewGameState()
-	
+
 	// Add Dwarves player with shipping level 1
 	faction := factions.NewDwarves()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	player.ShippingLevel = 1
-	
+
 	// Set up bonus cards and give player the Shipping bonus card
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShipping})
 	bonusCard := BonusCardShipping
 	gs.BonusCards.TakeBonusCard("player1", bonusCard)
-	
+
 	// Get effective shipping level with bonus card
 	if bonusCardType, ok := gs.BonusCards.GetPlayerCard("player1"); ok {
 		shippingBonus := GetBonusCardShippingBonus(bonusCardType, player.Faction.GetType())
 		effectiveShipping := player.ShippingLevel + shippingBonus
-		
+
 		// Dwarves should NOT benefit from shipping bonus
 		if effectiveShipping != 1 {
 			t.Errorf("expected effective shipping=1 for Dwarves (no bonus), got %d", effectiveShipping)
 		}
-		
+
 		if shippingBonus != 0 {
 			t.Errorf("expected shipping bonus=0 for Dwarves, got %d", shippingBonus)
 		}
@@ -106,28 +106,28 @@ func TestBonusCard_ShippingBonus_DwarvesNoEffect(t *testing.T) {
 
 func TestBonusCard_ShippingBonus_FakirsNoEffect(t *testing.T) {
 	gs := NewGameState()
-	
+
 	// Add Fakirs player with shipping level 1
 	faction := factions.NewFakirs()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 	player.ShippingLevel = 1
-	
+
 	// Set up bonus cards and give player the Shipping bonus card
 	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{BonusCardShipping})
 	bonusCard := BonusCardShipping
 	gs.BonusCards.TakeBonusCard("player1", bonusCard)
-	
+
 	// Get effective shipping level with bonus card
 	if bonusCardType, ok := gs.BonusCards.GetPlayerCard("player1"); ok {
 		shippingBonus := GetBonusCardShippingBonus(bonusCardType, player.Faction.GetType())
 		effectiveShipping := player.ShippingLevel + shippingBonus
-		
+
 		// Fakirs should NOT benefit from shipping bonus
 		if effectiveShipping != 1 {
 			t.Errorf("expected effective shipping=1 for Fakirs (no bonus), got %d", effectiveShipping)
 		}
-		
+
 		if shippingBonus != 0 {
 			t.Errorf("expected shipping bonus=0 for Fakirs, got %d", shippingBonus)
 		}

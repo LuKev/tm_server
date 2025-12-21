@@ -3,7 +3,7 @@ package game
 import (
 	"sort"
 
-	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // Final Scoring (End of Game - After Round 6)
@@ -27,7 +27,7 @@ type PlayerFinalScore struct {
 // Should be called after round 6 cleanup
 func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 	scores := make(map[string]*PlayerFinalScore)
-	
+
 	// Initialize scores with base VP
 	for playerID, player := range gs.Players {
 		scores[playerID] = &PlayerFinalScore{
@@ -35,21 +35,21 @@ func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 			BaseVP:   player.VictoryPoints,
 		}
 	}
-	
+
 	// 1. Calculate largest connected area bonuses
 	gs.calculateAreaBonuses(scores)
-	
+
 	// 2. Calculate cult track majority bonuses
 	gs.calculateCultBonuses(scores)
-	
+
 	// 3. Calculate resource conversion VP
 	gs.calculateResourceConversion(scores)
-	
+
 	// Calculate totals
 	for _, score := range scores {
 		score.TotalVP = score.BaseVP + score.AreaVP + score.CultVP + score.ResourceVP
 	}
-	
+
 	return scores
 }
 
@@ -61,7 +61,7 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 		largestArea := gs.Map.GetLargestConnectedArea(playerID, player.Faction, player.ShippingLevel)
 		scores[playerID].LargestAreaSize = largestArea
 	}
-	
+
 	// Find the maximum area size
 	maxArea := 0
 	for _, score := range scores {
@@ -69,7 +69,7 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 			maxArea = score.LargestAreaSize
 		}
 	}
-	
+
 	// Count how many players have the max area (for ties)
 	playersWithMax := 0
 	for _, score := range scores {
@@ -77,7 +77,7 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 			playersWithMax++
 		}
 	}
-	
+
 	// Award VP (18 VP split among tied players, rounded down)
 	vpPerPlayer := 18 / playersWithMax
 	for _, score := range scores {
@@ -92,14 +92,14 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 // Ties: VP is split (rounded down)
 func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
-	
+
 	for _, track := range tracks {
 		// Get all players and their positions on this track
 		type playerPosition struct {
 			playerID string
 			position int
 		}
-		
+
 		positions := []playerPosition{}
 		for playerID := range gs.Players {
 			pos := gs.CultTracks.GetPosition(playerID, track)
@@ -107,22 +107,22 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 				positions = append(positions, playerPosition{playerID, pos})
 			}
 		}
-		
+
 		// Sort by position (descending)
 		sort.Slice(positions, func(i, j int) bool {
 			return positions[i].position > positions[j].position
 		})
-		
+
 		// Award VP for top 3 positions (handling ties)
 		if len(positions) == 0 {
 			continue
 		}
-		
+
 		// Group by position to handle ties
 		positionGroups := [][]string{}
 		currentPos := -1
 		var currentGroup []string
-		
+
 		for _, pp := range positions {
 			if pp.position != currentPos {
 				if len(currentGroup) > 0 {
@@ -137,16 +137,16 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 		if len(currentGroup) > 0 {
 			positionGroups = append(positionGroups, currentGroup)
 		}
-		
+
 		// Award VP: 8 for 1st place, 4 for 2nd, 2 for 3rd
 		vpAwards := []int{8, 4, 2}
 		awardIndex := 0
-		
+
 		for _, group := range positionGroups {
 			if awardIndex >= len(vpAwards) {
 				break // No more awards to give
 			}
-			
+
 			// Calculate VP for this group (may span multiple award levels if tied)
 			totalVP := 0
 			awardsUsed := 0
@@ -154,14 +154,14 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 				totalVP += vpAwards[i]
 				awardsUsed++
 			}
-			
+
 			// Split VP among tied players (rounded down)
 			vpPerPlayer := totalVP / len(group)
-			
+
 			for _, playerID := range group {
 				scores[playerID].CultVP += vpPerPlayer
 			}
-			
+
 			// Move to next award level
 			awardIndex += len(group)
 		}
@@ -174,6 +174,7 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 //   - Burn Bowl 2 power to move to Bowl 3 (2 Bowl 2 → 1 Bowl 3)
 //   - Convert Bowl 3 to coins (1 Bowl 3 → 1 coin)
 //   - Result: coins from power = Bowl 3 + floor(Bowl 2 / 2)
+//
 // Also tracks total resource value for tiebreaker
 func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalScore) {
 	for playerID, player := range gs.Players {
@@ -184,28 +185,28 @@ func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalS
 		// Result: coins = Bowl 3 + floor(Bowl 2 / 2)
 		powerCoins := player.Resources.Power.Bowl3 + (player.Resources.Power.Bowl2 / 2)
 		totalCoins := player.Resources.Coins + powerCoins
-		
+
 		// Check if player is Alchemists (2 coins = 1 VP instead of 3 coins = 1 VP)
 		coinsPerVP := 3
-		if player.Faction.HasSpecialAbility(factions.AbilityConversionEfficiency) {
+		if player.Faction.GetType() == models.FactionAlchemists {
 			coinsPerVP = 2
 		}
-		
+
 		// Convert coins to VP
 		coinVP := totalCoins / coinsPerVP
-		
+
 		// Convert workers (1 worker = 1 VP)
 		workerVP := player.Resources.Workers
-		
+
 		// Convert priests (1 priest = 1 VP)
 		priestVP := player.Resources.Priests
-		
+
 		scores[playerID].ResourceVP = coinVP + workerVP + priestVP
-		
+
 		// Track total resource value for tiebreaker
 		// Tiebreaker uses: coins + power + workers + priests (not converted)
-		scores[playerID].TotalResourceValue = totalCoins + 
-			player.Resources.Workers + 
+		scores[playerID].TotalResourceValue = totalCoins +
+			player.Resources.Workers +
 			player.Resources.Priests
 	}
 }
@@ -216,7 +217,7 @@ func (gs *GameState) GetWinner(scores map[string]*PlayerFinalScore) string {
 	var winner string
 	maxVP := -1
 	maxResources := -1
-	
+
 	for playerID, score := range scores {
 		if score.TotalVP > maxVP {
 			winner = playerID
@@ -230,7 +231,7 @@ func (gs *GameState) GetWinner(scores map[string]*PlayerFinalScore) string {
 			}
 		}
 	}
-	
+
 	return winner
 }
 
@@ -240,7 +241,7 @@ func GetRankedPlayers(scores map[string]*PlayerFinalScore) []*PlayerFinalScore {
 	for _, score := range scores {
 		ranked = append(ranked, score)
 	}
-	
+
 	sort.Slice(ranked, func(i, j int) bool {
 		if ranked[i].TotalVP != ranked[j].TotalVP {
 			return ranked[i].TotalVP > ranked[j].TotalVP
@@ -248,6 +249,6 @@ func GetRankedPlayers(scores map[string]*PlayerFinalScore) []*PlayerFinalScore {
 		// Tiebreaker: resource value
 		return ranked[i].TotalResourceValue > ranked[j].TotalResourceValue
 	})
-	
+
 	return ranked
 }

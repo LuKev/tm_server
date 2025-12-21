@@ -9,7 +9,8 @@ import (
 // Alchemists faction - Black/Swamp
 // Ability: Philosopher's Stone - Trade 1 VP for 1 Coin, or 2 Coins for 1 VP anytime, any number of times
 // Stronghold: After building, immediately gain 12 Power (once)
-//             From now on, gain 2 Power for each Spade throughout remainder of game
+//
+//	From now on, gain 2 Power for each Spade throughout remainder of game
 type Alchemists struct {
 	BaseFaction
 	hasStronghold bool
@@ -39,11 +40,6 @@ func (f *Alchemists) GetStartingCultPositions() CultPositions {
 	return CultPositions{Fire: 1, Water: 1, Earth: 0, Air: 0}
 }
 
-// HasSpecialAbility returns true for conversion efficiency
-func (f *Alchemists) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityConversionEfficiency
-}
-
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time power bonus (12 power gained via GainPower)
 func (f *Alchemists) BuildStronghold() int {
@@ -54,7 +50,7 @@ func (f *Alchemists) BuildStronghold() int {
 // GetPowerPerSpade returns how much power to gain per spade
 func (f *Alchemists) GetPowerPerSpade() int {
 	if f.hasStronghold {
-		return 2 // After stronghold, gain 2 power per spade (Phase 5.1: Power System)
+		return 2 // After stronghold, gain 2 power per spade
 	}
 	return 0 // Before stronghold, no bonus power
 }

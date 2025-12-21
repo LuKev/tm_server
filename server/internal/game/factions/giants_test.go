@@ -33,14 +33,6 @@ func TestGiants_StartingResources(t *testing.T) {
 	}
 }
 
-func TestGiants_HasSpadeEfficiencyAbility(t *testing.T) {
-	giants := NewGiants()
-
-	if !giants.HasSpecialAbility(AbilitySpadeEfficiency) {
-		t.Errorf("Giants should have spade efficiency ability")
-	}
-}
-
 func TestGiants_AlwaysTwoSpades(t *testing.T) {
 	giants := NewGiants()
 

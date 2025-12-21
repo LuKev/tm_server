@@ -33,15 +33,6 @@ func TestAlchemists_StartingResources(t *testing.T) {
 	}
 }
 
-func TestAlchemists_HasConversionAbility(t *testing.T) {
-	alchemists := NewAlchemists()
-
-	if !alchemists.HasSpecialAbility(AbilityConversionEfficiency) {
-		t.Errorf("Alchemists should have conversion efficiency ability")
-	}
-}
-
-
 func TestAlchemists_BuildStrongholdGrantsPower(t *testing.T) {
 	alchemists := NewAlchemists()
 

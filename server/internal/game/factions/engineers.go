@@ -6,7 +6,9 @@ import (
 
 // Engineers faction - Gray/Mountain
 // Ability: As an Action, build a Bridge for 2 Workers (any number of times per round)
-//          Can still build Bridges via Power action
+//
+//	Can still build Bridges via Power action
+//
 // Stronghold: After building, each round when passing get 3 VP for each Bridge connecting two of your Structures
 // Special: Cheaper building costs across the board
 type Engineers struct {
@@ -83,11 +85,6 @@ func (f *Engineers) GetStrongholdCost() Cost {
 	}
 }
 
-// HasSpecialAbility returns true for bridge building
-func (f *Engineers) HasSpecialAbility(ability SpecialAbility) bool {
-	return ability == AbilityBridgeBuilding
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Engineers) BuildStronghold() {
 	f.hasStronghold = true
@@ -130,8 +127,6 @@ func (f *Engineers) HasStronghold() bool {
 }
 
 // GetVPPerBridgeOnPass returns the VP bonus per bridge when passing
-// NOTE: Phase 8 (Scoring System) tracks VP
-// NOTE: Phase 6.2 (Action System) must apply this when Engineers pass
 func (f *Engineers) GetVPPerBridgeOnPass() int {
 	if f.hasStronghold {
 		return 3 // 3 VP per bridge connecting two structures

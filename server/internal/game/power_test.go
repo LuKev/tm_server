@@ -6,7 +6,7 @@ import (
 
 func TestNewPowerSystem(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 0)
-	
+
 	if ps.Bowl1 != 5 {
 		t.Errorf("expected Bowl1 = 5, got %d", ps.Bowl1)
 	}
@@ -20,7 +20,7 @@ func TestNewPowerSystem(t *testing.T) {
 
 func TestTotalPower(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 3)
-	
+
 	total := ps.TotalPower()
 	if total != 15 {
 		t.Errorf("expected total power = 15, got %d", total)
@@ -29,10 +29,10 @@ func TestTotalPower(t *testing.T) {
 
 func TestGainPower(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 0)
-	
+
 	// Gain 3 power
 	gained := ps.GainPower(3)
-	
+
 	if gained != 3 {
 		t.Errorf("expected to gain 3 power, got %d", gained)
 	}
@@ -46,9 +46,9 @@ func TestGainPower(t *testing.T) {
 
 func TestGainPowerZero(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 0)
-	
+
 	gained := ps.GainPower(0)
-	
+
 	if gained != 0 {
 		t.Errorf("expected to gain 0 power, got %d", gained)
 	}
@@ -61,9 +61,9 @@ func TestGainPowerOverflow(t *testing.T) {
 	// No power in bowl 1, but 3 in bowl 2
 	// Gaining 10 power should move all 3 from bowl 2 to bowl 3
 	ps := NewPowerSystem(0, 3, 9)
-	
+
 	gained := ps.GainPower(10)
-	
+
 	if gained != 3 {
 		t.Errorf("expected to gain 3 power (limited by bowl 2), got %d", gained)
 	}
@@ -80,10 +80,10 @@ func TestGainPowerOverflow(t *testing.T) {
 
 func TestSpendPower(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 6)
-	
+
 	// Spend 4 power
 	err := ps.SpendPower(4)
-	
+
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -97,10 +97,10 @@ func TestSpendPower(t *testing.T) {
 
 func TestSpendPowerTooMuch(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 3)
-	
+
 	// Try to spend more than available
 	err := ps.SpendPower(5)
-	
+
 	if err == nil {
 		t.Errorf("expected error when spending too much power")
 	}
@@ -115,7 +115,7 @@ func TestSpendPowerTooMuch(t *testing.T) {
 
 func TestCanSpend(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 6)
-	
+
 	if !ps.CanSpend(6) {
 		t.Errorf("should be able to spend 6 power")
 	}
@@ -129,10 +129,10 @@ func TestCanSpend(t *testing.T) {
 
 func TestBurnPower(t *testing.T) {
 	ps := NewPowerSystem(5, 10, 0)
-	
+
 	// Burn to get 3 power in Bowl 3 (costs 6 from Bowl 2)
 	err := ps.BurnPower(3)
-	
+
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -146,10 +146,10 @@ func TestBurnPower(t *testing.T) {
 
 func TestBurnPowerNotEnough(t *testing.T) {
 	ps := NewPowerSystem(5, 5, 0)
-	
+
 	// Try to burn for 3 power (would cost 6 from Bowl 2, but only have 5)
 	err := ps.BurnPower(3)
-	
+
 	if err == nil {
 		t.Errorf("expected error when burning without enough power")
 	}
@@ -164,7 +164,7 @@ func TestBurnPowerNotEnough(t *testing.T) {
 
 func TestCanBurn(t *testing.T) {
 	ps := NewPowerSystem(5, 10, 0)
-	
+
 	if !ps.CanBurn(5) {
 		t.Errorf("should be able to burn for 5 power (costs 10)")
 	}
@@ -179,31 +179,31 @@ func TestCanBurn(t *testing.T) {
 func TestPowerCycle(t *testing.T) {
 	// Test a full power cycle
 	ps := NewPowerSystem(5, 7, 0)
-	
+
 	// 1. Gain 3 power - since there's power in bowl 1, move from bowl 1 to bowl 2
 	ps.GainPower(3)
 	if ps.Bowl1 != 2 || ps.Bowl2 != 10 || ps.Bowl3 != 0 {
 		t.Errorf("after gain 3: expected (2,10,0), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
-	
+
 	// 2. Gain 10 more power - move remaining 2 from bowl 1 to bowl 2, then 8 from bowl 2 to bowl 3
 	ps.GainPower(10)
 	if ps.Bowl1 != 0 || ps.Bowl2 != 4 || ps.Bowl3 != 8 {
 		t.Errorf("after gain 10: expected (0,4,8), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
-	
+
 	// 3. Spend 6 power (Bowl 3 → Bowl 1)
 	ps.SpendPower(6)
 	if ps.Bowl1 != 6 || ps.Bowl2 != 4 || ps.Bowl3 != 2 {
 		t.Errorf("after spend 6: expected (6,4,2), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
-	
+
 	// 4. Gain 3 more power - move from bowl 1 to bowl 2
 	ps.GainPower(3)
 	if ps.Bowl1 != 3 || ps.Bowl2 != 7 || ps.Bowl3 != 2 {
 		t.Errorf("after gain 3 again: expected (3,7,2), got (%d,%d,%d)", ps.Bowl1, ps.Bowl2, ps.Bowl3)
 	}
-	
+
 	// Total power should remain constant
 	if ps.TotalPower() != 12 {
 		t.Errorf("total power should remain 12, got %d", ps.TotalPower())
@@ -213,9 +213,9 @@ func TestPowerCycle(t *testing.T) {
 func TestGainPowerWithEmptyBowl1(t *testing.T) {
 	// No power in bowl 1, power goes from bowl 2 to bowl 3
 	ps := NewPowerSystem(0, 10, 2)
-	
+
 	gained := ps.GainPower(5)
-	
+
 	if gained != 5 {
 		t.Errorf("expected to gain 5 power, got %d", gained)
 	}
@@ -237,9 +237,9 @@ func TestGainPowerMixedBowls(t *testing.T) {
 	// Gain 7: Move 3 from bowl 1 to bowl 2 → (0, 11, 1)
 	//         Then move 4 from bowl 2 to bowl 3 → (0, 7, 5)
 	ps := NewPowerSystem(3, 8, 1)
-	
+
 	gained := ps.GainPower(7)
-	
+
 	if gained != 7 {
 		t.Errorf("expected to gain 7 power, got %d", gained)
 	}
@@ -256,14 +256,14 @@ func TestGainPowerMixedBowls(t *testing.T) {
 
 func TestClone(t *testing.T) {
 	ps := NewPowerSystem(5, 7, 3)
-	
+
 	clone := ps.Clone()
-	
+
 	// Clone should have same values
 	if clone.Bowl1 != 5 || clone.Bowl2 != 7 || clone.Bowl3 != 3 {
 		t.Errorf("clone has wrong values: (%d,%d,%d)", clone.Bowl1, clone.Bowl2, clone.Bowl3)
 	}
-	
+
 	// Modifying clone should not affect original
 	clone.Bowl1 = 10
 	if ps.Bowl1 != 5 {
