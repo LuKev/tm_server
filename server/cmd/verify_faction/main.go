@@ -19,11 +19,11 @@ type Message struct {
 }
 
 type GameState struct {
-	ID          string              `json:"id"`
-	Phase       int                 `json:"phase"`
-	CurrentTurn int                 `json:"currentTurn"`
-	Players     map[string]*Player  `json:"players"`
-	Order       []string            `json:"order"`
+	ID          string             `json:"id"`
+	Phase       int                `json:"phase"`
+	CurrentTurn int                `json:"currentTurn"`
+	Players     map[string]*Player `json:"players"`
+	Order       []string           `json:"order"`
 }
 
 type Player struct {
@@ -66,7 +66,7 @@ func main() {
 	log.Println("Alice connected")
 
 	// Read initial lobby update (optional, might block if not sent immediately)
-	// read(alice) 
+	// read(alice)
 
 	// 2. Alice creates game
 	send(alice, "create_game", map[string]interface{}{
@@ -103,12 +103,12 @@ func main() {
 	// 4. Bob joins game
 	send(bob, "join_game", map[string]string{"gameID": gameID})
 	log.Println("Bob joined game")
-	
+
 	// Read updates (Bob joined)
 	log.Println("Reading Alice update...")
 	read(alice) // game_joined or lobby update?
 	log.Println("Reading Bob update...")
-	read(bob)   // game_joined
+	read(bob) // game_joined
 
 	// 5. Alice starts game
 	send(alice, "start_game", map[string]string{"gameID": gameID})
@@ -117,7 +117,7 @@ func main() {
 	// Read game_started and initial state
 	// Alice receives: game_started, game_state_update
 	// Bob receives: game_started, game_state_update
-	
+
 	// Helper to wait for game state with specific phase
 	waitForPhase := func(c *websocket.Conn, phase int) GameState {
 		for {
@@ -136,7 +136,7 @@ func main() {
 	log.Println("Waiting for faction selection phase...")
 	gsAlice := waitForPhase(alice, 1)
 	log.Println("Alice in faction selection")
-	
+
 	// 6. Alice selects Nomads
 	// Check whose turn it is
 	firstPlayer := gsAlice.Order[gsAlice.CurrentTurn]
@@ -154,17 +154,17 @@ func main() {
 
 	log.Printf("%s selecting Nomads...", activeName)
 	send(activeConn, "perform_action", map[string]interface{}{
-		"type": "select_faction",
+		"type":     "select_faction",
 		"playerID": activeName,
-		"faction": "Nomads",
-		"gameID": gameID,
+		"faction":  "Nomads",
+		"gameID":   gameID,
 	})
 
 	// Verify update
 	// Both receive update
 	// Wait for next turn
 	time.Sleep(100 * time.Millisecond)
-	
+
 	// 7. Second player selects Witches
 	var secondConn *websocket.Conn
 	var secondName string
@@ -178,17 +178,17 @@ func main() {
 
 	log.Printf("%s selecting Witches...", secondName)
 	send(secondConn, "perform_action", map[string]interface{}{
-		"type": "select_faction",
+		"type":     "select_faction",
 		"playerID": secondName,
-		"faction": "Witches",
-		"gameID": gameID,
+		"faction":  "Witches",
+		"gameID":   gameID,
 	})
 
 	// 8. Verify transition to Setup phase (0)
 	log.Println("Waiting for setup phase...")
 	gsFinal := waitForPhase(alice, 0)
 	log.Println("Game transitioned to Setup phase!")
-	
+
 	// Verify factions
 	p1 := gsFinal.Players["Alice"]
 	p2 := gsFinal.Players["Bob"]

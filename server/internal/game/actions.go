@@ -61,30 +61,33 @@ func (a *BaseAction) GetPlayerID() string {
 type TransformAndBuildAction struct {
 	BaseAction
 	TargetHex     board.Hex
-	BuildDwelling bool // Whether to build a dwelling after transforming
-	UseSkip       bool // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
+	TargetTerrain models.TerrainType // Optional: target terrain type (if not home terrain)
+	BuildDwelling bool               // Whether to build a dwelling after transforming
+	UseSkip       bool               // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
 }
 
-func NewTransformAndBuildAction(playerID string, targetHex board.Hex, buildDwelling bool) *TransformAndBuildAction {
+func NewTransformAndBuildAction(playerID string, targetHex board.Hex, buildDwelling bool, targetTerrain models.TerrainType) *TransformAndBuildAction {
 	return &TransformAndBuildAction{
 		BaseAction: BaseAction{
 			Type:     ActionTransformAndBuild,
 			PlayerID: playerID,
 		},
 		TargetHex:     targetHex,
+		TargetTerrain: targetTerrain,
 		BuildDwelling: buildDwelling,
 		UseSkip:       false,
 	}
 }
 
 // NewTransformAndBuildActionWithSkip creates a transform action with carpet flight/tunneling
-func NewTransformAndBuildActionWithSkip(playerID string, targetHex board.Hex, buildDwelling bool) *TransformAndBuildAction {
+func NewTransformAndBuildActionWithSkip(playerID string, targetHex board.Hex, buildDwelling bool, targetTerrain models.TerrainType) *TransformAndBuildAction {
 	return &TransformAndBuildAction{
 		BaseAction: BaseAction{
 			Type:     ActionTransformAndBuild,
 			PlayerID: playerID,
 		},
 		TargetHex:     targetHex,
+		TargetTerrain: targetTerrain,
 		BuildDwelling: buildDwelling,
 		UseSkip:       true,
 	}

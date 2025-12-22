@@ -90,14 +90,14 @@ func ParseGameLog(filename string) ([]*LogEntry, error) {
 func ParseLogLine(line string) (*LogEntry, error) {
 	// Check if this is a comment/metadata line
 	if strings.Contains(line, "show history") ||
-	   strings.HasPrefix(line, "Default game") ||
-	   strings.HasPrefix(line, "option ") ||
-	   strings.HasPrefix(line, "Randomize") ||
-	   strings.HasPrefix(line, "Round ") ||
-	   strings.HasPrefix(line, "Removing") ||
-	   strings.HasPrefix(line, "Player ") ||
-	   strings.HasPrefix(line, "Scoring ") ||
-	   strings.HasPrefix(line, "Converting") {
+		strings.HasPrefix(line, "Default game") ||
+		strings.HasPrefix(line, "option ") ||
+		strings.HasPrefix(line, "Randomize") ||
+		strings.HasPrefix(line, "Round ") ||
+		strings.HasPrefix(line, "Removing") ||
+		strings.HasPrefix(line, "Player ") ||
+		strings.HasPrefix(line, "Scoring ") ||
+		strings.HasPrefix(line, "Converting") {
 		return &LogEntry{
 			IsComment:   true,
 			CommentText: line,
@@ -135,7 +135,7 @@ func ParseLogLine(line string) (*LogEntry, error) {
 	// With deltas: 20 VP	-1	9 C	-1	3 W		0 P	-12	6/0/0 PW		0/0/0/0	1 	burn 6. action ACT6
 
 	idx := 1
-	var pendingDelta *int  // Store delta that comes before a value
+	var pendingDelta *int // Store delta that comes before a value
 
 	for idx < len(parts) {
 		part := strings.TrimSpace(parts[idx])
@@ -147,8 +147,8 @@ func ParseLogLine(line string) (*LogEntry, error) {
 		// Check if this part is a delta (signed number without unit)
 		// Deltas come BEFORE values in format: [delta] value unit
 		if (strings.HasPrefix(part, "+") || strings.HasPrefix(part, "-")) &&
-		   !strings.Contains(part, "/") &&
-		   len(part) > 1 {
+			!strings.Contains(part, "/") &&
+			len(part) > 1 {
 			delta, err := strconv.Atoi(part)
 			if err == nil {
 				pendingDelta = &delta
