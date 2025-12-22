@@ -1629,11 +1629,6 @@ func TestFakirs_CarpetFlightAfterStronghold(t *testing.T) {
 	player.Resources.Workers = 10
 	player.Resources.Priests = 2
 
-	// Verify range is 2 after stronghold
-	if faction.GetCarpetFlightRange() != 2 {
-		t.Errorf("expected carpet flight range 2 after stronghold, got %d", faction.GetCarpetFlightRange())
-	}
-
 	// Use carpet flight
 	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false)
 	err := action.Execute(gs)

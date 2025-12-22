@@ -117,7 +117,13 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
 			canSkip = fakirs.CanCarpetFlight()
 			// Check if target is within skip range
-			skipRange := fakirs.GetCarpetFlightRange()
+			skipRange := 1
+			if fakirs.HasStronghold() {
+				skipRange++
+			}
+			if fakirs.HasShippingTownTile() {
+				skipRange++
+			}
 			if !gs.Map.IsWithinSkipRange(a.TargetHex, a.PlayerID, skipRange) {
 				return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
 			}
@@ -330,7 +336,10 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		// Cult reward spades don't award VP
 		vpEligibleDistance := remainingSpades + vpEligibleFreeSpades
 		if vpEligibleDistance > 0 {
-			spadesForVP := player.Faction.GetTerraformSpades(vpEligibleDistance)
+			spadesForVP := vpEligibleDistance
+			if player.Faction.GetType() == models.FactionGiants {
+				spadesForVP = 2
+			}
 
 			// Award scoring tile VP for ALL factions including Darklings
 			for i := 0; i < spadesForVP; i++ {
@@ -344,7 +353,10 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		// Award faction-specific spade bonuses for cult reward spades too
 		// Cult reward spades don't count for VP, but Alchemists still get power for them
 		if cultRewardSpades > 0 {
-			spadesUsed := player.Faction.GetTerraformSpades(cultRewardSpades)
+			spadesUsed := cultRewardSpades
+			if player.Faction.GetType() == models.FactionGiants {
+				spadesUsed = 2
+			}
 			AwardFactionSpadeBonuses(player, spadesUsed)
 		}
 	}

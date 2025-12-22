@@ -101,27 +101,14 @@ func (f *Fakirs) HasStronghold() bool {
 	return f.hasStronghold
 }
 
-// GetCarpetFlightRange returns how many spaces can be skipped
-// Base: 1 space
-// +1 if Stronghold built
-// +1 if Shipping town tile acquired
-func (f *Fakirs) GetCarpetFlightRange() int {
-	range_ := 1 // Base range
-
-	if f.hasStronghold {
-		range_++ // Stronghold adds +1
-	}
-
-	if f.hasShippingTownTile {
-		range_++ // Shipping town tile adds +1
-	}
-
-	return range_
-}
-
 // SetShippingTownTile marks that the Fakirs have acquired the Shipping town tile
 func (f *Fakirs) SetShippingTownTile(has bool) {
 	f.hasShippingTownTile = has
+}
+
+// HasShippingTownTile returns whether the Fakirs have acquired the Shipping town tile
+func (f *Fakirs) HasShippingTownTile() bool {
+	return f.hasShippingTownTile
 }
 
 // CanCarpetFlight returns whether Fakirs can use carpet flight

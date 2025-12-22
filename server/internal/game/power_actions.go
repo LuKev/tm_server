@@ -170,7 +170,13 @@ func (a *PowerAction) Validate(gs *GameState) error {
 				if !fakirs.CanCarpetFlight() {
 					return fmt.Errorf("Fakirs cannot use carpet flight")
 				}
-				skipRange := fakirs.GetCarpetFlightRange()
+				skipRange := 1
+				if fakirs.HasStronghold() {
+					skipRange++
+				}
+				if fakirs.HasShippingTownTile() {
+					skipRange++
+				}
 				if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, skipRange) {
 					return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
 				}
@@ -370,7 +376,10 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	totalSpades := spadesFromFreeAction + remainingSpades
 	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && totalSpades > 0 {
 		// Convert worker/priest cost back to spades
-		spadesUsed := player.Faction.GetTerraformSpades(totalSpades)
+		spadesUsed := totalSpades
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesUsed = 2
+		}
 		for i := 0; i < spadesUsed; i++ {
 			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 		}

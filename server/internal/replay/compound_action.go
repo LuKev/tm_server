@@ -339,7 +339,10 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 	}
 
 	// Get actual spades needed (accounts for faction abilities like Giants who always use 2 spades)
-	spadesNeeded := player.Faction.GetTerraformSpades(distance)
+	spadesNeeded := distance
+	if player.Faction.GetType() == models.FactionGiants {
+		spadesNeeded = 2
+	}
 
 	// Check for VP-eligible free spades from BON1 or power actions (ACT5/ACT6)
 	vpEligibleFreeSpades := 0
@@ -461,7 +464,10 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 	// Note: Darklings get BOTH their faction bonus AND scoring tile VP
 	vpEligibleSpades := vpEligibleFreeSpades + remainingSpades
 	if vpEligibleSpades > 0 {
-		spadesUsed := player.Faction.GetTerraformSpades(vpEligibleSpades)
+		spadesUsed := vpEligibleSpades
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesUsed = 2
+		}
 		for i := 0; i < spadesUsed; i++ {
 			gs.AwardActionVP(playerID, game.ScoringActionSpades)
 		}
@@ -474,7 +480,10 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 	// Award faction-specific spade bonuses for cult reward spades too
 	// Cult reward spades don't count for VP, but Alchemists still get power for them
 	if cultRewardSpades > 0 {
-		spadesUsed := player.Faction.GetTerraformSpades(cultRewardSpades)
+		spadesUsed := cultRewardSpades
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesUsed = 2
+		}
 		game.AwardFactionSpadeBonuses(player, spadesUsed)
 	}
 

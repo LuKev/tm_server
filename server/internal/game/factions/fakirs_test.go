@@ -97,52 +97,6 @@ func TestFakirs_MaxDiggingLevel(t *testing.T) {
 	}
 }
 
-func TestFakirs_CarpetFlightRangeBeforeStronghold(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// Before stronghold, can skip 1 space
-	range_ := fakirs.GetCarpetFlightRange()
-	if range_ != 1 {
-		t.Errorf("expected carpet flight range 1 before stronghold, got %d", range_)
-	}
-}
-
-func TestFakirs_CarpetFlightRangeAfterStronghold(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// Build stronghold
-	fakirs.BuildStronghold()
-
-	// After stronghold, can skip 2 spaces
-	range_ := fakirs.GetCarpetFlightRange()
-	if range_ != 2 {
-		t.Errorf("expected carpet flight range 2 after stronghold, got %d", range_)
-	}
-}
-
-func TestFakirs_CarpetFlightRangeWithShippingTownTile(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// With shipping town tile (no stronghold), can skip 2 spaces
-	fakirs.SetShippingTownTile(true)
-	range_ := fakirs.GetCarpetFlightRange()
-	if range_ != 2 {
-		t.Errorf("expected carpet flight range 2 with shipping town tile, got %d", range_)
-	}
-}
-
-func TestFakirs_CarpetFlightRangeWithBoth(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// With both stronghold and shipping town tile, can skip 3 spaces
-	fakirs.BuildStronghold()
-	fakirs.SetShippingTownTile(true)
-	range_ := fakirs.GetCarpetFlightRange()
-	if range_ != 3 {
-		t.Errorf("expected carpet flight range 3 with stronghold + shipping town tile, got %d", range_)
-	}
-}
-
 func TestFakirs_CanCarpetFlight(t *testing.T) {
 	fakirs := NewFakirs()
 

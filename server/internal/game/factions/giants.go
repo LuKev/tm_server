@@ -59,12 +59,6 @@ func (f *Giants) GetTerraformCost(distance int) int {
 	return 2 * workersPerSpade // Always 2 spades worth of workers
 }
 
-// GetTerraformSpades returns the number of spades needed for Giants
-// Giants always need exactly 2 spades (overrides BaseFaction)
-func (f *Giants) GetTerraformSpades(distance int) int {
-	return 2 // Always 2 spades, regardless of terrain distance
-}
-
 // BuildStronghold marks that the stronghold has been built
 func (f *Giants) BuildStronghold() {
 	f.hasStronghold = true

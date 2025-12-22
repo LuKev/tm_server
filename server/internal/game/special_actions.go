@@ -503,7 +503,13 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 			if !fakirs.CanCarpetFlight() {
 				return fmt.Errorf("Fakirs cannot use carpet flight")
 			}
-			skipRange := fakirs.GetCarpetFlightRange()
+			skipRange := 1
+			if fakirs.HasStronghold() {
+				skipRange++
+			}
+			if fakirs.HasShippingTownTile() {
+				skipRange++
+			}
 			if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, skipRange) {
 				return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
 			}
@@ -758,7 +764,10 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	// Award VP from scoring tile for spades used
 	// Even though we get 1 free spade, we still used spades for the transformation
-	spadesUsed := player.Faction.GetTerraformSpades(distance)
+	spadesUsed := distance
+	if player.Faction.GetType() == models.FactionGiants {
+		spadesUsed = 2
+	}
 	for i := 0; i < spadesUsed; i++ {
 		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 	}
