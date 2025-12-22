@@ -1,6 +1,9 @@
 package notation
 
-import "github.com/lukev/tm_server/internal/game"
+import (
+	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/models"
+)
 
 // LogItem represents an item in the game log, which can be a player action or metadata.
 type LogItem interface {
@@ -82,5 +85,43 @@ func (a *LogSpecialAction) GetType() game.ActionType          { return game.Acti
 func (a *LogSpecialAction) GetPlayerID() string               { return a.PlayerID }
 func (a *LogSpecialAction) Validate(gs *game.GameState) error { return nil }
 func (a *LogSpecialAction) Execute(gs *game.GameState) error  { return nil }
+
+// LogConversionAction is a log-only representation of a conversion action
+type LogConversionAction struct {
+	PlayerID string
+	Cost     map[models.ResourceType]int
+	Reward   map[models.ResourceType]int
+}
+
+func (a *LogConversionAction) GetType() game.ActionType          { return game.ActionSpecialAction } // Placeholder
+func (a *LogConversionAction) GetPlayerID() string               { return a.PlayerID }
+func (a *LogConversionAction) Validate(gs *game.GameState) error { return nil }
+func (a *LogConversionAction) Execute(gs *game.GameState) error  { return nil }
+
+// LogCompoundAction is a log-only representation of multiple actions chained together
+type LogCompoundAction struct {
+	Actions []game.Action
+}
+
+func (a *LogCompoundAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+func (a *LogCompoundAction) GetPlayerID() string {
+	if len(a.Actions) > 0 {
+		return a.Actions[0].GetPlayerID()
+	}
+	return ""
+}
+func (a *LogCompoundAction) Validate(gs *game.GameState) error { return nil }
+func (a *LogCompoundAction) Execute(gs *game.GameState) error  { return nil }
+
+// LogTownAction is a log-only representation of founding a town
+type LogTownAction struct {
+	PlayerID string
+	VP       int
+}
+
+func (a *LogTownAction) GetType() game.ActionType          { return game.ActionSpecialAction } // Placeholder
+func (a *LogTownAction) GetPlayerID() string               { return a.PlayerID }
+func (a *LogTownAction) Validate(gs *game.GameState) error { return nil }
+func (a *LogTownAction) Execute(gs *game.GameState) error  { return nil }
 
 func (i RoundStartItem) isLogItem() {}

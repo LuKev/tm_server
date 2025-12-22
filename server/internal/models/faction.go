@@ -102,7 +102,7 @@ func FactionTypeFromString(s string) FactionType {
 		return FactionNomads
 	case "Fakirs":
 		return FactionFakirs
-	case "ChaosMagicians":
+	case "ChaosMagicians", "Chaos Magicians":
 		return FactionChaosMagicians
 	case "Giants":
 		return FactionGiants

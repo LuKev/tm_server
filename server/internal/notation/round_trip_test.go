@@ -53,12 +53,16 @@ func TestBGARoundTrip(t *testing.T) {
 	t.Logf("Parsed %d reconstructed actions", len(reconstructedActions))
 
 	// 5. Compare
-	if len(originalActions) != len(reconstructedActions) {
-		t.Fatalf("Action count mismatch: Original=%d, Reconstructed=%d", len(originalActions), len(reconstructedActions))
+	// Flatten compound actions for comparison
+	flatOriginal := flattenActions(originalActions)
+	flatReconstructed := flattenActions(reconstructedActions)
+
+	if len(flatOriginal) != len(flatReconstructed) {
+		t.Fatalf("Action count mismatch: Original=%d, Reconstructed=%d", len(flatOriginal), len(flatReconstructed))
 	}
 
-	for i, orig := range originalActions {
-		recon := reconstructedActions[i]
+	for i, orig := range flatOriginal {
+		recon := flatReconstructed[i]
 
 		// Compare types
 		if orig.GetType() != recon.GetType() {
@@ -115,4 +119,15 @@ func firstNLines(s string, n int) string {
 		return strings.Join(lines[:n], "\n") + "\n..."
 	}
 	return s
+}
+func flattenActions(actions []game.Action) []game.Action {
+	var flat []game.Action
+	for _, a := range actions {
+		if compound, ok := a.(*LogCompoundAction); ok {
+			flat = append(flat, flattenActions(compound.Actions)...)
+		} else {
+			flat = append(flat, a)
+		}
+	}
+	return flat
 }

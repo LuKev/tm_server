@@ -2,6 +2,7 @@ package notation
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -91,22 +92,14 @@ func ParseConciseLog(content string) ([]game.Action, error) {
 					continue
 				}
 
-				// Handle chained actions (e.g. "S-C4.S-D5")
-				codes := strings.Split(part, ".")
-				for _, code := range codes {
-					code = strings.TrimSpace(code)
-					if code == "" {
-						continue
-					}
-
-					action, err := parseActionCode(playerID, code)
-					if err != nil {
-						// If we fail to parse, maybe it was a header we missed?
-						// But we should have caught it above.
-						return nil, fmt.Errorf("failed to parse code '%s' for player '%s': %w", code, playerID, err)
-					}
-					actions = append(actions, action)
+				// Parse the action code
+				// Note: parseActionCode handles chained actions (separated by .) by returning a LogCompoundAction
+				action, err := parseActionCode(playerID, part)
+				if err != nil {
+					fmt.Printf("Error parsing action '%s': %v\n", part, err)
+					continue
 				}
+				actions = append(actions, action)
 			}
 		} else if !headerFound && strings.Contains(line, ": ") {
 			// Fallback for linear format "Player: Code"
@@ -172,6 +165,44 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		}, nil
 	}
 
+	// Compound Action: Code.Code
+	if strings.Contains(code, ".") {
+		parts := strings.Split(code, ".")
+		var actions []game.Action
+		for _, part := range parts {
+			action, err := parseActionCode(playerID, part)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, action)
+		}
+		return &LogCompoundAction{Actions: actions}, nil
+	}
+
+	// Auren Stronghold: ACT-SH-<Track>
+	if strings.HasPrefix(code, "ACT-SH-") {
+		return &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: code,
+		}, nil
+	}
+
+	// Favor Tile Action: ACT-FAV-<Track>
+	if strings.HasPrefix(code, "ACT-FAV-") {
+		return &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: code,
+		}, nil
+	}
+
+	// Bonus Card Spade: ACTS-<Coord>
+	if strings.HasPrefix(code, "ACTS-") {
+		return &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: code,
+		}, nil
+	}
+
 	// Digging: +DIG
 	if code == "+DIG" {
 		return game.NewAdvanceDiggingAction(playerID), nil
@@ -195,12 +226,38 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		}, nil
 	}
 
+	// Conversion: C<Cost>:<Reward>
+	if strings.HasPrefix(code, "C") && strings.Contains(code, ":") {
+		parts := strings.Split(strings.TrimPrefix(code, "C"), ":")
+		if len(parts) == 2 {
+			cost := parseResourceString(parts[0])
+			reward := parseResourceString(parts[1])
+			return &LogConversionAction{
+				PlayerID: playerID,
+				Cost:     cost,
+				Reward:   reward,
+			}, nil
+		}
+	}
+
 	if strings.HasPrefix(code, "ACT") {
 		// ACT1, ACT2...
 		return &LogPowerAction{
 			PlayerID:   playerID,
 			ActionCode: code,
 		}, nil
+	}
+
+	// Town: TW<VP>VP
+	if strings.HasPrefix(code, "TW") && strings.HasSuffix(code, "VP") {
+		vpStr := strings.TrimSuffix(strings.TrimPrefix(code, "TW"), "VP")
+		vp, err := strconv.Atoi(vpStr)
+		if err == nil {
+			return &LogTownAction{
+				PlayerID: playerID,
+				VP:       vp,
+			}, nil
+		}
 	}
 
 	if strings.HasPrefix(code, "->") {
@@ -230,16 +287,26 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		return game.NewSetupDwellingAction(playerID, hex), nil
 	}
 	if strings.HasPrefix(code, "T-") {
-		// T-C4
-		coord := strings.TrimPrefix(code, "T-")
+		// T-C4 or T-C4-Y
+		parts := strings.Split(code, "-")
+		if len(parts) < 2 {
+			return nil, fmt.Errorf("invalid transform code: %s", code)
+		}
+		coord := parts[1]
 		hex := parseHex(coord)
-		return game.NewTransformAndBuildAction(playerID, hex, false), nil
+
+		targetTerrain := models.TerrainTypeUnknown
+		if len(parts) > 2 {
+			targetTerrain = parseTerrainShortCode(parts[2])
+		}
+
+		return game.NewTransformAndBuildAction(playerID, hex, false, targetTerrain), nil
 	}
 
 	// Default: Build Dwelling (e.g. "C4")
 	if isCoord(code) {
 		hex := parseHex(code)
-		return game.NewTransformAndBuildAction(playerID, hex, true), nil
+		return game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown), nil
 	}
 
 	return nil, fmt.Errorf("unknown code: %s", code)
@@ -275,6 +342,26 @@ func parseBuildingShortCode(s string) models.BuildingType {
 	return models.BuildingDwelling
 }
 
+func parseTerrainShortCode(s string) models.TerrainType {
+	switch s {
+	case "P", "Br":
+		return models.TerrainPlains
+	case "S", "Bk":
+		return models.TerrainSwamp
+	case "L", "Bl":
+		return models.TerrainLake
+	case "F", "G":
+		return models.TerrainForest
+	case "M", "Gy":
+		return models.TerrainMountain
+	case "W", "R":
+		return models.TerrainWasteland
+	case "D", "Y":
+		return models.TerrainDesert
+	}
+	return models.TerrainTypeUnknown
+}
+
 func parseHex(s string) board.Hex {
 	s = strings.Trim(s, "()")
 	// Try parsing as (Q,R) first (legacy/internal format)
@@ -304,4 +391,27 @@ func isCoord(s string) bool {
 	// Check for Log format (e.g. F3)
 	_, err := replay.ConvertLogCoordToAxial(s)
 	return err == nil
+}
+func parseResourceString(s string) map[models.ResourceType]int {
+	res := make(map[models.ResourceType]int)
+	// Regex to find "N unit" where unit is P, W, PW, VP, C
+	re := regexp.MustCompile(`(\d+)(P|W|PW|VP|C)`)
+	matches := re.FindAllStringSubmatch(s, -1)
+	for _, match := range matches {
+		amount, _ := strconv.Atoi(match[1])
+		unit := match[2]
+		switch unit {
+		case "PW":
+			res[models.ResourcePower] += amount
+		case "P":
+			res[models.ResourcePriest] += amount
+		case "W":
+			res[models.ResourceWorker] += amount
+		case "C":
+			res[models.ResourceCoin] += amount
+		case "VP":
+			res[models.ResourceVictoryPoint] += amount
+		}
+	}
+	return res
 }

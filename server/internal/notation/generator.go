@@ -6,6 +6,7 @@ import (
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -14,7 +15,7 @@ func GenerateConciseLog(items []LogItem) string {
 	var sb strings.Builder
 
 	// Initial factions (will be updated by RoundStartItem)
-	factions := make([]string, 0)
+	factionNames := make([]string, 0)
 	factionSet := make(map[string]bool)
 
 	// First pass: find all factions involved to establish initial set
@@ -23,13 +24,13 @@ func GenerateConciseLog(items []LogItem) string {
 			pID := actionItem.Action.GetPlayerID()
 			if pID != "" && !factionSet[pID] {
 				factionSet[pID] = true
-				factions = append(factions, pID)
+				factionNames = append(factionNames, pID)
 			}
 		} else if roundItem, ok := item.(RoundStartItem); ok {
 			for _, f := range roundItem.TurnOrder {
 				if !factionSet[f] {
 					factionSet[f] = true
-					factions = append(factions, f)
+					factionNames = append(factionNames, f)
 				}
 			}
 		}
@@ -37,11 +38,11 @@ func GenerateConciseLog(items []LogItem) string {
 
 	// Map faction -> column index
 	colMap := make(map[string]int)
-	for i, f := range factions {
+	for i, f := range factionNames {
 		colMap[f] = i
 	}
 
-	numCols := len(factions)
+	numCols := len(factionNames)
 	if numCols == 0 {
 		return ""
 	}
@@ -63,7 +64,7 @@ func GenerateConciseLog(items []LogItem) string {
 	headerPrinted := false
 	// Helper to flush current row
 	flush := func() {
-		writeRow(currentRow, factions)
+		writeRow(currentRow, factionNames)
 		currentRow = make([]string, numCols)
 	}
 
@@ -72,8 +73,8 @@ func GenerateConciseLog(items []LogItem) string {
 	var lastCol int = -1
 
 	// Helper to write header
-	writeHeader := func(factions []string) {
-		writeRow(factions, factions)
+	writeHeader := func(currentFactions []string) {
+		writeRow(currentFactions, currentFactions)
 		sep := strings.Repeat("-", 15*numCols+3*(numCols-1))
 		sb.WriteString(sep + "\n")
 	}
@@ -94,18 +95,18 @@ func GenerateConciseLog(items []LogItem) string {
 			}
 
 			// Update factions list based on new turn order
-			factions = v.TurnOrder
+			factionNames = v.TurnOrder
 			// Rebuild colMap
 			colMap = make(map[string]int)
-			for i, f := range factions {
+			for i, f := range factionNames {
 				colMap[f] = i
 			}
-			numCols = len(factions)
+			numCols = len(factionNames)
 			currentRow = make([]string, numCols)
 
 			sb.WriteString(fmt.Sprintf("Round %d\n", v.Round))
 			sb.WriteString(fmt.Sprintf("TurnOrder: %s\n", strings.Join(v.TurnOrder, ", ")))
-			writeHeader(factions)
+			writeHeader(factionNames)
 			headerPrinted = true // Header is now printed for this round
 
 			// Reset last state for new round
@@ -119,7 +120,7 @@ func GenerateConciseLog(items []LogItem) string {
 
 			// Ensure we have a header printed (for Setup phase)
 			if !headerPrinted {
-				writeHeader(factions)
+				writeHeader(factionNames)
 				headerPrinted = true
 			}
 
@@ -129,7 +130,15 @@ func GenerateConciseLog(items []LogItem) string {
 				continue
 			}
 
-			code := generateActionCode(action)
+			// Get player's home terrain if available
+			var homeTerrain models.TerrainType = models.TerrainTypeUnknown
+			// pID is the faction name (e.g. "Nomads")
+			faction := factions.NewFaction(models.FactionTypeFromString(pID))
+			if faction != nil {
+				homeTerrain = faction.GetHomeTerrain()
+			}
+
+			code := generateActionCode(action, homeTerrain)
 
 			// Check if we should chain with previous action (same player)
 			if pID == lastPlayerID && lastAction != nil && shouldChain(lastAction, action) {
@@ -168,7 +177,7 @@ func GenerateConciseLog(items []LogItem) string {
 
 	// Flush final row
 	if !isRowEmpty(currentRow) {
-		writeRow(currentRow, factions)
+		writeRow(currentRow, factionNames)
 	}
 
 	return sb.String()
@@ -190,7 +199,7 @@ func padRight(s string, width int) string {
 	return s // Or truncate?
 }
 
-func generateActionCode(action game.Action) string {
+func generateActionCode(action game.Action, homeTerrain models.TerrainType) string {
 	switch a := action.(type) {
 	case *game.SetupDwellingAction:
 		return fmt.Sprintf("S-%s", HexToShortString(a.Hex))
@@ -198,6 +207,14 @@ func generateActionCode(action game.Action) string {
 		// Simple representation: "Transform [Hex]" or "Build [Hex]"
 		if a.BuildDwelling {
 			return fmt.Sprintf("%s", HexToShortString(a.TargetHex))
+		}
+		if a.TargetTerrain != models.TerrainTypeUnknown {
+			// If target terrain is same as home terrain, omit the code
+			if a.TargetTerrain == homeTerrain {
+				return fmt.Sprintf("T-%s", HexToShortString(a.TargetHex))
+			}
+			terrainCode := getTerrainShortCode(a.TargetTerrain)
+			return fmt.Sprintf("T-%s-%s", HexToShortString(a.TargetHex), terrainCode)
 		}
 		return fmt.Sprintf("T-%s", HexToShortString(a.TargetHex))
 	case *game.UpgradeBuildingAction:
@@ -209,6 +226,9 @@ func generateActionCode(action game.Action) string {
 	case *game.SendPriestToCultAction:
 		// ->F
 		trackCode := getCultShortCode(a.Track)
+		if a.SpacesToClimb > 0 {
+			return fmt.Sprintf("->%s%d", trackCode, a.SpacesToClimb)
+		}
 		return fmt.Sprintf("->%s", trackCode)
 	case *game.AdvanceShippingAction:
 		return "+SHIP"
@@ -228,6 +248,16 @@ func generateActionCode(action game.Action) string {
 		return a.Tile
 	case *LogSpecialAction:
 		return a.ActionCode
+	case *LogConversionAction:
+		return generateConversionCode(a)
+	case *LogTownAction:
+		return fmt.Sprintf("TW%dVP", a.VP)
+	case *LogCompoundAction:
+		var parts []string
+		for _, subAction := range a.Actions {
+			parts = append(parts, generateActionCode(subAction, homeTerrain))
+		}
+		return strings.Join(parts, ".")
 	default:
 		return fmt.Sprintf("UNKNOWN(%T)", action)
 	}
@@ -313,4 +343,51 @@ func getCultShortCode(t game.CultTrack) string {
 		return "A"
 	}
 	return "?"
+}
+func getTerrainShortCode(t models.TerrainType) string {
+	switch t {
+	case models.TerrainPlains:
+		return "Br" // Brown
+	case models.TerrainSwamp:
+		return "Bk" // Black
+	case models.TerrainLake:
+		return "Bl" // Blue
+	case models.TerrainForest:
+		return "G" // Green
+	case models.TerrainMountain:
+		return "Gy" // Gray
+	case models.TerrainWasteland:
+		return "R" // Red
+	case models.TerrainDesert:
+		return "Y" // Yellow
+	}
+	return "?"
+}
+func generateConversionCode(a *LogConversionAction) string {
+	// Format: C[Cost]:[Reward]
+	// Order: P, W, PW, VP, C
+	costStr := formatResources(a.Cost)
+	rewardStr := formatResources(a.Reward)
+	return fmt.Sprintf("C%s:%s", costStr, rewardStr)
+}
+
+func formatResources(res map[models.ResourceType]int) string {
+	var parts []string
+	// Strict order: P, W, PW, VP, C
+	if amount, ok := res[models.ResourcePriest]; ok && amount > 0 {
+		parts = append(parts, fmt.Sprintf("%dP", amount))
+	}
+	if amount, ok := res[models.ResourceWorker]; ok && amount > 0 {
+		parts = append(parts, fmt.Sprintf("%dW", amount))
+	}
+	if amount, ok := res[models.ResourcePower]; ok && amount > 0 {
+		parts = append(parts, fmt.Sprintf("%dPW", amount))
+	}
+	if amount, ok := res[models.ResourceVictoryPoint]; ok && amount > 0 {
+		parts = append(parts, fmt.Sprintf("%dVP", amount))
+	}
+	if amount, ok := res[models.ResourceCoin]; ok && amount > 0 {
+		parts = append(parts, fmt.Sprintf("%dC", amount))
+	}
+	return strings.Join(parts, "")
 }

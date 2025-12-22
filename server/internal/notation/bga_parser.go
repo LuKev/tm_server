@@ -23,6 +23,7 @@ type BGAParser struct {
 	currentRound int
 	players      map[string]string // Name -> Faction
 	passOrder    []string          // Tracks who passed in current round to determine next round order
+	townPending  map[string]bool   // Name -> bool, tracks if player just founded a town
 }
 
 func NewBGAParser(content string) *BGAParser {
@@ -34,10 +35,12 @@ func NewBGAParser(content string) *BGAParser {
 	}
 
 	return &BGAParser{
-		lines:     lines,
-		items:     make([]LogItem, 0),
-		players:   make(map[string]string),
-		passOrder: make([]string, 0),
+		lines:       lines,
+		currentLine: 0,
+		items:       make([]LogItem, 0),
+		players:     make(map[string]string),
+		passOrder:   make([]string, 0),
+		townPending: make(map[string]bool),
 	}
 }
 
@@ -45,6 +48,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	// Regex patterns
 	reMove := regexp.MustCompile(`^Move (\d+) :`)
 	reFactionSelection := regexp.MustCompile(`(.*) is playing the (.*) Faction`)
+	reFactionSelection2 := regexp.MustCompile(`(.*) selected the faction (.*) on`)
 	reGameBoard := regexp.MustCompile(`Game board: (.*)`)
 	reMiniExpansions := regexp.MustCompile(`Mini-expansions: (.*)`)
 
@@ -52,16 +56,18 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reBuildDwellingSetup := regexp.MustCompile(`(.*) places a Dwelling \[(.*)\]`) // Setup is single line
 	reBuildDwellingGameStart := regexp.MustCompile(`(.*) builds a Dwelling for`)
 	reUpgradeStart := regexp.MustCompile(`(.*) upgrades a (.*) to a (.*) for`)
-	reTransformStart := regexp.MustCompile(`(.*) transforms a Terrain space`)
+	reTransformStart := regexp.MustCompile(`(.*) transforms a Terrain space(?:.* → (.*))? for`)
 
-	// Multi-line Action Starts
-	rePowerActionStart := regexp.MustCompile(`(.*) spends$`)
-	reLeechGetsStart := regexp.MustCompile(`(.*) gets$`)
-	reLeechPaysStart := regexp.MustCompile(`(.*) pays$`)
-	reBurnStart := regexp.MustCompile(`(.*) sacrificed$`)
+	// Single-line Action Starts (Updated)
+	rePowerAction := regexp.MustCompile(`(.*) spends (\d+) power to (?:get|collect) (.*) \(Power action\)`)
+	reLeechGets := regexp.MustCompile(`(.*) gets (\d+) power via Structures \[(.*)\]`)
+	reLeechPays := regexp.MustCompile(`(.*) pays (\d+) VP and gets (\d+) power via Structures \[(.*)\]`)
+	reBurn := regexp.MustCompile(`(.*) sacrificed (\d+) power in Bowl 2 to get (\d+) power from Bowl 2 to Bowl 3`)
 	reFavorTileStart := regexp.MustCompile(`(.*) takes a Favor tile`)
 	reWitchesRide := regexp.MustCompile(`(.*) builds a Dwelling for free \(Witches Ride\) \[(.*)\]`)
-	reExchangeTrack := regexp.MustCompile(`(.*) advances on the Exchange Track`)
+	reExchangeTrack := regexp.MustCompile(`(.*) advances on the Exchange Track for (.*) and earns (\d+) VP`)
+	reTownFound := regexp.MustCompile(`(.*) founds a Town \[(.*)\]`)
+	reTownVP := regexp.MustCompile(`(.*) gets (\d+) VP (?:Victory points )?.*`)
 
 	rePass := regexp.MustCompile(`(.*) passes`)
 	rePriest := regexp.MustCompile(`(.*) sends a Priest to the Order of the Cult of (.*)\. Forever!`)
@@ -92,6 +98,29 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			fmt.Println("Found auction over line")
 			break
 		}
+		// Fallback: if we see "Every player has chosen a Faction", stop here (auction might be skipped or log different)
+		if strings.Contains(line, "Every player has chosen a Faction") {
+			fmt.Println("Found faction setup over line (in header scan)")
+			// Backtrack one line so the next loop can see it (actually next loop looks for it too)
+			// But next loop expects to parse factions BEFORE this line.
+			// If we are here, maybe we missed the auction/faction selection lines?
+			// In the log, "is playing the" comes BEFORE "Every player has chosen".
+			// So if we hit "Every player has chosen", we might have skipped "is playing the" if we were just consuming lines?
+			// No, we are iterating line by line.
+			// If we see "is playing the", we should probably stop the header scan and let the next loop handle it.
+			p.currentLine--
+			break
+		}
+		if reFactionSelection.MatchString(line) {
+			// fmt.Println("Found faction selection (in header scan)")
+			p.currentLine--
+			break
+		}
+		if reFactionSelection2.MatchString(line) {
+			// fmt.Println("Found faction selection 2 (in header scan)")
+			p.currentLine--
+			break
+		}
 	}
 
 	if !auctionOver {
@@ -108,7 +137,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		p.currentLine++
 
 		if strings.Contains(line, "Every player has chosen a Faction") {
-			fmt.Println("Found faction setup over line")
+			// fmt.Println("Found faction setup over line")
 			break
 		}
 		if matches := reFactionSelection.FindStringSubmatch(line); len(matches) > 2 {
@@ -116,7 +145,11 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			factionName := strings.TrimSpace(matches[2])
 			p.players[playerName] = factionName
 			setupOrder = append(setupOrder, factionName)
-			fmt.Printf("Found player %s playing %s\n", playerName, factionName)
+		} else if matches := reFactionSelection2.FindStringSubmatch(line); len(matches) > 2 {
+			playerName := strings.TrimSpace(matches[1])
+			factionName := strings.TrimSpace(matches[2])
+			p.players[playerName] = factionName
+			setupOrder = append(setupOrder, factionName)
 		}
 	}
 
@@ -124,9 +157,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	var currentMove int
 	_ = currentMove
 
-	fmt.Println("Starting main parsing loop...")
+	// fmt.Println("Starting main parsing loop...")
 	for p.currentLine < len(p.lines) {
-		line := strings.TrimSpace(p.lines[p.currentLine])
+		line := p.lines[p.currentLine]
+		// fmt.Printf("Line %d: %s\n", p.currentLine, line)
 		p.currentLine++
 
 		if line == "" {
@@ -137,6 +171,18 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		if reFinalScoring.MatchString(line) {
 			fmt.Println("Found Final Scoring, stopping parse.")
 			break
+		}
+
+		// Check for Town Found
+		if matches := reTownFound.FindStringSubmatch(line); len(matches) > 2 {
+			p.handleTownFound(matches[1])
+			continue
+		}
+
+		// Check for Town VP (to merge)
+		if matches := reTownVP.FindStringSubmatch(line); len(matches) > 2 {
+			p.handleTownVP(matches[1], matches[2])
+			continue
 		}
 
 		// Check for Move header
@@ -158,17 +204,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 				turnOrder = setupOrder
 			} else {
 				// Use pass order from previous round directly
-				// In TM/AOI, the turn order for the next round is exactly the pass order
 				if len(p.passOrder) > 0 {
-					// We might need to ensure all players are in passOrder?
-					// If log is complete, they should be.
-					// If log is partial, we use what we have.
-					// But we should append any players who haven't passed yet?
-					// Usually round doesn't end until everyone passes.
 					turnOrder = make([]string, len(p.passOrder))
 					copy(turnOrder, p.passOrder)
 				} else {
-					// Fallback if no pass order found (shouldn't happen)
 					turnOrder = setupOrder
 				}
 				// Reset pass order for new round
@@ -187,66 +226,98 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		}
 
 		// Try to match actions
-		if matches := reBuildDwellingSetup.FindStringSubmatch(line); len(matches) > 2 {
+		// Check specific actions first to avoid being consumed by general ones
+
+		if matches := reConversion.FindStringSubmatch(line); len(matches) > 3 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleConversion(playerID, matches[2], matches[3])
+
+		} else if matches := reAlchemistsVP.FindStringSubmatch(line); len(matches) > 3 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleAlchemistsVP(playerID, matches[2], matches[3])
+
+		} else if matches := reBonusCardSpade.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleBonusCardSpade(playerID, line)
+
+		} else if matches := reReclaimPriest.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleReclaimPriest(playerID, line)
+
+		} else if matches := reAurenStronghold.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleAurenStronghold(playerID, line)
+
+		} else if matches := reFavorTileAction.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleFavorTileAction(playerID, line)
+
+		} else if matches := reBridgePower.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleBridgePower(playerID, line)
+
+		} else if matches := reBuildDwellingSetup.FindStringSubmatch(line); len(matches) > 2 {
 			fmt.Printf("Matched BuildDwelling (Setup): %s\n", line)
 			p.handleBuildDwelling(matches[1], matches[2], true)
 
 		} else if matches := reBuildDwellingGameStart.FindStringSubmatch(line); len(matches) > 1 {
 			fmt.Printf("Matched BuildDwelling Start (Game): %s\n", line)
-			coordStr := p.consumeUntilCoord()
+			coordStr := p.extractCoord(line)
+			if coordStr == "" {
+				coordStr = p.consumeUntilCoord()
+			}
 			if coordStr != "" {
 				p.handleBuildDwelling(matches[1], coordStr, false)
 			}
 
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			fmt.Printf("Matched Upgrade Start: %s\n", line)
-			coordStr := p.consumeUntilCoord()
+			coordStr := p.extractCoord(line)
+			if coordStr == "" {
+				coordStr = p.consumeUntilCoord()
+			}
 			if coordStr != "" {
 				p.handleUpgrade(matches[1], matches[2], matches[3], coordStr)
 			}
 
 		} else if matches := reTransformStart.FindStringSubmatch(line); len(matches) > 1 {
 			fmt.Printf("Matched Transform Start: %s\n", line)
-			coordStr := p.consumeUntilCoord()
+			coordStr := p.extractCoord(line)
+			if coordStr == "" {
+				coordStr = p.consumeUntilCoord()
+			}
+			targetTerrain := ""
+			if len(matches) > 2 {
+				targetTerrain = strings.TrimSpace(matches[2])
+			}
 			if coordStr != "" {
-				p.handleTransform(matches[1], coordStr)
+				p.handleTransform(matches[1], coordStr, targetTerrain)
 			}
 
-		} else if matches := rePowerActionStart.FindStringSubmatch(line); len(matches) > 1 {
-			// Multi-line Power Action:
-			// Player spends
-			// Cost
-			// to collect/get
-			// Reward
-			// (Power action)
+		} else if matches := rePowerAction.FindStringSubmatch(line); len(matches) > 3 {
+			// Single-line Power Action:
+			// Player spends X power to get/collect Y Reward (Power action)
 			playerName := matches[1]
-			cost, _ := p.consumeInt()
-			_ = p.consumeLine() // "to collect" or "to get"
-			reward, _ := p.consumeInt()
-			_ = p.consumeLine() // "(Power action)"
+			cost, _ := strconv.Atoi(matches[2])
+			rewardStr := matches[3]
+
+			// Parse reward amount from string (e.g. "1 spade(s)" -> 1)
+			reward := p.parseAmount(rewardStr)
 
 			fmt.Printf("Matched PowerAction: %s spends %d to get %d\n", playerName, cost, reward)
 			p.handlePowerAction(playerName, cost, reward)
 
-		} else if matches := reBurnStart.FindStringSubmatch(line); len(matches) > 1 {
-			// Multi-line Burn:
-			// Player sacrificed
-			// Amount
-			// in Bowl 2 to get
-			// Amount
-			// from Bowl 2 to Bowl 3
+		} else if matches := reBurn.FindStringSubmatch(line); len(matches) > 3 {
+			// Single-line Burn:
+			// Player sacrificed X power in Bowl 2 to get Y power from Bowl 2 to Bowl 3
 			playerName := matches[1]
-			amount, _ := p.consumeInt()
-			// Consume rest of lines
-			_ = p.consumeLine()   // "in Bowl 2 to get"
-			_, _ = p.consumeInt() // Amount again
-			_ = p.consumeLine()   // "from Bowl 2 to Bowl 3"
+			amount, _ := strconv.Atoi(matches[2])
 
 			fmt.Printf("Matched Burn: %s sacrificed %d\n", playerName, amount)
 			p.handleBurn(playerName, amount)
 
 		} else if matches := reFavorTileStart.FindStringSubmatch(line); len(matches) > 1 {
-			// Multi-line Favor Tile:
+			// Favor Tile:
 			// Player takes a Favor tile
 			// Player gains X on the Cult of Y track (Favor tile)
 			playerName := matches[1]
@@ -254,43 +325,31 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			p.handleFavorTile(playerName)
 
 		} else if matches := reWitchesRide.FindStringSubmatch(line); len(matches) > 2 {
-			// Single-line Witches Ride:
-			// Player builds a Dwelling for free (Witches Ride) [Coord]
 			playerName := matches[1]
 			coordStr := matches[2]
 			fmt.Printf("Matched Witches Ride: %s at %s\n", playerName, coordStr)
 			p.handleWitchesRide(playerName, coordStr)
 
-		} else if matches := reLeechPaysStart.FindStringSubmatch(line); len(matches) > 1 {
-			// Multi-line Leech (Pays):
-			// Player pays
-			// Cost
-			// and gets
-			// Amount
-			// via Structures [Coord]
+		} else if matches := reLeechPays.FindStringSubmatch(line); len(matches) > 4 {
+			// Single-line Leech (Pays):
+			// Player pays X VP and gets Y power via Structures [Coord]
 			playerName := matches[1]
-			cost, _ := p.consumeInt()
-			_ = p.consumeLine() // "and gets"
-			amount, _ := p.consumeInt()
-			// Consume until via Structures
-			line := p.consumeLine()
-			if strings.Contains(line, "via Structures") {
-				fmt.Printf("Matched Leech Pays: %s pays %d gets %d\n", playerName, cost, amount)
-				p.handleLeech(playerName, "", amount, cost, true)
-			}
+			cost, _ := strconv.Atoi(matches[2])
+			amount, _ := strconv.Atoi(matches[3])
+			coordStr := matches[4]
 
-		} else if matches := reLeechGetsStart.FindStringSubmatch(line); len(matches) > 1 {
-			// Multi-line Leech (Gets):
-			// Player gets
-			// Amount
-			// via Structures [Coord]
+			fmt.Printf("Matched Leech Pays: %s pays %d gets %d at %s\n", playerName, cost, amount, coordStr)
+			p.handleLeech(playerName, coordStr, amount, cost, true)
+
+		} else if matches := reLeechGets.FindStringSubmatch(line); len(matches) > 3 {
+			// Single-line Leech (Gets):
+			// Player gets X power via Structures [Coord]
 			playerName := matches[1]
-			amount, _ := p.consumeInt()
-			line := p.consumeLine()
-			if strings.Contains(line, "via Structures") {
-				fmt.Printf("Matched Leech Gets: %s gets %d\n", playerName, amount)
-				p.handleLeech(playerName, "", amount, 0, true)
-			}
+			amount, _ := strconv.Atoi(matches[2])
+			coordStr := matches[3]
+
+			fmt.Printf("Matched Leech Gets: %s gets %d at %s\n", playerName, amount, coordStr)
+			p.handleLeech(playerName, coordStr, amount, 0, true)
 
 		} else if matches := rePass.FindStringSubmatch(line); len(matches) > 1 {
 			fmt.Printf("Matched Pass: %s\n", line)
@@ -304,14 +363,9 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			fmt.Printf("Matched Shipping: %s\n", line)
 			p.handleAdvanceShipping(matches[1])
 
-		} else if matches := reExchangeTrack.FindStringSubmatch(line); len(matches) > 1 {
-			// Multi-line Digging:
-			// Player advances on the Exchange Track for
-			// Cost
-			// 5
-			// 1
-			// and earns
-			// 6
+		} else if matches := reExchangeTrack.FindStringSubmatch(line); len(matches) > 3 {
+			// Single-line Digging:
+			// Player advances on the Exchange Track for [Cost String] and earns X VP
 			playerName := matches[1]
 			fmt.Printf("Matched Exchange Track (Digging): %s\n", playerName)
 			p.handleAdvanceDigging(playerName)
@@ -354,7 +408,7 @@ func (p *BGAParser) handleBuildDwelling(playerName, coordStr string, isSetup boo
 	if isSetup {
 		action = game.NewSetupDwellingAction(playerID, hex)
 	} else {
-		action = game.NewTransformAndBuildAction(playerID, hex, true)
+		action = game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown)
 	}
 	p.items = append(p.items, ActionItem{Action: action})
 }
@@ -368,10 +422,31 @@ func (p *BGAParser) handleUpgrade(playerName, from, to, coordStr string) {
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
-func (p *BGAParser) handleTransform(playerName, coordStr string) {
+func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr string) {
 	hex := parseCoord(coordStr)
 	playerID := p.getPlayerID(playerName)
-	action := game.NewTransformAndBuildAction(playerID, hex, false)
+
+	var targetTerrain models.TerrainType
+	if targetTerrainStr != "" {
+		switch strings.ToLower(targetTerrainStr) {
+		case "plains":
+			targetTerrain = models.TerrainPlains
+		case "swamp":
+			targetTerrain = models.TerrainSwamp
+		case "lakes":
+			targetTerrain = models.TerrainLake
+		case "forest":
+			targetTerrain = models.TerrainForest
+		case "mountains":
+			targetTerrain = models.TerrainMountain
+		case "wasteland":
+			targetTerrain = models.TerrainWasteland
+		case "desert":
+			targetTerrain = models.TerrainDesert
+		}
+	}
+
+	action := game.NewTransformAndBuildAction(playerID, hex, false, targetTerrain)
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
@@ -417,17 +492,53 @@ func (p *BGAParser) handlePass(playerName string) {
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
-func (p *BGAParser) handleSendPriest(playerName, cultColor string) {
+func (p *BGAParser) handleSendPriest(playerName, track string) {
 	playerID := p.getPlayerID(playerName)
-	track := parseCultTrack(cultColor)
+	if playerID == "" {
+		return
+	}
+
+	cultTrack := game.CultFire // default
+	switch track {
+	case "Fire":
+		cultTrack = game.CultFire
+	case "Water":
+		cultTrack = game.CultWater
+	case "Earth":
+		cultTrack = game.CultEarth
+	case "Air":
+		cultTrack = game.CultAir
+	}
+
+	// Look ahead for "gains X on the Cult of Y track" to determine the spot
+	spacesToClimb := 1 // Default to 1 (sacrifice) if not found
+
+	// Peek at next few lines
+	reGain := regexp.MustCompile(`gains (\d+) on the Cult of .* track`)
+
+	for i := 0; i < 3; i++ {
+		if p.currentLine+i >= len(p.lines) {
+			break
+		}
+		line := p.lines[p.currentLine+i]
+		if matches := reGain.FindStringSubmatch(line); len(matches) > 1 {
+			amount, _ := strconv.Atoi(matches[1])
+			spacesToClimb = amount
+			break
+		}
+		// Stop if we hit another action
+		if strings.Contains(line, "sends a Priest") || strings.Contains(line, "builds a") {
+			break
+		}
+	}
 
 	action := &game.SendPriestToCultAction{
 		BaseAction: game.BaseAction{
 			Type:     game.ActionSendPriestToCult,
 			PlayerID: playerID,
 		},
-		Track:         track,
-		SpacesToClimb: 3, // Placeholder
+		Track:         cultTrack,
+		SpacesToClimb: spacesToClimb,
 	}
 	p.items = append(p.items, ActionItem{Action: action})
 }
@@ -470,6 +581,7 @@ func (p *BGAParser) handleBurn(playerName string, amount int) {
 }
 
 func (p *BGAParser) handleFavorTile(playerName string) {
+	playerName = strings.TrimSpace(playerName)
 	playerID := p.getPlayerID(playerName)
 	if playerID == "" {
 		return
@@ -483,24 +595,20 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 	// on the Cult of Fire track (Favor tile)
 
 	var tileCode string
-	reFavorTileGain := regexp.MustCompile(`on the Cult of (.*) track \(Favor tile\)`)
-
 	// Consume up to 5 lines to find the track info
 	var amount int
 	var track string
 
+	// Regex for single-line gain: "Player gains X on the Cult of Y track (Favor tile)"
+	reFavorTileGain := regexp.MustCompile(`gains (\d+) on the Cult of (.*) track \(Favor tile\)`)
+
 	for i := 0; i < 5; i++ {
 		line := p.consumeLine()
 
-		// Check for amount (just a number)
-		if val, err := strconv.Atoi(line); err == nil {
-			amount = val
-			continue
-		}
-
-		// Check for track info
-		if matches := reFavorTileGain.FindStringSubmatch(line); len(matches) > 1 {
-			track = matches[1]
+		// Check for single-line gain
+		if matches := reFavorTileGain.FindStringSubmatch(line); len(matches) > 2 {
+			amount, _ = strconv.Atoi(matches[1])
+			track = matches[2]
 			break
 		}
 
@@ -548,24 +656,42 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 			if actItem.Action.GetPlayerID() == playerID {
 				// Check if it's a relevant action
 				switch actItem.Action.(type) {
-				case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
-					// Found it! Insert after this index
-					// Insert at i+1
+				case *game.UpgradeBuildingAction:
+					// Check for Auren Stronghold upgrade
+					if upgrade, ok := actItem.Action.(*game.UpgradeBuildingAction); ok {
+						if upgrade.NewBuildingType == models.BuildingStronghold {
+							// Check if player is Auren
+							if p.players[playerName] == "Auren" {
+								// Merge into compound action
+								compoundAction := &LogCompoundAction{
+									Actions: []game.Action{upgrade, action},
+								}
+								p.items[i] = ActionItem{Action: compoundAction}
+								inserted = true
+								break
+							}
+						}
+					}
+					// Fallthrough for other upgrades
 					p.items = append(p.items[:i+1], append([]LogItem{newItem}, p.items[i+1:]...)...)
 					inserted = true
-					goto Done
+				case *game.TransformAndBuildAction, *game.SetupDwellingAction:
+					// Insert after
+					p.items = append(p.items[:i+1], append([]LogItem{newItem}, p.items[i+1:]...)...)
+					inserted = true
+				}
+				if inserted {
+					break
 				}
 			}
 		}
 	}
 
-Done:
 	if !inserted {
 		// Fallback: append to end
 		p.items = append(p.items, newItem)
 	}
 }
-
 
 func (p *BGAParser) handleWitchesRide(playerName string, coordStr string) {
 	playerID := p.getPlayerID(playerName)
@@ -590,40 +716,9 @@ func (p *BGAParser) handleAdvanceDigging(playerName string) {
 	}
 
 	// Digging action is ActionAdvanceDigging
-	// But we need to consume the cost lines?
-	// The log says:
-	// felipebart advances on the Exchange Track for
-	// 2
-	// 5
-	// 1
-	// and earns
-	// 6
-
-	// We should consume these lines to keep the parser sync.
-	// We can consume until we hit "and earns" + 1 line?
-	// Or just consume until we hit a non-number?
-	// The cost lines are just numbers.
-
-	// Consume cost lines
-	for {
-		line := p.peekLine()
-		if line == "" {
-			break
-		}
-		// If it's a number, consume it
-		if _, err := strconv.Atoi(line); err == nil {
-			p.consumeLine()
-			continue
-		}
-		// If it starts with "and earns", consume it and the next line (reward)
-		if strings.HasPrefix(line, "and earns") {
-			p.consumeLine() // "and earns"
-			p.consumeLine() // Reward amount
-			break
-		}
-		// Otherwise stop
-		break
-	}
+	// Digging action is ActionAdvanceDigging
+	// The cost and reward are now in the single line matched by reExchangeTrack
+	// We don't need to consume lines anymore.
 
 	// Create action
 	// We don't have a specific LogAction for Digging, we can use the game action directly?
@@ -702,19 +797,24 @@ func (p *BGAParser) consumeInt() (int, error) {
 	return strconv.Atoi(line)
 }
 
+func (p *BGAParser) extractCoord(line string) string {
+	if strings.Contains(line, "[") && strings.Contains(line, "]") {
+		// Extract content between brackets
+		start := strings.Index(line, "[")
+		end := strings.Index(line, "]")
+		if start != -1 && end != -1 && end > start {
+			return line[start+1 : end]
+		}
+	}
+	return ""
+}
+
 func (p *BGAParser) consumeUntilCoord() string {
 	// Consume lines until we find one that looks like a coord [A1]
 	// Limit to avoid infinite loop
 	for i := 0; i < 5; i++ {
 		line := p.consumeLine()
-		if strings.Contains(line, "[") && strings.Contains(line, "]") {
-			// Extract content between brackets
-			start := strings.Index(line, "[")
-			end := strings.Index(line, "]")
-			if start != -1 && end != -1 && end > start {
-				return line[start+1 : end]
-			}
-		}
+		return p.extractCoord(line)
 	}
 	return ""
 }
@@ -724,4 +824,286 @@ func (p *BGAParser) peekLine() string {
 		return ""
 	}
 	return strings.TrimSpace(p.lines[p.currentLine])
+}
+
+func (p *BGAParser) parseAmount(s string) int {
+	// Extract first number from string
+	// e.g. "1 spade(s)" -> 1
+	// "2 workers" -> 2
+	re := regexp.MustCompile(`(\d+)`)
+	matches := re.FindStringSubmatch(s)
+	if len(matches) > 1 {
+		val, _ := strconv.Atoi(matches[1])
+		return val
+	}
+	return 0
+}
+func (p *BGAParser) handleReclaimPriest(playerID, line string) {
+	matches := reReclaimPriest.FindStringSubmatch(line)
+	if len(matches) > 2 {
+		cultName := matches[2]
+		track := parseCultTrack(cultName)
+		// Reclaiming implies placing on the "1" spot (order of the cult)
+		action := &game.SendPriestToCultAction{
+			BaseAction:    game.BaseAction{Type: game.ActionSendPriestToCult, PlayerID: playerID},
+			Track:         track,
+			SpacesToClimb: 1,
+		}
+		p.items = append(p.items, ActionItem{Action: action})
+	}
+}
+
+func (p *BGAParser) handleAurenStronghold(playerID, line string) {
+	matches := reAurenStronghold.FindStringSubmatch(line)
+	if len(matches) > 2 {
+		cultName := matches[2]
+		track := parseCultTrack(cultName)
+		// Auren Stronghold action: ACT-SH-[Track]
+		// We'll represent this as a SpecialAction
+		action := &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: fmt.Sprintf("ACT-SH-%s", getCultShortCode(track)),
+		}
+		p.items = append(p.items, ActionItem{Action: action})
+	}
+}
+
+func (p *BGAParser) handleFavorTileAction(playerID, line string) {
+	matches := reFavorTileAction.FindStringSubmatch(line)
+	if len(matches) > 3 {
+		amountStr := matches[2] // Usually 1
+		amount, _ := strconv.Atoi(amountStr)
+		cultName := matches[3]
+		track := parseCultTrack(cultName)
+		trackCode := getCultShortCode(track)
+		// Favor tile action: ACT-FAV11-[Track] (or just ACT-FAV-[Track])
+		// Let's use ACT-FAV-[Track] as it's cleaner
+		action := &LogFavorTileAction{
+			PlayerID: playerID,
+			Tile:     fmt.Sprintf("FAV-%s%d", trackCode, amount),
+		}
+
+		// Check if previous action was Auren Stronghold upgrade (UP-TH-C3)
+		// If so, merge this action into it
+		if len(p.items) > 0 {
+			lastItem := p.items[len(p.items)-1]
+			if actionItem, ok := lastItem.(ActionItem); ok {
+				if upgradeAction, ok := actionItem.Action.(*game.UpgradeBuildingAction); ok {
+					if upgradeAction.NewBuildingType == models.BuildingStronghold {
+						// Merge!
+						compoundAction := &LogCompoundAction{
+							Actions: []game.Action{upgradeAction, action},
+						}
+						p.items[len(p.items)-1] = ActionItem{Action: compoundAction}
+						return
+					}
+				}
+			}
+		}
+
+		p.items = append(p.items, ActionItem{Action: action})
+	}
+}
+
+func (p *BGAParser) handleBonusCardSpade(playerID, line string) {
+	// Look for coordinate in current line or next
+	coord := p.extractCoord(line)
+	if coord == "" {
+		coord = p.consumeUntilCoord()
+	}
+	if coord != "" {
+		// hex, _ := replay.ConvertLogCoordToAxial(coord)
+		// Bonus card spade: ACTS-[Coord]
+		// We can use BonusCardSpadeAction or LogSpecialAction
+		// Let's use LogSpecialAction to keep it simple for now, or use the existing BonusCardSpadeAction
+		// But generator for ACTS expects specific types.
+		// Let's use LogSpecialAction with code ACTS-[Coord]
+		action := &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: fmt.Sprintf("ACTS-%s", coord),
+		}
+		// Also need to handle the build part if present?
+		// Usually "transforms ... [C2]" implies transform.
+		// If they build, it would be a separate line "builds a Dwelling"?
+		// Or is it "transforms ... and builds"?
+		// The regex was "transforms ... for 1 spade ... [C2]"
+		// This is just the transform part.
+		p.items = append(p.items, ActionItem{Action: action})
+	}
+}
+
+func (p *BGAParser) handleBridgePower(playerID, line string) {
+	// Look ahead for coordinate [C2-D4]
+	// consumeUntilCoord might not work for bridge coords like [C2-D4]
+	// We need a custom consumer or check the next line
+	// Usually coords are on the next line or at end of line
+	// The log says "[C2-D4]"
+	reBridgeCoords := regexp.MustCompile(`\[([A-Z]\d+)-([A-Z]\d+)\]`)
+
+	// Check current line first
+	matches := reBridgeCoords.FindStringSubmatch(line)
+	if len(matches) == 0 {
+		// Check next line
+		if p.currentLine < len(p.lines) {
+			nextLine := p.lines[p.currentLine]
+			matches = reBridgeCoords.FindStringSubmatch(nextLine)
+			if len(matches) > 0 {
+				p.currentLine++
+			}
+		}
+	}
+
+	if len(matches) > 2 {
+		// Found coords
+		// Bridge power action is ACT1
+		// But we want to preserve the coords?
+		// Generator for ACT1 just outputs ACT1.
+		// If we want to show coords, we need a special handling or just output ACT1 and let the board state show the bridge?
+		// User said: "We did not parse the bridge power action properly here."
+		// Maybe they just want ACT1 to appear?
+		// Or maybe ACT1-[Coord]-[Coord]?
+		// Standard notation says ACT1.
+		// But if we want to be precise: ACT1-[C1]-[C2]
+		// Let's stick to ACT1 for now, as that's the power action code.
+		// The issue might be that we didn't detect it at all.
+		action := &LogPowerAction{
+			PlayerID:   playerID,
+			ActionCode: "ACT1",
+		}
+
+		p.items = append(p.items, ActionItem{Action: action})
+	}
+}
+
+func (p *BGAParser) handleTownFound(playerName string) {
+	// Set pending flag
+	p.townPending[playerName] = true
+}
+
+func (p *BGAParser) handleTownVP(playerName, vpStr string) {
+	// Check if town is pending
+	if !p.townPending[playerName] {
+		return
+	}
+	// Reset flag
+	p.townPending[playerName] = false
+
+	playerID := p.getPlayerID(playerName)
+	if playerID == "" {
+		return
+	}
+
+	vp, err := strconv.Atoi(vpStr)
+	if err != nil {
+		return
+	}
+
+	// Create LogTownAction
+	townAction := &LogTownAction{
+		PlayerID: playerID,
+		VP:       vp,
+	}
+
+	// Merge with previous action
+	// We look backwards for the last action by this player
+	// Similar to Favor Tile merge logic
+	inserted := false
+	for i := len(p.items) - 1; i >= 0; i-- {
+		item := p.items[i]
+		if actItem, ok := item.(ActionItem); ok {
+			// Check if this action belongs to the player
+			if actItem.Action.GetPlayerID() == playerID {
+				// Merge!
+				// Check if it's already a compound action
+				if compound, ok := actItem.Action.(*LogCompoundAction); ok {
+					compound.Actions = append(compound.Actions, townAction)
+					p.items[i] = ActionItem{Action: compound}
+				} else {
+					// Create new compound action
+					compound := &LogCompoundAction{
+						Actions: []game.Action{actItem.Action, townAction},
+					}
+					p.items[i] = ActionItem{Action: compound}
+				}
+				inserted = true
+				break
+			}
+		}
+	}
+
+	if !inserted {
+		// If no previous action found (unlikely), append as new item
+		p.items = append(p.items, ActionItem{Action: townAction})
+	}
+}
+
+func (p *BGAParser) handleConversion(playerName, spent, collects string) {
+	// spentStr: "1 power 0 Priests 0 workers"
+	// collectsStr: "0 Priests 0 workers 1 coins"
+
+	playerID := p.getPlayerID(playerName)
+	cost := p.parseResourceMap(spent)
+	reward := p.parseResourceMap(collects)
+
+	// Filter out zero values
+	for k, v := range cost {
+		if v == 0 {
+			delete(cost, k)
+		}
+	}
+	for k, v := range reward {
+		if v == 0 {
+			delete(reward, k)
+		}
+	}
+
+	if len(cost) == 0 && len(reward) == 0 {
+		return
+	}
+
+	action := &LogConversionAction{
+		PlayerID: playerID,
+		Cost:     cost,
+		Reward:   reward,
+	}
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) handleAlchemistsVP(playerID, vpStr, coinsStr string) {
+	vp, _ := strconv.Atoi(vpStr)
+	coins, _ := strconv.Atoi(coinsStr)
+
+	cost := map[models.ResourceType]int{models.ResourceVictoryPoint: vp}
+	reward := map[models.ResourceType]int{models.ResourceCoin: coins}
+
+	action := &LogConversionAction{
+		PlayerID: playerID,
+		Cost:     cost,
+		Reward:   reward,
+	}
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) parseResourceMap(s string) map[models.ResourceType]int {
+	res := make(map[models.ResourceType]int)
+	// Regex to find "N unit"
+	re := regexp.MustCompile(`(\d+) (\w+)`)
+	matches := re.FindAllStringSubmatch(s, -1)
+	for _, match := range matches {
+		amount, _ := strconv.Atoi(match[1])
+		unit := strings.ToLower(match[2])
+		switch unit {
+		case "power":
+			res[models.ResourcePower] += amount
+		case "priests", "priest":
+			res[models.ResourcePriest] += amount
+		case "workers", "worker":
+			res[models.ResourceWorker] += amount
+		case "coins", "coin":
+			res[models.ResourceCoin] += amount
+		case "vp":
+			res[models.ResourceVictoryPoint] += amount
+		}
+	}
+	return res
 }
