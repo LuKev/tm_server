@@ -91,11 +91,11 @@ func (v *GameValidator) SetupGame() error {
 
 // GameSetupInfo contains information extracted from the game log
 type GameSetupInfo struct {
-	Factions        []models.FactionType
-	ScoringTiles    map[int]string          // Round -> Scoring tile
-	RemovedBonuses  []string                // Removed bonus tiles
-	BonusCards      []game.BonusCardType    // Bonus cards used in the game
-	PlayerNames     map[int]string          // Player number -> name
+	Factions       []models.FactionType
+	ScoringTiles   map[int]string       // Round -> Scoring tile
+	RemovedBonuses []string             // Removed bonus tiles
+	BonusCards     []game.BonusCardType // Bonus cards used in the game
+	PlayerNames    map[int]string       // Player number -> name
 }
 
 func (v *GameValidator) extractSetupInfo() (*GameSetupInfo, error) {
@@ -172,7 +172,7 @@ func (v *GameValidator) extractSetupInfo() (*GameSetupInfo, error) {
 
 func (v *GameValidator) setupScoringTiles(info *GameSetupInfo) error {
 	v.GameState.ScoringTiles = game.NewScoringTileState()
-	
+
 	// Parse scoring tile information from log comments
 	// Format: "Round 2 scoring: SCORE9, TE >> 4"
 	for round := 1; round <= 6; round++ {
@@ -180,30 +180,30 @@ func (v *GameValidator) setupScoringTiles(info *GameSetupInfo) error {
 		if !ok {
 			continue
 		}
-		
+
 		// Parse the scoring tile code (e.g., "SCORE9" or "SCORE9,")
 		// The format is "SCORE9, TE >> 4" so we need to extract just the code
 		var scoreCode string
 		fmt.Sscanf(scoreStr, "%s", &scoreCode)
 		// Remove trailing comma if present
 		scoreCode = strings.TrimSuffix(scoreCode, ",")
-		
+
 		// Convert score code to scoring tile type
 		tile, err := parseScoringTile(scoreCode)
 		if err != nil {
 			return fmt.Errorf("failed to parse scoring tile %s for round %d: %v", scoreCode, round, err)
 		}
-		
+
 		v.GameState.ScoringTiles.Tiles = append(v.GameState.ScoringTiles.Tiles, tile)
 	}
-	
+
 	return nil
 }
 
 // parseScoringTile converts a scoring tile code to a ScoringTile
 func parseScoringTile(code string) (game.ScoringTile, error) {
 	allTiles := game.GetAllScoringTiles()
-	
+
 	// Map of scoring codes to tile types (verified from actual game log)
 	// Round 1 (SCORE2): TOWN >> 5 | 4 EARTH -> 1 SPADE
 	// Round 2 (SCORE9): TE >> 4 | 1 CULT_P -> 2 C
@@ -222,35 +222,35 @@ func parseScoringTile(code string) (game.ScoringTile, error) {
 		"SCORE8": game.ScoringTradingHouseAir,   // 3 VP per trading house | 4 steps Air = 1 spade (matches this game log)
 		"SCORE9": game.ScoringTemplePriest,      // 4 VP per temple | 2 coins per priest sent to cult
 	}
-	
+
 	tileType, ok := scoreMap[code]
 	if !ok {
 		return game.ScoringTile{}, fmt.Errorf("unknown scoring tile code: %s", code)
 	}
-	
+
 	// Find the matching tile from all tiles
 	for _, tile := range allTiles {
 		if tile.Type == tileType {
 			return tile, nil
 		}
 	}
-	
+
 	return game.ScoringTile{}, fmt.Errorf("scoring tile not found for type %v", tileType)
 }
 
 func (v *GameValidator) setupBonusCards(info *GameSetupInfo) error {
 	// All 10 bonus cards in BON1-BON10 order
 	allBonusCards := []game.BonusCardType{
-		game.BonusCardSpade,              // BON1 - Spade special action
-		game.BonusCardCultAdvance,        // BON2 - +4 C, cult advance action
-		game.BonusCard6Coins,             // BON3 - 6 coins income
-		game.BonusCardShipping,           // BON4 - +3 PW, 1 ship for round
-		game.BonusCardWorkerPower,        // BON5 - +1 W, +3 PW
+		game.BonusCardSpade,               // BON1 - Spade special action
+		game.BonusCardCultAdvance,         // BON2 - +4 C, cult advance action
+		game.BonusCard6Coins,              // BON3 - 6 coins income
+		game.BonusCardShipping,            // BON4 - +3 PW, 1 ship for round
+		game.BonusCardWorkerPower,         // BON5 - +1 W, +3 PW
 		game.BonusCardStrongholdSanctuary, // BON6 - +2 W, pass-vp:SH/SA
-		game.BonusCardTradingHouseVP,     // BON7 - +1 W, pass-vp:TP
-		game.BonusCardPriest,             // BON8 - +1 P income
-		game.BonusCardDwellingVP,         // BON9 - +2 C, pass-vp:D
-		game.BonusCardShippingVP,         // BON10 - +3 PW, pass-vp:shipping level
+		game.BonusCardTradingHouseVP,      // BON7 - +1 W, pass-vp:TP
+		game.BonusCardPriest,              // BON8 - +1 P income
+		game.BonusCardDwellingVP,          // BON9 - +2 C, pass-vp:D
+		game.BonusCardShippingVP,          // BON10 - +3 PW, pass-vp:shipping level
 	}
 
 	// If no bonus cards were removed, use all

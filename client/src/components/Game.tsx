@@ -131,7 +131,7 @@ export const Game = () => {
           if (factionType) {
             map.set(factionType, {
               playerNumber: index + 1,
-              // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+               
               vp: player.victoryPoints ?? player.VictoryPoints ?? 20
             })
           }

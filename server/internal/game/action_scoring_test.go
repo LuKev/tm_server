@@ -38,7 +38,7 @@ func TestBuildDwelling_Earth1VP(t *testing.T) {
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialVP := player.VictoryPoints
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -80,7 +80,7 @@ func TestBuildDwelling_NoEarth1(t *testing.T) {
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 
 	initialVP := player.VictoryPoints
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

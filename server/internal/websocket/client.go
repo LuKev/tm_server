@@ -151,7 +151,7 @@ func (c *Client) readPump() {
 			if len(meta.Players) < meta.MaxPlayers {
 				log.Printf("game %s not full: %d/%d players", p.GameID, len(meta.Players), meta.MaxPlayers)
 				errorMsg, _ := json.Marshal(map[string]any{
-					"type":    "error",
+					"type": "error",
 					"payload": map[string]any{
 						"error":       "game_not_full",
 						"playerCount": len(meta.Players),
@@ -192,7 +192,7 @@ func (c *Client) readPump() {
 				_ = c.deps.Lobby.JoinGame(meta.ID, p.Creator)
 				// Send game_created message to creator
 				createdMsg, _ := json.Marshal(map[string]any{
-					"type": "game_created",
+					"type":    "game_created",
 					"payload": map[string]string{"gameId": meta.ID, "playerId": p.Creator},
 				})
 				c.send <- createdMsg
@@ -217,7 +217,7 @@ func (c *Client) readPump() {
 			}
 			// Send success to the joining client
 			successMsg, _ := json.Marshal(map[string]any{
-				"type": "game_joined", 
+				"type":    "game_joined",
 				"payload": map[string]string{"gameId": p.ID, "playerId": p.Name},
 			})
 			c.send <- successMsg
@@ -229,7 +229,7 @@ func (c *Client) readPump() {
 		case "perform_action":
 			// Handle game actions (setup dwelling, transform & build, etc.)
 			log.Printf("Received perform_action from client %s: %s", c.id, string(env.Payload))
-			
+
 			// Parse action payload
 			var actionPayload struct {
 				Type     string `json:"type"`
@@ -244,19 +244,19 @@ func (c *Client) readPump() {
 			if err := json.Unmarshal(env.Payload, &actionPayload); err != nil {
 				log.Printf("perform_action payload error: %v", err)
 				errorMsg, _ := json.Marshal(map[string]any{
-					"type": "error",
+					"type":    "error",
 					"payload": "invalid_action_payload",
 				})
 				c.send <- errorMsg
 				continue
 			}
-			
+
 			// Use GameID from payload if present, otherwise default (for backward compatibility/testing)
 			gameID := actionPayload.GameID
 			if gameID == "" {
 				gameID = "2" // Fallback for now
 			}
-			
+
 			// Create appropriate action based on type
 			var action game.Action
 			switch actionPayload.Type {
@@ -264,7 +264,7 @@ func (c *Client) readPump() {
 				if actionPayload.Faction == "" {
 					log.Printf("select_faction missing faction")
 					errorMsg, _ := json.Marshal(map[string]any{
-						"type": "error",
+						"type":    "error",
 						"payload": "missing_faction",
 					})
 					c.send <- errorMsg
@@ -278,7 +278,7 @@ func (c *Client) readPump() {
 				if actionPayload.Hex == nil {
 					log.Printf("setup_dwelling missing hex")
 					errorMsg, _ := json.Marshal(map[string]any{
-						"type": "error",
+						"type":    "error",
 						"payload": "missing_hex",
 					})
 					c.send <- errorMsg
@@ -289,13 +289,13 @@ func (c *Client) readPump() {
 			default:
 				log.Printf("unknown action type: %s", actionPayload.Type)
 				errorMsg, _ := json.Marshal(map[string]any{
-					"type": "error",
+					"type":    "error",
 					"payload": "unknown_action_type",
 				})
 				c.send <- errorMsg
 				continue
 			}
-			
+
 			// Execute action via game manager
 			err := c.deps.Games.ExecuteAction(gameID, action)
 			if err != nil {
@@ -303,19 +303,19 @@ func (c *Client) readPump() {
 				errorMsg, _ := json.Marshal(map[string]any{
 					"type": "action_rejected",
 					"payload": map[string]string{
-						"error": err.Error(),
+						"error":  err.Error(),
 						"action": actionPayload.Type,
 					},
 				})
 				c.send <- errorMsg
 				continue
 			}
-			
+
 			// Action succeeded - broadcast updated game state to all clients
 			log.Printf("Action executed successfully: %s", actionPayload.Type)
 			gameState := c.deps.Games.SerializeGameState(gameID)
 			stateMsg, _ := json.Marshal(map[string]any{
-				"type": "game_state_update",
+				"type":    "game_state_update",
 				"payload": gameState,
 			})
 			c.hub.broadcast <- stateMsg

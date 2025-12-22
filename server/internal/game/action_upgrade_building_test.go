@@ -503,7 +503,7 @@ func TestUpgradeBuilding_FreesUpDwellingSlot(t *testing.T) {
 	// Verify we cannot build another dwelling (limit reached)
 	newDwellingHex := board.NewHex(3, 2)
 	gs.Map.TransformTerrain(newDwellingHex, faction.GetHomeTerrain())
-	buildAction := NewTransformAndBuildAction("player1", newDwellingHex, true)
+	buildAction := NewTransformAndBuildAction("player1", newDwellingHex, true, models.TerrainTypeUnknown)
 
 	err := buildAction.Execute(gs)
 	if err == nil {
@@ -537,7 +537,7 @@ func TestUpgradeBuilding_FreesUpDwellingSlot(t *testing.T) {
 	}
 
 	// Now we should be able to build another dwelling (slot freed up)
-	buildAction2 := NewTransformAndBuildAction("player1", newDwellingHex, true)
+	buildAction2 := NewTransformAndBuildAction("player1", newDwellingHex, true, models.TerrainTypeUnknown)
 
 	err = buildAction2.Execute(gs)
 	if err != nil {

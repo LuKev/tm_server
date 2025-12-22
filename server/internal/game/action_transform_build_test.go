@@ -44,7 +44,7 @@ func TestTransformAndBuild_ValidAction(t *testing.T) {
 	// (1,1) is Plains (already home terrain), so use (0,0) which is Forest
 	targetHex := board.NewHex(0, 0) // Forest terrain - directly adjacent to (0,1)
 	initialTerrain := gs.Map.GetHex(targetHex).Terrain
-	action := NewTransformAndBuildAction("player1", targetHex, true) // true = build dwelling
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown) // true = build dwelling
 
 	err := action.Execute(gs)
 	if err != nil {
@@ -82,7 +82,7 @@ func TestTransformAndBuild_NotAdjacent(t *testing.T) {
 	// Try to build at a non-adjacent location (5,5)
 	// (5,5) is far from (0,1) and not adjacent
 	targetHex := board.NewHex(5, 5)
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err == nil {
@@ -106,7 +106,7 @@ func TestTransformAndBuild_InsufficientResources(t *testing.T) {
 
 	// Use adjacent hex (0,0) which is Forest
 	targetHex := board.NewHex(0, 0)
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err == nil {
@@ -133,7 +133,7 @@ func TestTransformAndBuild_SkipTerraform(t *testing.T) {
 	// Ensure target is Plains (home terrain)
 	gs.Map.TransformTerrain(targetHex, models.TerrainPlains)
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	initialWorkers := player.Resources.Workers
 	err := action.Execute(gs)
@@ -176,7 +176,7 @@ func TestTransformAndBuild_PowerLeech(t *testing.T) {
 	// Player1 builds at (0, 1) - Desert
 	// (0, 1) is adjacent to (0, 0) and (1, 0)
 	targetHex := board.NewHex(0, 1)
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	// Record player2's initial power
 	initialPower2Bowl1 := player2.Resources.Power.Bowl1
@@ -219,7 +219,7 @@ func TestTransformAndBuild_HexAlreadyOccupied(t *testing.T) {
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 
 	// Try to build on occupied hex
-	action := NewTransformAndBuildAction("player1", initialHex, true)
+	action := NewTransformAndBuildAction("player1", initialHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err == nil {
@@ -243,7 +243,7 @@ func TestTransformAndBuild_TransformOnly(t *testing.T) {
 	// Transform adjacent hex WITHOUT building (buildDwelling = false)
 	// Use (0,0) which is Forest
 	targetHex := board.NewHex(0, 0)
-	action := NewTransformAndBuildAction("player1", targetHex, false)
+	action := NewTransformAndBuildAction("player1", targetHex, false, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err != nil {
@@ -287,7 +287,7 @@ func TestTransformAndBuild_InsufficientWorkersForTransform(t *testing.T) {
 	// Total terraform cost: 3 * 3 = 9 workers
 	// Plus 1 worker for dwelling = 10 workers total needed
 	// But player only has 2 workers
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err == nil {
@@ -320,7 +320,7 @@ func TestTransformAndBuild_IndirectAdjacency(t *testing.T) {
 	// This is indirectly adjacent to (0,1) with shipping level 1
 	targetHex := board.NewHex(1, 2)
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err != nil {
@@ -362,7 +362,7 @@ func TestTransformAndBuild_AdvancedDiggingLevel(t *testing.T) {
 	targetHex := board.NewHex(1, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	initialWorkers := player.Resources.Workers
 	err := action.Execute(gs)
@@ -415,7 +415,7 @@ func TestTransformAndBuild_PowerLeechOffers(t *testing.T) {
 	targetHex := board.NewHex(0, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	// Record player2's initial state
 	initialVP := player2.VictoryPoints
@@ -497,7 +497,7 @@ func TestTransformAndBuild_DeclineLeechOffer(t *testing.T) {
 	targetHex := board.NewHex(0, 0)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	// Record player2's initial state
 	initialVP := player2.VictoryPoints
@@ -588,7 +588,7 @@ func TestTransformAndBuild_MultipleAdjacentBuildings(t *testing.T) {
 	targetHex := board.NewHex(1, 2)
 	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err != nil {

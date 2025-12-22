@@ -299,10 +299,10 @@ export const PlayerBoards: React.FC = () => {
         });
 
         observer.observe(containerRef.current);
-        return () => observer.disconnect();
+        return () => { observer.disconnect(); };
     }, []);
 
-    if (!gameState || !gameState.players) return null;
+    if (!gameState?.players) return null;
 
     // Only show after faction selection
     if (gameState.phase === GamePhase.FactionSelection) {

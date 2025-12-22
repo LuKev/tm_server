@@ -50,7 +50,7 @@ func TestScoringTile_DwellingVP(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Build a dwelling
-	action := NewTransformAndBuildAction("player1", board.NewHex(0, 0), true)
+	action := NewTransformAndBuildAction("player1", board.NewHex(0, 0), true, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to build dwelling: %v", err)
@@ -196,7 +196,7 @@ func TestScoringTile_SpadesVP(t *testing.T) {
 	t.Logf("Expected spades for Giants: %d", expectedSpades)
 
 	// Transform terrain (Giants always use 2 spades regardless of distance)
-	action := NewTransformAndBuildAction("player1", hex, false)
+	action := NewTransformAndBuildAction("player1", hex, false, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to transform terrain: %v", err)

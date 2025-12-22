@@ -53,7 +53,7 @@ func TestDarklingsDig_BothBonuses(t *testing.T) {
 	initialPriests := player.Resources.Priests
 
 	// For Darklings, "dig 1" is just notation - create a normal TransformAndBuildAction
-	action := game.NewTransformAndBuildAction("Darklings", hex2, true)
+	action := game.NewTransformAndBuildAction("Darklings", hex2, true, models.TerrainTypeUnknown)
 
 	// For Darklings, no pending spades should be granted
 	if gs.PendingSpades != nil && gs.PendingSpades["Darklings"] > 0 {
@@ -147,7 +147,7 @@ func TestDarklingsDig_NoScoringTile(t *testing.T) {
 	gs.Map.GetHex(hex2).Terrain = models.TerrainPlains // 1 distance from Swamp
 
 	// For Darklings, "dig 1" is just notation - create a normal TransformAndBuildAction
-	action := game.NewTransformAndBuildAction("Darklings", hex2, true)
+	action := game.NewTransformAndBuildAction("Darklings", hex2, true, models.TerrainTypeUnknown)
 
 	// Execute the action
 	if err := action.Execute(gs); err != nil {

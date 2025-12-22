@@ -81,11 +81,11 @@ func TestBonusCard_PassVP_DwellingCard(t *testing.T) {
 	gs.Map.GetHex(hex3).Terrain = faction.GetHomeTerrain()
 
 	// Build 3 dwellings
-	action1 := NewTransformAndBuildAction("player1", hex1, true)
+	action1 := NewTransformAndBuildAction("player1", hex1, true, models.TerrainTypeUnknown)
 	action1.Execute(gs)
-	action2 := NewTransformAndBuildAction("player1", hex2, true)
+	action2 := NewTransformAndBuildAction("player1", hex2, true, models.TerrainTypeUnknown)
 	action2.Execute(gs)
-	action3 := NewTransformAndBuildAction("player1", hex3, true)
+	action3 := NewTransformAndBuildAction("player1", hex3, true, models.TerrainTypeUnknown)
 	action3.Execute(gs)
 
 	// Set up bonus cards
@@ -143,7 +143,7 @@ func TestBonusCard_PassVP_TradingHouseCard(t *testing.T) {
 	gs.Map.GetHex(hex1).Terrain = faction.GetHomeTerrain()
 
 	// Build dwelling
-	action1 := NewTransformAndBuildAction("player1", hex1, true)
+	action1 := NewTransformAndBuildAction("player1", hex1, true, models.TerrainTypeUnknown)
 	action1.Execute(gs)
 
 	// Upgrade to trading house

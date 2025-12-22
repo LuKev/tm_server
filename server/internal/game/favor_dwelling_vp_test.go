@@ -40,7 +40,7 @@ func TestFavorEarth1_BuildDwelling(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Execute build action
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to build dwelling: %v", err)

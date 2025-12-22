@@ -20,7 +20,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 	var powerModifier *PowerActionModifier
 	var mainActionFound bool
 	var auxiliaries []*AuxiliaryComponent // Collect these to add after main action
-	var digAmount int // Track "dig X" for transform-and-build actions
+	var digAmount int                     // Track "dig X" for transform-and-build actions
 
 	for i := 0; i < len(tokens); i++ {
 		token := strings.TrimSpace(tokens[i])
@@ -142,9 +142,9 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 			// These require special handling - create SpecialAction based on type
 			// Special actions: ACTW (Witches' Ride), ACTA (Auren cult advance), etc.
 			if strings.HasPrefix(actionType, "ACT") && !strings.HasPrefix(actionType, "ACT1") &&
-			   !strings.HasPrefix(actionType, "ACT2") && !strings.HasPrefix(actionType, "ACT3") &&
-			   !strings.HasPrefix(actionType, "ACT4") && !strings.HasPrefix(actionType, "ACT5") &&
-			   !strings.HasPrefix(actionType, "ACT6") {
+				!strings.HasPrefix(actionType, "ACT2") && !strings.HasPrefix(actionType, "ACT3") &&
+				!strings.HasPrefix(actionType, "ACT4") && !strings.HasPrefix(actionType, "ACT5") &&
+				!strings.HasPrefix(actionType, "ACT6") {
 				// Handle special faction actions
 				playerID := entry.GetPlayerID()
 				action, tokensConsumed, err := convertSpecialFactionAction(actionType, tokens, i, playerID, entry, gs)
@@ -194,7 +194,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 							Burned:          burnAmount,
 						}
 						burnAmount = 0 // Reset after using
-						continue        // Don't create main action component yet
+						continue       // Don't create main action component yet
 					}
 				}
 			}

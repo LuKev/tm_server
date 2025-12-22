@@ -50,7 +50,7 @@ func TestHalflings_RegularTransformScoring(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Transform (Halflings use 3 spades for distance 3)
-	action := NewTransformAndBuildAction("player1", targetHex, false)
+	action := NewTransformAndBuildAction("player1", targetHex, false, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("failed to transform: %v", err)
@@ -479,7 +479,7 @@ func TestAlchemists_PowerPerSpadeAfterStronghold(t *testing.T) {
 	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Distance 3 from Swamp
 
-	action := NewTransformAndBuildAction("player1", targetHex, false)
+	action := NewTransformAndBuildAction("player1", targetHex, false, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("transform failed: %v", err)
@@ -512,7 +512,7 @@ func TestAlchemists_PowerPerSpadeBeforeStronghold(t *testing.T) {
 
 	initialPower := player.Resources.Power.Bowl1
 
-	action := NewTransformAndBuildAction("player1", targetHex, false)
+	action := NewTransformAndBuildAction("player1", targetHex, false, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("transform failed: %v", err)
@@ -639,7 +639,7 @@ func TestAlchemists_ConversionDuringAction(t *testing.T) {
 	targetHex := board.NewHex(0, 0)
 	gs.Map.GetHex(targetHex).Terrain = faction.GetHomeTerrain()
 
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err = action.Execute(gs)
 	if err != nil {
 		t.Fatalf("build failed: %v", err)
@@ -992,7 +992,7 @@ func TestCultists_CultTrackSelection_OpponentAccepts(t *testing.T) {
 	// Cultists place a dwelling (triggers power leech)
 	cultistHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistHex).Terrain = cultistsFaction.GetHomeTerrain()
-	action := NewTransformAndBuildAction("cultists", cultistHex, true)
+	action := NewTransformAndBuildAction("cultists", cultistHex, true, models.TerrainTypeUnknown)
 	err = action.Execute(gs)
 	if err != nil {
 		t.Fatalf("build failed: %v", err)
@@ -1072,7 +1072,7 @@ func TestCultists_CultTrackSelection_AllOpponentsDecline(t *testing.T) {
 	// Cultists place a dwelling (triggers power leech)
 	cultistHex := board.NewHex(0, 0)
 	gs.Map.GetHex(cultistHex).Terrain = cultistsFaction.GetHomeTerrain()
-	action := NewTransformAndBuildAction("cultists", cultistHex, true)
+	action := NewTransformAndBuildAction("cultists", cultistHex, true, models.TerrainTypeUnknown)
 	err = action.Execute(gs)
 	if err != nil {
 		t.Fatalf("build failed: %v", err)
@@ -1572,14 +1572,14 @@ func TestFakirs_CarpetFlightBasic(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Try normal build action without skip - should fail (not adjacent)
-	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true)
+	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err := actionNoSkip.Execute(gs)
 	if err == nil {
 		t.Fatal("expected error for non-adjacent hex without skip")
 	}
 
 	// Use carpet flight (skip)
-	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true)
+	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true, models.TerrainTypeUnknown)
 	err = actionWithSkip.Execute(gs)
 	if err != nil {
 		t.Fatalf("carpet flight should work, got error: %v", err)
@@ -1630,7 +1630,7 @@ func TestFakirs_CarpetFlightAfterStronghold(t *testing.T) {
 	player.Resources.Priests = 2
 
 	// Use carpet flight
-	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false)
+	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("carpet flight with stronghold should work, got error: %v", err)
@@ -1731,14 +1731,14 @@ func TestDwarves_TunnelingBasic(t *testing.T) {
 	initialWorkers := player.Resources.Workers
 
 	// Try normal build action without skip - should fail (not adjacent)
-	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true)
+	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err := actionNoSkip.Execute(gs)
 	if err == nil {
 		t.Fatal("expected error for non-adjacent hex without skip")
 	}
 
 	// Use tunneling (skip)
-	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true)
+	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true, models.TerrainTypeUnknown)
 	err = actionWithSkip.Execute(gs)
 	if err != nil {
 		t.Fatalf("tunneling should work, got error: %v", err)
@@ -1801,7 +1801,7 @@ func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
 	// We verify the cost by checking resources spent in the action execution below
 
 	// Use tunneling with stronghold
-	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false)
+	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("tunneling with stronghold should work, got error: %v", err)
@@ -1921,7 +1921,7 @@ func TestDarklings_TerraformWithPriests(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Transform and build dwelling
-	action := NewTransformAndBuildAction("player1", targetHex, true)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("terraform should work for Darklings, got error: %v", err)
@@ -2374,7 +2374,7 @@ func TestChaosMagicians_DoubleTurnBasic(t *testing.T) {
 
 	// Create double turn: 1) Upgrade dwelling to trading house, 2) Transform and build
 	firstAction := NewUpgradeBuildingAction("player1", dwellingHex, models.BuildingTradingHouse)
-	secondAction := NewTransformAndBuildAction("player1", targetHex, true)
+	secondAction := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
 	action := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
 	action.FirstAction = firstAction
 	action.SecondAction = secondAction
@@ -2446,8 +2446,8 @@ func TestChaosMagicians_DoubleTurnTwoTransforms(t *testing.T) {
 	gs.Map.GetHex(targetHex2).Terrain = models.TerrainLake
 
 	// Create double turn with two transform actions
-	firstAction := NewTransformAndBuildAction("player1", targetHex1, true)
-	secondAction := NewTransformAndBuildAction("player1", targetHex2, true)
+	firstAction := NewTransformAndBuildAction("player1", targetHex1, true, models.TerrainTypeUnknown)
+	secondAction := NewTransformAndBuildAction("player1", targetHex2, true, models.TerrainTypeUnknown)
 	action := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
 	action.FirstAction = firstAction
 	action.SecondAction = secondAction
@@ -2518,7 +2518,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 	firstAction1 := NewUpgradeBuildingAction("player1", dwelling1Hex, models.BuildingTradingHouse)
 	targetHex1 := board.NewHex(2, 0)
 	gs.Map.GetHex(targetHex1).Terrain = models.TerrainForest
-	secondAction1 := NewTransformAndBuildAction("player1", targetHex1, false)
+	secondAction1 := NewTransformAndBuildAction("player1", targetHex1, false, models.TerrainTypeUnknown)
 	action1 := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
 	action1.FirstAction = firstAction1
 	action1.SecondAction = secondAction1
@@ -2532,7 +2532,7 @@ func TestChaosMagicians_DoubleTurnCanOnlyUseOnce(t *testing.T) {
 	firstAction2 := NewUpgradeBuildingAction("player1", dwelling2Hex, models.BuildingTradingHouse)
 	targetHex2 := board.NewHex(2, 1)
 	gs.Map.GetHex(targetHex2).Terrain = models.TerrainSwamp
-	secondAction2 := NewTransformAndBuildAction("player1", targetHex2, false)
+	secondAction2 := NewTransformAndBuildAction("player1", targetHex2, false, models.TerrainTypeUnknown)
 	action2 := NewSpecialAction("player1", SpecialActionChaosMagiciansDoubleTurn)
 	action2.FirstAction = firstAction2
 	action2.SecondAction = secondAction2

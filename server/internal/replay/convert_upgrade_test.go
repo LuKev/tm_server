@@ -94,9 +94,9 @@ func TestConvertAndUpgrade_WithFavorTile(t *testing.T) {
 	gs.AddPlayer("cultists", &factions.Cultists{})
 
 	player := gs.GetPlayer("cultists")
-	player.Resources.Coins = 4     // Start with 4 coins (need 5 total, will get 1 from converting 1W)
-	player.Resources.Workers = 3   // Need 3 workers (1 for conversion, 2 for Temple upgrade)
-	player.Resources.Priests = 0   // Temple doesn't need priests
+	player.Resources.Coins = 4   // Start with 4 coins (need 5 total, will get 1 from converting 1W)
+	player.Resources.Workers = 3 // Need 3 workers (1 for conversion, 2 for Temple upgrade)
+	player.Resources.Priests = 0 // Temple doesn't need priests
 	player.Resources.Power.Bowl3 = 0
 
 	// Place a trading house at F3 to upgrade to temple

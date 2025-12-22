@@ -99,7 +99,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 				// Standalone BON1 action (not combined with build) - skip
 				return nil, nil
 			}
-			
+
 			// BON2 provides cult advancement
 			if actionTypeStr == "BON2" {
 				cultTrackStr, hasCultTrack := params["cult_track"]
@@ -109,7 +109,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 					if err != nil {
 						return nil, fmt.Errorf("invalid cult track %s: %v", cultTrackStr, err)
 					}
-					
+
 					// Convert models.CultType to game.CultTrack
 					var gameCultTrack game.CultTrack
 					switch cultTrack {
@@ -122,7 +122,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 					case models.CultAir:
 						gameCultTrack = game.CultAir
 					}
-					
+
 					// Create special action to advance cult track by 1
 					return &game.SpecialAction{
 						BaseAction: game.BaseAction{
@@ -136,7 +136,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 				// Standalone BON2 without cult track - skip
 				return nil, nil
 			}
-			
+
 			// Other bonus card actions (BON3-BON10) - skip for now
 			return nil, nil
 		}
@@ -262,18 +262,18 @@ func convertBuildAction(playerID string, params map[string]string, isSetup bool,
 		if !isAdjacent {
 			// Dwarves can use tunneling
 			if _, ok := player.Faction.(*factions.Dwarves); ok {
-				return game.NewTransformAndBuildActionWithSkip(playerID, hex, true), nil
+				return game.NewTransformAndBuildActionWithSkip(playerID, hex, true, models.TerrainTypeUnknown), nil
 			}
 
 			// Fakirs can use carpet flight
 			if _, ok := player.Faction.(*factions.Fakirs); ok {
-				return game.NewTransformAndBuildActionWithSkip(playerID, hex, true), nil
+				return game.NewTransformAndBuildActionWithSkip(playerID, hex, true, models.TerrainTypeUnknown), nil
 			}
 		}
 	}
 
 	// During normal gameplay, building a dwelling on home terrain (no transformation needed)
-	return game.NewTransformAndBuildAction(playerID, hex, true), nil
+	return game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown), nil
 }
 
 func convertUpgradeAction(playerID string, params map[string]string, entry *LogEntry, gs *game.GameState) (game.Action, error) {
@@ -302,7 +302,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 	// Check if validation should be skipped (for compound convert+upgrade actions)
 	// Resources are already synced by the validator, so we just place the building
 	skipValidation := params["skip_validation"] == "true"
-	
+
 	// If there's a favor tile specified, this is a compound action:
 	// upgrade + select favor tile. Execute both immediately.
 	if favorTileStr, hasFavorTile := params["favor_tile"]; hasFavorTile {
@@ -716,7 +716,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 
 					// Now just build the dwelling (no transformation needed since we already did it)
 					// Use TransformAndBuildAction but the terrain is already correct
-					return game.NewTransformAndBuildAction(playerID, hex, true), nil
+					return game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown), nil
 				}
 			}
 
@@ -734,7 +734,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 
 	// Always return transform-and-build action - the action itself will check if transform is needed
 	// If terrain is already home terrain, it will skip transform automatically
-	return game.NewTransformAndBuildAction(playerID, hex, true), nil
+	return game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown), nil
 }
 
 func convertPassAction(playerID string, params map[string]string) (game.Action, error) {

@@ -843,7 +843,7 @@ func TestPowerActionSpade2_SplitTransformAndBuild(t *testing.T) {
 	gs.PowerActions.MarkUsed(PowerActionSpade2)
 
 	// Now build dwelling on D4 (should only cost dwelling resources)
-	buildAction := NewTransformAndBuildAction("player1", buildHex, true)
+	buildAction := NewTransformAndBuildAction("player1", buildHex, true, models.TerrainTypeUnknown)
 
 	err = buildAction.Execute(gs)
 	if err != nil {
