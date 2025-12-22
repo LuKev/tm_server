@@ -180,8 +180,8 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		remainingSpades := distance - freeSpades
 
 		// Darklings pay priests for terraform (1 priest per spade)
-		if darklings, ok := player.Faction.(*factions.Darklings); ok {
-			totalPriestsNeeded = darklings.GetTerraformCostInPriests(remainingSpades)
+		if player.Faction.GetType() == models.FactionDarklings {
+			totalPriestsNeeded = remainingSpades
 		} else {
 			// Other factions pay workers
 			// GetTerraformCost returns total workers needed (already accounts for distance)
@@ -307,8 +307,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		// Pay for remaining spades only
 		if remainingSpades > 0 {
 			// Darklings pay priests for terraform (instead of workers)
-			if darklings, ok := player.Faction.(*factions.Darklings); ok {
-				priestCost := darklings.GetTerraformCostInPriests(remainingSpades)
+			if player.Faction.GetType() == models.FactionDarklings {
+				priestCost := remainingSpades
 				player.Resources.Priests -= priestCost
 
 				// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)

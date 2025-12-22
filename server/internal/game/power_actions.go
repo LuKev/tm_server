@@ -342,8 +342,8 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	// Pay for remaining spades
 	if remainingSpades > 0 {
 		// Darklings pay priests (instead of workers)
-		if darklings, ok := player.Faction.(*factions.Darklings); ok {
-			priestsNeeded := darklings.GetTerraformCostInPriests(remainingSpades)
+		if player.Faction.GetType() == models.FactionDarklings {
+			priestsNeeded := remainingSpades
 			if player.Resources.Priests < priestsNeeded {
 				return fmt.Errorf("not enough priests: need %d, have %d", priestsNeeded, player.Resources.Priests)
 			}

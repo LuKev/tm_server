@@ -372,12 +372,11 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 
 	totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
 	remainingSpades := spadesNeeded - totalFreeSpades
-
 	// Validate and pay costs for remaining spades
 	if remainingSpades > 0 {
 		// Darklings pay priests for terraform (1 priest per spade)
-		if darklings, ok := player.Faction.(*factions.Darklings); ok {
-			priestCost := darklings.GetTerraformCostInPriests(remainingSpades)
+		if player.Faction.GetType() == models.FactionDarklings {
+			priestCost := remainingSpades
 			if player.Resources.Priests < priestCost {
 				return fmt.Errorf("not enough priests for terraform: need %d, have %d", priestCost, player.Resources.Priests)
 			}

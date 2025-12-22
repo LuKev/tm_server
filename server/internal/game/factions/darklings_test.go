@@ -107,26 +107,6 @@ func TestDarklings_PriestOrdinationLimits(t *testing.T) {
 	}
 }
 
-func TestDarklings_TerraformCostInPriests(t *testing.T) {
-	darklings := NewDarklings()
-
-	tests := []struct {
-		distance int
-		expected int
-	}{
-		{1, 1}, // 1 spade = 1 priest
-		{2, 2}, // 2 spades = 2 priests
-		{3, 3}, // 3 spades = 3 priests
-	}
-
-	for _, tt := range tests {
-		cost := darklings.GetTerraformCostInPriests(tt.distance)
-		if cost != tt.expected {
-			t.Errorf("GetTerraformCostInPriests(%d) = %d, want %d", tt.distance, cost, tt.expected)
-		}
-	}
-}
-
 func TestDarklings_TerraformCostReturnsZeroWorkers(t *testing.T) {
 	darklings := NewDarklings()
 

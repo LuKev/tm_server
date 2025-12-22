@@ -77,13 +77,6 @@ func (f *Darklings) UsePriestOrdination(workersToTrade int) (int, error) {
 	return workersToTrade, nil
 }
 
-// GetTerraformCostInPriests returns the priest cost for terraforming
-// Darklings pay priests instead of workers
-func (f *Darklings) GetTerraformCostInPriests(distance int) int {
-	// Darklings pay 1 priest per spade (instead of 3 workers per spade)
-	return distance
-}
-
 // GetTerraformCost overrides the base method
 // Darklings don't use workers for terraform, they use priests
 func (f *Darklings) GetTerraformCost(distance int) int {
