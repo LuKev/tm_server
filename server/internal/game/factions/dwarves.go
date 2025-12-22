@@ -64,14 +64,6 @@ func (f *Dwarves) HasStronghold() bool {
 	return f.hasStronghold
 }
 
-// GetTunnelingCost returns the worker cost for tunneling
-func (f *Dwarves) GetTunnelingCost() int {
-	if f.hasStronghold {
-		return 1 // After stronghold, only 1 extra worker
-	}
-	return 2 // Before stronghold, 2 extra workers
-}
-
 // CanTunnel returns whether Dwarves can use tunneling
 // Tunneling is always available for Dwarves (it's their core ability)
 func (f *Dwarves) CanTunnel() bool {

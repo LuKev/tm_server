@@ -90,8 +90,7 @@ func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 	gs.Map.TransformTerrain(a.TargetHex, targetTerrain)
 
 	// Award VP for spade (Halflings get +1 VP per spade)
-	vpBonus := halflings.GetVPPerSpade()
-	player.VictoryPoints += vpBonus
+	player.VictoryPoints += 1
 
 	// Award VP from scoring tile (if applicable)
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)

@@ -49,29 +49,6 @@ func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 	}
 }
 
-func TestDwarves_TunnelingCostBeforeStronghold(t *testing.T) {
-	dwarves := NewDwarves()
-
-	// Before stronghold, tunneling costs 2 extra workers
-	tunnelingCost := dwarves.GetTunnelingCost()
-	if tunnelingCost != 2 {
-		t.Errorf("expected 2 workers for tunneling before stronghold, got %d", tunnelingCost)
-	}
-}
-
-func TestDwarves_TunnelingCostAfterStronghold(t *testing.T) {
-	dwarves := NewDwarves()
-
-	// Build stronghold
-	dwarves.BuildStronghold()
-
-	// After stronghold, tunneling costs only 1 extra worker
-	tunnelingCost := dwarves.GetTunnelingCost()
-	if tunnelingCost != 1 {
-		t.Errorf("expected 1 worker for tunneling after stronghold, got %d", tunnelingCost)
-	}
-}
-
 func TestDwarves_CanTunnel(t *testing.T) {
 	dwarves := NewDwarves()
 

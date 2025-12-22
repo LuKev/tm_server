@@ -80,8 +80,3 @@ func (f *Halflings) CanUseStrongholdSpades() bool {
 func (f *Halflings) UseStrongholdSpades() int {
 	return 3 // Grant 3 spades
 }
-
-// GetVPPerSpade returns the VP bonus for each spade
-func (f *Halflings) GetVPPerSpade() int {
-	return 1 // Halflings get +1 VP per spade
-}

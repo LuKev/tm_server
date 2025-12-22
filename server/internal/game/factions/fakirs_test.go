@@ -97,16 +97,6 @@ func TestFakirs_MaxDiggingLevel(t *testing.T) {
 	}
 }
 
-func TestFakirs_CarpetFlightCost(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// Carpet flight costs 1 priest
-	cost := fakirs.GetCarpetFlightCost()
-	if cost != 1 {
-		t.Errorf("expected carpet flight to cost 1 priest, got %d", cost)
-	}
-}
-
 func TestFakirs_CarpetFlightRangeBeforeStronghold(t *testing.T) {
 	fakirs := NewFakirs()
 

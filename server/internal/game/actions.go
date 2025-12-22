@@ -132,7 +132,10 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 				return fmt.Errorf("target hex is not within tunneling range 1")
 			}
 			// Check if player has workers to pay
-			workerCost := dwarves.GetTunnelingCost()
+			workerCost := 2
+			if player.HasStrongholdAbility {
+				workerCost = 1
+			}
 			// This cost is in addition to transform/dwelling costs
 			// Just verify they have it here, will deduct later
 			if player.Resources.Workers < workerCost {
@@ -188,8 +191,12 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 
 	// Add tunneling cost to total if using skip (Dwarves)
 	if a.UseSkip {
-		if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
-			totalWorkersNeeded += dwarves.GetTunnelingCost()
+		if player.Faction.GetType() == models.FactionDwarves {
+			workerCost := 2
+			if player.HasStrongholdAbility {
+				workerCost = 1
+			}
+			totalWorkersNeeded += workerCost
 		}
 	}
 
@@ -248,9 +255,12 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			player.Resources.Priests -= 1
 			// Award VP bonus
 			player.VictoryPoints += 4
-		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+		} else if player.Faction.GetType() == models.FactionDwarves {
 			// Pay workers for tunneling
-			workerCost := dwarves.GetTunnelingCost()
+			workerCost := 2
+			if player.HasStrongholdAbility {
+				workerCost = 1
+			}
 			player.Resources.Workers -= workerCost
 			// Award VP bonus
 			player.VictoryPoints += 4

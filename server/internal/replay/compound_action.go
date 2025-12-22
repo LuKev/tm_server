@@ -416,7 +416,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
 				if fakirs.CanCarpetFlight() {
 					// Charge priest cost
-					priestCost := fakirs.GetCarpetFlightCost()
+					priestCost := 1
 					if player.Resources.Priests < priestCost {
 						return fmt.Errorf("not enough priests for carpet flight: need %d, have %d", priestCost, player.Resources.Priests)
 					}
@@ -434,7 +434,10 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 			if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
 				if dwarves.CanTunnel() {
 					// Charge worker cost
-					workerCost := dwarves.GetTunnelingCost()
+					workerCost := 2
+					if player.HasStrongholdAbility {
+						workerCost = 1
+					}
 					if player.Resources.Workers < workerCost {
 						return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
 					}

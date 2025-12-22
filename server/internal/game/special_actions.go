@@ -517,7 +517,10 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 			if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, 1) {
 				return fmt.Errorf("target hex is not within tunneling range 1")
 			}
-			workerCost := dwarves.GetTunnelingCost()
+			workerCost := 2
+			if player.HasStrongholdAbility {
+				workerCost = 1
+			}
 			if player.Resources.Workers < workerCost {
 				return fmt.Errorf("not enough workers for tunneling")
 			}
@@ -710,9 +713,12 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 			player.Resources.Priests -= 1
 			// Award VP bonus
 			player.VictoryPoints += 4
-		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+		} else if player.Faction.GetType() == models.FactionDwarves {
 			// Pay workers for tunneling
-			workerCost := dwarves.GetTunnelingCost()
+			workerCost := 2
+			if player.HasStrongholdAbility {
+				workerCost = 1
+			}
 			player.Resources.Workers -= workerCost
 			// Award VP bonus
 			player.VictoryPoints += 4

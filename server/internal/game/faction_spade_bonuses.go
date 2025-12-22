@@ -1,7 +1,6 @@
 package game
 
 import (
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -11,8 +10,9 @@ import (
 // - Alchemists: +2 power per spade (after building stronghold)
 func AwardFactionSpadeBonuses(player *Player, spadesUsed int) {
 	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
-	if halflings, ok := player.Faction.(*factions.Halflings); ok {
-		vpBonus := halflings.GetVPPerSpade() * spadesUsed
+	// Award faction-specific spade VP bonus (e.g., Halflings +1 VP per spade)
+	if player.Faction.GetType() == models.FactionHalflings {
+		vpBonus := 1 * spadesUsed
 		player.VictoryPoints += vpBonus
 	}
 

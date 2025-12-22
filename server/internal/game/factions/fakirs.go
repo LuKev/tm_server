@@ -101,11 +101,6 @@ func (f *Fakirs) HasStronghold() bool {
 	return f.hasStronghold
 }
 
-// GetCarpetFlightCost returns the priest cost for carpet flight
-func (f *Fakirs) GetCarpetFlightCost() int {
-	return 1 // Pay 1 priest to skip one space
-}
-
 // GetCarpetFlightRange returns how many spaces can be skipped
 // Base: 1 space
 // +1 if Stronghold built

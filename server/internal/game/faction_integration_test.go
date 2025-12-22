@@ -1780,6 +1780,7 @@ func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
 
 	// Build stronghold (reduces tunneling cost to 1 worker)
 	faction.BuildStronghold()
+	player.HasStrongholdAbility = true
 
 	// Place initial dwelling
 	initialHex := board.NewHex(0, 0)
@@ -1801,9 +1802,8 @@ func TestDwarves_TunnelingAfterStronghold(t *testing.T) {
 	initialVP := player.VictoryPoints
 
 	// Verify tunneling cost is 1 after stronghold
-	if faction.GetTunnelingCost() != 1 {
-		t.Errorf("expected tunneling cost 1 after stronghold, got %d", faction.GetTunnelingCost())
-	}
+	// Tunneling cost is handled by logic in actions/power_actions checking HasStrongholdAbility
+	// We verify the cost by checking resources spent in the action execution below
 
 	// Use tunneling with stronghold
 	action := NewTransformAndBuildActionWithSkip("player1", targetHex, false)

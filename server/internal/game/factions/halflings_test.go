@@ -98,16 +98,6 @@ func TestHalflings_StrongholdSpadesAfterBuilding(t *testing.T) {
 	}
 }
 
-func TestHalflings_VPPerSpade(t *testing.T) {
-	halflings := NewHalflings()
-
-	// Halflings get +1 VP per spade
-	vpPerSpade := halflings.GetVPPerSpade()
-	if vpPerSpade != 1 {
-		t.Errorf("expected 1 VP per spade, got %d", vpPerSpade)
-	}
-}
-
 func TestHalflings_StandardCosts(t *testing.T) {
 	halflings := NewHalflings()
 
