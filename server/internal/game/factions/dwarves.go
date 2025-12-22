@@ -72,11 +72,6 @@ func (f *Dwarves) GetTunnelingCost() int {
 	return 2 // Before stronghold, 2 extra workers
 }
 
-// GetTunnelingVPBonus returns the VP bonus for tunneling
-func (f *Dwarves) GetTunnelingVPBonus() int {
-	return 4 // 4 VP each time tunneling
-}
-
 // CanTunnel returns whether Dwarves can use tunneling
 // Tunneling is always available for Dwarves (it's their core ability)
 func (f *Dwarves) CanTunnel() bool {

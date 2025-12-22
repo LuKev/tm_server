@@ -42,15 +42,6 @@ func TestWitches_StartingResources(t *testing.T) {
 	}
 }
 
-func TestWitches_TownFoundingBonus(t *testing.T) {
-	witches := NewWitches()
-
-	bonus := witches.GetTownFoundingBonus()
-	if bonus != 5 {
-		t.Errorf("expected 5 VP bonus for founding town, got %d", bonus)
-	}
-}
-
 func TestWitches_StandardCosts(t *testing.T) {
 	witches := NewWitches()
 

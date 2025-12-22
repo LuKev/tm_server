@@ -69,26 +69,6 @@ func TestCultists_BuildStrongholdGrantsVP(t *testing.T) {
 	}
 }
 
-func TestCultists_CultAdvanceFromPowerLeech(t *testing.T) {
-	cultists := NewCultists()
-
-	// Cultists advance 1 space on cult track when opponents take power
-	cultAdvance := cultists.GetCultAdvanceFromPowerLeech()
-	if cultAdvance != 1 {
-		t.Errorf("expected 1 cult space advance, got %d", cultAdvance)
-	}
-}
-
-func TestCultists_PowerIfAllRefuse(t *testing.T) {
-	cultists := NewCultists()
-
-	// Cultists gain 1 power if all opponents refuse power
-	power := cultists.GetPowerIfAllRefuse()
-	if power != 1 {
-		t.Errorf("expected 1 power if all refuse, got %d", power)
-	}
-}
-
 func TestCultists_StandardCosts(t *testing.T) {
 	cultists := NewCultists()
 

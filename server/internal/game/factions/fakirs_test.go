@@ -153,16 +153,6 @@ func TestFakirs_CarpetFlightRangeWithBoth(t *testing.T) {
 	}
 }
 
-func TestFakirs_CarpetFlightVPBonus(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// Fakirs get 4 VP each time doing carpet flight
-	vpBonus := fakirs.GetCarpetFlightVPBonus()
-	if vpBonus != 4 {
-		t.Errorf("expected 4 VP for carpet flight, got %d", vpBonus)
-	}
-}
-
 func TestFakirs_CanCarpetFlight(t *testing.T) {
 	fakirs := NewFakirs()
 

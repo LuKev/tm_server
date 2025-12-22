@@ -7,32 +7,33 @@ import (
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // GameValidator validates a game replay against a log file
 type GameValidator struct {
-	GameState                    *game.GameState
-	LogEntries                   []*LogEntry
-	CurrentEntry                 int
-	Errors                       []ValidationError
-	IncomeApplied                bool           // Track if income has been applied for current round
+	GameState                        *game.GameState
+	LogEntries                       []*LogEntry
+	CurrentEntry                     int
+	Errors                           []ValidationError
+	IncomeApplied                    bool           // Track if income has been applied for current round
 	AlchemistsSpadesWithPowerGranted map[string]int // Track cult spades that had power granted during cult income
 }
 
 // ValidationError represents a validation error
 type ValidationError struct {
-	Line  int
-	Entry *LogEntry
-	Field string
+	Line     int
+	Entry    *LogEntry
+	Field    string
 	Expected interface{}
-	Actual interface{}
-	Message string
+	Actual   interface{}
+	Message  string
 }
 
 // NewGameValidator creates a new validator
 func NewGameValidator() *GameValidator {
 	return &GameValidator{
-		Errors:                       make([]ValidationError, 0),
+		Errors:                           make([]ValidationError, 0),
 		AlchemistsSpadesWithPowerGranted: make(map[string]int),
 	}
 }
@@ -61,7 +62,7 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	entry := v.LogEntries[v.CurrentEntry]
 	v.CurrentEntry++
-	
+
 	// Handle comment lines
 	if entry.IsComment {
 		return v.handleComment(entry)
@@ -86,37 +87,37 @@ func (v *GameValidator) ValidateNextEntry() error {
 
 	// Handle cult advancement entries (e.g., "+WATER", "+EARTH")
 	if strings.HasPrefix(entry.Action, "+") && !strings.Contains(entry.Action, "pass ") &&
-		!strings.Contains(entry.Action, ".") && 
+		!strings.Contains(entry.Action, ".") &&
 		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
-		strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) {
+			strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) {
 		return v.handleCultAdvancement(entry)
 	}
 
 	// Handle informational entries
-	if strings.Contains(entry.Action, "[opponent accepted power]") || 
-	   strings.Contains(entry.Action, "[all opponents declined power]") {
+	if strings.Contains(entry.Action, "[opponent accepted power]") ||
+		strings.Contains(entry.Action, "[all opponents declined power]") {
 		v.syncGameState(entry)
 		return nil
 	}
 
 	// Handle bonus card cult advancements (e.g., "action BON2. +WATER")
 	if strings.Contains(entry.Action, "action BON") &&
-	   (strings.Contains(entry.Action, "+FIRE") || strings.Contains(entry.Action, "+WATER") ||
-	    strings.Contains(entry.Action, "+EARTH") || strings.Contains(entry.Action, "+AIR")) {
+		(strings.Contains(entry.Action, "+FIRE") || strings.Contains(entry.Action, "+WATER") ||
+			strings.Contains(entry.Action, "+EARTH") || strings.Contains(entry.Action, "+AIR")) {
 		v.syncGameState(entry)
 		return nil
 	}
 
 	// Handle income phase
-	if entry.Action == "cult_income_for_faction" || 
-	   entry.Action == "other_income_for_faction" || 
-	   strings.HasSuffix(entry.Action, ". other_income_for_faction") {
+	if entry.Action == "cult_income_for_faction" ||
+		entry.Action == "other_income_for_faction" ||
+		strings.HasSuffix(entry.Action, ". other_income_for_faction") {
 		return v.handleIncome(entry)
 	}
 
 	// Handle standard actions
 	return v.handleAction(entry)
-}// handleComment handles comment lines in the log
+} // handleComment handles comment lines in the log
 func (v *GameValidator) handleComment(entry *LogEntry) error {
 	// Check if this is a "Round X income" comment
 	if len(entry.CommentText) > 5 && entry.CommentText[:5] == "Round" &&
@@ -224,8 +225,11 @@ func (v *GameValidator) handleIncome(entry *LogEntry) error {
 func (v *GameValidator) handleAlchemistsCultIncome(entry *LogEntry) {
 	player := v.GameState.GetPlayer(entry.GetPlayerID())
 	if player != nil {
-		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-			powerPerSpade := alchemists.GetPowerPerSpade()
+		if player.Faction.GetType() == models.FactionAlchemists {
+			powerPerSpade := 0
+			if player.HasStrongholdAbility {
+				powerPerSpade = 2
+			}
 			if powerPerSpade > 0 {
 				// Check if player has pending cult reward spades
 				if v.GameState.PendingCultRewardSpades != nil {
@@ -247,11 +251,11 @@ func (v *GameValidator) handleAlchemistsCultIncome(entry *LogEntry) {
 func (v *GameValidator) executeCompoundActionWithAlchemistsCheck(compound *CompoundAction, entry *LogEntry) error {
 	playerID := entry.GetPlayerID()
 	player := v.GameState.GetPlayer(playerID)
-	
+
 	// Check if this uses an Alchemists cult spade where power was already granted
 	var powerAlreadyGranted bool
 	var cultSpadesUsedInAction int
-	
+
 	if player != nil {
 		if _, ok := player.Faction.(*factions.Alchemists); ok {
 			if count, hasGranted := v.AlchemistsSpadesWithPowerGranted[playerID]; hasGranted && count > 0 {
@@ -513,8 +517,8 @@ func (v *GameValidator) ValidateState(entry *LogEntry) error {
 
 	// Validate Power Bowls
 	if playerState.Resources.Power.Bowl1 != entry.PowerBowls.Bowl1 ||
-	   playerState.Resources.Power.Bowl2 != entry.PowerBowls.Bowl2 ||
-	   playerState.Resources.Power.Bowl3 != entry.PowerBowls.Bowl3 {
+		playerState.Resources.Power.Bowl2 != entry.PowerBowls.Bowl2 ||
+		playerState.Resources.Power.Bowl3 != entry.PowerBowls.Bowl3 {
 		v.addError(v.CurrentEntry, entry, "PowerBowls",
 			fmt.Sprintf("%d/%d/%d", entry.PowerBowls.Bowl1, entry.PowerBowls.Bowl2, entry.PowerBowls.Bowl3),
 			fmt.Sprintf("%d/%d/%d", playerState.Resources.Power.Bowl1, playerState.Resources.Power.Bowl2, playerState.Resources.Power.Bowl3),
@@ -559,7 +563,7 @@ func (v *GameValidator) ValidateState(entry *LogEntry) error {
 	playerState.CultPositions[game.CultWater] = entry.CultTracks.Water
 	playerState.CultPositions[game.CultEarth] = entry.CultTracks.Earth
 	playerState.CultPositions[game.CultAir] = entry.CultTracks.Air
-	
+
 	// Also sync cult track state
 	v.GameState.CultTracks.PlayerPositions[entry.GetPlayerID()][game.CultFire] = entry.CultTracks.Fire
 	v.GameState.CultTracks.PlayerPositions[entry.GetPlayerID()][game.CultWater] = entry.CultTracks.Water
@@ -579,7 +583,7 @@ func (v *GameValidator) executeConvertFromAction(player *game.Player, actionStr 
 		if !strings.HasPrefix(part, "convert ") {
 			continue
 		}
-		
+
 		// Parse the convert amount from this part
 		// Format: "convert XPW to YC" or "convert XW to YC" or "convert XP to YW" or "convert XPW to YW"
 		var powerAmount, coinAmount, workerAmount, priestAmount int

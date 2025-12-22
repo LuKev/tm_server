@@ -43,29 +43,6 @@ func TestAlchemists_BuildStrongholdGrantsPower(t *testing.T) {
 	}
 }
 
-func TestAlchemists_PowerPerSpadeBeforeStronghold(t *testing.T) {
-	alchemists := NewAlchemists()
-
-	// Before stronghold, no bonus power per spade
-	powerPerSpade := alchemists.GetPowerPerSpade()
-	if powerPerSpade != 0 {
-		t.Errorf("expected 0 power per spade before stronghold, got %d", powerPerSpade)
-	}
-}
-
-func TestAlchemists_PowerPerSpadeAfterStronghold(t *testing.T) {
-	alchemists := NewAlchemists()
-
-	// Build stronghold
-	alchemists.BuildStronghold()
-
-	// After stronghold, gain 2 power per spade
-	powerPerSpade := alchemists.GetPowerPerSpade()
-	if powerPerSpade != 2 {
-		t.Errorf("expected 2 power per spade after stronghold, got %d", powerPerSpade)
-	}
-}
-
 func TestAlchemists_ConvertVPToCoins(t *testing.T) {
 	alchemists := NewAlchemists()
 

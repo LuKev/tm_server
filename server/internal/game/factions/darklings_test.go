@@ -127,26 +127,6 @@ func TestDarklings_TerraformCostInPriests(t *testing.T) {
 	}
 }
 
-func TestDarklings_TerraformVPBonus(t *testing.T) {
-	darklings := NewDarklings()
-
-	tests := []struct {
-		distance int
-		expected int
-	}{
-		{1, 2}, // 1 spade = 2 VP
-		{2, 4}, // 2 spades = 4 VP
-		{3, 6}, // 3 spades = 6 VP
-	}
-
-	for _, tt := range tests {
-		bonus := darklings.GetTerraformVPBonus(tt.distance)
-		if bonus != tt.expected {
-			t.Errorf("GetTerraformVPBonus(%d) = %d, want %d", tt.distance, bonus, tt.expected)
-		}
-	}
-}
-
 func TestDarklings_TerraformCostReturnsZeroWorkers(t *testing.T) {
 	darklings := NewDarklings()
 

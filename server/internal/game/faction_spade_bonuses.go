@@ -1,6 +1,9 @@
 package game
 
-import "github.com/lukev/tm_server/internal/game/factions"
+import (
+	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
+)
 
 // AwardFactionSpadeBonuses awards faction-specific bonuses for using spades.
 // This includes:
@@ -14,8 +17,9 @@ func AwardFactionSpadeBonuses(player *Player, spadesUsed int) {
 	}
 
 	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
-	if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-		powerBonus := alchemists.GetPowerPerSpade() * spadesUsed
+	// Award faction-specific spade power bonus (e.g., Alchemists +2 power per spade after stronghold)
+	if player.Faction.GetType() == models.FactionAlchemists && player.HasStrongholdAbility {
+		powerBonus := 2 * spadesUsed
 		if powerBonus > 0 {
 			player.Resources.GainPower(powerBonus)
 		}

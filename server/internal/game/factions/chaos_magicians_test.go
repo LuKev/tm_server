@@ -59,44 +59,6 @@ func TestChaosMagicians_CheapStronghold(t *testing.T) {
 	}
 }
 
-func TestChaosMagicians_FavorTilesForTemple(t *testing.T) {
-	cm := NewChaosMagicians()
-
-	// Chaos Magicians get 2 favor tiles for Temple (not standard 1)
-	favorTiles := cm.GetFavorTilesForTemple()
-	if favorTiles != 2 {
-		t.Errorf("expected 2 favor tiles for Temple, got %d", favorTiles)
-	}
-}
-
-func TestChaosMagicians_FavorTilesForSanctuary(t *testing.T) {
-	cm := NewChaosMagicians()
-
-	// Chaos Magicians get 2 favor tiles for Sanctuary (not standard 1)
-	favorTiles := cm.GetFavorTilesForSanctuary()
-	if favorTiles != 2 {
-		t.Errorf("expected 2 favor tiles for Sanctuary, got %d", favorTiles)
-	}
-}
-
-func TestChaosMagicians_StartsWithOneDwelling(t *testing.T) {
-	cm := NewChaosMagicians()
-
-	// Chaos Magicians start with only 1 dwelling
-	if !cm.StartsWithOneDwelling() {
-		t.Errorf("Chaos Magicians should start with only 1 dwelling")
-	}
-}
-
-func TestChaosMagicians_PlacesDwellingLast(t *testing.T) {
-	cm := NewChaosMagicians()
-
-	// Chaos Magicians place dwelling after all other players
-	if !cm.PlacesDwellingLast() {
-		t.Errorf("Chaos Magicians should place dwelling last")
-	}
-}
-
 func TestChaosMagicians_StandardCosts(t *testing.T) {
 	cm := NewChaosMagicians()
 

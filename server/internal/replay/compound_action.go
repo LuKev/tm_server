@@ -384,7 +384,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 			player.Resources.Priests -= priestCost
 
 			// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
-			vpBonus := darklings.GetTerraformVPBonus(remainingSpades)
+			vpBonus := remainingSpades * 2
 			player.VictoryPoints += vpBonus
 		} else {
 			// Other factions pay workers
@@ -423,8 +423,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 					player.Resources.Priests -= priestCost
 
 					// Award VP bonus
-					vpBonus := fakirs.GetCarpetFlightVPBonus()
-					player.VictoryPoints += vpBonus
+					player.VictoryPoints += 4
 
 					// Mark that skip ability was used this action
 					gs.SkipAbilityUsedThisAction[playerID] = true
@@ -442,8 +441,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 					player.Resources.Workers -= workerCost
 
 					// Award VP bonus
-					vpBonus := dwarves.GetTunnelingVPBonus()
-					player.VictoryPoints += vpBonus
+					player.VictoryPoints += 4
 
 					// Mark that skip ability was used this action
 					gs.SkipAbilityUsedThisAction[playerID] = true

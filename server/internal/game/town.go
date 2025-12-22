@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/board"
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -367,9 +366,8 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 	switch player.Faction.GetType() {
 	case models.FactionWitches:
 		// Witches get +5 VP per town formed
-		if witches, ok := player.Faction.(*factions.Witches); ok {
-			player.VictoryPoints += witches.GetTownFoundingBonus()
-		}
+		// Witches get +5 VP per town formed
+		player.VictoryPoints += 5
 	case models.FactionSwarmlings:
 		// Swarmlings get +3 workers per town formed
 		player.Resources.Workers += 3

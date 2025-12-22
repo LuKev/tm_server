@@ -73,27 +73,6 @@ func (f *ChaosMagicians) BuildStronghold() {
 	f.hasStronghold = true
 }
 
-// GetFavorTilesForTemple returns how many favor tiles to get when building Temple
-func (f *ChaosMagicians) GetFavorTilesForTemple() int {
-	return 2 // Chaos Magicians get 2 favor tiles (not standard 1)
-}
-
-// GetFavorTilesForSanctuary returns how many favor tiles to get when building Sanctuary
-func (f *ChaosMagicians) GetFavorTilesForSanctuary() int {
-	return 2 // Chaos Magicians get 2 favor tiles (not standard 1)
-}
-
-// StartsWithOneDwelling returns true - Chaos Magicians start with only 1 dwelling
-func (f *ChaosMagicians) StartsWithOneDwelling() bool {
-	return true
-}
-
-// PlacesDwellingLast returns true - Chaos Magicians place dwelling after all other players
-// NOTE: Game setup (Phase 1) uses this
-func (f *ChaosMagicians) PlacesDwellingLast() bool {
-	return true
-}
-
 // Income methods (Chaos Magicians-specific)
 
 func (f *ChaosMagicians) GetStrongholdIncome() Income {

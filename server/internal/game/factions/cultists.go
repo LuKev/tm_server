@@ -70,14 +70,3 @@ func (f *Cultists) BuildStronghold() int {
 	f.hasStronghold = true
 	return 7 // Grant 7 VP
 }
-
-// GetCultAdvanceFromPowerLeech returns how many cult spaces to advance
-// when opponents take power from Cultists' building
-func (f *Cultists) GetCultAdvanceFromPowerLeech() int {
-	return 1 // Advance 1 space on cult track (if at least one opponent takes power)
-}
-
-// GetPowerIfAllRefuse returns how much power to gain if all opponents refuse power
-func (f *Cultists) GetPowerIfAllRefuse() int {
-	return 1 // Gain 1 power if all opponents refuse
-}

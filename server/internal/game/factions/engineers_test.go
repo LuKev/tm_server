@@ -107,29 +107,6 @@ func TestEngineers_CheaperStrongholdCost(t *testing.T) {
 	}
 }
 
-func TestEngineers_VPPerBridgeBeforeStronghold(t *testing.T) {
-	engineers := NewEngineers()
-
-	// Before stronghold, no VP bonus
-	vpPerBridge := engineers.GetVPPerBridgeOnPass()
-	if vpPerBridge != 0 {
-		t.Errorf("expected 0 VP per bridge before stronghold, got %d", vpPerBridge)
-	}
-}
-
-func TestEngineers_VPPerBridgeAfterStronghold(t *testing.T) {
-	engineers := NewEngineers()
-
-	// Build stronghold
-	engineers.BuildStronghold()
-
-	// After stronghold, 3 VP per bridge
-	vpPerBridge := engineers.GetVPPerBridgeOnPass()
-	if vpPerBridge != 3 {
-		t.Errorf("expected 3 VP per bridge after stronghold, got %d", vpPerBridge)
-	}
-}
-
 func TestEngineers_HasStronghold(t *testing.T) {
 	engineers := NewEngineers()
 

@@ -45,8 +45,3 @@ func (f *Witches) GetStartingCultPositions() CultPositions {
 func (f *Witches) BuildStronghold() {
 	f.hasStronghold = true
 }
-
-// GetTownFoundingBonus returns the bonus VP for founding a town
-func (f *Witches) GetTownFoundingBonus() int {
-	return 5 // Witches get +5 VP when founding a town
-}

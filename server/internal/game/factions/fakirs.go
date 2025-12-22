@@ -129,11 +129,6 @@ func (f *Fakirs) SetShippingTownTile(has bool) {
 	f.hasShippingTownTile = has
 }
 
-// GetCarpetFlightVPBonus returns the VP bonus for carpet flight
-func (f *Fakirs) GetCarpetFlightVPBonus() int {
-	return 4 // 4 VP each time doing carpet flight
-}
-
 // CanCarpetFlight returns whether Fakirs can use carpet flight
 // Carpet flight is always available for Fakirs (it's their core ability)
 func (f *Fakirs) CanCarpetFlight() bool {

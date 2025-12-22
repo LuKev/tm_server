@@ -84,12 +84,6 @@ func (f *Darklings) GetTerraformCostInPriests(distance int) int {
 	return distance
 }
 
-// GetTerraformVPBonus returns the VP bonus for terraforming
-// Darklings get 2 VP per step of transformation
-func (f *Darklings) GetTerraformVPBonus(distance int) int {
-	return distance * 2 // 2 VP per spade
-}
-
 // GetTerraformCost overrides the base method
 // Darklings don't use workers for terraform, they use priests
 func (f *Darklings) GetTerraformCost(distance int) int {

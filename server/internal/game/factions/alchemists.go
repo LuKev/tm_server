@@ -47,14 +47,6 @@ func (f *Alchemists) BuildStronghold() int {
 	return 12 // 12 power gained via GainPower (cycles through bowls)
 }
 
-// GetPowerPerSpade returns how much power to gain per spade
-func (f *Alchemists) GetPowerPerSpade() int {
-	if f.hasStronghold {
-		return 2 // After stronghold, gain 2 power per spade
-	}
-	return 0 // Before stronghold, no bonus power
-}
-
 // ConvertVPToCoins trades Victory Points for Coins (Philosopher's Stone)
 // Rate: 1 VP -> 1 Coin
 func (f *Alchemists) ConvertVPToCoins(vp int) (coins int, err error) {

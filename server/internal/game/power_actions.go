@@ -301,17 +301,17 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 
 	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
-		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+		if player.Faction.GetType() == models.FactionFakirs {
 			// Pay priest for carpet flight
 			player.Resources.Priests -= 1
 			// Award VP bonus
-			player.VictoryPoints += fakirs.GetCarpetFlightVPBonus()
+			player.VictoryPoints += 4
 		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
 			// Pay workers for tunneling
 			workerCost := dwarves.GetTunnelingCost()
 			player.Resources.Workers -= workerCost
 			// Award VP bonus
-			player.VictoryPoints += dwarves.GetTunnelingVPBonus()
+			player.VictoryPoints += 4
 		}
 	}
 
@@ -344,7 +344,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 			player.Resources.Priests -= priestsNeeded
 
 			// Award Darklings VP bonus (+2 VP per remaining spade)
-			vpBonus := darklings.GetTerraformVPBonus(remainingSpades)
+			vpBonus := remainingSpades * 2
 			player.VictoryPoints += vpBonus
 		} else {
 			// Other factions pay workers

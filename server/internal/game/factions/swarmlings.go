@@ -99,11 +99,6 @@ func (f *Swarmlings) BuildStronghold() {
 	f.hasStronghold = true
 }
 
-// GetTownFoundingWorkerBonus returns the worker bonus for founding a town
-func (f *Swarmlings) GetTownFoundingWorkerBonus() int {
-	return 3 // Swarmlings get +3 workers when founding a town
-}
-
 // Income methods (Swarmlings-specific)
 
 func (f *Swarmlings) GetBaseFactionIncome() Income {

@@ -125,11 +125,3 @@ func (f *Engineers) GetTempleIncome(templeCount int) Income {
 func (f *Engineers) HasStronghold() bool {
 	return f.hasStronghold
 }
-
-// GetVPPerBridgeOnPass returns the VP bonus per bridge when passing
-func (f *Engineers) GetVPPerBridgeOnPass() int {
-	if f.hasStronghold {
-		return 3 // 3 VP per bridge connecting two structures
-	}
-	return 0
-}

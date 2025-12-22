@@ -3,7 +3,7 @@ package game
 import (
 	"fmt"
 
-	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // AcceptPowerLeechAction represents accepting a power leech offer
@@ -149,15 +149,15 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 		return
 	}
 
-	cultists, ok := player.Faction.(*factions.Cultists)
-	if !ok {
+	if player.Faction.GetType() != models.FactionCultists {
 		delete(gs.PendingCultistsLeech, cultistsPlayerID)
 		return
 	}
 
 	if bonus.AcceptedCount > 0 {
 		// At least one opponent accepted power - Cultists must choose a cult track to advance
-		_ = cultists.GetCultAdvanceFromPowerLeech() // Returns 1
+		// Cultists advance 1 space on cult track (if at least one opponent takes power)
+		_ = 1 // Returns 1
 
 		// Create pending cult track selection
 		gs.PendingCultistsCultSelection = &PendingCultistsCultSelection{
@@ -165,7 +165,8 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 		}
 	} else {
 		// All opponents declined - gain 1 power
-		powerBonus := cultists.GetPowerIfAllRefuse()
+		// Cultists gain 1 power if all opponents refuse power
+		powerBonus := 1
 		player.Resources.GainPower(powerBonus)
 	}
 

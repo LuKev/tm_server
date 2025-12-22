@@ -243,17 +243,17 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	// Step 0: Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
-		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+		if player.Faction.GetType() == models.FactionFakirs {
 			// Pay priest for carpet flight
 			player.Resources.Priests -= 1
 			// Award VP bonus
-			player.VictoryPoints += fakirs.GetCarpetFlightVPBonus()
+			player.VictoryPoints += 4
 		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
 			// Pay workers for tunneling
 			workerCost := dwarves.GetTunnelingCost()
 			player.Resources.Workers -= workerCost
 			// Award VP bonus
-			player.VictoryPoints += dwarves.GetTunnelingVPBonus()
+			player.VictoryPoints += 4
 		}
 	}
 
@@ -302,7 +302,7 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 				player.Resources.Priests -= priestCost
 
 				// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
-				vpBonus := darklings.GetTerraformVPBonus(remainingSpades)
+				vpBonus := remainingSpades * 2
 				player.VictoryPoints += vpBonus
 			} else {
 				// Other factions pay workers
@@ -467,13 +467,10 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
 		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
+		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
 		count := 1
-		if chaosMagicians, ok := player.Faction.(*factions.ChaosMagicians); ok {
-			if a.NewBuildingType == models.BuildingTemple {
-				count = chaosMagicians.GetFavorTilesForTemple()
-			} else {
-				count = chaosMagicians.GetFavorTilesForSanctuary()
-			}
+		if player.Faction.GetType() == models.FactionChaosMagicians {
+			count = 2
 		}
 
 		// Create pending favor tile selection
@@ -507,6 +504,12 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 			if cultists, ok := player.Faction.(*factions.Cultists); ok {
 				vpBonus := cultists.BuildStronghold()
 				player.VictoryPoints += vpBonus
+			}
+		case models.FactionEngineers:
+			// Engineers: Mark stronghold as built so GetVPPerBridgeOnPass() returns 3 VP/bridge
+			// Engineers get 3 VP per bridge if they have built their stronghold
+			if engineers, ok := player.Faction.(*factions.Engineers); ok {
+				engineers.BuildStronghold()
 			}
 		case models.FactionAuren:
 			// Auren gets an immediate favor tile when building stronghold
@@ -563,11 +566,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 					PlayerID: a.PlayerID,
 				}
 			}
-		case models.FactionEngineers:
-			// Engineers: Mark stronghold as built so GetVPPerBridgeOnPass() returns 3 VP/bridge
-			if engineers, ok := player.Faction.(*factions.Engineers); ok {
-				engineers.BuildStronghold()
-			}
+
 		case models.FactionGiants:
 			// Giants: Mark stronghold as built so ACTG special action becomes available
 			if giants, ok := player.Faction.(*factions.Giants); ok {
@@ -881,14 +880,10 @@ func (a *PassAction) Execute(gs *GameState) error {
 
 	// Award VP for Engineers stronghold ability (3 VP per bridge connecting two structures when passing)
 	if player.Faction.GetType() == models.FactionEngineers && player.HasStrongholdAbility {
-		engineersFaction, ok := player.Faction.(*factions.Engineers)
-		if ok {
-			vpPerBridge := engineersFaction.GetVPPerBridgeOnPass()
-			// Count only bridges connecting two of the engineer's structures
-			bridgeCount := gs.Map.CountBridgesConnectingPlayerStructures(a.PlayerID)
-			bridgeVP := bridgeCount * vpPerBridge
-			player.VictoryPoints += bridgeVP
-		}
+		// Count only bridges connecting two of the engineer's structures
+		bridgeCount := gs.Map.CountBridgesConnectingPlayerStructures(a.PlayerID)
+		bridgeVP := bridgeCount * 3
+		player.VictoryPoints += bridgeVP
 	}
 
 	return nil

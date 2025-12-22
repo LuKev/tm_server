@@ -72,16 +72,6 @@ func TestDwarves_TunnelingCostAfterStronghold(t *testing.T) {
 	}
 }
 
-func TestDwarves_TunnelingVPBonus(t *testing.T) {
-	dwarves := NewDwarves()
-
-	// Dwarves get 4 VP each time tunneling
-	vpBonus := dwarves.GetTunnelingVPBonus()
-	if vpBonus != 4 {
-		t.Errorf("expected 4 VP for tunneling, got %d", vpBonus)
-	}
-}
-
 func TestDwarves_CanTunnel(t *testing.T) {
 	dwarves := NewDwarves()
 

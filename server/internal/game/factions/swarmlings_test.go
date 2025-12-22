@@ -106,13 +106,3 @@ func TestSwarmlings_ExpensiveStrongholdCost(t *testing.T) {
 		t.Errorf("expected 8 coins for stronghold, got %d", strongholdCost.Coins)
 	}
 }
-
-func TestSwarmlings_TownFoundingWorkerBonus(t *testing.T) {
-	swarmlings := NewSwarmlings()
-
-	// Swarmlings get +3 workers when founding a town
-	workerBonus := swarmlings.GetTownFoundingWorkerBonus()
-	if workerBonus != 3 {
-		t.Errorf("expected 3 workers bonus for founding town, got %d", workerBonus)
-	}
-}
