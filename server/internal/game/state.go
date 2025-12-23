@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
@@ -14,30 +15,30 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map                              *board.TerraMysticaMap
-	Players                          map[string]*Player
-	Round                            int
-	Phase                            GamePhase
-	TurnOrder                        []string                           // Player IDs in turn order
-	CurrentPlayerIndex               int                                // Index into TurnOrder
-	PassOrder                        []string                           // Player IDs in the order they passed (for next round's turn order)
-	PowerActions                     *PowerActionState                  // Tracks which power actions have been used this round
-	CultTracks                       *CultTrackState                    // Tracks all players' cult track positions
-	FavorTiles                       *FavorTileState                    // Tracks available favor tiles and player selections
-	BonusCards                       *BonusCardState                    // Tracks available bonus cards and player selections
-	TownTiles                        *TownTileState                     // Tracks available town tiles
-	ScoringTiles                     *ScoringTileState                  // Tracks scoring tiles for each round
-	PendingLeechOffers               map[string][]*PowerLeechOffer      // Key: playerID who can accept
-	PendingTownFormations            map[string][]*PendingTownFormation // Key: playerID, Value: slice of pending towns (can have multiple simultaneous towns)
-	PendingSpades                    map[string]int                     // Key: playerID, Value: number of spades (from BON1, count for VP when used)
-	PendingCultRewardSpades          map[string]int                     // Key: playerID, Value: cult reward spades (don't count for VP)
-	PendingCultistsLeech             map[string]*CultistsLeechBonus     // Key: playerID (Cultists), tracks pending cult advance/power bonus
-	SkipAbilityUsedThisAction        map[string]bool                    // Key: playerID, Value: whether carpet flight/tunneling was used in current action (max 1 per action)
-	PendingFavorTileSelection        *PendingFavorTileSelection         // Player who needs to select favor tile(s)
-	PendingHalflingsSpades           *PendingHalflingsSpades            // Halflings player who needs to apply 3 stronghold spades
-	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  // Darklings player who needs to convert workers to priests
-	PendingCultistsCultSelection     *PendingCultistsCultSelection      // Cultists player who needs to select cult track for power leech bonus
-	ReplayMode                       map[string]bool                    // Key: playerID, Value: skip resource grants in town tile benefits (for replay validation)
+	Map                              *board.TerraMysticaMap             `json:"map"`
+	Players                          map[string]*Player                 `json:"players"`
+	Round                            int                                `json:"round"`
+	Phase                            GamePhase                          `json:"phase"`
+	TurnOrder                        []string                           `json:"turnOrder"`
+	CurrentPlayerIndex               int                                `json:"currentPlayerIndex"`
+	PassOrder                        []string                           `json:"passOrder"`
+	PowerActions                     *PowerActionState                  `json:"powerActions"`
+	CultTracks                       *CultTrackState                    `json:"cultTracks"`
+	FavorTiles                       *FavorTileState                    `json:"favorTiles"`
+	BonusCards                       *BonusCardState                    `json:"bonusCards"`
+	TownTiles                        *TownTileState                     `json:"townTiles"`
+	ScoringTiles                     *ScoringTileState                  `json:"scoringTiles"`
+	PendingLeechOffers               map[string][]*PowerLeechOffer      `json:"pendingLeechOffers"`
+	PendingTownFormations            map[string][]*PendingTownFormation `json:"pendingTownFormations"`
+	PendingSpades                    map[string]int                     `json:"pendingSpades"`
+	PendingCultRewardSpades          map[string]int                     `json:"pendingCultRewardSpades"`
+	PendingCultistsLeech             map[string]*CultistsLeechBonus     `json:"pendingCultistsLeech"`
+	SkipAbilityUsedThisAction        map[string]bool                    `json:"skipAbilityUsedThisAction"`
+	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
+	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
+	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
+	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
+	ReplayMode                       map[string]bool                    `json:"replayMode"`
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -108,20 +109,20 @@ const (
 
 // Player represents a player in the game
 type Player struct {
-	ID                   string
-	Faction              factions.Faction
-	Resources            *ResourcePool
-	ShippingLevel        int
-	DiggingLevel         int
-	BridgesBuilt         int                        // Number of bridges built (max 3)
-	CultPositions        map[CultTrack]int          // Position on each cult track (0-10)
-	HasStrongholdAbility bool                       // Whether the stronghold special ability is available
-	SpecialActionsUsed   map[SpecialActionType]bool // Track which special actions have been used this round
-	HasPassed            bool
-	VictoryPoints        int
-	Keys                 int                   // Keys for advancing to position 10 on cult tracks
-	TownsFormed          int                   // Number of towns formed
-	TownTiles            []models.TownTileType // Town tiles selected by this player
+	ID                   string                     `json:"id"`
+	Faction              factions.Faction           `json:"faction"`
+	Resources            *ResourcePool              `json:"resources"`
+	ShippingLevel        int                        `json:"shippingLevel"`
+	DiggingLevel         int                        `json:"diggingLevel"`
+	BridgesBuilt         int                        `json:"bridgesBuilt"`         // Number of bridges built (max 3)
+	CultPositions        map[CultTrack]int          `json:"cults"`                // Position on each cult track (0-10)
+	HasStrongholdAbility bool                       `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
+	SpecialActionsUsed   map[SpecialActionType]bool `json:"specialActionsUsed"`   // Track which special actions have been used this round
+	HasPassed            bool                       `json:"hasPassed"`
+	VictoryPoints        int                        `json:"victoryPoints"`
+	Keys                 int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
+	TownsFormed          int                        `json:"townsFormed"` // Number of towns formed
+	TownTiles            []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
 }
 
 // NewGameState creates a new game state with an initialized map
@@ -139,6 +140,7 @@ func NewGameState() *GameState {
 		ScoringTiles:              NewScoringTileState(),
 		PendingLeechOffers:        make(map[string][]*PowerLeechOffer),
 		PendingTownFormations:     make(map[string][]*PendingTownFormation),
+		PendingSpades:             make(map[string]int),
 		SkipAbilityUsedThisAction: make(map[string]bool),
 	}
 }

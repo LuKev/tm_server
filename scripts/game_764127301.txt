@@ -1,0 +1,921 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+deragned selected the faction Halflings on plains to play in position #1
+kezilu selected the faction Auren on forest to play in position #2
+Redrame selected the faction Chaos Magicians on wasteland to play in position #3
+Locky_91 selected the faction Alchemists on swamp to play in position #4
+Redrame bids on the Alchemists with 40 VP Starting VPs
+Locky_91 bids on the Alchemists with 33 VP Starting VPs
+deragned bids on the Alchemists with 40 VP Starting VPs
+kezilu bids on the Alchemists with 33 VP Starting VPs
+Redrame bids on the Auren with 15 VP Starting VPs
+Locky_91 bids on the Auren with 37 VP Starting VPs
+deragned bids on the Auren with 39 VP Starting VPs
+kezilu bids on the Auren with 40 VP Starting VPs
+Redrame bids on the Chaos Magicians with 26 VP Starting VPs
+Locky_91 bids on the Chaos Magicians with 40 VP Starting VPs
+deragned bids on the Chaos Magicians with 38 VP Starting VPs
+kezilu bids on the Chaos Magicians with 28 VP Starting VPs
+Redrame bids on the Halflings with 29 VP Starting VPs
+Locky_91 bids on the Halflings with 26 VP Starting VPs
+deragned bids on the Halflings with 30 VP Starting VPs
+kezilu bids on the Halflings with 30 VP Starting VPs
+deragned is playing the Halflings Faction (with 32 VP Starting VPs)
+Redrame is playing the Auren Faction (with 40 VP Starting VPs)
+kezilu is playing the Chaos Magicians Faction (with 40 VP Starting VPs)
+Locky_91 is playing the Alchemists Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+deragned places a Dwelling [F5]
+Redrame places a Dwelling [F4]
+Locky_91 places a Dwelling [E5]
+Locky_91 places a Dwelling [B5]
+Redrame places a Dwelling [C3]
+deragned places a Dwelling [E6]
+kezilu places a Dwelling [D4]
+Locky_91 chooses 1 Bonus card
+kezilu chooses 1 Bonus card
+Redrame chooses 1 Bonus card
+deragned chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deragned gets 4 workers 0 Priests 0 coins 0 power (Income)
+kezilu gets 2 workers 0 Priests 2 coins 0 power (Income)
+Redrame gets 5 workers 0 Priests 0 coins 0 power (Income)
+Locky_91 gets 3 workers 1 Priests 0 coins 0 power (Income)
+~ Action phase ~
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+kezilu gets 1 power via Structures [E6]
+Redrame gets 1 power via Structures [E6]
+Locky_91 gets 1 power via Structures [E6]
+deragned declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Redrame sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+Redrame spends 4 power to get 1 spade(s) (Power action)
+Redrame transforms a Terrain space mountains → forest for 1 spade(s) [E7]
+Redrame builds a Dwelling for 1 workers 2 coins [E7]
+Redrame gets 2 VP (Scoring tile bonus)
+deragned pays 1 VP and gets 2 power via Structures [E7]
+kezilu gets 1 power via Structures [E7]
+Redrame declines doing Conversions
+kezilu sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+kezilu spends 3 power to collect 1 Priests (Power action)
+kezilu declines doing Conversions
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+deragned pays 1 VP and gets 2 power via Structures [E5]
+Locky_91 declines doing Conversions
+deragned sacrificed 5 power in Bowl 2 to get 5 power from Bowl 2 to Bowl 3
+deragned spends 6 power to get 2 spade(s) (Power action)
+deragned transforms a Terrain space desert → plains for 1 spade(s) [F3]
+deragned earns 1 VP (Halflings Ability)
+deragned transforms a Terrain space swamp → plains for 1 spade(s) [G5]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [F3]
+deragned gets 2 VP (Scoring tile bonus)
+deragned declines doing Conversions
+Redrame gets 1 power via Structures [F3]
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+Locky_91 pays 1 VP and gets 2 power via Structures [F3]
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Redrame upgrades a Dwelling to a Trading house for 2 workers 3 coins [E7]
+deragned pays 1 VP and gets 2 power via Structures [E7]
+kezilu gets 1 power via Structures [E7]
+Redrame declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+kezilu upgrades a Dwelling to a Trading house for 2 workers 3 coins [D4]
+deragned pays 1 VP and gets 2 power via Structures [D4]
+Redrame pays 2 VP and gets 3 power via Structures [D4]
+kezilu declines doing Conversions
+Locky_91 upgrades a Trading house to a Temple for 2 workers 5 coins [E5]
+deragned pays 2 VP and gets 3 power via Structures [E5]
+Locky_91 takes a Favor tile
+Locky_91 gains 1 on the Cult of Earth track (Favor tile)
+Locky_91 declines doing Conversions
+deragned upgrades a Trading house to a Temple for 2 workers 5 coins [E6]
+kezilu pays 1 VP and gets 2 power via Structures [E6]
+Redrame pays 2 VP and gets 3 power via Structures [E6]
+Locky_91 pays 1 VP and gets 2 power via Structures [E6]
+deragned takes a Favor tile
+deragned gains 2 on the Cult of Earth track (Favor tile) and earns 1 power
+deragned declines doing Conversions
+Redrame upgrades a Trading house to a Temple for 2 workers 5 coins [E7]
+deragned pays 1 VP and gets 2 power via Structures [E7]
+kezilu pays 1 VP and gets 2 power via Structures [E7]
+Redrame takes a Favor tile
+Redrame gains 1 on the Cult of Fire track (Favor tile)
+Redrame declines doing Conversions
+kezilu upgrades a Trading house to a Temple for 2 workers 5 coins [D4]
+deragned pays 1 VP and gets 2 power via Structures [D4]
+Redrame pays 2 VP and gets 3 power via Structures [D4]
+kezilu takes a Favor tile
+kezilu gains 1 on the Cult of Fire track (Favor tile) and earns 1 power
+kezilu takes another Favor tile (Chaos Magicians ability)
+kezilu takes a Favor tile
+kezilu gains 2 on the Cult of Earth track (Favor tile)
+kezilu declines doing Conversions
+Locky_91 cancels their move
+Locky_91 cancels their move
+Locky_91 advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Locky_91 declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [G5]
+deragned gets 2 VP (Scoring tile bonus)
+deragned declines doing Conversions
+Redrame cancels their move
+Redrame passes and becomes the first player for the next round
+Redrame gets 0 VP (Bonus card)
+Redrame chooses 1 Bonus card and gets 1 coins
+Redrame declines doing Conversions
+kezilu sends a Priest to the Order of the Cult of Fire. Forever!
+kezilu gains 3 on the Cult of Fire track and earns 2 power
+kezilu declines doing Conversions
+Locky_91 sacrificed 5 power in Bowl 2 to get 5 power from Bowl 2 to Bowl 3
+Locky_91 converts 1 VP into 1 coins (Alchemists ability)
+Locky_91 does some Conversions (spent: 5 power 0 Priests 0 workers ; collects: 1 Priests  0 workers 0 coins)
+Locky_91 advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+Locky_91 declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [H7]
+deragned gets 2 VP (Scoring tile bonus)
+deragned declines doing Conversions
+kezilu sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+kezilu does some Conversions (spent: 5 power 0 Priests 0 workers ; collects: 1 Priests  0 workers 0 coins)
+kezilu advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+kezilu declines doing Conversions
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 builds a Dwelling for 1 workers 2 coins [B3]
+Locky_91 gets 2 VP (Scoring tile bonus)
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+deragned spends 4 power to collect 7 coins (Power action)
+deragned declines doing Conversions
+kezilu transforms a Terrain space mountains → wasteland for 1 spade(s) (Bonus card action) [C2]
+kezilu builds a Dwelling for 1 workers 2 coins [C2]
+kezilu gets 2 VP (Scoring tile bonus)
+Locky_91 gets 1 power via Structures [C2]
+kezilu declines doing Conversions
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 builds a Dwelling for 1 workers 2 coins [C1]
+Locky_91 gets 2 VP (Scoring tile bonus)
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+deragned passes
+deragned gets 0 VP (Bonus card)
+deragned chooses 1 Bonus card and gets 1 coins
+deragned declines doing Conversions
+kezilu passes
+kezilu chooses 1 Bonus card
+kezilu declines doing Conversions
+Locky_91 passes
+Locky_91 chooses 1 Bonus card
+Locky_91 declines doing Conversions
+~ Cleanup phase ~
+kezilu gets 4 power (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deragned gets 6 workers 1 Priests 2 coins 1 power (Income)
+kezilu gets 5 workers 1 Priests 3 coins 1 power (Income)
+Redrame gets 3 workers 1 Priests 9 coins 0 power (Income)
+Locky_91 gets 4 workers 1 Priests 2 coins 0 power (Income)
+~ Action phase ~
+Redrame advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Redrame declines doing Conversions
+deragned cancels their move
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+deragned gets 3 VP (Scoring tile bonus)
+Redrame gets 1 power via Structures [F3]
+Locky_91 pays 1 VP and gets 2 power via Structures [F3]
+deragned declines doing Conversions
+kezilu sends a Priest to the Order of the Cult of Earth. Forever!
+kezilu gains 3 on the Cult of Earth track and earns 3 power
+kezilu declines doing Conversions
+Locky_91 converts 3 VP into 3 coins (Alchemists ability)
+Locky_91 advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Locky_91 declines doing Conversions
+Redrame cancels their move
+Redrame cancels their move
+Redrame builds a Dwelling for 1 workers 2 coins [C4]
+Locky_91 gets 1 power via Structures [C4]
+Redrame declines doing Conversions
+deragned upgrades a Trading house to a Temple for 2 workers 5 coins [F3]
+Redrame gets 1 power via Structures [F3]
+Locky_91 pays 1 VP and gets 2 power via Structures [F3]
+deragned takes a Favor tile
+deragned gains 1 on the Cult of Earth track (Favor tile)
+deragned declines doing Conversions
+kezilu transforms a Terrain space desert → wasteland for 3 workers → 1 spade(s) [D3]
+kezilu builds a Dwelling for 1 workers 2 coins [D3]
+Locky_91 gets 1 power via Structures [D3]
+kezilu declines doing Conversions
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 builds a Dwelling for 1 workers 2 coins [A8]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+Redrame sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Redrame spends 6 power to get 2 spade(s) (Power action)
+Redrame transforms a Terrain space lakes → forest for 1 spade(s) [D5]
+Redrame transforms a Terrain space lakes → forest for 1 spade(s) [H4]
+Redrame builds a Dwelling for 1 workers 2 coins [D5]
+kezilu pays 1 VP and gets 2 power via Structures [D5]
+Redrame declines doing Conversions
+deragned sends a Priest to the Order of the Cult of Air. Forever!
+deragned gains 3 on the Cult of Air track and earns 1 power
+deragned declines doing Conversions
+kezilu spends 4 power to collect 7 coins (Power action)
+kezilu declines doing Conversions
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 transforms a Terrain space lakes → swamp for 1 spade(s) (Bonus card action) [D2]
+Locky_91 builds a Dwelling for 1 workers 2 coins [D2]
+Locky_91 gets 2 VP (Favor tile bonus)
+kezilu gets 1 power via Structures [D2]
+Locky_91 declines doing Conversions
+Redrame builds a Dwelling for 1 workers 2 coins [H4]
+Redrame declines doing Conversions
+deragned passes and becomes the first player for the next round
+deragned gets 3 VP (Bonus card)
+deragned chooses 1 Bonus card and gets 2 coins
+deragned declines doing Conversions
+kezilu builds a Dwelling for 1 workers 2 coins [E3]
+Locky_91 gets 1 power via Structures [E3]
+kezilu declines doing Conversions
+Locky_91 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Locky_91 spends 4 power to collect 2 workers (Power action)
+Locky_91 declines doing Conversions
+Redrame builds a Dwelling for 1 workers 2 coins [G3]
+Redrame declines doing Conversions
+kezilu passes
+kezilu gets 0 VP (Bonus card)
+kezilu chooses 1 Bonus card
+kezilu declines doing Conversions
+Locky_91 passes
+Locky_91 chooses 1 Bonus card
+Locky_91 declines doing Conversions
+Redrame cancels their move
+Redrame upgrades a Dwelling to a Trading house for 2 workers 3 coins [C3]
+Redrame gets 3 VP (Scoring tile bonus)
+kezilu pays 1 VP and gets 2 power via Structures [C3]
+Redrame declines doing Conversions
+Redrame passes
+Redrame chooses 1 Bonus card
+Redrame declines doing Conversions
+~ Cleanup phase ~
+deragned gets 1 spade(s) (Cult bonus)
+deragned transforms a Terrain space wasteland → desert for 1 spade(s) [G2]
+deragned earns 1 VP (Halflings Ability)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deragned gets 5 workers 2 Priests 0 coins 4 power (Income)
+kezilu gets 5 workers 1 Priests 5 coins 1 power (Income)
+Redrame gets 6 workers 1 Priests 7 coins 1 power (Income)
+Locky_91 gets 8 workers 1 Priests 0 coins 0 power (Income)
+~ Action phase ~
+deragned advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+deragned declines doing Conversions
+kezilu upgrades a Temple to a Sanctuary for 4 workers 8 coins [D4]
+kezilu gets 5 VP (Scoring tile bonus)
+kezilu declines doing Conversions
+deragned pays 1 VP and gets 2 power via Structures [D4]
+Redrame pays 4 VP and gets 5 power via Structures [D4]
+kezilu takes a Favor tile
+kezilu gains 1 on the Cult of Earth track (Favor tile)
+kezilu takes another Favor tile (Chaos Magicians ability)
+kezilu takes a Favor tile
+kezilu gains 2 on the Cult of Fire track (Favor tile) and earns 2 power
+kezilu declines doing Conversions
+Locky_91 converts 3 VP into 3 coins (Alchemists ability)
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [C1]
+kezilu gets 1 power via Structures [C1]
+Locky_91 declines doing Conversions
+Redrame upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [C3]
+Redrame gets 5 VP (Scoring tile bonus)
+kezilu pays 1 VP and gets 2 power via Structures [C3]
+kezilu Power gain via Structures is capped from 3 power to 2 power
+Redrame takes a Favor tile
+Redrame gains 1 on the Cult of Water track (Favor tile)
+Redrame founds a Town [D5]
+Redrame gains 2 on the Cult of Fire track and earns 1 power
+Redrame gains 2 on the Cult of Air track and earns 1 power
+Redrame gains 2 on the Cult of Earth track
+Redrame gains 2 on the Cult of Water track and earns 1 power
+Redrame gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+Redrame declines doing Conversions
+deragned spends 4 power to collect 7 coins (Power action)
+deragned declines doing Conversions
+kezilu spends 6 power to get 2 spade(s) (Power action)
+kezilu transforms a Terrain space mountains → wasteland for 1 spade(s) [G1]
+kezilu transforms a Terrain space plains → desert for 1 spade(s) [B2]
+kezilu builds a Dwelling for 1 workers 2 coins [G1]
+kezilu gets 2 VP (Favor tile bonus)
+kezilu declines doing Conversions
+Locky_91 converts 6 VP into 6 coins (Alchemists ability)
+Locky_91 upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [C1]
+Locky_91 gets 5 VP (Scoring tile bonus)
+kezilu gets 1 power via Structures [C1]
+Locky_91 gains 12 power (Alchemists Stronghold)
+Locky_91 declines doing Conversions
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame sends a Priest to the Order of the Cult of Water. Forever!
+Redrame gains 3 on the Cult of Water track and earns 4 power
+Redrame declines doing Conversions
+deragned advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+deragned declines doing Conversions
+kezilu builds a Dwelling for 1 workers 2 coins [I5]
+kezilu gets 2 VP (Favor tile bonus)
+kezilu declines doing Conversions
+Locky_91 spends 4 power to collect 2 workers (Power action)
+Locky_91 declines doing Conversions
+Redrame cancels their move
+Redrame cancels their move
+Redrame builds a Dwelling for 1 workers 2 coins [I6]
+kezilu gets 1 power via Structures [I6]
+Redrame declines doing Conversions
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [G2]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [G2]
+deragned gets 2 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [G2]
+deragned declines doing Conversions
+kezilu passes and becomes the first player for the next round
+kezilu gets 5 VP (Bonus card)
+kezilu chooses 1 Bonus card and gets 1 coins
+kezilu declines doing Conversions
+Locky_91 converts 5 VP into 5 coins (Alchemists ability)
+Locky_91 advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Locky_91 declines doing Conversions
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame gains 2 on the Cult of Fire track (Auren Stronghold) and earns 2 power
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+deragned passes
+deragned gets 0 VP (Bonus card)
+deragned chooses 1 Bonus card
+deragned declines doing Conversions
+Locky_91 converts 6 VP into 6 coins (Alchemists ability)
+Locky_91 upgrades a Temple to a Sanctuary for 4 workers 6 coins [E5]
+Locky_91 gets 5 VP (Scoring tile bonus)
+deragned pays 3 VP and gets 4 power via Structures [E5]
+Locky_91 takes a Favor tile
+Locky_91 gains 1 on the Cult of Water track (Favor tile)
+Locky_91 declines doing Conversions
+Redrame transforms a Terrain space mountains → forest for 1 spade(s) (Bonus card action) [C5]
+Redrame builds a Dwelling for 1 workers 2 coins [C5]
+Redrame declines doing Conversions
+Locky_91 passes
+Locky_91 gets 8 VP (Bonus card)
+Locky_91 chooses 1 Bonus card
+Locky_91 declines doing Conversions
+Redrame spends 3 power to collect 1 Priests (Power action)
+Redrame declines doing Conversions
+Redrame cancels their move
+Redrame sends a Priest to the Order of the Cult of Earth. Forever!
+Redrame gains 2 on the Cult of Earth track and earns 1 power
+Redrame declines doing Conversions
+Redrame passes
+Redrame chooses 1 Bonus card and gets 2 coins
+Redrame declines doing Conversions
+~ Cleanup phase ~
+kezilu gets 4 workers (Cult bonus)
+Redrame gets 2 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deragned gets 6 workers 2 Priests 2 coins 1 power (Income)
+kezilu gets 7 workers 1 Priests 9 coins 1 power (Income)
+Redrame gets 8 workers 2 Priests 3 coins 2 power (Income)
+Locky_91 gets 5 workers 1 Priests 6 coins 3 power (Income)
+~ Action phase ~
+kezilu transforms a Terrain space desert → wasteland for 3 workers → 1 spade(s) [B2]
+kezilu gets 2 VP (Scoring tile bonus)
+kezilu builds a Dwelling for 1 workers 2 coins [B2]
+kezilu gets 2 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [B2]
+kezilu declines doing Conversions
+deragned sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+deragned spends 4 power to collect 7 coins (Power action)
+deragned declines doing Conversions
+Locky_91 advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+Locky_91 declines doing Conversions
+Redrame cancels their move
+Redrame sends a Priest to the Order of the Cult of Earth. Forever!
+Redrame gains 2 on the Cult of Earth track and earns 2 power
+Redrame declines doing Conversions
+kezilu transforms a Terrain space plains → wasteland for 6 workers → 2 spade(s) [E2]
+kezilu gets 4 VP (Scoring tile bonus)
+kezilu builds a Dwelling for 1 workers 2 coins [E2]
+kezilu gets 2 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [E2]
+kezilu declines doing Conversions
+deragned advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+deragned declines doing Conversions
+Locky_91 transforms a Terrain space plains → swamp for 1 workers → 1 spade(s) [D8]
+Locky_91 gets 2 VP (Scoring tile bonus)
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 builds a Dwelling for 1 workers 2 coins [D8]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+Redrame gains 2 on the Cult of Earth track (Auren Stronghold) and earns 2 power
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+kezilu passes and becomes the first player for the next round
+kezilu chooses 1 Bonus card and gets 3 coins
+kezilu declines doing Conversions
+deragned sends a Priest to the Order of the Cult of Earth. Forever!
+deragned gains 2 on the Cult of Earth track and earns 2 power
+deragned declines doing Conversions
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 builds a Dwelling for 1 workers 2 coins [E10]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+Redrame advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Redrame declines doing Conversions
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [G4]
+deragned gets 2 VP (Scoring tile bonus)
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [G4]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Locky_91 spends 4 power to collect 2 workers (Power action)
+Locky_91 declines doing Conversions
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame transforms a Terrain space desert → forest for 6 workers → 3 spade(s) [I7]
+Redrame gets 6 VP (Scoring tile bonus)
+Redrame builds a Dwelling for 1 workers 2 coins [I7]
+Redrame declines doing Conversions
+deragned cancels their move
+deragned transforms a Terrain space lakes → plains for 2 workers → 2 spade(s) [G6]
+deragned gets 4 VP (Scoring tile bonus)
+deragned earns 2 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [G6]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 transforms a Terrain space plains → swamp for 1 workers → 1 spade(s) [F7]
+Locky_91 gets 2 VP (Scoring tile bonus)
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 builds a Dwelling for 1 workers 2 coins [F7]
+Locky_91 gets 2 VP (Favor tile bonus)
+deragned gets 1 power via Structures [F7]
+Locky_91 declines doing Conversions
+Redrame passes
+Redrame chooses 1 Bonus card and gets 1 coins
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Redrame declines doing Conversions
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [G7]
+deragned gets 2 VP (Scoring tile bonus)
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [G7]
+deragned gets 2 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [G7]
+deragned declines doing Conversions
+Locky_91 transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [B4]
+Locky_91 gets 2 VP (Scoring tile bonus)
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 declines doing Conversions
+deragned passes
+deragned gets 7 VP (Bonus card)
+deragned chooses 1 Bonus card
+deragned declines doing Conversions
+Locky_91 transforms a Terrain space plains → swamp for 1 workers → 1 spade(s) [A7]
+Locky_91 gets 2 VP (Scoring tile bonus)
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 declines building a Dwelling for now
+Locky_91 declines doing Conversions
+Locky_91 passes
+Locky_91 gets 9 VP (Bonus card)
+Locky_91 chooses 1 Bonus card
+Locky_91 declines doing Conversions
+~ Cleanup phase ~
+kezilu gets 6 coins (Cult bonus)
+Redrame gets 8 coins (Cult bonus)
+deragned gets 6 coins (Cult bonus)
+Locky_91 gets 1 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deragned gets 9 workers 2 Priests 6 coins 1 power (Income)
+kezilu gets 10 workers 1 Priests 3 coins 1 power (Income)
+Redrame gets 10 workers 1 Priests 3 coins 2 power (Income)
+Locky_91 gets 8 workers 1 Priests 8 coins 0 power (Income)
+~ Action phase ~
+kezilu upgrades a Dwelling to a Trading house for 2 workers 3 coins [D3]
+kezilu gets 3 VP (Scoring tile bonus)
+Locky_91 pays 1 VP and gets 2 power via Structures [D3]
+Locky_91 Power gain via Structures is capped from 4 power to 2 power
+kezilu declines doing Conversions
+Redrame sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Redrame spends 4 power to collect 7 coins (Power action)
+Redrame declines doing Conversions
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [G7]
+deragned gets 3 VP (Scoring tile bonus)
+Locky_91 Power gain via Structures is capped from 1 power to 0 power
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+deragned founds a Town [G4]
+deragned gains 1 on the Cult of Fire track
+deragned gains 1 on the Cult of Air track and earns 2 power
+deragned gains 1 on the Cult of Earth track and earns 2 power
+deragned gains 1 on the Cult of Water track
+deragned gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+deragned declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Locky_91 spends 4 power to collect 2 workers (Power action)
+Locky_91 declines doing Conversions
+kezilu upgrades a Trading house to a Temple for 2 workers 5 coins [D3]
+kezilu declines doing Conversions
+Locky_91 declines getting Power via Structures [D3]
+kezilu takes a Favor tile
+kezilu gains 1 on the Cult of Water track (Favor tile)
+kezilu takes another Favor tile (Chaos Magicians ability)
+kezilu takes a Favor tile
+kezilu gains 1 on the Cult of Air track (Favor tile)
+kezilu declines doing Conversions
+Redrame gains 2 on the Cult of Earth track (Auren Stronghold) and earns 3 power
+Redrame declines doing Conversions
+deragned advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+deragned declines doing Conversions
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [B5]
+Locky_91 gets 3 VP (Scoring tile bonus)
+Locky_91 gets 3 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [B5]
+Locky_91 declines doing Conversions
+kezilu upgrades a Dwelling to a Trading house for 2 workers 3 coins [E2]
+kezilu gets 3 VP (Scoring tile bonus)
+kezilu gets 3 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [E2]
+kezilu declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 2 workers 3 coins [I6]
+Redrame gets 3 VP (Scoring tile bonus)
+Redrame gets 3 VP (Favor tile bonus)
+kezilu gets 1 power via Structures [I6]
+Redrame declines doing Conversions
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [E8]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [E8]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Redrame pays 2 VP and gets 3 power via Structures [E8]
+Locky_91 transforms a Terrain space plains → swamp for 1 workers → 1 spade(s) [B4]
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 builds a Dwelling for 1 workers 2 coins [B4]
+Locky_91 gets 2 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [B4]
+Locky_91 declines doing Conversions
+kezilu upgrades a Dwelling to a Trading house for 2 workers 3 coins [B2]
+kezilu gets 3 VP (Scoring tile bonus)
+kezilu gets 3 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [B2]
+kezilu declines doing Conversions
+Redrame builds a Dwelling for 1 workers 2 coins [E9]
+deragned gets 1 power via Structures [E9]
+Locky_91 gets 1 power via Structures [E9]
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+deragned cancels their move
+deragned cancels their move
+deragned builds a Dwelling for 1 workers 2 coins [H3]
+deragned gets 2 VP (Favor tile bonus)
+kezilu gets 1 power via Structures [H3]
+deragned declines doing Conversions
+Locky_91 sends a Priest to the Order of the Cult of Water. Forever!
+Locky_91 gains 2 on the Cult of Water track and earns 1 power
+Locky_91 declines doing Conversions
+kezilu upgrades a Dwelling to a Trading house for 2 workers 3 coins [C2]
+kezilu gets 3 VP (Scoring tile bonus)
+kezilu gets 3 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [C2]
+kezilu declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 2 workers 3 coins [E9]
+Redrame gets 3 VP (Scoring tile bonus)
+Redrame gets 3 VP (Favor tile bonus)
+deragned gets 1 power via Structures [E9]
+Locky_91 gets 1 power via Structures [E9]
+Redrame declines doing Conversions
+deragned does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+deragned gets 3 VP (Scoring tile bonus)
+Redrame gets 1 power via Structures [G2]
+deragned declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Locky_91 does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Locky_91 builds a Dwelling for 1 workers 2 coins [A7]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+kezilu does some Conversions (spent: 0 power 2 Priests 0 workers ; collects: 0 Priests  2 workers 0 coins)
+kezilu upgrades a Dwelling to a Trading house for 2 workers 3 coins [G1]
+kezilu gets 3 VP (Scoring tile bonus)
+kezilu gets 3 VP (Favor tile bonus)
+deragned gets 1 power via Structures [G1]
+kezilu declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 2 workers 3 coins [C4]
+Redrame gets 3 VP (Scoring tile bonus)
+Redrame gets 3 VP (Favor tile bonus)
+Redrame declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Locky_91 declines getting Power via Structures [C4]
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [H3]
+deragned gets 3 VP (Scoring tile bonus)
+deragned declines doing Conversions
+kezilu pays 1 VP and gets 2 power via Structures [H3]
+Locky_91 converts 1 VP into 1 coins (Alchemists ability)
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [B4]
+Locky_91 gets 3 VP (Scoring tile bonus)
+Locky_91 gets 3 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+Redrame pays 1 VP and gets 2 power via Structures [B4]
+kezilu does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+kezilu passes and becomes the first player for the next round
+kezilu gets 8 VP (Bonus card)
+kezilu gets 4 VP (Favor tile bonus)
+kezilu chooses 1 Bonus card and gets 1 coins
+kezilu declines doing Conversions
+Redrame cancels their move
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame builds a Dwelling for 1 workers 2 coins [A10]
+Redrame declines doing Conversions
+Locky_91 pays 1 VP and gets 2 power via Structures [A10]
+deragned does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+deragned passes
+deragned chooses 1 Bonus card
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+deragned does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Locky_91 converts 2 VP into 2 coins (Alchemists ability)
+Locky_91 does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [E10]
+Locky_91 gets 3 VP (Scoring tile bonus)
+Locky_91 gets 3 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+Redrame pays 1 VP and gets 2 power via Structures [E10]
+Redrame spends 3 power to collect 1 Priests (Power action)
+Redrame declines doing Conversions
+Locky_91 converts 1 VP into 1 coins (Alchemists ability)
+Locky_91 does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [F7]
+Locky_91 gets 3 VP (Scoring tile bonus)
+Locky_91 gets 3 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+deragned declines getting Power via Structures [F7]
+Redrame sends a Priest to the Order of the Cult of Air. Forever!
+Redrame gains 2 on the Cult of Air track and earns 2 power
+Redrame declines doing Conversions
+Locky_91 passes
+Locky_91 gets 5 VP (Bonus card)
+Locky_91 chooses 1 Bonus card and gets 2 coins
+Locky_91 declines doing Conversions
+Redrame sends a Priest to the Order of the Cult of Air. Forever!
+Redrame gains 2 on the Cult of Air track and earns 2 power
+Redrame declines doing Conversions
+Redrame sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Redrame spends 4 power to get 1 spade(s) (Power action)
+Redrame transforms a Terrain space mountains → forest for 1 spade(s) [F6]
+Redrame builds a Dwelling for 1 workers 2 coins [F6]
+Redrame declines doing Conversions
+deragned declines getting Power via Structures [F6]
+Locky_91 declines getting Power via Structures [F6]
+Redrame upgrades a Dwelling to a Trading house for 2 workers 3 coins [F6]
+Redrame gets 3 VP (Scoring tile bonus)
+Redrame gets 3 VP (Favor tile bonus)
+Redrame declines doing Conversions
+Locky_91 declines getting Power via Structures [F6]
+deragned declines getting Power via Structures [F6]
+Redrame passes
+Redrame gets 4 VP (Bonus card)
+Redrame chooses 1 Bonus card
+Redrame declines doing Conversions
+~ Cleanup phase ~
+Locky_91 gets 1 spade(s) (Cult bonus)
+Redrame gets 1 spade(s) (Cult bonus)
+Locky_91 transforms a Terrain space forest → lakes for 1 spade(s) [D1]
+Locky_91 gains 2 power (Alchemists Stronghold)
+Redrame transforms a Terrain space wasteland → mountains for 1 spade(s) [D7]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deragned gets 9 workers 2 Priests 6 coins 5 power (Income)
+kezilu gets 4 workers 2 Priests 11 coins 10 power (Income)
+Redrame gets 8 workers 1 Priests 13 coins 8 power (Income)
+Locky_91 gets 6 workers 1 Priests 19 coins 4 power (Income)
+~ Action phase ~
+kezilu spends 6 power to get 2 spade(s) (Power action)
+kezilu transforms a Terrain space mountains → wasteland for 1 spade(s) [F1]
+kezilu transforms a Terrain space desert → wasteland for 1 spade(s) [A5]
+kezilu builds a Dwelling for 1 workers 2 coins [F1]
+kezilu gets 2 VP (Favor tile bonus)
+kezilu founds a Town [E3]
+kezilu gets 9 VP and collects 1 Priests (Town bonus)
+kezilu declines doing Conversions
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [H1]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [H1]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Locky_91 cancels their move
+Locky_91 cancels their move
+Locky_91 upgrades a Trading house to a Temple for 2 workers 5 coins [B4]
+Redrame Power gain via Structures is capped from 2 power to 0 power
+Locky_91 takes a Favor tile
+Locky_91 gains 1 on the Cult of Air track (Favor tile)
+Locky_91 declines doing Conversions
+Redrame spends 4 power to get 1 spade(s) (Power action)
+Redrame transforms a Terrain space mountains → forest for 1 spade(s) [D7]
+Redrame builds a Dwelling for 1 workers 2 coins [D7]
+Redrame declines doing Conversions
+Locky_91 declines getting Power via Structures [D7]
+kezilu builds a Dwelling for 1 workers 2 coins [A5]
+kezilu gets 2 VP (Favor tile bonus)
+Locky_91 gets 1 power via Structures [A5]
+kezilu declines doing Conversions
+deragned sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+deragned spends 4 power to collect 7 coins (Power action)
+deragned declines doing Conversions
+Locky_91 transforms a Terrain space wasteland → desert for 1 workers → 1 spade(s) [A6]
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 declines doing Conversions
+Redrame upgrades a Trading house to a Temple for 2 workers 5 coins [I6]
+kezilu gets 1 power via Structures [I6]
+Redrame takes a Favor tile
+Redrame gains 2 on the Cult of Fire track (Favor tile) and earns 2 power
+Redrame founds a Town [D7]
+Redrame gets 11 VP (Town bonus)
+Redrame declines doing Conversions
+kezilu sends a Priest to the Order of the Cult of Fire. Forever!
+kezilu gains 2 on the Cult of Fire track and earns 3 power
+kezilu declines doing Conversions
+deragned upgrades a Temple to a Sanctuary for 4 workers 6 coins [F3]
+deragned gets 5 VP (Scoring tile bonus)
+Redrame gets 1 power via Structures [F3]
+Locky_91 gets 1 power via Structures [F3]
+Locky_91 Power gain via Structures is capped from 3 power to 1 power
+deragned takes a Favor tile
+deragned gains 3 on the Cult of Air track (Favor tile) and earns 2 power
+deragned founds a Town [G2]
+deragned gains 1 on the Cult of Fire track
+deragned gains 1 on the Cult of Air track
+deragned gains 1 on the Cult of Earth track
+deragned gains 1 on the Cult of Water track
+deragned gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+deragned declines doing Conversions
+Locky_91 cancels their move
+Locky_91 does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Locky_91 upgrades a Trading house to a Temple for 2 workers 5 coins [B5]
+Locky_91 declines doing Conversions
+Redrame declines getting Power via Structures [B5]
+Locky_91 takes a Favor tile
+Locky_91 gains 2 on the Cult of Fire track (Favor tile) and earns 1 power
+Locky_91 founds a Town [A7]
+Locky_91 gets 9 VP and collects 1 Priests (Town bonus)
+Locky_91 declines doing Conversions
+Redrame cancels their move
+Redrame cancels their move
+Redrame cancels their move
+Redrame upgrades a Temple to a Sanctuary for 4 workers 8 coins [I6]
+Redrame gets 5 VP (Scoring tile bonus)
+kezilu gets 1 power via Structures [I6]
+Redrame takes a Favor tile
+Redrame gains 1 on the Cult of Air track (Favor tile)
+Redrame founds a Town [H4]
+Redrame gets 7 VP and collects 2 workers (Town bonus)
+Redrame declines doing Conversions
+kezilu sends a Priest to the Order of the Cult of Water. Forever!
+kezilu gains 2 on the Cult of Water track and earns 1 power
+kezilu declines doing Conversions
+deragned sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+deragned gains 1 on the Cult of Air track and earns 3 power
+deragned declines doing Conversions
+Locky_91 sends a Priest to the Order of the Cult of Water. Forever!
+Locky_91 gains 2 on the Cult of Water track and earns 2 power
+Locky_91 declines doing Conversions
+Redrame gains 2 on the Cult of Water track (Auren Stronghold)
+Redrame declines doing Conversions
+kezilu sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+kezilu spends 3 power to build a Bridge (Power action) [C2-D4]
+kezilu founds a Town [A5]
+kezilu gets 7 VP and collects 2 workers (Town bonus)
+kezilu declines doing Conversions
+deragned cancels their move
+deragned transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [H5]
+deragned earns 1 VP (Halflings Ability)
+deragned declines building a Dwelling for now
+deragned declines doing Conversions
+Locky_91 cancels their move
+Locky_91 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Locky_91 spends 4 power to collect 2 workers (Power action)
+Locky_91 declines doing Conversions
+Redrame cancels their move
+Redrame cancels their move
+Redrame transforms a Terrain space plains → swamp for 2 workers → 1 spade(s) [I8]
+Redrame declines doing Conversions
+kezilu advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+kezilu declines doing Conversions
+deragned transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [I2]
+deragned earns 1 VP (Halflings Ability)
+deragned declines building a Dwelling for now
+deragned declines doing Conversions
+Locky_91 transforms a Terrain space lakes → swamp for 1 spade(s) (Bonus card action) [D1]
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 builds a Dwelling for 1 workers 2 coins [D1]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+kezilu declines getting Power via Structures [D1]
+Redrame sends a Priest to the Order of the Cult of Water then reclaims it into his supply
+Redrame gains 1 on the Cult of Water track and earns 3 power
+Redrame declines doing Conversions
+kezilu upgrades a Trading house to a Temple for 2 workers 5 coins [G1]
+kezilu declines doing Conversions
+deragned pays 1 VP and gets 2 power via Structures [G1]
+kezilu takes a Favor tile
+kezilu gains 2 on the Cult of Water track (Favor tile) and earns 2 power
+kezilu takes another Favor tile (Chaos Magicians ability)
+kezilu takes a Favor tile
+kezilu gains 3 on the Cult of Water track (Favor tile) and earns 2 power
+kezilu declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [H5]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Redrame declines getting Power via Structures [H5]
+Locky_91 builds a Dwelling for 1 workers 2 coins [E1]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 declines doing Conversions
+kezilu Power gain via Structures is capped from 3 power to 2 power
+kezilu pays 1 VP and gets 2 power via Structures [E1]
+Locky_91 founds a Town [E1]
+Locky_91 gets 6 VP and gains 8 power (Town bonus)
+Locky_91 does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Redrame passes
+Redrame gets 8 VP (Bonus card)
+Redrame gets 3 VP (Favor tile bonus)
+~ This is the last round. No new Bonus cards are taken. ~
+kezilu spends 3 power to collect 1 Priests (Power action)
+kezilu declines doing Conversions
+deragned does some Conversions (spent: 0 power 2 Priests 0 workers ; collects: 0 Priests  2 workers 0 coins)
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [E8]
+Redrame declines getting Power via Structures [E8]
+Redrame Power gain via Structures is capped from 3 power to 2 power
+deragned declines doing Conversions
+Locky_91 cancels their move
+Locky_91 transforms a Terrain space lakes → swamp for 1 workers → 1 spade(s) [E11]
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 builds a Dwelling for 1 workers 2 coins [E11]
+Locky_91 gets 2 VP (Favor tile bonus)
+Locky_91 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Locky_91 does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Locky_91 founds a Town [D8]
+Locky_91 gets 6 VP and gains 8 power (Town bonus)
+Locky_91 declines doing Conversions
+kezilu sends a Priest to the Order of the Cult of Air. Forever!
+kezilu gains 2 on the Cult of Air track and earns 1 power
+kezilu declines doing Conversions
+~ You have decided to automatically decline spending VP for power ~
+deragned does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+deragned builds a Dwelling for 1 workers 2 coins [I2]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Locky_91 does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Locky_91 upgrades a Dwelling to a Trading house for 2 workers 3 coins [B3]
+Locky_91 gets 3 VP (Favor tile bonus)
+kezilu declines getting Power via Structures [B3]
+Locky_91 declines doing Conversions
+kezilu gains 1 on the Cult of Earth track (Favor tile action) and earns 2 power
+kezilu declines doing Conversions
+deragned passes
+deragned gets 8 VP (Bonus card)
+Locky_91 does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Locky_91 transforms a Terrain space lakes → swamp for 1 workers → 1 spade(s) [H2]
+Locky_91 gains 2 power (Alchemists Stronghold)
+Locky_91 builds a Dwelling for 1 workers 2 coins [H2]
+Locky_91 gets 2 VP (Favor tile bonus)
+deragned declines getting Power via Structures [H2]
+Locky_91 declines doing Conversions
+kezilu sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+kezilu does some Conversions (spent: 1 power 0 Priests 2 workers ; collects: 0 Priests  0 workers 3 coins)
+kezilu advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+kezilu declines doing Conversions
+Locky_91 passes
+Locky_91 gets 3 VP (Favor tile bonus)
+kezilu passes
+kezilu gets 9 VP (Bonus card)
+kezilu gets 3 VP (Favor tile bonus)
+~ Final scoring ~
+kezilu scores 8 VP (Cult of Fire)
+Redrame scores 4 VP (Cult of Fire)
+Locky_91 scores 2 VP (Cult of Fire)
+deragned scores 0 VP (Cult of Fire)
+Redrame scores 8 VP (Cult of Water)
+kezilu scores 4 VP (Cult of Water)
+Locky_91 scores 2 VP (Cult of Water)
+deragned scores 0 VP (Cult of Water)
+Redrame scores 8 VP (Cult of Earth)
+deragned scores 4 VP (Cult of Earth)
+kezilu scores 2 VP (Cult of Earth)
+Locky_91 scores 0 VP (Cult of Earth)
+deragned scores 8 VP (Cult of Air)
+Redrame scores 4 VP (Cult of Air)
+kezilu scores 2 VP (Cult of Air)
+Locky_91 scores 0 VP (Cult of Air)
+Locky_91 scores 18 VP with 15 connected Structures (Area scoring)
+deragned scores 9 VP with 14 connected Structures (Area scoring)
+Redrame scores 9 VP with 14 connected Structures (Area scoring)
+kezilu scores 0 VP with 10 connected Structures (Area scoring)
+deragned scores 1 VP with 5 coins (Resource scoring)
+kezilu scores 0 VP with 0 coins (Resource scoring)
+Redrame sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Redrame converts 3 power into 3 coins
+Redrame converts 1 workers into 1 coins
+Redrame scores 1 VP with 5 coins (Resource scoring)
+Locky_91 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Locky_91 converts 2 power into 2 coins
+Locky_91 scores 1 VP with 2 coins (Resource scoring)
+The end of the game: Locky_91 wins!

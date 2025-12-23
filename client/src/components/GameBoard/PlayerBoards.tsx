@@ -105,7 +105,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
     // Count built buildings
     const buildings = Object.values(gameState?.map?.hexes || {})
         .map(h => h.building)
-        .filter(b => b && b.ownerPlayerId === playerId);
+        .filter(b => b && b.playerId === playerId);
 
     const dwellingCount = buildings.filter(b => b?.type === BuildingType.Dwelling).length;
     const tradingHouseCount = buildings.filter(b => b?.type === BuildingType.TradingHouse).length;

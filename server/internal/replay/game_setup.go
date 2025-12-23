@@ -205,12 +205,6 @@ func parseScoringTile(code string) (game.ScoringTile, error) {
 	allTiles := game.GetAllScoringTiles()
 
 	// Map of scoring codes to tile types (verified from actual game log)
-	// Round 1 (SCORE2): TOWN >> 5 | 4 EARTH -> 1 SPADE
-	// Round 2 (SCORE9): TE >> 4 | 1 CULT_P -> 2 C
-	// Round 3 (SCORE3): D >> 2 | 4 WATER -> 1 P
-	// Round 4 (SCORE5): D >> 2 | 4 FIRE -> 4 PW
-	// Round 5 (SCORE7): SA/SH >> 5 | 2 AIR -> 1 W
-	// Round 6 (SCORE4): SA/SH >> 5 | 2 FIRE -> 1 W
 	scoreMap := map[string]game.ScoringTileType{
 		"SCORE1": game.ScoringSpades,            // 2 VP per spade | 1 step Earth = 1 coin
 		"SCORE2": game.ScoringTown,              // 5 VP per town | 4 steps Earth = 1 spade

@@ -8,10 +8,10 @@ import (
 
 // ResourcePool manages a player's resources including power system
 type ResourcePool struct {
-	Coins   int
-	Workers int
-	Priests int
-	Power   *PowerSystem
+	Coins   int          `json:"coins"`
+	Workers int          `json:"workers"`
+	Priests int          `json:"priests"`
+	Power   *PowerSystem `json:"power"`
 }
 
 // NewResourcePool creates a new resource pool from starting resources

@@ -1,6 +1,7 @@
 package board
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/factions"
@@ -13,6 +14,40 @@ type TerraMysticaMap struct {
 	Hexes      map[Hex]*MapHex
 	Bridges    map[BridgeKey]bool // Tracks built bridges between hexes
 	RiverHexes map[Hex]bool       // Tracks which hexes are rivers
+}
+
+// MarshalJSON implements custom JSON marshaling for TerraMysticaMap
+// Go's encoding/json doesn't support struct keys in maps, so we convert them to strings
+func (m *TerraMysticaMap) MarshalJSON() ([]byte, error) {
+	type Alias TerraMysticaMap
+
+	// Convert Hexes map
+	hexes := make(map[string]*MapHex)
+	for k, v := range m.Hexes {
+		hexes[fmt.Sprintf("%d,%d", k.Q, k.R)] = v
+	}
+
+	// Convert Bridges map
+	bridges := make(map[string]bool)
+	for k, v := range m.Bridges {
+		bridges[fmt.Sprintf("%d,%d|%d,%d", k.H1.Q, k.H1.R, k.H2.Q, k.H2.R)] = v
+	}
+
+	// Convert RiverHexes map
+	riverHexes := make(map[string]bool)
+	for k, v := range m.RiverHexes {
+		riverHexes[fmt.Sprintf("%d,%d", k.Q, k.R)] = v
+	}
+
+	return json.Marshal(&struct {
+		Hexes      map[string]*MapHex `json:"hexes"`
+		Bridges    map[string]bool    `json:"bridges"`
+		RiverHexes map[string]bool    `json:"riverHexes"`
+	}{
+		Hexes:      hexes,
+		Bridges:    bridges,
+		RiverHexes: riverHexes,
+	})
 }
 
 // MapHex represents a single hex on the map

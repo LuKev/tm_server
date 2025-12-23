@@ -4,6 +4,7 @@ import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
 import { MapTest } from './components/MapTest';
 import { CultTracksTest } from './components/CultTracks/CultTracksTest';
+import { Replay } from './components/Replay';
 
 function App(): React.ReactElement {
   return (
@@ -13,6 +14,7 @@ function App(): React.ReactElement {
           <Routes>
             <Route path="/" element={<Lobby />} />
             <Route path="/game/:gameId" element={<Game />} />
+            <Route path="/replay/:gameId" element={<Replay />} />
             <Route path="/maptest" element={<MapTest />} />
             <Route path="/culttrackstest" element={<CultTracksTest />} />
           </Routes>

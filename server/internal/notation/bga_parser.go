@@ -10,7 +10,6 @@ import (
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
-	"github.com/lukev/tm_server/internal/replay"
 )
 
 // BGAParser parses a BGA game log into a sequence of GameActions
@@ -127,9 +126,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		fmt.Println("Warning: Did not find auction over line")
 	}
 
-	// Add settings item
-	p.items = append(p.items, GameSettingsItem{Settings: settings})
-
 	// Parse player factions from setup summary
 	var setupOrder []string
 	for p.currentLine < len(p.lines) {
@@ -144,14 +140,24 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerName := strings.TrimSpace(matches[1])
 			factionName := strings.TrimSpace(matches[2])
 			p.players[playerName] = factionName
-			setupOrder = append(setupOrder, factionName)
+			if !contains(setupOrder, factionName) {
+				setupOrder = append(setupOrder, factionName)
+			}
 		} else if matches := reFactionSelection2.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := strings.TrimSpace(matches[1])
 			factionName := strings.TrimSpace(matches[2])
 			p.players[playerName] = factionName
-			setupOrder = append(setupOrder, factionName)
+			if !contains(setupOrder, factionName) {
+				setupOrder = append(setupOrder, factionName)
+			}
 		}
 	}
+
+	// Add settings item with players
+	for player, faction := range p.players {
+		settings["Player:"+player] = faction
+	}
+	p.items = append(p.items, GameSettingsItem{Settings: settings})
 
 	// Main parsing loop
 	var currentMove int
@@ -743,7 +749,7 @@ func (p *BGAParser) getPlayerID(name string) string {
 func parseCoord(s string) board.Hex {
 	// Remove brackets if present
 	s = strings.Trim(s, "[]")
-	h, err := replay.ConvertLogCoordToAxial(s)
+	h, err := ConvertLogCoordToAxial(s)
 	if err != nil {
 		fmt.Printf("Error parsing coord %s: %v\n", s, err)
 		return board.Hex{}
@@ -912,7 +918,7 @@ func (p *BGAParser) handleBonusCardSpade(playerID, line string) {
 		coord = p.consumeUntilCoord()
 	}
 	if coord != "" {
-		// hex, _ := replay.ConvertLogCoordToAxial(coord)
+		// hex, _ := ConvertLogCoordToAxial(coord)
 		// Bonus card spade: ACTS-[Coord]
 		// We can use BonusCardSpadeAction or LogSpecialAction
 		// Let's use LogSpecialAction to keep it simple for now, or use the existing BonusCardSpadeAction
@@ -1106,4 +1112,13 @@ func (p *BGAParser) parseResourceMap(s string) map[models.ResourceType]int {
 		}
 	}
 	return res
+}
+
+func contains(slice []string, item string) bool {
+	for _, s := range slice {
+		if s == item {
+			return true
+		}
+	}
+	return false
 }

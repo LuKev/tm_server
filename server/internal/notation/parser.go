@@ -10,7 +10,6 @@ import (
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
-	"github.com/lukev/tm_server/internal/replay"
 )
 
 // ParseConciseLog parses a concise log string into GameActions
@@ -375,7 +374,7 @@ func parseHex(s string) board.Hex {
 	}
 
 	// Try parsing as Log Coord (e.g. F3)
-	h, err := replay.ConvertLogCoordToAxial(s)
+	h, err := ConvertLogCoordToAxial(s)
 	if err != nil {
 		fmt.Printf("Error parsing hex %s: %v\n", s, err)
 		return board.Hex{}
@@ -389,7 +388,7 @@ func isCoord(s string) bool {
 		return true
 	}
 	// Check for Log format (e.g. F3)
-	_, err := replay.ConvertLogCoordToAxial(s)
+	_, err := ConvertLogCoordToAxial(s)
 	return err == nil
 }
 func parseResourceString(s string) map[models.ResourceType]int {

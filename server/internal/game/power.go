@@ -9,9 +9,9 @@ import (
 // Bowl 2: Power ready to be cycled
 // Bowl 3: Active power that can be spent
 type PowerSystem struct {
-	Bowl1 int // Inactive power
-	Bowl2 int // Power ready to cycle
-	Bowl3 int // Active power (spendable)
+	Bowl1 int `json:"powerI"`   // Inactive power
+	Bowl2 int `json:"powerII"`  // Power ready to cycle
+	Bowl3 int `json:"powerIII"` // Active power (spendable)
 }
 
 // NewPowerSystem creates a new power system with starting power distribution

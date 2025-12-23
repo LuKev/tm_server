@@ -1,0 +1,36 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "notation",
+    srcs = [
+        "bga_parser.go",
+        "coordinates.go",
+        "generator.go",
+        "mapping.go",
+        "models.go",
+        "parser.go",
+        "regex_definitions.go",
+        "types.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/notation",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/game",
+        "//internal/game/board",
+        "//internal/game/factions",
+        "//internal/models",
+    ],
+)
+
+go_test(
+    name = "notation_test",
+    srcs = [
+        "bga_parser_test.go",
+        "round_trip_test.go",
+    ],
+    embed = [":notation"],
+    deps = [
+        "//internal/game",
+        "//internal/models",
+    ],
+)

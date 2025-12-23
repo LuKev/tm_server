@@ -5,8 +5,10 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/lukev/tm_server/internal/api"
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/lobby"
+	"github.com/lukev/tm_server/internal/replay"
 	"github.com/lukev/tm_server/internal/websocket"
 )
 
@@ -18,6 +20,9 @@ func main() {
 	// Create managers
 	gameMgr := game.NewManager()
 	lobbyMgr := lobby.NewManager()
+	// TODO: Make this configurable or relative to executable
+	replayMgr := replay.NewReplayManager("/Users/kevin/projects/tm_server/scripts")
+	replayHandler := api.NewReplayHandler(replayMgr)
 
 	deps := websocket.ServerDeps{
 		Lobby: lobbyMgr,
@@ -40,6 +45,9 @@ func main() {
 
 	// CORS middleware for development
 	router.Use(corsMiddleware)
+
+	// Register replay routes
+	replayHandler.RegisterRoutes(router)
 
 	// Start server
 	addr := ":8080"

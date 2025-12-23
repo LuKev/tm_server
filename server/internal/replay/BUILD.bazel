@@ -8,8 +8,10 @@ go_library(
         "compound_parser.go",
         "coordinates.go",
         "game_setup.go",
+        "manager.go",
         "notation.go",
         "parser.go",
+        "simulator.go",
         "snapshot_generator.go",
         "snapshot_parser.go",
         "validator.go",
@@ -21,6 +23,7 @@ go_library(
         "//internal/game/board",
         "//internal/game/factions",
         "//internal/models",
+        "//internal/notation",
     ],
 )
 
@@ -32,6 +35,7 @@ go_test(
         "convert_upgrade_test.go",
         "cult_spade_test.go",
         "darklings_dig_test.go",
+        "manager_test.go",
         "parser_test.go",
         "snapshot_test.go",
     ],
@@ -41,5 +45,6 @@ go_test(
         "//internal/game/board",
         "//internal/game/factions",
         "//internal/models",
+        "//internal/notation",
     ],
 )

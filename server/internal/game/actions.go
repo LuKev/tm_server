@@ -431,6 +431,8 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	cost := getUpgradeCost(gs, player, mapHex, a.NewBuildingType)
 
 	if !player.Resources.CanAfford(cost) {
+		fmt.Printf("UpgradeBuildingAction failed: Player %s cannot afford upgrade to %v. Cost: %v, Have: %v\n",
+			a.PlayerID, a.NewBuildingType, cost, player.Resources)
 		return fmt.Errorf("cannot afford upgrade to %v", a.NewBuildingType)
 	}
 

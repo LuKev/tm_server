@@ -72,13 +72,13 @@ const (
 
 // ScoringTile represents a scoring tile with action rewards and cult rewards
 type ScoringTile struct {
-	Type             ScoringTileType
-	ActionType       ScoringActionType
-	ActionVP         int // VP awarded per action
-	CultTrack        CultTrack
-	CultThreshold    int            // Steps needed on cult track
-	CultRewardType   CultRewardType // Type of reward
-	CultRewardAmount int            // Amount of reward
+	Type             ScoringTileType   `json:"type"`
+	ActionType       ScoringActionType `json:"actionType"`
+	ActionVP         int               `json:"actionVP"`
+	CultTrack        CultTrack         `json:"cultTrack"`
+	CultThreshold    int               `json:"cultThreshold"`
+	CultRewardType   CultRewardType    `json:"cultRewardType"`
+	CultRewardAmount int               `json:"cultRewardAmount"`
 }
 
 // GetAllScoringTiles returns all 9 scoring tiles
@@ -170,8 +170,8 @@ func GetAllScoringTiles() []ScoringTile {
 
 // ScoringTileState tracks the scoring tiles for the game
 type ScoringTileState struct {
-	Tiles       []ScoringTile  // 6 tiles, one per round (index 0 = round 1)
-	PriestsSent map[string]int // Track priests sent to cult per player (for tile #5)
+	Tiles       []ScoringTile  `json:"tiles"`
+	PriestsSent map[string]int `json:"priestsSent"`
 }
 
 // NewScoringTileState creates a new scoring tile state with random selection

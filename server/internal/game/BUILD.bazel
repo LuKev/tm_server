@@ -16,6 +16,7 @@ go_library(
         "bonus_cards.go",
         "cleanup.go",
         "cult.go",
+        "errors.go",
         "faction_spade_bonuses.go",
         "favor.go",
         "final_scoring.go",
