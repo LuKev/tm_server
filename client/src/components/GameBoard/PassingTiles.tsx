@@ -173,7 +173,17 @@ const BonusCardContent: React.FC<{ type: BonusCardType }> = ({ type }) => {
 
 export const PassingTiles: React.FC<PassingTilesProps> = () => {
     const gameState = useGameStore((state) => state.gameState);
-    const availableCards = gameState?.bonusCards ?? [];
+
+    // Extract all cards in the game (available + taken)
+    const availableCards = React.useMemo(() => {
+        if (!gameState?.bonusCards) return [];
+
+        const available = Object.keys(gameState.bonusCards.available || {}).map(Number);
+        const taken = Object.values(gameState.bonusCards.playerCards || {}).map(Number);
+
+        // Combine and deduplicate
+        return Array.from(new Set([...available, ...taken])).sort((a, b) => a - b);
+    }, [gameState?.bonusCards]);
 
     const numCards = availableCards.length;
 

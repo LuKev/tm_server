@@ -568,7 +568,6 @@ func ParseAction(actionStr string) (ActionType, map[string]string, error) {
 		return ActionUnknown, params, nil
 	}
 
-	return ActionUnknown, params, fmt.Errorf("unrecognized action: %s", actionStr)
 }
 
 // parseCompoundActionParts extracts common parts from compound actions (burn, action, build, transform, dig)

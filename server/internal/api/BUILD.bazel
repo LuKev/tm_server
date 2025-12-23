@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "api",
+    srcs = ["replay.go"],
+    importpath = "github.com/lukev/tm_server/internal/api",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/replay",
+        "@com_github_gorilla_mux//:mux",
+    ],
+)

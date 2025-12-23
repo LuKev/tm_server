@@ -207,13 +207,13 @@ func GetAllBonusCards() map[BonusCardType]BonusCard {
 // BonusCardState tracks available bonus cards and player selections
 type BonusCardState struct {
 	// Available cards (type -> coins accumulated on the card)
-	Available map[BonusCardType]int
+	Available map[BonusCardType]int `json:"available"`
 
 	// Player selections (playerID -> bonus card type for this round)
-	PlayerCards map[string]BonusCardType
+	PlayerCards map[string]BonusCardType `json:"playerCards"`
 
 	// Track which players have selected a card this round
-	PlayerHasCard map[string]bool
+	PlayerHasCard map[string]bool `json:"playerHasCard"`
 }
 
 // NewBonusCardState creates a new bonus card state

@@ -146,6 +146,25 @@ export interface BonusCardState {
   playerHasCard: Record<string, boolean>
 }
 
+export interface ScoringTile {
+  type: number
+  actionType: number
+  actionVP: number
+  cultTrack: number
+  cultThreshold: number
+  cultRewardType: number
+  cultRewardAmount: number
+}
+
+export interface ScoringTileState {
+  tiles: ScoringTile[]
+  priestsSent: Record<string, number>
+}
+
+export interface TownTileState {
+  available: Record<number, number>
+}
+
 export interface GameState {
   id: string
   phase: GamePhase
@@ -156,7 +175,7 @@ export interface GameState {
   round: RoundState
   started: boolean
   finished: boolean
-  scoringTiles?: number[]
-  townTiles?: number[]
-  bonusCards?: number[] // Array of available BonusCardTypes (as numbers) from serialization
+  scoringTiles?: ScoringTileState
+  townTiles?: TownTileState
+  bonusCards?: BonusCardState
 }

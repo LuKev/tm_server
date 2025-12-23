@@ -6,8 +6,8 @@ import (
 
 // Income Phase Implementation
 //
-// Terra Mystica Income Phase occurs at the start of each round (rounds 2-6).
-// Round 1 has no income phase (players start with initial resources).
+// Terra Mystica Income Phase occurs at the start of each round (rounds 1-6).
+// Round 1 income occurs after setup and before the first action phase.
 //
 // Income Sources:
 // 1. Base faction income

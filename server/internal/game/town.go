@@ -9,7 +9,7 @@ import (
 
 // TownTileState tracks available town tiles
 type TownTileState struct {
-	Available map[models.TownTileType]int // How many of each tile remain
+	Available map[models.TownTileType]int `json:"available"` // How many of each tile remain
 }
 
 // NewTownTileState creates a new town tile state with all tiles available
