@@ -29,7 +29,12 @@ export const Game = () => {
 
   const { submitSetupDwelling, submitSelectFaction } = useActionService()
 
-  const numCards = gameState?.bonusCards?.length ?? 9
+  const numCards = useMemo(() => {
+    if (!gameState?.bonusCards) return 9;
+    const available = Object.keys(gameState.bonusCards.available || {}).length;
+    const taken = Object.keys(gameState.bonusCards.playerCards || {}).length;
+    return available + taken;
+  }, [gameState?.bonusCards]);
 
   // Default layout configuration
   // Adjusted for square grid cells (rowHeight = colWidth)
@@ -131,7 +136,7 @@ export const Game = () => {
           if (factionType) {
             map.set(factionType, {
               playerNumber: index + 1,
-               
+
               vp: player.victoryPoints ?? player.VictoryPoints ?? 20
             })
           }
@@ -149,7 +154,6 @@ export const Game = () => {
     return index !== -1 ? index + 1 : 1
   }, [gameState, localPlayerId])
 
-  // Helper to get cult positions
   const getCultPositions = (): Map<CultType, CultPosition[]> => {
     const positions = new Map<CultType, CultPosition[]>()
 
@@ -302,7 +306,7 @@ export const Game = () => {
             </div>
             <div className="flex-1 overflow-auto">
               <ScoringTiles
-                tiles={gameState?.scoringTiles || []}
+                tiles={gameState?.scoringTiles?.tiles.map(t => t.type) || []}
                 currentRound={gameState?.round?.round || 1}
               />
             </div>
@@ -345,7 +349,11 @@ export const Game = () => {
               <div className="drag-handle-pill" />
             </div>
             <div className="flex-1 overflow-auto">
-              <TownTiles availableTiles={gameState?.townTiles} />
+              <TownTiles availableTiles={
+                gameState?.townTiles?.available
+                  ? Object.entries(gameState.townTiles.available).flatMap(([id, count]) => Array.from({ length: count }, () => Number(id)))
+                  : []
+              } />
             </div>
           </div>
 

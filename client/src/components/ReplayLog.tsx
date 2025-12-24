@@ -95,7 +95,7 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, currentRound }
                                         ))}
                                         {/* Fill remaining cells if any */}
                                         {Array.from({ length: 5 - parts.length }).map((_, i) => (
-                                            <td key={`empty-${i}`} className="border-r border-gray-200 last:border-r-0"></td>
+                                            <td key={`empty-${String(i)}`} className="border-r border-gray-200 last:border-r-0"></td>
                                         ))}
                                     </tr>
                                 );

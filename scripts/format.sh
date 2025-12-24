@@ -23,7 +23,7 @@ OVERALL_SUCCESS=true
 check_tool() {
   local tool=$1
   local install_cmd=$2
-  
+
   if ! command -v "$tool" &> /dev/null; then
     echo -e "${YELLOW}Warning: $tool is not installed${NC}"
     echo -e "${YELLOW}Install with: $install_cmd${NC}"

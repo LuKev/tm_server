@@ -8,13 +8,13 @@ linters:
     # Formatting and imports
     - gofmt
     - goimports
-    
+
     # Bug detection
     - govet
     - staticcheck
     - errcheck
     - gosec
-    
+
     # Code quality
     - unused
     - ineffassign
@@ -23,7 +23,7 @@ linters:
     - unconvert
     - unparam
     - nakedret
-    
+
     # Style and best practices
     - stylecheck
     - revive
@@ -32,7 +32,7 @@ linters:
     - goconst
     - gocritic
     - gocognit
-    
+
     # Error handling
     - errname
     - errorlint
@@ -40,11 +40,11 @@ linters:
 linters-settings:
   gocyclo:
     min-complexity: 15
-  
+
   goconst:
     min-len: 2
     min-occurrences: 3
-  
+
   gocritic:
     enabled-tags:
       - diagnostic
@@ -52,7 +52,7 @@ linters-settings:
       - opinionated
       - performance
       - style
-  
+
   revive:
     rules:
       - name: blank-imports
@@ -94,7 +94,7 @@ issues:
   exclude-use-default: false
   max-issues-per-linter: 0
   max-same-issues: 0
-  
+
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
@@ -104,12 +104,12 @@ issues:
         - dupl
         - gosec
         - goconst
-    
+
     # Exclude known false positives
     - text: "weak cryptographic primitive"
       linters:
         - gosec
-    
+
     # Allow unused parameters if they start with _
     - text: "parameter .* seems to be unused, consider removing or renaming it as _"
       linters:

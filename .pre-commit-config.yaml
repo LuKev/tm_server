@@ -46,14 +46,14 @@ repos:
 
       - id: goimports
         name: Go Imports
-        entry: bash -c 'goimports -w "$@" || true'  # Don't fail if goimports not installed
+        entry: bash -c 'export PATH=$HOME/go/bin:$PATH && ./scripts/ensure_go_tools.sh && goimports -w "$@"' --
         language: system
         files: \.go$
         exclude: 'bazel-'
 
       - id: golangci-lint
         name: golangci-lint
-        entry: bash -c 'cd server && golangci-lint run --fix --new-from-rev=HEAD~1 || true'  # Don't fail if not installed
+        entry: bash -c 'export PATH=$HOME/go/bin:$PATH && ./scripts/ensure_go_tools.sh && cd server && golangci-lint run --fix --new-from-rev=HEAD~1'
         language: system
         files: \.go$
         exclude: 'bazel-'

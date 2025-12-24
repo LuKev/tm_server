@@ -10,7 +10,7 @@ import './PlayerBoards.css';
 const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
     if (!income) return null;
     const scale = compact ? 0.8 : 1;
-    const style = { transform: `scale(${scale})` };
+    const style = { transform: `scale(${String(scale)})` };
 
     return (
         <div className="income-reveal" style={compact ? { gap: '0' } : undefined}>
@@ -95,8 +95,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
             const found = FACTIONS.find(f => f.type === factionName || f.name === factionName);
             if (found) factionType = found.id;
         } else if (typeof player.faction === 'object' && 'type' in player.faction) {
-            // @ts-ignore - we know it has type
-            factionType = player.faction.type;
+            factionType = (player.faction as { type: FactionType }).type;
         }
     }
     const boardLayout = FACTION_BOARDS[factionType] || FACTION_BOARDS[FactionType.Nomads]; // Fallback
@@ -105,7 +104,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
     // Count built buildings
     const buildings = Object.values(gameState?.map?.hexes || {})
         .map(h => h.building)
-        .filter(b => b && b.playerId === playerId);
+        .filter(b => b && b.ownerPlayerId === playerId);
 
     const dwellingCount = buildings.filter(b => b?.type === BuildingType.Dwelling).length;
     const tradingHouseCount = buildings.filter(b => b?.type === BuildingType.TradingHouse).length;
@@ -169,7 +168,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                                         coins={boardLayout.tradingHouses[0].cost.coins}
                                     />
                                     {boardLayout.tradingHouses.map((slot, i) => (
-                                        <div key={`tp-${i}`} className="pb-slot-tp-temple">
+                                        <div key={`tp-${String(i)}`} className="pb-slot-tp-temple">
                                             <BuildingTrackSlot
                                                 slot={slot}
                                                 type={BuildingType.TradingHouse}
@@ -206,7 +205,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                                         coins={boardLayout.temples[0].cost.coins}
                                     />
                                     {boardLayout.temples.map((slot, i) => (
-                                        <div key={`temple-${i}`} className="pb-slot-tp-temple">
+                                        <div key={`temple-${String(i)}`} className="pb-slot-tp-temple">
                                             <BuildingTrackSlot
                                                 slot={slot}
                                                 type={BuildingType.Temple}
@@ -236,7 +235,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                                 </div>
 
                                 {boardLayout.dwellings.map((slot, i) => (
-                                    <div key={`dw-${i}`} className="pb-slot-dwelling">
+                                    <div key={`dw-${String(i)}`} className="pb-slot-dwelling">
                                         <BuildingTrackSlot
                                             slot={slot}
                                             type={BuildingType.Dwelling}
@@ -325,7 +324,7 @@ export const PlayerBoards: React.FC = () => {
         <div className="pb-resize-container" ref={containerRef}>
             <div
                 className="player-boards-container"
-                style={{ fontSize: `${scaleFontSize}px` }}
+                style={{ fontSize: `${String(scaleFontSize)}px` }}
             >
                 {sortedPlayerIds.map((pid, index) => (
                     <PlayerBoard key={pid} playerId={pid} turnOrder={index + 1} />

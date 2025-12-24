@@ -13,7 +13,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, 
     const modalRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const handleEscape = (e: KeyboardEvent) => {
+        const handleEscape = (e: KeyboardEvent): void => {
             if (e.key === 'Escape') {
                 onClose();
             }

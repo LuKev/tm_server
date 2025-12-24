@@ -237,9 +237,9 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
         let font = '14px Verdana';
 
         if (tile) {
-          if (hasPriest) {
+          if (hasPriest && tile.faction !== undefined) {
             text = 'P'; // Capital P for priest
-            color = FACTION_COLORS[tile.faction!];
+            color = FACTION_COLORS[tile.faction];
             font = 'bold 14px Verdana'; // Bold font for priest
           } else if (tile.power) {
             text = String(tile.power);

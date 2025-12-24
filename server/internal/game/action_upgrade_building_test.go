@@ -1,10 +1,11 @@
 package game
 
 import (
+	"testing"
+
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
-	"testing"
 )
 
 func TestUpgradeBuilding_DwellingToTradingHouse(t *testing.T) {

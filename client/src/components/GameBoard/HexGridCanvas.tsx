@@ -17,7 +17,7 @@ interface HexGridCanvasProps {
 
 export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   hexes,
-  buildings = new Map(),
+  buildings = new Map<string, Building>(),
   bridges = [],
   highlightedHexes = new Set(),
   onHexClick,

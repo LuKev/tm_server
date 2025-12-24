@@ -1,19 +1,25 @@
 import React, { useState } from 'react';
 import { Modal } from './shared/Modal';
 
-interface MissingInfo {
+export interface MissingInfo {
     GlobalBonusCards: boolean;
     GlobalScoringTiles: boolean;
     BonusCardSelections: Record<number, Record<string, boolean>>;
     PlayerFactions: Record<string, boolean>;
 }
 
+export interface MissingInfoData {
+    scoringTiles: string[];
+    bonusCards: string[];
+    bonusCardSelections: Record<string, string>;
+}
+
 interface MissingInfoModalProps {
     isOpen: boolean;
-    missingInfo: MissingInfo;
+    missingInfo: MissingInfo | null;
     players?: string[];
     availableBonusCards?: string[];
-    onSubmit: (data: any) => void;
+    onSubmit: (data: MissingInfoData) => void;
     onClose: () => void;
 }
 
@@ -130,7 +136,7 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
                     const selections = missingInfo.BonusCardSelections[round];
                     if (!selections || Object.keys(selections).length === 0 || !players || players.length === 0) return null;
 
-                    const title = round === 0 ? "Initial Bonus Card Selection" : `Round ${round} Bonus Card Selection`;
+                    const title = round === 0 ? "Initial Bonus Card Selection" : `Round ${String(round)} Bonus Card Selection`;
                     // Filter players to only those who need to select
                     const playersToSelect = players.filter(p => selections[p]);
 

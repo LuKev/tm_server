@@ -3,154 +3,154 @@ MiniExpansions: On
 
 Halflings       | Auren           | Alchemists      | Chaos Magicians
 ---------------------------------------------------------------------
-S-F5            | S-F4            | S-E5.S-B5       |                
-                | S-C3            |                 |                
-S-E6            |                 |                 | S-D4           
+S-F5            | S-F4            | S-E5.S-B5       |
+                | S-C3            |                 |
+S-E6            |                 |                 | S-D4
 Round 1
 TurnOrder: Halflings, Auren, Chaos Magicians, Alchemists, Halflings, Auren, Chaos Magicians, Alchemists
-Halflings       | Auren           | Chaos Magicians | Alchemists      | Halflings       | Auren           | Chaos Magicians | Alchemists     
+Halflings       | Auren           | Chaos Magicians | Alchemists      | Halflings       | Auren           | Chaos Magicians | Alchemists
 ---------------------------------------------------------------------------------------------------------------------------------------------
-                |                 |                 |                 | UP-TH-E6        |                 | L               |                
-                |                 |                 |                 |                 | L               |                 | L              
-                |                 |                 |                 |                 | BURN4.ACT5.T-E7.E7 |                 |                
-                |                 |                 |                 | L               |                 | L               |                
-                |                 |                 |                 |                 |                 | BURN3.ACT2      | UP-TH-E5       
-                |                 |                 |                 | L               |                 |                 |                
-                |                 |                 |                 | BURN5.ACT6.T-F3.T-G5.F3 | L               |                 | L              
-                |                 |                 |                 |                 | UP-TH-E7        |                 |                
-                |                 |                 |                 | L               |                 | L               |                
-                |                 |                 |                 |                 |                 | UP-TH-D4        |                
+                |                 |                 |                 | UP-TH-E6        |                 | L               |
+                |                 |                 |                 |                 | L               |                 | L
+                |                 |                 |                 |                 | BURN4.ACT5.T-E7.E7 |                 |
+                |                 |                 |                 | L               |                 | L               |
+                |                 |                 |                 |                 |                 | BURN3.ACT2      | UP-TH-E5
+                |                 |                 |                 | L               |                 |                 |
+                |                 |                 |                 | BURN5.ACT6.T-F3.T-G5.F3 | L               |                 | L
+                |                 |                 |                 |                 | UP-TH-E7        |                 |
+                |                 |                 |                 | L               |                 | L               |
+                |                 |                 |                 |                 |                 | UP-TH-D4        |
                 |                 |                 |                 | L               | L               |                 | UP-TE-E5.FAV-E1
-                |                 |                 |                 | L               |                 |                 |                
-                |                 |                 |                 | UP-TE-E6.FAV-E2 |                 | L               |                
-                |                 |                 |                 |                 | L               |                 | L              
-                |                 |                 |                 |                 | UP-TE-E7.FAV-F1 |                 |                
-                |                 |                 |                 | L               |                 | L               |                
-                |                 |                 |                 |                 |                 | UP-TE-D4.FAV-E2.FAV-F1 |                
-                |                 |                 |                 | L               | L               |                 | +SHIP          
+                |                 |                 |                 | L               |                 |                 |
+                |                 |                 |                 | UP-TE-E6.FAV-E2 |                 | L               |
+                |                 |                 |                 |                 | L               |                 | L
+                |                 |                 |                 |                 | UP-TE-E7.FAV-F1 |                 |
+                |                 |                 |                 | L               |                 | L               |
+                |                 |                 |                 |                 |                 | UP-TE-D4.FAV-E2.FAV-F1 |
+                |                 |                 |                 | L               | L               |                 | +SHIP
                 |                 |                 |                 | G5              | PASS            | ->F3            | BURN5.C1VP:1C.C5PW:1P.+SHIP
-                |                 |                 |                 | H7              |                 | BURN3.C5PW:1P.+SHIP | C2VP:2C.B3     
-                |                 |                 |                 | ACT4            |                 | ACTS-C2.C2      | L              
-                |                 |                 |                 |                 |                 |                 | C2VP:2C.C1     
-                |                 |                 |                 | PASS            |                 | PASS            | PASS           
+                |                 |                 |                 | H7              |                 | BURN3.C5PW:1P.+SHIP | C2VP:2C.B3
+                |                 |                 |                 | ACT4            |                 | ACTS-C2.C2      | L
+                |                 |                 |                 |                 |                 |                 | C2VP:2C.C1
+                |                 |                 |                 | PASS            |                 | PASS            | PASS
 Round 2
 TurnOrder: Auren, Halflings, Chaos Magicians, Alchemists
-Auren           | Halflings       | Chaos Magicians | Alchemists     
+Auren           | Halflings       | Chaos Magicians | Alchemists
 ---------------------------------------------------------------------
-+SHIP           | UP-TH-F3        |                 |                
-L               |                 |                 | L              
-                |                 | ->E3            | C3VP:3C.+DIG   
-C4              |                 |                 | L              
-                | UP-TE-F3.FAV-E1 |                 |                
-L               |                 |                 | L              
-                |                 | T-D3.D3         | L              
-                |                 |                 | C2VP:2C.A8     
-BURN2.ACT6.T-D5.T-H4.D5 |                 | L               |                
++SHIP           | UP-TH-F3        |                 |
+L               |                 |                 | L
+                |                 | ->E3            | C3VP:3C.+DIG
+C4              |                 |                 | L
+                | UP-TE-F3.FAV-E1 |                 |
+L               |                 |                 | L
+                |                 | T-D3.D3         | L
+                |                 |                 | C2VP:2C.A8
+BURN2.ACT6.T-D5.T-H4.D5 |                 | L               |
                 | ->A3            | ACT4            | C2VP:2C.ACTS-D2.D2
-                |                 | L               |                
-H4              | PASS            | E3              | L              
-                |                 |                 | BURN1.ACT3     
-G3              |                 | PASS            | PASS           
-UP-TH-C3        |                 | L               |                
-PASS            | T-G2-Y          |                 |                
+                |                 | L               |
+H4              | PASS            | E3              | L
+                |                 |                 | BURN1.ACT3
+G3              |                 | PASS            | PASS
+UP-TH-C3        |                 | L               |
+PASS            | T-G2-Y          |                 |
 Round 3
 TurnOrder: Halflings, Chaos Magicians, Alchemists, Auren
-Halflings       | Chaos Magicians | Alchemists      | Auren          
+Halflings       | Chaos Magicians | Alchemists      | Auren
 ---------------------------------------------------------------------
-+DIG            | UP-SA-D4.FAV-F2.FAV-E1 |                 |                
-L               |                 |                 | L              
-                |                 | C3VP:3C.UP-TH-C1 |                
++DIG            | UP-SA-D4.FAV-F2.FAV-E1 |                 |
+L               |                 |                 | L
+                |                 | C3VP:3C.UP-TH-C1 |
                 | L               |                 | UP-SH-C3.FAV-W1.TW2VP
-                | L               |                 |                
-ACT4            | ACT6.T-G1.T-B2-Y.G1 | C6VP:6C.UP-SH-C1 |                
-                | L               |                 | C1PW:1C.->W3   
-+DIG            | I5              | ACT3            | I6             
-                | L               |                 |                
-T-G2.G2         |                 |                 | L              
+                | L               |                 |
+ACT4            | ACT6.T-G1.T-B2-Y.G1 | C6VP:6C.UP-SH-C1 |
+                | L               |                 | C1PW:1C.->W3
++DIG            | I5              | ACT3            | I6
+                | L               |                 |
+T-G2.G2         |                 |                 | L
                 | PASS            | C5VP:5C.+DIG    | C1PW:1C.ACT-SH-F.C1PW:1C
-PASS            |                 | C6VP:6C.UP-SA-E5.FAV-W1 |                
-L               |                 |                 | ACTS-C5.C5     
-                |                 | PASS            | ACT2.->E2.PASS 
+PASS            |                 | C6VP:6C.UP-SA-E5.FAV-W1 |
+L               |                 |                 | ACTS-C5.C5
+                |                 | PASS            | ACT2.->E2.PASS
 Round 4
 TurnOrder: Chaos Magicians, Halflings, Alchemists, Auren
-Chaos Magicians | Halflings       | Alchemists      | Auren          
+Chaos Magicians | Halflings       | Alchemists      | Auren
 ---------------------------------------------------------------------
-T-B2.B2         |                 | L               |                
-                | BURN1.ACT4      | +SHIP           | ->E2           
-T-E2.E2         |                 | L               |                
+T-B2.B2         |                 | L               |
+                | BURN1.ACT4      | +SHIP           | ->E2
+T-E2.E2         |                 | L               |
                 | +SHIP           | T-D8.D8         | ACT-SH-E.C1PW:1C
-PASS            | ->E2            | C2VP:2C.E10     | +DIG           
+PASS            | ->E2            | C2VP:2C.E10     | +DIG
                 | T-G4.G4         | ACT3            | C1PW:1C.T-I7.I7
-                | T-G6.G6         | C2VP:2C.T-F7.F7 |                
-                | L               |                 | PASS           
-                | T-G7.G7         | L               |                
-                |                 | T-B4-Br         |                
-                | PASS            | T-A7.PASS       |                
+                | T-G6.G6         | C2VP:2C.T-F7.F7 |
+                | L               |                 | PASS
+                | T-G7.G7         | L               |
+                |                 | T-B4-Br         |
+                | PASS            | T-A7.PASS       |
 Round 5
 TurnOrder: Chaos Magicians, Auren, Halflings, Alchemists
-Chaos Magicians | Auren           | Halflings       | Alchemists     
+Chaos Magicians | Auren           | Halflings       | Alchemists
 ---------------------------------------------------------------------
-UP-TH-D3        |                 |                 | L              
-                | BURN1.ACT4      | UP-TH-G7.TW8VP  | ACT3           
-UP-TE-D3.FAV-A1.FAV-W1 |                 |                 | DL             
-                | ACT-SH-E        | +SHIP           | UP-TH-B5       
-                | L               |                 |                
-UP-TH-E2        |                 |                 | L              
-                | UP-TH-I6        |                 |                
-L               |                 | T-E8.E8         |                
-                | L               |                 | T-B4.B4        
-                | L               |                 |                
-UP-TH-B2        |                 |                 | L              
-                | E9              | L               | L              
-                | C1PW:1C         | H3              |                
-L               |                 |                 | ->W2           
-UP-TH-C2        |                 |                 | L              
-                | UP-TH-E9        | L               | L              
-                |                 | C1PW:1C.UP-TH-G2 |                
-                | L               |                 | C3PW:1W.A7     
-C2P:2W.UP-TH-G1 |                 | L               |                
-                | UP-TH-C4        |                 | DL             
-                |                 | UP-TH-H3        |                
+UP-TH-D3        |                 |                 | L
+                | BURN1.ACT4      | UP-TH-G7.TW8VP  | ACT3
+UP-TE-D3.FAV-A1.FAV-W1 |                 |                 | DL
+                | ACT-SH-E        | +SHIP           | UP-TH-B5
+                | L               |                 |
+UP-TH-E2        |                 |                 | L
+                | UP-TH-I6        |                 |
+L               |                 | T-E8.E8         |
+                | L               |                 | T-B4.B4
+                | L               |                 |
+UP-TH-B2        |                 |                 | L
+                | E9              | L               | L
+                | C1PW:1C         | H3              |
+L               |                 |                 | ->W2
+UP-TH-C2        |                 |                 | L
+                | UP-TH-E9        | L               | L
+                |                 | C1PW:1C.UP-TH-G2 |
+                | L               |                 | C3PW:1W.A7
+C2P:2W.UP-TH-G1 |                 | L               |
+                | UP-TH-C4        |                 | DL
+                |                 | UP-TH-H3        |
 L               |                 |                 | C1VP:1C.UP-TH-B4
-                | L               |                 |                
-C2PW:2C.PASS    | C1PW:1C.A10     |                 | L              
+                | L               |                 |
+C2PW:2C.PASS    | C1PW:1C.A10     |                 | L
                 |                 | C3PW:3C.PASS.C1PW:1C | C2VP:2C.C1PW:1C.UP-TH-E10
-                | L               |                 |                
+                | L               |                 |
                 | ACT2            |                 | C1VP:1C.C2PW:2C.UP-TH-F7
-                |                 | DL              |                
-                | ->A2            |                 | PASS           
-                | ->A2.BURN1.ACT5.T-F6.F6 | DL              | DL             
-                | UP-TH-F6        |                 | DL             
-                |                 | DL              |                
-                | PASS            |                 | T-D1-Bl        
-                | T-D7-Gy         |                 |                
+                |                 | DL              |
+                | ->A2            |                 | PASS
+                | ->A2.BURN1.ACT5.T-F6.F6 | DL              | DL
+                | UP-TH-F6        |                 | DL
+                |                 | DL              |
+                | PASS            |                 | T-D1-Bl
+                | T-D7-Gy         |                 |
 Round 6
 TurnOrder: Chaos Magicians, Halflings, Alchemists, Auren
-Chaos Magicians | Halflings       | Alchemists      | Auren          
+Chaos Magicians | Halflings       | Alchemists      | Auren
 ---------------------------------------------------------------------
-ACT6.T-F1.T-A5.F1.TW9VP | T-H1.H1         | UP-TE-B4.FAV-A1 | ACT5.T-D7.D7   
-                |                 | DL              |                
-A5              |                 | L               |                
+ACT6.T-F1.T-A5.F1.TW9VP | T-H1.H1         | UP-TE-B4.FAV-A1 | ACT5.T-D7.D7
+                |                 | DL              |
+A5              |                 | L               |
                 | BURN2.ACT4      | T-A6-Y          | UP-TE-I6.FAV-F2.TW11VP
-L               |                 |                 |                
-->F2            | UP-SA-F3.FAV-A3.TW8VP |                 | L              
-                |                 | L               |                
-                |                 | C3PW:1W.UP-TE-B5.FAV-F2.TW9VP | DL             
+L               |                 |                 |
+->F2            | UP-SA-F3.FAV-A3.TW8VP |                 | L
+                |                 | L               |
+                |                 | C3PW:1W.UP-TE-B5.FAV-F2.TW9VP | DL
                 |                 |                 | UP-SA-I6.FAV-A1.TW7VP
-L               |                 |                 |                
-->W2            | ->A1            | ->W2            | ACT-SH-W       
-BURN3.ACT1.TW7VP | T-H5            | BURN1.ACT3      | T-I8-Bk        
-+SHIP           | T-I2            | ACTS-D1.D1      |                
-DL              |                 |                 | ->W1           
-UP-TE-G1.FAV-W3.FAV-W2 | L               |                 |                
-                | H5              |                 | DL             
-                |                 | E1.TW6VP        |                
-L               |                 | C3PW:1W         | PASS           
-ACT2            | C2P:2W.UP-TH-E8 |                 | DL             
-                |                 | T-E11.E11.BURN1.C3PW:1W.TW6VP |                
-->A2            | C3PW:1W.I2      | C3PW:1W.UP-TH-B3 |                
-DL              |                 |                 |                
-FAV-E1          | PASS            | C1P:1W.T-H2.H2  |                
-                | DL              |                 |                
-BURN1.C2W1PW:3C.+SHIP |                 | PASS            |                
-PASS            |                 |                 |                
+L               |                 |                 |
+->W2            | ->A1            | ->W2            | ACT-SH-W
+BURN3.ACT1.TW7VP | T-H5            | BURN1.ACT3      | T-I8-Bk
++SHIP           | T-I2            | ACTS-D1.D1      |
+DL              |                 |                 | ->W1
+UP-TE-G1.FAV-W3.FAV-W2 | L               |                 |
+                | H5              |                 | DL
+                |                 | E1.TW6VP        |
+L               |                 | C3PW:1W         | PASS
+ACT2            | C2P:2W.UP-TH-E8 |                 | DL
+                |                 | T-E11.E11.BURN1.C3PW:1W.TW6VP |
+->A2            | C3PW:1W.I2      | C3PW:1W.UP-TH-B3 |
+DL              |                 |                 |
+FAV-E1          | PASS            | C1P:1W.T-H2.H2  |
+                | DL              |                 |
+BURN1.C2W1PW:3C.+SHIP |                 | PASS            |
+PASS            |                 |                 |

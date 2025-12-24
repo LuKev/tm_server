@@ -19,7 +19,6 @@ type TerraMysticaMap struct {
 // MarshalJSON implements custom JSON marshaling for TerraMysticaMap
 // Go's encoding/json doesn't support struct keys in maps, so we convert them to strings
 func (m *TerraMysticaMap) MarshalJSON() ([]byte, error) {
-	type Alias TerraMysticaMap
 
 	// Convert Hexes map
 	hexes := make(map[string]*MapHex)

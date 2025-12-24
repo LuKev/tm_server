@@ -6,31 +6,31 @@ import { Shovel, Sailboat } from 'lucide-react';
 
 export const DwellingIcon = ({ className, style, color }: { className?: string, style?: React.CSSProperties, color?: string }): React.ReactElement => (
     <svg viewBox="0 0 30 30" className={className} style={style}>
-        <path d="M 15 5 L 25 15 L 25 25 L 5 25 L 5 15 Z" fill={color || "#D4B483"} stroke="#5C4033" strokeWidth="2" />
+        <path d="M 15 5 L 25 15 L 25 25 L 5 25 L 5 15 Z" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2" />
     </svg>
 );
 
 export const TradingHouseIcon = ({ className, style, color }: { className?: string, style?: React.CSSProperties, color?: string }): React.ReactElement => (
     <svg viewBox="4 4 32 32" className={className} style={style}>
-        <path d="M 10 10 L 20 20 L 20 27 L 30 27 L 30 40 L 0 40 L 0 30 L 0 20 Z" transform="translate(5, -5)" fill={color || "#D4B483"} stroke="#5C4033" strokeWidth="2" />
+        <path d="M 10 10 L 20 20 L 20 27 L 30 27 L 30 40 L 0 40 L 0 30 L 0 20 Z" transform="translate(5, -5)" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2" />
     </svg>
 );
 
 export const TempleIcon = ({ className, color }: { className?: string, color?: string }): React.ReactElement => (
     <svg viewBox="0 0 30 30" className={className}>
-        <circle cx="15" cy="15" r="12" fill={color || "#D4B483"} stroke="#5C4033" strokeWidth="2" />
+        <circle cx="15" cy="15" r="12" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2" />
     </svg>
 );
 
 export const StrongholdIcon = ({ className, style, color }: { className?: string, style?: React.CSSProperties, color?: string }): React.ReactElement => (
     <svg viewBox="0 0 30 30" className={className} style={style}>
-        <path d="M 5 5 Q 10 15 5 25 Q 15 20 25 25 Q 20 15 25 5 Q 15 10 5 5 Z" fill={color || "#D4B483"} stroke="#5C4033" strokeWidth="2" />
+        <path d="M 5 5 Q 10 15 5 25 Q 15 20 25 25 Q 20 15 25 5 Q 15 10 5 5 Z" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2" />
     </svg>
 );
 
 export const SanctuaryIcon = ({ className, style, color }: { className?: string, style?: React.CSSProperties, color?: string }): React.ReactElement => (
     <svg viewBox="0 0 40 30" className={className} style={style}>
-        <path d="M 13 27 A 12 12 0 0 1 13 3 L 27 3 A 12 12 0 0 1 27 27 Z" fill={color || "#D4B483"} stroke="#5C4033" strokeWidth="2" />
+        <path d="M 13 27 A 12 12 0 0 1 13 3 L 27 3 A 12 12 0 0 1 27 27 Z" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2" />
     </svg>
 );
 

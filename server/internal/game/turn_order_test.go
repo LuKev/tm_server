@@ -1,8 +1,9 @@
 package game
 
 import (
-	"github.com/lukev/tm_server/internal/game/factions"
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game/factions"
 )
 
 func TestTurnOrder_PassOrderDeterminesNextRound(t *testing.T) {

@@ -3,6 +3,7 @@ package game
 import (
 	"errors"
 	"fmt"
+
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )

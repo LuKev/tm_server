@@ -21,7 +21,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
   onHexHover,
 }) => {
   // Create a Map of Hex components from the hexesProp array
-  const hexes = new Map<string, JSX.Element>();
+  const hexes = new Map<string, React.JSX.Element>();
   hexesProp.forEach((hexData) => {
     const { coord, terrain, isRiver } = hexData;
     const center = hexCenter(coord.r, coord.q);

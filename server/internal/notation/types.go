@@ -41,9 +41,16 @@ type LogAcceptLeechAction struct {
 	VPCost      int
 }
 
-func (a *LogAcceptLeechAction) GetType() game.ActionType          { return game.ActionAcceptPowerLeech }
-func (a *LogAcceptLeechAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogAcceptLeechAction) GetType() game.ActionType { return game.ActionAcceptPowerLeech }
+
+// GetPlayerID returns the player ID.
+func (a *LogAcceptLeechAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogAcceptLeechAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -60,9 +67,16 @@ type LogPowerAction struct {
 	ActionCode string // e.g. "ACT1", "ACT6"
 }
 
-func (a *LogPowerAction) GetType() game.ActionType          { return game.ActionPowerAction }
-func (a *LogPowerAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogPowerAction) GetType() game.ActionType { return game.ActionPowerAction }
+
+// GetPlayerID returns the player ID.
+func (a *LogPowerAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogPowerAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -75,19 +89,15 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	}
 
 	// Check availability
-	if !gs.PowerActions.IsAvailable(actionType) {
-		// For replay, we might want to warn but proceed?
-		// Or assume the log is correct and maybe we missed a reset?
-		// But strictly, it's an error.
-		// fmt.Printf("Warning: Power action %v already used\n", actionType)
-	}
+	// if !gs.PowerActions.IsAvailable(actionType) {
+	// 	// For replay, we might want to warn but proceed?
+	// 	// Or assume the log is correct and maybe we missed a reset?
+	// 	// But strictly, it's an error.
+	// 	// fmt.Printf("Warning: Power action %v already used\n", actionType)
+	// }
 
 	// Spend power (manual implementation to avoid validation errors if resources mismatch slightly)
 	powerCost := game.GetPowerCost(actionType)
-	if player.Resources.Power.Bowl3 < powerCost {
-		// Force spend if needed?
-		// player.Resources.Power.Bowl3 = powerCost // Hack?
-	}
 	player.Resources.Power.Bowl3 -= powerCost
 	player.Resources.Power.Bowl1 += powerCost
 
@@ -118,7 +128,7 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	case game.PowerActionCoins:
 		player.Resources.Coins += 7
 	case game.PowerActionSpade1:
-		gs.PendingSpades[a.PlayerID] += 1
+		gs.PendingSpades[a.PlayerID]++
 	case game.PowerActionSpade2:
 		gs.PendingSpades[a.PlayerID] += 2
 	}
@@ -132,9 +142,15 @@ type LogBurnAction struct {
 	Amount   int
 }
 
-func (a *LogBurnAction) GetType() game.ActionType          { return game.ActionSpecialAction } // Placeholder
-func (a *LogBurnAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogBurnAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+// GetPlayerID returns the player ID.
+func (a *LogBurnAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogBurnAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogBurnAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -161,6 +177,7 @@ func (a *LogBurnAction) Execute(gs *game.GameState) error {
 	if player.Resources.Power.Bowl2 < burned+gained {
 		// This might happen if log is out of sync or we missed something.
 		// For replay, we might just force it.
+		_ = 0 // No-op to avoid empty block lint
 	}
 
 	player.Resources.Power.Bowl2 -= burned
@@ -178,9 +195,16 @@ type LogFavorTileAction struct {
 	Tile     string // e.g. "FAV-F1"
 }
 
-func (a *LogFavorTileAction) GetType() game.ActionType          { return game.ActionSelectFavorTile }
-func (a *LogFavorTileAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogFavorTileAction) GetType() game.ActionType { return game.ActionSelectFavorTile }
+
+// GetPlayerID returns the player ID.
+func (a *LogFavorTileAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogFavorTileAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogFavorTileAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -219,9 +243,16 @@ type LogSpecialAction struct {
 	ActionCode string // e.g. "ACT-SH-D-C4"
 }
 
-func (a *LogSpecialAction) GetType() game.ActionType          { return game.ActionSpecialAction }
-func (a *LogSpecialAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogSpecialAction) GetType() game.ActionType { return game.ActionSpecialAction }
+
+// GetPlayerID returns the player ID.
+func (a *LogSpecialAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogSpecialAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -233,76 +264,20 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 		return fmt.Errorf("invalid special action code: %s", a.ActionCode)
 	}
 
-	// Handle ACT-SH-...
-	if parts[0] == "ACT" && parts[1] == "SH" {
-		if len(parts) < 3 {
-			return fmt.Errorf("invalid stronghold action code: %s", a.ActionCode)
-		}
-
-		switch parts[2] {
-		case "D": // Witches Ride or Nomads Sandstorm
-			if len(parts) < 4 {
-				return fmt.Errorf("missing coord for ACT-SH-D")
+	switch parts[0] {
+	case "ACT":
+		if parts[1] == "SH" {
+			return a.executeStrongholdAction(gs, player, parts)
+		} else if parts[1] == "FAV" {
+			// ACT-FAV-W
+			if len(parts) < 3 {
+				return fmt.Errorf("invalid favor action code")
 			}
-			hex, err := ConvertLogCoordToAxial(parts[3])
-			if err != nil {
-				return err
-			}
-
-			if player.Faction.GetType() == models.FactionWitches {
-				// Witches Ride
-				action := game.NewWitchesRideAction(a.PlayerID, hex)
-				return action.Execute(gs)
-			} else if player.Faction.GetType() == models.FactionNomads {
-				// Sandstorm
-				// Assume ACT-SH-D means Sandstorm AND Build Dwelling (D for Dwelling)
-				action := game.NewNomadsSandstormAction(a.PlayerID, hex, true)
-				return action.Execute(gs)
-			}
-
-		case "S": // Giants (2 Spades)
-			if len(parts) < 4 {
-				return fmt.Errorf("missing coord for ACT-SH-S")
-			}
-			hex, err := ConvertLogCoordToAxial(parts[3])
-			if err != nil {
-				return err
-			}
-			// Assume BuildDwelling=false for "S" (Spade)
-			action := game.NewGiantsTransformAction(a.PlayerID, hex, false)
-			return action.Execute(gs)
-
-		case "TP": // Swarmlings (Upgrade to TP)
-			if len(parts) < 4 {
-				return fmt.Errorf("missing coord for ACT-SH-TP")
-			}
-			hex, err := ConvertLogCoordToAxial(parts[3])
-			if err != nil {
-				return err
-			}
-			action := game.NewSwarmlingsUpgradeAction(a.PlayerID, hex)
-			return action.Execute(gs)
-
-		case "2X": // Chaos Magicians (Double Turn)
-			// Just mark the ability as used. Sub-actions follow in the log.
-			player.SpecialActionsUsed[game.SpecialActionChaosMagiciansDoubleTurn] = true
-			return nil
-
-		case "W", "F", "E", "A": // Auren Cult Advance
 			track := GetCultTrackFromCode(parts[2])
-			action := game.NewAurenCultAdvanceAction(a.PlayerID, track)
+			action := game.NewWater2CultAdvanceAction(a.PlayerID, track)
 			return action.Execute(gs)
 		}
-	} else if parts[0] == "ACT" && parts[1] == "FAV" {
-		// ACT-FAV-W
-		if len(parts) < 3 {
-			return fmt.Errorf("invalid favor action code")
-		}
-		track := GetCultTrackFromCode(parts[2])
-		action := game.NewWater2CultAdvanceAction(a.PlayerID, track)
-		return action.Execute(gs)
-
-	} else if parts[0] == "ACTS" {
+	case "ACTS":
 		// Bonus Card Spade: ACTS-[Coord]
 		if len(parts) < 2 {
 			return fmt.Errorf("missing coord for ACTS")
@@ -314,14 +289,15 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 		// Assume BuildDwelling=false
 		action := game.NewBonusCardSpadeAction(a.PlayerID, hex, false)
 		return action.Execute(gs)
-
-	} else if parts[0] == "ORD" {
+	case "ORD":
 		// Darklings Ordination: ORD-[N]
 		if len(parts) < 2 {
 			return fmt.Errorf("missing amount for ORD")
 		}
 		amount := 0
-		fmt.Sscanf(parts[1], "%d", &amount)
+		if _, err := fmt.Sscanf(parts[1], "%d", &amount); err != nil {
+			return err
+		}
 		if amount > 0 {
 			if player.Resources.Workers >= amount {
 				player.Resources.Workers -= amount
@@ -334,6 +310,69 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 	return nil
 }
 
+func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *game.Player, parts []string) error {
+	if len(parts) < 3 {
+		return fmt.Errorf("invalid stronghold action code: %s", a.ActionCode)
+	}
+
+	switch parts[2] {
+	case "D": // Witches Ride or Nomads Sandstorm
+		if len(parts) < 4 {
+			return fmt.Errorf("missing coord for ACT-SH-D")
+		}
+		hex, err := ConvertLogCoordToAxial(parts[3])
+		if err != nil {
+			return err
+		}
+
+		if player.Faction.GetType() == models.FactionWitches {
+			// Witches Ride
+			action := game.NewWitchesRideAction(a.PlayerID, hex)
+			return action.Execute(gs)
+		} else if player.Faction.GetType() == models.FactionNomads {
+			// Sandstorm
+			// Assume ACT-SH-D means Sandstorm AND Build Dwelling (D for Dwelling)
+			action := game.NewNomadsSandstormAction(a.PlayerID, hex, true)
+			return action.Execute(gs)
+		}
+
+	case "S": // Giants (2 Spades)
+		if len(parts) < 4 {
+			return fmt.Errorf("missing coord for ACT-SH-S")
+		}
+		hex, err := ConvertLogCoordToAxial(parts[3])
+		if err != nil {
+			return err
+		}
+		// Assume BuildDwelling=false for "S" (Spade)
+		action := game.NewGiantsTransformAction(a.PlayerID, hex, false)
+		return action.Execute(gs)
+
+	case "TP": // Swarmlings (Upgrade to TP)
+		if len(parts) < 4 {
+			return fmt.Errorf("missing coord for ACT-SH-TP")
+		}
+		hex, err := ConvertLogCoordToAxial(parts[3])
+		if err != nil {
+			return err
+		}
+		action := game.NewSwarmlingsUpgradeAction(a.PlayerID, hex)
+		return action.Execute(gs)
+
+	case "2X": // Chaos Magicians (Double Turn)
+		// Just mark the ability as used. Sub-actions follow in the log.
+		player.SpecialActionsUsed[game.SpecialActionChaosMagiciansDoubleTurn] = true
+		return nil
+
+	case "W", "F", "E", "A": // Auren Cult Advance
+		track := GetCultTrackFromCode(parts[2])
+		action := game.NewAurenCultAdvanceAction(a.PlayerID, track)
+		return action.Execute(gs)
+	}
+	return nil
+}
+
+// GetCultTrackFromCode converts a code to a CultTrack.
 func GetCultTrackFromCode(code string) game.CultTrack {
 	switch code {
 	case "F":
@@ -355,9 +394,15 @@ type LogConversionAction struct {
 	Reward   map[models.ResourceType]int
 }
 
-func (a *LogConversionAction) GetType() game.ActionType          { return game.ActionSpecialAction } // Placeholder
-func (a *LogConversionAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogConversionAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+// GetPlayerID returns the player ID.
+func (a *LogConversionAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogConversionAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -407,14 +452,20 @@ type LogCompoundAction struct {
 	Actions []game.Action
 }
 
+// GetType returns the action type.
 func (a *LogCompoundAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+// GetPlayerID returns the player ID.
 func (a *LogCompoundAction) GetPlayerID() string {
 	if len(a.Actions) > 0 {
 		return a.Actions[0].GetPlayerID()
 	}
 	return ""
 }
+
+// Validate checks if the action is valid.
 func (a *LogCompoundAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 	for _, action := range a.Actions {
 		if err := action.Execute(gs); err != nil {
@@ -430,9 +481,15 @@ type LogTownAction struct {
 	VP       int
 }
 
-func (a *LogTownAction) GetType() game.ActionType          { return game.ActionSpecialAction } // Placeholder
-func (a *LogTownAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogTownAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+// GetPlayerID returns the player ID.
+func (a *LogTownAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogTownAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogTownAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -447,7 +504,7 @@ func (a *LogTownAction) Execute(gs *game.GameState) error {
 	// Select the town tile
 	// This assumes PendingTownFormations was populated by the previous action (Build/Upgrade)
 	if err := gs.SelectTownTile(a.PlayerID, tileType); err != nil {
-		return fmt.Errorf("failed to select town tile: %v", err)
+		return fmt.Errorf("failed to select town tile: %w", err)
 	}
 
 	return nil
@@ -461,9 +518,15 @@ type LogBonusCardSelectionAction struct {
 	BonusCard string // e.g. "BON1"
 }
 
-func (a *LogBonusCardSelectionAction) GetType() game.ActionType          { return game.ActionSpecialAction } // Placeholder
-func (a *LogBonusCardSelectionAction) GetPlayerID() string               { return a.PlayerID }
+// GetType returns the action type.
+func (a *LogBonusCardSelectionAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+// GetPlayerID returns the player ID.
+func (a *LogBonusCardSelectionAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
 func (a *LogBonusCardSelectionAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
 func (a *LogBonusCardSelectionAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -481,12 +544,13 @@ func (a *LogBonusCardSelectionAction) Execute(gs *game.GameState) error {
 	}
 
 	if _, err := gs.BonusCards.TakeBonusCard(a.PlayerID, cardType); err != nil {
-		return fmt.Errorf("failed to take bonus card: %v", err)
+		return fmt.Errorf("failed to take bonus card: %w", err)
 	}
 
 	return nil
 }
 
+// ParseBonusCardCode converts a code to a BonusCardType.
 func ParseBonusCardCode(code string) game.BonusCardType {
 	switch code {
 	case "BON1":

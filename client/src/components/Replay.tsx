@@ -9,16 +9,30 @@ import { PlayerBoards } from './GameBoard/PlayerBoards'
 import { CultTracks } from './CultTracks/CultTracks'
 import type { CultPosition } from './CultTracks/CultTracks'
 import { useGameStore } from '../stores/gameStore'
-import { CultType, GamePhase } from '../types/game.types'
+import { CultType, GamePhase, type GameState } from '../types/game.types'
 import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './Game.css'
 import { ReplayControls } from './ReplayControls'
 import { ReplayLog } from './ReplayLog'
-import { MissingInfoModal } from './MissingInfoModal'
+import { MissingInfoModal, type MissingInfo } from './MissingInfoModal'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
+
+// Bonus Card Mapping
+const BONUS_CARD_MAPPING: Record<number, string> = {
+    0: "BON8 (Priest)",
+    1: "BON4 (Shipping)",
+    2: "BON9 (Dwelling VP)",
+    3: "BON5 (Worker Power)",
+    4: "BON1 (Spade)",
+    5: "BON7 (Trading House VP)",
+    6: "BON3 (6 Coins)",
+    7: "BON2 (Cult Advance)",
+    8: "BON6 (Stronghold/Sanctuary VP)",
+    9: "BON10 (Shipping VP)"
+};
 
 export const Replay = () => {
     const { gameId } = useParams()
@@ -30,24 +44,11 @@ export const Replay = () => {
     const [totalActions, setTotalActions] = useState(0)
     const [logStrings, setLogStrings] = useState<string[]>([])
     const [isAutoPlaying, setIsAutoPlaying] = useState(false)
-    const [autoPlaySpeed, setAutoPlaySpeed] = useState(1000) // ms
-    const [missingInfo, setMissingInfo] = useState<any>(null)
+    const [autoPlaySpeed] = useState(1000) // ms
+    const [missingInfo, setMissingInfo] = useState<MissingInfo | null>(null)
     const [showMissingInfoModal, setShowMissingInfoModal] = useState(false)
     const [players, setPlayers] = useState<string[]>([])
 
-    // Bonus Card Mapping
-    const BONUS_CARD_MAPPING: Record<number, string> = {
-        0: "BON8 (Priest)",
-        1: "BON4 (Shipping)",
-        2: "BON9 (Dwelling VP)",
-        3: "BON5 (Worker Power)",
-        4: "BON1 (Spade)",
-        5: "BON7 (Trading House VP)",
-        6: "BON3 (6 Coins)",
-        7: "BON2 (Cult Advance)",
-        8: "BON6 (Stronghold/Sanctuary VP)",
-        9: "BON10 (Shipping VP)"
-    };
 
     const availableBonusCardIds = useMemo(() => {
         if (!gameState?.bonusCards) return [];
@@ -99,7 +100,7 @@ export const Replay = () => {
         ]
     }), [numCards])
 
-    const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
+    const [layouts] = useState<Layouts>(defaultLayouts)
     const [rowHeight, setRowHeight] = useState(60)
 
     // API Calls
@@ -111,7 +112,15 @@ export const Replay = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ gameId })
             })
-            const data = await res.json()
+            interface ReplayStartResponse {
+                currentIndex: number;
+                totalActions: number;
+                logStrings: string[];
+                players: string[];
+                missingInfo?: MissingInfo;
+            }
+
+            const data = await res.json() as ReplayStartResponse
 
             if (data.missingInfo) {
                 setMissingInfo(data.missingInfo)
@@ -126,14 +135,14 @@ export const Replay = () => {
 
             // Fetch initial state
             const stateRes = await fetch(`/api/replay/state?gameId=${gameId}`)
-            const stateData = await stateRes.json()
+            const stateData = await stateRes.json() as GameState
             setGameState(stateData)
         } catch (err) {
             console.error("Failed to start replay:", err)
         }
     }, [gameId, setGameState])
 
-    const handleProvideInfo = useCallback(async (info: any) => {
+    const handleProvideInfo = useCallback(async (info: unknown) => {
         if (!gameId) return
         try {
             const res = await fetch('/api/replay/provide_info', {
@@ -148,7 +157,7 @@ export const Replay = () => {
             setShowMissingInfoModal(false)
             setMissingInfo(null)
             // Restart replay with new info
-            startReplay()
+            void startReplay()
         } catch (err) {
             console.error("Failed to provide info:", err)
         }
@@ -170,20 +179,20 @@ export const Replay = () => {
                 // The backend returns a plain string error usually, but we might want to parse it if it's JSON
                 // Or if it's a 500 with "missing info: ..."
                 if (errText.includes("missing info:")) {
-                    console.log("Missing info detected:", errText);
+                    console.error("Missing info detected:", errText);
 
                     const isInitial = errText.includes("initial_bonus_card");
                     const isPass = errText.includes("pass_bonus_card");
 
                     // Extract players
-                    const playersMatch = errText.match(/\[(.*?)\]/);
+                    const playersMatch = /\[(.*?)\]/.exec(errText);
                     // Split by comma if present, otherwise space (backward compatibility)
                     const playersStr = playersMatch ? playersMatch[1] : "";
                     const missingPlayers = playersStr.includes(",")
                         ? playersStr.split(",").map(s => s.trim())
                         : playersStr.split(" ").map(s => s.trim()).filter(s => s);
 
-                    const newMissingInfo: any = {
+                    const newMissingInfo: MissingInfo = {
                         GlobalBonusCards: false,
                         GlobalScoringTiles: false,
                         BonusCardSelections: {},
@@ -217,7 +226,7 @@ export const Replay = () => {
                 setIsAutoPlaying(false)
                 return
             }
-            const stateData = await res.json()
+            const stateData = await res.json() as GameState
             setGameState(stateData)
             setCurrentIndex(prev => prev + 1)
         } catch (err) {
@@ -239,7 +248,7 @@ export const Replay = () => {
 
     // Initial load
     useEffect(() => {
-        startReplay()
+        void startReplay()
     }, [startReplay])
 
     // Helper to get cult positions (reused from Game.tsx)
@@ -331,7 +340,7 @@ export const Replay = () => {
                     {/* Main game board */}
                     <div key="board" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
                         <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
-                            <GameBoard onHexClick={() => { }} />
+                            <GameBoard onHexClick={undefined} />
                         </div>
                     </div>
 

@@ -11,18 +11,18 @@ from selenium.webdriver.support import expected_conditions as EC
 
 def parse_log_html(html_content):
     soup = BeautifulSoup(html_content, 'html.parser')
-    
+
     # Helper to replace amount divs
     def replace_amount(class_name, unit_name):
         for div in soup.find_all("div", class_=class_name):
             amount = div.get_text(strip=True)
             parent = div.find_parent("div", class_="tmlogs_icon")
-            
+
             if unit_name:
                 text = f"{amount} {unit_name}"
             else:
                 text = amount
-                
+
             if parent:
                 parent.replace_with(text)
             else:
@@ -36,13 +36,13 @@ def parse_log_html(html_content):
     replace_amount("vp_amount", "VP")
     replace_amount("priests_amount", "Priests") # Added priests_amount
     replace_amount("cult_p_amount", "priest(s)")
-    
+
     # Cult track amounts (no unit needed as context usually provides it)
     replace_amount("earth_amount", "")
     replace_amount("fire_amount", "")
     replace_amount("water_amount", "")
     replace_amount("air_amount", "")
-    
+
     # Replace terrain icons
     terrain_map = {
         "trans_mountains": "mountains",
@@ -53,7 +53,7 @@ def parse_log_html(html_content):
         "trans_plains": "plains",
         "trans_wasteland": "wasteland",
     }
-    
+
     for cls, name in terrain_map.items():
         for div in soup.find_all("div", class_=cls):
             parent = div.find_parent("div", class_="tmlogs_icon")
@@ -67,23 +67,23 @@ def parse_log_html(html_content):
         title = div.get("title")
         if title:
             div.replace_with(title)
-            
+
     logs = soup.find_all("div", class_="gamelogreview")
     if not logs:
         return soup.get_text(separator=" ", strip=True)
-        
+
     cleaned_logs = []
     for log in logs:
         text = log.get_text(separator=" ", strip=True)
         text = re.sub(r'\s+', ' ', text)
-        
+
         # Fix conversion parenthesis: "... collects: ... ) ... ..." -> "... collects: ... ... ... )"
         # Pattern: look for "collects: ... )" followed by resources
         if "Conversions" in text and "collects:" in text:
             # Simple heuristic: if ')' is followed by numbers and words, move it to the end
             # Example: ... collects: 1 Priests ) 0 workers 0 coins
             # We want: ... collects: 1 Priests 0 workers 0 coins )
-            
+
             # Find the part after "collects:"
             parts = text.split("collects:")
             if len(parts) > 1:
@@ -95,9 +95,9 @@ def parse_log_html(html_content):
                         # Move parenthesis to the end
                         new_suffix = pre_paren + post_paren + ")"
                         text = parts[0] + "collects:" + new_suffix
-        
+
         cleaned_logs.append(text)
-        
+
     return "\n".join(cleaned_logs)
 
 def main():
@@ -138,28 +138,28 @@ def main():
 
         # Wait for user to log in if needed
         print("Waiting for page to load... (If redirected to login, please log in)")
-        
-        # Wait for the log container to be present. 
+
+        # Wait for the log container to be present.
         WebDriverWait(driver, 300).until(
-            EC.presence_of_element_located((By.ID, "gamelogs")) 
+            EC.presence_of_element_located((By.ID, "gamelogs"))
         )
-        
+
         print("Game log container found. Extracting HTML...")
-        
+
         # Allow some time for dynamic content to load
-        time.sleep(5) 
-        
+        time.sleep(5)
+
         # Extract HTML from the log container
         log_element = driver.find_element(By.ID, "gamelogs")
         log_html = log_element.get_attribute('innerHTML')
-        
+
         print("Parsing HTML...")
         parsed_text = parse_log_html(log_html)
-        
+
         # Save to file
         with open(args.output, 'w', encoding='utf-8') as f:
             f.write(parsed_text)
-            
+
         print(f"Successfully saved {len(parsed_text)} characters to {args.output}")
 
     except Exception as e:
