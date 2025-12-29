@@ -92,6 +92,35 @@ export const Game = () => {
     })
   }, [numCards])
 
+  // Update layout when player count changes to ensure correct default size for player boards
+  useEffect(() => {
+    const playerCount = Object.keys(gameState?.players || {}).length
+    if (playerCount === 0) return
+
+    setLayouts((currentLayouts) => {
+      const newLayouts = { ...currentLayouts }
+      let hasChanges = false
+
+      Object.keys(newLayouts).forEach((key) => {
+        newLayouts[key] = newLayouts[key].map((item) => {
+          if (item.i === 'playerBoards') {
+            const newH = Math.ceil(playerCount * item.w * 0.5)
+            // Ensure minimum height
+            const finalH = Math.max(newH, item.minH || 4)
+
+            if (item.h !== finalH) {
+              hasChanges = true
+              return { ...item, h: finalH }
+            }
+          }
+          return item
+        })
+      })
+
+      return hasChanges ? newLayouts : currentLayouts
+    })
+  }, [gameState?.players])
+
   // Handle hex clicks
   const handleHexClick = (q: number, r: number): void => {
     if (!localPlayerId) {
@@ -111,9 +140,9 @@ export const Game = () => {
   const selectedFactionsMap = useMemo(() => {
     const map = new Map<string, { playerNumber: number, vp: number }>()
 
-    if (!gameState?.players || !gameState.order) return map
+    if (!gameState?.players || !gameState.turnOrder) return map
 
-    gameState.order.forEach((playerId: string, index: number) => {
+    gameState.turnOrder.forEach((playerId: string, index: number) => {
       const player = gameState.players[playerId]
       if (!player) return
 
@@ -149,8 +178,8 @@ export const Game = () => {
 
   // Get current player's position (1-based index)
   const currentPlayerPosition = useMemo(() => {
-    if (!gameState?.order || !localPlayerId) return 1
-    const index = gameState.order.indexOf(localPlayerId)
+    if (!gameState?.turnOrder || !localPlayerId) return 1
+    const index = gameState.turnOrder.indexOf(localPlayerId)
     return index !== -1 ? index + 1 : 1
   }, [gameState, localPlayerId])
 
@@ -170,8 +199,8 @@ export const Game = () => {
     positions.set(CultType.Earth, [])
     positions.set(CultType.Air, [])
 
-    if (gameState.order && gameState.players) {
-      gameState.order.forEach((playerId: string) => {
+    if (gameState.turnOrder && gameState.players) {
+      gameState.turnOrder.forEach((playerId: string) => {
         const player = gameState.players[playerId]
         if (!player) return
 
@@ -193,7 +222,7 @@ export const Game = () => {
     return positions
   }
 
-  const isMyTurn = gameState?.order[gameState.currentTurn] === localPlayerId
+  const isMyTurn = gameState?.turnOrder[gameState.currentTurn] === localPlayerId
 
   const handleWidthChange = (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => {
     const safeMargin = margin || [10, 10]

@@ -62,13 +62,17 @@ type ProvidedGameInfo struct {
 }
 
 // StartReplay fetches the log for a game and initializes a session
-func (m *ReplayManager) StartReplay(gameID string) (*ReplaySession, error) {
+func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	// Check if session already exists
 	if session, ok := m.sessions[gameID]; ok {
-		return session, nil
+		if !restart {
+			return session, nil
+		}
+		// If restarting, delete the existing session so it gets recreated
+		delete(m.sessions, gameID)
 	}
 
 	// Fetch log
@@ -100,7 +104,7 @@ func (m *ReplayManager) StartReplay(gameID string) (*ReplaySession, error) {
 		settings := notation.GameSettingsItem{
 			Settings: map[string]string{
 				"ScoringTiles": "SCORE5,SCORE8,SCORE4,SCORE1,SCORE6,SCORE7",
-				"BonusCards":   "BON1,BON2,BON3,BON4,BON5,BON6,BON7,BON8,BON9,BON10",
+				"BonusCards":   "BON1,BON3,BON6,BON7,BON8,BON9,BON10",
 			},
 		}
 

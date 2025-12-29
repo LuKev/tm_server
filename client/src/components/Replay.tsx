@@ -58,6 +58,16 @@ export const Replay = () => {
         const taken = Object.values(gameState.bonusCards.playerCards || {}).map(Number);
         // Combine and deduplicate
         const allIds = Array.from(new Set([...available, ...taken]));
+
+        // Sort by BON number
+        allIds.sort((a, b) => {
+            const strA = BONUS_CARD_MAPPING[a] || "";
+            const strB = BONUS_CARD_MAPPING[b] || "";
+            const numA = parseInt(strA.replace("BON", ""));
+            const numB = parseInt(strB.replace("BON", ""));
+            return numA - numB;
+        });
+
         // Map to strings
         return allIds.map(id => BONUS_CARD_MAPPING[id]).filter(s => s);
     }, [gameState]);
@@ -105,13 +115,13 @@ export const Replay = () => {
     const [rowHeight, setRowHeight] = useState(60)
 
     // API Calls
-    const startReplay = useCallback(async () => {
+    const startReplay = useCallback(async (restart: boolean = false) => {
         if (!gameId) return
         try {
             const res = await fetch('/api/replay/start', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ gameId })
+                body: JSON.stringify({ gameId, restart })
             })
             interface ReplayStartResponse {
                 currentIndex: number;
@@ -262,8 +272,8 @@ export const Replay = () => {
         positions.set(CultType.Earth, [])
         positions.set(CultType.Air, [])
 
-        if (gameState?.order && gameState.players) {
-            gameState.order.forEach((playerId: string) => {
+        if (gameState?.turnOrder && gameState.players) {
+            gameState.turnOrder.forEach((playerId: string) => {
                 const player = gameState.players[playerId]
                 if (!player) return
                 if (player.cults) {

@@ -561,12 +561,8 @@ func parseQuotedStrings(s string) []string {
 	parts := strings.Split(s, `",`)
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)
-		if strings.HasPrefix(trimmed, `"`) {
-			trimmed = strings.TrimPrefix(trimmed, `"`)
-		}
-		if strings.HasSuffix(trimmed, `"`) {
-			trimmed = strings.TrimSuffix(trimmed, `"`)
-		}
+		trimmed = strings.TrimPrefix(trimmed, `"`)
+		trimmed = strings.TrimSuffix(trimmed, `"`)
 		if trimmed != "" {
 			result = append(result, trimmed)
 		}

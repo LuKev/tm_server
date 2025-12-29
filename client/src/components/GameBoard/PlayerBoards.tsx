@@ -90,12 +90,22 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
     }
     // Check 'faction' (lowercase) fallback
     else if (player.faction) {
-        if (typeof player.faction === 'string') {
+        // The Go struct has json:"faction", so this is the likely path.
+        // However, the embedded BaseFaction fields (like Type) are exported but untagged,
+        // so they serialize as "Type" (uppercase).
+        if (typeof player.faction === 'object') {
+            // Check for "Type" (uppercase) which comes from Go serialization
+            if ('Type' in player.faction) {
+                factionType = (player.faction as any).Type;
+            }
+            // Check for "type" (lowercase) just in case
+            else if ('type' in player.faction) {
+                factionType = (player.faction as { type: FactionType }).type;
+            }
+        } else if (typeof player.faction === 'string') {
             const factionName = player.faction;
             const found = FACTIONS.find(f => f.type === factionName || f.name === factionName);
             if (found) factionType = found.id;
-        } else if (typeof player.faction === 'object' && 'type' in player.faction) {
-            factionType = (player.faction as { type: FactionType }).type;
         }
     }
     const boardLayout = FACTION_BOARDS[factionType] || FACTION_BOARDS[FactionType.Nomads]; // Fallback
@@ -126,10 +136,10 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                         <div className="resource-item"><PriestIcon style={{ width: '1.5em', height: '1.5em' }} /> {player.resources.priests}</div>
                         <div className="resource-item">
                             <div className="pb-power-bowl">
-                                <span>{player.resources.powerI}/{player.resources.powerII}/{player.resources.powerIII}</span>
+                                <span>{player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}</span>
                             </div>
                         </div>
-                        <div className="resource-item ml-auto">
+                        <div className="resource-item" style={{ marginLeft: 'auto' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontWeight: 'bold' }}>
                                 <span>{player.VictoryPoints || 0} VP</span>
                             </div>
@@ -291,15 +301,15 @@ export const PlayerBoards: React.FC = () => {
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const width = entry.contentRect.width;
-                // 1.5% of width, matching 1.5cqw
-                const newSize = Math.max(width * 0.015, 8); // Minimum 8px
+                // 2% of width, minimum 10px
+                const newSize = Math.max(width * 0.02, 10);
                 setScaleFontSize(newSize);
             }
         });
 
         observer.observe(containerRef.current);
         return () => { observer.disconnect(); };
-    }, []);
+    }, [gameState?.phase, gameState?.players]); // Re-run when game state loads/changes
 
     if (!gameState?.players) return null;
 
@@ -313,7 +323,7 @@ export const PlayerBoards: React.FC = () => {
     }
 
     // Sort players by turn order
-    const sortedPlayerIds = [...(gameState.order || [])];
+    const sortedPlayerIds = [...(gameState.turnOrder || [])];
 
     // If order is not set yet (should be), fallback to keys
     if (sortedPlayerIds.length === 0) {

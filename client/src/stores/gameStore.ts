@@ -38,7 +38,7 @@ export const useGameStore = create<GameStore>()(
       isMyTurn: () => {
         const { gameState, localPlayerId } = get();
         if (!gameState || !localPlayerId) return false;
-        const currentPlayerId = gameState.order[gameState.currentTurn];
+        const currentPlayerId = gameState.turnOrder[gameState.currentTurn];
         return currentPlayerId === localPlayerId;
       },
 

@@ -28,16 +28,17 @@ func (h *ReplayHandler) RegisterRoutes(router *mux.Router) {
 func (h *ReplayHandler) handleStart(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("handleStart called")
 	var req struct {
-		GameID string `json:"gameId"`
+		GameID  string `json:"gameId"`
+		Restart bool   `json:"restart"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		fmt.Printf("handleStart decode error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("handleStart for game %s\n", req.GameID)
+	fmt.Printf("handleStart for game %s (restart=%v)\n", req.GameID, req.Restart)
 
-	session, err := h.manager.StartReplay(req.GameID)
+	session, err := h.manager.StartReplay(req.GameID, req.Restart)
 	if err != nil {
 		fmt.Printf("StartReplay error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)

@@ -11,20 +11,21 @@ export enum TerrainType {
 }
 
 export enum FactionType {
-  Nomads = 0,
-  Fakirs = 1,
-  ChaosMagicians = 2,
-  Giants = 3,
-  Swarmlings = 4,
-  Mermaids = 5,
-  Witches = 6,
-  Auren = 7,
-  Halflings = 8,
-  Cultists = 9,
-  Alchemists = 10,
-  Darklings = 11,
-  Engineers = 12,
-  Dwarves = 13,
+  Unknown = 0,
+  Nomads = 1,
+  Fakirs = 2,
+  ChaosMagicians = 3,
+  Giants = 4,
+  Swarmlings = 5,
+  Mermaids = 6,
+  Witches = 7,
+  Auren = 8,
+  Halflings = 9,
+  Cultists = 10,
+  Alchemists = 11,
+  Darklings = 12,
+  Engineers = 13,
+  Dwarves = 14,
 }
 
 export enum BuildingType {
@@ -66,9 +67,11 @@ export interface Resources {
   coins: number
   workers: number
   priests: number
-  powerI: number
-  powerII: number
-  powerIII: number
+  power: {
+    powerI: number
+    powerII: number
+    powerIII: number
+  }
 }
 
 export interface HexCoord {
@@ -169,7 +172,7 @@ export interface GameState {
   id: string
   phase: GamePhase
   players: Record<string, PlayerState>
-  order: string[]
+  turnOrder: string[]
   currentTurn: number
   map: MapState
   round: RoundState
