@@ -31,10 +31,11 @@ func NewReplayManager(scriptDir string) *ReplayManager {
 
 // ReplaySession represents an active replay session
 type ReplaySession struct {
-	GameID      string
-	Simulator   *GameSimulator
-	MissingInfo *MissingGameInfo
-	LogStrings  []string
+	GameID       string
+	Simulator    *GameSimulator
+	MissingInfo  *MissingGameInfo
+	LogStrings   []string
+	LogLocations []notation.LogLocation
 }
 
 // MissingGameInfo contains information that couldn't be parsed from the log
@@ -99,7 +100,7 @@ func (m *ReplayManager) StartReplay(gameID string) (*ReplaySession, error) {
 		settings := notation.GameSettingsItem{
 			Settings: map[string]string{
 				"ScoringTiles": "SCORE5,SCORE8,SCORE4,SCORE1,SCORE6,SCORE7",
-				"BonusCards":   "BON1,BON3,BON6,BON7,BON8,BON9,BON10",
+				"BonusCards":   "BON1,BON2,BON3,BON4,BON5,BON6,BON7,BON8,BON9,BON10",
 			},
 		}
 
@@ -141,11 +142,14 @@ func (m *ReplayManager) StartReplay(gameID string) (*ReplaySession, error) {
 	simulator := NewGameSimulator(initialState, items)
 
 	// Create session
+	logStrings, logLocations := notation.GenerateConciseLog(items)
+
 	session := &ReplaySession{
-		GameID:      gameID,
-		Simulator:   simulator,
-		MissingInfo: detectMissingInfo(items),
-		LogStrings:  strings.Split(notation.GenerateConciseLog(items), "\n"),
+		GameID:       gameID,
+		Simulator:    simulator,
+		MissingInfo:  detectMissingInfo(items),
+		LogStrings:   logStrings,
+		LogLocations: logLocations,
 	}
 
 	m.sessions[gameID] = session
@@ -180,7 +184,6 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read log file: %v", err)
 	}
-	return string(content), nil
 	return string(content), nil
 }
 

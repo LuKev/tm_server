@@ -14,6 +14,12 @@ type LogItem interface {
 	isLogItem()
 }
 
+// LogLocation represents a specific location in the concise log (line and column)
+type LogLocation struct {
+	LineIndex   int `json:"lineIndex"`
+	ColumnIndex int `json:"columnIndex"`
+}
+
 // ActionItem wraps a standard game action.
 type ActionItem struct {
 	Action game.Action

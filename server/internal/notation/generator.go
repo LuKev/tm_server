@@ -11,8 +11,10 @@ import (
 )
 
 // GenerateConciseLog generates a concise log string from a list of LogItems
-func GenerateConciseLog(items []LogItem) string {
-	var sb strings.Builder
+// Returns the log as a list of strings (lines) and a mapping from item index to LogLocation
+func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
+	lines := make([]string, 0)
+	itemLocations := make([]LogLocation, len(items))
 
 	// Initial factions (will be updated by RoundStartItem)
 	factionNames := make([]string, 0)
@@ -44,11 +46,12 @@ func GenerateConciseLog(items []LogItem) string {
 
 	numCols := len(factionNames)
 	if numCols == 0 {
-		return ""
+		return []string{}, []LogLocation{}
 	}
 
 	// Helper to write row
 	writeRow := func(row []string, currentFactions []string) {
+		var sb strings.Builder
 		for i, cell := range row {
 			// Pad cell to column width (e.g. 15 chars)
 			sb.WriteString(padRight(cell, 15))
@@ -56,7 +59,7 @@ func GenerateConciseLog(items []LogItem) string {
 				sb.WriteString(" | ")
 			}
 		}
-		sb.WriteString("\n")
+		lines = append(lines, sb.String())
 	}
 
 	// Process items
@@ -76,23 +79,29 @@ func GenerateConciseLog(items []LogItem) string {
 	writeHeader := func(currentFactions []string) {
 		writeRow(currentFactions, currentFactions)
 		sep := strings.Repeat("-", 15*numCols+3*(numCols-1))
-		sb.WriteString(sep + "\n")
+		lines = append(lines, sep)
 	}
 
-	for _, item := range items {
+	for k, item := range items {
+		// Default location (e.g. for non-visual items)
+		itemLocations[k] = LogLocation{LineIndex: -1, ColumnIndex: -1}
+
 		switch v := item.(type) {
 		case GameSettingsItem:
 			// Print settings
-			for k, val := range v.Settings {
-				sb.WriteString(fmt.Sprintf("%s: %s\n", k, val))
+			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: 0}
+			for key, val := range v.Settings {
+				lines = append(lines, fmt.Sprintf("%s: %s", key, val))
 			}
-			sb.WriteString("\n")
+			lines = append(lines, "") // Empty line
 
 		case RoundStartItem:
 			// Flush any pending row from previous round
 			if !isRowEmpty(currentRow) {
 				flush()
 			}
+
+			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: 0}
 
 			// Update factions list based on new turn order
 			factionNames = v.TurnOrder
@@ -104,8 +113,8 @@ func GenerateConciseLog(items []LogItem) string {
 			numCols = len(factionNames)
 			currentRow = make([]string, numCols)
 
-			sb.WriteString(fmt.Sprintf("Round %d\n", v.Round))
-			sb.WriteString(fmt.Sprintf("TurnOrder: %s\n", strings.Join(v.TurnOrder, ", ")))
+			lines = append(lines, fmt.Sprintf("Round %d", v.Round))
+			lines = append(lines, fmt.Sprintf("TurnOrder: %s", strings.Join(v.TurnOrder, ", ")))
 			writeHeader(factionNames)
 			headerPrinted = true // Header is now printed for this round
 
@@ -169,6 +178,10 @@ func GenerateConciseLog(items []LogItem) string {
 				currentRow[col] = code
 			}
 
+			// Record location
+			// The action is in currentRow, which will be written at len(lines)
+			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: col}
+
 			lastPlayerID = pID
 			lastCol = col
 			lastAction = action
@@ -180,7 +193,7 @@ func GenerateConciseLog(items []LogItem) string {
 		writeRow(currentRow, factionNames)
 	}
 
-	return sb.String()
+	return lines, itemLocations
 }
 
 func isRowEmpty(row []string) bool {

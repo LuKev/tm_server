@@ -166,7 +166,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	// fmt.Println("Starting main parsing loop...")
 	for p.currentLine < len(p.lines) {
 		line := p.lines[p.currentLine]
-		// fmt.Printf("Line %d: %s\n", p.currentLine, line)
+		// // fmt.Printf("Line %d: %s\n", p.currentLine, line)
 		p.currentLine++
 
 		if line == "" {
@@ -195,14 +195,14 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		if matches := reMove.FindStringSubmatch(line); len(matches) > 1 {
 			moveNum, _ := strconv.Atoi(matches[1])
 			currentMove = moveNum
-			fmt.Printf("Processing Move %d\n", currentMove)
+			// // fmt.Printf("Processing Move %d\n", currentMove)
 			continue
 		}
 
 		// Check for Round Start
 		if reActionPhase.MatchString(line) {
 			p.currentRound++
-			fmt.Printf("Found Round %d Start\n", p.currentRound)
+			// // fmt.Printf("Found Round %d Start\n", p.currentRound)
 
 			// Determine turn order
 			var turnOrder []string
@@ -263,11 +263,11 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			p.handleBridgePower(playerID, line)
 
 		} else if matches := reBuildDwellingSetup.FindStringSubmatch(line); len(matches) > 2 {
-			fmt.Printf("Matched BuildDwelling (Setup): %s\n", line)
+			// fmt.Printf("Matched BuildDwelling (Setup): %s\n", line)
 			p.handleBuildDwelling(matches[1], matches[2], true)
 
 		} else if matches := reBuildDwellingGameStart.FindStringSubmatch(line); len(matches) > 1 {
-			fmt.Printf("Matched BuildDwelling Start (Game): %s\n", line)
+			// fmt.Printf("Matched BuildDwelling Start (Game): %s\n", line)
 			coordStr := p.extractCoord(line)
 			if coordStr == "" {
 				coordStr = p.consumeUntilCoord()
@@ -277,7 +277,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			}
 
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
-			fmt.Printf("Matched Upgrade Start: %s\n", line)
+			// fmt.Printf("Matched Upgrade Start: %s\n", line)
 			coordStr := p.extractCoord(line)
 			if coordStr == "" {
 				coordStr = p.consumeUntilCoord()
@@ -287,7 +287,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			}
 
 		} else if matches := reTransformStart.FindStringSubmatch(line); len(matches) > 1 {
-			fmt.Printf("Matched Transform Start: %s\n", line)
+			// fmt.Printf("Matched Transform Start: %s\n", line)
 			coordStr := p.extractCoord(line)
 			if coordStr == "" {
 				coordStr = p.consumeUntilCoord()
@@ -310,7 +310,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			// Parse reward amount from string (e.g. "1 spade(s)" -> 1)
 			reward := p.parseAmount(rewardStr)
 
-			fmt.Printf("Matched PowerAction: %s spends %d to get %d\n", playerName, cost, reward)
+			// fmt.Printf("Matched PowerAction: %s spends %d to get %d\n", playerName, cost, reward)
 			p.handlePowerAction(playerName, cost, reward)
 
 		} else if matches := reBurn.FindStringSubmatch(line); len(matches) > 3 {
@@ -319,7 +319,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerName := matches[1]
 			amount, _ := strconv.Atoi(matches[2])
 
-			fmt.Printf("Matched Burn: %s sacrificed %d\n", playerName, amount)
+			// fmt.Printf("Matched Burn: %s sacrificed %d\n", playerName, amount)
 			p.handleBurn(playerName, amount)
 
 		} else if matches := reFavorTileStart.FindStringSubmatch(line); len(matches) > 1 {
@@ -327,13 +327,13 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			// Player takes a Favor tile
 			// Player gains X on the Cult of Y track (Favor tile)
 			playerName := matches[1]
-			fmt.Printf("Matched Favor Tile Start: %s\n", playerName)
+			// fmt.Printf("Matched Favor Tile Start: %s\n", playerName)
 			p.handleFavorTile(playerName)
 
 		} else if matches := reWitchesRide.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := matches[1]
 			coordStr := matches[2]
-			fmt.Printf("Matched Witches Ride: %s at %s\n", playerName, coordStr)
+			// fmt.Printf("Matched Witches Ride: %s at %s\n", playerName, coordStr)
 			p.handleWitchesRide(playerName, coordStr)
 
 		} else if matches := reLeechPays.FindStringSubmatch(line); len(matches) > 4 {
@@ -344,7 +344,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			amount, _ := strconv.Atoi(matches[3])
 			coordStr := matches[4]
 
-			fmt.Printf("Matched Leech Pays: %s pays %d gets %d at %s\n", playerName, cost, amount, coordStr)
+			// fmt.Printf("Matched Leech Pays: %s pays %d gets %d at %s\n", playerName, cost, amount, coordStr)
 			p.handleLeech(playerName, coordStr, amount, cost, true)
 
 		} else if matches := reLeechGets.FindStringSubmatch(line); len(matches) > 3 {
@@ -354,56 +354,35 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			amount, _ := strconv.Atoi(matches[2])
 			coordStr := matches[3]
 
-			fmt.Printf("Matched Leech Gets: %s gets %d at %s\n", playerName, amount, coordStr)
+			// fmt.Printf("Matched Leech Gets: %s gets %d at %s\n", playerName, amount, coordStr)
 			p.handleLeech(playerName, coordStr, amount, 0, true)
 
 		} else if matches := rePass.FindStringSubmatch(line); len(matches) > 1 {
-			fmt.Printf("Matched Pass: %s\n", line)
+			// fmt.Printf("Matched Pass: %s\n", line)
 			p.handlePass(matches[1])
 
 		} else if matches := rePriest.FindStringSubmatch(line); len(matches) > 2 {
-			fmt.Printf("Matched Priest: %s\n", line)
+			// fmt.Printf("Matched Priest: %s\n", line)
 			p.handleSendPriest(matches[1], matches[2])
 
 		} else if matches := reShipping.FindStringSubmatch(line); len(matches) > 1 {
-			fmt.Printf("Matched Shipping: %s\n", line)
+			// fmt.Printf("Matched Shipping: %s\n", line)
 			p.handleAdvanceShipping(matches[1])
 
 		} else if matches := reExchangeTrack.FindStringSubmatch(line); len(matches) > 3 {
 			// Single-line Digging:
 			// Player advances on the Exchange Track for [Cost String] and earns X VP
 			playerName := matches[1]
-			fmt.Printf("Matched Exchange Track (Digging): %s\n", playerName)
+			// fmt.Printf("Matched Exchange Track (Digging): %s\n", playerName)
 			p.handleAdvanceDigging(playerName)
 
 		} else if matches := reDeclineLeech.FindStringSubmatch(line); len(matches) > 2 {
-			fmt.Printf("Matched Decline Leech: %s\n", line)
+			// fmt.Printf("Matched Decline Leech: %s\n", line)
 			p.handleLeech(matches[1], matches[2], 0, 0, false)
 		}
 	}
 
 	return p.items, nil
-}
-
-// getClockwiseOrder returns the faction order starting from startFaction, following seatOrder
-func (p *BGAParser) getClockwiseOrder(startFaction string, seatOrder []string) []string {
-	startIndex := -1
-	for i, f := range seatOrder {
-		if f == startFaction {
-			startIndex = i
-			break
-		}
-	}
-	if startIndex == -1 {
-		return seatOrder // Should not happen
-	}
-
-	result := make([]string, 0, len(seatOrder))
-	// Add from startIndex to end
-	result = append(result, seatOrder[startIndex:]...)
-	// Add from start to startIndex
-	result = append(result, seatOrder[:startIndex]...)
-	return result
 }
 
 func (p *BGAParser) handleBuildDwelling(playerName, coordStr string, isSetup bool) {
@@ -751,7 +730,7 @@ func parseCoord(s string) board.Hex {
 	s = strings.Trim(s, "[]")
 	h, err := ConvertLogCoordToAxial(s)
 	if err != nil {
-		fmt.Printf("Error parsing coord %s: %v\n", s, err)
+		// fmt.Printf("Error parsing coord %s: %v\n", s, err)
 		return board.Hex{}
 	}
 	return h

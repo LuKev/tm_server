@@ -33,7 +33,8 @@ func TestBGARoundTrip(t *testing.T) {
 	t.Logf("Extracted %d original actions", len(originalActions))
 
 	// 3. Generate Concise Log -> Text
-	conciseText := GenerateConciseLog(logItems)
+	conciseLines, _ := GenerateConciseLog(logItems)
+	conciseText := strings.Join(conciseLines, "\n")
 	t.Logf("Generated Concise Log (first 20 lines):\n%s", firstNLines(conciseText, 20))
 
 	// Save to file for inspection

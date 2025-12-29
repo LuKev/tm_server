@@ -15,7 +15,7 @@ import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './Game.css'
 import { ReplayControls } from './ReplayControls'
-import { ReplayLog } from './ReplayLog'
+import { ReplayLog, type LogLocation } from './ReplayLog'
 import { MissingInfoModal, type MissingInfo } from './MissingInfoModal'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
@@ -43,6 +43,7 @@ export const Replay = () => {
     const [currentIndex, setCurrentIndex] = useState(0)
     const [totalActions, setTotalActions] = useState(0)
     const [logStrings, setLogStrings] = useState<string[]>([])
+    const [logLocations, setLogLocations] = useState<LogLocation[]>([])
     const [isAutoPlaying, setIsAutoPlaying] = useState(false)
     const [autoPlaySpeed] = useState(1000) // ms
     const [missingInfo, setMissingInfo] = useState<MissingInfo | null>(null)
@@ -116,6 +117,7 @@ export const Replay = () => {
                 currentIndex: number;
                 totalActions: number;
                 logStrings: string[];
+                logLocations: LogLocation[];
                 players: string[];
                 missingInfo?: MissingInfo;
             }
@@ -131,6 +133,7 @@ export const Replay = () => {
             setCurrentIndex(data.currentIndex)
             setTotalActions(data.totalActions)
             setLogStrings(data.logStrings || [])
+            setLogLocations(data.logLocations || [])
             setPlayers(data.players || [])
 
             // Fetch initial state
@@ -324,7 +327,12 @@ export const Replay = () => {
                 >
                     {/* Log Viewer */}
                     <div key="log">
-                        <ReplayLog logStrings={logStrings} currentRound={gameState?.round?.round || 0} />
+                        <ReplayLog
+                            logStrings={logStrings}
+                            logLocations={logLocations}
+                            currentIndex={currentIndex}
+                            currentRound={gameState?.round?.round || 0}
+                        />
                     </div>
 
                     {/* Scoring Tiles */}

@@ -58,6 +58,7 @@ func (h *ReplayHandler) handleStart(w http.ResponseWriter, r *http.Request) {
 		"currentIndex": session.Simulator.CurrentIndex,
 		"totalActions": len(session.Simulator.Actions),
 		"logStrings":   session.LogStrings,
+		"logLocations": session.LogLocations,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
