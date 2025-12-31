@@ -253,6 +253,7 @@ const SWARMLINGS_BOARD: FactionBoardLayout = {
 
 
 export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
+    [FactionType.Unknown]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
     [FactionType.ChaosMagicians]: CHAOS_MAGICIAN_BOARD,
     [FactionType.Darklings]: DARKLINGS_BOARD,
     [FactionType.Auren]: AUREN_BOARD,

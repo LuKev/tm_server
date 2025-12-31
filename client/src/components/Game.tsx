@@ -7,7 +7,6 @@ import { FavorTiles } from './GameBoard/FavorTiles'
 import { PassingTiles } from './GameBoard/PassingTiles'
 import { PlayerBoards } from './GameBoard/PlayerBoards'
 import { CultTracks } from './CultTracks/CultTracks'
-import type { CultPosition } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
 import { FACTIONS } from '../data/factions'
 import { useGameStore } from '../stores/gameStore'
@@ -18,6 +17,7 @@ import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './Game.css'
+import { getCultPositions } from '../utils/gameUtils'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -183,44 +183,17 @@ export const Game = () => {
     return index !== -1 ? index + 1 : 1
   }, [gameState, localPlayerId])
 
-  const getCultPositions = (): Map<CultType, CultPosition[]> => {
-    const positions = new Map<CultType, CultPosition[]>()
-
-    if (!gameState) {
-      positions.set(CultType.Fire, [])
-      positions.set(CultType.Water, [])
-      positions.set(CultType.Earth, [])
-      positions.set(CultType.Air, [])
-      return positions
+  const cultPositions = useMemo(() => {
+    if (gameState?.phase === GamePhase.FactionSelection) {
+      return new Map([
+        [CultType.Fire, []],
+        [CultType.Water, []],
+        [CultType.Earth, []],
+        [CultType.Air, []],
+      ])
     }
-
-    positions.set(CultType.Fire, [])
-    positions.set(CultType.Water, [])
-    positions.set(CultType.Earth, [])
-    positions.set(CultType.Air, [])
-
-    if (gameState.turnOrder && gameState.players) {
-      gameState.turnOrder.forEach((playerId: string) => {
-        const player = gameState.players[playerId]
-        if (!player) return
-
-        if (player.cults) {
-          Object.entries(player.cults).forEach(([cultKey, position]) => {
-            const cult = Number(cultKey) as CultType
-            if (position !== undefined) {
-              positions.get(cult)?.push({
-                faction: player.faction,
-                position: position,
-                hasKey: false, // TODO: Track power keys from game state
-              })
-            }
-          })
-        }
-      })
-    }
-
-    return positions
-  }
+    return getCultPositions(gameState)
+  }, [gameState])
 
   const isMyTurn = gameState?.turnOrder[gameState.currentTurn] === localPlayerId
 
@@ -358,16 +331,7 @@ export const Game = () => {
             </div>
             <div className="flex-1 overflow-auto p-2">
               <CultTracks
-                cultPositions={
-                  gameState?.phase === GamePhase.FactionSelection
-                    ? new Map([
-                      [CultType.Fire, []],
-                      [CultType.Water, []],
-                      [CultType.Earth, []],
-                      [CultType.Air, []],
-                    ])
-                    : getCultPositions()
-                }
+                cultPositions={cultPositions}
               />
             </div>
           </div>
@@ -416,6 +380,13 @@ export const Game = () => {
             </div>
           </div>
         </ResponsiveGridLayout>
+
+        <details className="mt-8 p-4 bg-gray-200 rounded">
+          <summary className="font-bold cursor-pointer">Debug: Game State Players</summary>
+          <pre className="mt-2 text-xs overflow-auto max-h-96">
+            {JSON.stringify(gameState?.players, null, 2)}
+          </pre>
+        </details>
       </div>
     </div>
   )

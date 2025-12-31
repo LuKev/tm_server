@@ -7,9 +7,9 @@ import { FavorTiles } from './GameBoard/FavorTiles'
 import { PassingTiles } from './GameBoard/PassingTiles'
 import { PlayerBoards } from './GameBoard/PlayerBoards'
 import { CultTracks } from './CultTracks/CultTracks'
-import type { CultPosition } from './CultTracks/CultTracks'
 import { useGameStore } from '../stores/gameStore'
 import { CultType, GamePhase, type GameState } from '../types/game.types'
+import { getCultPositions } from '../utils/gameUtils'
 import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
@@ -115,7 +115,7 @@ export const Replay = () => {
     const [rowHeight, setRowHeight] = useState(60)
 
     // API Calls
-    const startReplay = useCallback(async (restart: boolean = false) => {
+    const startReplay = useCallback(async (restart = false) => {
         if (!gameId) return
         try {
             const res = await fetch('/api/replay/start', {
@@ -265,33 +265,7 @@ export const Replay = () => {
     }, [startReplay])
 
     // Helper to get cult positions (reused from Game.tsx)
-    const getCultPositions = (): Map<CultType, CultPosition[]> => {
-        const positions = new Map<CultType, CultPosition[]>()
-        positions.set(CultType.Fire, [])
-        positions.set(CultType.Water, [])
-        positions.set(CultType.Earth, [])
-        positions.set(CultType.Air, [])
-
-        if (gameState?.turnOrder && gameState.players) {
-            gameState.turnOrder.forEach((playerId: string) => {
-                const player = gameState.players[playerId]
-                if (!player) return
-                if (player.cults) {
-                    Object.entries(player.cults).forEach(([cultKey, position]) => {
-                        const cult = Number(cultKey) as CultType
-                        if (position !== undefined) {
-                            positions.get(cult)?.push({
-                                faction: player.faction,
-                                position: position,
-                                hasKey: false,
-                            })
-                        }
-                    })
-                }
-            })
-        }
-        return positions
-    }
+    // Removed local implementation in favor of shared utility
 
     const handleWidthChange = (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => {
         const safeMargin = margin || [10, 10]
@@ -374,7 +348,7 @@ export const Replay = () => {
                                             [CultType.Earth, []],
                                             [CultType.Air, []],
                                         ])
-                                        : getCultPositions()
+                                        : getCultPositions(gameState)
                                 }
                             />
                         </div>

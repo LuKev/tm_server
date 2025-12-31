@@ -15,6 +15,7 @@ export const TERRAIN_COLORS: Record<TerrainType, string> = {
 
 // Faction colors (from terra-mystica codebase)
 export const FACTION_COLORS: Record<FactionType, string> = {
+  [FactionType.Unknown]: '#000000', // Black for unknown
   [FactionType.Nomads]: '#f4d03f',      // Yellow
   [FactionType.Fakirs]: '#f4d03f',      // Yellow
   [FactionType.ChaosMagicians]: '#e74c3c', // Red
