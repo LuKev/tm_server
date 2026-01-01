@@ -164,15 +164,19 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		}
 	}
 
-	// Check if terrain needs transformation to home terrain
-	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
+	// Check if terrain needs transformation to target terrain (default: home terrain)
+	targetTerrain := player.Faction.GetHomeTerrain()
+	if a.TargetTerrain != models.TerrainTypeUnknown {
+		targetTerrain = a.TargetTerrain
+	}
+	needsTransform := mapHex.Terrain != targetTerrain
 
 	totalWorkersNeeded := 0
 	totalPriestsNeeded := 0
 
 	if needsTransform {
 		// Calculate terraform cost
-		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
+		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 		if distance == 0 {
 			return fmt.Errorf("terrain distance calculation failed")
 		}
@@ -181,6 +185,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		freeSpades := 0
 		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
 			freeSpades = gs.PendingSpades[a.PlayerID]
+			fmt.Printf("DEBUG: TransformAndBuildAction for %s. PendingSpades: %d, Distance: %d\n", a.PlayerID, freeSpades, distance)
 			if freeSpades > distance {
 				freeSpades = distance // Only use what we need
 			}
@@ -218,7 +223,10 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 
 		// After transformation (if any), hex must be player's home terrain
 		if needsTransform {
-			// Will be home terrain after transform
+			// Will be target terrain after transform
+			if targetTerrain != player.Faction.GetHomeTerrain() {
+				return fmt.Errorf("cannot build dwelling: target terrain %v is not home terrain", targetTerrain)
+			}
 		} else if mapHex.Terrain != player.Faction.GetHomeTerrain() {
 			return fmt.Errorf("cannot build dwelling: hex is not home terrain")
 		}
@@ -276,10 +284,14 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		}
 	}
 
-	// Step 1: Transform terrain to home terrain if needed
-	needsTransform := mapHex.Terrain != player.Faction.GetHomeTerrain()
+	// Step 1: Transform terrain to target terrain if needed
+	targetTerrain := player.Faction.GetHomeTerrain()
+	if a.TargetTerrain != models.TerrainTypeUnknown {
+		targetTerrain = a.TargetTerrain
+	}
+	needsTransform := mapHex.Terrain != targetTerrain
 	if needsTransform {
-		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
+		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 
 		// Check for free spades from BON1 (count for VP when used)
 		vpEligibleFreeSpades := 0
@@ -330,8 +342,8 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			}
 		}
 
-		// Transform terrain to home terrain
-		if err := gs.Map.TransformTerrain(a.TargetHex, player.Faction.GetHomeTerrain()); err != nil {
+		// Transform terrain to target terrain
+		if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
 			return fmt.Errorf("failed to transform terrain: %w", err)
 		}
 

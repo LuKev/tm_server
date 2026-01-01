@@ -62,6 +62,19 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
+
+	// Try to infer from pending offers
+	if offers, ok := gs.PendingLeechOffers[a.PlayerID]; ok && len(offers) > 0 {
+		// Accept the first offer
+		// Use AcceptLeechOffer helper which handles VP cost and removal
+		if err := gs.AcceptLeechOffer(a.PlayerID, 0); err != nil {
+			return fmt.Errorf("failed to accept pending leech offer: %w", err)
+		}
+		return nil
+	}
+
+	// Fallback: use explicit amount (or default 1)
+	// This handles cases where pending offers might be missing (e.g. partial replay or bug)
 	player.Resources.Power.GainPower(a.PowerAmount)
 	player.VictoryPoints -= a.VPCost
 	return nil
@@ -135,8 +148,10 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 		player.Resources.Coins += 7
 	case game.PowerActionSpade1:
 		gs.PendingSpades[a.PlayerID]++
+		fmt.Printf("DEBUG: LogPowerAction ACT5 added 1 spade for %s. Total Pending: %d\n", a.PlayerID, gs.PendingSpades[a.PlayerID])
 	case game.PowerActionSpade2:
 		gs.PendingSpades[a.PlayerID] += 2
+		fmt.Printf("DEBUG: LogPowerAction ACT6 added 2 spades for %s. Total Pending: %d\n", a.PlayerID, gs.PendingSpades[a.PlayerID])
 	}
 
 	return nil
@@ -284,7 +299,7 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			return action.Execute(gs)
 		}
 	case "ACTS":
-		// Bonus Card Spade: ACTS-[Coord]
+		// Bonus Card Spade: ACTS-[Coord] or ACTS-[Coord]-[Terrain]
 		if len(parts) < 2 {
 			return fmt.Errorf("missing coord for ACTS")
 		}
@@ -292,8 +307,14 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 		if err != nil {
 			return err
 		}
+
+		targetTerrain := models.TerrainTypeUnknown
+		if len(parts) > 2 {
+			targetTerrain = parseTerrainShortCode(parts[2])
+		}
+
 		// Assume BuildDwelling=false
-		action := game.NewBonusCardSpadeAction(a.PlayerID, hex, false)
+		action := game.NewBonusCardSpadeAction(a.PlayerID, hex, false, targetTerrain)
 		return action.Execute(gs)
 	case "ORD":
 		// Darklings Ordination: ORD-[N]
@@ -559,25 +580,25 @@ func (a *LogBonusCardSelectionAction) Execute(gs *game.GameState) error {
 // ParseBonusCardCode converts a code to a BonusCardType.
 func ParseBonusCardCode(code string) game.BonusCardType {
 	switch code {
-	case "BON1":
+	case "BON-SPD":
 		return game.BonusCardSpade
-	case "BON2":
+	case "BON-4C":
 		return game.BonusCardCultAdvance
-	case "BON3":
+	case "BON-6C":
 		return game.BonusCard6Coins
-	case "BON4":
+	case "BON-SHIP":
 		return game.BonusCardShipping
-	case "BON5":
+	case "BON-WP":
 		return game.BonusCardWorkerPower
-	case "BON6":
+	case "BON-TP":
 		return game.BonusCardTradingHouseVP
-	case "BON7":
+	case "BON-BB":
 		return game.BonusCardStrongholdSanctuary
-	case "BON8":
+	case "BON-P":
 		return game.BonusCardPriest
-	case "BON9":
+	case "BON-DW":
 		return game.BonusCardDwellingVP
-	case "BON10":
+	case "BON-SHIP-VP":
 		return game.BonusCardShippingVP
 	}
 	return game.BonusCardUnknown

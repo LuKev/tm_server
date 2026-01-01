@@ -1,38 +1,40 @@
 Game: Base Game
 MiniExpansions: On
+StartingVPs: Halflings:32, Auren:40, Chaos Magicians:40, Alchemists:40
 
 Halflings       | Auren           | Alchemists      | Chaos Magicians
 ---------------------------------------------------------------------
 S-F5            | S-F4            | S-E5.S-B5       |
                 | S-C3            |                 |
 S-E6            |                 |                 | S-D4
+BON-TP          | BON-BB          | BON-P           | BON-SPD
 Round 1
-TurnOrder: Halflings, Auren, Chaos Magicians, Alchemists, Halflings, Auren, Chaos Magicians, Alchemists
-Halflings       | Auren           | Chaos Magicians | Alchemists      | Halflings       | Auren           | Chaos Magicians | Alchemists
----------------------------------------------------------------------------------------------------------------------------------------------
-                |                 |                 |                 | UP-TH-E6        |                 | L               |
-                |                 |                 |                 |                 | L               |                 | L
-                |                 |                 |                 |                 | BURN4.ACT5.T-E7.E7 |                 |
-                |                 |                 |                 | L               |                 | L               |
-                |                 |                 |                 |                 |                 | BURN3.ACT2      | UP-TH-E5
-                |                 |                 |                 | L               |                 |                 |
-                |                 |                 |                 | BURN5.ACT6.T-F3.T-G5.F3 | L               |                 | L
-                |                 |                 |                 |                 | UP-TH-E7        |                 |
-                |                 |                 |                 | L               |                 | L               |
-                |                 |                 |                 |                 |                 | UP-TH-D4        |
-                |                 |                 |                 | L               | L               |                 | UP-TE-E5.FAV-E1
-                |                 |                 |                 | L               |                 |                 |
-                |                 |                 |                 | UP-TE-E6.FAV-E2 |                 | L               |
-                |                 |                 |                 |                 | L               |                 | L
-                |                 |                 |                 |                 | UP-TE-E7.FAV-F1 |                 |
-                |                 |                 |                 | L               |                 | L               |
-                |                 |                 |                 |                 |                 | UP-TE-D4.FAV-E2.FAV-F1 |
-                |                 |                 |                 | L               | L               |                 | +SHIP
-                |                 |                 |                 | G5              | PASS            | ->F3            | BURN5.C1VP:1C.C5PW:1P.+SHIP
-                |                 |                 |                 | H7              |                 | BURN3.C5PW:1P.+SHIP | C2VP:2C.B3
-                |                 |                 |                 | ACT4            |                 | ACTS-C2.C2      | L
-                |                 |                 |                 |                 |                 |                 | C2VP:2C.C1
-                |                 |                 |                 | PASS            |                 | PASS            | PASS
+TurnOrder: Halflings, Auren, Chaos Magicians, Alchemists
+Halflings       | Auren           | Chaos Magicians | Alchemists
+---------------------------------------------------------------------
+UP-TH-E6        |                 | L               |
+                | L               |                 | L
+                | BURN4.ACT5.T-E7.E7 |                 |
+L               |                 | L               |
+                |                 | BURN3.ACT2      | UP-TH-E5
+L               |                 |                 |
+BURN5.ACT6.T-F3.T-G5.F3 | L               |                 | L
+                | UP-TH-E7        |                 |
+L               |                 | L               |
+                |                 | UP-TH-D4        |
+L               | L               |                 | UP-TE-E5.FAV-E1
+L               |                 |                 |
+UP-TE-E6.FAV-E2 |                 | L               |
+                | L               |                 | L
+                | UP-TE-E7.FAV-F1 |                 |
+L               |                 | L               |
+                |                 | UP-TE-D4.FAV-E2.FAV-F1 |
+L               | L               |                 | +SHIP
+G5              | PASS-BON-6C     | ->F3            | BURN5.C1VP:1C.C5PW:1P.+SHIP
+H7              |                 | BURN3.C5PW:1P.+SHIP | C2VP:2C.B3
+ACT4            |                 | ACTS-C2.C2      | L
+                |                 |                 | C2VP:2C.C1
+PASS-BON-DW     |                 | PASS-BON-BB     | PASS-BON-SPD
 Round 2
 TurnOrder: Auren, Halflings, Chaos Magicians, Alchemists
 Auren           | Halflings       | Chaos Magicians | Alchemists
@@ -48,11 +50,9 @@ L               |                 |                 | L
 BURN2.ACT6.T-D5.T-H4.D5 |                 | L               |
                 | ->A3            | ACT4            | C2VP:2C.ACTS-D2.D2
                 |                 | L               |
-H4              | PASS            | E3              | L
-                |                 |                 | BURN1.ACT3
-G3              |                 | PASS            | PASS
-UP-TH-C3        |                 | L               |
-PASS            | T-G2-Y          |                 |
+H4              | PASS-BON-SHIP-VP | E3              | L
+UP-TH-C3        |                 | PASS-BON-DW     | BURN1.ACT3.PASS-BON-BB
+PASS-BON-SPD    | T-G2-Y          |                 |
 Round 3
 TurnOrder: Halflings, Chaos Magicians, Alchemists, Auren
 Halflings       | Chaos Magicians | Alchemists      | Auren
@@ -67,10 +67,10 @@ ACT4            | ACT6.T-G1.T-B2-Y.G1 | C6VP:6C.UP-SH-C1 |
 +DIG            | I5              | ACT3            | I6
                 | L               |                 |
 T-G2.G2         |                 |                 | L
-                | PASS            | C5VP:5C.+DIG    | C1PW:1C.ACT-SH-F.C1PW:1C
-PASS            |                 | C6VP:6C.UP-SA-E5.FAV-W1 |
+                | PASS-BON-6C     | C5VP:5C.+DIG    | C1PW:1C.ACT-SH-F.C1PW:1C
+L               |                 | C6VP:6C.UP-SA-E5.FAV-W1 |
 L               |                 |                 | ACTS-C5.C5
-                |                 | PASS            | ACT2.->E2.PASS
+PASS-BON-DW     |                 | PASS-BON-SHIP-VP | ACT2.->E2.PASS-BON-P
 Round 4
 TurnOrder: Chaos Magicians, Halflings, Alchemists, Auren
 Chaos Magicians | Halflings       | Alchemists      | Auren
@@ -79,13 +79,13 @@ T-B2.B2         |                 | L               |
                 | BURN1.ACT4      | +SHIP           | ->E2
 T-E2.E2         |                 | L               |
                 | +SHIP           | T-D8.D8         | ACT-SH-E.C1PW:1C
-PASS            | ->E2            | C2VP:2C.E10     | +DIG
+PASS-BON-TP     | ->E2            | C2VP:2C.E10     | +DIG
                 | T-G4.G4         | ACT3            | C1PW:1C.T-I7.I7
                 | T-G6.G6         | C2VP:2C.T-F7.F7 |
                 | L               |                 | PASS
                 | T-G7.G7         | L               |
                 |                 | T-B4-Br         |
-                | PASS            | T-A7.PASS       |
+                | PASS-BON-6C     | T-A7.PASS-BON-DW | PASS-BON-BB
 Round 5
 TurnOrder: Chaos Magicians, Auren, Halflings, Alchemists
 Chaos Magicians | Auren           | Halflings       | Alchemists
@@ -113,16 +113,16 @@ C2P:2W.UP-TH-G1 |                 | L               |
                 |                 | UP-TH-H3        |
 L               |                 |                 | C1VP:1C.UP-TH-B4
                 | L               |                 |
-C2PW:2C.PASS    | C1PW:1C.A10     |                 | L
-                |                 | C3PW:3C.PASS.C1PW:1C | C2VP:2C.C1PW:1C.UP-TH-E10
+C2PW:2C.PASS-BON-SHIP-VP | C1PW:1C.A10     |                 | L
+                |                 | C3PW:3C.PASS-BON-TP.C1PW:1C | C2VP:2C.C1PW:1C.UP-TH-E10
                 | L               |                 |
                 | ACT2            |                 | C1VP:1C.C2PW:2C.UP-TH-F7
                 |                 | DL              |
-                | ->A2            |                 | PASS
+                | ->A2            |                 | PASS-BON-SPD
                 | ->A2.BURN1.ACT5.T-F6.F6 | DL              | DL
                 | UP-TH-F6        |                 | DL
                 |                 | DL              |
-                | PASS            |                 | T-D1-Bl
+                | PASS-BON-DW     |                 | T-D1-Bl
                 | T-D7-Gy         |                 |
 Round 6
 TurnOrder: Chaos Magicians, Halflings, Alchemists, Auren
