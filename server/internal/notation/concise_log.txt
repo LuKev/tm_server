@@ -1,5 +1,6 @@
 Game: Base Game
 MiniExpansions: On
+ScoringTiles: SCORE1, SCORE4, SCORE6, SCORE8, SCORE3, SCORE7
 StartingVPs: Halflings:32, Auren:40, Chaos Magicians:40, Alchemists:40
 
 Halflings       | Auren           | Alchemists      | Chaos Magicians
@@ -82,10 +83,10 @@ T-E2.E2         |                 | L               |
 PASS-BON-TP     | ->E2            | C2VP:2C.E10     | +DIG
                 | T-G4.G4         | ACT3            | C1PW:1C.T-I7.I7
                 | T-G6.G6         | C2VP:2C.T-F7.F7 |
-                | L               |                 | PASS
+                | L               |                 | PASS-BON-BB
                 | T-G7.G7         | L               |
                 |                 | T-B4-Br         |
-                | PASS-BON-6C     | T-A7.PASS-BON-DW | PASS-BON-BB
+                | PASS-BON-6C     | T-A7.PASS-BON-DW |
 Round 5
 TurnOrder: Chaos Magicians, Auren, Halflings, Alchemists
 Chaos Magicians | Auren           | Halflings       | Alchemists
