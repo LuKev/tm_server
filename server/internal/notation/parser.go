@@ -12,14 +12,15 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-// ParseConciseLog parses a concise log string into GameActions
-func ParseConciseLog(content string) ([]game.Action, error) {
+// ParseConciseLog parses a concise log string into LogItems
+func ParseConciseLog(content string) ([]LogItem, error) {
 	lines := strings.Split(content, "\n")
-	actions := make([]game.Action, 0)
+	items := make([]LogItem, 0)
 
 	// State for grid parsing
 	colToPlayer := make(map[int]string)
 	headerFound := false
+	settings := make(map[string]string)
 
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
@@ -32,28 +33,75 @@ func ParseConciseLog(content string) ([]game.Action, error) {
 			continue
 		}
 
-		// Skip Game Settings headers (Key: Value)
-		if strings.Contains(line, ": ") && !strings.Contains(line, "|") {
-			// Could be "Game: Base Game" or "TurnOrder: ..."
-			// We skip these for now as we only return []game.Action
+		// Parse Game Settings
+		if strings.HasPrefix(line, "Game:") || strings.HasPrefix(line, "MiniExpansions:") || strings.HasPrefix(line, "ScoringTiles:") {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				value := strings.TrimSpace(parts[1])
+				if key == "ScoringTiles" {
+					fmt.Printf("DEBUG: Parsed ScoringTiles: %s\n", value)
+				}
+				settings[key] = value
+			}
 			continue
 		}
 
-		// Skip Round headers
+		if strings.HasPrefix(line, "StartingVPs:") {
+			// StartingVPs: Halflings:20, Auren:20
+			// We extract players from here
+			value := strings.TrimPrefix(line, "StartingVPs:")
+			parts := strings.Split(value, ",")
+			for _, part := range parts {
+				// part is "Halflings:20"
+				pParts := strings.Split(part, ":")
+				if len(pParts) >= 1 {
+					playerName := strings.TrimSpace(pParts[0])
+					// Add Player setting: Player:Halflings -> Halflings
+					settings["Player:"+playerName] = playerName
+					fmt.Printf("DEBUG: Parsed player from StartingVPs: %s\n", playerName)
+				}
+			}
+			continue
+		}
+
+		// Emit settings if we have them and haven't emitted yet
+		if len(settings) > 0 && len(items) == 0 {
+			items = append(items, GameSettingsItem{Settings: settings})
+			// Keep settings map for future additions if needed, but usually they are at top
+		}
+
+		// Parse Round headers
 		if strings.HasPrefix(line, "Round ") {
+			roundStr := strings.TrimPrefix(line, "Round ")
+			round, err := strconv.Atoi(roundStr)
+			if err == nil {
+				items = append(items, RoundStartItem{Round: round})
+			}
+			continue
+		}
+
+		// Parse TurnOrder
+		if strings.HasPrefix(line, "TurnOrder:") {
+			orderStr := strings.TrimPrefix(line, "TurnOrder:")
+			players := strings.Split(orderStr, ",")
+			turnOrder := make([]string, 0)
+			for _, p := range players {
+				turnOrder = append(turnOrder, strings.TrimSpace(p))
+			}
+			// Update the last RoundStartItem if it exists
+			if len(items) > 0 {
+				if rs, ok := items[len(items)-1].(RoundStartItem); ok {
+					rs.TurnOrder = turnOrder
+					items[len(items)-1] = rs
+				}
+			}
 			continue
 		}
 
 		// Check for grid header line
 		if strings.Contains(line, "|") {
 			// Check if this is a header row or data row
-			// Header row usually has faction names. Data row has codes.
-
-			// If we see "Nomads" or "Witches" etc.
-			// Let's assume if it doesn't have "S-", "UP-", "->", "PASS", "T-", it's a header?
-			// But "PASS" is short.
-			// Let's use the fact that headers are usually Title Case words, actions are codes.
-
 			if strings.Contains(line, "Nomads") || strings.Contains(line, "Witches") ||
 				strings.Contains(line, "Halflings") || strings.Contains(line, "Darklings") ||
 				strings.Contains(line, "Fakirs") || strings.Contains(line, "Giants") ||
@@ -87,41 +135,45 @@ func ParseConciseLog(content string) ([]game.Action, error) {
 
 				playerID, ok := colToPlayer[i]
 				if !ok {
-					// fmt.Printf("Warning: No player for col %d in line: %s\n", i, line)
 					continue
 				}
 
 				// Parse the action code
-				// Note: parseActionCode handles chained actions (separated by .) by returning a LogCompoundAction
 				action, err := parseActionCode(playerID, part)
 				if err != nil {
 					fmt.Printf("Error parsing action '%s': %v\n", part, err)
 					continue
 				}
-				actions = append(actions, action)
+				// Create action item
+				item := ActionItem{
+					Action: action,
+				}
+				fmt.Printf("DEBUG: Parsed Action %d: %s (Player: %s)\n", len(items), part, playerID)
+				items = append(items, item)
 			}
-		} else if !headerFound && strings.Contains(line, ": ") {
-			// Fallback for linear format "Player: Code"
-			// But we are skipping ": " lines above (Settings).
-			// So this block is unreachable if we skip all ": " lines.
-			// We should only skip ": " if it's NOT a player action line.
-			// Player action line: "Nomads: S-F3"
-			// Settings line: "Game: Base Game"
-			// We can check if the key is a known faction?
-			// Or check if value is an action code?
-			// For now, the concise log is GRID only. So we can ignore linear format support or make it stricter.
-			// Let's assume Grid only for now.
 		}
 	}
 
-	return actions, nil
+	return items, nil
 }
 
 func parseActionCode(playerID, code string) (game.Action, error) {
 	// Simple parser based on prefixes
-	if code == "PASS" {
+	if strings.HasPrefix(code, "PASS") {
 		var bonusCard *game.BonusCardType
+		if strings.HasPrefix(code, "PASS-") {
+			cardCode := strings.TrimPrefix(code, "PASS-")
+			cardType := ParseBonusCardCode(cardCode)
+			bonusCard = &cardType
+		}
 		return game.NewPassAction(playerID, bonusCard), nil
+	}
+	if strings.HasPrefix(code, "BON") {
+		// BON1, BON2 etc.
+		return &LogBonusCardSelectionAction{
+			PlayerID:  playerID,
+			BonusCard: code,
+		}, nil
 	}
 	if code == "+SHIP" {
 		return game.NewAdvanceShippingAction(playerID), nil
@@ -212,16 +264,22 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		if len(code) > 1 && unicode.IsDigit(rune(code[1])) {
 			amount, err := strconv.Atoi(code[1:])
 			if err == nil {
+				vpCost := amount - 1
+				if vpCost < 0 {
+					vpCost = 0
+				}
 				return &LogAcceptLeechAction{
 					PlayerID:    playerID,
 					PowerAmount: amount,
+					VPCost:      vpCost,
 				}, nil
 			}
 		}
-		// Just "L" -> assume 1 for now
+		// Just "L" -> assume 1 for now (Cost 0)
 		return &LogAcceptLeechAction{
 			PlayerID:    playerID,
 			PowerAmount: 1,
+			VPCost:      0,
 		}, nil
 	}
 
@@ -260,13 +318,28 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 	}
 
 	if strings.HasPrefix(code, "->") {
-		// ->F
-		trackCode := strings.TrimPrefix(code, "->")
+		// ->F or ->F3
+		codeStr := strings.TrimPrefix(code, "->")
+		if len(codeStr) == 0 {
+			return nil, fmt.Errorf("invalid cult action code")
+		}
+
+		// First character is the track
+		trackCode := string(codeStr[0])
 		track := parseCultShortCode(trackCode)
+
+		// Rest is spaces to climb (default 3)
+		spaces := 3
+		if len(codeStr) > 1 {
+			if s, err := strconv.Atoi(codeStr[1:]); err == nil {
+				spaces = s
+			}
+		}
+
 		return &game.SendPriestToCultAction{
 			BaseAction:    game.BaseAction{Type: game.ActionSendPriestToCult, PlayerID: playerID},
 			Track:         track,
-			SpacesToClimb: 3, // Default
+			SpacesToClimb: spaces,
 		}, nil
 	}
 	if strings.HasPrefix(code, "UP-") {
@@ -394,7 +467,7 @@ func isCoord(s string) bool {
 func parseResourceString(s string) map[models.ResourceType]int {
 	res := make(map[models.ResourceType]int)
 	// Regex to find "N unit" where unit is P, W, PW, VP, C
-	re := regexp.MustCompile(`(\d+)(P|W|PW|VP|C)`)
+	re := regexp.MustCompile(`(\d+)(PW|VP|P|W|C)`)
 	matches := re.FindAllStringSubmatch(s, -1)
 	for _, match := range matches {
 		amount, _ := strconv.Atoi(match[1])

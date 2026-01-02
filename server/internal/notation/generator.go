@@ -91,7 +91,23 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 			// Print settings
 			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: 0}
 			for key, val := range v.Settings {
-				lines = append(lines, fmt.Sprintf("%s: %s", key, val))
+				if !strings.HasPrefix(key, "StartingVP:") {
+					lines = append(lines, fmt.Sprintf("%s: %s", key, val))
+				}
+			}
+			// Add StartingVPs line if present
+			var vpParts []string
+			// We need to iterate over settings again or store them. Map iteration is random.
+			// Let's iterate over factionNames if available, but we don't have them yet (they come from RoundStart or Action).
+			// Actually, we can just iterate the map and filter.
+			for key, val := range v.Settings {
+				if strings.HasPrefix(key, "StartingVP:") {
+					faction := strings.TrimPrefix(key, "StartingVP:")
+					vpParts = append(vpParts, fmt.Sprintf("%s:%s", faction, val))
+				}
+			}
+			if len(vpParts) > 0 {
+				lines = append(lines, fmt.Sprintf("StartingVPs: %s", strings.Join(vpParts, ", ")))
 			}
 			lines = append(lines, "") // Empty line
 
@@ -235,6 +251,9 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 		shortType := getBuildingShortCode(a.NewBuildingType)
 		return fmt.Sprintf("UP-%s-%s", shortType, HexToShortString(a.TargetHex))
 	case *game.PassAction:
+		if a.BonusCard != nil {
+			return fmt.Sprintf("PASS-%s", getBonusCardShortCode(*a.BonusCard))
+		}
 		return "PASS"
 	case *game.SendPriestToCultAction:
 		// ->F
@@ -265,6 +284,8 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 		return generateConversionCode(a)
 	case *LogTownAction:
 		return fmt.Sprintf("TW%dVP", a.VP)
+	case *LogBonusCardSelectionAction:
+		return a.BonusCard // Already in short code format e.g. BON1
 	case *LogCompoundAction:
 		var parts []string
 		for _, subAction := range a.Actions {
@@ -376,6 +397,33 @@ func getTerrainShortCode(t models.TerrainType) string {
 	}
 	return "?"
 }
+
+func getBonusCardShortCode(t game.BonusCardType) string {
+	switch t {
+	case game.BonusCardSpade:
+		return "BON-SPD"
+	case game.BonusCardCultAdvance:
+		return "BON-4C"
+	case game.BonusCard6Coins:
+		return "BON-6C"
+	case game.BonusCardShipping:
+		return "BON-SHIP"
+	case game.BonusCardWorkerPower:
+		return "BON-WP"
+	case game.BonusCardTradingHouseVP:
+		return "BON-TP"
+	case game.BonusCardStrongholdSanctuary:
+		return "BON-BB"
+	case game.BonusCardPriest:
+		return "BON-P"
+	case game.BonusCardDwellingVP:
+		return "BON-DW"
+	case game.BonusCardShippingVP:
+		return "BON-SHIP-VP"
+	}
+	return "?"
+}
+
 func generateConversionCode(a *LogConversionAction) string {
 	// Format: C[Cost]:[Reward]
 	// Order: P, W, PW, VP, C

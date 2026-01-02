@@ -166,14 +166,17 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	// Get faction-specific starting shipping level (Mermaids start at 1, others at 0)
 	startingShippingLevel := 0
 	var startingResources factions.Resources
+	var startingCultPositions factions.CultPositions
 
 	if faction != nil {
 		if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
 			startingShippingLevel = shippingFaction.GetShippingLevel()
 		}
 		startingResources = faction.GetStartingResources()
+		startingCultPositions = faction.GetStartingCultPositions()
 	} else {
 		startingResources = factions.Resources{}
+		startingCultPositions = factions.CultPositions{}
 	}
 
 	player := &Player{
@@ -184,10 +187,10 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 		DiggingLevel:  0,
 		BridgesBuilt:  0,
 		CultPositions: map[CultTrack]int{
-			CultFire:  0,
-			CultWater: 0,
-			CultEarth: 0,
-			CultAir:   0,
+			CultFire:  startingCultPositions.Fire,
+			CultWater: startingCultPositions.Water,
+			CultEarth: startingCultPositions.Earth,
+			CultAir:   startingCultPositions.Air,
 		},
 		HasStrongholdAbility: false,
 		SpecialActionsUsed:   make(map[SpecialActionType]bool),
@@ -202,6 +205,13 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 
 	// Initialize cult track positions for this player
 	gs.CultTracks.InitializePlayer(playerID)
+	if faction != nil {
+		starting := faction.GetStartingCultPositions()
+		gs.CultTracks.PlayerPositions[playerID][CultFire] = starting.Fire
+		gs.CultTracks.PlayerPositions[playerID][CultWater] = starting.Water
+		gs.CultTracks.PlayerPositions[playerID][CultEarth] = starting.Earth
+		gs.CultTracks.PlayerPositions[playerID][CultAir] = starting.Air
+	}
 
 	// Initialize favor tiles for this player
 	gs.FavorTiles.InitializePlayer(playerID)

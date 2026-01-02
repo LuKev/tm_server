@@ -22,16 +22,16 @@ const ResponsiveGridLayout = WidthProvider(Responsive)
 
 // Bonus Card Mapping
 const BONUS_CARD_MAPPING: Record<number, string> = {
-    0: "BON8 (Priest)",
-    1: "BON4 (Shipping)",
-    2: "BON9 (Dwelling VP)",
-    3: "BON5 (Worker Power)",
-    4: "BON1 (Spade)",
-    5: "BON7 (Trading House VP)",
-    6: "BON3 (6 Coins)",
-    7: "BON2 (Cult Advance)",
-    8: "BON6 (Stronghold/Sanctuary VP)",
-    9: "BON10 (Shipping VP)"
+    0: "BON-P (Priest)",
+    1: "BON-SHIP (Shipping)",
+    2: "BON-DW (Dwelling VP)",
+    3: "BON-WP (Worker Power)",
+    4: "BON-SPD (Spade)",
+    5: "BON-TP (Trading House VP)",
+    6: "BON-6C (6 Coins)",
+    7: "BON-4C (Cult Advance)",
+    8: "BON-BB (Stronghold/Sanctuary VP)",
+    9: "BON-SHIP-VP (Shipping VP)"
 };
 
 export const Replay = () => {
@@ -45,7 +45,7 @@ export const Replay = () => {
     const [logStrings, setLogStrings] = useState<string[]>([])
     const [logLocations, setLogLocations] = useState<LogLocation[]>([])
     const [isAutoPlaying, setIsAutoPlaying] = useState(false)
-    const [autoPlaySpeed] = useState(1000) // ms
+    const [autoPlaySpeed] = useState(200) // ms
     const [missingInfo, setMissingInfo] = useState<MissingInfo | null>(null)
     const [showMissingInfoModal, setShowMissingInfoModal] = useState(false)
     const [players, setPlayers] = useState<string[]>([])
@@ -59,14 +59,8 @@ export const Replay = () => {
         // Combine and deduplicate
         const allIds = Array.from(new Set([...available, ...taken]));
 
-        // Sort by BON number
-        allIds.sort((a, b) => {
-            const strA = BONUS_CARD_MAPPING[a] || "";
-            const strB = BONUS_CARD_MAPPING[b] || "";
-            const numA = parseInt(strA.replace("BON", ""));
-            const numB = parseInt(strB.replace("BON", ""));
-            return numA - numB;
-        });
+        // Sort by ID (which corresponds to the original BON number order 0-9)
+        allIds.sort((a, b) => a - b);
 
         // Map to strings
         return allIds.map(id => BONUS_CARD_MAPPING[id]).filter(s => s);
@@ -89,9 +83,9 @@ export const Replay = () => {
     const defaultLayouts = useMemo(() => ({
         lg: [
             { i: 'controls', x: 0, y: 0, w: 24, h: 2, static: true },
-            { i: 'log', x: 0, y: 2, w: 4, h: 14, minW: 3, minH: 6 },
-            { i: 'scoring', x: 4, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
-            { i: 'board', x: 8, y: 2, w: 12, h: 12, minW: 10, minH: 8 },
+            { i: 'log', x: 0, y: 2, w: 6, h: 10, minW: 3, minH: 6 },
+            { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
+            { i: 'board', x: 10, y: 2, w: 10, h: 12, minW: 10, minH: 8 },
             { i: 'cult', x: 20, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
             { i: 'towns', x: 4, y: 10, w: 4, h: 3, minW: 4, minH: 2 },
             { i: 'favor', x: 20, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
@@ -100,10 +94,10 @@ export const Replay = () => {
         ],
         md: [
             { i: 'controls', x: 0, y: 0, w: 20, h: 2, static: true },
-            { i: 'log', x: 0, y: 2, w: 4, h: 14, minW: 3, minH: 6 },
-            { i: 'scoring', x: 4, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
-            { i: 'board', x: 8, y: 2, w: 8, h: 8, minW: 6, minH: 6 },
-            { i: 'cult', x: 16, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
+            { i: 'log', x: 0, y: 2, w: 6, h: 14, minW: 3, minH: 6 },
+            { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
+            { i: 'board', x: 10, y: 2, w: 10, h: 8, minW: 6, minH: 6 },
+            { i: 'cult', x: 0, y: 16, w: 4, h: 9, minW: 4, minH: 6 }, // Moved down
             { i: 'towns', x: 4, y: 10, w: 4, h: 3, minW: 4, minH: 2 },
             { i: 'favor', x: 16, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
             { i: 'playerBoards', x: 0, y: 14, w: 16, h: 6, minW: 8, minH: 4 },

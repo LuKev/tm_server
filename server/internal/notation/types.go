@@ -126,19 +126,32 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	// Apply effects
 	switch actionType {
 	case game.PowerActionBridge:
-		// We don't have coordinates here.
-		// Just increment count?
-		// Or do nothing and let a subsequent "Build Bridge" action handle it?
-		// Usually ACT1 is followed by placement?
-		// If we increment `BridgesBuilt`, we might block the placement if it checks limit.
-		// But `BridgesBuilt` is checked against 3.
-		// If we increment here, and then `BuildBridge` increments again, we double count.
-		// `BuildBridge` (Action) increments it.
-		// So we should NOT increment here if `BuildBridge` follows.
-		// But `LogPowerAction` is the action.
-		// If the log separates payment (ACT1) from placement, we have a problem.
-		// But usually `ACT1` implies placement.
-		// If we don't place, we just spent power.
+		// Parse coordinates if present: ACT1-C2-D4
+		parts := strings.Split(a.ActionCode, "-")
+		if len(parts) == 3 {
+			hex1, err := ConvertLogCoordToAxial(parts[1])
+			if err != nil {
+				return fmt.Errorf("invalid bridge hex1: %w", err)
+			}
+			hex2, err := ConvertLogCoordToAxial(parts[2])
+			if err != nil {
+				return fmt.Errorf("invalid bridge hex2: %w", err)
+			}
+
+			if err := gs.Map.BuildBridge(hex1, hex2); err != nil {
+				return fmt.Errorf("failed to build bridge: %w", err)
+			}
+
+			// Check for town formation after building bridge
+			gs.CheckAllTownFormations(a.PlayerID)
+		}
+
+		// Increment bridge count (game logic handles limit check in Validate, but we are in Execute)
+		// Note: PowerAction.Execute increments this too, but we are bypassing PowerAction.Execute
+		// because we are implementing LogPowerAction.Execute directly.
+		// Wait, LogPowerAction.Execute does NOT call PowerAction.Execute.
+		// It implements the logic itself.
+		player.BridgesBuilt++
 
 	case game.PowerActionPriest:
 		gs.GainPriests(a.PlayerID, 1)
@@ -241,6 +254,9 @@ func (a *LogFavorTileAction) Execute(gs *game.GameState) error {
 	if err := gs.FavorTiles.TakeFavorTile(a.PlayerID, tileType); err != nil {
 		return err
 	}
+
+	// Check for town formation (e.g. Fire+2 reduces requirement)
+	gs.CheckAllTownFormations(a.PlayerID)
 
 	// Apply immediate effects
 	if err := game.ApplyFavorTileImmediate(gs, a.PlayerID, tileType); err != nil {

@@ -79,8 +79,6 @@ func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("handleNext called for game %s\n", req.GameID)
-
 	session := h.manager.GetSession(req.GameID)
 	if session == nil {
 		http.Error(w, "session not found", http.StatusNotFound)
@@ -93,7 +91,6 @@ func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("StepForward success for game %s, returning state\n", req.GameID)
 	// Return new state
 	state := session.Simulator.GetState()
 	w.Header().Set("Content-Type", "application/json")

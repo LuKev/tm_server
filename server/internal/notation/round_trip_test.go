@@ -44,14 +44,19 @@ func TestBGARoundTrip(t *testing.T) {
 	t.Logf("Saved concise log to concise_log.txt")
 
 	// 4. Parse Concise Log -> Reconstructed Actions
-	// Note: ParseConciseLog currently returns []game.Action.
-	// It needs to be updated to return []LogItem or we just compare actions.
-	// For now, let's assume it returns []game.Action and ignores headers.
-	reconstructedActions, err := ParseConciseLog(conciseText)
+	reconstructedItems, err := ParseConciseLog(conciseText)
 	if err != nil {
 		t.Fatalf("Failed to parse concise log: %v", err)
 	}
-	t.Logf("Parsed %d reconstructed actions", len(reconstructedActions))
+	t.Logf("Parsed %d reconstructed items", len(reconstructedItems))
+
+	var reconstructedActions []game.Action
+	for _, item := range reconstructedItems {
+		if actionItem, ok := item.(ActionItem); ok {
+			reconstructedActions = append(reconstructedActions, actionItem.Action)
+		}
+	}
+	t.Logf("Extracted %d reconstructed actions", len(reconstructedActions))
 
 	// 5. Compare
 	// Flatten compound actions for comparison

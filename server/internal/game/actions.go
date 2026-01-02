@@ -160,6 +160,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	} else {
 		// Normal adjacency required if not using skip
 		if !isAdjacent {
+			fmt.Printf("DEBUG: TransformAndBuildAction Adjacency Check Failed. Hex: %v, Player: %s, Shipping: %d\n", a.TargetHex, player.ID, player.ShippingLevel)
 			return fmt.Errorf("hex is not adjacent to player's buildings")
 		}
 	}
@@ -184,11 +185,16 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
 		freeSpades := 0
 		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-			freeSpades = gs.PendingSpades[a.PlayerID]
-			fmt.Printf("DEBUG: TransformAndBuildAction for %s. PendingSpades: %d, Distance: %d\n", a.PlayerID, freeSpades, distance)
-			if freeSpades > distance {
-				freeSpades = distance // Only use what we need
-			}
+			freeSpades += gs.PendingSpades[a.PlayerID]
+		}
+		if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+			freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+		}
+
+		fmt.Printf("DEBUG: Validate TransformAndBuildAction for %s. FreeSpades: %d, Distance: %d\n", a.PlayerID, freeSpades, distance)
+
+		if freeSpades > distance {
+			freeSpades = distance // Only use what we need
 		}
 
 		remainingSpades := distance - freeSpades

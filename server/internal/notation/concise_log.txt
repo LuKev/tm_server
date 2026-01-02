@@ -52,7 +52,9 @@ BURN2.ACT6.T-D5.T-H4.D5 |                 | L               |
                 | ->A3            | ACT4            | C2VP:2C.ACTS-D2.D2
                 |                 | L               |
 H4              | PASS-BON-SHIP-VP | E3              | L
-UP-TH-C3        |                 | PASS-BON-DW     | BURN1.ACT3.PASS-BON-BB
+                |                 |                 | BURN1.ACT3
+G3              |                 | PASS-BON-DW     | PASS-BON-BB
+UP-TH-C3        |                 | L               |
 PASS-BON-SPD    | T-G2-Y          |                 |
 Round 3
 TurnOrder: Halflings, Chaos Magicians, Alchemists, Auren
@@ -69,9 +71,9 @@ ACT4            | ACT6.T-G1.T-B2-Y.G1 | C6VP:6C.UP-SH-C1 |
                 | L               |                 |
 T-G2.G2         |                 |                 | L
                 | PASS-BON-6C     | C5VP:5C.+DIG    | C1PW:1C.ACT-SH-F.C1PW:1C
-L               |                 | C6VP:6C.UP-SA-E5.FAV-W1 |
+PASS-BON-DW     |                 | C6VP:6C.UP-SA-E5.FAV-W1 |
 L               |                 |                 | ACTS-C5.C5
-PASS-BON-DW     |                 | PASS-BON-SHIP-VP | ACT2.->E2.PASS-BON-P
+                |                 | PASS-BON-SHIP-VP | ACT2.->E2.PASS-BON-P
 Round 4
 TurnOrder: Chaos Magicians, Halflings, Alchemists, Auren
 Chaos Magicians | Halflings       | Alchemists      | Auren
@@ -140,7 +142,7 @@ L               |                 |                 |
                 |                 |                 | UP-SA-I6.FAV-A1.TW7VP
 L               |                 |                 |
 ->W2            | ->A1            | ->W2            | ACT-SH-W
-BURN3.ACT1.TW7VP | T-H5            | BURN1.ACT3      | T-I8-Bk
+BURN3.ACT1-C2-D4.TW7VP | T-H5            | BURN1.ACT3      | T-I8-Bk
 +SHIP           | T-I2            | ACTS-D1.D1      |
 DL              |                 |                 | ->W1
 UP-TE-G1.FAV-W3.FAV-W2 | L               |                 |
@@ -151,7 +153,7 @@ ACT2            | C2P:2W.UP-TH-E8 |                 | DL
                 |                 | T-E11.E11.BURN1.C3PW:1W.TW6VP |
 ->A2            | C3PW:1W.I2      | C3PW:1W.UP-TH-B3 |
 DL              |                 |                 |
-FAV-E1          | PASS            | C1P:1W.T-H2.H2  |
+ACT-FAV-E       | PASS            | C1P:1W.T-H2.H2  |
                 | DL              |                 |
 BURN1.C2W1PW:3C.+SHIP |                 | PASS            |
 PASS            |                 |                 |

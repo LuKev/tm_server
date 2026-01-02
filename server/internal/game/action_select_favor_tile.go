@@ -81,11 +81,7 @@ func (a *SelectFavorTileAction) Execute(gs *GameState) error {
 		if player != nil {
 			// Check all hexes where player has buildings that aren't already part of a town
 			// Note: With Fire+2 (reducing requirement from 7 to 6), multiple towns can form simultaneously
-			for hex, mapHex := range gs.Map.Hexes {
-				if mapHex.Building != nil && mapHex.Building.PlayerID == a.PlayerID && !mapHex.PartOfTown {
-					gs.CheckForTownFormation(a.PlayerID, hex)
-				}
-			}
+			gs.CheckAllTownFormations(a.PlayerID)
 		}
 	}
 

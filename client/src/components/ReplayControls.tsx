@@ -33,7 +33,7 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
 
             <div className="flex gap-2">
                 <button
-                    onClick={() => onStart(true)}
+                    onClick={() => { onStart(true); }}
                     className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded font-medium transition-colors"
                 >
                     Restart

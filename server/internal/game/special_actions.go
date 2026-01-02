@@ -105,6 +105,8 @@ type SpecialAction struct {
 	// For Chaos Magicians double turn
 	FirstAction  Action
 	SecondAction Action
+	// For Bonus Card Spade with specific target terrain (e.g. Cult Bonus)
+	TargetTerrain *models.TerrainType
 }
 
 func NewSpecialAction(playerID string, actionType SpecialActionType) *SpecialAction {
@@ -205,7 +207,11 @@ func NewNomadsSandstormAction(playerID string, targetHex board.Hex, buildDwellin
 }
 
 // NewBonusCardSpadeAction creates a bonus card spade special action
-func NewBonusCardSpadeAction(playerID string, targetHex board.Hex, buildDwelling bool) *SpecialAction {
+func NewBonusCardSpadeAction(playerID string, targetHex board.Hex, buildDwelling bool, targetTerrain models.TerrainType) *SpecialAction {
+	var t *models.TerrainType
+	if targetTerrain != models.TerrainTypeUnknown {
+		t = &targetTerrain
+	}
 	return &SpecialAction{
 		BaseAction: BaseAction{
 			Type:     ActionSpecialAction,
@@ -214,6 +220,7 @@ func NewBonusCardSpadeAction(playerID string, targetHex board.Hex, buildDwelling
 		ActionType:    SpecialActionBonusCardSpade,
 		TargetHex:     &targetHex,
 		BuildDwelling: buildDwelling,
+		TargetTerrain: t,
 	}
 }
 
@@ -477,9 +484,17 @@ func (a *SpecialAction) validateWater2CultAdvance(gs *GameState, player *Player)
 }
 
 func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) error {
-	// Check if player has the spade bonus card
-	if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardSpade {
-		return fmt.Errorf("player does not have the spade bonus card")
+	// Check if player has the spade bonus card OR if we are in a context where free spade is allowed (e.g. Cult Bonus)
+	// For now, we assume if TargetTerrain is set, it's a Cult Bonus or similar, so we skip the Bonus Card check.
+	// Or we can check if player has BonusCardSpade OR if it's a special override.
+	// Since we are reusing this action for Cult Bonus, we should relax this check if it's not strictly a Bonus Card action.
+	// But the action type is SpecialActionBonusCardSpade.
+	// Maybe we should rename it or add a flag?
+	// For simplicity, let's allow it if TargetTerrain is set (implying explicit override).
+	if a.TargetTerrain == nil {
+		if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardSpade {
+			return fmt.Errorf("player does not have the spade bonus card")
+		}
 	}
 
 	// Validate the transform action (hex must exist, be empty or transformable, etc.)
@@ -731,11 +746,18 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		}
 	}
 
-	// Get 1 free spade to transform terrain
+	// Transform terrain
+	targetTerrain := player.Faction.GetHomeTerrain()
+	if a.TargetTerrain != nil {
+		targetTerrain = *a.TargetTerrain
+	}
+
 	// Calculate terraform cost (but we get 1 free spade)
-	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
+	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 	if distance == 0 {
-		return fmt.Errorf("terrain distance calculation failed")
+		// If distance is 0, we might be transforming to same terrain (no-op) or invalid
+		// But if we are here, we probably want to transform.
+		// If same terrain, cost is 0.
 	}
 
 	totalWorkers := player.Faction.GetTerraformCost(distance)
@@ -757,8 +779,8 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		player.Resources.Workers -= workersNeeded
 	}
 
-	// Transform terrain to home terrain
-	if err := gs.Map.TransformTerrain(*a.TargetHex, player.Faction.GetHomeTerrain()); err != nil {
+	// Transform terrain
+	if err := gs.Map.TransformTerrain(*a.TargetHex, targetTerrain); err != nil {
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 

@@ -49,8 +49,8 @@ func (gs *GameState) ResetRoundState() {
 		player.HasPassed = false
 	}
 
-	// Clear pass order (will be rebuilt next round)
-	gs.PassOrder = []string{}
+	// PassOrder is NOT cleared here - it is needed by StartNewRound to set TurnOrder
+	// gs.PassOrder = []string{}
 
 	// Reset pending offers/formations
 	gs.PendingLeechOffers = make(map[string][]*PowerLeechOffer)

@@ -102,6 +102,13 @@ func (s *GameSimulator) StepForward() error {
 				return fmt.Errorf("action execution failed at index %d: %w", s.CurrentIndex, err)
 			}
 		}
+
+		// Check if all players have passed and we haven't run cleanup yet
+		// (Phase check ensures we don't run it multiple times if actions happen during cleanup)
+		if s.CurrentState.Phase == game.PhaseAction && s.CurrentState.AllPlayersPassed() {
+			fmt.Println("DEBUG: All players passed, executing Cleanup Phase")
+			s.CurrentState.ExecuteCleanupPhase()
+		}
 	case notation.RoundStartItem:
 		// Start a new round
 		s.CurrentState.StartNewRound()
@@ -111,6 +118,8 @@ func (s *GameSimulator) StepForward() error {
 		if len(v.TurnOrder) > 0 {
 			s.CurrentState.TurnOrder = v.TurnOrder
 		}
+
+		fmt.Printf("DEBUG: Processing RoundStartItem for Round %d. TurnOrder: %v\n", v.Round, s.CurrentState.TurnOrder)
 
 		// Grant income for all rounds (including Round 1, as per BGA log)
 		s.CurrentState.GrantIncome()
@@ -130,11 +139,11 @@ func (s *GameSimulator) StepForward() error {
 					factionType := models.FactionTypeFromString(factionName)
 					faction := factions.NewFaction(factionType)
 					if err := s.CurrentState.AddPlayer(factionName, faction); err != nil {
-						// Log error but continue? Or return error?
-						// Since we are in a loop in StepForward, we can't easily return error without changing signature
-						// But StepForward returns error.
 						return fmt.Errorf("failed to add player %s: %v", factionName, err)
 					}
+					fmt.Printf("DEBUG: Simulator added player from settings: %s\n", factionName)
+				} else {
+					fmt.Printf("DEBUG: Simulator skipped existing player: %s\n", factionName)
 				}
 			} else if k == "BonusCards" {
 				// Parse bonus cards

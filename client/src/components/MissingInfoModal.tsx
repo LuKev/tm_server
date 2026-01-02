@@ -11,7 +11,7 @@ export interface MissingInfo {
 export interface MissingInfoData {
     scoringTiles: string[];
     bonusCards: string[];
-    bonusCardSelections: Record<string, string>;
+    bonusCardSelections: Record<string, Record<string, string>>;
 }
 
 interface MissingInfoModalProps {
@@ -24,10 +24,9 @@ interface MissingInfoModalProps {
 }
 
 export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, missingInfo, players, availableBonusCards, onSubmit, onClose }) => {
-    console.log("DEBUG: MissingInfoModal rendered", { isOpen, missingInfo, players, availableBonusCards });
     const [scoringTiles, setScoringTiles] = useState<string[]>(Array(6).fill(''));
     const [bonusCards, setBonusCards] = useState<string[]>(Array(10).fill(''));
-    const [playerBonusCards, setPlayerBonusCards] = useState<Record<string, string>>({});
+    const [playerBonusCards, setPlayerBonusCards] = useState<Record<string, Record<string, string>>>({});
 
     // Simple hardcoded options for now
     // Corrected mappings based on server/internal/replay/game_setup.go
@@ -44,21 +43,21 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
     ];
 
     const BONUS_CARDS = [
-        "BON1 (Spade)",
-        "BON2 (Cult Advance)",
-        "BON3 (6 Coins)",
-        "BON4 (Shipping)",
-        "BON5 (Worker Power)",
-        "BON6 (Stronghold/Sanctuary VP)",
-        "BON7 (Trading House VP)",
-        "BON8 (Priest)",
-        "BON9 (Dwelling VP)",
-        "BON10 (Shipping VP)"
+        "BON-SPD (Spade)",
+        "BON-4C (Cult Advance)",
+        "BON-6C (6 Coins)",
+        "BON-SHIP (Shipping)",
+        "BON-WP (Worker Power)",
+        "BON-TP (Trading House VP)",
+        "BON-BB (Stronghold/Sanctuary VP)",
+        "BON-P (Priest)",
+        "BON-DW (Dwelling VP)",
+        "BON-SHIP-VP (Shipping VP)"
     ];
 
-    const bonusCardOptions = availableBonusCards && availableBonusCards.length > 0
-        ? availableBonusCards
-        : BONUS_CARDS;
+    const bonusCardOptions = missingInfo?.GlobalBonusCards
+        ? bonusCards.filter(c => c)
+        : (availableBonusCards && availableBonusCards.length > 0 ? availableBonusCards : BONUS_CARDS);
 
     const handleSubmit = () => {
         const data = {
@@ -148,11 +147,14 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
                                 <div key={player} className="flex gap-2 mb-2 items-center">
                                     <label className="w-32">{player}:</label>
                                     <select
-                                        value={playerBonusCards[player] || ''}
+                                        value={playerBonusCards[roundStr]?.[player] || ''}
                                         onChange={(e) => {
                                             setPlayerBonusCards({
                                                 ...playerBonusCards,
-                                                [player]: e.target.value
+                                                [roundStr]: {
+                                                    ...(playerBonusCards[roundStr] || {}),
+                                                    [player]: e.target.value
+                                                }
                                             });
                                         }}
                                         className="border p-1 rounded flex-1"

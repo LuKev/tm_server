@@ -46,7 +46,7 @@ func NewBGAParser(content string) *BGAParser {
 func (p *BGAParser) Parse() ([]LogItem, error) {
 	// Regex patterns
 	reMove := regexp.MustCompile(`^Move (\d+) :`)
-	reFactionSelection := regexp.MustCompile(`(.*) is playing the (.*) Faction`)
+	reFactionSelection := regexp.MustCompile(`(.*) is playing the (.*) Faction(?: \(with (\d+) VP Starting VPs\))?`)
 	reFactionSelection2 := regexp.MustCompile(`(.*) selected the faction (.*) on`)
 	reGameBoard := regexp.MustCompile(`Game board: (.*)`)
 	reMiniExpansions := regexp.MustCompile(`Mini-expansions: (.*)`)
@@ -142,6 +142,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			p.players[playerName] = factionName
 			if !contains(setupOrder, factionName) {
 				setupOrder = append(setupOrder, factionName)
+			}
+			// Check for starting VPs (group 3)
+			if len(matches) > 3 && matches[3] != "" {
+				settings["StartingVP:"+factionName] = matches[3]
 			}
 		} else if matches := reFactionSelection2.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := strings.TrimSpace(matches[1])

@@ -2,6 +2,7 @@ package notation
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/models"
@@ -67,9 +68,12 @@ func GetTownTileFromVP(vp int) (models.TownTileType, error) {
 // ParsePowerActionCode converts a power action code (e.g., "ACT1") to a PowerActionType
 // Returns PowerActionUnknown if unknown
 func ParsePowerActionCode(code string) game.PowerActionType {
-	switch code {
-	case "ACT1":
+	// Handle ACT1 with coordinates (e.g. ACT1-C2-D4)
+	if strings.HasPrefix(code, "ACT1") {
 		return game.PowerActionBridge
+	}
+
+	switch code {
 	case "ACT2":
 		return game.PowerActionPriest
 	case "ACT3":

@@ -94,7 +94,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 						return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
 					}
 					// BON1 provides a free spade transform + build
-					return game.NewBonusCardSpadeAction(playerID, hex, true), nil
+					return game.NewBonusCardSpadeAction(playerID, hex, false, models.TerrainTypeUnknown), nil
 				}
 				// Standalone BON1 action (not combined with build) - skip
 				return nil, nil

@@ -504,3 +504,14 @@ func getConnectedBuildingsForMermaids(m *board.TerraMysticaMap, start board.Hex,
 
 	return connected, skippedRiver
 }
+
+// CheckAllTownFormations checks for town formation for all of a player's buildings
+// This is useful when a condition changes (e.g. Fire+2 favor tile) that might allow
+// existing clusters to form towns
+func (gs *GameState) CheckAllTownFormations(playerID string) {
+	for hex, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && !mapHex.PartOfTown {
+			gs.CheckForTownFormation(playerID, hex)
+		}
+	}
+}

@@ -728,7 +728,7 @@ func TestBonusCardSpade_ProvidesFreeSpade(t *testing.T) {
 	initialWorkers := player.Resources.Workers
 
 	// Use bonus card spade action to transform and build
-	action := NewBonusCardSpadeAction("player1", targetHex, true)
+	action := NewBonusCardSpadeAction("player1", targetHex, true, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)
 	if err != nil {

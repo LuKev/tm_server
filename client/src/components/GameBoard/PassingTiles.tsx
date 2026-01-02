@@ -47,7 +47,7 @@ const BonusCardContent: React.FC<{ type: BonusCardType }> = ({ type }) => {
     const renderContent = (): React.ReactNode => {
         switch (type) {
             case BonusCardType.Priest:
-                return <PriestIcon className="flex-shrink-0" style={{ width: '60%' }} />; // Centered, larger
+                return <PriestIcon className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto' }} />; // Centered, larger
             case BonusCardType.Coins6:
                 return <div className="flex-shrink-0" style={{ width: '100%', display: 'flex', justifyContent: 'center' }}><CoinIcon className="" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }}>6</CoinIcon></div>; // Centered, smaller
 

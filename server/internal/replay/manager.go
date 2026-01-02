@@ -56,9 +56,9 @@ type MissingGameInfo struct {
 
 // ProvidedGameInfo contains the information provided by the user
 type ProvidedGameInfo struct {
-	ScoringTiles        []string          `json:"scoringTiles"`
-	BonusCards          []string          `json:"bonusCards"`
-	BonusCardSelections map[string]string `json:"bonusCardSelections"` // PlayerID -> BonusCard
+	ScoringTiles        []string                     `json:"scoringTiles"`
+	BonusCards          []string                     `json:"bonusCards"`
+	BonusCardSelections map[string]map[string]string `json:"bonusCardSelections"` // Round -> PlayerID -> BonusCard
 }
 
 // StartReplay fetches the log for a game and initializes a session
@@ -82,8 +82,13 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 	}
 
 	// Parse log
-	parser := notation.NewBGAParser(logContent)
-	items, err := parser.Parse()
+	var items []notation.LogItem
+	if gameID == "local" {
+		items, err = notation.ParseConciseLog(logContent)
+	} else {
+		parser := notation.NewBGAParser(logContent)
+		items, err = parser.Parse()
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse log: %v", err)
 	}
@@ -104,7 +109,7 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 		settings := notation.GameSettingsItem{
 			Settings: map[string]string{
 				"ScoringTiles": "SCORE5,SCORE8,SCORE4,SCORE1,SCORE6,SCORE7",
-				"BonusCards":   "BON1,BON3,BON6,BON7,BON8,BON9,BON10",
+				"BonusCards":   "BON-SPD,BON-6C,BON-TP,BON-BB,BON-P,BON-DW,BON-SHIP-VP",
 			},
 		}
 
@@ -163,11 +168,12 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 	// Special case for local testing
 	if gameID == "local" {
-		content, err := os.ReadFile("bga_log.txt")
+		// Try absolute path to concise_log.txt
+		absPath := "/Users/kevin/projects/tm_server/server/internal/notation/concise_log.txt"
+		content, err := os.ReadFile(absPath)
 		if err != nil {
-			// Try absolute path if relative fails
-			absPath := "/Users/kevin/projects/tm_server/bga_log.txt"
-			content, err = os.ReadFile(absPath)
+			// Fallback to relative path
+			content, err = os.ReadFile("internal/notation/concise_log.txt")
 			if err != nil {
 				return "", fmt.Errorf("failed to read local log: %v", err)
 			}
@@ -264,9 +270,9 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 		round1Index = settingsIndex + 1
 	}
 
-	if len(info.BonusCardSelections) > 0 {
+	if roundSelections, ok := info.BonusCardSelections["0"]; ok && len(roundSelections) > 0 {
 		newActions := make([]notation.LogItem, 0)
-		for playerID, cardStr := range info.BonusCardSelections {
+		for playerID, cardStr := range roundSelections {
 			// Parse "BON1 (Desc)" -> "BON1"
 			parts := strings.Split(cardStr, " ")
 			cardCode := parts[0]
@@ -298,25 +304,34 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 		// But we don't know which one here easily without passing index.
 		// However, we can just scan for PassActions with nil BonusCard and see if we have info for them.
 
+		// Let's track current round in the loop
+		currentRound := 0 // Round 0 is setup, then 1-5
 		for i, item := range session.Simulator.Actions {
+			if rs, ok := item.(notation.RoundStartItem); ok {
+				currentRound = rs.Round
+			}
+
 			if actionItem, ok := item.(notation.ActionItem); ok {
 				if pass, ok := actionItem.Action.(*game.PassAction); ok {
 					if pass.BonusCard == nil {
 						// Check if we have info for this
-						if cardStr, ok := info.BonusCardSelections[pass.PlayerID]; ok {
-							// We found a match! Update it.
-							// Parse card code
-							parts := strings.Split(cardStr, " ")
-							cardCode := parts[0]
-							cardType := notation.ParseBonusCardCode(cardCode)
+						roundStr := fmt.Sprintf("%d", currentRound)
+						if roundSelections, ok := info.BonusCardSelections[roundStr]; ok {
+							if cardStr, ok := roundSelections[pass.PlayerID]; ok {
+								// We found a match! Update it.
+								// Parse card code
+								parts := strings.Split(cardStr, " ")
+								cardCode := parts[0]
+								cardType := notation.ParseBonusCardCode(cardCode)
 
-							// We need to update the action in the slice.
-							// Since actionItem is a copy (value receiver), we need to update the pointer in the slice if possible.
-							// But ActionItem holds Action interface.
-							// The underlying *PassAction is a pointer.
-							// So modifying 'pass' modifies the underlying struct.
-							pass.BonusCard = &cardType
-							fmt.Printf("Updated PassAction for %s with card %s at index %d\n", pass.PlayerID, cardCode, i)
+								// We need to update the action in the slice.
+								// Since actionItem is a copy (value receiver), we need to update the pointer in the slice if possible.
+								// But ActionItem holds Action interface.
+								// The underlying *PassAction is a pointer.
+								// So modifying 'pass' modifies the underlying struct.
+								pass.BonusCard = &cardType
+								fmt.Printf("Updated PassAction for %s with card %s at index %d (Round %d)\n", pass.PlayerID, cardCode, i, currentRound)
+							}
 						}
 					}
 				}
@@ -335,6 +350,11 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 
 	// Re-detect missing info (global only)
 	session.MissingInfo = detectMissingInfo(session.Simulator.Actions)
+
+	// Regenerate concise log strings
+	logStrings, logLocations := notation.GenerateConciseLog(session.Simulator.Actions)
+	session.LogStrings = logStrings
+	session.LogLocations = logLocations
 
 	// Fast-forward
 	// We loop until we reach targetIndex OR we hit an error (e.g. another missing info)

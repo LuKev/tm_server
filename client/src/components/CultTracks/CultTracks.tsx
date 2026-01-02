@@ -45,6 +45,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   // Get first letter of faction (all uppercase)
   const getFactionLetter = useCallback((faction: FactionType): string => {
     const names: Record<FactionType, string> = {
+      [FactionType.Unknown]: '?',
       [FactionType.Nomads]: 'N',
       [FactionType.Fakirs]: 'F',
       [FactionType.ChaosMagicians]: 'C',

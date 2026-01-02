@@ -312,6 +312,7 @@ func (gs *GameState) AwardCultRewards() {
 	// e.g., "2 steps = 1 worker" means position 8 gives 4 workers (8/2 = 4)
 	for playerID, player := range gs.Players {
 		position := gs.CultTracks.GetPosition(playerID, tile.CultTrack)
+		fmt.Printf("DEBUG: AwardCultRewards for %s. Track: %v, Position: %d, Threshold: %d\n", playerID, tile.CultTrack, position, tile.CultThreshold)
 
 		if tile.CultThreshold == 0 {
 			continue // Skip if no threshold (shouldn't happen for regular tiles)
@@ -322,6 +323,7 @@ func (gs *GameState) AwardCultRewards() {
 
 		if rewardCount > 0 {
 			totalReward := rewardCount * tile.CultRewardAmount
+			fmt.Printf("DEBUG: Awarding %d (x%d) to %s\n", totalReward, tile.CultRewardType, playerID)
 
 			switch tile.CultRewardType {
 			case CultRewardPriest:

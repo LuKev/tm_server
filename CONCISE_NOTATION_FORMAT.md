@@ -81,6 +81,8 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
 
 *   **Standard Actions**: `ACT[N]`
     *   `ACT1`: Bridge
+        *   Format: `ACT1` or `ACT1-<Hex1>-<Hex2>`
+        *   Example: `ACT1-C2-D4`
     *   `ACT2`: Priest
     *   `ACT3`: Workers
     *   `ACT4`: Coins
