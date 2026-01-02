@@ -14,6 +14,7 @@ The header contains key-value pairs describing the game configuration.
 Game: [MapName]
 ScoringTiles: [Tile1], [Tile2], ...
 BonusCards: [Card1], [Card2], ...
+StartingVPs: [Faction1]:[VP], [Faction2]:[VP], ...
 Options: [Option1], ...
 ```
 
@@ -44,6 +45,9 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
 *   **Setup Dwelling**: `S-[Coord]`
     *   Example: `S-F3`, `S-C4`
     *   *Used during the initial dwelling placement phase.*
+*   **Select Bonus Card**: `BON-[Code]`
+    *   Example: `BON-SPD`, `BON-BB`
+    *   *Used at the end of the setup phase.*
 
 ### Building & Upgrading
 
@@ -148,8 +152,9 @@ Format: `C[Cost]:[Reward]`
 
 ### Passing
 
-*   **Pass**: `PASS`
-    *   *Note: Bonus card selection is currently implicit or not yet fully notated.*
+*   **Pass**: `PASS` or `PASS-[BonusCard]`
+    *   Example: `PASS-BON-SPD`
+    *   *Note: Bonus card selection is required for Rounds 1-5.*
 
 ### Reactions
 
@@ -168,7 +173,8 @@ Format: `C[Cost]:[Reward]`
 ```text
 Game: Base
 ScoringTiles: SCORE1, SCORE2
-BonusCards: BON1, BON2
+BonusCards: BON-SPD, BON-4C
+StartingVPs: Cultists:20, Nomads:20, Witches:20
 Options: OPT1
 
 Round 1
