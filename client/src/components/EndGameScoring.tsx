@@ -15,7 +15,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
         return b.totalResourceValue - a.totalResourceValue;
     });
 
-    const getFactionLabel = (playerId: string) => {
+    const getFactionLabel = (playerId: string): string => {
         const player = gameState.players[playerId];
         if (!player) return "Unknown";
 
@@ -25,7 +25,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
             if (typeof player.faction === 'string') factionName = player.faction;
             else if (typeof player.faction === 'object' && 'Type' in player.faction) {
                 const type = (player.faction as { Type: number }).Type;
-                const f = FACTIONS.find(f => f.id === type);
+                const f = FACTIONS.find(f => f.id === (type as FactionType));
                 if (f) factionName = f.name;
             }
         } else if (player.Faction) {
@@ -33,7 +33,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
             if (typeof player.Faction === 'string') factionName = player.Faction;
             else if (typeof player.Faction === 'object' && 'Type' in player.Faction) {
                 const type = (player.Faction as { Type: number }).Type;
-                const f = FACTIONS.find(f => f.id === type);
+                const f = FACTIONS.find(f => f.id === (type as FactionType));
                 if (f) factionName = f.name;
             }
         }
@@ -41,7 +41,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
         return factionName;
     };
 
-    const getFactionColor = (playerId: string) => {
+    const getFactionColor = (playerId: string): string => {
         const player = gameState.players[playerId];
         if (!player) return '#ccc';
 
@@ -117,7 +117,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
                     </p>
                     <button
                         className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800 font-medium transition-colors"
-                        onClick={() => window.location.reload()}
+                        onClick={() => { window.location.reload(); }}
                     >
                         Close
                     </button>

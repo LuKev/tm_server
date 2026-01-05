@@ -217,19 +217,20 @@ export const PassingTiles: React.FC<PassingTilesProps> = () => {
 
                 // Determine if this card is owned by a player and used
                 let isUsed = false;
-                if (gameState?.bonusCards?.playerCards) {
+                const bonusCards = gameState?.bonusCards;
+                if (bonusCards?.playerCards) {
                     // Find player who has this card
-                    const playerId = Object.keys(gameState.bonusCards.playerCards).find(
-                        pid => gameState.bonusCards!.playerCards[pid] === cardType
+                    const playerId = Object.keys(bonusCards.playerCards).find(
+                        pid => bonusCards.playerCards[pid] === cardType
                     );
 
                     if (playerId) {
-                        const player = gameState.players[playerId];
-                        if (player && player.specialActionsUsed) {
+                        const player = gameState?.players[playerId];
+                        if (player?.specialActionsUsed) {
                             if (cardType === BonusCardType.Spade) {
-                                isUsed = !!player.specialActionsUsed[SpecialActionType.BonusCardSpade];
+                                isUsed = player.specialActionsUsed[SpecialActionType.BonusCardSpade];
                             } else if (cardType === BonusCardType.CultAdvance) {
-                                isUsed = !!player.specialActionsUsed[SpecialActionType.BonusCardCultAdvance];
+                                isUsed = player.specialActionsUsed[SpecialActionType.BonusCardCultAdvance];
                             }
                         }
                     }

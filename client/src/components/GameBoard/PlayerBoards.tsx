@@ -43,12 +43,6 @@ const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
     </div>
 );
 
-// ... existing components ...
-
-
-
-
-
 const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
     if (!income) return null;
     const scale = compact ? 0.8 : 1;
@@ -105,10 +99,6 @@ const BuildingTrackSlot: React.FC<{
     );
 };
 
-// ... inside PlayerBoard component ...
-
-
-
 const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCurrentPlayer?: boolean }> = ({ playerId, turnOrder, isCurrentPlayer }) => {
     const gameState = useGameStore(s => s.gameState);
     const player = gameState?.players[playerId];
@@ -138,7 +128,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
         if (typeof player.faction === 'object') {
             // Check for "Type" (uppercase) which comes from Go serialization
             if ('Type' in player.faction) {
-                factionType = (player.faction as any).Type;
+                factionType = (player.faction as { Type: number }).Type;
             }
             // Check for "type" (lowercase) just in case
             else if ('type' in player.faction) {
@@ -358,7 +348,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
                                             const isUsed = isWater2 && player.specialActionsUsed?.[SpecialActionType.Water2CultAdvance];
 
                                             return (
-                                                <div key={`${tileType}-${idx}`} className="pb-favor-tile">
+                                                <div key={`${String(tileType)}-${String(idx)}`} className="pb-favor-tile">
                                                     <svg className="favor-tile-bg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" style={{ zIndex: 0 }}>
                                                         <ellipse cx="100" cy="50" rx="98" ry="48"
                                                             className={`${getCultColorClass(tileData.cult)} opacity-20`}

@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
@@ -13,11 +13,12 @@ import { useGameStore } from '../stores/gameStore'
 import { useActionService } from '../services/actionService'
 import { CultType, GamePhase, type FactionType } from '../types/game.types'
 import { useWebSocket } from '../services/WebSocketContext'
-import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
+import { Responsive, WidthProvider } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './Game.css'
 import { getCultPositions } from '../utils/gameUtils'
+import { useGameLayout } from '../hooks/useGameLayout'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -31,95 +32,26 @@ export const Game = () => {
 
   const numCards = useMemo(() => {
     if (!gameState?.bonusCards) return 9;
-    const available = Object.keys(gameState.bonusCards.available || {}).length;
-    const taken = Object.keys(gameState.bonusCards.playerCards || {}).length;
+    const available = Object.keys(gameState.bonusCards.available ?? {}).length;
+    const taken = Object.keys(gameState.bonusCards.playerCards ?? {}).length;
     return available + taken;
   }, [gameState?.bonusCards]);
 
-  // Default layout configuration
-  // Adjusted for square grid cells (rowHeight = colWidth)
-  // Granularity doubled (24 cols for lg, 20 for md)
-  const defaultLayouts = useMemo(() => ({
-    lg: [
-      { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
-      { i: 'board', x: 4, y: 0, w: 16, h: 16, minW: 12, minH: 10 },
-      { i: 'cult', x: 20, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
-      { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
-      { i: 'favor', x: 20, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
-      { i: 'playerBoards', x: 0, y: 16, w: 20, h: 6, minW: 8, minH: 4 },
-      { i: 'passing', x: 24 - numCards, y: 24, w: numCards, h: 4, minW: 4, minH: 2 }
-    ],
-    md: [
-      { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
-      { i: 'board', x: 4, y: 0, w: 12, h: 12, minW: 8, minH: 8 },
-      { i: 'cult', x: 16, y: 0, w: 4, h: 9, minW: 4, minH: 6 },
-      { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
-      { i: 'favor', x: 16, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
-      { i: 'playerBoards', x: 0, y: 12, w: 16, h: 6, minW: 8, minH: 4 },
-      { i: 'passing', x: 20 - numCards, y: 20, w: numCards, h: 4, minW: 4, minH: 2 }
-    ]
-  }), [numCards])
-
-  const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
-  const [isLayoutLocked, setIsLayoutLocked] = useState(false)
-  const [rowHeight, setRowHeight] = useState(60)
+  const {
+    layouts,
+    rowHeight,
+    handleWidthChange,
+    handleLayoutChange,
+    isLayoutLocked,
+    setIsLayoutLocked,
+    resetLayout
+  } = useGameLayout(gameState, numCards, 'game');
 
   useEffect(() => {
     if (isConnected && gameId && !gameState) {
       sendMessage({ type: 'get_game_state', payload: { gameID: gameId } })
     }
   }, [isConnected, gameId, gameState, sendMessage])
-
-  // Update layout when numCards changes to ensure correct default size
-  useEffect(() => {
-    setLayouts((currentLayouts) => {
-      const newLayouts = { ...currentLayouts }
-      let hasChanges = false
-
-      Object.keys(newLayouts).forEach((key) => {
-        newLayouts[key] = newLayouts[key].map((item) => {
-          if (item.i === 'passing') {
-            if (item.w !== numCards || item.h !== 4) {
-              hasChanges = true
-              return { ...item, w: numCards, h: 4 }
-            }
-          }
-          return item
-        })
-      })
-
-      return hasChanges ? newLayouts : currentLayouts
-    })
-  }, [numCards])
-
-  // Update layout when player count changes to ensure correct default size for player boards
-  useEffect(() => {
-    const playerCount = Object.keys(gameState?.players || {}).length
-    if (playerCount === 0) return
-
-    setLayouts((currentLayouts) => {
-      const newLayouts = { ...currentLayouts }
-      let hasChanges = false
-
-      Object.keys(newLayouts).forEach((key) => {
-        newLayouts[key] = newLayouts[key].map((item) => {
-          if (item.i === 'playerBoards') {
-            const newH = Math.ceil(playerCount * item.w * 0.5)
-            // Ensure minimum height
-            const finalH = Math.max(newH, item.minH || 4)
-
-            if (item.h !== finalH) {
-              hasChanges = true
-              return { ...item, h: finalH }
-            }
-          }
-          return item
-        })
-      })
-
-      return hasChanges ? newLayouts : currentLayouts
-    })
-  }, [gameState?.players])
 
   // Handle hex clicks
   const handleHexClick = (q: number, r: number): void => {
@@ -197,62 +129,6 @@ export const Game = () => {
 
   const isMyTurn = gameState?.turnOrder[gameState.currentTurn] === localPlayerId
 
-  const handleWidthChange = (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => {
-    const safeMargin = margin || [10, 10]
-    const safePadding = containerPadding || [10, 10]
-    const totalMargin = safeMargin[0] * (cols - 1)
-    const totalPadding = safePadding[0] * 2
-    const colWidth = (containerWidth - totalMargin - totalPadding) / cols
-    setRowHeight(colWidth)
-  }
-
-  const handleLayoutChange = (_currentLayout: ReactGridLayout.Layout[], allLayouts: Layouts) => {
-    // Enforce aspect ratios based on width
-    // Scoring/Cult: h = w * 2
-    // Board: h = ceil(w * 0.9)
-    // Towns: h = ceil(w * 2/3)
-    // Favor: h = ceil(w * 0.625) (8:5 ratio)
-
-    const updatedLayouts = { ...allLayouts }
-    let hasChanges = false
-
-    Object.keys(updatedLayouts).forEach(key => {
-      const layout = updatedLayouts[key]
-      const newLayout = layout.map(item => {
-        let newH = item.h
-        if (item.i === 'scoring') {
-          newH = item.w * 2
-        } else if (item.i === 'cult') {
-          newH = Math.ceil(item.w * 2.25)
-        } else if (item.i === 'board') {
-          newH = Math.ceil(item.w * 0.83)
-        } else if (item.i === 'towns') {
-          newH = Math.ceil(item.w * 2 / 3)
-        } else if (item.i === 'favor') {
-          newH = Math.ceil(item.w * 0.625)
-        } else if (item.i === 'passing') {
-          newH = Math.ceil(item.w * (4 / numCards))
-        } else if (item.i === 'playerBoards') {
-          const playerCount = Object.keys(gameState?.players || {}).length || 1
-          newH = Math.ceil(playerCount * item.w * 0.3)
-        }
-
-        if (newH !== item.h) {
-          hasChanges = true
-          return { ...item, h: newH }
-        }
-        return item
-      })
-      updatedLayouts[key] = newLayout
-    })
-
-    if (hasChanges) {
-      setLayouts(updatedLayouts)
-    } else {
-      setLayouts(allLayouts)
-    }
-  }
-
   return (
     <div className="min-h-screen p-4 bg-gray-100">
       <div className="max-w-[1800px] mx-auto">
@@ -269,7 +145,7 @@ export const Game = () => {
               {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
             </button>
             <button
-              onClick={() => { setLayouts(defaultLayouts); }}
+              onClick={resetLayout}
               className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
             >
               Reset Layout
@@ -391,3 +267,4 @@ export const Game = () => {
     </div>
   )
 }
+

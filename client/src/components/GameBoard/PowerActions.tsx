@@ -88,11 +88,7 @@ const ACTIONS: PowerActionConfig[] = [
 
 import { useGameStore } from '../../stores/gameStore';
 
-// ... (imports)
-
-// ... (OctagonWrapper)
-
-// ... (ACTIONS)
+// ...
 
 interface PowerActionsProps {
     onActionClick?: (action: PowerActionType) => void;
@@ -105,7 +101,7 @@ export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): Re
     return (
         <div className="power-actions-container">
             {ACTIONS.map((action) => {
-                const isUsed = !!usedActions[action.type];
+                const isUsed = usedActions[action.type];
 
                 return (
                     <div

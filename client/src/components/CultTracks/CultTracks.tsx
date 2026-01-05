@@ -272,7 +272,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
         // Check if this specific spot (3, 2, 1) is occupied by a player (from backend state)
         const spotValue = tileIndex === 0 ? 3 : tileIndex === 4 ? 1 : 2;
-        if (priestsOnTrack && priestsOnTrack[cult] && priestsOnTrack[cult][spotValue]) {
+        if (priestsOnTrack?.[cult]?.[spotValue]) {
           const playerIds = priestsOnTrack[cult][spotValue];
           let playerId: string | undefined;
 
@@ -291,15 +291,18 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
           if (playerId) {
             // Resolve faction color using players map
-            if (players && players[playerId]) {
+            if (players?.[playerId]) {
               const faction = players[playerId].faction;
               // Handle case where faction is an object (from backend) or just enum
               let factionType: FactionType | undefined;
               if (typeof faction === 'number') {
                 factionType = faction;
               } else if (typeof faction === 'object' && faction !== null) {
-                // @ts-ignore - handle backend struct
-                factionType = (faction as any).Type || (faction as any).type;
+                const factionObj = faction as { Type?: number; type?: number };
+                const typeVal = factionObj.Type ?? factionObj.type;
+                if (typeof typeVal === 'number') {
+                  factionType = typeVal as FactionType;
+                }
               }
 
               if (factionType !== undefined) {
@@ -352,7 +355,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
     ctx.stroke();
     ctx.restore();
-  }, [cultPositions, bonusTiles, hoveredTile, cultWidth, cults, drawCultMarker]);
+  }, [cultPositions, bonusTiles, hoveredTile, cultWidth, cults, drawCultMarker, priestsOnTrack, players]);
 
   // Handle mouse move for hover effects
   const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>): void => {

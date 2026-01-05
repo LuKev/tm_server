@@ -10,7 +10,7 @@ import { CultTracks } from './CultTracks/CultTracks'
 import { useGameStore } from '../stores/gameStore'
 import { CultType, GamePhase, type GameState } from '../types/game.types'
 import { getCultPositions } from '../utils/gameUtils'
-import { Responsive, WidthProvider, type Layouts } from 'react-grid-layout'
+import { Responsive, WidthProvider } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import './Game.css'
@@ -18,22 +18,10 @@ import { ReplayControls } from './ReplayControls'
 import { ReplayLog, type LogLocation } from './ReplayLog'
 import { MissingInfoModal, type MissingInfo } from './MissingInfoModal'
 import { EndGameScoring } from './EndGameScoring'
+import { BONUS_CARD_MAPPING } from '../data/constants'
+import { useGameLayout } from '../hooks/useGameLayout'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
-
-// Bonus Card Mapping
-const BONUS_CARD_MAPPING: Record<number, string> = {
-    0: "BON-P (Priest)",
-    1: "BON-SHIP (Shipping)",
-    2: "BON-DW (Dwelling VP)",
-    3: "BON-WP (Worker Power)",
-    4: "BON-SPD (Spade)",
-    5: "BON-TP (Trading House VP)",
-    6: "BON-6C (6 Coins)",
-    7: "BON-4C (Cult Advance)",
-    8: "BON-BB (Stronghold/Sanctuary VP)",
-    9: "BON-SHIP-VP (Shipping VP)"
-};
 
 export const Replay = () => {
     const { gameId } = useParams()
@@ -55,8 +43,8 @@ export const Replay = () => {
     const availableBonusCardIds = useMemo(() => {
         if (!gameState?.bonusCards) return [];
         // Extract available and taken cards
-        const available = Object.keys(gameState.bonusCards.available || {}).map(Number);
-        const taken = Object.values(gameState.bonusCards.playerCards || {}).map(Number);
+        const available = Object.keys(gameState.bonusCards.available ?? {}).map(Number);
+        const taken = Object.values(gameState.bonusCards.playerCards ?? {}).map(Number);
         // Combine and deduplicate
         const allIds = Array.from(new Set([...available, ...taken]));
 
@@ -80,64 +68,15 @@ export const Replay = () => {
         return tiles.sort((a, b) => a - b);
     }, [gameState?.townTiles]);
 
-    // Default layout configuration (same as Game.tsx but with ReplayLog)
-    const defaultLayouts = useMemo(() => ({
-        lg: [
-            { i: 'controls', x: 0, y: 0, w: 24, h: 2, static: true },
-            { i: 'log', x: 0, y: 2, w: 6, h: 10, minW: 3, minH: 6 },
-            { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
-            { i: 'board', x: 10, y: 2, w: 10, h: 12, minW: 10, minH: 8 },
-            { i: 'cult', x: 20, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
-            { i: 'towns', x: 4, y: 10, w: 4, h: 3, minW: 4, minH: 2 },
-            { i: 'favor', x: 20, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
-            { i: 'playerBoards', x: 0, y: 16, w: 20, h: 6, minW: 8, minH: 4 },
-            { i: 'passing', x: 24 - numCards, y: 24, w: numCards, h: 4, minW: 4, minH: 2 }
-        ],
-        md: [
-            { i: 'controls', x: 0, y: 0, w: 20, h: 2, static: true },
-            { i: 'log', x: 0, y: 2, w: 6, h: 14, minW: 3, minH: 6 },
-            { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
-            { i: 'board', x: 10, y: 2, w: 10, h: 8, minW: 6, minH: 6 },
-            { i: 'cult', x: 0, y: 16, w: 4, h: 9, minW: 4, minH: 6 }, // Moved down
-            { i: 'towns', x: 4, y: 10, w: 4, h: 3, minW: 4, minH: 2 },
-            { i: 'favor', x: 16, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
-            { i: 'playerBoards', x: 0, y: 14, w: 16, h: 6, minW: 8, minH: 4 },
-            { i: 'passing', x: 20 - numCards, y: 20, w: numCards, h: 4, minW: 4, minH: 2 }
-        ]
-    }), [numCards])
-
-    const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
-    const [rowHeight, setRowHeight] = useState(60)
-
-    // Update layout when player count changes to ensure correct default size for player boards
-    useEffect(() => {
-        const playerCount = Object.keys(gameState?.players || {}).length
-        if (playerCount === 0) return
-
-        setLayouts((currentLayouts) => {
-            const newLayouts = { ...currentLayouts }
-            let hasChanges = false
-
-            Object.keys(newLayouts).forEach((key) => {
-                newLayouts[key] = newLayouts[key].map((item) => {
-                    if (item.i === 'playerBoards') {
-                        // 6 units per player seems to be the baseline for 1 player
-                        const newH = playerCount * 6
-                        // Ensure minimum height
-                        const finalH = Math.max(newH, item.minH || 4)
-
-                        if (item.h !== finalH) {
-                            hasChanges = true
-                            return { ...item, h: finalH }
-                        }
-                    }
-                    return item
-                })
-            })
-
-            return hasChanges ? newLayouts : currentLayouts
-        })
-    }, [gameState?.players])
+    const {
+        layouts,
+        rowHeight,
+        handleWidthChange,
+        handleLayoutChange,
+        isLayoutLocked,
+        setIsLayoutLocked,
+        resetLayout
+    } = useGameLayout(gameState, numCards, 'replay');
 
     // API Calls
     const startReplay = useCallback(async (restart = false) => {
@@ -167,9 +106,9 @@ export const Replay = () => {
 
             setCurrentIndex(data.currentIndex)
             setTotalActions(data.totalActions)
-            setLogStrings(data.logStrings || [])
-            setLogLocations(data.logLocations || [])
-            setPlayers(data.players || [])
+            setLogStrings(data.logStrings ?? [])
+            setLogLocations(data.logLocations ?? [])
+            setPlayers(data.players ?? [])
 
             // Fetch initial state
             const stateRes = await fetch(`/api/replay/state?gameId=${gameId}`)
@@ -289,75 +228,6 @@ export const Replay = () => {
         void startReplay()
     }, [startReplay])
 
-    // Helper to get cult positions (reused from Game.tsx)
-    // Removed local implementation in favor of shared utility
-
-    const handleWidthChange = (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => {
-        const safeMargin = margin || [10, 10]
-        const safePadding = containerPadding || [10, 10]
-        const totalMargin = safeMargin[0] * (cols - 1)
-        const totalPadding = safePadding[0] * 2
-        const colWidth = (containerWidth - totalMargin - totalPadding) / cols
-        setRowHeight(colWidth)
-    }
-
-    const [isLayoutLocked, setIsLayoutLocked] = useState(false)
-
-    const handleLayoutChange = (_currentLayout: ReactGridLayout.Layout[], allLayouts: Layouts) => {
-        // Enforce aspect ratios based on width (similar to Game.tsx)
-        const updatedLayouts = { ...allLayouts }
-        let hasChanges = false
-
-        Object.keys(updatedLayouts).forEach(key => {
-            const layout = updatedLayouts[key]
-            const newLayout = layout.map(item => {
-                let newH = item.h
-                if (item.i === 'scoring') {
-                    newH = item.w * 2
-                } else if (item.i === 'cult') {
-                    newH = Math.ceil(item.w * 2.25)
-                } else if (item.i === 'board') {
-                    newH = Math.ceil(item.w * 0.83)
-                } else if (item.i === 'towns') {
-                    newH = Math.ceil(item.w * 2 / 3)
-                } else if (item.i === 'favor') {
-                    newH = Math.ceil(item.w * 0.625)
-                } else if (item.i === 'passing') {
-                    newH = Math.ceil(item.w * (4 / numCards))
-                } else if (item.i === 'playerBoards') {
-                    const playerCount = Object.keys(gameState?.players || {}).length || 1
-                    // Use the same logic as the useEffect for consistency, or keep it responsive
-                    // In useEffect we used: playerCount * 6
-                    // Here we can enforce it or let the user resize. 
-                    // If we enforce it here, resizing might fight back.
-                    // Let's only enforce if it's drastically off or just rely on initial set.
-                    // Actually, Game.tsx enforces it. Let's stick to the useEffect logic for initial sizing
-                    // and allow resizing, but maybe enforce min height?
-                    // For now, let's skip strict enforcement on resize for playerBoards to allow user freedom,
-                    // or enforce the same ratio.
-                    // Let's enforce the ratio used in Game.tsx: newH = Math.ceil(playerCount * item.w * 0.3)
-                    // But wait, the useEffect used a fixed height based on player count (playerCount * 6).
-                    // Game.tsx uses: Math.ceil(playerCount * item.w * 0.3)
-                    // Let's use the Game.tsx logic for consistency if we want it to scale with width.
-                    newH = Math.ceil(playerCount * item.w * 0.3)
-                }
-
-                if (newH !== item.h) {
-                    hasChanges = true
-                    return { ...item, h: newH }
-                }
-                return item
-            })
-            updatedLayouts[key] = newLayout
-        })
-
-        if (hasChanges) {
-            setLayouts(updatedLayouts)
-        } else {
-            setLayouts(allLayouts)
-        }
-    }
-
     return (
         <div className="min-h-screen p-4 bg-gray-100">
             {gameState?.phase === GamePhase.End && (
@@ -373,7 +243,7 @@ export const Replay = () => {
                         isAutoPlaying={isAutoPlaying}
                         currentIndex={currentIndex}
                         totalActions={totalActions}
-                        gameId={gameId || ''}
+                        gameId={gameId ?? ''}
                     />
                     <div className="flex gap-2">
                         <button
@@ -386,7 +256,7 @@ export const Replay = () => {
                             {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
                         </button>
                         <button
-                            onClick={() => { setLayouts(defaultLayouts); }}
+                            onClick={resetLayout}
                             className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
                         >
                             Reset Layout
@@ -425,7 +295,7 @@ export const Replay = () => {
                             logStrings={logStrings}
                             logLocations={logLocations}
                             currentIndex={currentIndex}
-                            currentRound={gameState?.round?.round || 0}
+                            currentRound={gameState?.round?.round ?? 0}
                         />
                     </div>
 
@@ -436,8 +306,8 @@ export const Replay = () => {
                         </div>
                         <div className="flex-1 overflow-auto">
                             <ScoringTiles
-                                tiles={gameState?.scoringTiles?.tiles?.map(t => t.type) || []}
-                                currentRound={gameState?.round?.round || 1}
+                                tiles={gameState?.scoringTiles?.tiles?.map(t => t.type) ?? []}
+                                currentRound={gameState?.round?.round ?? 1}
                             />
                         </div>
                     </div>
@@ -470,7 +340,7 @@ export const Replay = () => {
                                         : getCultPositions(gameState)
                                 }
                                 priestsOnTrack={gameState?.cultTracks?.priestsOnTrack}
-                                players={gameState?.players as any}
+                                players={gameState?.players}
                             />
                         </div>
                     </div>
