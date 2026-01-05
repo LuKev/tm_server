@@ -45,20 +45,24 @@ func CultTrackFromString(s string) CultTrack {
 // CultTrackState tracks all players' positions on all cult tracks
 type CultTrackState struct {
 	// Map of playerID -> cult track -> position (0-10)
-	PlayerPositions map[string]map[CultTrack]int
+	PlayerPositions map[string]map[CultTrack]int `json:"playerPositions"`
 
 	// Track which players have reached position 10 on each track (only one allowed per track)
-	Position10Occupied map[CultTrack]string // Track -> PlayerID who occupies position 10
+	Position10Occupied map[CultTrack]string `json:"position10Occupied"` // Track -> PlayerID who occupies position 10
 
 	// Track which cult track bonus spaces have been claimed by each player
 	// Key: playerID, Value: map of track -> set of bonus positions claimed (3, 5, 7, 10)
-	BonusPositionsClaimed map[string]map[CultTrack]map[int]bool
+	BonusPositionsClaimed map[string]map[CultTrack]map[int]bool `json:"bonusPositionsClaimed"`
 
 	// Track priests placed on cult track action spaces (below each track)
 	// Each track has 4 action spaces: one 3-step space and three 2-step spaces
 	// Priests placed here stay permanently and count toward the 7-priest limit
 	// Key: playerID, Value: map of track -> number of priests on that track's action spaces
-	PriestsOnActionSpaces map[string]map[CultTrack]int
+	PriestsOnActionSpaces map[string]map[CultTrack]int `json:"priestsOnActionSpaces"`
+
+	// Track which player occupies the "3" (and "2") spots on each track
+	// Key: Track -> SpotValue (3, 2, 1) -> List of PlayerIDs (ordered by placement)
+	PriestsOnTrack map[CultTrack]map[int][]string `json:"priestsOnTrack"`
 }
 
 // NewCultTrackState creates a new cult track state
@@ -68,6 +72,7 @@ func NewCultTrackState() *CultTrackState {
 		Position10Occupied:    make(map[CultTrack]string),
 		BonusPositionsClaimed: make(map[string]map[CultTrack]map[int]bool),
 		PriestsOnActionSpaces: make(map[string]map[CultTrack]int),
+		PriestsOnTrack:        make(map[CultTrack]map[int][]string),
 	}
 }
 

@@ -121,36 +121,40 @@ export const VPIcon = ({ className, children }: { className?: string, children?:
     </div>
 );
 
-export const CultActionIcon = ({ className, style }: { className?: string, style?: React.CSSProperties }): React.ReactElement => (
-    <svg viewBox="0 0 100 100" className={className} style={style}>
-        {/* Octagon Background - Orange/Brownish for action */}
-        <polygon points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30" fill="#D97706" stroke="#92400E" strokeWidth="2" />
+export const CultActionIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
+    <div className={className} style={{ position: 'relative', aspectRatio: '1/1', ...style }}>
+        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
+            {/* Octagon Background - Orange/Brownish for action */}
+            <polygon points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30" fill="#D97706" stroke="#92400E" strokeWidth="2" />
 
-        {/* Split Circle Group - Centered */}
-        <g transform="translate(50, 50)">
-            {/* Top Left - Red */}
-            <path d="M 0 0 L 0 -35 A 35 35 0 0 0 -35 0 Z" fill="#EF4444" stroke="white" strokeWidth="1.5" />
+            {/* Split Circle Group - Centered */}
+            <g transform="translate(50, 50)">
+                {/* Top Left - Red */}
+                <path d="M 0 0 L 0 -35 A 35 35 0 0 0 -35 0 Z" fill="#EF4444" stroke="white" strokeWidth="1.5" />
 
-            {/* Bottom Left - Blue */}
-            <path d="M 0 0 L -35 0 A 35 35 0 0 0 0 35 Z" fill="#3B82F6" stroke="white" strokeWidth="1.5" />
+                {/* Bottom Left - Blue */}
+                <path d="M 0 0 L -35 0 A 35 35 0 0 0 0 35 Z" fill="#3B82F6" stroke="white" strokeWidth="1.5" />
 
-            {/* Bottom Right - Orange */}
-            <path d="M 0 0 L 0 35 A 35 35 0 0 0 35 0 Z" fill="#F59E0B" stroke="white" strokeWidth="1.5" />
+                {/* Bottom Right - Orange */}
+                <path d="M 0 0 L 0 35 A 35 35 0 0 0 35 0 Z" fill="#F59E0B" stroke="white" strokeWidth="1.5" />
 
-            {/* Top Right - White/Gray */}
-            <path d="M 0 0 L 35 0 A 35 35 0 0 0 0 -35 Z" fill="#E5E7EB" stroke="white" strokeWidth="1.5" />
-        </g>
-    </svg>
+                {/* Top Right - White/Gray */}
+                <path d="M 0 0 L 35 0 A 35 35 0 0 0 0 -35 Z" fill="#E5E7EB" stroke="white" strokeWidth="1.5" />
+            </g>
+        </svg>
+        {children}
+    </div>
 );
 
-export const SpadeActionIcon = ({ className, style }: { className?: string, style?: React.CSSProperties }): React.ReactElement => (
-    <div className={className} style={{ position: 'relative', ...style }}>
-        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
+export const SpadeActionIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
+    <div className={className} style={{ position: 'relative', aspectRatio: '1/1', ...style }}>
+        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
             {/* Octagon Background - Orange/Brownish for action */}
             <polygon points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30" fill="#D97706" stroke="#92400E" strokeWidth="2" />
         </svg>
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '50%', height: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shovel color="#5C4033" size="100%" strokeWidth={2} />
         </div>
+        {children}
     </div>
 );

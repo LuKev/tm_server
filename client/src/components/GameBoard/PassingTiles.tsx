@@ -1,5 +1,5 @@
 import React from 'react';
-import { BonusCardType } from '../../types/game.types';
+import { BonusCardType, SpecialActionType } from '../../types/game.types';
 import {
     CoinIcon,
     WorkerIcon,
@@ -41,7 +41,7 @@ const shouldShowDivider = (type: BonusCardType): boolean => {
     }
 };
 
-const BonusCardContent: React.FC<{ type: BonusCardType }> = ({ type }) => {
+export const BonusCardContent: React.FC<{ type: BonusCardType; isUsed?: boolean }> = ({ type, isUsed }) => {
     const split = isSplitCard(type);
 
     const renderContent = (): React.ReactNode => {
@@ -94,8 +94,19 @@ const BonusCardContent: React.FC<{ type: BonusCardType }> = ({ type }) => {
             case BonusCardType.Spade:
                 return (
                     <>
-                        <div className="passing-tile-top">
-                            <SpadeActionIcon className="flex-shrink-0" style={{ width: '75%' }} />
+                        <div className="passing-tile-top relative flex items-center justify-center">
+                            <div className="relative w-[75%]">
+                                <SpadeActionIcon className="w-full">
+                                    {isUsed && (
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }}>
+                                                <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
+                                                <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </SpadeActionIcon>
+                            </div>
                         </div>
                         <div className="passing-tile-bottom">
                             <CoinIcon className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }}>2</CoinIcon>
@@ -120,8 +131,19 @@ const BonusCardContent: React.FC<{ type: BonusCardType }> = ({ type }) => {
             case BonusCardType.CultAdvance:
                 return (
                     <>
-                        <div className="passing-tile-top">
-                            <CultActionIcon className="flex-shrink-0" style={{ width: '75%' }} />
+                        <div className="passing-tile-top relative flex items-center justify-center">
+                            <div className="relative w-[75%]">
+                                <CultActionIcon className="w-full">
+                                    {isUsed && (
+                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }}>
+                                                <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
+                                                <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
+                                            </svg>
+                                        </div>
+                                    )}
+                                </CultActionIcon>
+                            </div>
                         </div>
                         <div className="passing-tile-bottom">
                             <CoinIcon className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }}>4</CoinIcon>
@@ -155,12 +177,12 @@ const BonusCardContent: React.FC<{ type: BonusCardType }> = ({ type }) => {
                             </div>
                         </div>
                         <div className="passing-tile-bottom">
-                            <PowerIcon amount={3} className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }} />
+                            <CoinIcon className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }}>3</CoinIcon>
                         </div>
                     </>
                 );
             default:
-                return <div>?</div>;
+                return null;
         }
     };
 
@@ -193,6 +215,26 @@ export const PassingTiles: React.FC<PassingTilesProps> = () => {
                 const cardType = cardTypeVal as BonusCardType;
                 const showDivider = shouldShowDivider(cardType);
 
+                // Determine if this card is owned by a player and used
+                let isUsed = false;
+                if (gameState?.bonusCards?.playerCards) {
+                    // Find player who has this card
+                    const playerId = Object.keys(gameState.bonusCards.playerCards).find(
+                        pid => gameState.bonusCards!.playerCards[pid] === cardType
+                    );
+
+                    if (playerId) {
+                        const player = gameState.players[playerId];
+                        if (player && player.specialActionsUsed) {
+                            if (cardType === BonusCardType.Spade) {
+                                isUsed = !!player.specialActionsUsed[SpecialActionType.BonusCardSpade];
+                            } else if (cardType === BonusCardType.CultAdvance) {
+                                isUsed = !!player.specialActionsUsed[SpecialActionType.BonusCardCultAdvance];
+                            }
+                        }
+                    }
+                }
+
                 return (
                     <div key={index} className="passing-tile" style={{ containerType: 'inline-size' }}>
                         {/* Background - Scroll texture simulation */}
@@ -205,7 +247,7 @@ export const PassingTiles: React.FC<PassingTilesProps> = () => {
                         </svg>
 
                         <div className="passing-tile-content">
-                            <BonusCardContent type={cardType} />
+                            <BonusCardContent type={cardType} isUsed={isUsed} />
                         </div>
                     </div>
                 );

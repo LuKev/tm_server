@@ -1,12 +1,53 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { GamePhase, BuildingType, FactionType } from '../../types/game.types';
+import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import './PlayerBoards.css';
+import './FavorTiles.css';
+
+// Helper to get Stronghold Action Type for a faction
+const getStrongholdActionType = (faction: FactionType): SpecialActionType | null => {
+    switch (faction) {
+        case FactionType.Auren: return SpecialActionType.AurenCultAdvance;
+        case FactionType.Witches: return SpecialActionType.WitchesRide;
+        case FactionType.Swarmlings: return SpecialActionType.SwarmlingsUpgrade;
+        case FactionType.ChaosMagicians: return SpecialActionType.ChaosMagiciansDoubleTurn;
+        case FactionType.Giants: return SpecialActionType.GiantsTransform;
+        case FactionType.Nomads: return SpecialActionType.NomadsSandstorm;
+        default: return null;
+    }
+};
+
+const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
+    <div className="relative w-8 h-8 flex items-center justify-center">
+        <svg viewBox="-2 -2 44 44" className="w-full h-full drop-shadow-sm">
+            <path
+                d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z"
+                fill="#f97316" // orange-500
+                stroke="#c2410c" // orange-700
+                strokeWidth="2"
+            />
+        </svg>
+        {isUsed && (
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }}>
+                    <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
+                    <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
+                </svg>
+            </div>
+        )}
+    </div>
+);
+
+// ... existing components ...
+
+
+
+
 
 const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
     if (!income) return null;
@@ -68,7 +109,7 @@ const BuildingTrackSlot: React.FC<{
 
 
 
-const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ playerId, turnOrder }) => {
+const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCurrentPlayer?: boolean }> = ({ playerId, turnOrder, isCurrentPlayer }) => {
     const gameState = useGameStore(s => s.gameState);
     const player = gameState?.players[playerId];
 
@@ -123,12 +164,29 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
     const sanctuaryCount = buildings.filter(b => b?.type === BuildingType.Sanctuary).length;
     const strongholdCount = buildings.filter(b => b?.type === BuildingType.Stronghold).length;
 
+    const strongholdActionType = getStrongholdActionType(factionType);
+    const isStrongholdActionUsed = strongholdActionType !== null && player.specialActionsUsed?.[strongholdActionType];
+
+
     return (
         <div className="pb-resize-container">
-            <div className="player-board-section" style={{ borderLeft: `5px solid ${factionColor}` }}>
+            <div
+                className="player-board-section"
+                style={{
+                    borderLeft: `5px solid ${factionColor}`,
+                    transition: 'all 0.3s ease',
+                    boxShadow: isCurrentPlayer ? '0 0 0 4px #FACC15' : 'none', // Yellow-400 ring
+                    zIndex: isCurrentPlayer ? 10 : 1
+                }}
+            >
                 {/* Row 1: Header */}
                 <div className="pb-header">
-                    <div className="turn-order-badge">{turnOrder}</div>
+                    <div
+                        className="turn-order-badge"
+                        style={isCurrentPlayer ? { backgroundColor: '#FACC15', color: 'black' } : undefined}
+                    >
+                        {turnOrder}
+                    </div>
                     <div className="pb-player-name">{player.name} ({FactionType[factionType]})</div>
 
                     <div className="resource-display">
@@ -162,13 +220,19 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                                         workers={boardLayout.stronghold.cost.workers}
                                         coins={boardLayout.stronghold.cost.coins}
                                     />
-                                    <div className="pb-slot-sh-sa">
+                                    <div className="pb-slot-sh-sa" style={{ position: 'relative' }}>
                                         <BuildingTrackSlot
                                             slot={boardLayout.stronghold}
                                             type={BuildingType.Stronghold}
                                             faction={factionType}
                                             isBuilt={strongholdCount > 0}
                                         />
+                                        {/* Stronghold Action Octagon */}
+                                        {strongholdCount > 0 && strongholdActionType !== null && (
+                                            <div style={{ position: 'absolute', right: '-2.5em', top: '50%', transform: 'translateY(-50%)' }}>
+                                                <StrongholdOctagon isUsed={isStrongholdActionUsed} />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
 
@@ -274,7 +338,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                         </div>
                     </div>
 
-                    {/* Column 3: Favor Tiles */}
+                    {/* Column 3: Favor Tiles & Bonus Card */}
                     <div className="pb-favors-col">
                         <div className="pb-section-title">Favor Tiles</div>
                         <div className="favor-tiles-area">
@@ -285,21 +349,54 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                                 }
 
                                 return (
-                                    <div className="pb-player-favors">
+                                    <div className="pb-favors-list">
                                         {playerTiles.map((tileType, idx) => {
                                             const tileData = FAVOR_TILES.find(t => t.type === tileType);
                                             if (!tileData) return null;
 
+                                            const isWater2 = tileType === FavorTileType.Water2;
+                                            const isUsed = isWater2 && player.specialActionsUsed?.[SpecialActionType.Water2CultAdvance];
+
                                             return (
                                                 <div key={`${tileType}-${idx}`} className="pb-favor-tile">
-                                                    <div className={`pb-favor-cult ${getCultColorClass(tileData.cult)}`}>
-                                                        {tileData.steps}
-                                                    </div>
-                                                    {tileData.reward && (
-                                                        <div className="pb-favor-reward">
-                                                            {tileData.reward}
+                                                    <svg className="favor-tile-bg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" style={{ zIndex: 0 }}>
+                                                        <ellipse cx="100" cy="50" rx="98" ry="48"
+                                                            className={`${getCultColorClass(tileData.cult)} opacity-20`}
+                                                            stroke="currentColor"
+                                                            strokeWidth="3"
+                                                        />
+                                                        <ellipse cx="100" cy="50" rx="95" ry="45"
+                                                            className="fill-white"
+                                                            fill="white"
+                                                        />
+                                                    </svg>
+
+                                                    <div className={`favor-tile-content ${!tileData.reward ? 'justify-center' : ''}`}>
+                                                        <div className={`favor-cult-steps ${!tileData.reward ? 'w-full' : ''}`}>
+                                                            {Array.from({ length: tileData.steps }).map((_, i) => (
+                                                                <div
+                                                                    key={i}
+                                                                    className={`cult-step-circle ${getCultColorClass(tileData.cult)}`}
+                                                                />
+                                                            ))}
                                                         </div>
-                                                    )}
+
+                                                        {tileData.reward && (
+                                                            <div className="favor-reward">
+                                                                <div style={{ position: 'relative', display: 'inline-flex' }}>
+                                                                    {tileData.reward}
+                                                                    {isUsed && (
+                                                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                            <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
+                                                                                <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
+                                                                                <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
+                                                                            </svg>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             );
                                         })}
@@ -307,6 +404,8 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                                 );
                             })()}
                         </div>
+
+
                     </div>
                 </div>
             </div>
@@ -349,13 +448,12 @@ export const PlayerBoards: React.FC = () => {
         );
     }
 
-    // Sort players by turn order
-    const sortedPlayerIds = [...(gameState.turnOrder || [])];
+    // Sort players by ID to keep board order stable across rounds
+    const sortedPlayerIds = Object.keys(gameState.players).sort();
 
-    // If order is not set yet (should be), fallback to keys
-    if (sortedPlayerIds.length === 0) {
-        Object.keys(gameState.players).forEach(id => sortedPlayerIds.push(id));
-    }
+    // Determine current player based on turn order and current turn index
+    const currentPlayerId = gameState.turnOrder?.[gameState.currentTurn];
+
 
     return (
         <div className="pb-resize-container" ref={containerRef}>
@@ -363,9 +461,21 @@ export const PlayerBoards: React.FC = () => {
                 className="player-boards-container"
                 style={{ fontSize: `${String(scaleFontSize)}px` }}
             >
-                {sortedPlayerIds.map((pid, index) => (
-                    <PlayerBoard key={pid} playerId={pid} turnOrder={index + 1} />
-                ))}
+                {sortedPlayerIds.map((pid) => {
+                    // Calculate turn order (1-based) for this player
+                    const turnOrderIndex = gameState.turnOrder?.indexOf(pid);
+                    const turnOrder = turnOrderIndex !== undefined && turnOrderIndex !== -1 ? turnOrderIndex + 1 : '-';
+                    const isCurrentPlayer = pid === currentPlayerId;
+
+                    return (
+                        <PlayerBoard
+                            key={pid}
+                            playerId={pid}
+                            turnOrder={turnOrder}
+                            isCurrentPlayer={isCurrentPlayer}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

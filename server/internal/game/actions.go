@@ -396,6 +396,9 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		}
 	}
 
+	// Advance turn
+	gs.NextTurn()
+
 	return nil
 }
 
@@ -646,6 +649,9 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
 	}
 
+	// Advance turn (unless pending actions exist, checked by NextTurn)
+	gs.NextTurn()
+
 	return nil
 }
 
@@ -768,7 +774,12 @@ func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 	}
 
 	// Advance shipping and award VP
-	return gs.AdvanceShippingLevel(a.PlayerID)
+	if err := gs.AdvanceShippingLevel(a.PlayerID); err != nil {
+		return err
+	}
+
+	gs.NextTurn()
+	return nil
 }
 
 // AdvanceDiggingAction represents advancing digging level
@@ -834,7 +845,12 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 	}
 
 	// Advance digging and award VP (includes scoring tile bonus if applicable)
-	return gs.AdvanceDiggingLevel(a.PlayerID)
+	if err := gs.AdvanceDiggingLevel(a.PlayerID); err != nil {
+		return err
+	}
+
+	gs.NextTurn()
+	return nil
 }
 
 // PassAction represents passing for the round
@@ -931,6 +947,7 @@ func (a *PassAction) Execute(gs *GameState) error {
 		player.VictoryPoints += bridgeVP
 	}
 
+	gs.NextTurn()
 	return nil
 }
 
@@ -992,6 +1009,20 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 		// Priest is placed on an action space (2-step or 3-step)
 		gs.CultTracks.PriestsOnActionSpaces[a.PlayerID][a.Track]++
 
+		// Record priest on the specific track spot (3 or 2) for UI display
+		if gs.CultTracks.PriestsOnTrack == nil {
+			gs.CultTracks.PriestsOnTrack = make(map[CultTrack]map[int][]string)
+		}
+		if gs.CultTracks.PriestsOnTrack[a.Track] == nil {
+			gs.CultTracks.PriestsOnTrack[a.Track] = make(map[int][]string)
+		}
+
+		// Append player to the list for this spot value
+		// Note: We don't strictly enforce the limit here (e.g. max 4 spots for "2")
+		// because that should be handled by Validate() checking available spots.
+		// But for now, we just record it.
+		gs.CultTracks.PriestsOnTrack[a.Track][a.SpacesToClimb] = append(gs.CultTracks.PriestsOnTrack[a.Track][a.SpacesToClimb], a.PlayerID)
+
 		// Record priest sent for scoring tile #5 (Temple + Priest: 2 coins per priest on action space)
 		if gs.ScoringTiles != nil {
 			gs.ScoringTiles.RecordPriestSent(a.PlayerID)
@@ -999,5 +1030,6 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	}
 	// If SpacesToClimb == 1, priest is sacrificed (no tracking needed, no SCORE5 reward)
 
+	gs.NextTurn()
 	return nil
 }

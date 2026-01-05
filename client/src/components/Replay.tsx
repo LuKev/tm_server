@@ -469,6 +469,8 @@ export const Replay = () => {
                                         ])
                                         : getCultPositions(gameState)
                                 }
+                                priestsOnTrack={gameState?.cultTracks?.priestsOnTrack}
+                                players={gameState?.players as any}
                             />
                         </div>
                     </div>

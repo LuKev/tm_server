@@ -91,5 +91,6 @@ func (a *SelectFavorTileAction) Execute(gs *GameState) error {
 		return fmt.Errorf("failed to apply favor tile effect: %w", err)
 	}
 
+	gs.NextTurn()
 	return nil
 }

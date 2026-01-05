@@ -109,7 +109,12 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 	if gs == nil {
 		return nil
 	}
+	return SerializeState(gs, gameID)
+}
 
+// SerializeState converts the game state to a map for JSON response
+// This ensures consistent field naming (e.g. currentTurn vs CurrentPlayerIndex)
+func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 	// Build players map
 	players := make(map[string]interface{})
 	for playerID, player := range gs.Players {
@@ -124,12 +129,14 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 			"name":    playerID, // TODO: Get actual player name
 			"faction": factionType,
 			"resources": map[string]interface{}{
-				"coins":    player.Resources.Coins,
-				"workers":  player.Resources.Workers,
-				"priests":  player.Resources.Priests,
-				"powerI":   player.Resources.Power.Bowl1,
-				"powerII":  player.Resources.Power.Bowl2,
-				"powerIII": player.Resources.Power.Bowl3,
+				"coins":   player.Resources.Coins,
+				"workers": player.Resources.Workers,
+				"priests": player.Resources.Priests,
+				"power": map[string]interface{}{
+					"powerI":   player.Resources.Power.Bowl1,
+					"powerII":  player.Resources.Power.Bowl2,
+					"powerIII": player.Resources.Power.Bowl3,
+				},
 			},
 			"shipping": player.ShippingLevel,
 			"digging":  player.DiggingLevel,
@@ -171,7 +178,7 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 		"currentTurn": gs.CurrentPlayerIndex,
 		"players":     players,
 		"board":       hexes,
-		"order":       gs.TurnOrder,
+		"turnOrder":   gs.TurnOrder,
 		"round": map[string]interface{}{
 			"round": gs.Round,
 		},
@@ -197,6 +204,39 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 				cards = append(cards, int(cardType))
 			}
 			return cards
+		}(),
+		"townTiles": func() []int {
+			if gs.TownTiles == nil {
+				return nil
+			}
+			// Return all available tiles (keys in Available map)
+			tiles := make([]int, 0, len(gs.TownTiles.Available))
+			for tileType := range gs.TownTiles.Available {
+				tiles = append(tiles, int(tileType))
+			}
+			return tiles
+		}(),
+		"favorTiles": func() interface{} {
+			if gs.FavorTiles == nil {
+				return nil
+			}
+			// Return available tiles and player tiles
+			return map[string]interface{}{
+				"available":   gs.FavorTiles.Available,
+				"playerTiles": gs.FavorTiles.PlayerTiles,
+			}
+		}(),
+		"powerActions": func() interface{} {
+			if gs.PowerActions == nil {
+				return nil
+			}
+			return gs.PowerActions
+		}(),
+		"cultTracks": func() interface{} {
+			if gs.CultTracks == nil {
+				return nil
+			}
+			return gs.CultTracks
 		}(),
 	}
 }

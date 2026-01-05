@@ -301,6 +301,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		}
 	}
 
+	gs.NextTurn()
 	return nil
 }
 

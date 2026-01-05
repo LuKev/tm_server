@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/replay"
 )
 
@@ -93,8 +94,9 @@ func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
 
 	// Return new state
 	state := session.Simulator.GetState()
+	serialized := game.SerializeState(state, req.GameID)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(state)
+	json.NewEncoder(w).Encode(serialized)
 }
 
 func (h *ReplayHandler) handleState(w http.ResponseWriter, r *http.Request) {
@@ -124,7 +126,8 @@ func (h *ReplayHandler) handleState(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(state); err != nil {
+	serialized := game.SerializeState(state, gameID)
+	if err := json.NewEncoder(w).Encode(serialized); err != nil {
 		fmt.Printf("handleState encode error: %v\n", err)
 	} else {
 		fmt.Println("handleState success")

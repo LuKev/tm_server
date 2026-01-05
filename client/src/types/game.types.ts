@@ -130,6 +130,28 @@ export interface PlayerState {
   victoryPoints?: number
   VictoryPoints?: number
   Faction?: FactionType | { Type: FactionType }
+  specialActionsUsed?: Record<number, boolean>
+}
+
+export enum SpecialActionType {
+  AurenCultAdvance = 0,
+  WitchesRide = 1,
+  AlchemistsConvert = 2,
+  SwarmlingsUpgrade = 3,
+  ChaosMagiciansDoubleTurn = 4,
+  GiantsTransform = 5,
+  NomadsSandstorm = 6,
+  Water2CultAdvance = 7,
+  BonusCardSpade = 8,
+  BonusCardCultAdvance = 9,
+}
+
+export interface CultTrackState {
+  playerPositions: Record<string, Record<CultType, number>>
+  position10Occupied: Record<CultType, string>
+  bonusPositionsClaimed: Record<string, Record<CultType, Record<number, boolean>>>
+  priestsOnActionSpaces: Record<string, Record<CultType, number>>
+  priestsOnTrack: Record<CultType, Record<number, string[]>>
 }
 
 export interface RoundState {
@@ -204,6 +226,7 @@ export interface GameState {
   bonusCards?: BonusCardState
   finalScoring?: Record<string, PlayerFinalScore>
   powerActions?: PowerActionState
+  cultTracks?: CultTrackState
 }
 
 export interface PowerActionState {

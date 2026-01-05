@@ -114,6 +114,11 @@
     background-color: #9ca3af;
 }
 
+.cult-step-circle.bg-air {
+    background-color: white;
+    border-color: #9ca3af;
+}
+
 /* gray-400 */
 
 .text-fire {

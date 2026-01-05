@@ -80,11 +80,7 @@ export const FavorTiles: React.FC = () => {
                                     {tile.reward}
                                 </div>
                             )}
-                            {!tile.reward && (
-                                <div className="absolute top-1 right-1 bg-gray-800 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border border-white">
-                                    {count}
-                                </div>
-                            )}
+
                         </div>
                     </div>
                 );

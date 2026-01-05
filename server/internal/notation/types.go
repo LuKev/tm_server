@@ -161,10 +161,8 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 		player.Resources.Coins += 7
 	case game.PowerActionSpade1:
 		gs.PendingSpades[a.PlayerID]++
-		fmt.Printf("DEBUG: LogPowerAction ACT5 added 1 spade for %s. Total Pending: %d\n", a.PlayerID, gs.PendingSpades[a.PlayerID])
 	case game.PowerActionSpade2:
 		gs.PendingSpades[a.PlayerID] += 2
-		fmt.Printf("DEBUG: LogPowerAction ACT6 added 2 spades for %s. Total Pending: %d\n", a.PlayerID, gs.PendingSpades[a.PlayerID])
 	}
 
 	return nil
@@ -510,6 +508,15 @@ func (a *LogCompoundAction) Validate(gs *game.GameState) error { return nil }
 
 // Execute applies the action to the game state.
 func (a *LogCompoundAction) Execute(gs *game.GameState) error {
+	// Suppress turn advancement during sub-actions to prevent multiple advances
+	// (e.g. Transform calls NextTurn, then Build calls NextTurn)
+	gs.SuppressTurnAdvance = true
+	defer func() {
+		gs.SuppressTurnAdvance = false
+		// Advance turn once at the end of the compound action
+		gs.NextTurn()
+	}()
+
 	for _, action := range a.Actions {
 		if err := action.Execute(gs); err != nil {
 			return err

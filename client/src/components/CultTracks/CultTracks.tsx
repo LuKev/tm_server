@@ -19,9 +19,11 @@ interface CultTracksProps {
   cultPositions: Map<CultType, CultPosition[]>; // For each cult, list of faction positions
   bonusTiles?: Map<CultType, PriestSpot[]>; // Priest spots at bottom (power or priest rewards)
   onBonusTileClick?: (cult: CultType, tileIndex: number) => void; // Click handler for priest spots
+  priestsOnTrack?: Record<CultType, Record<number, string[]>>; // Track -> SpotValue -> PlayerID[]
+  players?: Record<string, { faction: FactionType }>; // PlayerID -> Faction info (needed for color)
 }
 
-export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTiles, onBonusTileClick }): React.ReactElement => {
+export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTiles, onBonusTileClick, priestsOnTrack, players }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [hoveredTile, setHoveredTile] = useState<{ cult: CultType, index: number } | null>(null);
 
@@ -237,6 +239,27 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
         let color = '#000';
         let font = '14px Verdana';
 
+        // Check if this specific spot (3, 2, 1) is occupied by a player
+        // The backend tracks this in priestsOnTrack: Track -> SpotValue (3, 2, 1) -> PlayerID
+        // We need to map tileIndex to SpotValue:
+        // tileIndex 0 -> Spot 3
+        // tileIndex 1, 2, 3 -> Spot 2 (shared? or distinct? The backend uses int keys, so likely distinct if we want to track all 3 spots)
+        // Actually, the backend `PriestsOnTrack` uses int keys 3, 2, 1.
+        // But there are multiple "2" spots. The user said "For later things ->2E, we should also cover a "2" spot on one of the tracks. It should always be the next available empty spot."
+        // For now, let's assume the backend tracks specific spots if we send unique values, OR we just check if *any* player is on "3".
+        // The current backend implementation uses `spaces` as the key. `spaces` is 3 for the 3-spot, 2 for the 2-spots.
+        // If multiple players take "2" spots, they would overwrite each other in `PriestsOnTrack[track][2]` if we only use `2` as key.
+        // However, the user request implies we are starting with the "3" spot.
+        // "Whenever a player sends a priest to a particular cult track, let's say the "3" spot in fire, the "3" in the bottom of the cult track should be replaced with a "P"."
+
+        // Let's check if we have a player ID for this spot value
+
+
+        // We need to pass `priestsOnTrack` to this component to check this.
+        // For now, let's rely on the `bonusTiles` prop which seems to be derived from `PriestsOnActionSpaces`?
+        // No, `bonusTiles` is `Map<CultType, PriestSpot[]>`. `PriestSpot` has `faction`.
+        // If `bonusTiles` is correctly populated with faction info from the backend, we can use it directly.
+
         if (tile) {
           if (hasPriest && tile.faction !== undefined) {
             text = 'P'; // Capital P for priest
@@ -246,6 +269,55 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
             text = String(tile.power);
           }
         }
+
+        // Check if this specific spot (3, 2, 1) is occupied by a player (from backend state)
+        const spotValue = tileIndex === 0 ? 3 : tileIndex === 4 ? 1 : 2;
+        if (priestsOnTrack && priestsOnTrack[cult] && priestsOnTrack[cult][spotValue]) {
+          const playerIds = priestsOnTrack[cult][spotValue];
+          let playerId: string | undefined;
+
+          // Determine which player in the list corresponds to this tile
+          if (spotValue === 3 || spotValue === 1) {
+            // For 3 and 1 spots, there's only one spot, so take the first player
+            if (playerIds.length > 0) playerId = playerIds[0];
+          } else {
+            // For "2" spots, we have multiple tiles (indices 1, 2, 3)
+            // Map tileIndex to array index: 1->0, 2->1, 3->2
+            const arrayIndex = tileIndex - 1;
+            if (arrayIndex >= 0 && arrayIndex < playerIds.length) {
+              playerId = playerIds[arrayIndex];
+            }
+          }
+
+          if (playerId) {
+            // Resolve faction color using players map
+            if (players && players[playerId]) {
+              const faction = players[playerId].faction;
+              // Handle case where faction is an object (from backend) or just enum
+              let factionType: FactionType | undefined;
+              if (typeof faction === 'number') {
+                factionType = faction;
+              } else if (typeof faction === 'object' && faction !== null) {
+                // @ts-ignore - handle backend struct
+                factionType = (faction as any).Type || (faction as any).type;
+              }
+
+              if (factionType !== undefined) {
+                text = 'P';
+                color = FACTION_COLORS[factionType];
+                font = 'bold 14px Verdana';
+              }
+            }
+          }
+        }
+
+
+
+
+
+        // Override with specific player tracking if available (for the "3" spot specifically requested)
+        // We need to update the parent component to populate `bonusTiles` with this info or pass `priestsOnTrack`.
+        // Let's assume `bonusTiles` will be updated in the parent to reflect `priestsOnTrack`.
 
         ctx.font = font;
         ctx.fillStyle = color;

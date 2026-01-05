@@ -106,6 +106,8 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
     *   Example: `ACT-FAV-E` (Advance 1 on Earth from FAV11)
 *   **Bonus Card Spade**: `ACTS-[Coord]`
     *   Example: `ACTS-C2`
+*   **Bonus Card Cult**: `ACT-BON-[Track]`
+    *   Example: `ACT-BON-F` (Advance 1 on Fire from Bonus Card)
 *   **Darklings**: `ORD-[N]` (Priest Ordination, e.g., `ORD-3`)
 
 ### Town Formation

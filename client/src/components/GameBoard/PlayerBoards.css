@@ -246,7 +246,7 @@
     gap: 0.5em;
     padding: 0.5em;
     border-left: 1px solid #d1d5db;
-    min-width: 14em;
+    min-width: 6.5em;
     flex-shrink: 0;
 }
 
@@ -270,7 +270,7 @@
     border: none;
     border-radius: 0.25em;
     padding: 0.25em;
-    font-size: 0.75em;
+    font-size: 0.6em;
     cursor: pointer;
     transition: background 0.2s;
 }
@@ -294,15 +294,133 @@
     gap: 0.5em;
     padding: 0.5em;
     border-left: 1px solid #d1d5db;
-    min-width: 14em;
+    min-width: 5.5em;
     flex-shrink: 0;
 }
 
-.favor-tiles-area {
+.pb-favors-list {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.25em;
+    flex-direction: column;
+    gap: 0.5em;
 }
+
+.pb-favor-tile {
+    position: relative;
+    width: 55%;
+    aspect-ratio: 2 / 1;
+    /* Match the 200x100 SVG viewBox */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    container-type: inline-size;
+}
+
+/* Replicating essential styles for PlayerBoard context to ensure they work correctly */
+/* We scope them to .pb-favor-tile to avoid conflicts if global styles change */
+
+.pb-favor-tile .favor-tile-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+}
+
+.pb-favor-tile .favor-tile-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 5%;
+    box-sizing: border-box;
+}
+
+.pb-favor-tile .favor-cult-steps {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5cqw;
+    width: 40%;
+}
+
+.pb-favor-tile .cult-step-circle {
+    width: 10cqw;
+    height: 10cqw;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.3);
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pb-favor-tile .favor-tile-content.justify-center {
+    justify-content: center;
+}
+
+.pb-favor-tile .favor-cult-steps.w-full {
+    width: 100%;
+    flex-direction: row;
+    gap: 2cqw;
+}
+
+.pb-favor-tile .favor-reward {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 60%;
+    font-size: 15cqw;
+    font-weight: bold;
+    color: #333;
+    text-align: center;
+    line-height: 1;
+}
+
+.pb-favor-cult {
+    font-weight: bold;
+    color: white;
+    width: 1.5em;
+    height: 1.5em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 0.9em;
+    flex-shrink: 0;
+}
+
+.pb-favor-reward {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+    white-space: nowrap;
+}
+
+.bg-fire {
+    background-color: #ef4444;
+}
+
+.bg-water {
+    background-color: #3b82f6;
+}
+
+.bg-earth {
+    background-color: #92400e;
+}
+
+.bg-air {
+    background-color: #fbbf24;
+    color: #78350f;
+}
+
+/* Darker text for yellow bg */
 
 .pb-empty-text {
     font-size: 0.75em;

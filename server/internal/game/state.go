@@ -40,6 +40,7 @@ type GameState struct {
 	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
 	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
+	SuppressTurnAdvance              bool                               `json:"-"`
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -581,6 +582,17 @@ func (gs *GameState) GetCurrentPlayer() *Player {
 // NextTurn advances to the next player's turn
 // Returns true if we've completed a full round of turns
 func (gs *GameState) NextTurn() bool {
+	// Check if turn advance is suppressed (e.g. during double turn)
+	if gs.SuppressTurnAdvance {
+		return false
+	}
+
+	// Check if current player has pending actions
+	currentPlayer := gs.GetCurrentPlayer()
+	if currentPlayer != nil && gs.HasPendingActions(currentPlayer.ID) {
+		return false
+	}
+
 	// Skip players who have passed
 	for {
 		gs.CurrentPlayerIndex++
@@ -980,4 +992,27 @@ func (gs *GameState) AlchemistsConvertCoinsToVP(playerID string, coins int) erro
 	player.VictoryPoints += vp
 
 	return nil
+}
+
+// HasPendingActions checks if a player has any pending actions that block turn advancement
+func (gs *GameState) HasPendingActions(playerID string) bool {
+	if gs.PendingFavorTileSelection != nil && gs.PendingFavorTileSelection.PlayerID == playerID {
+		return true
+	}
+	if gs.PendingHalflingsSpades != nil && gs.PendingHalflingsSpades.PlayerID == playerID {
+		return true
+	}
+	if gs.PendingDarklingsPriestOrdination != nil && gs.PendingDarklingsPriestOrdination.PlayerID == playerID {
+		return true
+	}
+	// Note: PendingCultistsCultSelection is a leech action, usually handled separately,
+	// but if it exists for the current player, it should probably block too.
+	if gs.PendingCultistsCultSelection != nil && gs.PendingCultistsCultSelection.PlayerID == playerID {
+		return true
+	}
+	// Check for pending spades (from power actions or cult track advancement)
+	if spades, ok := gs.PendingSpades[playerID]; ok && spades > 0 {
+		return true
+	}
+	return false
 }

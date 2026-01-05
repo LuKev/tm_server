@@ -89,5 +89,6 @@ func (a *UseDarklingsPriestOrdinationAction) Execute(gs *GameState) error {
 	// Clear pending state
 	gs.PendingDarklingsPriestOrdination = nil
 
+	gs.NextTurn()
 	return nil
 }

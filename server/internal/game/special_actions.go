@@ -602,6 +602,10 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
+	// Advance turn (unless pending actions exist or suppressed)
+	gs.NextTurn()
+
+	return nil
 }
 
 func (a *SpecialAction) executeAurenCultAdvance(gs *GameState, player *Player) error {
@@ -665,11 +669,16 @@ func (a *SpecialAction) executeSwarmlingsUpgrade(gs *GameState, player *Player) 
 
 func (a *SpecialAction) executeChaosMagiciansDoubleTurn(gs *GameState, player *Player) error {
 	// Execute first action
+	// Suppress turn advance so the turn doesn't change between actions
+	gs.SuppressTurnAdvance = true
 	if err := a.FirstAction.Execute(gs); err != nil {
+		gs.SuppressTurnAdvance = false
 		return fmt.Errorf("first action failed: %w", err)
 	}
+	gs.SuppressTurnAdvance = false
 
 	// Execute second action
+	// This will trigger NextTurn() normally
 	if err := a.SecondAction.Execute(gs); err != nil {
 		return fmt.Errorf("second action failed: %w", err)
 	}
