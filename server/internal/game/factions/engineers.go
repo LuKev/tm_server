@@ -16,6 +16,7 @@ type Engineers struct {
 	hasStronghold bool
 }
 
+// NewEngineers creates a new Engineers faction
 func NewEngineers() *Engineers {
 	return &Engineers{
 		BaseFaction: BaseFaction{
@@ -92,11 +93,13 @@ func (f *Engineers) BuildStronghold() {
 
 // Income methods (Engineers-specific)
 
+// GetBaseFactionIncome returns the base income for the faction
 func (f *Engineers) GetBaseFactionIncome() Income {
 	// Engineers: 0 base income
 	return Income{}
 }
 
+// GetDwellingIncome returns the income for dwellings
 func (f *Engineers) GetDwellingIncome(dwellingCount int) Income {
 	// Engineers: dwellings 1, 2, 4, 5, 7, 8 give income (skip 3rd and 6th)
 	workers := 0
@@ -108,6 +111,7 @@ func (f *Engineers) GetDwellingIncome(dwellingCount int) Income {
 	return Income{Workers: workers}
 }
 
+// GetTempleIncome returns the income for temples
 func (f *Engineers) GetTempleIncome(templeCount int) Income {
 	// Engineers: 1st and 3rd temples give 1 priest, 2nd temple gives 5 power
 	income := Income{}

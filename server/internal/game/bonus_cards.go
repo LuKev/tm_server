@@ -344,7 +344,7 @@ func (bcs *BonusCardState) GetPlayerCard(playerID string) (BonusCardType, bool) 
 }
 
 // GetBonusCardIncomeBonus returns the income bonus from a player's bonus card
-func GetBonusCardIncomeBonus(cardType BonusCardType) (coins int, workers int, priests int, power int) {
+func GetBonusCardIncomeBonus(cardType BonusCardType) (coins, workers, priests, power int) {
 	allCards := GetAllBonusCards()
 	card, ok := allCards[cardType]
 	if !ok {
@@ -386,52 +386,11 @@ func GetBonusCardPassVP(cardType BonusCardType, gs *GameState, playerID string) 
 
 	switch card.PassVPType {
 	case "dwelling":
-		// Count dwellings on the map
-		count := 0
-		for _, mapHex := range gs.Map.Hexes {
-			if mapHex.Building != nil &&
-				mapHex.Building.PlayerID == playerID &&
-				mapHex.Building.Type == models.BuildingDwelling {
-				count++
-			}
-		}
-		return count * 1 // 1 VP per dwelling
-
+		return countBuildings(gs, playerID, models.BuildingDwelling) * 1 // 1 VP per dwelling
 	case "trading_house":
-		// Count trading houses on the map
-		count := 0
-		for _, mapHex := range gs.Map.Hexes {
-			if mapHex.Building != nil &&
-				mapHex.Building.PlayerID == playerID &&
-				mapHex.Building.Type == models.BuildingTradingHouse {
-				count++
-			}
-		}
-		return count * 2 // 2 VP per trading house
-
+		return countBuildings(gs, playerID, models.BuildingTradingHouse) * 2 // 2 VP per trading house
 	case "stronghold_sanctuary":
-		vp := 0
-		// Check for stronghold
-		hasStronghold := false
-		hasSanctuary := false
-		for _, mapHex := range gs.Map.Hexes {
-			if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-				if mapHex.Building.Type == models.BuildingStronghold {
-					hasStronghold = true
-				}
-				if mapHex.Building.Type == models.BuildingSanctuary {
-					hasSanctuary = true
-				}
-			}
-		}
-		if hasStronghold {
-			vp += 4
-		}
-		if hasSanctuary {
-			vp += 4
-		}
-		return vp
-
+		return checkStrongholdSanctuary(gs, playerID)
 	case "shipping":
 		// Dwarves and Fakirs don't benefit
 		if player.Faction.GetType() == models.FactionDwarves ||
@@ -439,10 +398,44 @@ func GetBonusCardPassVP(cardType BonusCardType, gs *GameState, playerID string) 
 			return 0
 		}
 		return player.ShippingLevel * 3 // 3 VP per shipping level
-
 	default:
 		return 0
 	}
+}
+
+func countBuildings(gs *GameState, playerID string, buildingType models.BuildingType) int {
+	count := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil &&
+			mapHex.Building.PlayerID == playerID &&
+			mapHex.Building.Type == buildingType {
+			count++
+		}
+	}
+	return count
+}
+
+func checkStrongholdSanctuary(gs *GameState, playerID string) int {
+	vp := 0
+	hasStronghold := false
+	hasSanctuary := false
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			if mapHex.Building.Type == models.BuildingStronghold {
+				hasStronghold = true
+			}
+			if mapHex.Building.Type == models.BuildingSanctuary {
+				hasSanctuary = true
+			}
+		}
+	}
+	if hasStronghold {
+		vp += 4
+	}
+	if hasSanctuary {
+		vp += 4
+	}
+	return vp
 }
 
 // HasBonusCardSpecialAction checks if a bonus card provides a special action

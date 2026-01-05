@@ -14,10 +14,12 @@ type UseDarklingsPriestOrdinationAction struct {
 	WorkersToConvert int // Number of workers to convert (0-3)
 }
 
+// GetType returns the type of the action
 func (a *UseDarklingsPriestOrdinationAction) GetType() ActionType {
 	return ActionUseDarklingsPriestOrdination
 }
 
+// Validate checks if the action is valid
 func (a *UseDarklingsPriestOrdinationAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -59,6 +61,7 @@ func (a *UseDarklingsPriestOrdinationAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *UseDarklingsPriestOrdinationAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err

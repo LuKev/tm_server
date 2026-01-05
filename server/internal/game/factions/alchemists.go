@@ -16,6 +16,7 @@ type Alchemists struct {
 	hasStronghold bool
 }
 
+// NewAlchemists creates a new Alchemists faction
 func NewAlchemists() *Alchemists {
 	return &Alchemists{
 		BaseFaction: BaseFaction{
@@ -72,6 +73,7 @@ func (f *Alchemists) ConvertCoinsToVP(coins int) (vp int, err error) {
 
 // Income methods (Alchemists-specific)
 
+// GetTradingHouseIncome returns the income for trading houses
 func (f *Alchemists) GetTradingHouseIncome(tradingHouseCount int) Income {
 	// Alchemists: 1st-2nd: 2c+1pw, 3rd: 3c+1pw, 4th: 4c+1pw
 	income := Income{}
@@ -79,18 +81,19 @@ func (f *Alchemists) GetTradingHouseIncome(tradingHouseCount int) Income {
 		switch i {
 		case 1, 2:
 			income.Coins += 2
-			income.Power += 1
+			income.Power++
 		case 3:
 			income.Coins += 3
-			income.Power += 1
+			income.Power++
 		case 4:
 			income.Coins += 4
-			income.Power += 1
+			income.Power++
 		}
 	}
 	return income
 }
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *Alchemists) GetStrongholdIncome() Income {
 	// Alchemists: 6 coins, NO priest
 	return Income{Coins: 6}

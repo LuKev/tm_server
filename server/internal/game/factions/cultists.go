@@ -20,6 +20,7 @@ type Cultists struct {
 	hasStronghold bool
 }
 
+// NewCultists creates a new Cultists faction
 func NewCultists() *Cultists {
 	return &Cultists{
 		BaseFaction: BaseFaction{

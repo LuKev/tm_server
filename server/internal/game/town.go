@@ -62,66 +62,6 @@ type Town struct {
 	TownTileKey string // Empty if no town tile selected yet
 }
 
-// GetPowerValue returns the power value of a building type
-func GetPowerValue(buildingType models.BuildingType) int {
-	switch buildingType {
-	case models.BuildingDwelling:
-		return 1
-	case models.BuildingTradingHouse:
-		return 2
-	case models.BuildingTemple:
-		return 2
-	case models.BuildingSanctuary:
-		return 3
-	case models.BuildingStronghold:
-		return 3
-	default:
-		return 0
-	}
-}
-
-// CalculateAdjacencyBonus calculates coins gained from adjacent opponent buildings
-// when placing a new building
-func calculateAdjacencyBonus(m *board.TerraMysticaMap, h board.Hex, faction models.FactionType) int {
-	bonus := 0
-
-	for _, neighbor := range m.GetDirectNeighbors(h) {
-		mapHex := m.GetHex(neighbor)
-		if mapHex != nil && mapHex.Building != nil {
-			// Adjacent opponent building gives 1 coin
-			if mapHex.Building.Faction != faction {
-				bonus++
-			}
-		}
-	}
-
-	return bonus
-}
-
-// GetPowerLeechTargets returns all players who can leech power from a building placement
-// Returns map of faction -> power amount they can leech
-func getPowerLeechTargets(m *board.TerraMysticaMap, h board.Hex, placedFaction models.FactionType, powerValue int) map[models.FactionType]int {
-	targets := make(map[models.FactionType]int)
-
-	for _, neighbor := range m.GetDirectNeighbors(h) {
-		mapHex := m.GetHex(neighbor)
-		if mapHex != nil && mapHex.Building != nil {
-			// Can only leech from opponent buildings
-			if mapHex.Building.Faction != placedFaction {
-				faction := mapHex.Building.Faction
-				// Power leech amount equals the power value of the placed building
-				if existing, ok := targets[faction]; ok {
-					targets[faction] = existing + powerValue
-				} else {
-					targets[faction] = powerValue
-				}
-			}
-		}
-	}
-
-	return targets
-}
-
 // CheckForTownFormation checks if a town can be formed after building/upgrading at the given hex
 // Returns the connected buildings if a town can be formed, nil otherwise
 func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []board.Hex {
@@ -156,27 +96,30 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 
 	// Check if requirements are met
 	if gs.CanFormTown(playerID, connected) {
-		// For Mermaids: determine if town can be delayed
-		// - If river was skipped (skippedRiver != nil), can be delayed
-		// - If only land tiles (skippedRiver == nil), must claim immediately
-		canBeDelayed := false
-		if player.Faction.GetType() == models.FactionMermaids && skippedRiver != nil {
-			canBeDelayed = true
-		}
-
-		// Append new pending town formation (supports multiple simultaneous towns)
-		newTown := &PendingTownFormation{
-			PlayerID:        playerID,
-			Hexes:           connected,
-			SkippedRiverHex: skippedRiver,
-			CanBeDelayed:    canBeDelayed,
-		}
-		gs.PendingTownFormations[playerID] = append(gs.PendingTownFormations[playerID], newTown)
-
+		gs.createPendingTown(playerID, connected, skippedRiver, player.Faction.GetType())
 		return connected
 	}
 
 	return nil
+}
+
+func (gs *GameState) createPendingTown(playerID string, connected []board.Hex, skippedRiver *board.Hex, factionType models.FactionType) {
+	// For Mermaids: determine if town can be delayed
+	// - If river was skipped (skippedRiver != nil), can be delayed
+	// - If only land tiles (skippedRiver == nil), must claim immediately
+	canBeDelayed := false
+	if factionType == models.FactionMermaids && skippedRiver != nil {
+		canBeDelayed = true
+	}
+
+	// Append new pending town formation (supports multiple simultaneous towns)
+	newTown := &PendingTownFormation{
+		PlayerID:        playerID,
+		Hexes:           connected,
+		SkippedRiverHex: skippedRiver,
+		CanBeDelayed:    canBeDelayed,
+	}
+	gs.PendingTownFormations[playerID] = append(gs.PendingTownFormations[playerID], newTown)
 }
 
 // CanFormTown checks if the given connected buildings meet town requirements
@@ -215,11 +158,24 @@ func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	// Check power requirement (6 with Fire 2 favor tile, 7 otherwise)
 	minPower := gs.GetTownPowerRequirement(playerID)
 
-	if totalPower < minPower {
-		return false
-	}
+	return totalPower >= minPower
+}
 
-	return true
+func GetPowerValue(buildingType models.BuildingType) int {
+	switch buildingType {
+	case models.BuildingDwelling:
+		return 1
+	case models.BuildingTradingHouse:
+		return 2
+	case models.BuildingTemple:
+		return 2
+	case models.BuildingSanctuary:
+		return 3
+	case models.BuildingStronghold:
+		return 3
+	default:
+		return 0
+	}
 }
 
 // GetTownPowerRequirement returns the minimum power required for a town
@@ -301,56 +257,60 @@ func (gs *GameState) ApplyTownTileBenefits(playerID string, tileType models.Town
 		delete(gs.ReplayMode, playerID)
 	}
 
+	gs.applyTownTileSpecifics(player, tileType, skipResources)
+}
+
+func (gs *GameState) applyTownTileSpecifics(player *Player, tileType models.TownTileType, skipResources bool) {
 	switch tileType {
 	case models.TownTile5Points:
 		player.VictoryPoints += 5
 		if !skipResources {
 			player.Resources.Coins += 6
 		}
-		player.Keys += 1
+		player.Keys++
 
 	case models.TownTile6Points:
 		player.VictoryPoints += 6
 		if !skipResources {
 			player.Resources.Power.GainPower(8)
 		}
-		player.Keys += 1
+		player.Keys++
 
 	case models.TownTile7Points:
 		player.VictoryPoints += 7
 		if !skipResources {
 			player.Resources.Workers += 2
 		}
-		player.Keys += 1
+		player.Keys++
 
 	case models.TownTile4Points:
 		player.VictoryPoints += 4
-		player.Keys += 1
+		player.Keys++
 		// Advance shipping level by 1 and award VP
-		gs.AdvanceShippingLevel(playerID)
+		_ = gs.AdvanceShippingLevel(player.ID)
 
 	case models.TownTile8Points:
 		player.VictoryPoints += 8
-		player.Keys += 1
+		player.Keys++
 		// Advance 1 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(playerID, models.TownTile8Points, player, gs)
+		gs.CultTracks.ApplyTownCultBonus(player.ID, models.TownTile8Points, player, gs)
 
 	case models.TownTile9Points:
 		player.VictoryPoints += 9
 		if !skipResources {
-			gs.GainPriests(playerID, 1)
+			gs.GainPriests(player.ID, 1)
 		}
-		player.Keys += 1
+		player.Keys++
 
 	case models.TownTile11Points:
 		player.VictoryPoints += 11
-		player.Keys += 1
+		player.Keys++
 
 	case models.TownTile2Points:
 		player.VictoryPoints += 2
 		player.Keys += 2
 		// Advance 2 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(playerID, models.TownTile2Points, player, gs)
+		gs.CultTracks.ApplyTownCultBonus(player.ID, models.TownTile2Points, player, gs)
 	}
 }
 
@@ -372,137 +332,6 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 		// Swarmlings get +3 workers per town formed
 		player.Resources.Workers += 3
 	}
-}
-
-// GetConnectedBuildingsIncludingBridges finds all buildings connected to the starting hex
-// This includes connections via bridges
-func getConnectedBuildingsIncludingBridges(m *board.TerraMysticaMap, start board.Hex, playerID string) []board.Hex {
-	visited := make(map[board.Hex]bool)
-	connected := []board.Hex{}
-	queue := []board.Hex{start}
-	visited[start] = true
-
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		currentHex := m.GetHex(current)
-		if currentHex == nil || currentHex.Building == nil {
-			continue
-		}
-
-		// Only include buildings belonging to this player
-		if currentHex.Building.PlayerID != playerID {
-			continue
-		}
-
-		connected = append(connected, current)
-
-		// Get all adjacent hexes (including via bridges)
-		neighbors := m.GetDirectNeighbors(current)
-
-		// Also check for bridge connections
-		for bridge := range m.Bridges {
-			if bridge.H1 == current {
-				neighbors = append(neighbors, bridge.H2)
-			} else if bridge.H2 == current {
-				neighbors = append(neighbors, bridge.H1)
-			}
-		}
-
-		// Add unvisited neighbors to queue
-		for _, neighbor := range neighbors {
-			if !visited[neighbor] {
-				neighborHex := m.GetHex(neighbor)
-				if neighborHex != nil && neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
-					visited[neighbor] = true
-					queue = append(queue, neighbor)
-				}
-			}
-		}
-	}
-
-	return connected
-}
-
-// GetConnectedBuildingsForMermaids finds all buildings connected to the starting hex
-// Mermaids can skip ONE river hex when forming towns (town tile goes on the skipped river)
-// Returns: connected buildings, and the skipped river hex (if any)
-func getConnectedBuildingsForMermaids(m *board.TerraMysticaMap, start board.Hex, playerID string) ([]board.Hex, *board.Hex) {
-	visited := make(map[board.Hex]bool)
-	connected := []board.Hex{}
-	queue := []board.Hex{start}
-	visited[start] = true
-	var skippedRiver *board.Hex
-
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		currentHex := m.GetHex(current)
-		if currentHex == nil || currentHex.Building == nil {
-			continue
-		}
-
-		// Only include buildings belonging to this player
-		if currentHex.Building.PlayerID != playerID {
-			continue
-		}
-
-		connected = append(connected, current)
-
-		// Get all adjacent hexes (including via bridges)
-		neighbors := m.GetDirectNeighbors(current)
-
-		// Also check for bridge connections
-		for bridge := range m.Bridges {
-			if bridge.H1 == current {
-				neighbors = append(neighbors, bridge.H2)
-			} else if bridge.H2 == current {
-				neighbors = append(neighbors, bridge.H1)
-			}
-		}
-
-		// Add unvisited neighbors to queue
-		for _, neighbor := range neighbors {
-			if !visited[neighbor] {
-				neighborHex := m.GetHex(neighbor)
-				if neighborHex != nil && neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
-					visited[neighbor] = true
-					queue = append(queue, neighbor)
-				}
-			}
-		}
-
-		// Mermaids special ability: Check for buildings across ONE river hex
-		// Only use this ability once per town formation
-		if skippedRiver == nil {
-			for _, neighbor := range neighbors {
-				neighborHex := m.GetHex(neighbor)
-				// Check if this neighbor is a river hex
-				if neighborHex != nil && neighborHex.Terrain == models.TerrainRiver && !visited[neighbor] {
-					// Check hexes on the other side of this river
-					riverNeighbors := neighbor.Neighbors()
-					for _, acrossRiver := range riverNeighbors {
-						if acrossRiver == current {
-							continue // Skip the hex we came from
-						}
-						if !visited[acrossRiver] {
-							acrossHex := m.GetHex(acrossRiver)
-							// If there's a player building on the other side, connect it
-							if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
-								visited[acrossRiver] = true
-								queue = append(queue, acrossRiver)
-								skippedRiver = &neighbor // Track which river was skipped
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return connected, skippedRiver
 }
 
 // CheckAllTownFormations checks for town formation for all of a player's buildings

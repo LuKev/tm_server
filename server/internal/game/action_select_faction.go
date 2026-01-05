@@ -8,19 +8,23 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+// SelectFactionAction represents selecting a faction
 type SelectFactionAction struct {
 	PlayerID    string
 	FactionType models.FactionType
 }
 
+// GetPlayerID returns the player ID
 func (a *SelectFactionAction) GetPlayerID() string {
 	return a.PlayerID
 }
 
+// GetType returns the action type
 func (a *SelectFactionAction) GetType() ActionType {
 	return ActionSelectFaction
 }
 
+// Validate checks if the action is valid
 func (a *SelectFactionAction) Validate(gs *GameState) error {
 	if gs.Phase != PhaseFactionSelection {
 		return errors.New("not in faction selection phase")
@@ -46,6 +50,7 @@ func (a *SelectFactionAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *SelectFactionAction) Execute(gs *GameState) error {
 	faction := factions.NewFaction(a.FactionType)
 	player := gs.Players[a.PlayerID]

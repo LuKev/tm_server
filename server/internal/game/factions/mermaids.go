@@ -20,6 +20,7 @@ type Mermaids struct {
 	shippingLevel int // Mermaids start at level 1
 }
 
+// NewMermaids creates a new Mermaids faction
 func NewMermaids() *Mermaids {
 	return &Mermaids{
 		BaseFaction: BaseFaction{
@@ -87,6 +88,7 @@ func (f *Mermaids) CanSkipRiverForTown() bool {
 
 // Income methods (Mermaids-specific)
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *Mermaids) GetStrongholdIncome() Income {
 	// Mermaids: 4 power, NO priest
 	return Income{Power: 4}

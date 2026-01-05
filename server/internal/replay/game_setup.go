@@ -14,7 +14,7 @@ func (v *GameValidator) SetupGame() error {
 	// Extract game setup information from the log
 	setupInfo, err := v.extractSetupInfo()
 	if err != nil {
-		return fmt.Errorf("failed to extract setup info: %v", err)
+		return fmt.Errorf("failed to extract setup info: %w", err)
 	}
 
 	// Create game state
@@ -29,7 +29,7 @@ func (v *GameValidator) SetupGame() error {
 		// Create faction instance
 		faction, err := createFaction(factionType)
 		if err != nil {
-			return fmt.Errorf("failed to create faction %v: %v", factionType, err)
+			return fmt.Errorf("failed to create faction %v: %w", factionType, err)
 		}
 
 		// Get faction-specific starting shipping level (Mermaids start at 1, others at 0)
@@ -75,12 +75,12 @@ func (v *GameValidator) SetupGame() error {
 
 	// Set up scoring tiles
 	if err := v.setupScoringTiles(setupInfo); err != nil {
-		return fmt.Errorf("failed to setup scoring tiles: %v", err)
+		return fmt.Errorf("failed to setup scoring tiles: %w", err)
 	}
 
 	// Set up bonus cards
 	if err := v.setupBonusCards(setupInfo); err != nil {
-		return fmt.Errorf("failed to setup bonus cards: %v", err)
+		return fmt.Errorf("failed to setup bonus cards: %w", err)
 	}
 
 	v.GameState.Phase = game.PhaseSetup
@@ -191,7 +191,7 @@ func (v *GameValidator) setupScoringTiles(info *GameSetupInfo) error {
 		// Convert score code to scoring tile type
 		tile, err := parseScoringTile(scoreCode)
 		if err != nil {
-			return fmt.Errorf("failed to parse scoring tile %s for round %d: %v", scoreCode, round, err)
+			return fmt.Errorf("failed to parse scoring tile %s for round %d: %w", scoreCode, round, err)
 		}
 
 		v.GameState.ScoringTiles.Tiles = append(v.GameState.ScoringTiles.Tiles, tile)
@@ -258,7 +258,7 @@ func (v *GameValidator) setupBonusCards(info *GameSetupInfo) error {
 	for _, bonusStr := range info.RemovedBonuses {
 		bonusType, err := ParseBonusCard(bonusStr)
 		if err != nil {
-			return fmt.Errorf("invalid removed bonus card %s: %v", bonusStr, err)
+			return fmt.Errorf("invalid removed bonus card %s: %w", bonusStr, err)
 		}
 		removedTypes[bonusType] = true
 	}

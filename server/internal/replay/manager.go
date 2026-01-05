@@ -79,7 +79,7 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 	// Fetch log
 	logContent, err := m.fetchLog(gameID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to fetch log: %v", err)
+		return nil, fmt.Errorf("failed to fetch log: %w", err)
 	}
 
 	// Parse log
@@ -91,7 +91,7 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 		items, err = parser.Parse()
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse log: %v", err)
+		return nil, fmt.Errorf("failed to parse log: %w", err)
 	}
 
 	// Special case for local testing: Inject hardcoded settings
@@ -191,7 +191,7 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 			// Fallback to relative path
 			content, err = os.ReadFile("internal/notation/concise_log.txt")
 			if err != nil {
-				return "", fmt.Errorf("failed to read local log: %v", err)
+				return "", fmt.Errorf("failed to read local log: %w", err)
 			}
 		}
 		return string(content), nil
@@ -203,12 +203,12 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 	cmd := exec.Command("python3", scriptPath, gameID, "--output", outputPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return "", fmt.Errorf("script failed: %s, output: %s", err, output)
+		return "", fmt.Errorf("script failed: %w, output: %s", err, output)
 	}
 
 	content, err := os.ReadFile(outputPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to read log file: %v", err)
+		return "", fmt.Errorf("failed to read log file: %w", err)
 	}
 	return string(content), nil
 }

@@ -273,6 +273,10 @@ func (m *TerraMysticaMap) IsIndirectlyAdjacent(h1, h2 Hex, shippingValue int) bo
 		return false
 	}
 
+	return m.checkRiverConnection(h1, h2, shippingValue)
+}
+
+func (m *TerraMysticaMap) checkRiverConnection(h1, h2 Hex, shippingValue int) bool {
 	// Seed with river neighbors of h1
 	start := m.riverNeighbors(h1)
 	if len(start) == 0 {
@@ -521,33 +525,6 @@ func (m *TerraMysticaMap) getConnectedComponent(start Hex, playerID string, visi
 	return component
 }
 
-// getConnectedAreaSize returns the size of the connected area starting from a hex
-// Uses DFS to explore all connected buildings
-// Handles faction-specific adjacency: Fakirs (carpet flight), Dwarves (tunneling), and shipping
-func (m *TerraMysticaMap) getConnectedAreaSize(start Hex, playerID string, visited map[Hex]bool, faction factions.Faction, shippingLevel int) int {
-	if visited[start] {
-		return 0
-	}
-
-	mapHex := m.GetHex(start)
-	if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
-		return 0
-	}
-
-	// Mark as visited
-	visited[start] = true
-	size := 1
-
-	// Get neighbors based on faction-specific movement and shipping
-	neighbors := m.getNeighborsForAreaScoring(start, faction, shippingLevel)
-
-	for _, neighbor := range neighbors {
-		size += m.getConnectedAreaSize(neighbor, playerID, visited, faction, shippingLevel)
-	}
-
-	return size
-}
-
 // getNeighborsForAreaScoring returns neighbors based on faction-specific movement and shipping
 // For final area scoring: Fakirs use carpet flight, Dwarves use tunneling, others use direct adjacency + shipping
 func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Faction, shippingLevel int) []Hex {
@@ -751,32 +728,38 @@ func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID s
 		// Mermaids special ability: Check for buildings across ONE river hex
 		// Only use this ability once per town formation
 		if skippedRiver == nil {
-			for _, neighbor := range neighbors {
-				neighborHex := m.GetHex(neighbor)
-				// Check if this neighbor is a river hex
-				if neighborHex != nil && neighborHex.Terrain == models.TerrainRiver && !visited[neighbor] {
-					// Check hexes on the other side of this river
-					riverNeighbors := neighbor.Neighbors()
-					for _, acrossRiver := range riverNeighbors {
-						if acrossRiver == current {
-							continue // Skip the hex we came from
-						}
-						if !visited[acrossRiver] {
-							acrossHex := m.GetHex(acrossRiver)
-							// If there's a player building on the other side, connect it
-							if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
-								visited[acrossRiver] = true
-								queue = append(queue, acrossRiver)
-								skippedRiver = &neighbor // Track which river was skipped
-							}
-						}
+			skippedRiver = m.checkMermaidsRiverSkip(current, playerID, visited, &queue, neighbors)
+		}
+	}
+
+	return connected, skippedRiver
+}
+
+func (m *TerraMysticaMap) checkMermaidsRiverSkip(current Hex, playerID string, visited map[Hex]bool, queue *[]Hex, neighbors []Hex) *Hex {
+	for _, neighbor := range neighbors {
+		neighborHex := m.GetHex(neighbor)
+		// Check if this neighbor is a river hex
+		if neighborHex != nil && neighborHex.Terrain == models.TerrainRiver && !visited[neighbor] {
+			// Check hexes on the other side of this river
+			riverNeighbors := neighbor.Neighbors()
+			for _, acrossRiver := range riverNeighbors {
+				if acrossRiver == current {
+					continue // Skip the hex we came from
+				}
+				if !visited[acrossRiver] {
+					acrossHex := m.GetHex(acrossRiver)
+					// If there's a player building on the other side, connect it
+					if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
+						visited[acrossRiver] = true
+						*queue = append(*queue, acrossRiver)
+						n := neighbor
+						return &n // Track which river was skipped
 					}
 				}
 			}
 		}
 	}
-
-	return connected, skippedRiver
+	return nil
 }
 
 // CanTerraform checks if a hex can be terraformed
@@ -858,7 +841,7 @@ func (m *TerraMysticaMap) ValidateBuildingPlacement(h Hex, faction models.Factio
 }
 
 // CanUpgradeBuilding checks if a building can be upgraded
-func CanUpgradeBuilding(current models.BuildingType, target models.BuildingType) error {
+func CanUpgradeBuilding(current, target models.BuildingType) error {
 	// Valid upgrade paths:
 	// Dwelling -> Trading House
 	// Trading House -> Temple or Stronghold or Sanctuary

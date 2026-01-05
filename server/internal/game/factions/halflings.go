@@ -18,6 +18,7 @@ type Halflings struct {
 	hasStronghold bool
 }
 
+// NewHalflings creates a new Halflings faction
 func NewHalflings() *Halflings {
 	return &Halflings{
 		BaseFaction: BaseFaction{

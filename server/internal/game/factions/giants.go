@@ -21,6 +21,7 @@ type Giants struct {
 	freeSpadesUsedThisRound bool // Special action usage tracking
 }
 
+// NewGiants creates a new Giants faction
 func NewGiants() *Giants {
 	return &Giants{
 		BaseFaction: BaseFaction{
@@ -66,6 +67,7 @@ func (f *Giants) BuildStronghold() {
 
 // Income methods (Giants-specific)
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *Giants) GetStrongholdIncome() Income {
 	// Giants: 4 power
 	return Income{Power: 4}

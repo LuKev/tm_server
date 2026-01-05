@@ -29,7 +29,7 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 	var hexNum int
 	_, err := fmt.Sscanf(coord[1:], "%d", &hexNum)
 	if err != nil {
-		return board.Hex{}, fmt.Errorf("invalid hex number in %s: %v", coord, err)
+		return board.Hex{}, fmt.Errorf("invalid hex number in %s: %w", coord, err)
 	}
 	if hexNum < 1 {
 		return board.Hex{}, fmt.Errorf("hex number must be >= 1, got %d", hexNum)
@@ -78,7 +78,7 @@ func ValidateCoordinateConversion() error {
 	// Test D5 - should be Lake terrain (blue)
 	hex, err := ConvertLogCoordToAxial("D5")
 	if err != nil {
-		return fmt.Errorf("failed to convert D5: %v", err)
+		return fmt.Errorf("failed to convert D5: %w", err)
 	}
 
 	terrain := layout[hex]
@@ -112,7 +112,7 @@ func ValidateTerrainLayout() error {
 	for coord, expectedTerrain := range expected {
 		hex, err := ConvertLogCoordToAxial(coord)
 		if err != nil {
-			return fmt.Errorf("failed to convert %s: %v", coord, err)
+			return fmt.Errorf("failed to convert %s: %w", coord, err)
 		}
 		actualTerrain := layout[hex]
 		if actualTerrain != expectedTerrain {

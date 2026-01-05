@@ -12,6 +12,7 @@ import (
 type ActionType int
 
 const (
+	// ActionTransformAndBuild represents transforming terrain and optionally building a dwelling
 	ActionTransformAndBuild ActionType = iota
 	ActionUpgradeBuilding
 	ActionAdvanceShipping
@@ -47,10 +48,12 @@ type BaseAction struct {
 	PlayerID string
 }
 
+// GetType returns the action type
 func (a *BaseAction) GetType() ActionType {
 	return a.Type
 }
 
+// GetPlayerID returns the player ID
 func (a *BaseAction) GetPlayerID() string {
 	return a.PlayerID
 }
@@ -66,6 +69,7 @@ type TransformAndBuildAction struct {
 	UseSkip       bool               // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
 }
 
+// NewTransformAndBuildAction creates a new transform and build action
 func NewTransformAndBuildAction(playerID string, targetHex board.Hex, buildDwelling bool, targetTerrain models.TerrainType) *TransformAndBuildAction {
 	return &TransformAndBuildAction{
 		BaseAction: BaseAction{
@@ -108,63 +112,47 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		return fmt.Errorf("hex already has a building: %v", a.TargetHex)
 	}
 
+	if err := a.validateAdjacency(gs, player); err != nil {
+		return err
+	}
+
+	totalWorkersNeeded, totalPriestsNeeded, err := a.calculateCosts(gs, player, mapHex)
+	if err != nil {
+		return err
+	}
+
+	// Check total workers needed (terraform + dwelling)
+	if player.Resources.Workers < totalWorkersNeeded {
+		return fmt.Errorf("not enough workers: need %d, have %d", totalWorkersNeeded, player.Resources.Workers)
+	}
+
+	// Check total priests needed (Darklings terraform cost)
+	if player.Resources.Priests < totalPriestsNeeded {
+		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
+	}
+
+	return nil
+}
+
+func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Player) error {
 	// Check adjacency - required for both transforming and building
-	// "Even when transforming a Terrain space without building a Dwelling, the transformed
-	// Terrain space needs to be directly or indirectly adjacent to one of your Structures"
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)
 
 	// If using skip (Fakirs/Dwarves), check if player can skip and if range is valid
 	if a.UseSkip {
-		// Check if player's faction can use skip ability
-		canSkip := false
-		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
-			canSkip = fakirs.CanCarpetFlight()
-			// Check if target is within skip range
-			skipRange := 1
-			if fakirs.HasStronghold() {
-				skipRange++
-			}
-			if fakirs.HasShippingTownTile() {
-				skipRange++
-			}
-			if !gs.Map.IsWithinSkipRange(a.TargetHex, a.PlayerID, skipRange) {
-				return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
-			}
-			// Check if player has priest to pay
-			if player.Resources.Priests < 1 {
-				return fmt.Errorf("not enough priests for carpet flight: need 1, have %d", player.Resources.Priests)
-			}
-		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
-			canSkip = dwarves.CanTunnel()
-			// Dwarves can tunnel 1 space
-			if !gs.Map.IsWithinSkipRange(a.TargetHex, a.PlayerID, 1) {
-				return fmt.Errorf("target hex is not within tunneling range 1")
-			}
-			// Check if player has workers to pay
-			workerCost := 2
-			if player.HasStrongholdAbility {
-				workerCost = 1
-			}
-			// This cost is in addition to transform/dwelling costs
-			// Just verify they have it here, will deduct later
-			if player.Resources.Workers < workerCost {
-				return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
-			}
-		} else {
-			return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
-		}
-
-		if !canSkip {
-			return fmt.Errorf("player cannot use skip ability")
+		if err := ValidateSkipAbility(gs, player, a.TargetHex); err != nil {
+			return err
 		}
 	} else {
 		// Normal adjacency required if not using skip
 		if !isAdjacent {
-			fmt.Printf("DEBUG: TransformAndBuildAction Adjacency Check Failed. Hex: %v, Player: %s, Shipping: %d\n", a.TargetHex, player.ID, player.ShippingLevel)
 			return fmt.Errorf("hex is not adjacent to player's buildings")
 		}
 	}
+	return nil
+}
 
+func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, error) {
 	// Check if terrain needs transformation to target terrain (default: home terrain)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	if a.TargetTerrain != models.TerrainTypeUnknown {
@@ -179,7 +167,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 		if distance == 0 {
-			return fmt.Errorf("terrain distance calculation failed")
+			return 0, 0, fmt.Errorf("terrain distance calculation failed")
 		}
 
 		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
@@ -190,8 +178,6 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
 			freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
 		}
-
-		fmt.Printf("DEBUG: Validate TransformAndBuildAction for %s. FreeSpades: %d, Distance: %d\n", a.PlayerID, freeSpades, distance)
 
 		if freeSpades > distance {
 			freeSpades = distance // Only use what we need
@@ -204,7 +190,6 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 			totalPriestsNeeded = remainingSpades
 		} else {
 			// Other factions pay workers
-			// GetTerraformCost returns total workers needed (already accounts for distance)
 			totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
 		}
 	}
@@ -222,44 +207,40 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
-		// Check building limit (max 8 dwellings)
-		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
-			return err
+		if err := a.validateDwelling(gs, player, mapHex, needsTransform, targetTerrain); err != nil {
+			return 0, 0, err
 		}
-
-		// After transformation (if any), hex must be player's home terrain
-		if needsTransform {
-			// Will be target terrain after transform
-			if targetTerrain != player.Faction.GetHomeTerrain() {
-				return fmt.Errorf("cannot build dwelling: target terrain %v is not home terrain", targetTerrain)
-			}
-		} else if mapHex.Terrain != player.Faction.GetHomeTerrain() {
-			return fmt.Errorf("cannot build dwelling: hex is not home terrain")
-		}
-
-		// Check if player can afford dwelling (coins and priests)
 		dwellingCost := player.Faction.GetDwellingCost()
-		if player.Resources.Coins < dwellingCost.Coins {
-			return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
-		}
-		if player.Resources.Priests < dwellingCost.Priests {
-			return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
-		}
-
-		// Add dwelling workers to total needed (checked separately below)
 		totalWorkersNeeded += dwellingCost.Workers
 	}
 
-	// Check total workers needed (terraform + dwelling)
-	if player.Resources.Workers < totalWorkersNeeded {
-		return fmt.Errorf("not enough workers: need %d, have %d", totalWorkersNeeded, player.Resources.Workers)
+	return totalWorkersNeeded, totalPriestsNeeded, nil
+}
+
+func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player, mapHex *board.MapHex, needsTransform bool, targetTerrain models.TerrainType) error {
+	// Check building limit (max 8 dwellings)
+	if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
+		return err
 	}
 
-	// Check total priests needed (Darklings terraform cost)
-	if player.Resources.Priests < totalPriestsNeeded {
-		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
+	// After transformation (if any), hex must be player's home terrain
+	if needsTransform {
+		// Will be target terrain after transform
+		if targetTerrain != player.Faction.GetHomeTerrain() {
+			return fmt.Errorf("cannot build dwelling: target terrain %v is not home terrain", targetTerrain)
+		}
+	} else if mapHex.Terrain != player.Faction.GetHomeTerrain() {
+		return fmt.Errorf("cannot build dwelling: hex is not home terrain")
 	}
 
+	// Check if player can afford dwelling (coins and priests)
+	dwellingCost := player.Faction.GetDwellingCost()
+	if player.Resources.Coins < dwellingCost.Coins {
+		return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
+	}
+	if player.Resources.Priests < dwellingCost.Priests {
+		return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
+	}
 	return nil
 }
 
@@ -273,125 +254,17 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	// Step 0: Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
-		if player.Faction.GetType() == models.FactionFakirs {
-			// Pay priest for carpet flight
-			player.Resources.Priests -= 1
-			// Award VP bonus
-			player.VictoryPoints += 4
-		} else if player.Faction.GetType() == models.FactionDwarves {
-			// Pay workers for tunneling
-			workerCost := 2
-			if player.HasStrongholdAbility {
-				workerCost = 1
-			}
-			player.Resources.Workers -= workerCost
-			// Award VP bonus
-			player.VictoryPoints += 4
-		}
+		PaySkipCost(player)
 	}
 
 	// Step 1: Transform terrain to target terrain if needed
-	targetTerrain := player.Faction.GetHomeTerrain()
-	if a.TargetTerrain != models.TerrainTypeUnknown {
-		targetTerrain = a.TargetTerrain
-	}
-	needsTransform := mapHex.Terrain != targetTerrain
-	if needsTransform {
-		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
-
-		// Check for free spades from BON1 (count for VP when used)
-		vpEligibleFreeSpades := 0
-		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-			vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
-			if vpEligibleFreeSpades > distance {
-				vpEligibleFreeSpades = distance // Only use what we need
-			}
-			// Consume VP-eligible free spades
-			gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
-			if gs.PendingSpades[a.PlayerID] == 0 {
-				delete(gs.PendingSpades, a.PlayerID)
-			}
-		}
-
-		// Check for cult reward spades (don't count for VP)
-		remainingDistance := distance - vpEligibleFreeSpades
-		cultRewardSpades := 0
-		if remainingDistance > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
-			cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
-			if cultRewardSpades > remainingDistance {
-				cultRewardSpades = remainingDistance // Only use what we need
-			}
-			// Consume cult reward spades
-			gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
-			if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
-				delete(gs.PendingCultRewardSpades, a.PlayerID)
-			}
-		}
-
-		totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
-		remainingSpades := distance - totalFreeSpades
-
-		// Pay for remaining spades only
-		if remainingSpades > 0 {
-			// Darklings pay priests for terraform (instead of workers)
-			if player.Faction.GetType() == models.FactionDarklings {
-				priestCost := remainingSpades
-				player.Resources.Priests -= priestCost
-
-				// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
-				vpBonus := remainingSpades * 2
-				player.VictoryPoints += vpBonus
-			} else {
-				// Other factions pay workers
-				totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
-				player.Resources.Workers -= totalWorkers
-			}
-		}
-
-		// Transform terrain to target terrain
-		if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
-			return fmt.Errorf("failed to transform terrain: %w", err)
-		}
-
-		// Award VP for paid spades + VP-eligible free spades (BON1)
-		// Cult reward spades don't award VP
-		vpEligibleDistance := remainingSpades + vpEligibleFreeSpades
-		if vpEligibleDistance > 0 {
-			spadesForVP := vpEligibleDistance
-			if player.Faction.GetType() == models.FactionGiants {
-				spadesForVP = 2
-			}
-
-			// Award scoring tile VP for ALL factions including Darklings
-			for i := 0; i < spadesForVP; i++ {
-				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
-			}
-
-			// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
-			AwardFactionSpadeBonuses(player, spadesForVP)
-		}
-
-		// Award faction-specific spade bonuses for cult reward spades too
-		// Cult reward spades don't count for VP, but Alchemists still get power for them
-		if cultRewardSpades > 0 {
-			spadesUsed := cultRewardSpades
-			if player.Faction.GetType() == models.FactionGiants {
-				spadesUsed = 2
-			}
-			AwardFactionSpadeBonuses(player, spadesUsed)
-		}
+	if err := a.handleTransform(gs, player, mapHex); err != nil {
+		return err
 	}
 
 	// Step 2: Build dwelling if requested
 	if a.BuildDwelling {
-		// Pay for dwelling
-		dwellingCost := player.Faction.GetDwellingCost()
-		if err := player.Resources.Spend(dwellingCost); err != nil {
-			return fmt.Errorf("failed to pay for dwelling: %w", err)
-		}
-
-		// Place dwelling and handle all VP bonuses
-		if err := gs.BuildDwelling(a.PlayerID, a.TargetHex); err != nil {
+		if err := a.handleBuildDwelling(gs, player); err != nil {
 			return err
 		}
 	}
@@ -402,6 +275,116 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 	return nil
 }
 
+func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player, mapHex *board.MapHex) error {
+	targetTerrain := player.Faction.GetHomeTerrain()
+	if a.TargetTerrain != models.TerrainTypeUnknown {
+		targetTerrain = a.TargetTerrain
+	}
+	needsTransform := mapHex.Terrain != targetTerrain
+	if !needsTransform {
+		return nil
+	}
+
+	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
+
+	// Check for free spades from BON1 (count for VP when used)
+	vpEligibleFreeSpades := 0
+	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
+		if vpEligibleFreeSpades > distance {
+			vpEligibleFreeSpades = distance // Only use what we need
+		}
+		// Consume VP-eligible free spades
+		gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
+		if gs.PendingSpades[a.PlayerID] == 0 {
+			delete(gs.PendingSpades, a.PlayerID)
+		}
+	}
+
+	// Check for cult reward spades (don't count for VP)
+	remainingDistance := distance - vpEligibleFreeSpades
+	cultRewardSpades := 0
+	if remainingDistance > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+		cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
+		if cultRewardSpades > remainingDistance {
+			cultRewardSpades = remainingDistance // Only use what we need
+		}
+		// Consume cult reward spades
+		gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
+		if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
+			delete(gs.PendingCultRewardSpades, a.PlayerID)
+		}
+	}
+
+	totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
+	remainingSpades := distance - totalFreeSpades
+
+	// Pay for remaining spades only
+	if remainingSpades > 0 {
+		// Darklings pay priests for terraform (instead of workers)
+		if player.Faction.GetType() == models.FactionDarklings {
+			priestCost := remainingSpades
+			player.Resources.Priests -= priestCost
+
+			// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
+			vpBonus := remainingSpades * 2
+			player.VictoryPoints += vpBonus
+		} else {
+			// Other factions pay workers
+			totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
+			player.Resources.Workers -= totalWorkers
+		}
+	}
+
+	// Transform terrain to target terrain
+	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
+
+	// Award VP for paid spades + VP-eligible free spades (BON1)
+	// Cult reward spades don't award VP
+	vpEligibleDistance := remainingSpades + vpEligibleFreeSpades
+	if vpEligibleDistance > 0 {
+		spadesForVP := vpEligibleDistance
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesForVP = 2
+		}
+
+		// Award scoring tile VP for ALL factions including Darklings
+		for i := 0; i < spadesForVP; i++ {
+			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		}
+
+		// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
+		AwardFactionSpadeBonuses(player, spadesForVP)
+	}
+
+	// Award faction-specific spade bonuses for cult reward spades too
+	// Cult reward spades don't count for VP, but Alchemists still get power for them
+	if cultRewardSpades > 0 {
+		spadesUsed := cultRewardSpades
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesUsed = 2
+		}
+		AwardFactionSpadeBonuses(player, spadesUsed)
+	}
+	return nil
+}
+
+func (a *TransformAndBuildAction) handleBuildDwelling(gs *GameState, player *Player) error {
+	// Pay for dwelling
+	dwellingCost := player.Faction.GetDwellingCost()
+	if err := player.Resources.Spend(dwellingCost); err != nil {
+		return fmt.Errorf("failed to pay for dwelling: %w", err)
+	}
+
+	// Place dwelling and handle all VP bonuses
+	if err := gs.BuildDwelling(a.PlayerID, a.TargetHex); err != nil {
+		return err
+	}
+	return nil
+}
+
 // UpgradeBuildingAction represents upgrading a building
 type UpgradeBuildingAction struct {
 	BaseAction
@@ -409,6 +392,7 @@ type UpgradeBuildingAction struct {
 	NewBuildingType models.BuildingType
 }
 
+// NewUpgradeBuildingAction creates a new upgrade building action
 func NewUpgradeBuildingAction(playerID string, targetHex board.Hex, newType models.BuildingType) *UpgradeBuildingAction {
 	return &UpgradeBuildingAction{
 		BaseAction: BaseAction{
@@ -420,6 +404,7 @@ func NewUpgradeBuildingAction(playerID string, targetHex board.Hex, newType mode
 	}
 }
 
+// Validate checks if the upgrade action is valid
 func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -460,6 +445,7 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the upgrade action
 func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -476,32 +462,49 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		return fmt.Errorf("failed to pay for upgrade: %w", err)
 	}
 
-	// Return old building to faction board (reduces income)
-	// Buildings are returned to the rightmost position on their track
-	// This is handled by the faction board state (not implemented yet)
-
-	// Get new power value
-	var newPowerValue int
-	switch a.NewBuildingType {
-	case models.BuildingTradingHouse:
-		newPowerValue = 2
-	case models.BuildingTemple:
-		newPowerValue = 2
-	case models.BuildingSanctuary:
-		newPowerValue = 3
-	case models.BuildingStronghold:
-		newPowerValue = 3
-	}
-
 	// Upgrade building
 	mapHex.Building = &models.Building{
 		Type:       a.NewBuildingType,
 		Faction:    player.Faction.GetType(),
 		PlayerID:   a.PlayerID,
-		PowerValue: newPowerValue,
+		PowerValue: getNewPowerValue(a.NewBuildingType),
 	}
 
 	// Handle special rewards based on upgrade type
+	a.handleUpgradeRewards(gs, player)
+
+	// Trigger power leech when upgrading (adjacent players leech based by their adjacent buildings)
+	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
+
+	// Check for town formation after upgrading
+	// For Temple/Sanctuary: defer town check until after favor tile is selected
+	// (favor tiles can reduce town power requirement from 7 to 6)
+	if a.NewBuildingType != models.BuildingTemple && a.NewBuildingType != models.BuildingSanctuary {
+		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+	}
+
+	// Advance turn (unless pending actions exist, checked by NextTurn)
+	gs.NextTurn()
+
+	return nil
+}
+
+func getNewPowerValue(buildingType models.BuildingType) int {
+	switch buildingType {
+	case models.BuildingTradingHouse:
+		return 2
+	case models.BuildingTemple:
+		return 2
+	case models.BuildingSanctuary:
+		return 3
+	case models.BuildingStronghold:
+		return 3
+	default:
+		return 1
+	}
+}
+
+func (a *UpgradeBuildingAction) handleUpgradeRewards(gs *GameState, player *Player) {
 	switch a.NewBuildingType {
 	case models.BuildingTradingHouse:
 		// Award VP from Water+1 favor tile (+3 VP when upgrading Dwelling→Trading House)
@@ -514,7 +517,6 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		gs.AwardActionVP(a.PlayerID, ScoringActionTradingHouse)
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
-		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
 		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
 		count := 1
 		if player.Faction.GetType() == models.FactionChaosMagicians {
@@ -540,119 +542,108 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		player.HasStrongholdAbility = true
 
 		// Call faction-specific BuildStronghold() methods to grant immediate bonuses
-		switch player.Faction.GetType() {
-		case models.FactionAlchemists:
-			// Alchemists gain 12 power immediately when building stronghold
-			if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
-				powerBonus := alchemists.BuildStronghold()
-				player.Resources.GainPower(powerBonus)
-			}
-		case models.FactionCultists:
-			// Cultists get +7 VP immediately when building stronghold
-			if cultists, ok := player.Faction.(*factions.Cultists); ok {
-				vpBonus := cultists.BuildStronghold()
-				player.VictoryPoints += vpBonus
-			}
-		case models.FactionEngineers:
-			// Engineers: Mark stronghold as built so GetVPPerBridgeOnPass() returns 3 VP/bridge
-			// Engineers get 3 VP per bridge if they have built their stronghold
-			if engineers, ok := player.Faction.(*factions.Engineers); ok {
-				engineers.BuildStronghold()
-			}
-		case models.FactionAuren:
-			// Auren gets an immediate favor tile when building stronghold
-			if auren, ok := player.Faction.(*factions.Auren); ok {
-				auren.BuildStronghold()
-				// Create pending favor tile selection (1 tile for Auren)
-				gs.PendingFavorTileSelection = &PendingFavorTileSelection{
-					PlayerID:      a.PlayerID,
-					Count:         1,
-					SelectedTiles: []FavorTileType{},
-				}
-			}
-		case models.FactionMermaids:
-			// Mermaids get +1 shipping level immediately when building stronghold (no cost, but awards VP)
-			if mermaids, ok := player.Faction.(*factions.Mermaids); ok {
-				mermaids.BuildStronghold()
-				// Advance shipping and award VP based on upgrade number (not level)
-				// Mermaids start at level 1, so upgrades award: 2/3/4/5 VP for 1st/2nd/3rd/4th upgrade
-				currentLevel := mermaids.GetShippingLevel()
-				newLevel := currentLevel + 1
-				if newLevel <= mermaids.GetMaxShippingLevel() {
-					mermaids.SetShippingLevel(newLevel)
-					player.ShippingLevel = newLevel
-
-					// Award VP: Mermaids' upgrade number = newLevel - 1
-					// So level 2 = 1st upgrade = 2 VP, level 3 = 2nd upgrade = 3 VP, etc.
-					vpBonus := newLevel - 1 + 1 // Simplifies to: newLevel
-					player.VictoryPoints += vpBonus
-				}
-			}
-		case models.FactionHalflings:
-			// Halflings: Immediately get 3 spades to apply on terrain spaces
-			// May build a dwelling on exactly one of these spaces by paying its costs
-			if halflings, ok := player.Faction.(*factions.Halflings); ok {
-				halflings.BuildStronghold()
-
-				// Create pending spades application
-				// Player must apply these 3 spades before continuing
-				gs.PendingHalflingsSpades = &PendingHalflingsSpades{
-					PlayerID:         a.PlayerID,
-					SpadesRemaining:  3,
-					TransformedHexes: []board.Hex{},
-				}
-			}
-		case models.FactionDarklings:
-			// Darklings: Priest ordination happens IMMEDIATELY after building stronghold
-			// Player must choose how many workers (0-3) to convert to priests
-			if darklings, ok := player.Faction.(*factions.Darklings); ok {
-				darklings.BuildStronghold()
-
-				// Create pending priest ordination
-				// Player must complete this immediately before continuing
-				gs.PendingDarklingsPriestOrdination = &PendingDarklingsPriestOrdination{
-					PlayerID: a.PlayerID,
-				}
-			}
-
-		case models.FactionGiants:
-			// Giants: Mark stronghold as built so ACTG special action becomes available
-			if giants, ok := player.Faction.(*factions.Giants); ok {
-				giants.BuildStronghold()
-			}
-		case models.FactionDwarves:
-			// Dwarves: Mark stronghold as built so tunneling cost reduces from 2W to 1W
-			if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
-				dwarves.BuildStronghold()
-			}
-		case models.FactionFakirs:
-			// Fakirs: Mark stronghold as built so carpet flight cost reduces from 1P to 0P
-			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
-				fakirs.BuildStronghold()
-			}
-		default:
-			// All other factions just mark stronghold as built (no immediate bonus)
-			// This includes: Witches, Swarmlings, Chaos Magicians, Nomads
-		}
+		a.handleStrongholdBonuses(gs, player)
 
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
 	}
+}
 
-	// Trigger power leech when upgrading (adjacent players leech based by their adjacent buildings)
-	gs.TriggerPowerLeech(a.TargetHex, a.PlayerID)
+func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *Player) {
+	switch player.Faction.GetType() {
+	case models.FactionAlchemists:
+		// Alchemists gain 12 power immediately when building stronghold
+		if alchemists, ok := player.Faction.(*factions.Alchemists); ok {
+			powerBonus := alchemists.BuildStronghold()
+			player.Resources.GainPower(powerBonus)
+		}
+	case models.FactionCultists:
+		// Cultists get +7 VP immediately when building stronghold
+		if cultists, ok := player.Faction.(*factions.Cultists); ok {
+			vpBonus := cultists.BuildStronghold()
+			player.VictoryPoints += vpBonus
+		}
+	case models.FactionEngineers:
+		// Engineers: Mark stronghold as built so GetVPPerBridgeOnPass() returns 3 VP/bridge
+		// Engineers get 3 VP per bridge if they have built their stronghold
+		if engineers, ok := player.Faction.(*factions.Engineers); ok {
+			engineers.BuildStronghold()
+		}
+	case models.FactionAuren:
+		// Auren gets an immediate favor tile when building stronghold
+		if auren, ok := player.Faction.(*factions.Auren); ok {
+			auren.BuildStronghold()
+			// Create pending favor tile selection (1 tile for Auren)
+			gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+				PlayerID:      a.PlayerID,
+				Count:         1,
+				SelectedTiles: []FavorTileType{},
+			}
+		}
+	case models.FactionMermaids:
+		// Mermaids get +1 shipping level immediately when building stronghold (no cost, but awards VP)
+		if mermaids, ok := player.Faction.(*factions.Mermaids); ok {
+			mermaids.BuildStronghold()
+			// Advance shipping and award VP based on upgrade number (not level)
+			// Mermaids start at level 1, so upgrades award: 2/3/4/5 VP for 1st/2nd/3rd/4th upgrade
+			currentLevel := mermaids.GetShippingLevel()
+			newLevel := currentLevel + 1
+			if newLevel <= mermaids.GetMaxShippingLevel() {
+				mermaids.SetShippingLevel(newLevel)
+				player.ShippingLevel = newLevel
 
-	// Check for town formation after upgrading
-	// For Temple/Sanctuary: defer town check until after favor tile is selected
-	// (favor tiles can reduce town power requirement from 7 to 6)
-	if a.NewBuildingType != models.BuildingTemple && a.NewBuildingType != models.BuildingSanctuary {
-		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
+				// Award VP: Mermaids' upgrade number = newLevel - 1
+				// So level 2 = 1st upgrade = 2 VP, level 3 = 2nd upgrade = 3 VP, etc.
+				vpBonus := newLevel - 1 + 1 // Simplifies to: newLevel
+				player.VictoryPoints += vpBonus
+			}
+		}
+	case models.FactionHalflings:
+		// Halflings: Immediately get 3 spades to apply on terrain spaces
+		// May build a dwelling on exactly one of these spaces by paying its costs
+		if halflings, ok := player.Faction.(*factions.Halflings); ok {
+			halflings.BuildStronghold()
+
+			// Create pending spades application
+			// Player must apply these 3 spades before continuing
+			gs.PendingHalflingsSpades = &PendingHalflingsSpades{
+				PlayerID:         a.PlayerID,
+				SpadesRemaining:  3,
+				TransformedHexes: []board.Hex{},
+			}
+		}
+	case models.FactionDarklings:
+		// Darklings: Priest ordination happens IMMEDIATELY after building stronghold
+		// Player must choose how many workers (0-3) to convert to priests
+		if darklings, ok := player.Faction.(*factions.Darklings); ok {
+			darklings.BuildStronghold()
+
+			// Create pending priest ordination
+			// Player must complete this immediately before continuing
+			gs.PendingDarklingsPriestOrdination = &PendingDarklingsPriestOrdination{
+				PlayerID: a.PlayerID,
+			}
+		}
+
+	case models.FactionGiants:
+		// Giants: Mark stronghold as built so ACTG special action becomes available
+		if giants, ok := player.Faction.(*factions.Giants); ok {
+			giants.BuildStronghold()
+		}
+	case models.FactionDwarves:
+		// Dwarves: Mark stronghold as built so tunneling cost reduces from 2W to 1W
+		if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
+			dwarves.BuildStronghold()
+		}
+	case models.FactionFakirs:
+		// Fakirs: Mark stronghold as built so carpet flight cost reduces from 1P to 0P
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			fakirs.BuildStronghold()
+		}
+	default:
+		// All other factions just mark stronghold as built (no immediate bonus)
+		// This includes: Witches, Swarmlings, Chaos Magicians, Nomads
 	}
-
-	// Advance turn (unless pending actions exist, checked by NextTurn)
-	gs.NextTurn()
-
-	return nil
 }
 
 // isValidUpgrade checks if an upgrade path is valid
@@ -704,7 +695,7 @@ func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuil
 	if newBuildingType == models.BuildingTradingHouse {
 		if hasAdjacentOpponent(gs, mapHex.Coord, player.ID) {
 			// Reduce coin cost by half (6 -> 3 for most factions)
-			baseCost.Coins = baseCost.Coins / 2
+			baseCost.Coins /= 2
 		}
 	}
 
@@ -728,6 +719,7 @@ type AdvanceShippingAction struct {
 	BaseAction
 }
 
+// NewAdvanceShippingAction creates a new advance shipping action
 func NewAdvanceShippingAction(playerID string) *AdvanceShippingAction {
 	return &AdvanceShippingAction{
 		BaseAction: BaseAction{
@@ -737,6 +729,7 @@ func NewAdvanceShippingAction(playerID string) *AdvanceShippingAction {
 	}
 }
 
+// Validate checks if the shipping advancement is valid
 func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -760,6 +753,7 @@ func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the shipping advancement
 func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -787,6 +781,7 @@ type AdvanceDiggingAction struct {
 	BaseAction
 }
 
+// NewAdvanceDiggingAction creates a new advance digging action
 func NewAdvanceDiggingAction(playerID string) *AdvanceDiggingAction {
 	return &AdvanceDiggingAction{
 		BaseAction: BaseAction{
@@ -796,6 +791,7 @@ func NewAdvanceDiggingAction(playerID string) *AdvanceDiggingAction {
 	}
 }
 
+// Validate checks if the digging advancement is valid
 func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -808,7 +804,7 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 	switch factionType {
 	case models.FactionDarklings:
 		// Darklings cannot advance digging at all (they use priests for spades)
-		return fmt.Errorf("Darklings cannot advance digging level")
+		return fmt.Errorf("darklings cannot advance digging level")
 	case models.FactionFakirs:
 		// Fakirs can only advance to level 1
 		maxLevel = 1
@@ -831,6 +827,7 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the digging advancement
 func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -859,6 +856,7 @@ type PassAction struct {
 	BonusCard *BonusCardType // Bonus card selection (required)
 }
 
+// NewPassAction creates a new pass action
 func NewPassAction(playerID string, bonusCard *BonusCardType) *PassAction {
 	return &PassAction{
 		BaseAction: BaseAction{
@@ -869,6 +867,7 @@ func NewPassAction(playerID string, bonusCard *BonusCardType) *PassAction {
 	}
 }
 
+// Validate checks if the pass action is valid
 func (a *PassAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -895,6 +894,7 @@ func (a *PassAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the pass action
 func (a *PassAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -958,10 +958,12 @@ type SendPriestToCultAction struct {
 	SpacesToClimb int // Number of spaces to advance (1-3), always costs 1 priest
 }
 
+// GetType returns the action type
 func (a *SendPriestToCultAction) GetType() ActionType {
 	return ActionSendPriestToCult
 }
 
+// Validate checks if the send priest action is valid
 func (a *SendPriestToCultAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -986,6 +988,7 @@ func (a *SendPriestToCultAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the send priest action
 func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -994,7 +997,7 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 
 	// Remove 1 priest from player's supply (cost is always 1 priest, regardless of spaces)
-	player.Resources.Priests -= 1
+	player.Resources.Priests--
 
 	// Advance on cult track (with bonus power at milestones)
 	// Note: It's valid to sacrifice a priest even if you can't advance (no refund)
@@ -1032,4 +1035,71 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 
 	gs.NextTurn()
 	return nil
+}
+
+// ValidateSkipAbility checks if a player can use their faction's skip ability (Carpet Flight/Tunneling)
+// Returns error if not valid, or nil if valid.
+// Also validates if the player has enough resources (but does not spend them).
+func ValidateSkipAbility(gs *GameState, player *Player, targetHex board.Hex) error {
+	// Determine if the player's faction has a skip ability and validate its use.
+	// This function also checks for resource costs but does not deduct them.
+	switch f := player.Faction.(type) {
+	case *factions.Fakirs:
+		if !f.CanCarpetFlight() {
+			return fmt.Errorf("fakirs cannot use carpet flight")
+		}
+		// Calculate skip range for Fakirs
+		skipRange := 1
+		if f.HasStronghold() {
+			skipRange++
+		}
+		if f.HasShippingTownTile() {
+			skipRange++
+		}
+		if !gs.Map.IsWithinSkipRange(targetHex, player.ID, skipRange) {
+			return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
+		}
+		// Check if player has priest to pay
+		if player.Resources.Priests < 1 {
+			return fmt.Errorf("not enough priests for carpet flight: need 1, have %d", player.Resources.Priests)
+		}
+	case *factions.Dwarves:
+		if !f.CanTunnel() {
+			return fmt.Errorf("dwarves cannot tunnel")
+		}
+		// Dwarves can tunnel 1 space
+		if !gs.Map.IsWithinSkipRange(targetHex, player.ID, 1) {
+			return fmt.Errorf("target hex is not within tunneling range 1")
+		}
+		// Check if player has workers to pay
+		workerCost := 2
+		if player.HasStrongholdAbility {
+			workerCost = 1
+		}
+		if player.Resources.Workers < workerCost {
+			return fmt.Errorf("not enough workers for tunneling: need %d, have %d", workerCost, player.Resources.Workers)
+		}
+	default:
+		return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
+	}
+	return nil
+}
+
+// PaySkipCost deducts the cost for using skip ability and awards VP
+func PaySkipCost(player *Player) {
+	if player.Faction.GetType() == models.FactionFakirs {
+		// Pay priest for carpet flight
+		player.Resources.Priests--
+		// Award VP bonus
+		player.VictoryPoints += 4
+	} else if player.Faction.GetType() == models.FactionDwarves {
+		// Pay workers for tunneling
+		workerCost := 2
+		if player.HasStrongholdAbility {
+			workerCost = 1
+		}
+		player.Resources.Workers -= workerCost
+		// Award VP bonus
+		player.VictoryPoints += 4
+	}
 }

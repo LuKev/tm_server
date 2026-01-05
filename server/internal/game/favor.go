@@ -41,35 +41,27 @@ const (
 	FavorTileUnknown FavorTileType = -1
 )
 
+var favorTileTypeMap = map[string]FavorTileType{
+	"Fire +3":                       FavorFire3,
+	"Water +3":                      FavorWater3,
+	"Earth +3":                      FavorEarth3,
+	"Air +3":                        FavorAir3,
+	"Fire +2: Town Power":           FavorFire2,
+	"Water +2: Cult Advance":        FavorWater2,
+	"Earth +2: Worker Income":       FavorEarth2,
+	"Air +2: Power Income":          FavorAir2,
+	"Fire +1: Coin Income":          FavorFire1,
+	"Water +1: Trading House VP":    FavorWater1,
+	"Earth +1: Dwelling VP":         FavorEarth1,
+	"Air +1: Trading House Pass VP": FavorAir1,
+}
+
+// FavorTileTypeFromString converts a string to a FavorTileType
 func FavorTileTypeFromString(s string) FavorTileType {
-	switch s {
-	case "Fire +3":
-		return FavorFire3
-	case "Water +3":
-		return FavorWater3
-	case "Earth +3":
-		return FavorEarth3
-	case "Air +3":
-		return FavorAir3
-	case "Fire +2: Town Power":
-		return FavorFire2
-	case "Water +2: Cult Advance":
-		return FavorWater2
-	case "Earth +2: Worker Income":
-		return FavorEarth2
-	case "Air +2: Power Income":
-		return FavorAir2
-	case "Fire +1: Coin Income":
-		return FavorFire1
-	case "Water +1: Trading House VP":
-		return FavorWater1
-	case "Earth +1: Dwelling VP":
-		return FavorEarth1
-	case "Air +1: Trading House Pass VP":
-		return FavorAir1
-	default:
-		return FavorTileUnknown
+	if t, ok := favorTileTypeMap[s]; ok {
+		return t
 	}
+	return FavorTileUnknown
 }
 
 // FavorTile represents a favor tile with its properties

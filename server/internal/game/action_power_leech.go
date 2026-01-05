@@ -12,6 +12,7 @@ type AcceptPowerLeechAction struct {
 	OfferIndex int // Index of the offer in PendingLeechOffers
 }
 
+// NewAcceptPowerLeechAction creates a new accept power leech action
 func NewAcceptPowerLeechAction(playerID string, offerIndex int) *AcceptPowerLeechAction {
 	return &AcceptPowerLeechAction{
 		BaseAction: BaseAction{
@@ -22,6 +23,7 @@ func NewAcceptPowerLeechAction(playerID string, offerIndex int) *AcceptPowerLeec
 	}
 }
 
+// Validate checks if the action is valid
 func (a *AcceptPowerLeechAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -40,6 +42,7 @@ func (a *AcceptPowerLeechAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *AcceptPowerLeechAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -73,6 +76,7 @@ type DeclinePowerLeechAction struct {
 	OfferIndex int // Index of the offer in PendingLeechOffers
 }
 
+// NewDeclinePowerLeechAction creates a new decline power leech action
 func NewDeclinePowerLeechAction(playerID string, offerIndex int) *DeclinePowerLeechAction {
 	return &DeclinePowerLeechAction{
 		BaseAction: BaseAction{
@@ -83,6 +87,7 @@ func NewDeclinePowerLeechAction(playerID string, offerIndex int) *DeclinePowerLe
 	}
 }
 
+// Validate checks if the action is valid
 func (a *DeclinePowerLeechAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -101,6 +106,7 @@ func (a *DeclinePowerLeechAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *DeclinePowerLeechAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err

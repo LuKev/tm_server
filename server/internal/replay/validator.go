@@ -42,7 +42,7 @@ func NewGameValidator() *GameValidator {
 func (v *GameValidator) LoadGameLog(filename string) error {
 	entries, err := ParseGameLog(filename)
 	if err != nil {
-		return fmt.Errorf("failed to parse game log: %v", err)
+		return fmt.Errorf("failed to parse game log: %w", err)
 	}
 
 	v.LogEntries = entries
@@ -179,7 +179,7 @@ func (v *GameValidator) handleIncome(entry *LogEntry) error {
 
 		// Validate state - cult rewards were already given in ExecuteCleanupPhase
 		if err := v.ValidateState(entry); err != nil {
-			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+			return fmt.Errorf("validation failed at entry %d: %w", v.CurrentEntry, err)
 		}
 		return nil
 	}
@@ -203,7 +203,7 @@ func (v *GameValidator) handleIncome(entry *LogEntry) error {
 			// Parse and execute the action (likely a cult spade transform)
 			compound, err := ParseCompoundAction(actualAction, &tempEntry, v.GameState)
 			if err != nil {
-				return fmt.Errorf("failed to parse income action at entry %d: %v", v.CurrentEntry, err)
+				return fmt.Errorf("failed to parse income action at entry %d: %w", v.CurrentEntry, err)
 			}
 
 			// Execute the action
@@ -214,7 +214,7 @@ func (v *GameValidator) handleIncome(entry *LogEntry) error {
 
 		// Validate state matches after income
 		if err := v.ValidateState(entry); err != nil {
-			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+			return fmt.Errorf("validation failed at entry %d: %w", v.CurrentEntry, err)
 		}
 		return nil
 	}
@@ -275,7 +275,7 @@ func (v *GameValidator) executeCompoundActionWithAlchemistsCheck(compound *Compo
 	}
 
 	if err := compound.Execute(v.GameState, playerID); err != nil {
-		return fmt.Errorf("failed to execute action: %v", err)
+		return fmt.Errorf("failed to execute action: %w", err)
 	}
 
 	// If power was already granted during cult_income, restore power state
@@ -337,7 +337,7 @@ func (v *GameValidator) handleAction(entry *LogEntry) error {
 	// Try to handle action using compound action parser
 	if handled, err := v.tryExecuteCompoundAction(entry); handled {
 		if err != nil {
-			return fmt.Errorf("compound action failed at entry %d: %v", v.CurrentEntry, err)
+			return fmt.Errorf("compound action failed at entry %d: %w", v.CurrentEntry, err)
 		}
 		return nil
 	}
@@ -354,7 +354,7 @@ func (v *GameValidator) handleAction(entry *LogEntry) error {
 
 	if entry.Action == "wait" {
 		if err := v.ValidateState(entry); err != nil {
-			return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+			return fmt.Errorf("validation failed at entry %d: %w", v.CurrentEntry, err)
 		}
 		return nil
 	}
@@ -367,7 +367,7 @@ func (v *GameValidator) handleAction(entry *LogEntry) error {
 
 	// Validate state matches the log entry (for non-action entries)
 	if err := v.ValidateState(entry); err != nil {
-		return fmt.Errorf("validation failed at entry %d: %v", v.CurrentEntry, err)
+		return fmt.Errorf("validation failed at entry %d: %w", v.CurrentEntry, err)
 	}
 
 	return nil
@@ -405,12 +405,12 @@ func (v *GameValidator) syncGameState(entry *LogEntry) {
 func (v *GameValidator) executeAction(action game.Action) error {
 	// Validate the action first
 	if err := action.Validate(v.GameState); err != nil {
-		return fmt.Errorf("action validation failed: %v", err)
+		return fmt.Errorf("action validation failed: %w", err)
 	}
 
 	// Execute the action
 	if err := action.Execute(v.GameState); err != nil {
-		return fmt.Errorf("action execution failed: %v", err)
+		return fmt.Errorf("action execution failed: %w", err)
 	}
 
 	return nil
@@ -420,7 +420,7 @@ func (v *GameValidator) executeAction(action game.Action) error {
 func (v *GameValidator) ReplayGame() error {
 	// Initialize game
 	if err := v.InitializeGame(); err != nil {
-		return fmt.Errorf("failed to initialize game: %v", err)
+		return fmt.Errorf("failed to initialize game: %w", err)
 	}
 
 	// Process all entries
@@ -757,24 +757,8 @@ func (v *GameValidator) HasErrors() bool {
 // Returns (handled, error) where handled=true means the action was processed by compound parser
 func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) {
 	// Skip for special entry types that need custom handling
-	if entry.IsComment ||
-		strings.Contains(entry.Action, "Leech") ||
-		strings.Contains(entry.Action, "Decline") ||
-		strings.Contains(entry.Action, "_income_for_faction") ||
-		strings.Contains(entry.Action, "[opponent accepted power]") ||
-		strings.Contains(entry.Action, "[all opponents declined power]") ||
-		entry.Action == "setup" ||
-		entry.Action == "wait" {
+	if v.shouldSkipCompoundParsing(entry) {
 		return false, nil // Not a compound action, use old path
-	}
-
-	// Skip pure cult advancement entries (these are informational)
-	// If the action contains a period, it's a compound action and should be parsed
-	if strings.HasPrefix(entry.Action, "+") &&
-		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
-			strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) &&
-		!strings.Contains(entry.Action, ".") { // Compound actions have periods
-		return false, nil // Informational entry, use old path
 	}
 
 	playerID := entry.GetPlayerID()
@@ -901,6 +885,31 @@ func (v *GameValidator) tryExecuteCompoundAction(entry *LogEntry) (bool, error) 
 	}
 
 	return true, nil
+}
+
+// shouldSkipCompoundParsing checks if an entry should be skipped by the compound parser
+func (v *GameValidator) shouldSkipCompoundParsing(entry *LogEntry) bool {
+	if entry.IsComment ||
+		strings.Contains(entry.Action, "Leech") ||
+		strings.Contains(entry.Action, "Decline") ||
+		strings.Contains(entry.Action, "_income_for_faction") ||
+		strings.Contains(entry.Action, "[opponent accepted power]") ||
+		strings.Contains(entry.Action, "[all opponents declined power]") ||
+		entry.Action == "setup" ||
+		entry.Action == "wait" {
+		return true
+	}
+
+	// Skip pure cult advancement entries (these are informational)
+	// If the action contains a period, it's a compound action and should be parsed
+	if strings.HasPrefix(entry.Action, "+") &&
+		(strings.Contains(entry.Action, "FIRE") || strings.Contains(entry.Action, "WATER") ||
+			strings.Contains(entry.Action, "EARTH") || strings.Contains(entry.Action, "AIR")) &&
+		!strings.Contains(entry.Action, ".") { // Compound actions have periods
+		return true
+	}
+
+	return false
 }
 
 // GetErrorSummary returns a summary of all errors

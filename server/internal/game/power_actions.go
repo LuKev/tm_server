@@ -21,6 +21,8 @@ const (
 	PowerActionUnknown PowerActionType = -1
 )
 
+// PowerActionTypeFromString converts a string to a PowerActionType
+// PowerActionTypeFromString converts a string to a PowerActionType
 func PowerActionTypeFromString(s string) PowerActionType {
 	switch s {
 	case "Bridge":
@@ -94,6 +96,8 @@ type PowerAction struct {
 	BridgeHex2 *board.Hex // Optional: for bridge action
 }
 
+// NewPowerAction creates a new power action
+// NewPowerAction creates a new power action
 func NewPowerAction(playerID string, actionType PowerActionType) *PowerAction {
 	return &PowerAction{
 		BaseAction: BaseAction{
@@ -130,6 +134,8 @@ func NewPowerActionWithBridge(playerID string, hex1, hex2 board.Hex) *PowerActio
 	}
 }
 
+// Validate checks if the power action is valid
+// Validate checks if the power action is valid
 func (a *PowerAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -149,95 +155,78 @@ func (a *PowerAction) Validate(gs *GameState) error {
 
 	// Validate spade actions
 	if a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2 {
-		if a.TargetHex == nil {
-			return fmt.Errorf("spade power action requires a target hex")
-		}
-
-		// Validate the transform would be legal
-		// This is similar to TransformAndBuild validation
-		mapHex := gs.Map.GetHex(*a.TargetHex)
-		if mapHex == nil {
-			return fmt.Errorf("hex does not exist: %v", a.TargetHex)
-		}
-		if mapHex.Building != nil {
-			return fmt.Errorf("hex already has a building")
-		}
-
-		// Check adjacency (or skip range for Fakirs/Dwarves)
-		if a.UseSkip {
-			// Validate skip ability usage (same as TransformAndBuildAction)
-			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
-				if !fakirs.CanCarpetFlight() {
-					return fmt.Errorf("Fakirs cannot use carpet flight")
-				}
-				skipRange := 1
-				if fakirs.HasStronghold() {
-					skipRange++
-				}
-				if fakirs.HasShippingTownTile() {
-					skipRange++
-				}
-				if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, skipRange) {
-					return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
-				}
-				if player.Resources.Priests < 1 {
-					return fmt.Errorf("not enough priests for carpet flight")
-				}
-			} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
-				if !dwarves.CanTunnel() {
-					return fmt.Errorf("Dwarves cannot tunnel")
-				}
-				if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, 1) {
-					return fmt.Errorf("target hex is not within tunneling range 1")
-				}
-				workerCost := 2
-				if player.HasStrongholdAbility {
-					workerCost = 1
-				}
-				if player.Resources.Workers < workerCost {
-					return fmt.Errorf("not enough workers for tunneling")
-				}
-			} else {
-				return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
-			}
-		} else {
-			if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
-				return fmt.Errorf("hex is not adjacent to player's buildings")
-			}
+		if err := a.validateSpadeAction(gs, player); err != nil {
+			return err
 		}
 	}
 
 	// Validate bridge action
 	if a.ActionType == PowerActionBridge {
-		// Check if player has bridges remaining (max 3)
-		if player.BridgesBuilt >= 3 {
-			return fmt.Errorf("player has already built 3 bridges (maximum)")
+		if err := a.validateBridgeAction(gs, player); err != nil {
+			return err
 		}
-
-		// If bridge hex coordinates are provided, validate the bridge placement
-		if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
-			// Check if bridge already exists
-			if gs.Map.HasBridge(*a.BridgeHex1, *a.BridgeHex2) {
-				return fmt.Errorf("bridge already exists between these hexes")
-			}
-
-			// Validate hex coordinates are on the map
-			if gs.Map.GetHex(*a.BridgeHex1) == nil {
-				return fmt.Errorf("bridge hex1 is not on the map")
-			}
-			if gs.Map.GetHex(*a.BridgeHex2) == nil {
-				return fmt.Errorf("bridge hex2 is not on the map")
-			}
-
-			// Note: Full geometry validation happens in BuildBridge during Execute
-		}
-		// Note: Bridge coordinates are optional for backward compatibility
-		// If not provided, the action just increments the counter
 	}
 
 	return nil
 }
 
+func (a *PowerAction) validateSpadeAction(gs *GameState, player *Player) error {
+	if a.TargetHex == nil {
+		return fmt.Errorf("spade power action requires a target hex")
+	}
+
+	// Validate the transform would be legal
+	// This is similar to TransformAndBuild validation
+	mapHex := gs.Map.GetHex(*a.TargetHex)
+	if mapHex == nil {
+		return fmt.Errorf("hex does not exist: %v", a.TargetHex)
+	}
+	if mapHex.Building != nil {
+		return fmt.Errorf("hex already has a building")
+	}
+
+	// Check adjacency (or skip range for Fakirs/Dwarves)
+	if a.UseSkip {
+		if err := ValidateSkipAbility(gs, player, *a.TargetHex); err != nil {
+			return err
+		}
+	} else {
+		if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
+			return fmt.Errorf("hex is not adjacent to player's buildings")
+		}
+	}
+	return nil
+}
+
+func (a *PowerAction) validateBridgeAction(gs *GameState, player *Player) error {
+	// Check if player has bridges remaining (max 3)
+	if player.BridgesBuilt >= 3 {
+		return fmt.Errorf("player has already built 3 bridges (maximum)")
+	}
+
+	// If bridge hex coordinates are provided, validate the bridge placement
+	if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
+		// Check if bridge already exists
+		if gs.Map.HasBridge(*a.BridgeHex1, *a.BridgeHex2) {
+			return fmt.Errorf("bridge already exists between these hexes")
+		}
+
+		// Validate hex coordinates are on the map
+		if gs.Map.GetHex(*a.BridgeHex1) == nil {
+			return fmt.Errorf("bridge hex1 is not on the map")
+		}
+		if gs.Map.GetHex(*a.BridgeHex2) == nil {
+			return fmt.Errorf("bridge hex2 is not on the map")
+		}
+
+		// Note: Full geometry validation happens in BuildBridge during Execute
+	}
+	// Note: Bridge coordinates are optional for backward compatibility
+	// If not provided, the action just increments the counter
+	return nil
+}
+
+// Execute performs the power action
 func (a *PowerAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -311,21 +300,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 
 	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
-		if player.Faction.GetType() == models.FactionFakirs {
-			// Pay priest for carpet flight
-			player.Resources.Priests -= 1
-			// Award VP bonus
-			player.VictoryPoints += 4
-		} else if player.Faction.GetType() == models.FactionDwarves {
-			// Pay workers for tunneling
-			workerCost := 2
-			if player.HasStrongholdAbility {
-				workerCost = 1
-			}
-			player.Resources.Workers -= workerCost
-			// Award VP bonus
-			player.VictoryPoints += 4
-		}
+		PaySkipCost(player)
 	}
 
 	// Calculate spades needed
@@ -337,16 +312,41 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		return fmt.Errorf("hex is already home terrain")
 	}
 
-	// Use free spades first, then pay workers/priests for remaining
+	remainingSpades := a.calculateRemainingSpades(distance, freeSpades)
+
+	// Pay for remaining spades
+	if err := a.paySpadeCosts(player, remainingSpades); err != nil {
+		return err
+	}
+
+	// Transform the terrain
+	if err := gs.Map.TransformTerrain(*a.TargetHex, targetTerrain); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
+
+	// Award VP from scoring tile for ALL spades used (both free and paid)
+	a.awardSpadeBonuses(gs, player, distance)
+
+	// Build dwelling if requested
+	if a.BuildDwelling {
+		if err := a.buildDwelling(gs, player); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *PowerAction) calculateRemainingSpades(distance, freeSpades int) int {
 	spadesNeeded := distance
 	spadesFromFreeAction := freeSpades
 	if spadesFromFreeAction > spadesNeeded {
 		spadesFromFreeAction = spadesNeeded
 	}
+	return spadesNeeded - spadesFromFreeAction
+}
 
-	remainingSpades := spadesNeeded - spadesFromFreeAction
-
-	// Pay for remaining spades
+func (a *PowerAction) paySpadeCosts(player *Player, remainingSpades int) error {
 	if remainingSpades > 0 {
 		// Darklings pay priests (instead of workers)
 		if player.Faction.GetType() == models.FactionDarklings {
@@ -368,13 +368,11 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 			player.Resources.Workers -= workersNeeded
 		}
 	}
+	return nil
+}
 
-	// Transform the terrain
-	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
-
-	// Award VP from scoring tile for ALL spades used (both free and paid)
+func (a *PowerAction) awardSpadeBonuses(gs *GameState, player *Player, totalSpades int) {
 	// Power action spades (ACT5/ACT6) count for scoring, unlike cult reward spades
-	totalSpades := spadesFromFreeAction + remainingSpades
 	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && totalSpades > 0 {
 		// Convert worker/priest cost back to spades
 		spadesUsed := totalSpades
@@ -388,25 +386,24 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 		// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
 		AwardFactionSpadeBonuses(player, spadesUsed)
 	}
+}
 
-	// Build dwelling if requested
-	if a.BuildDwelling {
-		// Check building limit
-		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
-			return err
-		}
-
-		// Pay for dwelling
-		dwellingCost := player.Faction.GetDwellingCost()
-		if err := player.Resources.Spend(dwellingCost); err != nil {
-			return fmt.Errorf("failed to pay for dwelling: %w", err)
-		}
-
-		// Place dwelling and handle all VP bonuses
-		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
-			return err
-		}
+// Fixed version of executeTransformWithFreeSpades with correct helper usage
+func (a *PowerAction) buildDwelling(gs *GameState, player *Player) error {
+	// Check building limit
+	if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
+		return err
 	}
 
+	// Pay for dwelling
+	dwellingCost := player.Faction.GetDwellingCost()
+	if err := player.Resources.Spend(dwellingCost); err != nil {
+		return fmt.Errorf("failed to pay for dwelling: %w", err)
+	}
+
+	// Place dwelling and handle all VP bonuses
+	if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
+		return err
+	}
 	return nil
 }

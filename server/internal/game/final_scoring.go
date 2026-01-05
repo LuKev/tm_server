@@ -71,11 +71,16 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 		scores[playerID].LargestAreaSize = largestArea
 	}
 
-	// Group players by area size
-	type playerArea struct {
-		playerID string
-		size     int
-	}
+	ranked := gs.getRankedAreas(scores)
+	gs.distributeAreaVP(scores, ranked)
+}
+
+type playerArea struct {
+	playerID string
+	size     int
+}
+
+func (gs *GameState) getRankedAreas(scores map[string]*PlayerFinalScore) []playerArea {
 	var ranked []playerArea
 	for id, score := range scores {
 		ranked = append(ranked, playerArea{id, score.LargestAreaSize})
@@ -85,7 +90,10 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 	sort.Slice(ranked, func(i, j int) bool {
 		return ranked[i].size > ranked[j].size
 	})
+	return ranked
+}
 
+func (gs *GameState) distributeAreaVP(scores map[string]*PlayerFinalScore, ranked []playerArea) {
 	// Define awards
 	awards := []int{18, 12, 6}
 	currentAwardIndex := 0
@@ -132,77 +140,88 @@ func (gs *GameState) calculateCultBonuses(scores map[string]*PlayerFinalScore) {
 	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
 
 	for _, track := range tracks {
-		// Get all players and their positions on this track
-		type playerPosition struct {
-			playerID string
-			position int
-		}
+		positionGroups := gs.getRankedCultPositions(track)
+		gs.distributeCultVP(scores, positionGroups)
+	}
+}
 
-		positions := []playerPosition{}
-		for playerID := range gs.Players {
-			pos := gs.CultTracks.GetPosition(playerID, track)
-			if pos > 0 { // Only include players who advanced on this track
-				positions = append(positions, playerPosition{playerID, pos})
+func (gs *GameState) getRankedCultPositions(track CultTrack) [][]string {
+	// Get all players and their positions on this track
+	type playerPosition struct {
+		playerID string
+		position int
+	}
+
+	positions := []playerPosition{}
+	for playerID := range gs.Players {
+		pos := gs.CultTracks.GetPosition(playerID, track)
+		if pos > 0 { // Only include players who advanced on this track
+			positions = append(positions, playerPosition{playerID, pos})
+		}
+	}
+
+	// Sort by position (descending)
+	sort.Slice(positions, func(i, j int) bool {
+		return positions[i].position > positions[j].position
+	})
+
+	// Group by position to handle ties
+	if len(positions) == 0 {
+		return nil
+	}
+
+	positionGroups := [][]string{}
+	currentPos := -1
+	var currentGroup []string
+
+	for _, pp := range positions {
+		if pp.position != currentPos {
+			if len(currentGroup) > 0 {
+				positionGroups = append(positionGroups, currentGroup)
 			}
+			currentGroup = []string{pp.playerID}
+			currentPos = pp.position
+		} else {
+			currentGroup = append(currentGroup, pp.playerID)
+		}
+	}
+	if len(currentGroup) > 0 {
+		positionGroups = append(positionGroups, currentGroup)
+	}
+	return positionGroups
+}
+
+func (gs *GameState) distributeCultVP(scores map[string]*PlayerFinalScore, positionGroups [][]string) {
+	if len(positionGroups) == 0 {
+		return
+	}
+
+	// Award VP: 8 for 1st place, 4 for 2nd, 2 for 3rd
+	vpAwards := []int{8, 4, 2}
+	awardIndex := 0
+
+	for _, group := range positionGroups {
+		if awardIndex >= len(vpAwards) {
+			break // No more awards to give
 		}
 
-		// Sort by position (descending)
-		sort.Slice(positions, func(i, j int) bool {
-			return positions[i].position > positions[j].position
-		})
-
-		// Award VP for top 3 positions (handling ties)
-		if len(positions) == 0 {
-			continue
+		// Calculate VP for this group (may span multiple award levels if tied)
+		totalVP := 0
+		awardsUsed := 0
+		for i := awardIndex; i < len(vpAwards) && awardsUsed < len(group); i++ {
+			totalVP += vpAwards[i]
+			awardsUsed++
 		}
 
-		// Group by position to handle ties
-		positionGroups := [][]string{}
-		currentPos := -1
-		var currentGroup []string
+		// Split VP among tied players (rounded down)
+		vpPerPlayer := totalVP / len(group)
 
-		for _, pp := range positions {
-			if pp.position != currentPos {
-				if len(currentGroup) > 0 {
-					positionGroups = append(positionGroups, currentGroup)
-				}
-				currentGroup = []string{pp.playerID}
-				currentPos = pp.position
-			} else {
-				currentGroup = append(currentGroup, pp.playerID)
-			}
-		}
-		if len(currentGroup) > 0 {
-			positionGroups = append(positionGroups, currentGroup)
+		for _, playerID := range group {
+			scores[playerID].CultVP += vpPerPlayer
 		}
 
-		// Award VP: 8 for 1st place, 4 for 2nd, 2 for 3rd
-		vpAwards := []int{8, 4, 2}
-		awardIndex := 0
-
-		for _, group := range positionGroups {
-			if awardIndex >= len(vpAwards) {
-				break // No more awards to give
-			}
-
-			// Calculate VP for this group (may span multiple award levels if tied)
-			totalVP := 0
-			awardsUsed := 0
-			for i := awardIndex; i < len(vpAwards) && awardsUsed < len(group); i++ {
-				totalVP += vpAwards[i]
-				awardsUsed++
-			}
-
-			// Split VP among tied players (rounded down)
-			vpPerPlayer := totalVP / len(group)
-
-			for _, playerID := range group {
-				scores[playerID].CultVP += vpPerPlayer
-			}
-
-			// Move to next award level
-			awardIndex += len(group)
-		}
+		// Move to next award level
+		awardIndex += len(group)
 	}
 }
 

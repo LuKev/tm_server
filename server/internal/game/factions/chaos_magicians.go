@@ -23,6 +23,7 @@ type ChaosMagicians struct {
 	doubleTurnUsedThisRound bool // Special action usage tracking
 }
 
+// NewChaosMagicians creates a new Chaos Magicians faction
 func NewChaosMagicians() *ChaosMagicians {
 	return &ChaosMagicians{
 		BaseFaction: BaseFaction{
@@ -75,6 +76,7 @@ func (f *ChaosMagicians) BuildStronghold() {
 
 // Income methods (Chaos Magicians-specific)
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *ChaosMagicians) GetStrongholdIncome() Income {
 	// Chaos Magicians: 2 workers, NO priest
 	return Income{Workers: 2}

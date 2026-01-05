@@ -20,7 +20,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 	playerID := entry.GetPlayerID()
 	actionType, params, err := ParseAction(entry.Action)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse action: %v", err)
+		return nil, fmt.Errorf("failed to parse action: %w", err)
 	}
 
 	// Check if we're in setup phase
@@ -71,7 +71,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		if burnStr, hasBurn := params["burn"]; hasBurn {
 			burnAmount, err := strconv.Atoi(burnStr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid burn amount %s: %v", burnStr, err)
+				return nil, fmt.Errorf("invalid burn amount %s: %w", burnStr, err)
 			}
 			player := gs.GetPlayer(playerID)
 			if player == nil {
@@ -79,7 +79,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			}
 			// Burn power before the main action
 			if err := player.Resources.BurnPower(burnAmount); err != nil {
-				return nil, fmt.Errorf("failed to burn power: %v", err)
+				return nil, fmt.Errorf("failed to burn power: %w", err)
 			}
 		}
 
@@ -91,7 +91,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 				if hasCoord {
 					hex, err := ConvertLogCoordToAxial(coordStr)
 					if err != nil {
-						return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+						return nil, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
 					}
 					// BON1 provides a free spade transform + build
 					return game.NewBonusCardSpadeAction(playerID, hex, false, models.TerrainTypeUnknown), nil
@@ -107,7 +107,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 					// Parse cult track
 					cultTrack, err := ParseCultTrack(cultTrackStr)
 					if err != nil {
-						return nil, fmt.Errorf("invalid cult track %s: %v", cultTrackStr, err)
+						return nil, fmt.Errorf("invalid cult track %s: %w", cultTrackStr, err)
 					}
 
 					// Convert models.CultType to game.CultTrack
@@ -150,14 +150,14 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			}
 			hex, err := ConvertLogCoordToAxial(coordStr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+				return nil, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
 			}
 			return game.NewWitchesRideAction(playerID, hex), nil
 		}
 
 		powerActionType, err := ParsePowerActionType(actionTypeStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid power action type: %v", err)
+			return nil, fmt.Errorf("invalid power action type: %w", err)
 		}
 
 		// Check if this is combined with build/transform
@@ -166,7 +166,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			// Power action with build or transform+build
 			hex, err := ConvertLogCoordToAxial(coordStr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+				return nil, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
 			}
 
 			// Check if there's a transform
@@ -188,25 +188,25 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			// Parse bridge endpoints
 			hex1, err := ConvertLogCoordToAxial(bridgeFrom)
 			if err != nil {
-				return nil, fmt.Errorf("invalid bridge coordinate %s: %v", bridgeFrom, err)
+				return nil, fmt.Errorf("invalid bridge coordinate %s: %w", bridgeFrom, err)
 			}
 			hex2, err := ConvertLogCoordToAxial(bridgeTo)
 			if err != nil {
-				return nil, fmt.Errorf("invalid bridge coordinate %s: %v", bridgeTo, err)
+				return nil, fmt.Errorf("invalid bridge coordinate %s: %w", bridgeTo, err)
 			}
 
 			// Execute the power action to pay the cost
 			powerAction := game.NewPowerAction(playerID, powerActionType)
 			if err := powerAction.Validate(gs); err != nil {
-				return nil, fmt.Errorf("bridge power action validation failed: %v", err)
+				return nil, fmt.Errorf("bridge power action validation failed: %w", err)
 			}
 			if err := powerAction.Execute(gs); err != nil {
-				return nil, fmt.Errorf("bridge power action execution failed: %v", err)
+				return nil, fmt.Errorf("bridge power action execution failed: %w", err)
 			}
 
 			// Build the bridge
 			if err := gs.Map.BuildBridge(hex1, hex2); err != nil {
-				return nil, fmt.Errorf("failed to build bridge: %v", err)
+				return nil, fmt.Errorf("failed to build bridge: %w", err)
 			}
 
 			// Return nil to indicate action was executed inline
@@ -244,7 +244,7 @@ func convertBuildAction(playerID string, params map[string]string, isSetup bool,
 
 	hex, err := ConvertLogCoordToAxial(coordStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+		return nil, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
 	}
 
 	// During setup, use setup dwelling action (no cost, no adjacency)
@@ -289,12 +289,12 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 
 	hex, err := ConvertLogCoordToAxial(coordStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+		return nil, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
 	}
 
 	buildingType, err := ParseBuildingType(buildingStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid building type %s: %v", buildingStr, err)
+		return nil, fmt.Errorf("invalid building type %s: %w", buildingStr, err)
 	}
 
 	upgradeAction := game.NewUpgradeBuildingAction(playerID, hex, buildingType)
@@ -367,17 +367,17 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 		} else {
 			// Normal execution
 			if err := upgradeAction.Validate(gs); err != nil {
-				return nil, fmt.Errorf("upgrade validation failed: %v", err)
+				return nil, fmt.Errorf("upgrade validation failed: %w", err)
 			}
 			if err := upgradeAction.Execute(gs); err != nil {
-				return nil, fmt.Errorf("upgrade execution failed: %v", err)
+				return nil, fmt.Errorf("upgrade execution failed: %w", err)
 			}
 		}
 
 		// Now handle favor tile selection
 		favorTileType, err := ParseFavorTile(favorTileStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid favor tile %s: %v", favorTileStr, err)
+			return nil, fmt.Errorf("invalid favor tile %s: %w", favorTileStr, err)
 		}
 
 		if skipValidation {
@@ -386,7 +386,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			// cult advancement (which was already synced by validator).
 			// Just take the tile without executing the full action (to avoid double-applying cult advancement)
 			if err := gs.FavorTiles.TakeFavorTile(playerID, favorTileType); err != nil {
-				return nil, fmt.Errorf("failed to take favor tile: %v", err)
+				return nil, fmt.Errorf("failed to take favor tile: %w", err)
 			}
 		} else {
 			// Normal execution: full favor tile action including cult advancement
@@ -399,10 +399,10 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			}
 
 			if err := favorAction.Validate(gs); err != nil {
-				return nil, fmt.Errorf("favor tile validation failed: %v", err)
+				return nil, fmt.Errorf("favor tile validation failed: %w", err)
 			}
 			if err := favorAction.Execute(gs); err != nil {
-				return nil, fmt.Errorf("favor tile execution failed: %v", err)
+				return nil, fmt.Errorf("favor tile execution failed: %w", err)
 			}
 		}
 
@@ -435,12 +435,12 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 
 			townTileType, err := ParseTownTile(townTileStr)
 			if err != nil {
-				return nil, fmt.Errorf("invalid town tile %s: %v", townTileStr, err)
+				return nil, fmt.Errorf("invalid town tile %s: %w", townTileStr, err)
 			}
 
 			// Select the town tile
 			if err := gs.SelectTownTile(playerID, townTileType); err != nil {
-				return nil, fmt.Errorf("town tile selection failed: %v", err)
+				return nil, fmt.Errorf("town tile selection failed: %w", err)
 			}
 		}
 
@@ -533,17 +533,17 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 		} else {
 			// Normal execution: validate and execute upgrade
 			if err := upgradeAction.Validate(gs); err != nil {
-				return nil, fmt.Errorf("upgrade validation failed: %v", err)
+				return nil, fmt.Errorf("upgrade validation failed: %w", err)
 			}
 			if err := upgradeAction.Execute(gs); err != nil {
-				return nil, fmt.Errorf("upgrade execution failed: %v", err)
+				return nil, fmt.Errorf("upgrade execution failed: %w", err)
 			}
 		}
 
 		// Parse town tile
 		townTileType, err := ParseTownTile(townTileStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid town tile %s: %v", townTileStr, err)
+			return nil, fmt.Errorf("invalid town tile %s: %w", townTileStr, err)
 		}
 
 		// In skipValidation mode (replay), the validator has already synced resources to final state
@@ -568,7 +568,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 				playerID, debugPlayer.Resources.Power.Bowl1, debugPlayer.Resources.Power.Bowl2, debugPlayer.Resources.Power.Bowl3)
 		}
 		if err := gs.SelectTownTile(playerID, townTileType); err != nil {
-			return nil, fmt.Errorf("town tile selection failed: %v", err)
+			return nil, fmt.Errorf("town tile selection failed: %w", err)
 		}
 		debugPlayer = gs.GetPlayer(playerID)
 		if debugPlayer != nil {
@@ -635,14 +635,14 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 
 	hex, err := ConvertLogCoordToAxial(coordStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid coordinate %s: %v", coordStr, err)
+		return nil, fmt.Errorf("invalid coordinate %s: %w", coordStr, err)
 	}
 
 	// Handle burning power if present
 	if burnStr, hasBurn := params["burn"]; hasBurn {
 		burnAmount, err := strconv.Atoi(burnStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid burn amount %s: %v", burnStr, err)
+			return nil, fmt.Errorf("invalid burn amount %s: %w", burnStr, err)
 		}
 		player := gs.GetPlayer(playerID)
 		if player == nil {
@@ -650,7 +650,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 		}
 		// Burn power before the main action
 		if err := player.Resources.BurnPower(burnAmount); err != nil {
-			return nil, fmt.Errorf("failed to burn power: %v", err)
+			return nil, fmt.Errorf("failed to burn power: %w", err)
 		}
 	}
 
@@ -658,7 +658,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 	if powerActionStr, hasPowerAction := params["action_type"]; hasPowerAction {
 		powerActionType, err := ParsePowerActionType(powerActionStr)
 		if err != nil {
-			return nil, fmt.Errorf("invalid power action %s: %v", powerActionStr, err)
+			return nil, fmt.Errorf("invalid power action %s: %w", powerActionStr, err)
 		}
 
 		// For spade power actions, check if transform and build are on different hexes
@@ -668,7 +668,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 			if transformCoordStr, hasTransformCoord := params["transform_coord"]; hasTransformCoord {
 				transformHex, err := ConvertLogCoordToAxial(transformCoordStr)
 				if err != nil {
-					return nil, fmt.Errorf("invalid transform coordinate %s: %v", transformCoordStr, err)
+					return nil, fmt.Errorf("invalid transform coordinate %s: %w", transformCoordStr, err)
 				}
 
 				// If transform and build are on different hexes, manually transform first
@@ -687,7 +687,7 @@ func convertTransformAndBuildAction(playerID string, params map[string]string, g
 					}
 					targetTerrain, err := ParseTerrainColor(targetTerrainStr)
 					if err != nil {
-						return nil, fmt.Errorf("invalid target terrain %s: %v", targetTerrainStr, err)
+						return nil, fmt.Errorf("invalid target terrain %s: %w", targetTerrainStr, err)
 					}
 
 					buildHexTerrain := gs.Map.GetHex(hex).Terrain
@@ -747,7 +747,7 @@ func convertPassAction(playerID string, params map[string]string) (game.Action, 
 	// Parse bonus tile - convert string to BonusCardType
 	bonusCard, err := ParseBonusCard(bonusStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid bonus card %s: %v", bonusStr, err)
+		return nil, fmt.Errorf("invalid bonus card %s: %w", bonusStr, err)
 	}
 
 	return game.NewPassAction(playerID, &bonusCard), nil
@@ -778,7 +778,7 @@ func convertSendPriestAction(playerID string, params map[string]string, entry *L
 
 	cultTrack, err := ParseCultTrack(cultStr)
 	if err != nil {
-		return nil, fmt.Errorf("invalid cult track %s: %v", cultStr, err)
+		return nil, fmt.Errorf("invalid cult track %s: %w", cultStr, err)
 	}
 
 	// Convert models.CultType to game.CultTrack

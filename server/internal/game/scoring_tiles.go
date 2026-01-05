@@ -21,29 +21,23 @@ const (
 	ScoringTileUnknown       ScoringTileType = -1
 )
 
+var scoringTileTypeMap = map[string]ScoringTileType{
+	"Dwelling (Water)":      ScoringDwellingWater,
+	"Dwelling (Fire)":       ScoringDwellingFire,
+	"Trading House (Water)": ScoringTradingHouseWater,
+	"Trading House (Air)":   ScoringTradingHouseAir,
+	"Temple (Priest)":       ScoringTemplePriest,
+	"Stronghold (Fire)":     ScoringStrongholdFire,
+	"Stronghold (Air)":      ScoringStrongholdAir,
+	"Spades":                ScoringSpades,
+	"Town":                  ScoringTown,
+}
+
 func ScoringTileTypeFromString(s string) ScoringTileType {
-	switch s {
-	case "Dwelling (Water)":
-		return ScoringDwellingWater
-	case "Dwelling (Fire)":
-		return ScoringDwellingFire
-	case "Trading House (Water)":
-		return ScoringTradingHouseWater
-	case "Trading House (Air)":
-		return ScoringTradingHouseAir
-	case "Temple (Priest)":
-		return ScoringTemplePriest
-	case "Stronghold (Fire)":
-		return ScoringStrongholdFire
-	case "Stronghold (Air)":
-		return ScoringStrongholdAir
-	case "Spades":
-		return ScoringSpades
-	case "Town":
-		return ScoringTown
-	default:
-		return ScoringTileUnknown
+	if t, ok := scoringTileTypeMap[s]; ok {
+		return t
 	}
+	return ScoringTileUnknown
 }
 
 // ActionType for scoring
@@ -296,18 +290,26 @@ func (gs *GameState) AwardCultRewards() {
 
 	// Special case: Temple + Priest tile (SCORE5)
 	if tile.Type == ScoringTemplePriest {
-		for playerID, priestCount := range gs.ScoringTiles.PriestsSent {
-			player := gs.GetPlayer(playerID)
-			if player != nil {
-				coins := priestCount * tile.CultRewardAmount
-				player.Resources.Coins += coins
-			}
-		}
-		gs.ScoringTiles.ResetPriestsSent()
+		gs.awardSpecialCultRewards(tile)
 		return
 	}
 
 	// Regular cult threshold rewards
+	gs.awardRegularCultRewards(tile)
+}
+
+func (gs *GameState) awardSpecialCultRewards(tile *ScoringTile) {
+	for playerID, priestCount := range gs.ScoringTiles.PriestsSent {
+		player := gs.GetPlayer(playerID)
+		if player != nil {
+			coins := priestCount * tile.CultRewardAmount
+			player.Resources.Coins += coins
+		}
+	}
+	gs.ScoringTiles.ResetPriestsSent()
+}
+
+func (gs *GameState) awardRegularCultRewards(tile *ScoringTile) {
 	// Award rewards based on how many thresholds the player has crossed
 	// e.g., "2 steps = 1 worker" means position 8 gives 4 workers (8/2 = 4)
 	for playerID, player := range gs.Players {
@@ -325,24 +327,28 @@ func (gs *GameState) AwardCultRewards() {
 			totalReward := rewardCount * tile.CultRewardAmount
 			fmt.Printf("DEBUG: Awarding %d (x%d) to %s\n", totalReward, tile.CultRewardType, playerID)
 
-			switch tile.CultRewardType {
-			case CultRewardPriest:
-				gs.GainPriests(playerID, totalReward)
-			case CultRewardPower:
-				player.Resources.Power.GainPower(totalReward)
-			case CultRewardSpade:
-				// Spades must be used immediately - track as pending
-				// Cult reward spades don't count for VP (unlike BON1 or paid spades)
-				// Faction bonuses (e.g., Alchemists +2 power) are granted when spades are USED
-				if gs.PendingCultRewardSpades == nil {
-					gs.PendingCultRewardSpades = make(map[string]int)
-				}
-				gs.PendingCultRewardSpades[playerID] += totalReward
-			case CultRewardWorker:
-				player.Resources.Workers += totalReward
-			case CultRewardCoin:
-				player.Resources.Coins += totalReward
-			}
+			gs.grantCultReward(player, tile.CultRewardType, totalReward)
 		}
+	}
+}
+
+func (gs *GameState) grantCultReward(player *Player, rewardType CultRewardType, amount int) {
+	switch rewardType {
+	case CultRewardPriest:
+		gs.GainPriests(player.ID, amount)
+	case CultRewardPower:
+		player.Resources.Power.GainPower(amount)
+	case CultRewardSpade:
+		// Spades must be used immediately - track as pending
+		// Cult reward spades don't count for VP (unlike BON1 or paid spades)
+		// Faction bonuses (e.g., Alchemists +2 power) are granted when spades are USED
+		if gs.PendingCultRewardSpades == nil {
+			gs.PendingCultRewardSpades = make(map[string]int)
+		}
+		gs.PendingCultRewardSpades[player.ID] += amount
+	case CultRewardWorker:
+		player.Resources.Workers += amount
+	case CultRewardCoin:
+		player.Resources.Coins += amount
 	}
 }

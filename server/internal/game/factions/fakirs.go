@@ -23,6 +23,7 @@ type Fakirs struct {
 	hasShippingTownTile bool // Shipping town tile bonus
 }
 
+// NewFakirs creates a new Fakirs faction
 func NewFakirs() *Fakirs {
 	return &Fakirs{
 		BaseFaction: BaseFaction{
@@ -119,6 +120,7 @@ func (f *Fakirs) CanCarpetFlight() bool {
 
 // Income methods (Fakirs-specific)
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *Fakirs) GetStrongholdIncome() Income {
 	// Fakirs: ONLY stronghold that gives priest income (1 priest, no power)
 	return Income{Priests: 1}

@@ -156,7 +156,7 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 			}
 
 			// Get player's home terrain if available
-			var homeTerrain models.TerrainType = models.TerrainTypeUnknown
+			var homeTerrain = models.TerrainTypeUnknown
 			// pID is the faction name (e.g. "Nomads")
 			faction := factions.NewFaction(models.FactionTypeFromString(pID))
 			if faction != nil {
@@ -235,7 +235,7 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 	case *game.TransformAndBuildAction:
 		// Simple representation: "Transform [Hex]" or "Build [Hex]"
 		if a.BuildDwelling {
-			return fmt.Sprintf("%s", HexToShortString(a.TargetHex))
+			return HexToShortString(a.TargetHex)
 		}
 		if a.TargetTerrain != models.TerrainTypeUnknown {
 			// If target terrain is same as home terrain, omit the code

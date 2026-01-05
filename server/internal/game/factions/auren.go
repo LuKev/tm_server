@@ -17,6 +17,7 @@ type Auren struct {
 	hasStronghold bool
 }
 
+// NewAuren creates a new Auren faction
 func NewAuren() *Auren {
 	return &Auren{
 		BaseFaction: BaseFaction{

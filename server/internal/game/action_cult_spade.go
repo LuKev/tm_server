@@ -25,6 +25,12 @@ func NewUseCultSpadeAction(playerID string, targetHex board.Hex) *UseCultSpadeAc
 	}
 }
 
+// GetType returns the action type
+func (a *UseCultSpadeAction) GetType() ActionType {
+	return ActionUseCultSpade
+}
+
+// Validate checks if the action is valid
 func (a *UseCultSpadeAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -61,6 +67,7 @@ func (a *UseCultSpadeAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err

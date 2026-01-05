@@ -120,7 +120,7 @@ var (
 	}
 )
 
-// Standard shipping and digging costs
+// StandardShippingCost returns the standard shipping cost
 func StandardShippingCost(currentLevel int) Cost {
 	// Shipping 0->1: 4 coins, 1 priest
 	// Shipping 1->2: 4 coins, 1 priest
@@ -133,6 +133,7 @@ func StandardShippingCost(currentLevel int) Cost {
 	}
 }
 
+// StandardDiggingCost returns the standard digging cost
 func StandardDiggingCost(currentLevel int) Cost {
 	// Digging 0->1: 2 workers, 5 coins, 1 priest
 	// Digging 1->2: 2 workers, 5 coins, 1 priest
@@ -146,42 +147,52 @@ func StandardDiggingCost(currentLevel int) Cost {
 
 // BaseFaction method implementations (defaults)
 
+// GetType returns the faction type
 func (f *BaseFaction) GetType() models.FactionType {
 	return f.Type
 }
 
+// GetHomeTerrain returns the faction's home terrain
 func (f *BaseFaction) GetHomeTerrain() models.TerrainType {
 	return f.HomeTerrain
 }
 
+// GetStartingResources returns the faction's starting resources
 func (f *BaseFaction) GetStartingResources() Resources {
 	return f.StartingRes
 }
 
+// GetStartingCultPositions returns the faction's starting cult positions
 func (f *BaseFaction) GetStartingCultPositions() CultPositions {
 	return CultPositions{Fire: 0, Water: 0, Earth: 0, Air: 0}
 }
 
+// GetDwellingCost returns the cost to build a dwelling
 func (f *BaseFaction) GetDwellingCost() Cost {
 	return StandardDwellingCost
 }
 
+// GetTradingHouseCost returns the cost to build a trading house
 func (f *BaseFaction) GetTradingHouseCost() Cost {
 	return StandardTradingHouseCost
 }
 
+// GetTempleCost returns the cost to build a temple
 func (f *BaseFaction) GetTempleCost() Cost {
 	return StandardTempleCost
 }
 
+// GetSanctuaryCost returns the cost to build a sanctuary
 func (f *BaseFaction) GetSanctuaryCost() Cost {
 	return StandardSanctuaryCost
 }
 
+// GetStrongholdCost returns the cost to build a stronghold
 func (f *BaseFaction) GetStrongholdCost() Cost {
 	return StandardStrongholdCost
 }
 
+// GetTerraformCost returns the cost to terraform a hex
 func (f *BaseFaction) GetTerraformCost(distance int) int {
 	// Base cost: 3 workers per spade, reduced by digging level
 	costPerSpade := 3 - f.DiggingLevel
@@ -191,29 +202,35 @@ func (f *BaseFaction) GetTerraformCost(distance int) int {
 	return distance * costPerSpade
 }
 
+// GetShippingCost returns the cost to advance shipping
 func (f *BaseFaction) GetShippingCost(currentLevel int) Cost {
 	return StandardShippingCost(currentLevel)
 }
 
+// GetDiggingCost returns the cost to advance digging
 func (f *BaseFaction) GetDiggingCost(currentLevel int) Cost {
 	return StandardDiggingCost(currentLevel)
 }
 
+// CanUseSpecialAction checks if a special action can be used
 func (f *BaseFaction) CanUseSpecialAction(action string, gameState interface{}) bool {
 	return false // Override in specific factions
 }
 
+// ExecuteSpecialAction executes a special action
 func (f *BaseFaction) ExecuteSpecialAction(action string, gameState interface{}) error {
 	return nil // Override in specific factions
 }
 
 // Income method implementations (defaults)
 
+// GetBaseFactionIncome returns the base income for the faction
 func (f *BaseFaction) GetBaseFactionIncome() Income {
 	// Standard: 1 worker base income
 	return Income{Workers: 1}
 }
 
+// GetDwellingIncome returns the income for dwellings
 func (f *BaseFaction) GetDwellingIncome(dwellingCount int) Income {
 	// Standard: 1 worker per dwelling, except 8th gives no income
 	if dwellingCount >= 8 {
@@ -222,13 +239,14 @@ func (f *BaseFaction) GetDwellingIncome(dwellingCount int) Income {
 	return Income{Workers: dwellingCount}
 }
 
+// GetTradingHouseIncome returns the income for trading houses
 func (f *BaseFaction) GetTradingHouseIncome(tradingHouseCount int) Income {
 	// Standard: 1st-2nd: 2c+1pw, 3rd-4th: 2c+2pw
 	income := Income{}
 	for i := 1; i <= tradingHouseCount && i <= 4; i++ {
 		income.Coins += 2
 		if i <= 2 {
-			income.Power += 1
+			income.Power++
 		} else {
 			income.Power += 2
 		}
@@ -236,16 +254,19 @@ func (f *BaseFaction) GetTradingHouseIncome(tradingHouseCount int) Income {
 	return income
 }
 
+// GetTempleIncome returns the income for temples
 func (f *BaseFaction) GetTempleIncome(templeCount int) Income {
 	// Standard: 1 priest per temple
 	return Income{Priests: templeCount}
 }
 
+// GetSanctuaryIncome returns the income for the sanctuary
 func (f *BaseFaction) GetSanctuaryIncome() Income {
 	// Standard: 1 priest per sanctuary
 	return Income{Priests: 1}
 }
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *BaseFaction) GetStrongholdIncome() Income {
 	// Standard: 2 power, NO priest (only Fakirs stronghold gives priest)
 	return Income{Power: 2}

@@ -19,6 +19,7 @@ type Swarmlings struct {
 	tradingHouseUpgradeUsedThisRound bool // Special action usage tracking
 }
 
+// NewSwarmlings creates a new Swarmlings faction
 func NewSwarmlings() *Swarmlings {
 	return &Swarmlings{
 		BaseFaction: BaseFaction{
@@ -101,11 +102,13 @@ func (f *Swarmlings) BuildStronghold() {
 
 // Income methods (Swarmlings-specific)
 
+// GetBaseFactionIncome returns the base income for the faction
 func (f *Swarmlings) GetBaseFactionIncome() Income {
 	// Swarmlings: 2 workers base income
 	return Income{Workers: 2}
 }
 
+// GetTradingHouseIncome returns the income for trading houses
 func (f *Swarmlings) GetTradingHouseIncome(tradingHouseCount int) Income {
 	// Swarmlings: 1st-3rd: 2c+2pw, 4th: 3c+2pw
 	income := Income{}
@@ -121,11 +124,13 @@ func (f *Swarmlings) GetTradingHouseIncome(tradingHouseCount int) Income {
 	return income
 }
 
+// GetSanctuaryIncome returns the income for the sanctuary
 func (f *Swarmlings) GetSanctuaryIncome() Income {
 	// Swarmlings: 2 priests per sanctuary
 	return Income{Priests: 2}
 }
 
+// GetStrongholdIncome returns the income for the stronghold
 func (f *Swarmlings) GetStrongholdIncome() Income {
 	// Swarmlings: 4 power, NO priest
 	return Income{Power: 4}

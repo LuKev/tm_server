@@ -593,6 +593,10 @@ func (gs *GameState) NextTurn() bool {
 		return false
 	}
 
+	return gs.advanceToNextPlayer()
+}
+
+func (gs *GameState) advanceToNextPlayer() bool {
 	// Skip players who have passed
 	for {
 		gs.CurrentPlayerIndex++
@@ -601,17 +605,7 @@ func (gs *GameState) NextTurn() bool {
 		if gs.CurrentPlayerIndex >= len(gs.TurnOrder) {
 			gs.CurrentPlayerIndex = 0
 
-			// Check if all players have passed
-			allPassed := true
-			for _, playerID := range gs.TurnOrder {
-				player := gs.GetPlayer(playerID)
-				if player != nil && !player.HasPassed {
-					allPassed = false
-					break
-				}
-			}
-
-			if allPassed {
+			if gs.checkRoundCompletion() {
 				return true // Round complete
 			}
 		}
@@ -629,6 +623,17 @@ func (gs *GameState) NextTurn() bool {
 	}
 
 	return false
+}
+
+func (gs *GameState) checkRoundCompletion() bool {
+	// Check if all players have passed
+	for _, playerID := range gs.TurnOrder {
+		player := gs.GetPlayer(playerID)
+		if player != nil && !player.HasPassed {
+			return false
+		}
+	}
+	return true
 }
 
 // StartNewRound prepares the game for a new round
@@ -810,7 +815,7 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 	switch factionType {
 	case models.FactionDarklings:
 		// Darklings cannot advance digging at all (they use priests for spades)
-		return fmt.Errorf("Darklings cannot advance digging level")
+		return fmt.Errorf("darklings cannot advance digging level")
 	case models.FactionFakirs:
 		// Fakirs can only advance to level 1
 		maxLevel = 1
@@ -828,6 +833,16 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 	player.DiggingLevel++
 
 	// Sync the faction's digging level (used for GetTerraformCost calculations)
+	gs.updateFactionDiggingLevel(player)
+
+	// Award VP: Always +6 VP for advancing digging
+	player.VictoryPoints += 6
+
+	return nil
+}
+
+// updateFactionDiggingLevel updates the faction-specific digging level to match the player's level
+func (gs *GameState) updateFactionDiggingLevel(player *Player) {
 	// Use type assertion to get the base faction and update its digging level
 	switch f := player.Faction.(type) {
 	case *factions.Giants:
@@ -857,11 +872,6 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 	case *factions.Mermaids:
 		f.DiggingLevel = player.DiggingLevel
 	}
-
-	// Award VP: Always +6 VP for advancing digging
-	player.VictoryPoints += 6
-
-	return nil
 }
 
 // advanceDiggingLevelWithoutVP is an internal helper that advances digging level without awarding VP
@@ -878,7 +888,7 @@ func (gs *GameState) advanceDiggingLevelWithoutVP(playerID string) error {
 	switch factionType {
 	case models.FactionDarklings:
 		// Darklings cannot advance digging at all
-		return fmt.Errorf("Darklings cannot advance digging level")
+		return fmt.Errorf("darklings cannot advance digging level")
 	case models.FactionFakirs:
 		// Fakirs can only advance to level 1
 		maxLevel = 1
@@ -897,34 +907,7 @@ func (gs *GameState) advanceDiggingLevelWithoutVP(playerID string) error {
 	player.DiggingLevel++
 
 	// Sync the faction's digging level
-	switch f := player.Faction.(type) {
-	case *factions.Giants:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Witches:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Auren:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Swarmlings:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Cultists:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Alchemists:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Halflings:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.ChaosMagicians:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Nomads:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Fakirs:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Dwarves:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Engineers:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Mermaids:
-		f.DiggingLevel = player.DiggingLevel
-	}
+	gs.updateFactionDiggingLevel(player)
 
 	// No VP awarded for Earth cult auto-grants
 	return nil

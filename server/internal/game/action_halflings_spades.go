@@ -14,10 +14,12 @@ type ApplyHalflingsSpadeAction struct {
 	TargetHex board.Hex
 }
 
+// GetType returns the action type
 func (a *ApplyHalflingsSpadeAction) GetType() ActionType {
 	return ActionApplyHalflingsSpade
 }
 
+// Validate checks if the action is valid
 func (a *ApplyHalflingsSpadeAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -74,6 +76,7 @@ func (a *ApplyHalflingsSpadeAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -87,10 +90,12 @@ func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 
 	// Transform the terrain
 	targetTerrain := halflings.GetHomeTerrain()
-	gs.Map.TransformTerrain(a.TargetHex, targetTerrain)
+	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
 
 	// Award VP for spade (Halflings get +1 VP per spade)
-	player.VictoryPoints += 1
+	player.VictoryPoints++
 
 	// Award VP from scoring tile (if applicable)
 	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
@@ -116,10 +121,12 @@ type BuildHalflingsDwellingAction struct {
 	TargetHex board.Hex
 }
 
+// GetType returns the action type
 func (a *BuildHalflingsDwellingAction) GetType() ActionType {
 	return ActionBuildHalflingsDwelling
 }
 
+// Validate checks if the action is valid
 func (a *BuildHalflingsDwellingAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -182,6 +189,7 @@ func (a *BuildHalflingsDwellingAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *BuildHalflingsDwellingAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -202,7 +210,9 @@ func (a *BuildHalflingsDwellingAction) Execute(gs *GameState) error {
 		PlayerID:   a.PlayerID,
 		PowerValue: 1,
 	}
-	gs.Map.PlaceBuilding(a.TargetHex, dwelling)
+	if err := gs.Map.PlaceBuilding(a.TargetHex, dwelling); err != nil {
+		return fmt.Errorf("failed to place building: %w", err)
+	}
 
 	// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
@@ -230,10 +240,12 @@ type SkipHalflingsDwellingAction struct {
 	BaseAction
 }
 
+// GetType returns the action type
 func (a *SkipHalflingsDwellingAction) GetType() ActionType {
 	return ActionSkipHalflingsDwelling
 }
 
+// Validate checks if the action is valid
 func (a *SkipHalflingsDwellingAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -259,6 +271,7 @@ func (a *SkipHalflingsDwellingAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *SkipHalflingsDwellingAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err

@@ -29,7 +29,7 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 	var hexNum int
 	_, err := fmt.Sscanf(coord[1:], "%d", &hexNum)
 	if err != nil {
-		return board.Hex{}, fmt.Errorf("invalid hex number in %s: %v", coord, err)
+		return board.Hex{}, fmt.Errorf("invalid hex number in %s: %w", coord, err)
 	}
 	if hexNum < 1 {
 		return board.Hex{}, fmt.Errorf("hex number must be >= 1, got %d", hexNum)

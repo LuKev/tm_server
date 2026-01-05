@@ -22,6 +22,7 @@ type Nomads struct {
 	sandstormUsedThisRound bool // Special action usage tracking
 }
 
+// NewNomads creates a new Nomads faction
 func NewNomads() *Nomads {
 	return &Nomads{
 		BaseFaction: BaseFaction{
@@ -64,6 +65,7 @@ func (f *Nomads) GetStrongholdCost() Cost {
 
 // Income methods (Nomads-specific)
 
+// GetTradingHouseIncome returns the income for trading houses
 func (f *Nomads) GetTradingHouseIncome(tradingHouseCount int) Income {
 	// Nomads: 1st-2nd: 2c+1pw, 3rd: 3c+1pw, 4th: 4c+1pw
 	income := Income{}
@@ -71,13 +73,13 @@ func (f *Nomads) GetTradingHouseIncome(tradingHouseCount int) Income {
 		switch i {
 		case 1, 2:
 			income.Coins += 2
-			income.Power += 1
+			income.Power++
 		case 3:
 			income.Coins += 3
-			income.Power += 1
+			income.Power++
 		case 4:
 			income.Coins += 4
-			income.Power += 1
+			income.Power++
 		}
 	}
 	return income

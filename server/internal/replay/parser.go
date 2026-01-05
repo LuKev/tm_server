@@ -54,7 +54,7 @@ type CultTracks struct {
 func ParseGameLog(filename string) ([]*LogEntry, error) {
 	file, err := os.Open(filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %v", err)
+		return nil, fmt.Errorf("failed to open log file: %w", err)
 	}
 	defer file.Close()
 
@@ -73,14 +73,14 @@ func ParseGameLog(filename string) ([]*LogEntry, error) {
 
 		entry, err := ParseLogLine(line)
 		if err != nil {
-			return nil, fmt.Errorf("error parsing line %d: %v\nLine: %s", lineNum, err, line)
+			return nil, fmt.Errorf("error parsing line %d: %w\nLine: %s", lineNum, err, line)
 		}
 
 		entries = append(entries, entry)
 	}
 
 	if err := scanner.Err(); err != nil {
-		return nil, fmt.Errorf("error reading file: %v", err)
+		return nil, fmt.Errorf("error reading file: %w", err)
 	}
 
 	return entries, nil

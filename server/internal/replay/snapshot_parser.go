@@ -43,7 +43,7 @@ func ParseSnapshot(content string) (*game.GameState, error) {
 		if strings.HasPrefix(line, "Round:") {
 			round, err := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(line, "Round:")))
 			if err != nil {
-				return nil, fmt.Errorf("invalid round at line %d: %v", i+1, err)
+				return nil, fmt.Errorf("invalid round at line %d: %w", i+1, err)
 			}
 			gs.Round = round
 			continue
@@ -201,7 +201,7 @@ func ParseSnapshot(content string) (*game.GameState, error) {
 			var q, r int
 			_, err := fmt.Sscanf(coordsStr, "%d,%d", &q, &r)
 			if err != nil {
-				return nil, fmt.Errorf("invalid hex coordinates at line %d: %v", i+1, err)
+				return nil, fmt.Errorf("invalid hex coordinates at line %d: %w", i+1, err)
 			}
 
 			hex := board.Hex{Q: q, R: r}

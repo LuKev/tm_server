@@ -13,6 +13,7 @@ type SelectCultistsCultTrackAction struct {
 	CultTrack CultTrack
 }
 
+// NewSelectCultistsCultTrackAction creates a new cult selection action
 func NewSelectCultistsCultTrackAction(playerID string, cultTrack CultTrack) *SelectCultistsCultTrackAction {
 	return &SelectCultistsCultTrackAction{
 		BaseAction: BaseAction{
@@ -23,6 +24,12 @@ func NewSelectCultistsCultTrackAction(playerID string, cultTrack CultTrack) *Sel
 	}
 }
 
+// GetType returns the action type
+func (a *SelectCultistsCultTrackAction) GetType() ActionType {
+	return ActionSelectCultistsCultTrack
+}
+
+// Validate checks if the action is valid
 func (a *SelectCultistsCultTrackAction) Validate(gs *GameState) error {
 	// Check if there's a pending cult selection for this player
 	if gs.PendingCultistsCultSelection == nil {
@@ -57,6 +64,7 @@ func (a *SelectCultistsCultTrackAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *SelectCultistsCultTrackAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err

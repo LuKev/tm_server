@@ -10,10 +10,12 @@ type SelectFavorTileAction struct {
 	TileType FavorTileType
 }
 
+// GetType returns the action type
 func (a *SelectFavorTileAction) GetType() ActionType {
 	return ActionSelectFavorTile
 }
 
+// Validate checks if the action is valid
 func (a *SelectFavorTileAction) Validate(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
@@ -54,6 +56,7 @@ func (a *SelectFavorTileAction) Validate(gs *GameState) error {
 	return nil
 }
 
+// Execute performs the action
 func (a *SelectFavorTileAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err

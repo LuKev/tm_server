@@ -342,7 +342,7 @@ func ParseCompoundAction(actionStr string, entry *LogEntry, gs *game.GameState) 
 			fields := strings.Fields(token)
 
 			// Case 1: "transform X to Y" (explicit target terrain)
-			if len(fields) >= 4 && strings.ToLower(fields[2]) == "to" {
+			if len(fields) >= 4 && strings.EqualFold(fields[2], "to") {
 				transformHexStr := fields[1]
 
 				// Check if there's a build at the SAME hex (transform-and-build pattern)
@@ -961,7 +961,7 @@ func convertSpecialFactionAction(actionType string, tokens []string, currentInde
 		// Swarmlings Stronghold: Upgrade Dwelling to Trading House for free
 		// Pattern: "action ACTS. Upgrade D5 to TP"
 		fields := strings.Fields(nextToken)
-		if len(fields) >= 4 && strings.ToLower(fields[0]) == "upgrade" {
+		if len(fields) >= 4 && strings.EqualFold(fields[0], "upgrade") {
 			coordStr := fields[1]
 			hex, err := ConvertLogCoordToAxial(coordStr)
 			if err != nil {

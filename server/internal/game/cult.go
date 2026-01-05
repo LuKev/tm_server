@@ -25,8 +25,10 @@ import (
 // CultTrack is already defined in state.go as an enum
 // We'll add methods and tracking here
 
+// CultUnknown represents an unknown cult track
 const CultUnknown CultTrack = -1
 
+// CultTrackFromString converts a string to a CultTrack
 func CultTrackFromString(s string) CultTrack {
 	switch s {
 	case "Fire":
@@ -143,35 +145,8 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 	currentPos := cts.GetPosition(playerID, track)
 	targetPos := currentPos + spaces
 
-	// Check if position 10 is occupied by another player
-	if targetPos >= 10 {
-		if occupier, occupied := cts.Position10Occupied[track]; occupied && occupier != playerID {
-			// Position 10 is occupied by another player, can only advance to 9
-			targetPos = 9
-		} else if targetPos > 10 {
-			targetPos = 10
-		}
-
-		// Check if advancing to position 10 requires a key
-		if targetPos == 10 && currentPos < 10 && player != nil {
-			// Check if player currently has a key OR will get one from pending town formation
-			hasOrWillHaveKey := player.Keys >= 1
-
-			// Check for pending town formation (which will grant a key)
-			// This allows cult advancement to position 10 when forming a town during the same turn
-			if !hasOrWillHaveKey && gs != nil {
-				if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
-					// Player is forming a town this turn, which will grant a key
-					hasOrWillHaveKey = true
-				}
-			}
-
-			if !hasOrWillHaveKey {
-				// Player doesn't have a key and won't get one this turn, can only advance to 9
-				targetPos = 9
-			}
-		}
-	}
+	// Validate and adjust target position for position 10 rules
+	targetPos = cts.validatePosition10(track, playerID, currentPos, targetPos, player, gs)
 
 	actualAdvancement := targetPos - currentPos
 	if actualAdvancement == 0 {
@@ -192,28 +167,63 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 	}
 
 	// Grant bonus power ONLY for passing milestone positions (3, 5, 7, 10)
-	// Bonus: 1/2/2/3 power at positions 3/5/7/10
 	if player != nil && actualAdvancement > 0 {
-		bonusPositions := map[int]int{
-			3:  1, // 1 bonus power
-			5:  2, // 2 bonus power
-			7:  2, // 2 bonus power
-			10: 3, // 3 bonus power
-		}
-
-		for pos, bonusPower := range bonusPositions {
-			// Check if we passed or reached this position
-			if currentPos < pos && targetPos >= pos {
-				// Check if we haven't already claimed this bonus
-				if !cts.BonusPositionsClaimed[playerID][track][pos] {
-					player.Resources.Power.GainPower(bonusPower)
-					cts.BonusPositionsClaimed[playerID][track][pos] = true
-				}
-			}
-		}
+		cts.grantMilestoneBonuses(playerID, track, currentPos, targetPos, player)
 	}
 
 	return actualAdvancement, nil
+}
+
+func (cts *CultTrackState) validatePosition10(track CultTrack, playerID string, currentPos, targetPos int, player *Player, gs *GameState) int {
+	if targetPos < 10 {
+		return targetPos
+	}
+
+	// Check if position 10 is occupied by another player
+	if occupier, occupied := cts.Position10Occupied[track]; occupied && occupier != playerID {
+		return 9
+	}
+	if targetPos > 10 {
+		targetPos = 10
+	}
+
+	// Check if advancing to position 10 requires a key
+	if targetPos == 10 && currentPos < 10 && player != nil {
+		// Check if player currently has a key OR will get one from pending town formation
+		hasOrWillHaveKey := player.Keys >= 1
+
+		// Check for pending town formation (which will grant a key)
+		if !hasOrWillHaveKey && gs != nil {
+			if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+				hasOrWillHaveKey = true
+			}
+		}
+
+		if !hasOrWillHaveKey {
+			return 9
+		}
+	}
+	return targetPos
+}
+
+func (cts *CultTrackState) grantMilestoneBonuses(playerID string, track CultTrack, currentPos, targetPos int, player *Player) {
+	bonusPositions := map[int]int{
+		3:  1, // 1 bonus power
+		5:  2, // 2 bonus power
+		7:  2, // 2 bonus power
+		10: 3, // 3 bonus power
+	}
+
+	for pos, bonusPower := range bonusPositions {
+		// Check if we passed or reached this position
+		if currentPos < pos && targetPos >= pos {
+			// Check if we haven't already claimed this bonus
+			if !cts.BonusPositionsClaimed[playerID][track][pos] {
+				player.Resources.Power.GainPower(bonusPower)
+				cts.BonusPositionsClaimed[playerID][track][pos] = true
+			}
+		}
+	}
 }
 
 // GetRankings returns players ranked by position on a cult track (highest to lowest)

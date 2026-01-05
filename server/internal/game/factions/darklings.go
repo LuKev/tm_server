@@ -21,6 +21,7 @@ type Darklings struct {
 	hasStronghold bool
 }
 
+// NewDarklings creates a new Darklings faction
 func NewDarklings() *Darklings {
 	return &Darklings{
 		BaseFaction: BaseFaction{
@@ -98,6 +99,7 @@ func (f *Darklings) GetDiggingCost(currentLevel int) Cost {
 
 // Income methods (Darklings-specific)
 
+// GetSanctuaryIncome returns the income for the sanctuary
 func (f *Darklings) GetSanctuaryIncome() Income {
 	// Darklings: 2 priests per sanctuary
 	return Income{Priests: 2}

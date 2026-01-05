@@ -18,6 +18,7 @@ type Dwarves struct {
 	hasStronghold bool
 }
 
+// NewDwarves creates a new Dwarves faction
 func NewDwarves() *Dwarves {
 	return &Dwarves{
 		BaseFaction: BaseFaction{
@@ -72,6 +73,7 @@ func (f *Dwarves) CanTunnel() bool {
 
 // Income methods (Dwarves-specific)
 
+// GetTradingHouseIncome returns the income for trading houses
 func (f *Dwarves) GetTradingHouseIncome(tradingHouseCount int) Income {
 	// Dwarves: 1st: 3c+1pw, 2nd: 2c+1pw, 3rd: 2c+2pw, 4th: 3c+2pw
 	income := Income{}
@@ -79,10 +81,10 @@ func (f *Dwarves) GetTradingHouseIncome(tradingHouseCount int) Income {
 		switch i {
 		case 1:
 			income.Coins += 3
-			income.Power += 1
+			income.Power++
 		case 2:
 			income.Coins += 2
-			income.Power += 1
+			income.Power++
 		case 3:
 			income.Coins += 2
 			income.Power += 2

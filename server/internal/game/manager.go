@@ -8,11 +8,13 @@ import (
 // Manager owns and guards access to game state instances in-memory.
 // This will later be backed by persistent storage.
 
+// Manager handles multiple game instances
 type Manager struct {
 	mu    sync.RWMutex
 	games map[string]*GameState // Changed from models.GameState to game.GameState
 }
 
+// NewManager creates a new game manager
 func NewManager() *Manager {
 	return &Manager{
 		games: make(map[string]*GameState),
@@ -26,6 +28,7 @@ func (m *Manager) CreateGameWithState(id string, gs *GameState) {
 	m.games[id] = gs
 }
 
+// GetGame retrieves a game by ID
 func (m *Manager) GetGame(id string) (*GameState, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -33,6 +36,7 @@ func (m *Manager) GetGame(id string) (*GameState, bool) {
 	return g, ok
 }
 
+// ListGames returns all active games
 func (m *Manager) ListGames() []*GameState {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

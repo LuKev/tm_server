@@ -84,6 +84,15 @@ func (as *AuctionState) NominateFaction(playerID string, faction models.FactionT
 
 // PlaceBid places a bid on a faction (during bidding phase)
 func (as *AuctionState) PlaceBid(playerID string, faction models.FactionType, vpReduction int) error {
+	if err := as.validateBid(playerID, faction, vpReduction); err != nil {
+		return err
+	}
+
+	as.executeBid(playerID, faction, vpReduction)
+	return nil
+}
+
+func (as *AuctionState) validateBid(playerID string, faction models.FactionType, vpReduction int) error {
 	if !as.Active {
 		return fmt.Errorf("auction is not active")
 	}
@@ -119,7 +128,10 @@ func (as *AuctionState) PlaceBid(playerID string, faction models.FactionType, vp
 			return fmt.Errorf("must reduce VP by at least 1 more than current bid (%d)", currentBid)
 		}
 	}
+	return nil
+}
 
+func (as *AuctionState) executeBid(playerID string, faction models.FactionType, vpReduction int) {
 	// Remove player's previous faction if they had one
 	for f, holder := range as.FactionHolders {
 		if holder == playerID {
@@ -145,8 +157,6 @@ func (as *AuctionState) PlaceBid(playerID string, faction models.FactionType, vp
 	if as.isAuctionComplete() {
 		as.Active = false
 	}
-
-	return nil
 }
 
 // advanceToNextBidder moves to the next player who doesn't have a faction

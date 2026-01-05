@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/board"
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -109,6 +108,7 @@ type SpecialAction struct {
 	TargetTerrain *models.TerrainType
 }
 
+// NewSpecialAction creates a new special action
 func NewSpecialAction(playerID string, actionType SpecialActionType) *SpecialAction {
 	return &SpecialAction{
 		BaseAction: BaseAction{
@@ -259,7 +259,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 
 	switch a.ActionType {
 	case SpecialActionAurenCultAdvance:
-		return a.validateAurenCultAdvance(gs, player)
+		return a.validateAurenCultAdvance(player)
 	case SpecialActionWitchesRide:
 		return a.validateWitchesRide(gs, player)
 	case SpecialActionSwarmlingsUpgrade:
@@ -271,17 +271,17 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 	case SpecialActionNomadsSandstorm:
 		return a.validateNomadsSandstorm(gs, player)
 	case SpecialActionWater2CultAdvance:
-		return a.validateWater2CultAdvance(gs, player)
+		return a.validateWater2CultAdvance(gs)
 	case SpecialActionBonusCardSpade:
 		return a.validateBonusCardSpade(gs, player)
 	case SpecialActionBonusCardCultAdvance:
-		return a.validateBonusCardCultAdvance(gs, player)
+		return a.validateBonusCardCultAdvance(gs)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
 }
 
-func (a *SpecialAction) validateAurenCultAdvance(gs *GameState, player *Player) error {
+func (a *SpecialAction) validateAurenCultAdvance(player *Player) error {
 	// Verify player is Auren
 	if player.Faction.GetType() != models.FactionAuren {
 		return fmt.Errorf("only Auren can use cult advance special action")
@@ -323,7 +323,7 @@ func (a *SpecialAction) validateWitchesRide(gs *GameState, player *Player) error
 	}
 
 	if mapHex.Terrain != models.TerrainForest {
-		return fmt.Errorf("Witches' Ride can only build on Forest spaces")
+		return fmt.Errorf("witches' ride can only build on forest spaces")
 	}
 
 	// Check building limit (max 8 dwellings)
@@ -469,7 +469,7 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 	return nil
 }
 
-func (a *SpecialAction) validateWater2CultAdvance(gs *GameState, player *Player) error {
+func (a *SpecialAction) validateWater2CultAdvance(gs *GameState) error {
 	// Check if player has Water+2 favor tile
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
 	if !HasFavorTile(playerTiles, FavorWater2) {
@@ -513,40 +513,8 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 
 	// Check adjacency (or skip range for Fakirs/Dwarves)
 	if a.UseSkip {
-		// Validate skip ability usage
-		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
-			if !fakirs.CanCarpetFlight() {
-				return fmt.Errorf("Fakirs cannot use carpet flight")
-			}
-			skipRange := 1
-			if fakirs.HasStronghold() {
-				skipRange++
-			}
-			if fakirs.HasShippingTownTile() {
-				skipRange++
-			}
-			if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, skipRange) {
-				return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
-			}
-			if player.Resources.Priests < 1 {
-				return fmt.Errorf("not enough priests for carpet flight")
-			}
-		} else if dwarves, ok := player.Faction.(*factions.Dwarves); ok {
-			if !dwarves.CanTunnel() {
-				return fmt.Errorf("Dwarves cannot tunnel")
-			}
-			if !gs.Map.IsWithinSkipRange(*a.TargetHex, a.PlayerID, 1) {
-				return fmt.Errorf("target hex is not within tunneling range 1")
-			}
-			workerCost := 2
-			if player.HasStrongholdAbility {
-				workerCost = 1
-			}
-			if player.Resources.Workers < workerCost {
-				return fmt.Errorf("not enough workers for tunneling")
-			}
-		} else {
-			return fmt.Errorf("only Fakirs and Dwarves can use skip ability")
+		if err := ValidateSkipAbility(gs, player, *a.TargetHex); err != nil {
+			return err
 		}
 	} else {
 		if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
@@ -557,7 +525,7 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 	return nil
 }
 
-func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState, player *Player) error {
+func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState) error {
 	// Check if player has the cult advance bonus card
 	if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardCultAdvance {
 		return fmt.Errorf("player does not have the cult advance bonus card")
@@ -570,6 +538,7 @@ func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState, player *Play
 	return nil
 }
 
+// Execute performs the special action
 func (a *SpecialAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
@@ -584,11 +553,11 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 	case SpecialActionAurenCultAdvance:
 		return a.executeAurenCultAdvance(gs, player)
 	case SpecialActionWitchesRide:
-		return a.executeWitchesRide(gs, player)
+		return a.executeWitchesRide(gs)
 	case SpecialActionSwarmlingsUpgrade:
 		return a.executeSwarmlingsUpgrade(gs, player)
 	case SpecialActionChaosMagiciansDoubleTurn:
-		return a.executeChaosMagiciansDoubleTurn(gs, player)
+		return a.executeChaosMagiciansDoubleTurn(gs)
 	case SpecialActionGiantsTransform:
 		return a.executeGiantsTransform(gs, player)
 	case SpecialActionNomadsSandstorm:
@@ -598,14 +567,12 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 	case SpecialActionBonusCardSpade:
 		return a.executeBonusCardSpade(gs, player)
 	case SpecialActionBonusCardCultAdvance:
-		return a.executeBonusCardCultAdvance(gs, player)
+		return a.executeBonusCardCultAdvance(gs)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
 	// Advance turn (unless pending actions exist or suppressed)
-	gs.NextTurn()
 
-	return nil
 }
 
 func (a *SpecialAction) executeAurenCultAdvance(gs *GameState, player *Player) error {
@@ -629,7 +596,7 @@ func (a *SpecialAction) executeWater2CultAdvance(gs *GameState, player *Player) 
 	return nil
 }
 
-func (a *SpecialAction) executeWitchesRide(gs *GameState, player *Player) error {
+func (a *SpecialAction) executeWitchesRide(gs *GameState) error {
 	// Build dwelling without paying workers or coins
 	if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
 		return err
@@ -667,7 +634,7 @@ func (a *SpecialAction) executeSwarmlingsUpgrade(gs *GameState, player *Player) 
 	return nil
 }
 
-func (a *SpecialAction) executeChaosMagiciansDoubleTurn(gs *GameState, player *Player) error {
+func (a *SpecialAction) executeChaosMagiciansDoubleTurn(gs *GameState) error {
 	// Execute first action
 	// Suppress turn advance so the turn doesn't change between actions
 	gs.SuppressTurnAdvance = true
@@ -689,7 +656,9 @@ func (a *SpecialAction) executeChaosMagiciansDoubleTurn(gs *GameState, player *P
 func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) error {
 	// Transform terrain to home terrain (2 free spades)
 	targetTerrain := player.Faction.GetHomeTerrain()
-	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
+	if err := gs.Map.TransformTerrain(*a.TargetHex, targetTerrain); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
 
 	// Award VP from scoring tile (2 spades used)
 	// Giants always use 2 spades, so award VP twice
@@ -715,7 +684,9 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) error {
 	// Transform terrain to home terrain (Sandstorm - not considered a spade)
 	targetTerrain := player.Faction.GetHomeTerrain()
-	gs.Map.TransformTerrain(*a.TargetHex, targetTerrain)
+	if err := gs.Map.TransformTerrain(*a.TargetHex, targetTerrain); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
@@ -738,21 +709,7 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
-		if player.Faction.GetType() == models.FactionFakirs {
-			// Pay priest for carpet flight
-			player.Resources.Priests -= 1
-			// Award VP bonus
-			player.VictoryPoints += 4
-		} else if player.Faction.GetType() == models.FactionDwarves {
-			// Pay workers for tunneling
-			workerCost := 2
-			if player.HasStrongholdAbility {
-				workerCost = 1
-			}
-			player.Resources.Workers -= workerCost
-			// Award VP bonus
-			player.VictoryPoints += 4
-		}
+		PaySkipCost(player)
 	}
 
 	// Transform terrain
@@ -822,7 +779,7 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 	return nil
 }
 
-func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState, player *Player) error {
+func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState) error {
 	// Advance 1 space on the chosen cult track (free)
 	// This uses the cult track system which handles power bonuses automatically
 	// Use AdvanceCultTrack wrapper to properly sync both CultTrackState and player.CultPositions

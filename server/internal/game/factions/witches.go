@@ -16,6 +16,7 @@ type Witches struct {
 	witchesRideUsedThisRound bool
 }
 
+// NewWitches creates a new Witches faction
 func NewWitches() *Witches {
 	return &Witches{
 		BaseFaction: BaseFaction{

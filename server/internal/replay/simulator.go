@@ -141,7 +141,7 @@ func (s *GameSimulator) StepForward() error {
 					factionType := models.FactionTypeFromString(factionName)
 					faction := factions.NewFaction(factionType)
 					if err := s.CurrentState.AddPlayer(factionName, faction); err != nil {
-						return fmt.Errorf("failed to add player %s: %v", factionName, err)
+						return fmt.Errorf("failed to add player %s: %w", factionName, err)
 					}
 					fmt.Printf("DEBUG: Simulator added player from settings: %s\n", factionName)
 				} else {
