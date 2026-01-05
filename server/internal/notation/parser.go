@@ -60,6 +60,11 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 					// Add Player setting: Player:Halflings -> Halflings
 					settings["Player:"+playerName] = playerName
 					fmt.Printf("DEBUG: Parsed player from StartingVPs: %s\n", playerName)
+
+					// Add StartingVP setting
+					if len(pParts) >= 2 {
+						settings["StartingVP:"+playerName] = strings.TrimSpace(pParts[1])
+					}
 				}
 			}
 			continue

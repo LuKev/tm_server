@@ -39,6 +39,7 @@ type GameState struct {
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
 	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
+	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -110,6 +111,7 @@ const (
 // Player represents a player in the game
 type Player struct {
 	ID                   string                     `json:"id"`
+	Name                 string                     `json:"name"`
 	Faction              factions.Faction           `json:"faction"`
 	Resources            *ResourcePool              `json:"resources"`
 	ShippingLevel        int                        `json:"shippingLevel"`

@@ -22,41 +22,40 @@ const TOWN_TILE_CONFIGS: Record<TownTileId, TownTileConfig> = {
         vp: 5,
         rewards: <CoinIcon className="icon-md">6</CoinIcon>
     },
+    [TownTileId.Vp6Power8]: {
+        id: TownTileId.Vp6Power8,
+        vp: 6,
+        rewards: <PowerIcon amount={8} className="icon-md" />
+    },
     [TownTileId.Vp7Workers2]: {
         id: TownTileId.Vp7Workers2,
         vp: 7,
         rewards: <WorkerIcon className="icon-md">2</WorkerIcon>
     },
-    [TownTileId.Vp9Priest1]: {
-        id: TownTileId.Vp9Priest1,
-        vp: 9,
-        rewards: <PriestIcon className="icon-md" />
-    },
-    [TownTileId.Vp6Power8]: {
-        id: TownTileId.Vp6Power8,
-        vp: 6,
-        rewards: <PowerIcon amount={8} className="icon-md" />
+    [TownTileId.Vp4Ship1]: {
+        id: TownTileId.Vp4Ship1,
+        vp: 4,
+        rewards: <div className="reward-container"><span className="reward-text">Ship/Carpet</span></div>
     },
     [TownTileId.Vp8Cult1]: {
         id: TownTileId.Vp8Cult1,
         vp: 8,
         rewards: <CultRhombusIcon className="icon-md" />
     },
-    // Mini expansion tiles
-    [TownTileId.Vp2Ship1]: {
-        id: TownTileId.Vp2Ship1,
-        vp: 2,
-        rewards: <CultRhombusIcon className="icon-md" showNumber={true} />
-    },
-    [TownTileId.Vp4Carpet1]: {
-        id: TownTileId.Vp4Carpet1,
-        vp: 4,
-        rewards: <div className="reward-container"><span className="reward-text">Ship/Carpet</span></div>
+    [TownTileId.Vp9Priest1]: {
+        id: TownTileId.Vp9Priest1,
+        vp: 9,
+        rewards: <PriestIcon className="icon-md" />
     },
     [TownTileId.Vp11]: {
         id: TownTileId.Vp11,
         vp: 11,
         rewards: null
+    },
+    [TownTileId.Vp2Cult2]: {
+        id: TownTileId.Vp2Cult2,
+        vp: 2,
+        rewards: <CultRhombusIcon className="icon-md" showNumber={true} />
     },
 };
 
@@ -65,8 +64,8 @@ interface TownTilesProps {
 }
 
 export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
-    // Default: 2 of tiles 0-4 and 6, 1 of tiles 5 and 7
-    const defaultTiles = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 6, 6, 7];
+    // Default: 2 of tiles 0-5, 1 of tiles 6 and 7
+    const defaultTiles = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7];
     const tiles = availableTiles && availableTiles.length > 0 ? availableTiles : defaultTiles;
 
     // Group tiles by ID

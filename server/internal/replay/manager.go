@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -118,7 +119,7 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 		for _, item := range items {
 			if s, ok := item.(notation.GameSettingsItem); ok {
 				for k, v := range s.Settings {
-					if strings.HasPrefix(k, "Player:") {
+					if strings.HasPrefix(k, "Player:") || strings.HasPrefix(k, "StartingVP:") {
 						settings.Settings[k] = v
 					}
 				}
@@ -142,6 +143,21 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 					factionType := models.FactionTypeFromString(factionName)
 					faction := factions.NewFaction(factionType)
 					initialState.AddPlayer(factionName, faction)
+
+					// Set player name
+					playerName := strings.TrimPrefix(k, "Player:")
+					if p, exists := initialState.Players[factionName]; exists {
+						p.Name = playerName
+					}
+
+					// Set starting VPs if specified
+					if vpStr, ok := s.Settings["StartingVP:"+factionName]; ok {
+						if vp, err := strconv.Atoi(vpStr); err == nil {
+							if p, exists := initialState.Players[factionName]; exists {
+								p.VictoryPoints = vp
+							}
+						}
+					}
 				}
 			}
 			break // Only need the first settings item

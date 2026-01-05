@@ -52,15 +52,30 @@ export enum PowerActionType {
   DoubleSpade = 5,
 }
 
+export enum FavorTileType {
+  Fire3 = 0,
+  Water3 = 1,
+  Earth3 = 2,
+  Air3 = 3,
+  Fire2 = 4,
+  Water2 = 5,
+  Earth2 = 6,
+  Air2 = 7,
+  Fire1 = 8,
+  Water1 = 9,
+  Earth1 = 10,
+  Air1 = 11,
+}
+
 export enum TownTileId {
   Vp5Coins6 = 0,
-  Vp7Workers2 = 1,
-  Vp9Priest1 = 2,
-  Vp6Power8 = 3,
+  Vp6Power8 = 1,
+  Vp7Workers2 = 2,
+  Vp4Ship1 = 3,
   Vp8Cult1 = 4,
-  Vp2Ship1 = 5, // Mini expansion
-  Vp4Carpet1 = 6, // Mini expansion
-  Vp11 = 7, // Mini expansion
+  Vp9Priest1 = 5,
+  Vp11 = 6,
+  Vp2Cult2 = 7,
 }
 
 export interface Resources {
@@ -164,6 +179,11 @@ export interface ScoringTileState {
   priestsSent: Record<string, number>
 }
 
+export interface FavorTileState {
+  available: Record<number, number>
+  playerTiles: Record<string, FavorTileType[]>
+}
+
 export interface TownTileState {
   available: Record<number, number>
 }
@@ -180,5 +200,24 @@ export interface GameState {
   finished: boolean
   scoringTiles?: ScoringTileState
   townTiles?: TownTileState
+  favorTiles?: FavorTileState
   bonusCards?: BonusCardState
+  finalScoring?: Record<string, PlayerFinalScore>
+  powerActions?: PowerActionState
+}
+
+export interface PowerActionState {
+  UsedActions: Record<number, boolean>
+}
+
+export interface PlayerFinalScore {
+  playerId: string
+  playerName: string
+  baseVp: number
+  areaVp: number
+  cultVp: number
+  resourceVp: number
+  totalVp: number
+  largestAreaSize: number
+  totalResourceValue: number
 }

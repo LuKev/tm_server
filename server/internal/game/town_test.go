@@ -247,6 +247,15 @@ func TestTownFormation_8PointsTile_CultAdvancement(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
 	// Set up power for cult advancement
 	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
@@ -342,6 +351,15 @@ func TestTownFormation_2PointsTile_CultAdvancement(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up power for cult advancement
 	player.Resources.Power.Bowl1 = 12

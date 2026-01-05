@@ -13,14 +13,15 @@ import (
 
 // PlayerFinalScore represents a player's final score breakdown
 type PlayerFinalScore struct {
-	PlayerID           string
-	BaseVP             int // VP accumulated during game
-	AreaVP             int // VP from largest connected area
-	CultVP             int // VP from cult track majorities
-	ResourceVP         int // VP from resource conversion
-	TotalVP            int // Total VP
-	LargestAreaSize    int // Size of largest connected area
-	TotalResourceValue int // Total resource value for tiebreaker
+	PlayerID           string `json:"playerId"`
+	PlayerName         string `json:"playerName"`
+	BaseVP             int    `json:"baseVp"`
+	AreaVP             int    `json:"areaVp"`
+	CultVP             int    `json:"cultVp"`
+	ResourceVP         int    `json:"resourceVp"`
+	TotalVP            int    `json:"totalVp"`
+	LargestAreaSize    int    `json:"largestAreaSize"`
+	TotalResourceValue int    `json:"totalResourceValue"`
 }
 
 // CalculateFinalScoring calculates all end-game scoring
@@ -30,9 +31,14 @@ func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 
 	// Initialize scores with base VP
 	for playerID, player := range gs.Players {
+		name := player.Name
+		if name == "" {
+			name = playerID
+		}
 		scores[playerID] = &PlayerFinalScore{
-			PlayerID: playerID,
-			BaseVP:   player.VictoryPoints,
+			PlayerID:   playerID,
+			PlayerName: name,
+			BaseVP:     player.VictoryPoints,
 		}
 	}
 
@@ -54,7 +60,10 @@ func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 }
 
 // calculateAreaBonuses awards VP for largest connected area
-// 18 VP for largest area (ties split the VP, rounded down)
+// 1st: 18 VP, 2nd: 12 VP, 3rd: 6 VP
+// Ties: VP is split (rounded down) among tied players.
+// If there's a tie for 1st, 1st and 2nd place VP are summed and split.
+// If there's a tie for 2nd, 2nd and 3rd place VP are summed and split.
 func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 	// Calculate largest area for each player (faction-specific adjacency + shipping)
 	for playerID, player := range gs.Players {
@@ -62,28 +71,57 @@ func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
 		scores[playerID].LargestAreaSize = largestArea
 	}
 
-	// Find the maximum area size
-	maxArea := 0
-	for _, score := range scores {
-		if score.LargestAreaSize > maxArea {
-			maxArea = score.LargestAreaSize
-		}
+	// Group players by area size
+	type playerArea struct {
+		playerID string
+		size     int
+	}
+	var ranked []playerArea
+	for id, score := range scores {
+		ranked = append(ranked, playerArea{id, score.LargestAreaSize})
 	}
 
-	// Count how many players have the max area (for ties)
-	playersWithMax := 0
-	for _, score := range scores {
-		if score.LargestAreaSize == maxArea {
-			playersWithMax++
-		}
-	}
+	// Sort by size descending
+	sort.Slice(ranked, func(i, j int) bool {
+		return ranked[i].size > ranked[j].size
+	})
 
-	// Award VP (18 VP split among tied players, rounded down)
-	vpPerPlayer := 18 / playersWithMax
-	for _, score := range scores {
-		if score.LargestAreaSize == maxArea {
-			score.AreaVP = vpPerPlayer
+	// Define awards
+	awards := []int{18, 12, 6}
+	currentAwardIndex := 0
+
+	// Process groups of tied players
+	for i := 0; i < len(ranked); {
+		// Find the group of tied players
+		groupSize := 1
+		for i+groupSize < len(ranked) && ranked[i+groupSize].size == ranked[i].size {
+			groupSize++
 		}
+
+		// Calculate total VP available for this group based on how many awards they consume
+		totalVP := 0
+		awardsConsumed := 0
+		for k := 0; k < groupSize; k++ {
+			if currentAwardIndex+k < len(awards) {
+				totalVP += awards[currentAwardIndex+k]
+				awardsConsumed++
+			}
+		}
+
+		// Distribute VP
+		vpPerPlayer := 0
+		if groupSize > 0 {
+			vpPerPlayer = totalVP / groupSize
+		}
+
+		for k := 0; k < groupSize; k++ {
+			playerID := ranked[i+k].playerID
+			scores[playerID].AreaVP = vpPerPlayer
+		}
+
+		// Advance indices
+		i += groupSize
+		currentAwardIndex += awardsConsumed
 	}
 }
 

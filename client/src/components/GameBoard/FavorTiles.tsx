@@ -1,50 +1,17 @@
 import React from 'react';
-import { CultType } from '../../types/game.types';
-import { CoinIcon, WorkerIcon, PowerIcon, DwellingIcon, TradingHouseIcon, CultActionIcon } from '../shared/Icons';
+import { useGameStore } from '../../stores/gameStore';
+import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import './FavorTiles.css';
 
-interface FavorTileData {
-    id: string;
-    cult: CultType;
-    steps: 1 | 2 | 3;
-    reward: React.ReactNode | null;
-    initialCount: number;
-}
-
-const FAVOR_TILES: FavorTileData[] = [
-    // Row 1: Level 3s
-    { id: 'fav_fire_3', cult: CultType.Fire, steps: 3, reward: null, initialCount: 1 },
-    { id: 'fav_water_3', cult: CultType.Water, steps: 3, reward: null, initialCount: 1 },
-    { id: 'fav_earth_3', cult: CultType.Earth, steps: 3, reward: null, initialCount: 1 },
-    { id: 'fav_air_3', cult: CultType.Air, steps: 3, reward: null, initialCount: 1 },
-
-    // Row 2: Level 2s
-    { id: 'fav_fire_2', cult: CultType.Fire, steps: 2, reward: <div style={{ lineHeight: '1.1' }}>Town<br />Size 6</div>, initialCount: 3 },
-    { id: 'fav_water_2', cult: CultType.Water, steps: 2, reward: <CultActionIcon className="favor-icon" style={{ width: '1.5em', height: '1.5em' }} />, initialCount: 3 },
-    { id: 'fav_earth_2', cult: CultType.Earth, steps: 2, reward: <div className="flex items-center gap-1"><WorkerIcon className="favor-icon" style={{ width: '1em', height: '1em' }}>1</WorkerIcon><PowerIcon amount={1} className="favor-icon" style={{ width: '1em', height: '1em' }} /></div>, initialCount: 3 },
-    { id: 'fav_air_2', cult: CultType.Air, steps: 2, reward: <PowerIcon amount={4} className="favor-icon" style={{ width: '1em', height: '1em' }} />, initialCount: 3 },
-
-    // Row 3: Level 1s
-    { id: 'fav_fire_1', cult: CultType.Fire, steps: 1, reward: <CoinIcon className="favor-icon" style={{ width: '1em', height: '1em' }}>3</CoinIcon>, initialCount: 3 },
-    { id: 'fav_water_1', cult: CultType.Water, steps: 1, reward: <div className="flex items-center gap-1"><TradingHouseIcon className="favor-icon" style={{ width: '1em', height: '1em' }} /><span>→</span><span>3</span></div>, initialCount: 3 },
-    { id: 'fav_earth_1', cult: CultType.Earth, steps: 1, reward: <div className="flex items-center gap-1"><DwellingIcon className="favor-icon" style={{ width: '1em', height: '1em' }} /><span>→</span><span>2</span></div>, initialCount: 3 },
-    { id: 'fav_air_1', cult: CultType.Air, steps: 1, reward: <div className="flex items-center gap-1" style={{ fontSize: '0.8em' }}><span className="font-bold">Pass</span><span>→</span><TradingHouseIcon className="favor-icon" style={{ width: '1em', height: '1em' }} /><span>→</span><span>2-4</span></div>, initialCount: 3 },
-];
-
-const getCultColorClass = (cult: CultType): string => {
-    switch (cult) {
-        case CultType.Fire: return 'bg-fire';
-        case CultType.Water: return 'bg-water';
-        case CultType.Earth: return 'bg-earth';
-        case CultType.Air: return 'bg-air';
-    }
-};
-
 export const FavorTiles: React.FC = () => {
+    const gameState = useGameStore(state => state.gameState);
+    const available = gameState?.favorTiles?.available || {};
+
     return (
         <div className="favor-tiles-container">
             {FAVOR_TILES.map((tile) => {
-                const count = tile.initialCount;
+                // Use available count if present, otherwise fallback to initialCount (for setup/loading)
+                const count = available[tile.type] !== undefined ? available[tile.type] : tile.initialCount;
                 const stackHeight = Math.min(count, 3);
 
                 if (count === 0) {
@@ -55,24 +22,6 @@ export const FavorTiles: React.FC = () => {
                     <div key={tile.id} className="favor-tile">
                         {/* Render underlying stack layers (if any) */}
                         {Array.from({ length: stackHeight - 1 }).map((_, index) => {
-                            // index 0 is the one just below top. index 1 is below that?
-                            // Let's say we want:
-                            // Top: 0,0
-                            // Below 1: 2px, 2px
-                            // Below 2: 4px, 4px
-
-                            // If stackHeight is 3:
-                            // We need offsets 4px and 2px.
-                            // Let's iterate from bottom up?
-                            // Or just map 0..stackHeight-2
-
-                            // Let's do:
-                            // i=0 -> offset = (stackHeight - 1 - i) * 2
-                            // If stackHeight=3:
-                            // i=0 -> offset 4. (Bottom)
-                            // i=1 -> offset 2. (Middle)
-                            // Top is separate.
-
                             const offset = (stackHeight - 1 - index) * 3;
 
                             return (
@@ -129,7 +78,11 @@ export const FavorTiles: React.FC = () => {
                             {tile.reward && (
                                 <div className="favor-reward">
                                     {tile.reward}
-                                    {/* Optional: Show count badge if needed in future */}
+                                </div>
+                            )}
+                            {!tile.reward && (
+                                <div className="absolute top-1 right-1 bg-gray-800 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border border-white">
+                                    {count}
                                 </div>
                             )}
                         </div>

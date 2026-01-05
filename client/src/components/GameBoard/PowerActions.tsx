@@ -86,35 +86,77 @@ const ACTIONS: PowerActionConfig[] = [
     }
 ];
 
+import { useGameStore } from '../../stores/gameStore';
+
+// ... (imports)
+
+// ... (OctagonWrapper)
+
+// ... (ACTIONS)
+
 interface PowerActionsProps {
     onActionClick?: (action: PowerActionType) => void;
 }
 
 export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): React.ReactElement => {
+    const gameState = useGameStore(state => state.gameState);
+    const usedActions = gameState?.powerActions?.UsedActions || {};
+
     return (
         <div className="power-actions-container">
-            {ACTIONS.map((action) => (
-                <div
-                    key={action.type}
-                    className="power-action-tile"
-                    onClick={() => onActionClick?.(action.type)}
-                    title={action.label}
-                >
-                    {/* Power Cost */}
-                    <div className="power-cost">
-                        <div className="power-cost-circle">
-                            {action.cost}
+            {ACTIONS.map((action) => {
+                const isUsed = !!usedActions[action.type];
+
+                return (
+                    <div
+                        key={action.type}
+                        className={`power-action-tile ${isUsed ? 'used' : ''}`}
+                        onClick={() => !isUsed && onActionClick?.(action.type)}
+                        title={action.label}
+                        style={{ cursor: isUsed ? 'not-allowed' : 'pointer', opacity: isUsed ? 0.7 : 1 }}
+                    >
+                        {/* Power Cost */}
+                        <div className="power-cost">
+                            <div className="power-cost-circle">
+                                {action.cost}
+                            </div>
+                        </div>
+
+                        {/* Action Result (Octagon with Icon) */}
+                        <div className="action-result" style={{ position: 'relative' }}>
+                            <OctagonWrapper>
+                                {action.icon}
+                            </OctagonWrapper>
+
+                            {isUsed && (
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    zIndex: 10
+                                }}>
+                                    <svg viewBox="-2 -2 44 44" className="octagon-svg-overlay" style={{ width: '100%', height: '100%' }}>
+                                        <path
+                                            d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z"
+                                            fill="#d6d3d1" // stone-300 (tan-ish)
+                                            stroke="#78716c" // stone-500
+                                            strokeWidth="2"
+                                            fillOpacity="0.9"
+                                        />
+                                        <line x1="10" y1="10" x2="30" y2="30" stroke="#78716c" strokeWidth="4" strokeLinecap="round" />
+                                        <line x1="30" y1="10" x2="10" y2="30" stroke="#78716c" strokeWidth="4" strokeLinecap="round" />
+                                    </svg>
+                                </div>
+                            )}
                         </div>
                     </div>
-
-                    {/* Action Result (Octagon with Icon) */}
-                    <div className="action-result">
-                        <OctagonWrapper>
-                            {action.icon}
-                        </OctagonWrapper>
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };

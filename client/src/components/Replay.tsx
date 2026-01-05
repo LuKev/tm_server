@@ -17,6 +17,7 @@ import './Game.css'
 import { ReplayControls } from './ReplayControls'
 import { ReplayLog, type LogLocation } from './ReplayLog'
 import { MissingInfoModal, type MissingInfo } from './MissingInfoModal'
+import { EndGameScoring } from './EndGameScoring'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -105,8 +106,38 @@ export const Replay = () => {
         ]
     }), [numCards])
 
-    const [layouts] = useState<Layouts>(defaultLayouts)
+    const [layouts, setLayouts] = useState<Layouts>(defaultLayouts)
     const [rowHeight, setRowHeight] = useState(60)
+
+    // Update layout when player count changes to ensure correct default size for player boards
+    useEffect(() => {
+        const playerCount = Object.keys(gameState?.players || {}).length
+        if (playerCount === 0) return
+
+        setLayouts((currentLayouts) => {
+            const newLayouts = { ...currentLayouts }
+            let hasChanges = false
+
+            Object.keys(newLayouts).forEach((key) => {
+                newLayouts[key] = newLayouts[key].map((item) => {
+                    if (item.i === 'playerBoards') {
+                        // 6 units per player seems to be the baseline for 1 player
+                        const newH = playerCount * 6
+                        // Ensure minimum height
+                        const finalH = Math.max(newH, item.minH || 4)
+
+                        if (item.h !== finalH) {
+                            hasChanges = true
+                            return { ...item, h: finalH }
+                        }
+                    }
+                    return item
+                })
+            })
+
+            return hasChanges ? newLayouts : currentLayouts
+        })
+    }, [gameState?.players])
 
     // API Calls
     const startReplay = useCallback(async (restart = false) => {
@@ -270,19 +301,98 @@ export const Replay = () => {
         setRowHeight(colWidth)
     }
 
+    const [isLayoutLocked, setIsLayoutLocked] = useState(false)
+
+    const handleLayoutChange = (_currentLayout: ReactGridLayout.Layout[], allLayouts: Layouts) => {
+        // Enforce aspect ratios based on width (similar to Game.tsx)
+        const updatedLayouts = { ...allLayouts }
+        let hasChanges = false
+
+        Object.keys(updatedLayouts).forEach(key => {
+            const layout = updatedLayouts[key]
+            const newLayout = layout.map(item => {
+                let newH = item.h
+                if (item.i === 'scoring') {
+                    newH = item.w * 2
+                } else if (item.i === 'cult') {
+                    newH = Math.ceil(item.w * 2.25)
+                } else if (item.i === 'board') {
+                    newH = Math.ceil(item.w * 0.83)
+                } else if (item.i === 'towns') {
+                    newH = Math.ceil(item.w * 2 / 3)
+                } else if (item.i === 'favor') {
+                    newH = Math.ceil(item.w * 0.625)
+                } else if (item.i === 'passing') {
+                    newH = Math.ceil(item.w * (4 / numCards))
+                } else if (item.i === 'playerBoards') {
+                    const playerCount = Object.keys(gameState?.players || {}).length || 1
+                    // Use the same logic as the useEffect for consistency, or keep it responsive
+                    // In useEffect we used: playerCount * 6
+                    // Here we can enforce it or let the user resize. 
+                    // If we enforce it here, resizing might fight back.
+                    // Let's only enforce if it's drastically off or just rely on initial set.
+                    // Actually, Game.tsx enforces it. Let's stick to the useEffect logic for initial sizing
+                    // and allow resizing, but maybe enforce min height?
+                    // For now, let's skip strict enforcement on resize for playerBoards to allow user freedom,
+                    // or enforce the same ratio.
+                    // Let's enforce the ratio used in Game.tsx: newH = Math.ceil(playerCount * item.w * 0.3)
+                    // But wait, the useEffect used a fixed height based on player count (playerCount * 6).
+                    // Game.tsx uses: Math.ceil(playerCount * item.w * 0.3)
+                    // Let's use the Game.tsx logic for consistency if we want it to scale with width.
+                    newH = Math.ceil(playerCount * item.w * 0.3)
+                }
+
+                if (newH !== item.h) {
+                    hasChanges = true
+                    return { ...item, h: newH }
+                }
+                return item
+            })
+            updatedLayouts[key] = newLayout
+        })
+
+        if (hasChanges) {
+            setLayouts(updatedLayouts)
+        } else {
+            setLayouts(allLayouts)
+        }
+    }
+
     return (
         <div className="min-h-screen p-4 bg-gray-100">
+            {gameState?.phase === GamePhase.End && (
+                <EndGameScoring gameState={gameState} />
+            )}
             <div className="max-w-[1800px] mx-auto">
 
-                <ReplayControls
-                    onStart={startReplay}
-                    onNext={nextMove}
-                    onToggleAutoPlay={() => { setIsAutoPlaying(!isAutoPlaying); }}
-                    isAutoPlaying={isAutoPlaying}
-                    currentIndex={currentIndex}
-                    totalActions={totalActions}
-                    gameId={gameId || ''}
-                />
+                <div className="flex justify-between items-center mb-4">
+                    <ReplayControls
+                        onStart={startReplay}
+                        onNext={nextMove}
+                        onToggleAutoPlay={() => { setIsAutoPlaying(!isAutoPlaying); }}
+                        isAutoPlaying={isAutoPlaying}
+                        currentIndex={currentIndex}
+                        totalActions={totalActions}
+                        gameId={gameId || ''}
+                    />
+                    <div className="flex gap-2">
+                        <button
+                            onClick={() => { setIsLayoutLocked(!isLayoutLocked) }}
+                            className={`px-4 py-2 rounded text-sm font-medium transition-colors ${isLayoutLocked
+                                ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                                }`}
+                        >
+                            {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
+                        </button>
+                        <button
+                            onClick={() => { setLayouts(defaultLayouts); }}
+                            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
+                        >
+                            Reset Layout
+                        </button>
+                    </div>
+                </div>
 
                 <MissingInfoModal
                     isOpen={showMissingInfoModal}
@@ -294,17 +404,23 @@ export const Replay = () => {
                 />
 
                 <ResponsiveGridLayout
-                    className="layout"
+                    className={`layout ${isLayoutLocked ? 'layout-locked' : ''}`}
                     layouts={layouts}
                     breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                     cols={{ lg: 24, md: 20, sm: 12, xs: 8, xxs: 4 }}
                     rowHeight={rowHeight}
                     onWidthChange={handleWidthChange}
-                    isDraggable={false}
-                    isResizable={false}
+                    onLayoutChange={handleLayoutChange}
+                    isDraggable={!isLayoutLocked}
+                    isResizable={!isLayoutLocked}
+                    resizeHandles={['e']}
+                    draggableHandle=".drag-handle"
                 >
                     {/* Log Viewer */}
-                    <div key="log">
+                    <div key="log" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <ReplayLog
                             logStrings={logStrings}
                             logLocations={logLocations}
@@ -315,6 +431,9 @@ export const Replay = () => {
 
                     {/* Scoring Tiles */}
                     <div key="scoring" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-auto">
                             <ScoringTiles
                                 tiles={gameState?.scoringTiles?.tiles?.map(t => t.type) || []}
@@ -325,6 +444,9 @@ export const Replay = () => {
 
                     {/* Main game board */}
                     <div key="board" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
                             <GameBoard onHexClick={undefined} />
                         </div>
@@ -332,6 +454,9 @@ export const Replay = () => {
 
                     {/* Cult Tracks sidebar */}
                     <div key="cult" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-auto p-2">
                             <CultTracks
                                 cultPositions={
@@ -350,6 +475,9 @@ export const Replay = () => {
 
                     {/* Town Tiles */}
                     <div key="towns" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-auto">
                             <TownTiles availableTiles={availableTownTiles} />
                         </div>
@@ -357,6 +485,9 @@ export const Replay = () => {
 
                     {/* Favor Tiles */}
                     <div key="favor" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
                             <FavorTiles />
                         </div>
@@ -364,6 +495,9 @@ export const Replay = () => {
 
                     {/* Player Boards */}
                     <div key="playerBoards" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-hidden">
                             <PlayerBoards />
                         </div>
@@ -371,6 +505,9 @@ export const Replay = () => {
 
                     {/* Passing Tiles (Bonus Cards) */}
                     <div key="passing" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
                         <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
                             <PassingTiles />
                         </div>

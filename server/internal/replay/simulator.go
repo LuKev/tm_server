@@ -2,6 +2,7 @@ package replay
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -128,12 +129,13 @@ func (s *GameSimulator) StepForward() error {
 		s.CurrentState.StartActionPhase()
 	case notation.GameSettingsItem:
 		// Initialize players from settings
-		for k, v := range v.Settings {
+		settings := v.Settings
+		for k, settingValue := range settings {
 			if strings.HasPrefix(k, "Player:") {
-				// k is "Player:Name", v is "Faction"
+				// k is "Player:Name", settingValue is "Faction"
 				// We use the faction name as the player ID in the simulator for simplicity,
 				// matching how actions are parsed (Action.GetPlayerID() returns faction name).
-				factionName := v
+				factionName := settingValue
 				// Create player if not exists
 				if _, exists := s.CurrentState.Players[factionName]; !exists {
 					factionType := models.FactionTypeFromString(factionName)
@@ -145,9 +147,17 @@ func (s *GameSimulator) StepForward() error {
 				} else {
 					fmt.Printf("DEBUG: Simulator skipped existing player: %s\n", factionName)
 				}
+
+				// Set starting VPs if specified (always update, even if player exists)
+				if vpStr, ok := settings["StartingVP:"+factionName]; ok {
+					if vp, err := strconv.Atoi(vpStr); err == nil {
+						s.CurrentState.Players[factionName].VictoryPoints = vp
+						fmt.Printf("DEBUG: Set starting VP for %s to %d\n", factionName, vp)
+					}
+				}
 			} else if k == "BonusCards" {
 				// Parse bonus cards
-				cards := strings.Split(v, ",")
+				cards := strings.Split(settingValue, ",")
 				availableCards := make([]game.BonusCardType, 0)
 				for _, cardCode := range cards {
 					// Parse "BON1 (Desc)" -> "BON1"
@@ -161,7 +171,7 @@ func (s *GameSimulator) StepForward() error {
 				s.CurrentState.BonusCards.SetAvailableBonusCards(availableCards)
 			} else if k == "ScoringTiles" {
 				// Parse scoring tiles
-				tiles := strings.Split(v, ",")
+				tiles := strings.Split(settingValue, ",")
 				s.CurrentState.ScoringTiles = game.NewScoringTileState()
 				for i, tileCode := range tiles {
 					// Parse "SCORE1 (Desc)" -> "SCORE1"

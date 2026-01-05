@@ -14,6 +14,7 @@ func (gs *GameState) ExecuteCleanupPhase() bool {
 	// Round 6 doesn't have a cleanup phase - game ends immediately
 	if gs.Round >= 6 {
 		gs.Phase = PhaseEnd
+		gs.FinalScoring = gs.CalculateFinalScoring()
 		return false
 	}
 

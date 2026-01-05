@@ -65,6 +65,17 @@ func TestCalculateFinalScoring_Complete(t *testing.T) {
 		PowerValue: 1,
 	})
 
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
+
 	// Set cult positions
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 10, player1, gs)
 	gs.CultTracks.AdvancePlayer("player2", CultFire, 8, player2, gs)
@@ -158,9 +169,9 @@ func TestAreaBonus_SingleWinner(t *testing.T) {
 		t.Errorf("player1: expected area size 5, got %d", scores["player1"].LargestAreaSize)
 	}
 
-	// Player2 should get 0 VP
-	if scores["player2"].AreaVP != 0 {
-		t.Errorf("player2: expected 0 VP, got %d", scores["player2"].AreaVP)
+	// Player2 should get 12 VP (2nd place)
+	if scores["player2"].AreaVP != 12 {
+		t.Errorf("player2: expected 12 VP, got %d", scores["player2"].AreaVP)
 	}
 }
 
@@ -201,10 +212,10 @@ func TestAreaBonus_Tie(t *testing.T) {
 
 	gs.calculateAreaBonuses(scores)
 
-	// All players tied: 18 / 3 = 6 VP each
+	// All players tied for 1st: (18 + 12 + 6) / 3 = 12 VP each
 	for playerID, score := range scores {
-		if score.AreaVP != 6 {
-			t.Errorf("%s: expected 6 VP, got %d", playerID, score.AreaVP)
+		if score.AreaVP != 12 {
+			t.Errorf("%s: expected 12 VP, got %d", playerID, score.AreaVP)
 		}
 	}
 }
@@ -220,6 +231,17 @@ func TestCultBonus_SingleTrack(t *testing.T) {
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
+
+	// Reset cult positions to 0 to avoid interference from starting cults
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
 
 	// Fire track: player1=10, player2=8, player3=5
 	player1.Keys = 1
@@ -262,6 +284,17 @@ func TestCultBonus_TieForFirst(t *testing.T) {
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
 
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
+
 	// Fire track: player1=9, player2=9, player3=5 (both tied for 1st)
 	// Note: Position 10 can only be occupied by one player
 	gs.CultTracks.AdvancePlayer("player1", CultFire, 9, player1, gs)
@@ -297,6 +330,17 @@ func TestCultBonus_MultipleTracks(t *testing.T) {
 	gs.AddPlayer("player2", faction2)
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
+
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
 
 	// Player1: 1st on Fire, 2nd on Water
 	player1.Keys = 2

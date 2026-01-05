@@ -252,6 +252,30 @@ const SWARMLINGS_BOARD: FactionBoardLayout = {
 };
 
 
+// Dwarves Trading Houses: 1: 3C+1PW, 2: 2C+1PW, 3: 2C+2PW, 4: 3C+2PW
+const DWARVES_TRADING_HOUSES: BuildingSlot[] = [
+    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 3, power: 1 } },
+    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 2, power: 1 } },
+    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 2, power: 2 } },
+    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 3, power: 2 } },
+];
+
+const DWARVES_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: DWARVES_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { power: 2 } },
+};
+
+const ALCHEMISTS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: NOMADS_TRADING_HOUSES, // Same as Nomads
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { coins: 6 } },
+};
+
 export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
     [FactionType.Unknown]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
     [FactionType.ChaosMagicians]: CHAOS_MAGICIAN_BOARD,
@@ -265,9 +289,9 @@ export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
     [FactionType.Mermaids]: MERMAIDS_BOARD,
     [FactionType.Nomads]: NOMADS_BOARD,
     [FactionType.Swarmlings]: SWARMLINGS_BOARD,
+    [FactionType.Alchemists]: ALCHEMISTS_BOARD,
+    [FactionType.Dwarves]: DWARVES_BOARD,
 
     // Defaults for others
     [FactionType.Witches]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
-    [FactionType.Dwarves]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
-    [FactionType.Alchemists]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
 };

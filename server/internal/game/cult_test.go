@@ -32,6 +32,15 @@ func TestCultTrackState_AdvancePlayer(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
 	// Set up power for gaining
 	player.Resources.Power.Bowl1 = 10
 	player.Resources.Power.Bowl2 = 0
@@ -65,6 +74,24 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up power
 	player.Resources.Power.Bowl1 = 12
@@ -147,6 +174,17 @@ func TestCultTrackState_EndGameScoring_Simple(t *testing.T) {
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
 
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
+
 	// Set up power
 	player1.Resources.Power.Bowl1 = 12
 	player2.Resources.Power.Bowl1 = 12
@@ -185,6 +223,17 @@ func TestCultTrackState_EndGameScoring_Tie(t *testing.T) {
 	player2 := gs.GetPlayer("player2")
 	player3 := gs.GetPlayer("player3")
 
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
+
 	// Set up power
 	player1.Resources.Power.Bowl1 = 12
 	player2.Resources.Power.Bowl1 = 12
@@ -219,6 +268,17 @@ func TestCultTrackState_EndGameScoring_MultipleTracks(t *testing.T) {
 
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
+
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
 
 	// Set up power
 	player1.Resources.Power.Bowl1 = 40
@@ -258,6 +318,17 @@ func TestCultTrackState_EndGameScoring_NoAdvancement(t *testing.T) {
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
+
 	// Set up power
 	player1.Resources.Power.Bowl1 = 12
 	player2.Resources.Power.Bowl1 = 12
@@ -283,6 +354,15 @@ func TestCultTrackState_BonusPower(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up power
 	player.Resources.Power.Bowl1 = 12
@@ -339,6 +419,17 @@ func TestCultTrackState_Position10Blocked(t *testing.T) {
 	player1 := gs.GetPlayer("player1")
 	player2 := gs.GetPlayer("player2")
 
+	// Reset cult positions to 0
+	for _, p := range gs.Players {
+		p.CultPositions = map[CultTrack]int{
+			CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+		}
+		gs.CultTracks.PlayerPositions[p.ID][CultFire] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultWater] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultEarth] = 0
+		gs.CultTracks.PlayerPositions[p.ID][CultAir] = 0
+	}
+
 	// Set up power
 	player1.Resources.Power.Bowl1 = 12
 	player2.Resources.Power.Bowl1 = 12
@@ -371,6 +462,15 @@ func TestSendPriestToCult_Basic(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up resources (clear starting power and add priests)
 	player.Resources.Priests = 3
@@ -414,6 +514,15 @@ func TestSendPriestToCult_ReturnToSupply(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up resources (clear starting power and add priests)
 	player.Resources.Priests = 3
@@ -482,6 +591,15 @@ func TestSendPriestToCult_AlreadyAtMax(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
 	// Set up resources
 	player.Resources.Priests = 3
 	player.Resources.Power.Bowl1 = 12
@@ -524,6 +642,15 @@ func TestTownCultBonus_8Points(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
 	// Set up power
 	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
@@ -558,6 +685,15 @@ func TestTownCultBonus_2Keys(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
 
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
 	// Set up power
 	player.Resources.Power.Bowl1 = 12
 	player.Resources.Power.Bowl2 = 0
@@ -591,6 +727,15 @@ func TestTownCultBonus_WithMilestones(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up power
 	player.Resources.Power.Bowl1 = 12
@@ -631,6 +776,15 @@ func TestTownCultBonus_Position10Capped(t *testing.T) {
 	faction := factions.NewAuren()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
+
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
 
 	// Set up power (need extra for advancing to position 10 on multiple tracks)
 	player.Resources.Power.Bowl1 = 35

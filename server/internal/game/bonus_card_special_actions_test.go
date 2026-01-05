@@ -285,6 +285,15 @@ func TestBonusCardCultAdvance_WithPowerBonus(t *testing.T) {
 	player := gs.GetPlayer("player1")
 	_ = player // Used for power setup
 
+	// Reset cult positions to 0
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 0, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
 	// Give player the cult advance bonus card
 	gs.BonusCards.PlayerCards["player1"] = BonusCardCultAdvance
 	gs.BonusCards.PlayerHasCard["player1"] = true

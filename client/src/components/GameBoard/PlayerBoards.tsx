@@ -5,6 +5,7 @@ import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
+import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import './PlayerBoards.css';
 
 const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
@@ -141,7 +142,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                         </div>
                         <div className="resource-item" style={{ marginLeft: 'auto' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontWeight: 'bold' }}>
-                                <span>{player.VictoryPoints || 0} VP</span>
+                                <span>{player.victoryPoints ?? player.VictoryPoints ?? 0} VP</span>
                             </div>
                         </div>
                     </div>
@@ -268,7 +269,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                             <button className="conversion-btn">3 PW → 1 Worker</button>
                             <button className="conversion-btn">1 PW → 1 Coin</button>
                             {factionType === FactionType.Alchemists && (
-                                <button className="conversion-btn special">1 VP → 1 Worker</button>
+                                <button className="conversion-btn special">1 VP → 1 Coin</button>
                             )}
                         </div>
                     </div>
@@ -277,8 +278,34 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number }> = ({ player
                     <div className="pb-favors-col">
                         <div className="pb-section-title">Favor Tiles</div>
                         <div className="favor-tiles-area">
-                            {/* TODO: Render actual favor tiles from player state */}
-                            <div className="pb-empty-text">None</div>
+                            {(() => {
+                                const playerTiles = gameState?.favorTiles?.playerTiles?.[playerId] || [];
+                                if (playerTiles.length === 0) {
+                                    return <div className="pb-empty-text">None</div>;
+                                }
+
+                                return (
+                                    <div className="pb-player-favors">
+                                        {playerTiles.map((tileType, idx) => {
+                                            const tileData = FAVOR_TILES.find(t => t.type === tileType);
+                                            if (!tileData) return null;
+
+                                            return (
+                                                <div key={`${tileType}-${idx}`} className="pb-favor-tile">
+                                                    <div className={`pb-favor-cult ${getCultColorClass(tileData.cult)}`}>
+                                                        {tileData.steps}
+                                                    </div>
+                                                    {tileData.reward && (
+                                                        <div className="pb-favor-reward">
+                                                            {tileData.reward}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })()}
                         </div>
                     </div>
                 </div>

@@ -205,10 +205,10 @@ func GetAllFavorTiles() map[FavorTileType]FavorTile {
 // FavorTileState tracks available favor tiles and which players have which tiles
 type FavorTileState struct {
 	// Available tiles (type -> remaining quantity)
-	Available map[FavorTileType]int
+	Available map[FavorTileType]int `json:"available"`
 
 	// Player tiles (playerID -> list of favor tiles)
-	PlayerTiles map[string][]FavorTileType
+	PlayerTiles map[string][]FavorTileType `json:"playerTiles"`
 }
 
 // NewFavorTileState creates a new favor tile state with all tiles available
