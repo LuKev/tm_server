@@ -10,9 +10,10 @@ interface ReplayLogProps {
     logLocations: LogLocation[];
     currentIndex: number;
     currentRound: number;
+    onLogClick: (index: number) => void;
 }
 
-export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, currentIndex, currentRound }) => {
+export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, currentIndex, currentRound, onLogClick }) => {
     const [viewRound, setViewRound] = useState(currentRound);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -134,7 +135,7 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
             whiteSpace: 'nowrap' as const,
         },
         rowHover: {
-            cursor: 'default',
+            cursor: 'pointer',
         },
         cell: {
             padding: '0.25rem 0.5rem',
@@ -211,7 +212,16 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
                             const parts = line.split('|');
                             if (parts.length > 1) {
                                 return (
-                                    <tr key={index} style={styles.rowHover}>
+                                    <tr
+                                        key={index}
+                                        style={styles.rowHover}
+                                        onClick={() => {
+                                            // globalIndex is the index of this action in the log.
+                                            // If we click it, we want to jump to the state AFTER this action.
+                                            // So we jump to globalIndex + 1.
+                                            onLogClick(globalIndex + 1);
+                                        }}
+                                    >
                                         {parts.map((part, i) => {
                                             const isHighlighted = isHighlightLine && highlightLoc?.columnIndex === i;
                                             const isLast = i === parts.length - 1 && parts.length === 5; // Approximation for last cell border
