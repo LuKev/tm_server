@@ -31,28 +31,14 @@ func TestDetectMissingInfo(t *testing.T) {
 
 	missing := detectMissingInfo(items)
 
-	if missing.GlobalBonusCards {
-		t.Error("GlobalBonusCards should be false")
-	}
-	if missing.GlobalScoringTiles {
-		t.Error("GlobalScoringTiles should be false")
-	}
-
-	// Check Round 1
-	if missing.BonusCardSelections[1] == nil {
-		t.Fatal("Round 1 bonus card selections should be missing")
-	}
-	if !missing.BonusCardSelections[1]["player1"] {
-		t.Error("player1 should be missing bonus card in Round 1")
-	}
-	if !missing.BonusCardSelections[1]["player2"] {
-		t.Error("player2 should be missing bonus card in Round 1")
+	// Since we moved bonus card checks to runtime, detectMissingInfo should return nil
+	// if global settings are present.
+	if missing != nil {
+		t.Error("detectMissingInfo should return nil when global settings are present")
 	}
 
-	// Check Round 6 (should be nil or empty)
-	if missing.BonusCardSelections[6] != nil {
-		t.Error("Round 6 bonus card selections should not be tracked")
-	}
+	// The rest of the test checking for specific missing bonus cards is now obsolete
+	// for this function, as it only checks global info.
 }
 
 func TestDetectMissingGlobalInfo(t *testing.T) {

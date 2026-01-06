@@ -195,6 +195,30 @@ func (s *GameSimulator) StepForward() error {
 	return nil
 }
 
+// JumpTo fast-forwards the simulator to the target index
+// Note: This only supports moving forward. For backward jumps, the simulator must be reset first.
+func (s *GameSimulator) JumpTo(targetIndex int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if targetIndex < s.CurrentIndex {
+		return fmt.Errorf("cannot jump backwards (current: %d, target: %d)", s.CurrentIndex, targetIndex)
+	}
+
+	for s.CurrentIndex < targetIndex {
+		// We need to call StepForward, but it locks the mutex.
+		// We should unlock here or refactor StepForward to have an internal unlocked version.
+		// Since StepForward is public and locks, we can't call it while holding lock.
+		s.mu.Unlock()
+		err := s.StepForward()
+		s.mu.Lock()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GetState returns the current game state
 func (s *GameSimulator) GetState() *game.GameState {
 	s.mu.RLock()

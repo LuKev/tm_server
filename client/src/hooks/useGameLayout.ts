@@ -18,7 +18,7 @@ export const useGameLayout = (
                     { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
                     { i: 'board', x: 10, y: 2, w: 10, h: 12, minW: 10, minH: 8 },
                     { i: 'cult', x: 20, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
-                    { i: 'towns', x: 4, y: 10, w: 4, h: 3, minW: 4, minH: 2 },
+                    { i: 'towns', x: 20, y: 15, w: 4, h: 3, minW: 4, minH: 2 },
                     { i: 'favor', x: 20, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
                     { i: 'playerBoards', x: 0, y: 16, w: 20, h: 6, minW: 8, minH: 4 },
                     { i: 'passing', x: 24 - numCards, y: 24, w: numCards, h: 4, minW: 4, minH: 2 }
@@ -29,7 +29,7 @@ export const useGameLayout = (
                     { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
                     { i: 'board', x: 10, y: 2, w: 10, h: 8, minW: 6, minH: 6 },
                     { i: 'cult', x: 0, y: 16, w: 4, h: 9, minW: 4, minH: 6 },
-                    { i: 'towns', x: 4, y: 10, w: 4, h: 3, minW: 4, minH: 2 },
+                    { i: 'towns', x: 16, y: 15, w: 4, h: 3, minW: 4, minH: 2 },
                     { i: 'favor', x: 16, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
                     { i: 'playerBoards', x: 0, y: 14, w: 16, h: 6, minW: 8, minH: 4 },
                     { i: 'passing', x: 20 - numCards, y: 20, w: numCards, h: 4, minW: 4, minH: 2 }

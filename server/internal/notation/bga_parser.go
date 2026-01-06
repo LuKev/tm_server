@@ -51,6 +51,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reGameBoard := regexp.MustCompile(`Game board: (.*)`)
 	reMiniExpansions := regexp.MustCompile(`Mini-expansions: (.*)`)
 
+	// Setup patterns
+	reScoringTile := regexp.MustCompile(`Round (\d+) scoring: (.*)`)
+	reRemovedBonus := regexp.MustCompile(`Removing tile (.*)`)
+
 	// Action Start Patterns (Prefixes)
 	reBuildDwellingSetup := regexp.MustCompile(`(.*) places a Dwelling \[(.*)\]`) // Setup is single line
 	reBuildDwellingGameStart := regexp.MustCompile(`(.*) builds a Dwelling for`)
@@ -79,6 +83,8 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 	settings := make(map[string]string)
 	auctionOver := false
+	scoringTiles := make(map[int]string)
+	removedBonuses := make([]string, 0)
 
 	// Parse header and setup
 	for p.currentLine < len(p.lines) {
@@ -91,6 +97,17 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		if matches := reMiniExpansions.FindStringSubmatch(line); len(matches) > 1 {
 			settings["MiniExpansions"] = matches[1]
 		}
+		if matches := reScoringTile.FindStringSubmatch(line); len(matches) > 2 {
+			round, _ := strconv.Atoi(matches[1])
+			// Extract just the score code (e.g. "SCORE2, TOWN >> 5" -> "SCORE2")
+			parts := strings.Split(matches[2], ",")
+			if len(parts) > 0 {
+				scoringTiles[round] = strings.TrimSpace(parts[0])
+			}
+		}
+		if matches := reRemovedBonus.FindStringSubmatch(line); len(matches) > 1 {
+			removedBonuses = append(removedBonuses, strings.TrimSpace(matches[1]))
+		}
 
 		if strings.Contains(line, "The Factions auction is over") {
 			auctionOver = true
@@ -100,23 +117,14 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		// Fallback: if we see "Every player has chosen a Faction", stop here (auction might be skipped or log different)
 		if strings.Contains(line, "Every player has chosen a Faction") {
 			fmt.Println("Found faction setup over line (in header scan)")
-			// Backtrack one line so the next loop can see it (actually next loop looks for it too)
-			// But next loop expects to parse factions BEFORE this line.
-			// If we are here, maybe we missed the auction/faction selection lines?
-			// In the log, "is playing the" comes BEFORE "Every player has chosen".
-			// So if we hit "Every player has chosen", we might have skipped "is playing the" if we were just consuming lines?
-			// No, we are iterating line by line.
-			// If we see "is playing the", we should probably stop the header scan and let the next loop handle it.
 			p.currentLine--
 			break
 		}
 		if reFactionSelection.MatchString(line) {
-			// fmt.Println("Found faction selection (in header scan)")
 			p.currentLine--
 			break
 		}
 		if reFactionSelection2.MatchString(line) {
-			// fmt.Println("Found faction selection 2 (in header scan)")
 			p.currentLine--
 			break
 		}
@@ -133,7 +141,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		p.currentLine++
 
 		if strings.Contains(line, "Every player has chosen a Faction") {
-			// fmt.Println("Found faction setup over line")
 			break
 		}
 		if matches := reFactionSelection.FindStringSubmatch(line); len(matches) > 2 {
@@ -161,6 +168,53 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	for player, faction := range p.players {
 		settings["Player:"+player] = faction
 	}
+
+	// Add ScoringTiles setting
+	if len(scoringTiles) > 0 {
+		var tiles []string
+		for i := 1; i <= 6; i++ {
+			if t, ok := scoringTiles[i]; ok {
+				tiles = append(tiles, t)
+			}
+		}
+		settings["ScoringTiles"] = strings.Join(tiles, ",")
+	}
+
+	// Add BonusCards setting
+	// We need to map removed bonuses to our internal codes and filter
+	allBonusCodes := []string{
+		"BON-SPD", "BON-4C", "BON-6C", "BON-SHIP", "BON-WP",
+		"BON-BB", "BON-TP", "BON-P", "BON-DW", "BON-SHIP-VP",
+	}
+	// Map BGA codes (BON1..BON10) to internal codes
+	bgaToInternal := map[string]string{
+		"BON1":  "BON-SPD",
+		"BON2":  "BON-4C",
+		"BON3":  "BON-6C",
+		"BON4":  "BON-SHIP",
+		"BON5":  "BON-WP",
+		"BON6":  "BON-BB",
+		"BON7":  "BON-TP",
+		"BON8":  "BON-P",
+		"BON9":  "BON-DW",
+		"BON10": "BON-SHIP-VP",
+	}
+
+	removedSet := make(map[string]bool)
+	for _, rb := range removedBonuses {
+		if internal, ok := bgaToInternal[rb]; ok {
+			removedSet[internal] = true
+		}
+	}
+
+	var availableBonuses []string
+	for _, code := range allBonusCodes {
+		if !removedSet[code] {
+			availableBonuses = append(availableBonuses, code)
+		}
+	}
+	settings["BonusCards"] = strings.Join(availableBonuses, ",")
+
 	p.items = append(p.items, GameSettingsItem{Settings: settings})
 
 	// Main parsing loop

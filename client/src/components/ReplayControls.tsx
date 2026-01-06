@@ -3,6 +3,7 @@ import React from 'react';
 interface ReplayControlsProps {
     onStart: (restart?: boolean) => void;
     onNext: () => void;
+    onPrev: () => void;
     onToggleAutoPlay: () => void;
     isAutoPlaying: boolean;
     currentIndex: number;
@@ -13,6 +14,7 @@ interface ReplayControlsProps {
 export const ReplayControls: React.FC<ReplayControlsProps> = ({
     onStart,
     onNext,
+    onPrev,
     onToggleAutoPlay,
     isAutoPlaying,
     currentIndex,
@@ -40,6 +42,14 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
                 </button>
 
                 <button
+                    onClick={onPrev}
+                    disabled={isAutoPlaying || currentIndex <= 0}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    Back
+                </button>
+
+                <button
                     onClick={onNext}
                     disabled={isAutoPlaying || currentIndex >= totalActions}
                     className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -56,6 +66,13 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
                         } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                     {isAutoPlaying ? 'Pause' : 'Auto-Play'}
+                </button>
+
+                <button
+                    onClick={() => { window.open(`/api/replay/snapshot?gameId=${gameId}`, '_blank'); }}
+                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded font-medium transition-colors"
+                >
+                    Export Snapshot
                 </button>
             </div>
         </div>

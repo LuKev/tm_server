@@ -86,3 +86,55 @@ kezilu places a Dwelling [D4]
 		t.Errorf("Did not find Round 1 Start")
 	}
 }
+
+func TestBGAParserSettings(t *testing.T) {
+	content := `Game board: Base Game
+Round 1 scoring: SCORE2, TOWN >> 5
+Round 2 scoring: SCORE9, TE >> 4
+Round 3 scoring: SCORE4, SH/SA >> 5
+Round 4 scoring: SCORE1, SPADE >> 2
+Round 5 scoring: SCORE6, TP >> 3
+Round 6 scoring: SCORE7, SH/SA >> 5
+Removing tile BON9
+Removing tile BON2
+Removing tile BON5
+deragned is playing the Halflings Faction
+~ Every player has chosen a Faction ~
+`
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var settings *GameSettingsItem
+	for _, item := range items {
+		if s, ok := item.(GameSettingsItem); ok {
+			settings = &s
+			break
+		}
+	}
+
+	if settings == nil {
+		t.Fatal("GameSettingsItem not found")
+	}
+
+	// Check ScoringTiles
+	expectedTiles := "SCORE2,SCORE9,SCORE4,SCORE1,SCORE6,SCORE7"
+	if settings.Settings["ScoringTiles"] != expectedTiles {
+		t.Errorf("Expected ScoringTiles %q, got %q", expectedTiles, settings.Settings["ScoringTiles"])
+	}
+
+	// Check BonusCards
+	// Removed: BON9 (BON-DW), BON2 (BON-4C), BON5 (BON-WP)
+	// All: SPD, 4C, 6C, SHIP, WP, BB, TP, P, DW, SHIP-VP
+	// Expected: SPD, 6C, SHIP, BB, TP, P, SHIP-VP
+	// (Order depends on allBonusCodes order in parser)
+	// allBonusCodes: SPD, 4C, 6C, SHIP, WP, BB, TP, P, DW, SHIP-VP
+	// Removed: 4C, WP, DW
+	// Remaining: SPD, 6C, SHIP, BB, TP, P, SHIP-VP
+	expectedBonus := "BON-SPD,BON-6C,BON-SHIP,BON-BB,BON-TP,BON-P,BON-SHIP-VP"
+	if settings.Settings["BonusCards"] != expectedBonus {
+		t.Errorf("Expected BonusCards %q, got %q", expectedBonus, settings.Settings["BonusCards"])
+	}
+}

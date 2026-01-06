@@ -22,7 +22,9 @@ func (h *ReplayHandler) RegisterRoutes(router *mux.Router) {
 	s := router.PathPrefix("/api/replay").Subrouter()
 	s.HandleFunc("/start", h.handleStart).Methods("POST")
 	s.HandleFunc("/next", h.handleNext).Methods("POST")
+	s.HandleFunc("/jump", h.handleJump).Methods("POST")
 	s.HandleFunc("/state", h.handleState).Methods("GET")
+	s.HandleFunc("/snapshot", h.handleSnapshot).Methods("GET")
 	s.HandleFunc("/provide_info", h.handleProvideInfo).Methods("POST")
 }
 
@@ -159,4 +161,58 @@ func (h *ReplayHandler) handleProvideInfo(w http.ResponseWriter, r *http.Request
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *ReplayHandler) handleJump(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		GameID string `json:"gameId"`
+		Index  int    `json:"index"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := h.manager.JumpTo(req.GameID, req.Index); err != nil {
+		fmt.Printf("JumpTo failed: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Return new state
+	session := h.manager.GetSession(req.GameID)
+	if session == nil {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+
+	state := session.Simulator.GetState()
+	serialized := game.SerializeState(state, req.GameID)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(serialized)
+}
+
+func (h *ReplayHandler) handleSnapshot(w http.ResponseWriter, r *http.Request) {
+	gameID := r.URL.Query().Get("gameId")
+	if gameID == "" {
+		http.Error(w, "missing gameId", http.StatusBadRequest)
+		return
+	}
+
+	session := h.manager.GetSession(gameID)
+	if session == nil {
+		http.Error(w, "session not found", http.StatusNotFound)
+		return
+	}
+
+	state := session.Simulator.GetState()
+	if state == nil {
+		http.Error(w, "state is nil", http.StatusInternalServerError)
+		return
+	}
+
+	snapshot := replay.GenerateSnapshot(state)
+	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"snapshot_%s_%d.yaml\"", gameID, session.Simulator.CurrentIndex))
+	w.Write([]byte(snapshot))
 }

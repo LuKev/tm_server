@@ -223,6 +223,32 @@ export const Replay = () => {
         return () => { clearInterval(interval); }
     }, [isAutoPlaying, currentIndex, totalActions, nextMove, autoPlaySpeed])
 
+    const jumpTo = useCallback(async (index: number) => {
+        if (!gameId) return
+        try {
+            const res = await fetch('/api/replay/jump', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameId, index })
+            })
+            if (!res.ok) {
+                console.error("Failed to jump")
+                return
+            }
+            const stateData = await res.json() as GameState
+            setGameState(stateData)
+            setCurrentIndex(index)
+            setIsAutoPlaying(false) // Stop auto-play on jump
+        } catch (err) {
+            console.error("Failed to jump:", err)
+        }
+    }, [gameId, setGameState])
+
+    const prevMove = useCallback(async () => {
+        if (!gameId || currentIndex <= 0) return
+        await jumpTo(currentIndex - 1)
+    }, [gameId, currentIndex, jumpTo])
+
     // Initial load
     useEffect(() => {
         void startReplay()
@@ -239,6 +265,7 @@ export const Replay = () => {
                     <ReplayControls
                         onStart={startReplay}
                         onNext={nextMove}
+                        onPrev={prevMove}
                         onToggleAutoPlay={() => { setIsAutoPlaying(!isAutoPlaying); }}
                         isAutoPlaying={isAutoPlaying}
                         currentIndex={currentIndex}
@@ -296,6 +323,7 @@ export const Replay = () => {
                             logLocations={logLocations}
                             currentIndex={currentIndex}
                             currentRound={gameState?.round?.round ?? 0}
+                            onLogClick={jumpTo}
                         />
                     </div>
 
@@ -306,7 +334,11 @@ export const Replay = () => {
                         </div>
                         <div className="flex-1 overflow-auto">
                             <ScoringTiles
-                                tiles={gameState?.scoringTiles?.tiles?.map(t => t.type) ?? []}
+                                tiles={
+                                    Array.isArray(gameState?.scoringTiles)
+                                        ? (gameState.scoringTiles as unknown as number[])
+                                        : (gameState?.scoringTiles?.tiles?.map(t => t.type) ?? [])
+                                }
                                 currentRound={gameState?.round?.round ?? 1}
                             />
                         </div>

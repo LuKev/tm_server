@@ -216,10 +216,18 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
                                         key={index}
                                         style={styles.rowHover}
                                         onClick={() => {
-                                            // globalIndex is the index of this action in the log.
-                                            // If we click it, we want to jump to the state AFTER this action.
-                                            // So we jump to globalIndex + 1.
-                                            onLogClick(globalIndex + 1);
+                                            // Fallback: if clicking the row (e.g. empty space), jump to the last action of the row
+                                            let maxActionIndex = -1;
+                                            for (let k = 0; k < logLocations.length; k++) {
+                                                if (logLocations[k].lineIndex === globalIndex) {
+                                                    maxActionIndex = k;
+                                                } else if (logLocations[k].lineIndex > globalIndex) {
+                                                    break;
+                                                }
+                                            }
+                                            if (maxActionIndex !== -1) {
+                                                onLogClick(maxActionIndex + 1);
+                                            }
                                         }}
                                     >
                                         {parts.map((part, i) => {
@@ -234,6 +242,23 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
                                                         ...styles.cell,
                                                         ...(isLast ? styles.cellLast : {}),
                                                         ...(isHighlighted ? styles.highlight : {})
+                                                    }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Prevent row click
+                                                        // Find the last action that maps to this specific cell (line + col)
+                                                        let maxActionIndex = -1;
+                                                        for (let k = 0; k < logLocations.length; k++) {
+                                                            const loc = logLocations[k];
+                                                            if (loc.lineIndex === globalIndex && loc.columnIndex === i) {
+                                                                maxActionIndex = k;
+                                                            } else if (loc.lineIndex > globalIndex) {
+                                                                break;
+                                                            }
+                                                        }
+
+                                                        if (maxActionIndex !== -1) {
+                                                            onLogClick(maxActionIndex + 1);
+                                                        }
                                                     }}
                                                 >
                                                     {part}

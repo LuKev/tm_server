@@ -131,38 +131,7 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 	}
 
 	// Create simulator
-	initialState := game.NewGameState()
-
-	// Pre-populate players from GameSettingsItem if present
-	// This ensures handleState returns players even before any actions are executed
-	for _, item := range items {
-		if s, ok := item.(notation.GameSettingsItem); ok {
-			for k, v := range s.Settings {
-				if strings.HasPrefix(k, "Player:") {
-					factionName := v
-					factionType := models.FactionTypeFromString(factionName)
-					faction := factions.NewFaction(factionType)
-					initialState.AddPlayer(factionName, faction)
-
-					// Set player name
-					playerName := strings.TrimPrefix(k, "Player:")
-					if p, exists := initialState.Players[factionName]; exists {
-						p.Name = playerName
-					}
-
-					// Set starting VPs if specified
-					if vpStr, ok := s.Settings["StartingVP:"+factionName]; ok {
-						if vp, err := strconv.Atoi(vpStr); err == nil {
-							if p, exists := initialState.Players[factionName]; exists {
-								p.VictoryPoints = vp
-							}
-						}
-					}
-				}
-			}
-			break // Only need the first settings item
-		}
-	}
+	initialState := createInitialState(items)
 
 	simulator := NewGameSimulator(initialState, items)
 
@@ -391,6 +360,94 @@ func (m *ReplayManager) GetSession(gameID string) *ReplaySession {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.sessions[gameID]
+}
+
+// JumpTo moves the replay to the specified index
+func (m *ReplayManager) JumpTo(gameID string, targetIndex int) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	session, ok := m.sessions[gameID]
+	if !ok {
+		return fmt.Errorf("session not found")
+	}
+
+	// If jumping backwards, we need to reset the simulator
+	if targetIndex < session.Simulator.CurrentIndex {
+		fmt.Printf("JumpTo: Backwards jump detected (%d -> %d). Resetting simulator.\n", session.Simulator.CurrentIndex, targetIndex)
+		initialState := createInitialState(session.Simulator.Actions)
+		session.Simulator = NewGameSimulator(initialState, session.Simulator.Actions)
+	}
+
+	// Fast forward to target
+	return session.Simulator.JumpTo(targetIndex)
+}
+
+func createInitialState(items []notation.LogItem) *game.GameState {
+	initialState := game.NewGameState()
+
+	// Pre-populate players and settings from GameSettingsItem if present
+	for _, item := range items {
+		if s, ok := item.(notation.GameSettingsItem); ok {
+			for k, v := range s.Settings {
+				if strings.HasPrefix(k, "Player:") {
+					factionName := v
+					factionType := models.FactionTypeFromString(factionName)
+					faction := factions.NewFaction(factionType)
+					initialState.AddPlayer(factionName, faction)
+
+					// Set player name
+					playerName := strings.TrimPrefix(k, "Player:")
+					if p, exists := initialState.Players[factionName]; exists {
+						p.Name = playerName
+					}
+
+					// Set starting VPs if specified
+					if vpStr, ok := s.Settings["StartingVP:"+factionName]; ok {
+						if vp, err := strconv.Atoi(vpStr); err == nil {
+							if p, exists := initialState.Players[factionName]; exists {
+								p.VictoryPoints = vp
+							}
+						}
+					}
+				} else if k == "BonusCards" {
+					// Parse bonus cards
+					cards := strings.Split(v, ",")
+					availableCards := make([]game.BonusCardType, 0)
+					for _, cardCode := range cards {
+						// Parse "BON1 (Desc)" -> "BON1"
+						parts := strings.Split(cardCode, " ")
+						code := parts[0]
+						cardType := notation.ParseBonusCardCode(code)
+						if cardType != game.BonusCardUnknown {
+							availableCards = append(availableCards, cardType)
+						}
+					}
+					initialState.BonusCards.SetAvailableBonusCards(availableCards)
+				} else if k == "ScoringTiles" {
+					// Parse scoring tiles
+					tiles := strings.Split(v, ",")
+					initialState.ScoringTiles = game.NewScoringTileState()
+					for i, tileCode := range tiles {
+						// Parse "SCORE1 (Desc)" -> "SCORE1"
+						parts := strings.Split(tileCode, " ")
+						code := parts[0]
+						tile, err := parseScoringTile(code)
+						if err != nil {
+							fmt.Printf("Warning: failed to parse scoring tile %s: %v\n", code, err)
+							continue
+						}
+						// Ensure we don't add more than 6
+						if i < 6 {
+							initialState.ScoringTiles.Tiles = append(initialState.ScoringTiles.Tiles, tile)
+						}
+					}
+				}
+			}
+			break // Only need the first settings item
+		}
+	}
+	return initialState
 }
 
 func detectMissingInfo(items []notation.LogItem) *MissingGameInfo {
