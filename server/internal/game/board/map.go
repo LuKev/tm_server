@@ -12,8 +12,8 @@ import (
 // Terra Mystica uses a pointy-top hex grid with 9 rows alternating 13/12 hexagons
 type TerraMysticaMap struct {
 	Hexes      map[Hex]*MapHex
-	Bridges    map[BridgeKey]bool // Tracks built bridges between hexes
-	RiverHexes map[Hex]bool       // Tracks which hexes are rivers
+	Bridges    map[BridgeKey]string // Tracks built bridges between hexes (stores PlayerID)
+	RiverHexes map[Hex]bool         // Tracks which hexes are rivers
 }
 
 // MarshalJSON implements custom JSON marshaling for TerraMysticaMap
@@ -27,7 +27,7 @@ func (m *TerraMysticaMap) MarshalJSON() ([]byte, error) {
 	}
 
 	// Convert Bridges map
-	bridges := make(map[string]bool)
+	bridges := make(map[string]string)
 	for k, v := range m.Bridges {
 		bridges[fmt.Sprintf("%d,%d|%d,%d", k.H1.Q, k.H1.R, k.H2.Q, k.H2.R)] = v
 	}
@@ -40,7 +40,7 @@ func (m *TerraMysticaMap) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(&struct {
 		Hexes      map[string]*MapHex `json:"hexes"`
-		Bridges    map[string]bool    `json:"bridges"`
+		Bridges    map[string]string  `json:"bridges"`
 		RiverHexes map[string]bool    `json:"riverHexes"`
 	}{
 		Hexes:      hexes,
@@ -76,7 +76,7 @@ func NewBridgeKey(h1, h2 Hex) BridgeKey {
 func NewTerraMysticaMap() *TerraMysticaMap {
 	m := &TerraMysticaMap{
 		Hexes:      make(map[Hex]*MapHex),
-		Bridges:    make(map[BridgeKey]bool),
+		Bridges:    make(map[BridgeKey]string),
 		RiverHexes: make(map[Hex]bool),
 	}
 	m.initializeBaseMap()
@@ -120,7 +120,8 @@ func (m *TerraMysticaMap) IsRiver(h Hex) bool {
 
 // HasBridge checks if there is a bridge between two hexes
 func (m *TerraMysticaMap) HasBridge(h1, h2 Hex) bool {
-	return m.Bridges[NewBridgeKey(h1, h2)]
+	_, exists := m.Bridges[NewBridgeKey(h1, h2)]
+	return exists
 }
 
 // BuildBridge creates a bridge between two land hexes.
@@ -129,7 +130,7 @@ func (m *TerraMysticaMap) HasBridge(h1, h2 Hex) bool {
 //   - Span across the edge of a river hex: the vector (h2 - h1) must be one of the 6 allowed
 //     distance-2 offsets: (1,-2), (2,-1), (2,0), (0,2), (-2,2), (-2,0) up to rotation,
 //     and the two intermediate hexes along that edge must both be river hexes.
-func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
+func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
 	if !m.IsValidHex(h1) || !m.IsValidHex(h2) {
 		return fmt.Errorf("cannot build bridge: invalid hex coordinates")
 	}
@@ -144,10 +145,10 @@ func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex) error {
 	}
 
 	key := NewBridgeKey(h1, h2)
-	if m.Bridges[key] {
+	if _, exists := m.Bridges[key]; exists {
 		return fmt.Errorf("cannot build bridge: bridge already exists")
 	}
-	m.Bridges[key] = true
+	m.Bridges[key] = playerID
 	return nil
 }
 

@@ -11,6 +11,7 @@ export const TERRAIN_COLORS: Record<TerrainType, string> = {
   [TerrainType.Forest]: '#52b788',      // Green
   [TerrainType.Mountain]: '#95a5a6',    // Gray
   [TerrainType.Wasteland]: '#e74c3c',   // Red
+  [TerrainType.River]: '#b3d9ff',       // Light Blue
 };
 
 // Faction colors (from terra-mystica codebase)
@@ -41,6 +42,7 @@ export const CONTRAST_COLORS: Record<string, string> = {
   '#52b788': '#000',  // Green -> Black
   '#95a5a6': '#000',  // Gray -> Black
   '#e74c3c': '#fff',  // Red -> White
+  '#b3d9ff': '#000',  // Light Blue -> Black
 };
 
 // Cult track colors (from terra-mystica/stc/game.js)

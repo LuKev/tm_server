@@ -46,13 +46,31 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
     // TODO: Implement power action submission
   };
 
+  // Merge dynamic terrain data from gameState
+  const currentHexes = React.useMemo(() => {
+    if (!gameState?.map?.hexes) return BASE_GAME_MAP;
+
+    return BASE_GAME_MAP.map(baseHex => {
+      const key = `${String(baseHex.coord.q)},${String(baseHex.coord.r)}`;
+      const dynamicHex = gameState.map.hexes[key];
+      // Check if dynamicHex exists and has a valid terrain (0 is a valid enum value)
+      if (dynamicHex && dynamicHex.terrain !== undefined) {
+        return {
+          ...baseHex,
+          terrain: dynamicHex.terrain
+        };
+      }
+      return baseHex;
+    });
+  }, [gameState?.map?.hexes]);
+
   return (
     <div className="game-board-container bg-white rounded-lg shadow-md p-4 flex flex-col gap-4 h-full w-full overflow-y-auto">
       <div className="overflow-auto flex-shrink-0">
         <HexGridCanvas
-          hexes={BASE_GAME_MAP}
+          hexes={currentHexes}
           buildings={buildings}
-          bridges={[]} // TODO: Get bridges from game state
+          bridges={gameState?.map?.bridges || []}
           highlightedHexes={highlightedHexes}
           onHexClick={handleHexClick}
           onHexHover={handleHexHover}

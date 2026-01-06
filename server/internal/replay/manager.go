@@ -330,7 +330,7 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 	// However, we can fast-forward to the previous index.
 	targetIndex := session.Simulator.CurrentIndex
 	session.Simulator.CurrentIndex = 0
-	session.Simulator.CurrentState = game.NewGameState()
+	session.Simulator.CurrentState = createInitialState(session.Simulator.Actions)
 	session.Simulator.History = make([]*game.GameState, 0)
 
 	// Re-detect missing info (global only)

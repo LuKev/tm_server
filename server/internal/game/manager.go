@@ -176,13 +176,126 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 		hexes[key] = hexData
 	}
 
+	// Build bridges
+	bridges := make([]map[string]interface{}, 0)
+	for bridgeKey := range gs.Map.Bridges {
+		bridges = append(bridges, map[string]interface{}{
+			"ownerPlayerId": "unknown", // TODO: Store bridge owner in map or derive it
+			"faction":       0,         // TODO: Store bridge faction
+			"fromCoord": map[string]int{
+				"q": bridgeKey.H1.Q,
+				"r": bridgeKey.H1.R,
+			},
+			"toCoord": map[string]int{
+				"q": bridgeKey.H2.Q,
+				"r": bridgeKey.H2.R,
+			},
+		})
+	}
+
+	// We need to find the owner of the bridges.
+	// Since the map only stores existence (bool), we iterate players to find their bridges.
+	// Actually, the map doesn't store WHO owns the bridge in the Bridges map (it's just bool).
+	// But we can infer it or we might need to update the Map structure.
+	// For now, let's look at how we can get the owner.
+	// Wait, the client expects `bridges: Bridge[]`.
+	// Let's re-read `game.types.ts`.
+	// `export interface Bridge { ownerPlayerId: string; faction: FactionType; fromCoord: HexCoord; toCoord: HexCoord; }`
+	// The server `TerraMysticaMap` only has `Bridges map[BridgeKey]bool`.
+	// This is a data loss in the server model if we don't store the owner.
+	// However, `Player` struct has `BridgesBuilt int`.
+	// We might need to check `GetConnectedBuildingsIncludingBridges` or similar.
+	// Or, we can just iterate all players and check if they have a bridge there?
+	// No, `TerraMysticaMap` doesn't store owner.
+	// BUT, `manager.go` has access to `gs.Players`.
+	// We can iterate players, but players don't store *which* bridges they built, only count.
+	// This seems to be a limitation in the current server model.
+	// For visual purposes, maybe we can just send the bridge without owner for now,
+	// OR we assume the bridge connects two of the same player's hexes?
+	// A bridge MUST connect two hexes. One of them must be the player's structure.
+	// Actually, a bridge connects two land hexes.
+	// If we look at `BuildBridge` in `map.go`, it just sets `m.Bridges[key] = true`.
+	// It doesn't store the owner.
+	// We should probably update `TerraMysticaMap` to store `map[BridgeKey]string` (playerID) or similar.
+	// But that's a bigger refactor.
+	// For now, let's try to infer it.
+	// A bridge usually connects a player's building to another hex.
+	// But multiple players could theoretically have bridges? No, bridges are exclusive?
+	// Rules: "You can build bridges... to connect two of your structures or a structure and a terrain space..."
+	// Actually, bridges are part of the network.
+	// Let's look at `HexGridCanvas.tsx`. It uses `bridge.faction` to color it.
+	// If we don't know the faction, we can't color it correctly.
+	// I should probably check if I can easily update `TerraMysticaMap` to store the owner.
+	// Let's check `server/internal/game/board/map.go` again.
+	// It has `Bridges map[BridgeKey]bool`.
+	// I should change this to `map[BridgeKey]string` (PlayerID) or `map[BridgeKey]BridgeInfo`.
+
+	// WAIT, I am in `manager.go`. I can't easily change the model without breaking other things.
+	// Let's see if I can do a quick fix.
+	// If I can't find the owner, I might send a default color or "Unknown".
+	// BUT, the user wants "visual updates".
+	// Let's look at `BuildBridge` in `map.go`.
+	// It takes `h1, h2`. It doesn't take playerID.
+	// But `Execute` in `Action` calls it.
+	// Let's check `Action` implementation for `BuildBridge`.
+	// It's `PowerAction` or `Action`.
+	// `NewBuildBridgeAction`...
+	// If the server model doesn't store it, I can't retrieve it.
+	// I will assume for now that I need to update the server model to store bridge owner.
+	// This is a "Proposed Change" I missed in planning, but it's necessary.
+	// I will update `TerraMysticaMap` to store `map[BridgeKey]string` (PlayerID).
+	// This is a breaking change for `TerraMysticaMap` struct.
+	// Let's verify `map.go` content again.
+	// `Bridges map[BridgeKey]bool`
+	// I will change it to `Bridges map[BridgeKey]string` (PlayerID).
+	// Then I need to update `BuildBridge` signature or logic.
+	// `BuildBridge(h1, h2 Hex)` -> `BuildBridge(h1, h2 Hex, playerID string)`
+	// And update call sites.
+
+	// Let's pause `manager.go` edit and do the model update first.
+	// I'll cancel this tool call and do the model update.
+	// Actually, I can't cancel. I have to finish this tool call or error.
+	// I will output the code assuming `gs.Map.Bridges` is `map[BridgeKey]string`.
+	// Then I will go and update `map.go`.
+	// Wait, if I do that, the code won't compile until I fix `map.go`.
+	// That's fine, I'll do it in sequence.
+
+	// Actually, `bridges` in `SerializeState` needs to be robust.
+	// If I change `Bridges` to `map[BridgeKey]string`, then:
+
 	return map[string]interface{}{
 		"id":          gameID,
 		"phase":       gs.Phase,
 		"currentTurn": gs.CurrentPlayerIndex,
 		"players":     players,
-		"board":       hexes,
-		"turnOrder":   gs.TurnOrder,
+		"map": map[string]interface{}{
+			"hexes": hexes,
+			"bridges": func() []map[string]interface{} {
+				bridges := make([]map[string]interface{}, 0)
+				for bridgeKey, ownerID := range gs.Map.Bridges {
+					// Find faction
+					var factionType interface{} = 0
+					if p, ok := gs.Players[ownerID]; ok && p.Faction != nil {
+						factionType = p.Faction.GetType()
+					}
+
+					bridges = append(bridges, map[string]interface{}{
+						"ownerPlayerId": ownerID,
+						"faction":       factionType,
+						"fromCoord": map[string]int{
+							"q": bridgeKey.H1.Q,
+							"r": bridgeKey.H1.R,
+						},
+						"toCoord": map[string]int{
+							"q": bridgeKey.H2.Q,
+							"r": bridgeKey.H2.R,
+						},
+					})
+				}
+				return bridges
+			}(),
+		},
+		"turnOrder": gs.TurnOrder,
 		"round": map[string]interface{}{
 			"round": gs.Round,
 		},

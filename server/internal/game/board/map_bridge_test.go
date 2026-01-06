@@ -10,7 +10,7 @@ import (
 func makeMap(cells map[Hex]models.TerrainType) *TerraMysticaMap {
 	m := &TerraMysticaMap{
 		Hexes:      make(map[Hex]*MapHex),
-		Bridges:    make(map[BridgeKey]bool),
+		Bridges:    make(map[BridgeKey]string),
 		RiverHexes: make(map[Hex]bool),
 	}
 	for h, t := range cells {
@@ -37,7 +37,7 @@ func TestBridgeGeometry_Valid(t *testing.T) {
 	}
 	m := makeMap(cells)
 
-	if err := m.BuildBridge(h1, h2); err != nil {
+	if err := m.BuildBridge(h1, h2, "player1"); err != nil {
 		t.Fatalf("expected valid bridge, got error: %v", err)
 	}
 	if !m.IsDirectlyAdjacent(h1, h2) {
@@ -58,7 +58,7 @@ func TestBridgeGeometry_InvalidMidpoint(t *testing.T) {
 	}
 	m := makeMap(cells)
 
-	if err := m.BuildBridge(h1, h2); err == nil {
+	if err := m.BuildBridge(h1, h2, "player1"); err == nil {
 		t.Fatalf("expected error due to non-river midpoint")
 	}
 }
@@ -76,7 +76,7 @@ func TestBridgeGeometry_EndpointRiver(t *testing.T) {
 	}
 	m := makeMap(cells)
 
-	if err := m.BuildBridge(h1, h2); err == nil {
+	if err := m.BuildBridge(h1, h2, "player1"); err == nil {
 		t.Fatalf("expected error due to river endpoint")
 	}
 }
@@ -94,7 +94,7 @@ func TestBridgeGeometry_WrongDelta(t *testing.T) {
 		h2:   models.TerrainForest,
 	}
 	m := makeMap(cells)
-	if err := m.BuildBridge(h1, h2); err == nil {
+	if err := m.BuildBridge(h1, h2, "player1"); err == nil {
 		t.Fatalf("expected error for invalid bridge delta")
 	}
 }

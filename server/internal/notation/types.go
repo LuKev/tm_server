@@ -138,7 +138,7 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 				return fmt.Errorf("invalid bridge hex2: %w", err)
 			}
 
-			if err := gs.Map.BuildBridge(hex1, hex2); err != nil {
+			if err := gs.Map.BuildBridge(hex1, hex2, a.PlayerID); err != nil {
 				return fmt.Errorf("failed to build bridge: %w", err)
 			}
 

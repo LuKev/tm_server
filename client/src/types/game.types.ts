@@ -1,13 +1,14 @@
 // Shared client-side types mirroring Go server models in `server/internal/models`
 
 export enum TerrainType {
-  Desert = 0,
-  Plains = 1,
-  Swamp = 2,
-  Lake = 3,
-  Forest = 4,
-  Mountain = 5,
-  Wasteland = 6,
+  Plains = 0,
+  Swamp = 1,
+  Lake = 2,
+  Forest = 3,
+  Mountain = 4,
+  Wasteland = 5,
+  Desert = 6,
+  River = 7,
 }
 
 export enum FactionType {
@@ -116,6 +117,7 @@ export interface MapHex {
 export interface MapState {
   // key: "q,r" string
   hexes: Record<string, MapHex>
+  bridges: Bridge[];
 }
 
 export interface PlayerState {

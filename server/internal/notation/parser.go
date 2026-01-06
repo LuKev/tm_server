@@ -34,7 +34,7 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 		}
 
 		// Parse Game Settings
-		if strings.HasPrefix(line, "Game:") || strings.HasPrefix(line, "MiniExpansions:") || strings.HasPrefix(line, "ScoringTiles:") {
+		if strings.HasPrefix(line, "Game:") || strings.HasPrefix(line, "MiniExpansions:") || strings.HasPrefix(line, "ScoringTiles:") || strings.HasPrefix(line, "BonusCards:") {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])

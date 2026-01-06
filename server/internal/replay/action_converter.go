@@ -205,7 +205,7 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 			}
 
 			// Build the bridge
-			if err := gs.Map.BuildBridge(hex1, hex2); err != nil {
+			if err := gs.Map.BuildBridge(hex1, hex2, playerID); err != nil {
 				return nil, fmt.Errorf("failed to build bridge: %w", err)
 			}
 

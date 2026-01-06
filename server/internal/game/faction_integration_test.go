@@ -1325,8 +1325,8 @@ func TestEngineers_VPPerBridgeOnPass(t *testing.T) {
 	})
 
 	// Add bridges directly to the map (for testing purposes, bypassing river validation)
-	gs.Map.Bridges[board.NewBridgeKey(hex1, hex2)] = true
-	gs.Map.Bridges[board.NewBridgeKey(hex2, hex3)] = true
+	gs.Map.Bridges[board.NewBridgeKey(hex1, hex2)] = "player1"
+	gs.Map.Bridges[board.NewBridgeKey(hex2, hex3)] = "player1"
 	player.BridgesBuilt = 2
 
 	initialVP := player.VictoryPoints

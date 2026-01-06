@@ -600,7 +600,7 @@ func TestTownFormation_WithBridges(t *testing.T) {
 
 	// Build a bridge between two of them (even though they're already adjacent)
 	// This tests that bridges are properly handled in the connection logic
-	gs.Map.BuildBridge(hexes[1], hexes[2])
+	gs.Map.BuildBridge(hexes[1], hexes[2], "player1")
 
 	// Check that town can still be formed with the bridge present
 	connected := gs.CheckForTownFormation("player1", hexes[0])

@@ -222,6 +222,12 @@
     transition-delay: 2s;
 }
 
+/* Always reveal income for built slots (empty on board) */
+.building-slot.built .income-reveal {
+    opacity: 1;
+    transition-delay: 0s;
+}
+
 .building-piece {
     width: 75%;
     height: 75%;

@@ -247,7 +247,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 	case PowerActionBridge:
 		// Place the bridge on the map if coordinates provided
 		if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
-			if err := gs.Map.BuildBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+			if err := gs.Map.BuildBridge(*a.BridgeHex1, *a.BridgeHex2, a.PlayerID); err != nil {
 				return fmt.Errorf("failed to build bridge: %w", err)
 			}
 

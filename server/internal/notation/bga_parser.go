@@ -914,16 +914,16 @@ func (p *BGAParser) handleAurenStronghold(playerID, line string) {
 func (p *BGAParser) handleFavorTileAction(playerID, line string) {
 	matches := reFavorTileAction.FindStringSubmatch(line)
 	if len(matches) > 3 {
-		amountStr := matches[2] // Usually 1
-		amount, _ := strconv.Atoi(amountStr)
+		// amountStr := matches[2] // Usually 1
+		// amount, _ := strconv.Atoi(amountStr)
 		cultName := matches[3]
 		track := parseCultTrack(cultName)
 		trackCode := getCultShortCode(track)
-		// Favor tile action: ACT-FAV11-[Track] (or just ACT-FAV-[Track])
-		// Let's use ACT-FAV-[Track] as it's cleaner
-		action := &LogFavorTileAction{
-			PlayerID: playerID,
-			Tile:     fmt.Sprintf("FAV-%s%d", trackCode, amount),
+		// Favor tile action: ACT-FAV-[Track]
+		// This is a special action (using the tile), not taking a tile
+		action := &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: fmt.Sprintf("ACT-FAV-%s", trackCode),
 		}
 
 		// Check if previous action was Auren Stronghold upgrade (UP-TH-C3)
