@@ -444,7 +444,9 @@ export const PlayerBoards: React.FC = () => {
     const sortedPlayerIds = Object.keys(gameState.players).sort();
 
     // Determine current player based on turn order and current turn index
-    const currentPlayerId = gameState.turnOrder[gameState.currentTurn];
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+    const turnOrderList = gameState.turnOrder ?? [];
+    const currentPlayerId = turnOrderList[gameState.currentTurn];
 
 
     return (
@@ -455,7 +457,7 @@ export const PlayerBoards: React.FC = () => {
             >
                 {sortedPlayerIds.map((pid) => {
                     // Calculate turn order (1-based) for this player
-                    const turnOrderIndex = gameState.turnOrder.indexOf(pid);
+                    const turnOrderIndex = turnOrderList.indexOf(pid);
                     const turnOrder = turnOrderIndex !== -1 ? turnOrderIndex + 1 : '-';
                     const isCurrentPlayer = pid === currentPlayerId;
 
