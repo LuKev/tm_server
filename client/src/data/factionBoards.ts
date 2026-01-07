@@ -10,7 +10,6 @@ export interface BuildingSlot {
         coins?: number;
         priests?: number;
         power?: number;
-        powerTokens?: number; // For gaining power tokens (bowl 1)
         cult?: number; // Generic cult step
     } | null; // null means no income (e.g. last dwelling often has none, or just reveals nothing)
 }

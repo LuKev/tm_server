@@ -8,7 +8,15 @@ export const useGameLayout = (
     gameState: GameState | null,
     numCards: number,
     mode: LayoutMode
-) => {
+): {
+    layouts: Layouts;
+    rowHeight: number;
+    handleWidthChange: (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => void;
+    handleLayoutChange: (currentLayout: Layout[], allLayouts: Layouts) => void;
+    isLayoutLocked: boolean;
+    setIsLayoutLocked: React.Dispatch<React.SetStateAction<boolean>>;
+    resetLayout: () => void;
+} => {
     const defaultLayouts = useMemo(() => {
         if (mode === 'replay') {
             return {
@@ -18,10 +26,10 @@ export const useGameLayout = (
                     { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
                     { i: 'board', x: 10, y: 2, w: 10, h: 12, minW: 10, minH: 8 },
                     { i: 'cult', x: 20, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
-                    { i: 'towns', x: 20, y: 15, w: 4, h: 3, minW: 4, minH: 2 },
-                    { i: 'favor', x: 20, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
+                    { i: 'towns', x: 20, y: 19, w: 4, h: 3, minW: 4, minH: 2 },
+                    { i: 'favor', x: 20, y: 15, w: 4, h: 4, minW: 4, minH: 2 },
                     { i: 'playerBoards', x: 0, y: 16, w: 20, h: 6, minW: 8, minH: 4 },
-                    { i: 'passing', x: 24 - numCards, y: 24, w: numCards, h: 4, minW: 4, minH: 2 }
+                    { i: 'passing', x: 24 - numCards, y: 11, w: numCards, h: 4, minW: 4, minH: 2 }
                 ],
                 md: [
                     { i: 'controls', x: 0, y: 0, w: 20, h: 2, static: true },
@@ -29,10 +37,10 @@ export const useGameLayout = (
                     { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
                     { i: 'board', x: 10, y: 2, w: 10, h: 8, minW: 6, minH: 6 },
                     { i: 'cult', x: 0, y: 16, w: 4, h: 9, minW: 4, minH: 6 },
-                    { i: 'towns', x: 16, y: 15, w: 4, h: 3, minW: 4, minH: 2 },
-                    { i: 'favor', x: 16, y: 11, w: 4, h: 4, minW: 4, minH: 2 },
+                    { i: 'towns', x: 16, y: 19, w: 4, h: 3, minW: 4, minH: 2 },
+                    { i: 'favor', x: 16, y: 15, w: 4, h: 4, minW: 4, minH: 2 },
                     { i: 'playerBoards', x: 0, y: 14, w: 16, h: 6, minW: 8, minH: 4 },
-                    { i: 'passing', x: 20 - numCards, y: 20, w: numCards, h: 4, minW: 4, minH: 2 }
+                    { i: 'passing', x: 20 - numCards, y: 11, w: numCards, h: 4, minW: 4, minH: 2 }
                 ]
             };
         }
@@ -46,7 +54,7 @@ export const useGameLayout = (
                 { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
                 { i: 'favor', x: 20, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
                 { i: 'playerBoards', x: 0, y: 16, w: 20, h: 6, minW: 8, minH: 4 },
-                { i: 'passing', x: 24 - numCards, y: 24, w: numCards, h: 4, minW: 4, minH: 2 }
+                { i: 'passing', x: 24 - numCards, y: 13, w: numCards, h: 4, minW: 4, minH: 2 }
             ],
             md: [
                 { i: 'scoring', x: 0, y: 0, w: 4, h: 8, minW: 4, minH: 6 },
@@ -55,7 +63,7 @@ export const useGameLayout = (
                 { i: 'towns', x: 0, y: 8, w: 4, h: 3, minW: 4, minH: 2 },
                 { i: 'favor', x: 16, y: 9, w: 4, h: 4, minW: 4, minH: 2 },
                 { i: 'playerBoards', x: 0, y: 12, w: 16, h: 6, minW: 8, minH: 4 },
-                { i: 'passing', x: 20 - numCards, y: 20, w: numCards, h: 4, minW: 4, minH: 2 }
+                { i: 'passing', x: 20 - numCards, y: 13, w: numCards, h: 4, minW: 4, minH: 2 }
             ]
         };
     }, [mode, numCards]);
@@ -70,18 +78,20 @@ export const useGameLayout = (
             const newLayouts = { ...currentLayouts };
             let hasChanges = false;
 
-            Object.keys(newLayouts).forEach((key) => {
+            for (const key of Object.keys(newLayouts)) {
                 newLayouts[key] = newLayouts[key].map((item) => {
                     if (item.i === 'passing') {
                         if (item.w !== numCards || item.h !== 4) {
+
                             hasChanges = true;
                             return { ...item, w: numCards, h: 4 };
                         }
                     }
                     return item;
                 });
-            });
+            }
 
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             return hasChanges ? newLayouts : currentLayouts;
         });
     }, [numCards]);
@@ -95,7 +105,7 @@ export const useGameLayout = (
             const newLayouts = { ...currentLayouts };
             let hasChanges = false;
 
-            Object.keys(newLayouts).forEach((key) => {
+            for (const key of Object.keys(newLayouts)) {
                 newLayouts[key] = newLayouts[key].map((item) => {
                     if (item.i === 'playerBoards') {
                         // Game.tsx uses: Math.ceil(playerCount * item.w * 0.5)
@@ -105,19 +115,21 @@ export const useGameLayout = (
                         const finalH = Math.max(newH, item.minH ?? 4);
 
                         if (item.h !== finalH) {
+
                             hasChanges = true;
                             return { ...item, h: finalH };
                         }
                     }
                     return item;
                 });
-            });
+            }
 
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
             return hasChanges ? newLayouts : currentLayouts;
         });
     }, [gameState?.players]);
 
-    const handleWidthChange = useCallback((containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => {
+    const handleWidthChange = useCallback((containerWidth: number, margin: [number, number] | null | undefined, cols: number, containerPadding: [number, number] | null | undefined) => {
         const safeMargin = margin ?? [10, 10];
         const safePadding = containerPadding ?? [10, 10];
         const totalMargin = safeMargin[0] * (cols - 1);
@@ -130,7 +142,7 @@ export const useGameLayout = (
         const updatedLayouts = { ...allLayouts };
         let hasChanges = false;
 
-        Object.keys(updatedLayouts).forEach(key => {
+        for (const key of Object.keys(updatedLayouts)) {
             const layout = updatedLayouts[key];
             const newLayout = layout.map(item => {
                 let newH = item.h;
@@ -148,18 +160,20 @@ export const useGameLayout = (
                     newH = Math.ceil(item.w * (4 / numCards));
                 } else if (item.i === 'playerBoards') {
                     const playerCount = Object.keys(gameState?.players ?? {}).length || 1;
-                    newH = Math.ceil(playerCount * item.w * 0.5);
+                    newH = Math.ceil(playerCount * item.w * 0.37);
                 }
 
                 if (newH !== item.h) {
+
                     hasChanges = true;
                     return { ...item, h: newH };
                 }
                 return item;
             });
             updatedLayouts[key] = newLayout;
-        });
+        }
 
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (hasChanges) {
             setLayouts(updatedLayouts);
         } else {
@@ -173,7 +187,6 @@ export const useGameLayout = (
 
     return {
         layouts,
-        setLayouts,
         rowHeight,
         handleWidthChange,
         handleLayoutChange,

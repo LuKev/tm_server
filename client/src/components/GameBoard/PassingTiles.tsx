@@ -1,5 +1,5 @@
 import React from 'react';
-import { BonusCardType, SpecialActionType } from '../../types/game.types';
+import { BonusCardType, SpecialActionType, type FactionType, type PlayerState } from '../../types/game.types';
 import {
     CoinIcon,
     WorkerIcon,
@@ -14,10 +14,14 @@ import {
     ShippingIcon
 } from '../shared/Icons';
 import './PassingTiles.css';
-import { useGameStore } from '../../stores/gameStore';
+import { FACTION_COLORS } from '../../utils/colors';
 
 interface PassingTilesProps {
     availableCards?: number[]; // Array of BonusCardType values
+    bonusCardCoins?: Record<string, number>; // Map of BonusCardType -> coins
+    bonusCardOwners?: Record<string, string>; // Map of BonusCardType -> PlayerID
+    players?: Record<string, PlayerState>; // Map of PlayerID -> Player
+    passedPlayers?: Set<string>; // Set of PlayerIDs who have passed
 }
 
 const isSplitCard = (type: BonusCardType): boolean => {
@@ -41,7 +45,13 @@ const shouldShowDivider = (type: BonusCardType): boolean => {
     }
 };
 
-export const BonusCardContent: React.FC<{ type: BonusCardType; isUsed?: boolean }> = ({ type, isUsed }) => {
+export const BonusCardContent: React.FC<{
+    type: BonusCardType;
+    isUsed?: boolean;
+    coins?: number;
+    playerColor?: string;
+    isPassed?: boolean;
+}> = ({ type, isUsed, coins, playerColor, isPassed }) => {
     const split = isSplitCard(type);
 
     const renderContent = (): React.ReactNode => {
@@ -186,73 +196,105 @@ export const BonusCardContent: React.FC<{ type: BonusCardType; isUsed?: boolean 
         }
     };
 
-    if (split) {
-        return <>{renderContent()}</>;
-    } else {
-        return <div className="passing-tile-single">{renderContent()}</div>;
-    }
+    return (
+        <div className={`passing-tile ${isPassed ? 'brightness-75' : ''}`} style={{ containerType: 'inline-size' }}>
+            {/* Player Indicator */}
+            {playerColor && (
+                <div style={{
+                    position: 'absolute',
+                    top: '5%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: '15%',
+                    aspectRatio: '1/1',
+                    borderRadius: '50%',
+                    backgroundColor: playerColor,
+                    border: '1px solid white',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                    zIndex: 10
+                }} />
+            )}
+
+            {/* Coin Indicator */}
+            {coins !== undefined && coins > 0 && (
+                <div style={{
+                    position: 'absolute',
+                    top: '5%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                }}>
+                    <CoinIcon style={{ width: '100%', height: '100%', aspectRatio: '1/1', fontSize: '20cqw' }}>{coins}</CoinIcon>
+                </div>
+            )}
+
+            {split ? renderContent() : <div className="passing-tile-single">{renderContent()}</div>}
+            {shouldShowDivider(type) && <div className="passing-tile-divider" />}
+        </div>
+    );
 };
 
-export const PassingTiles: React.FC<PassingTilesProps> = () => {
-    const gameState = useGameStore((state) => state.gameState);
-
-    // Extract all cards in the game (available + taken)
-    const availableCards = React.useMemo(() => {
-        if (!gameState?.bonusCards) return [];
-
-        const available = Object.keys(gameState.bonusCards.available || {}).map(Number);
-        const taken = Object.values(gameState.bonusCards.playerCards || {}).map(Number);
-
-        // Combine and deduplicate
-        return Array.from(new Set([...available, ...taken])).sort((a, b) => a - b);
-    }, [gameState?.bonusCards]);
+export const PassingTiles: React.FC<PassingTilesProps> = ({
+    availableCards,
+    bonusCardCoins,
+    bonusCardOwners,
+    players,
+    passedPlayers
+}) => {
+    if (!availableCards || availableCards.length === 0) return null;
 
     const numCards = availableCards.length;
 
     return (
         <div className="passing-tiles-container" style={{ gridTemplateColumns: `repeat(${String(numCards)}, 1fr)`, aspectRatio: `${String(numCards)} / 4` }}>
-            {availableCards.map((cardTypeVal, index) => {
+            {availableCards.map((cardTypeVal) => {
                 const cardType = cardTypeVal as BonusCardType;
-                const showDivider = shouldShowDivider(cardType);
 
-                // Determine if this card is owned by a player and used
+                const ownerId = bonusCardOwners?.[String(cardType)];
+                const player = ownerId && players ? players[ownerId] : null;
+
+                // Resolve faction color
+                let playerColor = undefined;
+                if (player) {
+                    // Logic from PlayerBoards.tsx to resolve faction type
+                    let factionType = 1; // Default Nomads
+                    if (typeof player.faction === 'number') {
+                        factionType = player.faction;
+                    } else if (player.Faction && typeof player.Faction === 'object' && 'Type' in player.Faction) {
+                        factionType = player.Faction.Type;
+                    }
+                    playerColor = FACTION_COLORS[factionType as FactionType];
+                }
+
+                const isPassed = ownerId ? passedPlayers?.has(ownerId) : false;
+                const coins = bonusCardCoins?.[String(cardType)] ?? 0;
+
+                // Determine if this card is used (for special action cards)
                 let isUsed = false;
-                const bonusCards = gameState?.bonusCards;
-                if (bonusCards?.playerCards) {
-                    // Find player who has this card
-                    const playerId = Object.keys(bonusCards.playerCards).find(
-                        pid => bonusCards.playerCards[pid] === cardType
-                    );
-
-                    if (playerId) {
-                        const player = gameState?.players[playerId];
-                        if (player?.specialActionsUsed) {
-                            if (cardType === BonusCardType.Spade) {
-                                isUsed = player.specialActionsUsed[SpecialActionType.BonusCardSpade];
-                            } else if (cardType === BonusCardType.CultAdvance) {
-                                isUsed = player.specialActionsUsed[SpecialActionType.BonusCardCultAdvance];
-                            }
-                        }
+                if (player?.specialActionsUsed) {
+                    if (cardType === BonusCardType.Spade) {
+                        isUsed = player.specialActionsUsed[SpecialActionType.BonusCardSpade];
+                    } else if (cardType === BonusCardType.CultAdvance) {
+                        isUsed = player.specialActionsUsed[SpecialActionType.BonusCardCultAdvance];
                     }
                 }
 
                 return (
-                    <div key={index} className="passing-tile" style={{ containerType: 'inline-size' }}>
-                        {/* Background - Scroll texture simulation */}
-                        <svg className="passing-tile-bg" viewBox="0 0 100 400" preserveAspectRatio="none">
-                            <rect x="0" y="0" width="100" height="400" fill="white" stroke="black" strokeWidth="3" rx="5" />
-                            {/* Divider line - only for split cards that should show it */}
-                            {showDivider && (
-                                <line x1="10" y1="200" x2="90" y2="200" stroke="black" strokeWidth="1" />
-                            )}
-                        </svg>
-
-                        <div className="passing-tile-content">
-                            <BonusCardContent type={cardType} isUsed={isUsed} />
-                        </div>
-                    </div>
+                    <BonusCardContent
+                        key={cardType}
+                        type={cardType}
+                        isUsed={isUsed}
+                        playerColor={playerColor}
+                        coins={coins}
+                        isPassed={isPassed}
+                    />
                 );
             })}
         </div>
     );
 };
+
+export default PassingTiles;

@@ -217,6 +217,7 @@ export interface GameState {
   phase: GamePhase
   players: Record<string, PlayerState>
   turnOrder: string[]
+  passOrder?: string[]
   currentTurn: number
   map: MapState
   round: RoundState

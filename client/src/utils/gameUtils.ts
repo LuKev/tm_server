@@ -58,9 +58,9 @@ export const getCultPositions = (gameState: GameState | null): Map<CultType, Cul
     positions.set(CultType.Earth, []);
     positions.set(CultType.Air, []);
 
-    const playerIds = (gameState && gameState.turnOrder && gameState.turnOrder.length > 0)
+    const playerIds = (gameState?.turnOrder && gameState.turnOrder.length > 0)
         ? gameState.turnOrder
-        : (gameState && gameState.players ? Object.keys(gameState.players) : []);
+        : (gameState?.players ? Object.keys(gameState.players) : []);
 
     if (playerIds.length === 0) {
         return positions;
@@ -69,27 +69,21 @@ export const getCultPositions = (gameState: GameState | null): Map<CultType, Cul
     playerIds.forEach((playerId: string) => {
         if (!gameState) return;
         const player = gameState.players[playerId];
-        if (!player) return;
+        Object.entries(player.cults).forEach(([cultKey, position]) => {
+            const cult = Number(cultKey) as CultType;
+            // Resolve faction ID
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+            const factionRaw = player.faction ?? player.Faction;
+            const factionId = resolveFaction(factionRaw);
 
-        if (player.cults) {
-            Object.entries(player.cults).forEach(([cultKey, position]) => {
-                const cult = Number(cultKey) as CultType;
-                if (position !== undefined) {
-                    // Resolve faction ID
-                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-                    const factionRaw = player.faction ?? player.Faction;
-                    const factionId = resolveFaction(factionRaw);
-
-                    if (factionId !== FactionType.Unknown) {
-                        positions.get(cult)?.push({
-                            faction: factionId,
-                            position: position,
-                            hasKey: false, // TODO: Track power keys from game state
-                        });
-                    }
-                }
-            });
-        }
+            if (factionId !== FactionType.Unknown) {
+                positions.get(cult)?.push({
+                    faction: factionId,
+                    position: position,
+                    hasKey: false, // TODO: Track power keys from game state
+                });
+            }
+        });
     });
 
     return positions;

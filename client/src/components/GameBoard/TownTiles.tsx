@@ -84,7 +84,8 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
                     const count = tileCounts[id] || 0;
                     const config = TOWN_TILE_CONFIGS[id as TownTileId];
 
-                    if (!config || count === 0) return null;
+                    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+                    if (!config) return null;
 
                     return (
                         <div key={id} className="town-tile-slot">

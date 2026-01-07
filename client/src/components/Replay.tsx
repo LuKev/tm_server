@@ -23,7 +23,7 @@ import { useGameLayout } from '../hooks/useGameLayout'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
-export const Replay = () => {
+export const Replay = (): React.ReactElement => {
     const { gameId } = useParams()
     const setGameState = useGameStore((state) => state.setGameState)
     const gameState = useGameStore((state) => state.gameState)
@@ -43,8 +43,8 @@ export const Replay = () => {
     const availableBonusCardIds = useMemo(() => {
         if (!gameState?.bonusCards) return [];
         // Extract available and taken cards
-        const available = Object.keys(gameState.bonusCards.available ?? {}).map(Number);
-        const taken = Object.values(gameState.bonusCards.playerCards ?? {}).map(Number);
+        const available = Object.keys(gameState.bonusCards.available).map(Number);
+        const taken = Object.values(gameState.bonusCards.playerCards).map(Number);
         // Combine and deduplicate
         const allIds = Array.from(new Set([...available, ...taken]));
 
@@ -55,7 +55,7 @@ export const Replay = () => {
         return allIds.map(id => BONUS_CARD_MAPPING[id]).filter(s => s);
     }, [gameState]);
 
-    const numCards = gameState?.bonusCards ? availableBonusCardIds.length : 9
+    const numCards = (gameState?.bonusCards && availableBonusCardIds.length > 0) ? availableBonusCardIds.length : 9
 
     const availableTownTiles = useMemo(() => {
         if (!gameState?.townTiles?.available) return [];
@@ -106,9 +106,9 @@ export const Replay = () => {
 
             setCurrentIndex(data.currentIndex)
             setTotalActions(data.totalActions)
-            setLogStrings(data.logStrings ?? [])
-            setLogLocations(data.logLocations ?? [])
-            setPlayers(data.players ?? [])
+            setLogStrings(data.logStrings)
+            setLogLocations(data.logLocations)
+            setPlayers(data.players)
 
             // Fetch initial state
             const stateRes = await fetch(`/api/replay/state?gameId=${gameId}`)
@@ -177,19 +177,17 @@ export const Replay = () => {
                     };
 
                     if (isInitial) {
-                        newMissingInfo.BonusCardSelections = { 0: {} };
+                        const selections: Record<string, boolean> = {};
+                        newMissingInfo.BonusCardSelections = { 0: selections };
                         missingPlayers.forEach((p: string) => {
-                            if (newMissingInfo.BonusCardSelections) {
-                                newMissingInfo.BonusCardSelections[0][p] = true;
-                            }
+                            selections[p] = true;
                         });
                     } else if (isPass) {
                         // Use round 1 as placeholder for "Current Round"
-                        newMissingInfo.BonusCardSelections = { 1: {} };
+                        const selections: Record<string, boolean> = {};
+                        newMissingInfo.BonusCardSelections = { 1: selections };
                         missingPlayers.forEach((p: string) => {
-                            if (newMissingInfo.BonusCardSelections) {
-                                newMissingInfo.BonusCardSelections[1][p] = true;
-                            }
+                            selections[p] = true;
                         });
                     }
 
@@ -322,7 +320,7 @@ export const Replay = () => {
                             logStrings={logStrings}
                             logLocations={logLocations}
                             currentIndex={currentIndex}
-                            currentRound={gameState?.round?.round ?? 0}
+                            currentRound={gameState?.round.round ?? 0}
                             onLogClick={jumpTo}
                         />
                     </div>
@@ -337,9 +335,9 @@ export const Replay = () => {
                                 tiles={
                                     Array.isArray(gameState?.scoringTiles)
                                         ? (gameState.scoringTiles as unknown as number[])
-                                        : (gameState?.scoringTiles?.tiles?.map(t => t.type) ?? [])
+                                        : (gameState?.scoringTiles?.tiles.map(t => t.type) ?? [])
                                 }
-                                currentRound={gameState?.round?.round ?? 1}
+                                currentRound={gameState?.round.round ?? 1}
                             />
                         </div>
                     </div>
@@ -413,7 +411,27 @@ export const Replay = () => {
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
-                            <PassingTiles />
+                            <PassingTiles
+                                availableCards={
+                                    gameState?.bonusCards
+                                        ? Array.from(new Set([
+                                            ...Object.keys(gameState.bonusCards.available).map(Number),
+                                            ...Object.values(gameState.bonusCards.playerCards).map(Number)
+                                        ])).sort((a, b) => a - b)
+                                        : []
+                                }
+                                bonusCardCoins={gameState?.bonusCards?.available}
+                                bonusCardOwners={
+                                    gameState?.bonusCards?.playerCards
+                                        ? Object.entries(gameState.bonusCards.playerCards).reduce<Record<string, string>>((acc, [pid, card]) => {
+                                            acc[String(card)] = pid;
+                                            return acc;
+                                        }, {})
+                                        : {}
+                                }
+                                players={gameState?.players}
+                                passedPlayers={new Set(gameState?.passOrder ?? [])}
+                            />
                         </div>
                     </div>
                 </ResponsiveGridLayout>

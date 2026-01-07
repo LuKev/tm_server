@@ -64,23 +64,23 @@ const TILE_CONFIGS: Record<number, TileConfig> = {
 };
 
 const TownIcon = ({ className }: { className?: string }): React.ReactElement => (
-    <div className={`icon-lg town-icon ${className || ''}`}>
+    <div className={`icon-lg town-icon ${className ?? ''}`}>
         TOWN
     </div>
 );
 
 const ActionIcon = ({ type, className }: { type: ActionType, className?: string }): React.ReactElement | null => {
     switch (type) {
-        case ActionType.Dwelling: return <DwellingIcon className={`icon-lg ${className || ''}`} />;
-        case ActionType.TradingHouse: return <TradingHouseIcon className={`icon-lg ${className || ''}`} />;
-        case ActionType.Temple: return <TempleIcon className={`icon-lg ${className || ''}`} />;
+        case ActionType.Dwelling: return <DwellingIcon className={`icon-lg ${className ?? ''}`} />;
+        case ActionType.TradingHouse: return <TradingHouseIcon className={`icon-lg ${className ?? ''}`} />;
+        case ActionType.Temple: return <TempleIcon className={`icon-lg ${className ?? ''}`} />;
         case ActionType.Stronghold: return (
             <div className="flex items-center gap-1">
-                <StrongholdIcon className={`icon-md ${className || ''}`} />
-                <SanctuaryIcon className={`icon-md ${className || ''}`} />
+                <StrongholdIcon className={`icon-md ${className ?? ''}`} />
+                <SanctuaryIcon className={`icon-md ${className ?? ''}`} />
             </div>
         );
-        case ActionType.Spade: return <SpadeIcon className={`icon-lg ${className || ''}`} />;
+        case ActionType.Spade: return <SpadeIcon className={`icon-lg ${className ?? ''}`} />;
         case ActionType.Town: return <TownIcon className={className} />;
         default: return null;
     }
@@ -88,11 +88,11 @@ const ActionIcon = ({ type, className }: { type: ActionType, className?: string 
 
 const RewardIcon = ({ type, amount, className }: { type: RewardType, amount: number, className?: string }): React.ReactElement | null => {
     switch (type) {
-        case RewardType.Priest: return <PriestIcon className={`icon-md ${className || ''}`} />;
-        case RewardType.Power: return <PowerIcon amount={amount} className={`icon-xs reward-power ${className || ''}`} />;
-        case RewardType.Spade: return <SpadeIcon className={`icon-md ${className || ''}`} />;
-        case RewardType.Worker: return <WorkerIcon className={`icon-sm reward-worker ${className || ''}`} />;
-        case RewardType.Coin: return <CoinIcon className={`icon-sm reward-coin ${className || ''}`} />;
+        case RewardType.Priest: return <PriestIcon className={`icon-md ${className ?? ''}`} />;
+        case RewardType.Power: return <PowerIcon amount={amount} className={`icon-xs reward-power ${className ?? ''}`} />;
+        case RewardType.Spade: return <SpadeIcon className={`icon-md ${className ?? ''}`} />;
+        case RewardType.Worker: return <WorkerIcon className={`icon-sm reward-worker ${className ?? ''}`} />;
+        case RewardType.Coin: return <CoinIcon className={`icon-sm reward-coin ${className ?? ''}`} />;
         default: return null;
     }
 };
@@ -134,7 +134,7 @@ interface ScoringTilesProps {
 }
 
 export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound }): React.ReactElement | null => {
-    if (!tiles || tiles.length === 0) {
+    if (tiles.length === 0) {
         return null;
     }
 
@@ -147,6 +147,7 @@ export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound 
         <div className="scoring-tiles-container">
             {reversedTiles.map((tileId, reverseIndex) => {
                 const config = TILE_CONFIGS[tileId];
+                // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                 if (!config) return null;
 
                 // Calculate actual round number (1-6)

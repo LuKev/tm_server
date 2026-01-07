@@ -96,7 +96,7 @@ interface PowerActionsProps {
 
 export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): React.ReactElement => {
     const gameState = useGameStore(state => state.gameState);
-    const usedActions = gameState?.powerActions?.UsedActions || {};
+    const usedActions = gameState?.powerActions?.UsedActions ?? {};
 
     return (
         <div className="power-actions-container">

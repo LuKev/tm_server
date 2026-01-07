@@ -370,6 +370,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       }
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!closestHex) {
       return;
     }

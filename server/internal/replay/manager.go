@@ -447,6 +447,12 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 			break // Only need the first settings item
 		}
 	}
+	// Debug logging
+	fmt.Printf("DEBUG: createInitialState - BonusCards Available: %d\n", len(initialState.BonusCards.Available))
+	for k, v := range initialState.BonusCards.Available {
+		fmt.Printf("  Card: %v, Coins: %d\n", k, v)
+	}
+
 	return initialState
 }
 

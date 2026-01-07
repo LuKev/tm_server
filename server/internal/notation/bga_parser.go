@@ -555,11 +555,16 @@ func (p *BGAParser) handleSendPriest(playerName, track string) {
 
 	// Look ahead for "gains X on the Cult of Y track" to determine the spot
 	spacesToClimb := 1 // Default to 1 (sacrifice) if not found
+	// However, "Forever!" implies it's an action space (2 or 3).
+	// If we default to 1, it won't be shown on the track.
+	// We should try hard to find the amount.
 
 	// Peek at next few lines
-	reGain := regexp.MustCompile(`gains (\d+) on the Cult of .* track`)
+	// Regex to find "gains X" related to cult
+	// Examples: "gains 3 on the Cult of Fire track", "gains 2 on the Cult of Water track"
+	reGain := regexp.MustCompile(`gains (\d+) on the Cult of`)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 5; i++ {
 		if p.currentLine+i >= len(p.lines) {
 			break
 		}
@@ -569,7 +574,8 @@ func (p *BGAParser) handleSendPriest(playerName, track string) {
 			spacesToClimb = amount
 			break
 		}
-		// Stop if we hit another action
+		// Stop if we hit another action (but be careful not to stop too early)
+		// "sends a Priest" or "builds a" usually start new actions
 		if strings.Contains(line, "sends a Priest") || strings.Contains(line, "builds a") {
 			break
 		}

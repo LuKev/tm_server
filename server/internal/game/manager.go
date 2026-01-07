@@ -284,6 +284,7 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 			"bridges": bridges,
 		},
 		"turnOrder": gs.TurnOrder,
+		"passOrder": gs.PassOrder,
 		"round": map[string]interface{}{
 			"round": gs.Round,
 		},

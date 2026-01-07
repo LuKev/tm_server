@@ -47,7 +47,7 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
         return roundMap;
     }, [logStrings]);
 
-    const currentLines = rounds.get(viewRound) || [];
+    const currentLines = rounds.get(viewRound) ?? [];
 
     // Determine highlight location
     // currentIndex is the index of the *next* action.

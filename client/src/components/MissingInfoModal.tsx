@@ -4,7 +4,7 @@ import { Modal } from './shared/Modal';
 export interface MissingInfo {
     GlobalBonusCards: boolean;
     GlobalScoringTiles: boolean;
-    BonusCardSelections: Record<number, Record<string, boolean>>;
+    BonusCardSelections: Record<number, Record<string, boolean> | undefined>;
     PlayerFactions: Record<string, boolean>;
 }
 
@@ -26,7 +26,7 @@ interface MissingInfoModalProps {
 export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, missingInfo, players, availableBonusCards, onSubmit, onClose }) => {
     const [scoringTiles, setScoringTiles] = useState<string[]>(Array(6).fill(''));
     const [bonusCards, setBonusCards] = useState<string[]>(Array(10).fill(''));
-    const [playerBonusCards, setPlayerBonusCards] = useState<Record<string, Record<string, string>>>({});
+    const [playerBonusCards, setPlayerBonusCards] = useState<Record<string, Record<string, string> | undefined>>({});
 
     // Simple hardcoded options for now
     // Corrected mappings based on server/internal/replay/game_setup.go
@@ -59,11 +59,11 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
         ? bonusCards.filter(c => c)
         : (availableBonusCards && availableBonusCards.length > 0 ? availableBonusCards : BONUS_CARDS);
 
-    const handleSubmit = () => {
+    const handleSubmit = (): void => {
         const data = {
             scoringTiles: scoringTiles.filter(t => t),
             bonusCards: bonusCards.filter(c => c),
-            bonusCardSelections: playerBonusCards,
+            bonusCardSelections: playerBonusCards as Record<string, Record<string, string>>,
         };
         onSubmit(data);
     };
@@ -130,7 +130,7 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
                 )}
 
                 {/* Bonus Card Selections (Initial or Pass) */}
-                {missingInfo.BonusCardSelections && Object.keys(missingInfo.BonusCardSelections).map(roundStr => {
+                {Object.keys(missingInfo.BonusCardSelections).map(roundStr => {
                     const round = parseInt(roundStr);
                     const selections = missingInfo.BonusCardSelections[round];
                     if (!selections || Object.keys(selections).length === 0 || !players || players.length === 0) return null;
@@ -147,12 +147,12 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
                                 <div key={player} className="flex gap-2 mb-2 items-center">
                                     <label className="w-32">{player}:</label>
                                     <select
-                                        value={playerBonusCards[roundStr]?.[player] || ''}
+                                        value={playerBonusCards[roundStr]?.[player] ?? ''}
                                         onChange={(e) => {
                                             setPlayerBonusCards({
                                                 ...playerBonusCards,
                                                 [roundStr]: {
-                                                    ...(playerBonusCards[roundStr] || {}),
+                                                    ...(playerBonusCards[roundStr] ?? {}),
                                                     [player]: e.target.value
                                                 }
                                             });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType } from '../../types/game.types';
+import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, type PlayerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon } from '../shared/Icons';
@@ -54,7 +54,7 @@ const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolea
             {income.coins && <CoinIcon style={style}>{income.coins}</CoinIcon>}
             {income.priests && <PriestIcon style={{ width: '1.5em', height: '1.5em', ...style }}>{income.priests}</PriestIcon>}
             {income.power && <PowerIcon amount={income.power} style={style} />}
-            {income.powerTokens && <div style={{ fontSize: '0.75em' }}>+{income.powerTokens} PW</div>}
+
         </div>
     );
 };
@@ -74,8 +74,8 @@ const BuildingTrackSlot: React.FC<{
     type: BuildingType;
     faction: FactionType;
     isBuilt: boolean;
-}> = ({ slot, type, faction, isBuilt }) => {
-    const renderIcon = () => {
+}> = ({ slot, type, faction, isBuilt }): React.ReactElement => {
+    const renderIcon = (): React.ReactElement | null => {
         const className = "building-piece";
         const color = FACTION_COLORS[faction];
         switch (type) {
@@ -101,7 +101,7 @@ const BuildingTrackSlot: React.FC<{
 
 const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCurrentPlayer?: boolean }> = ({ playerId, turnOrder, isCurrentPlayer }) => {
     const gameState = useGameStore(s => s.gameState);
-    const player = gameState?.players[playerId];
+    const player: PlayerState | undefined = gameState?.players[playerId];
 
     if (!player || (!player.Faction && !player.faction)) return null;
 
@@ -142,11 +142,11 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
             factionType = player.faction;
         }
     }
-    const boardLayout = FACTION_BOARDS[factionType] || FACTION_BOARDS[FactionType.Nomads]; // Fallback
+    const boardLayout = FACTION_BOARDS[factionType];
     const factionColor = FACTION_COLORS[factionType];
 
     // Count built buildings
-    const buildings = Object.values(gameState?.map?.hexes || {})
+    const buildings = Object.values(gameState?.map.hexes ?? {})
         .map(h => h.building)
         .filter(b => b && b.ownerPlayerId === playerId);
 
@@ -335,7 +335,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
                         <div className="pb-section-title">Favor Tiles</div>
                         <div className="favor-tiles-area">
                             {(() => {
-                                const playerTiles = gameState?.favorTiles?.playerTiles?.[playerId] || [];
+                                const playerTiles = gameState?.favorTiles?.playerTiles[playerId] ?? [];
                                 if (playerTiles.length === 0) {
                                     return <div className="pb-empty-text">None</div>;
                                 }
@@ -444,7 +444,7 @@ export const PlayerBoards: React.FC = () => {
     const sortedPlayerIds = Object.keys(gameState.players).sort();
 
     // Determine current player based on turn order and current turn index
-    const currentPlayerId = gameState.turnOrder?.[gameState.currentTurn];
+    const currentPlayerId = gameState.turnOrder[gameState.currentTurn];
 
 
     return (
@@ -455,8 +455,8 @@ export const PlayerBoards: React.FC = () => {
             >
                 {sortedPlayerIds.map((pid) => {
                     // Calculate turn order (1-based) for this player
-                    const turnOrderIndex = gameState.turnOrder?.indexOf(pid);
-                    const turnOrder = turnOrderIndex !== undefined && turnOrderIndex !== -1 ? turnOrderIndex + 1 : '-';
+                    const turnOrderIndex = gameState.turnOrder.indexOf(pid);
+                    const turnOrder = turnOrderIndex !== -1 ? turnOrderIndex + 1 : '-';
                     const isCurrentPlayer = pid === currentPlayerId;
 
                     return (

@@ -54,7 +54,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
       const key = `${String(baseHex.coord.q)},${String(baseHex.coord.r)}`;
       const dynamicHex = gameState.map.hexes[key];
       // Check if dynamicHex exists and has a valid terrain (0 is a valid enum value)
-      if (dynamicHex && dynamicHex.terrain !== undefined) {
+      if (dynamicHex?.terrain !== undefined) {
         return {
           ...baseHex,
           terrain: dynamicHex.terrain

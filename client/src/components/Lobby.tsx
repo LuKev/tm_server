@@ -36,7 +36,7 @@ export function Lobby(): React.ReactElement {
     ])
 
     // Handle lobby messages
-    if (typeof lastMessage === 'object' && lastMessage !== null && 'type' in lastMessage) {
+    if (lastMessage && typeof lastMessage === 'object' && 'type' in lastMessage) {
       const msg = lastMessage as LobbyMessage
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload as GameInfo[] : [])
@@ -49,7 +49,8 @@ export function Lobby(): React.ReactElement {
       } else if (msg.type === 'game_state_update') {
         const gameState = msg.payload as GameState | undefined
         // If we are in this game AND it has started, navigate to it
-        if (gameState?.id && gameState.players?.[playerName] && gameState.started) {
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (gameState?.id && gameState.players[playerName] && gameState.started) {
           void navigate(`/game/${gameState.id}`)
         }
       }
@@ -227,7 +228,7 @@ export function Lobby(): React.ReactElement {
               ) : (
                 <div className="space-y-2">
                   {games.map((g) => {
-                    const isFull = (g.players?.length ?? 0) >= g.maxPlayers
+                    const isFull = g.players.length >= g.maxPlayers
                     return (
                       <div key={g.id} className="flex items-center justify-between bg-white/10 border border-white/20 rounded-md p-3">
                         <div>
