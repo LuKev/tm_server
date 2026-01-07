@@ -130,7 +130,10 @@ export interface PlayerState {
   cults: Partial<Record<CultType, number>>
   buildings: Record<string, Building>
   victoryPoints?: number
-  VictoryPoints?: number
+  VictoryPoints?: number // Deprecated, use victoryPoints
+  keys?: number
+  townsFormed?: number
+  townTiles?: number[] // Array of TownTileType IDs
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
 }
