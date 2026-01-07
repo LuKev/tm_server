@@ -3,6 +3,8 @@ package game
 import (
 	"fmt"
 	"sync"
+
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // Manager owns and guards access to game state instances in-memory.
@@ -123,9 +125,9 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 	players := make(map[string]interface{})
 	for playerID, player := range gs.Players {
 
-		factionType := ""
+		var factionType models.FactionType
 		if player.Faction != nil {
-			factionType = player.Faction.GetType().String()
+			factionType = player.Faction.GetType()
 		}
 
 		players[playerID] = map[string]interface{}{
@@ -150,6 +152,7 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 				"2": player.CultPositions[CultEarth],
 				"3": player.CultPositions[CultAir],
 			},
+			"specialActionsUsed": player.SpecialActionsUsed,
 		}
 	}
 
@@ -178,10 +181,15 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 
 	// Build bridges
 	bridges := make([]map[string]interface{}, 0)
-	for bridgeKey := range gs.Map.Bridges {
+	for bridgeKey, ownerID := range gs.Map.Bridges {
+		var factionType models.FactionType
+		if p, ok := gs.Players[ownerID]; ok && p.Faction != nil {
+			factionType = p.Faction.GetType()
+		}
+
 		bridges = append(bridges, map[string]interface{}{
-			"ownerPlayerId": "unknown", // TODO: Store bridge owner in map or derive it
-			"faction":       0,         // TODO: Store bridge faction
+			"ownerPlayerId": ownerID,
+			"faction":       factionType,
 			"fromCoord": map[string]int{
 				"q": bridgeKey.H1.Q,
 				"r": bridgeKey.H1.R,
@@ -228,7 +236,10 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 	// I should probably check if I can easily update `TerraMysticaMap` to store the owner.
 	// Let's check `server/internal/game/board/map.go` again.
 	// It has `Bridges map[BridgeKey]bool`.
-	// I should change this to `map[BridgeKey]string` (PlayerID) or `map[BridgeKey]BridgeInfo`.
+	// I should change this to `map[BridgeKey]string` (PlayerID).
+	// Then I need to update `BuildBridge` signature or logic.
+	// `BuildBridge(h1, h2 Hex)` -> `BuildBridge(h1, h2 Hex, playerID string)`
+	// And update call sites.
 
 	// WAIT, I am in `manager.go`. I can't easily change the model without breaking other things.
 	// Let's see if I can do a quick fix.
@@ -269,31 +280,8 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 		"currentTurn": gs.CurrentPlayerIndex,
 		"players":     players,
 		"map": map[string]interface{}{
-			"hexes": hexes,
-			"bridges": func() []map[string]interface{} {
-				bridges := make([]map[string]interface{}, 0)
-				for bridgeKey, ownerID := range gs.Map.Bridges {
-					// Find faction
-					var factionType interface{} = 0
-					if p, ok := gs.Players[ownerID]; ok && p.Faction != nil {
-						factionType = p.Faction.GetType()
-					}
-
-					bridges = append(bridges, map[string]interface{}{
-						"ownerPlayerId": ownerID,
-						"faction":       factionType,
-						"fromCoord": map[string]int{
-							"q": bridgeKey.H1.Q,
-							"r": bridgeKey.H1.R,
-						},
-						"toCoord": map[string]int{
-							"q": bridgeKey.H2.Q,
-							"r": bridgeKey.H2.R,
-						},
-					})
-				}
-				return bridges
-			}(),
+			"hexes":   hexes,
+			"bridges": bridges,
 		},
 		"turnOrder": gs.TurnOrder,
 		"round": map[string]interface{}{
@@ -301,37 +289,23 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 		},
 		"started":  gs.Phase != PhaseSetup,
 		"finished": gs.Phase == PhaseEnd,
-		"scoringTiles": func() []int {
+		"scoringTiles": func() interface{} {
 			if gs.ScoringTiles == nil {
 				return nil
 			}
-			tiles := make([]int, len(gs.ScoringTiles.Tiles))
-			for i, t := range gs.ScoringTiles.Tiles {
-				tiles[i] = int(t.Type)
-			}
-			return tiles
+			return gs.ScoringTiles
 		}(),
-		"bonusCards": func() []int {
+		"bonusCards": func() interface{} {
 			if gs.BonusCards == nil {
 				return nil
 			}
-			// Return all available cards (keys in Available map)
-			cards := make([]int, 0, len(gs.BonusCards.Available))
-			for cardType := range gs.BonusCards.Available {
-				cards = append(cards, int(cardType))
-			}
-			return cards
+			return gs.BonusCards
 		}(),
-		"townTiles": func() []int {
+		"townTiles": func() interface{} {
 			if gs.TownTiles == nil {
 				return nil
 			}
-			// Return all available tiles (keys in Available map)
-			tiles := make([]int, 0, len(gs.TownTiles.Available))
-			for tileType := range gs.TownTiles.Available {
-				tiles = append(tiles, int(tileType))
-			}
-			return tiles
+			return gs.TownTiles
 		}(),
 		"favorTiles": func() interface{} {
 			if gs.FavorTiles == nil {

@@ -40,7 +40,7 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
 				if key == "ScoringTiles" {
-					fmt.Printf("DEBUG: Parsed ScoringTiles: %s\n", value)
+					// fmt.Printf("DEBUG: Parsed ScoringTiles: %s\n", value)
 				}
 				settings[key] = value
 			}
@@ -59,7 +59,7 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 					playerName := strings.TrimSpace(pParts[0])
 					// Add Player setting: Player:Halflings -> Halflings
 					settings["Player:"+playerName] = playerName
-					fmt.Printf("DEBUG: Parsed player from StartingVPs: %s\n", playerName)
+					// fmt.Printf("DEBUG: Parsed player from StartingVPs: %s\n", playerName)
 
 					// Add StartingVP setting
 					if len(pParts) >= 2 {
@@ -153,7 +153,7 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 				item := ActionItem{
 					Action: action,
 				}
-				fmt.Printf("DEBUG: Parsed Action %d: %s (Player: %s)\n", len(items), part, playerID)
+				// fmt.Printf("DEBUG: Parsed Action %d: %s (Player: %s)\n", len(items), part, playerID)
 				items = append(items, item)
 			}
 		}
@@ -340,6 +340,8 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 				spaces = s
 			}
 		}
+
+		// fmt.Printf("DEBUG: Parsed Cult Action %s -> Track: %v, Spaces: %d\n", code, track, spaces)
 
 		return &game.SendPriestToCultAction{
 			BaseAction:    game.BaseAction{Type: game.ActionSendPriestToCult, PlayerID: playerID},
