@@ -138,6 +138,8 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
             const factionName = player.faction;
             const found = FACTIONS.find(f => f.type === factionName || f.name === factionName);
             if (found) factionType = found.id;
+        } else if (typeof player.faction === 'number') {
+            factionType = player.faction;
         }
     }
     const boardLayout = FACTION_BOARDS[factionType] || FACTION_BOARDS[FactionType.Nomads]; // Fallback

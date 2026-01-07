@@ -42,8 +42,8 @@ const STANDARD_DWELLINGS: BuildingSlot[] = [
 ];
 
 const STANDARD_TRADING_HOUSES: BuildingSlot[] = [
-    { cost: DEFAULT_TRADING_HOUSE_COST, income: { power: 2, coins: 2 } },
-    { cost: DEFAULT_TRADING_HOUSE_COST, income: { power: 2, coins: 2 } },
+    { cost: DEFAULT_TRADING_HOUSE_COST, income: { power: 1, coins: 2 } },
+    { cost: DEFAULT_TRADING_HOUSE_COST, income: { power: 1, coins: 2 } },
     { cost: DEFAULT_TRADING_HOUSE_COST, income: { power: 2, coins: 2 } },
     { cost: DEFAULT_TRADING_HOUSE_COST, income: { power: 2, coins: 2 } },
 ];
