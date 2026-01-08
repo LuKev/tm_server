@@ -23,8 +23,8 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
 };
 
 const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
-    <div className="relative w-8 h-8 flex items-center justify-center">
-        <svg viewBox="-2 -2 44 44" className="w-full h-full drop-shadow-sm">
+    <div style={{ position: 'relative', width: '2rem', height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}>
             <path
                 d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z"
                 fill="#f97316" // orange-500
