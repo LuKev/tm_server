@@ -220,7 +220,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
                                             isBuilt={strongholdCount > 0}
                                         />
                                         {/* Stronghold Action Octagon */}
-                                        {strongholdCount > 0 && strongholdActionType !== null && (
+                                        {strongholdActionType !== null && (
                                             <div style={{ position: 'absolute', right: '-2.5em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdOctagon isUsed={isStrongholdActionUsed} />
                                             </div>
