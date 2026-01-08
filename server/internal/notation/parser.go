@@ -153,7 +153,6 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 				item := ActionItem{
 					Action: action,
 				}
-				// fmt.Printf("DEBUG: Parsed Action %d: %s (Player: %s)\n", len(items), part, playerID)
 				items = append(items, item)
 			}
 		}
