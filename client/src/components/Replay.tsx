@@ -348,7 +348,7 @@ export const Replay = (): React.ReactElement => {
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
-                            <GameBoard onHexClick={undefined} />
+                            <GameBoard onHexClick={undefined} isReplayMode={true} />
                         </div>
                     </div>
 
@@ -401,7 +401,7 @@ export const Replay = (): React.ReactElement => {
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <PlayerBoards />
+                            <PlayerBoards isReplayMode={true} />
                         </div>
                     </div>
 

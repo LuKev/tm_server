@@ -13,6 +13,8 @@ interface HexGridCanvasProps {
   highlightedHexes?: Set<string>;
   onHexClick?: (q: number, r: number) => void;
   onHexHover?: (q: number, r: number) => void;
+  showCoords?: boolean;
+  disableHover?: boolean;
 }
 
 export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
@@ -22,6 +24,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   highlightedHexes = new Set(),
   onHexClick,
   onHexHover,
+  showCoords = true,
+  disableHover: _disableHover = false,
 }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -83,8 +87,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Debug: show coordinates in dev mode
-    if (process.env.NODE_ENV === 'development') {
+    // Show coordinates when showCoords is true
+    if (showCoords) {
       ctx.save();
       ctx.fillStyle = getContrastColor(fillColor);
       ctx.font = '10px sans-serif';
@@ -93,7 +97,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       ctx.fillText(`${String(hex.coord.q)},${String(hex.coord.r)}`, center.x, center.y);
       ctx.restore();
     }
-  }, []);
+  }, [showCoords]);
 
   // Draw highlight border on top of everything
   const drawHighlight = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {

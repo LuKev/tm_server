@@ -6,8 +6,10 @@ import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
+import { TownTileId } from '../../types/game.types';
 import './PlayerBoards.css';
 import './FavorTiles.css';
+import './TownTiles.css';
 
 // Helper to get Stronghold Action Type for a faction
 const getStrongholdActionType = (faction: FactionType): SpecialActionType | null => {
@@ -22,8 +24,32 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
     }
 };
 
+// Helper to get town tile config with VP and rewards
+const getTownTileConfig = (tileId: TownTileId): { vp: number; rewards: React.ReactNode } => {
+    switch (tileId) {
+        case TownTileId.Vp5Coins6:
+            return { vp: 5, rewards: <CoinIcon className="icon-sm">6</CoinIcon> };
+        case TownTileId.Vp6Power8:
+            return { vp: 6, rewards: <PowerIcon amount={8} className="icon-sm" /> };
+        case TownTileId.Vp7Workers2:
+            return { vp: 7, rewards: <WorkerIcon className="icon-sm">2</WorkerIcon> };
+        case TownTileId.Vp4Ship1:
+            return { vp: 4, rewards: <span style={{ fontSize: '0.6em' }}>Ship</span> };
+        case TownTileId.Vp8Cult1:
+            return { vp: 8, rewards: <div style={{ display: 'flex', gap: '2px' }}><div style={{ width: '0.5em', height: '0.5em', background: 'linear-gradient(to bottom right, #dc2626, #fbbf24, #22c55e, #3b82f6)', borderRadius: '50%' }} /></div> };
+        case TownTileId.Vp9Priest1:
+            return { vp: 9, rewards: <PriestIcon className="icon-sm" /> };
+        case TownTileId.Vp11:
+            return { vp: 11, rewards: null };
+        case TownTileId.Vp2Cult2:
+            return { vp: 2, rewards: <div style={{ display: 'flex', gap: '2px' }}><div style={{ width: '0.5em', height: '0.5em', background: 'linear-gradient(to bottom right, #dc2626, #fbbf24, #22c55e, #3b82f6)', borderRadius: '50%' }} /><span style={{ fontSize: '0.6em' }}>×2</span></div> };
+        default:
+            return { vp: 0, rewards: null };
+    }
+};
+
 const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
-    <div style={{ position: 'relative', width: '2rem', height: '2rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div style={{ position: 'relative', width: '2.4rem', height: '2.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}>
             <path
                 d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z"
@@ -34,7 +60,7 @@ const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
         </svg>
         {isUsed && (
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }}>
+                <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }}>
                     <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
                     <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
                 </svg>
@@ -99,7 +125,14 @@ const BuildingTrackSlot: React.FC<{
     );
 };
 
-const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCurrentPlayer?: boolean }> = ({ playerId, turnOrder, isCurrentPlayer }) => {
+interface PlayerBoardProps {
+    playerId: string;
+    turnOrder: number | string;
+    isCurrentPlayer?: boolean;
+    isReplayMode?: boolean;
+}
+
+const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurrentPlayer, isReplayMode }) => {
     const gameState = useGameStore(s => s.gameState);
     const player: PlayerState | undefined = gameState?.players[playerId];
 
@@ -221,7 +254,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
                                         />
                                         {/* Stronghold Action Octagon */}
                                         {strongholdActionType !== null && (
-                                            <div style={{ position: 'absolute', right: '-2.5em', top: '50%', transform: 'translateY(-50%)' }}>
+                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdOctagon isUsed={isStrongholdActionUsed} />
                                             </div>
                                         )}
@@ -315,19 +348,59 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
                         </div>
                     </div>
 
-                    {/* Column 2: Conversions */}
+                    {/* Column 2: Conversions (normal) or Towns (replay mode) */}
                     <div className="pb-conversions-col">
-                        <div className="pb-section-title">Conversions</div>
-                        <div className="conversion-area">
-                            <button className="conversion-btn">1 Priest → 1 Worker</button>
-                            <button className="conversion-btn">1 Worker → 1 Coin</button>
-                            <button className="conversion-btn">5 PW → 1 Priest</button>
-                            <button className="conversion-btn">3 PW → 1 Worker</button>
-                            <button className="conversion-btn">1 PW → 1 Coin</button>
-                            {factionType === FactionType.Alchemists && (
-                                <button className="conversion-btn special">1 VP → 1 Coin</button>
-                            )}
-                        </div>
+                        {isReplayMode ? (
+                            <>
+                                <div className="pb-section-title">Towns</div>
+                                <div className="pb-towns-area">
+                                    {(() => {
+                                        const townTiles = player.townTiles ?? [];
+                                        if (townTiles.length === 0) {
+                                            return <div className="pb-empty-text">None</div>;
+                                        }
+                                        return (
+                                            <div className="pb-towns-list">
+                                                {townTiles.map((tileId, idx) => {
+                                                    const config = getTownTileConfig(tileId as TownTileId);
+                                                    return (
+                                                        <div key={`town-${String(idx)}`} className="pb-town-slot">
+                                                            <div className="town-tile">
+                                                                <div className="town-tile-content">
+                                                                    <div className="town-tile-top">
+                                                                        <span className="vp-value">{config.vp}</span>
+                                                                        <span className="vp-label">VP</span>
+                                                                    </div>
+                                                                    {config.rewards && (
+                                                                        <div className="town-tile-bottom">
+                                                                            {config.rewards}
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="pb-section-title">Conversions</div>
+                                <div className="conversion-area">
+                                    <button className="conversion-btn">1 Priest → 1 Worker</button>
+                                    <button className="conversion-btn">1 Worker → 1 Coin</button>
+                                    <button className="conversion-btn">5 PW → 1 Priest</button>
+                                    <button className="conversion-btn">3 PW → 1 Worker</button>
+                                    <button className="conversion-btn">1 PW → 1 Coin</button>
+                                    {factionType === FactionType.Alchemists && (
+                                        <button className="conversion-btn special">1 VP → 1 Coin</button>
+                                    )}
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Column 3: Favor Tiles & Bonus Card */}
@@ -379,7 +452,7 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
                                                                     {tileData.reward}
                                                                     {isUsed && (
                                                                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                            <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
+                                                                            <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
                                                                                 <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
                                                                                 <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
                                                                             </svg>
@@ -405,7 +478,11 @@ const PlayerBoard: React.FC<{ playerId: string; turnOrder: number | string; isCu
     );
 };
 
-export const PlayerBoards: React.FC = () => {
+interface PlayerBoardsProps {
+    isReplayMode?: boolean;
+}
+
+export const PlayerBoards: React.FC<PlayerBoardsProps> = ({ isReplayMode }) => {
     const gameState = useGameStore(s => s.gameState);
 
     // JS-based scaling to ensure reliability
@@ -467,6 +544,7 @@ export const PlayerBoards: React.FC = () => {
                             playerId={pid}
                             turnOrder={turnOrder}
                             isCurrentPlayer={isCurrentPlayer}
+                            isReplayMode={isReplayMode}
                         />
                     );
                 })}

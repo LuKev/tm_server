@@ -105,11 +105,11 @@ export const BonusCardContent: React.FC<{
                 return (
                     <>
                         <div className="passing-tile-top relative flex items-center justify-center">
-                            <div className="relative w-[75%]">
+                            <div className="relative w-[60%]">
                                 <SpadeActionIcon className="w-full">
                                     {isUsed && (
                                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }}>
+                                            <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }}>
                                                 <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
                                                 <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
                                             </svg>
@@ -142,11 +142,11 @@ export const BonusCardContent: React.FC<{
                 return (
                     <>
                         <div className="passing-tile-top relative flex items-center justify-center">
-                            <div className="relative w-[75%]">
+                            <div className="relative w-[60%]">
                                 <CultActionIcon className="w-full">
                                     {isUsed && (
                                         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            <svg viewBox="0 0 40 40" style={{ width: '100%', height: '100%', display: 'block' }}>
+                                            <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }}>
                                                 <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
                                                 <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
                                             </svg>

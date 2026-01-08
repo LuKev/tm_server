@@ -9,12 +9,20 @@ import { PowerActions } from './PowerActions';
 import { type PowerActionType } from '../../types/game.types';
 
 interface GameBoardProps {
-  onHexClick?: (q: number, r: number) => void
+  onHexClick?: (q: number, r: number) => void;
+  isReplayMode?: boolean;
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.ReactElement => {
+export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick, isReplayMode }): React.ReactElement => {
   const gameState = useGameStore(s => s.gameState);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
+
+  // In replay mode, don't track hover state
+  const handleHexHover = (q: number, r: number): void => {
+    if (!isReplayMode) {
+      setHoveredHex(`${String(q)},${String(r)}`);
+    }
+  };
 
   // Get buildings from game state
   const buildings = new Map<string, Building>();
@@ -29,10 +37,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
   const handleHexClick = (q: number, r: number): void => {
     // console.log(`GameBoard: Hex clicked: (${q}, ${r})`);
     onHexClick?.(q, r);
-  };
-
-  const handleHexHover = (q: number, r: number): void => {
-    setHoveredHex(`${String(q)},${String(r)}`);
   };
 
   // Highlight hovered hex
@@ -74,6 +78,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick }): React.React
           highlightedHexes={highlightedHexes}
           onHexClick={handleHexClick}
           onHexHover={handleHexHover}
+          showCoords={!isReplayMode}
+          disableHover={isReplayMode}
         />
       </div>
 

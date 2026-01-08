@@ -30,7 +30,7 @@ export const StrongholdIcon = ({ className, style, color }: { className?: string
 
 export const SanctuaryIcon = ({ className, style, color }: { className?: string, style?: React.CSSProperties, color?: string }): React.ReactElement => (
     <svg viewBox="0 0 40 30" className={className} style={style}>
-        <path d="M 13 27 A 12 12 0 0 1 13 3 L 27 3 A 12 12 0 0 1 27 27 Z" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2" />
+        <path d="M 13 27 A 12 12 0 0 1 13 3 L 27 3 A 12 12 0 0 1 27 27 Z" fill={color ?? "#D4B483"} stroke="#5C4033" strokeWidth="2.5" />
     </svg>
 );
 
@@ -123,23 +123,23 @@ export const VPIcon = ({ className, children }: { className?: string, children?:
 
 export const CultActionIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
     <div className={className} style={{ position: 'relative', aspectRatio: '1/1', ...style }}>
-        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
-            {/* Octagon Background - Orange/Brownish for action */}
-            <polygon points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30" fill="#D97706" stroke="#92400E" strokeWidth="2" />
+        <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }}>
+            {/* Octagon Background - Orange/Brownish for action - exact same as grey overlay */}
+            <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#D97706" stroke="#92400E" strokeWidth="2" />
 
             {/* Split Circle Group - Centered */}
-            <g transform="translate(50, 50)">
+            <g transform="translate(20, 20)">
                 {/* Top Left - Red */}
-                <path d="M 0 0 L 0 -35 A 35 35 0 0 0 -35 0 Z" fill="#EF4444" stroke="white" strokeWidth="1.5" />
+                <path d="M 0 0 L 0 -11 A 11 11 0 0 0 -11 0 Z" fill="#EF4444" stroke="white" strokeWidth="1" />
 
                 {/* Bottom Left - Blue */}
-                <path d="M 0 0 L -35 0 A 35 35 0 0 0 0 35 Z" fill="#3B82F6" stroke="white" strokeWidth="1.5" />
+                <path d="M 0 0 L -11 0 A 11 11 0 0 0 0 11 Z" fill="#3B82F6" stroke="white" strokeWidth="1" />
 
                 {/* Bottom Right - Orange */}
-                <path d="M 0 0 L 0 35 A 35 35 0 0 0 35 0 Z" fill="#F59E0B" stroke="white" strokeWidth="1.5" />
+                <path d="M 0 0 L 0 11 A 11 11 0 0 0 11 0 Z" fill="#F59E0B" stroke="white" strokeWidth="1" />
 
                 {/* Top Right - White/Gray */}
-                <path d="M 0 0 L 35 0 A 35 35 0 0 0 0 -35 Z" fill="#E5E7EB" stroke="white" strokeWidth="1.5" />
+                <path d="M 0 0 L 11 0 A 11 11 0 0 0 0 -11 Z" fill="#E5E7EB" stroke="white" strokeWidth="1" />
             </g>
         </svg>
         {children}
@@ -148,11 +148,11 @@ export const CultActionIcon = ({ className, style, children }: { className?: str
 
 export const SpadeActionIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
     <div className={className} style={{ position: 'relative', aspectRatio: '1/1', ...style }}>
-        <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', display: 'block' }}>
-            {/* Octagon Background - Orange/Brownish for action */}
-            <polygon points="30,0 70,0 100,30 100,70 70,100 30,100 0,70 0,30" fill="#D97706" stroke="#92400E" strokeWidth="2" />
+        <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }}>
+            {/* Octagon Background - Orange/Brownish for action - exact same as grey overlay */}
+            <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#D97706" stroke="#92400E" strokeWidth="2" />
         </svg>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '50%', height: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '40%', height: '40%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <Shovel color="#5C4033" size="100%" strokeWidth={2} />
         </div>
         {children}
