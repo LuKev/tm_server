@@ -19,26 +19,29 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
         const player = gameState.players[playerId];
         if (!player) return "Unknown";
 
-        // Try to get faction name
-        let factionName = "Unknown";
-        if (player.faction) {
-            if (typeof player.faction === 'string') factionName = player.faction;
-            else if (typeof player.faction === 'object' && 'Type' in player.faction) {
-                const type = (player.faction as { Type: number }).Type;
-                const f = FACTIONS.find(f => f.id === (type as FactionType));
-                if (f) factionName = f.name;
-            }
-        } else if (player.Faction) {
-            // Handle uppercase Faction
-            if (typeof player.Faction === 'string') factionName = player.Faction;
-            else if (typeof player.Faction === 'object' && 'Type' in player.Faction) {
-                const type = (player.Faction as { Type: number }).Type;
-                const f = FACTIONS.find(f => f.id === (type as FactionType));
-                if (f) factionName = f.name;
-            }
+        // Try to get faction name using all possible formats
+        const factionRaw = player.faction ?? player.Faction;
+        if (!factionRaw) return "Unknown";
+
+        // Handle direct number (faction type enum)
+        if (typeof factionRaw === 'number') {
+            const f = FACTIONS.find(f => f.id === factionRaw);
+            return f ? f.name : "Unknown";
         }
 
-        return factionName;
+        // Handle object with Type (from Go serialization)
+        if (typeof factionRaw === 'object' && 'Type' in factionRaw) {
+            const type = (factionRaw as { Type: number }).Type;
+            const f = FACTIONS.find(f => f.id === type);
+            return f ? f.name : "Unknown";
+        }
+
+        // Handle string faction name
+        if (typeof factionRaw === 'string') {
+            return factionRaw;
+        }
+
+        return "Unknown";
     };
 
     const getFactionColor = (playerId: string): string => {
