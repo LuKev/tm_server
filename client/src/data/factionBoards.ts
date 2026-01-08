@@ -63,20 +63,6 @@ const STANDARD_STRONGHOLD: BuildingSlot = {
     income: { power: 2 }, // Varies wildly
 };
 
-// Chaos Magicians specific
-// Dwellings: 1W, 2C. Income: 1W (x7), -
-// Trading Houses: 2W, 3/6C. Income: 2C, 1P -> 2C, 1P -> 2C, 2P -> 2C, 2P
-// Temples: 2W, 5C. Income: 1 Priest
-// Sanctuary: 4W, 6C. Income: 1 Priest
-// Stronghold: 4W, 6C. Income: 2 Power (Double Action ability)
-
-const CHAOS_MAGICIAN_TRADING_HOUSES: BuildingSlot[] = [
-    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 2, power: 1 } },
-    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 2, power: 1 } },
-    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 2, power: 2 } },
-    { cost: DEFAULT_TRADING_HOUSE_COST, income: { coins: 2, power: 2 } },
-];
-
 // --- Faction Specific Costs ---
 
 // Auren
@@ -114,7 +100,7 @@ const NOMADS_STRONGHOLD_COST = { workers: 4, coins: 8 };
 
 // Swarmlings
 const SWARMLINGS_DWELLING_COST = { workers: 2, coins: 3 };
-const SWARMLINGS_TRADING_HOUSE_COST = { workers: 3, coins: 8 };
+const SWARMLINGS_TRADING_HOUSE_COST = { workers: 3, coins: 4 };
 const SWARMLINGS_TEMPLE_COST = { workers: 3, coins: 6 };
 const SWARMLINGS_SANCTUARY_COST = { workers: 5, coins: 8 };
 const SWARMLINGS_STRONGHOLD_COST = { workers: 5, coins: 8 };
@@ -132,7 +118,7 @@ const AUREN_BOARD: FactionBoardLayout = {
 
 const CHAOS_MAGICIAN_BOARD: FactionBoardLayout = {
     dwellings: STANDARD_DWELLINGS,
-    tradingHouses: CHAOS_MAGICIAN_TRADING_HOUSES,
+    tradingHouses: STANDARD_TRADING_HOUSES,
     temples: STANDARD_TEMPLES,
     sanctuary: { cost: CHAOS_SANCTUARY_COST, income: { priests: 1 } },
     stronghold: { cost: CHAOS_STRONGHOLD_COST, income: { workers: 2 } }, // Income: 2 Workers
