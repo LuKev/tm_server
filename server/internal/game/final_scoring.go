@@ -226,22 +226,28 @@ func (gs *GameState) distributeCultVP(scores map[string]*PlayerFinalScore, posit
 }
 
 // calculateResourceConversion converts remaining resources to VP
-// 3 coins = 1 VP (or 2 coins = 1 VP for Alchemists), 1 worker = 1 VP, 1 priest = 1 VP
-// Power is automatically converted optimally to coins first:
-//   - Burn Bowl 2 power to move to Bowl 3 (2 Bowl 2 → 1 Bowl 3)
-//   - Convert Bowl 3 to coins (1 Bowl 3 → 1 coin)
-//   - Result: coins from power = Bowl 3 + floor(Bowl 2 / 2)
-//
-// Also tracks total resource value for tiebreaker
+// Terra Mystica end-game conversion:
+// 1. Workers → Coins (1:1)
+// 2. Priests → Coins (1:1)
+// 3. Power in Bowl 2: burn optimally (2 Bowl 2 → 1 Bowl 3)
+// 4. Power in Bowl 3 → Coins (1:1)
+// 5. All Coins → VP at 3:1 (or 2:1 for Alchemists)
 func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalScore) {
 	for playerID, player := range gs.Players {
-		// First, convert power to coins optimally
-		// Players can: 1 power in Bowl 3 → 1 coin
-		// Players can: burn 1 power in Bowl 2 to move 1 power from Bowl 2 to Bowl 3
-		// Optimal: Convert all Bowl 2 power to Bowl 3 (2 Bowl 2 → 1 Bowl 3), then convert Bowl 3 to coins
-		// Result: coins = Bowl 3 + floor(Bowl 2 / 2)
-		powerCoins := player.Resources.Power.Bowl3 + (player.Resources.Power.Bowl2 / 2)
-		totalCoins := player.Resources.Coins + powerCoins
+		// Step 1 & 2: Convert workers and priests to coins
+		workerCoins := player.Resources.Workers
+		priestCoins := player.Resources.Priests
+
+		// Step 3 & 4: Convert power to coins optimally
+		// Power in Bowl 3 converts directly to coins (1:1)
+		// Power in Bowl 2 can be burned: 2 Bowl 2 → 1 Bowl 3, then that 1 Bowl 3 → 1 coin
+		// Optimal: burn all possible Bowl 2 power, then convert all Bowl 3
+		bowl2Coins := player.Resources.Power.Bowl2 / 2 // 2 Bowl 2 → 1 coin (via burning)
+		bowl3Coins := player.Resources.Power.Bowl3     // 1 Bowl 3 → 1 coin
+		powerCoins := bowl2Coins + bowl3Coins
+
+		// Step 5: Sum all coins
+		totalCoins := player.Resources.Coins + workerCoins + priestCoins + powerCoins
 
 		// Check if player is Alchemists (2 coins = 1 VP instead of 3 coins = 1 VP)
 		coinsPerVP := 3
@@ -249,22 +255,11 @@ func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalS
 			coinsPerVP = 2
 		}
 
-		// Convert coins to VP
-		coinVP := totalCoins / coinsPerVP
+		// Convert all coins to VP
+		scores[playerID].ResourceVP = totalCoins / coinsPerVP
 
-		// Convert workers (1 worker = 1 VP)
-		workerVP := player.Resources.Workers
-
-		// Convert priests (1 priest = 1 VP)
-		priestVP := player.Resources.Priests
-
-		scores[playerID].ResourceVP = coinVP + workerVP + priestVP
-
-		// Track total resource value for tiebreaker
-		// Tiebreaker uses: coins + power + workers + priests (not converted)
-		scores[playerID].TotalResourceValue = totalCoins +
-			player.Resources.Workers +
-			player.Resources.Priests
+		// Track total resource value (in coins) for tiebreaker
+		scores[playerID].TotalResourceValue = totalCoins
 	}
 }
 
