@@ -238,6 +238,9 @@ func (sts *ScoringTileState) GetTileForRound(round int) *ScoringTile {
 	if round < 1 || round > 6 {
 		return nil
 	}
+	if round > len(sts.Tiles) {
+		return nil
+	}
 	return &sts.Tiles[round-1]
 }
 
