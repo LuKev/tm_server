@@ -334,5 +334,11 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 			}
 			return gs.CultTracks
 		}(),
+		"finalScoring": func() interface{} {
+			if gs.FinalScoring == nil {
+				return nil
+			}
+			return gs.FinalScoring
+		}(),
 	}
 }
