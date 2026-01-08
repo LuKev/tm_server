@@ -196,8 +196,11 @@ func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *Pow
 	}
 
 	// Calculate maximum power that can be gained
-	// Power can move from bowl 1 to bowl 2, or from bowl 2 to bowl 3
-	maxGain := targetPower.Bowl1 + targetPower.Bowl2
+	// When gaining power: Bowl1→Bowl2, then if more needed: Bowl2→Bowl3
+	// The tokens from Bowl1 that move to Bowl2 can then move to Bowl3 in the same gain
+	// So max gain = Bowl1 (which can move to Bowl2 and then to Bowl3) + Bowl2 (which can move to Bowl3)
+	// Therefore: maxGain = Bowl1 + (Bowl2 + Bowl1 after first move) but that's just 2*Bowl1 + Bowl2
+	maxGain := 2*targetPower.Bowl1 + targetPower.Bowl2
 
 	// Offer is limited by the smaller of building value or max gain
 	actualAmount := buildingValue
