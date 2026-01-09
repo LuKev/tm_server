@@ -98,6 +98,9 @@ export const Replay = (): React.ReactElement => {
 
             const data = await res.json() as ReplayStartResponse
 
+            // Always set players so modal knows how many bonus cards to expect
+            setPlayers(data.players)
+
             if (data.missingInfo) {
                 setMissingInfo(data.missingInfo)
                 setShowMissingInfoModal(true)
@@ -151,19 +154,68 @@ export const Replay = (): React.ReactElement => {
                 body: JSON.stringify({ gameId })
             })
             if (!res.ok) {
+                // Check for structured missing info error (409 Conflict)
+                if (res.status === 409) {
+                    interface MissingInfoResponse {
+                        error: string;
+                        type: string;
+                        players: string[];
+                        round: number;
+                        allMissingPasses?: Record<string, string[]>;
+                    }
+                    const data = await res.json() as MissingInfoResponse;
+                    console.error("Missing info detected (structured):", data);
+
+                    const newMissingInfo: MissingInfo = {
+                        GlobalBonusCards: false,
+                        GlobalScoringTiles: false,
+                        BonusCardSelections: {},
+                        PlayerFactions: {}
+                    };
+
+                    if (data.type === "initial_bonus_card") {
+                        const selections: Record<string, boolean> = {};
+                        data.players.forEach((p: string) => {
+                            selections[p] = true;
+                        });
+                        newMissingInfo.BonusCardSelections = { 0: selections };
+                    } else if (data.type === "pass_bonus_card") {
+                        // Use allMissingPasses if available - includes ALL rounds
+                        if (data.allMissingPasses && Object.keys(data.allMissingPasses).length > 0) {
+                            for (const [roundStr, playerList] of Object.entries(data.allMissingPasses)) {
+                                const round = parseInt(roundStr);
+                                const selections: Record<string, boolean> = {};
+                                playerList.forEach((p: string) => {
+                                    selections[p] = true;
+                                });
+                                newMissingInfo.BonusCardSelections[round] = selections;
+                            }
+                        } else {
+                            // Fallback to single player/round
+                            const selections: Record<string, boolean> = {};
+                            data.players.forEach((p: string) => {
+                                selections[p] = true;
+                            });
+                            newMissingInfo.BonusCardSelections[data.round || 1] = selections;
+                        }
+                    }
+
+                    setMissingInfo(newMissingInfo);
+                    setShowMissingInfoModal(true);
+                    setIsAutoPlaying(false);
+                    return;
+                }
+
                 const errText = await res.text()
-                // Check if it's a missing info error
-                // The backend returns a plain string error usually, but we might want to parse it if it's JSON
-                // Or if it's a 500 with "missing info: ..."
+                // Legacy: Check if it's a missing info error (plain text)
                 if (errText.includes("missing info:")) {
-                    console.error("Missing info detected:", errText);
+                    console.error("Missing info detected (legacy):", errText);
 
                     const isInitial = errText.includes("initial_bonus_card");
                     const isPass = errText.includes("pass_bonus_card");
 
                     // Extract players
                     const playersMatch = /\[(.*?)\]/.exec(errText);
-                    // Split by comma if present, otherwise space (backward compatibility)
                     const playersStr = playersMatch ? playersMatch[1] : "";
                     const missingPlayers = playersStr.includes(",")
                         ? playersStr.split(",").map(s => s.trim())
@@ -183,7 +235,6 @@ export const Replay = (): React.ReactElement => {
                             selections[p] = true;
                         });
                     } else if (isPass) {
-                        // Use round 1 as placeholder for "Current Round"
                         const selections: Record<string, boolean> = {};
                         newMissingInfo.BonusCardSelections = { 1: selections };
                         missingPlayers.forEach((p: string) => {
@@ -271,6 +322,28 @@ export const Replay = (): React.ReactElement => {
                         gameId={gameId ?? ''}
                     />
                     <div className="flex gap-2">
+                        <button
+                            onClick={() => {
+                                // Create a missingInfo with all rounds for manual editing
+                                const editMissingInfo: MissingInfo = {
+                                    GlobalBonusCards: false,
+                                    GlobalScoringTiles: false,
+                                    BonusCardSelections: {},
+                                    PlayerFactions: {}
+                                };
+                                // Add all players for rounds 1-5
+                                for (let round = 1; round <= 5; round++) {
+                                    const selections: Record<string, boolean> = {};
+                                    players.forEach(p => { selections[p] = true; });
+                                    editMissingInfo.BonusCardSelections[round] = selections;
+                                }
+                                setMissingInfo(editMissingInfo);
+                                setShowMissingInfoModal(true);
+                            }}
+                            className="px-4 py-2 bg-yellow-100 hover:bg-yellow-200 rounded text-sm font-medium text-yellow-800 transition-colors"
+                        >
+                            Edit Pass Tiles
+                        </button>
                         <button
                             onClick={() => { setIsLayoutLocked(!isLayoutLocked) }}
                             className={`px-4 py-2 rounded text-sm font-medium transition-colors ${isLayoutLocked

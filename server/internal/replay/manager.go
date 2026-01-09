@@ -255,27 +255,41 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 		round1Index = settingsIndex + 1
 	}
 
-	if roundSelections, ok := info.BonusCardSelections["0"]; ok && len(roundSelections) > 0 {
-		newActions := make([]notation.LogItem, 0)
-		for playerID, cardStr := range roundSelections {
-			// Parse "BON1 (Desc)" -> "BON1"
-			parts := strings.Split(cardStr, " ")
-			cardCode := parts[0]
-
-			action := &notation.LogBonusCardSelectionAction{
-				PlayerID:  playerID,
-				BonusCard: cardCode,
+	// Check if Round 0 bonus card selections already exist (e.g., from a previous ProvideInfo call)
+	hasRound0BonusCards := false
+	for _, item := range session.Simulator.Actions {
+		if actionItem, ok := item.(notation.ActionItem); ok {
+			if _, ok := actionItem.Action.(*notation.LogBonusCardSelectionAction); ok {
+				hasRound0BonusCards = true
+				break
 			}
-			newActions = append(newActions, notation.ActionItem{Action: action})
 		}
+	}
 
-		// Insert newActions at round1Index
-		// We need to be careful with slice manipulation
-		// Actions = [0...round1Index-1] + newActions + [round1Index...]
-		if round1Index >= len(session.Simulator.Actions) {
-			session.Simulator.Actions = append(session.Simulator.Actions, newActions...)
-		} else {
-			session.Simulator.Actions = append(session.Simulator.Actions[:round1Index], append(newActions, session.Simulator.Actions[round1Index:]...)...)
+	// Only insert Round 0 bonus card selections if they don't already exist
+	if !hasRound0BonusCards {
+		if roundSelections, ok := info.BonusCardSelections["0"]; ok && len(roundSelections) > 0 {
+			newActions := make([]notation.LogItem, 0)
+			for playerID, cardStr := range roundSelections {
+				// Parse "BON1 (Desc)" -> "BON1"
+				parts := strings.Split(cardStr, " ")
+				cardCode := parts[0]
+
+				action := &notation.LogBonusCardSelectionAction{
+					PlayerID:  playerID,
+					BonusCard: cardCode,
+				}
+				newActions = append(newActions, notation.ActionItem{Action: action})
+			}
+
+			// Insert newActions at round1Index
+			// We need to be careful with slice manipulation
+			// Actions = [0...round1Index-1] + newActions + [round1Index...]
+			if round1Index >= len(session.Simulator.Actions) {
+				session.Simulator.Actions = append(session.Simulator.Actions, newActions...)
+			} else {
+				session.Simulator.Actions = append(session.Simulator.Actions[:round1Index], append(newActions, session.Simulator.Actions[round1Index:]...)...)
+			}
 		}
 	}
 

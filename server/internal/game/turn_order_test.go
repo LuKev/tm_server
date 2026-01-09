@@ -148,13 +148,9 @@ func TestTurnOrder_SkipsPassedPlayers(t *testing.T) {
 	gs.TurnOrder = []string{"player1", "player2", "player3"}
 	gs.CurrentPlayerIndex = 0
 
-	// Player2 passes
-	bonusCard := BonusCard6Coins
-	pass2 := NewPassAction("player2", &bonusCard)
-	err := pass2.Execute(gs)
-	if err != nil {
-		t.Fatalf("player2 pass failed: %v", err)
-	}
+	// Player2 passes (manually set state to avoid side effects of PassAction.Execute calling NextTurn)
+	player2 := gs.GetPlayer("player2")
+	player2.HasPassed = true
 
 	// Advance turn from player1
 	gs.NextTurn()

@@ -5,6 +5,7 @@ import { Game } from './components/Game';
 import { MapTest } from './components/MapTest';
 import { CultTracksTest } from './components/CultTracks/CultTracksTest';
 import { Replay } from './components/Replay';
+import { ImportGame } from './components/ImportGame';
 
 function App(): React.ReactElement {
   return (
@@ -13,6 +14,7 @@ function App(): React.ReactElement {
         <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
           <Routes>
             <Route path="/" element={<Lobby />} />
+            <Route path="/import" element={<ImportGame />} />
             <Route path="/game/:gameId" element={<Game />} />
             <Route path="/replay/:gameId" element={<Replay />} />
             <Route path="/maptest" element={<MapTest />} />

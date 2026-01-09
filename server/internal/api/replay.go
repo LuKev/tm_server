@@ -90,6 +90,21 @@ func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
 
 	if err := session.Simulator.StepForward(); err != nil {
 		fmt.Printf("StepForward failed for game %s: %v\n", req.GameID, err)
+
+		// Check if it's a MissingInfoError - return structured JSON
+		if missingErr, ok := err.(*game.MissingInfoError); ok {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusConflict) // 409 Conflict for missing info
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error":            missingErr.Error(),
+				"type":             missingErr.Type,
+				"players":          missingErr.Players,
+				"round":            missingErr.Round,
+				"allMissingPasses": missingErr.AllMissingPasses,
+			})
+			return
+		}
+
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

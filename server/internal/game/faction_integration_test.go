@@ -1571,18 +1571,11 @@ func TestFakirs_CarpetFlightBasic(t *testing.T) {
 	player.Resources.Priests = 5
 	initialVP := player.VictoryPoints
 
-	// Try normal build action without skip - should fail (not adjacent)
-	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
-	err := actionNoSkip.Execute(gs)
-	if err == nil {
-		t.Fatal("expected error for non-adjacent hex without skip")
-	}
-
-	// Use carpet flight (skip)
-	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true, models.TerrainTypeUnknown)
-	err = actionWithSkip.Execute(gs)
+	// Fakirs should auto-detect carpet flight for non-adjacent hex (UseSkip auto-enabled)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
+	err := action.Execute(gs)
 	if err != nil {
-		t.Fatalf("carpet flight should work, got error: %v", err)
+		t.Fatalf("carpet flight should auto-detect for Fakirs, got error: %v", err)
 	}
 
 	// Verify priest was spent
@@ -1730,18 +1723,11 @@ func TestDwarves_TunnelingBasic(t *testing.T) {
 	initialVP := player.VictoryPoints
 	initialWorkers := player.Resources.Workers
 
-	// Try normal build action without skip - should fail (not adjacent)
-	actionNoSkip := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
-	err := actionNoSkip.Execute(gs)
-	if err == nil {
-		t.Fatal("expected error for non-adjacent hex without skip")
-	}
-
-	// Use tunneling (skip)
-	actionWithSkip := NewTransformAndBuildActionWithSkip("player1", targetHex, true, models.TerrainTypeUnknown)
-	err = actionWithSkip.Execute(gs)
+	// Dwarves should auto-detect tunnelling for non-adjacent hex (UseSkip auto-enabled)
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
+	err := action.Execute(gs)
 	if err != nil {
-		t.Fatalf("tunneling should work, got error: %v", err)
+		t.Fatalf("tunneling should auto-detect for Dwarves, got error: %v", err)
 	}
 
 	// Verify extra workers were spent (2 for tunneling before stronghold)
@@ -1885,6 +1871,119 @@ func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 	cost := faction.GetShippingCost(0)
 	if cost.Priests != 0 || cost.Coins != 0 {
 		t.Error("Dwarves should have 0 cost for shipping (indicating impossible)")
+	}
+}
+
+// TestDwarves_TunnelingAutoDetection verifies that tunnelling is automatically
+// enabled when Dwarves target a non-adjacent hex (without explicit UseSkip flag)
+func TestDwarves_TunnelingAutoDetection(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Place initial dwelling at (0,0)
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	// Target hex is distance 2 away (not adjacent)
+	targetHex := board.NewHex(2, 0)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainMountain} // Same terrain, no dig needed
+
+	// Give player resources
+	player.Resources.Workers = 10
+	player.Resources.Coins = 10
+	initialVP := player.VictoryPoints
+	initialWorkers := player.Resources.Workers
+
+	// Create action WITHOUT UseSkip flag - it should auto-detect
+	action := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
+	// Note: UseSkip is false here, but validateAdjacency should auto-set it for Dwarves
+
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("auto-detected tunneling should work, got error: %v", err)
+	}
+
+	// Verify tunneling VP bonus was awarded (+4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for tunneling, got +%d", vpGained)
+	}
+
+	// Verify tunneling cost was charged (2 workers for tunneling + 1 for dwelling)
+	workersSpent := initialWorkers - player.Resources.Workers
+	expectedCost := 2 + 1 // tunneling + dwelling (no terraform since same terrain)
+	if workersSpent != expectedCost {
+		t.Errorf("expected %d workers spent, got %d", expectedCost, workersSpent)
+	}
+}
+
+// TestDwarves_BonusCardSpadeWithTunneling verifies that bonus card spade + dwelling
+// build at a non-adjacent hex only charges tunnelling once
+func TestDwarves_BonusCardSpadeWithTunneling(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewDwarves()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Place initial dwelling at (0,0)
+	initialHex := board.NewHex(0, 0)
+	gs.Map.Hexes[initialHex] = &board.MapHex{Coord: initialHex, Terrain: faction.GetHomeTerrain()}
+	gs.Map.PlaceBuilding(initialHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	// Target hex is distance 2 away - needs tunneling
+	targetHex := board.NewHex(2, 0)
+	// Make it 1 terrain step away from mountain (Dwarves home)
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainWasteland}
+
+	// Give player the spade bonus card and resources
+	gs.BonusCards.PlayerCards["player1"] = BonusCardSpade
+	gs.BonusCards.PlayerHasCard["player1"] = true
+	player.Resources.Workers = 10
+	player.Resources.Coins = 10
+	initialVP := player.VictoryPoints
+	initialWorkers := player.Resources.Workers
+
+	// Execute bonus card spade action with dwelling build (combined)
+	action := NewBonusCardSpadeAction("player1", targetHex, true, models.TerrainTypeUnknown)
+	err := action.Execute(gs)
+	if err != nil {
+		t.Fatalf("bonus card spade with tunneling should work, got error: %v", err)
+	}
+
+	// Verify tunneling VP bonus was awarded ONCE (+4 VP)
+	vpGained := player.VictoryPoints - initialVP
+	if vpGained != 4 {
+		t.Errorf("expected +4 VP for tunneling (single charge), got +%d", vpGained)
+	}
+
+	// Verify:
+	// - Bonus card provides 1 free spade
+	// - Wasteland to Mountain = 1 spade (free from bonus card)
+	// - Tunneling = 2 workers (before stronghold)
+	// - Dwelling = 1 worker + 2 coins
+	// Total workers = 2 + 1 = 3
+	workersSpent := initialWorkers - player.Resources.Workers
+	expectedWorkerCost := 2 + 1 // tunneling + dwelling
+	if workersSpent != expectedWorkerCost {
+		t.Errorf("expected %d workers spent, got %d", expectedWorkerCost, workersSpent)
+	}
+
+	// Verify dwelling was built
+	if gs.Map.GetHex(targetHex).Building == nil {
+		t.Error("expected dwelling to be built")
 	}
 }
 

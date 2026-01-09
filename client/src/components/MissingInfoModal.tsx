@@ -25,44 +25,48 @@ interface MissingInfoModalProps {
 
 export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, missingInfo, players, availableBonusCards, onSubmit, onClose }) => {
     const [scoringTiles, setScoringTiles] = useState<string[]>(Array(6).fill(''));
-    const [bonusCards, setBonusCards] = useState<string[]>(Array(10).fill(''));
+    const [bonusCards, setBonusCards] = useState<string[]>([]);
     const [playerBonusCards, setPlayerBonusCards] = useState<Record<string, Record<string, string> | undefined>>({});
 
-    // Simple hardcoded options for now
-    // Corrected mappings based on server/internal/replay/game_setup.go
+    // Scoring tiles with cleaner display names
     const SCORING_TILES = [
-        "SCORE1 (Spade -> 2VP, 1 Earth -> 1C)",
-        "SCORE2 (Town -> 5VP, 4 Earth -> 1 Spade)",
-        "SCORE3 (Dwelling -> 2VP, 4 Water -> 1 Priest)",
-        "SCORE4 (SH/SA -> 5VP, 2 Fire -> 1 Worker)",
-        "SCORE5 (Dwelling -> 2VP, 4 Fire -> 4 Power)",
-        "SCORE6 (TP -> 3VP, 4 Water -> 1 Spade)",
-        "SCORE7 (SH/SA -> 5VP, 2 Air -> 1 Worker)",
-        "SCORE8 (TP -> 3VP, 4 Air -> 1 Spade)",
-        "SCORE9 (Temple -> 4VP, 1 Priest -> 2C)"
+        { value: "SCORE1", label: "Spade scoring, Cult Earth bonus" },
+        { value: "SCORE2", label: "Town scoring, Cult Earth bonus" },
+        { value: "SCORE3", label: "Dwelling scoring, Cult Water bonus" },
+        { value: "SCORE4", label: "Stronghold/Sanctuary scoring, Cult Fire bonus" },
+        { value: "SCORE5", label: "Dwelling scoring, Cult Fire bonus" },
+        { value: "SCORE6", label: "Trading House scoring, Cult Water bonus" },
+        { value: "SCORE7", label: "Stronghold/Sanctuary scoring, Cult Air bonus" },
+        { value: "SCORE8", label: "Trading House scoring, Cult Air bonus" },
+        { value: "SCORE9", label: "Temple scoring, Priest bonus" }
     ];
 
+    // Bonus cards with cleaner display names
     const BONUS_CARDS = [
-        "BON-SPD (Spade)",
-        "BON-4C (Cult Advance)",
-        "BON-6C (6 Coins)",
-        "BON-SHIP (Shipping)",
-        "BON-WP (Worker Power)",
-        "BON-TP (Trading House VP)",
-        "BON-BB (Stronghold/Sanctuary VP)",
-        "BON-P (Priest)",
-        "BON-DW (Dwelling VP)",
-        "BON-SHIP-VP (Shipping VP)"
+        { value: "BON-SPD", label: "Spade" },
+        { value: "BON-4C", label: "Cult Advance + 4 Coins" },
+        { value: "BON-6C", label: "6 Coins" },
+        { value: "BON-SHIP", label: "Temporary Ship" },
+        { value: "BON-WP", label: "Worker + Power" },
+        { value: "BON-TP", label: "Trading House scoring" },
+        { value: "BON-BB", label: "Stronghold/Sanctuary scoring" },
+        { value: "BON-P", label: "Priest" },
+        { value: "BON-DW", label: "Dwelling scoring" },
+        { value: "BON-SHIP-VP", label: "Ship scoring" }
     ];
+
+    // Calculate expected bonus card count: players + 3 (default to 7 for 4 players if players not known)
+    const numPlayers = players?.length ?? 4;
+    const expectedBonusCardCount = numPlayers + 3;
 
     const bonusCardOptions = missingInfo?.GlobalBonusCards
-        ? bonusCards.filter(c => c)
-        : (availableBonusCards && availableBonusCards.length > 0 ? availableBonusCards : BONUS_CARDS);
+        ? bonusCards
+        : (availableBonusCards && availableBonusCards.length > 0 ? availableBonusCards : BONUS_CARDS.map(c => c.value));
 
     const handleSubmit = (): void => {
         const data = {
             scoringTiles: scoringTiles.filter(t => t),
-            bonusCards: bonusCards.filter(c => c),
+            bonusCards: bonusCards,
             bonusCardSelections: playerBonusCards as Record<string, Record<string, string>>,
         };
         onSubmit(data);
@@ -72,15 +76,15 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Missing Game Information">
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <p>The game log is missing some information. Please provide it below to continue.</p>
 
                 {missingInfo.GlobalScoringTiles && (
                     <div>
-                        <h3>Scoring Tiles (Round 1-6)</h3>
+                        <h3 className="font-semibold mb-2">Scoring Tiles (Round 1-6)</h3>
                         {scoringTiles.map((tile, i) => (
-                            <div key={i} className="flex gap-2 mb-2">
-                                <label>Round {i + 1}:</label>
+                            <div key={i} className="flex gap-2 mb-2 items-center">
+                                <label className="w-20 text-sm">Round {i + 1}:</label>
                                 <select
                                     value={tile}
                                     onChange={(e) => {
@@ -88,11 +92,11 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
                                         newTiles[i] = e.target.value;
                                         setScoringTiles(newTiles);
                                     }}
-                                    className="border p-1 rounded"
+                                    className="border p-1 rounded flex-1 text-sm"
                                 >
                                     <option value="">Select Tile...</option>
                                     {SCORING_TILES.map(t => (
-                                        <option key={t} value={t}>{t}</option>
+                                        <option key={t.value} value={t.value}>{t.label}</option>
                                     ))}
                                 </select>
                             </div>
@@ -102,27 +106,28 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
 
                 {missingInfo.GlobalBonusCards && (
                     <div>
-                        <h3>Bonus Cards in Play</h3>
-                        <p className="text-sm text-gray-500 mb-2">
-                            Select {players ? players.length + 3 : 3} bonus cards used in this game.
+                        <h3 className="font-semibold mb-2">Bonus Cards in Play</h3>
+                        <p className="text-sm text-gray-500 mb-3">
+                            Selected: {bonusCards.length}/{expectedBonusCardCount}
                         </p>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                             {BONUS_CARDS.map(card => (
-                                <label key={card} className="flex items-center gap-2">
+                                <label key={card.value} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                     <input
                                         type="checkbox"
-                                        checked={bonusCards.includes(card)}
+                                        checked={bonusCards.includes(card.value)}
                                         onChange={(e) => {
                                             if (e.target.checked) {
-                                                if (bonusCards.filter(c => c).length < (players ? players.length + 3 : 10)) {
-                                                    setBonusCards([...bonusCards.filter(c => c), card]);
+                                                if (bonusCards.length < expectedBonusCardCount) {
+                                                    setBonusCards([...bonusCards, card.value]);
                                                 }
                                             } else {
-                                                setBonusCards(bonusCards.filter(c => c !== card));
+                                                setBonusCards(bonusCards.filter(c => c !== card.value));
                                             }
                                         }}
+                                        disabled={!bonusCards.includes(card.value) && bonusCards.length >= expectedBonusCardCount}
                                     />
-                                    <span className="text-sm">{card}</span>
+                                    <span>{card.label}</span>
                                 </label>
                             ))}
                         </div>

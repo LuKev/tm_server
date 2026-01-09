@@ -138,6 +138,15 @@ func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Playe
 	// Check adjacency - required for both transforming and building
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)
 
+	// Auto-detect UseSkip for Dwarves and Fakirs if hex is not adjacent
+	if !isAdjacent && !a.UseSkip {
+		factionType := player.Faction.GetType()
+		if factionType == models.FactionDwarves || factionType == models.FactionFakirs {
+			// Automatically enable skip ability for these factions when hex is not adjacent
+			a.UseSkip = true
+		}
+	}
+
 	// If using skip (Fakirs/Dwarves), check if player can skip and if range is valid
 	if a.UseSkip {
 		if err := ValidateSkipAbility(gs, player, a.TargetHex); err != nil {

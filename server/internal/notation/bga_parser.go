@@ -19,10 +19,11 @@ type BGAParser struct {
 	currentLine int
 	items       []LogItem
 	// State tracking
-	currentRound int
-	players      map[string]string // Name -> Faction
-	passOrder    []string          // Tracks who passed in current round to determine next round order
-	townPending  map[string]bool   // Name -> bool, tracks if player just founded a town
+	currentRound  int
+	players       map[string]string // Name -> Faction
+	passOrder     []string          // Tracks who passed in current round to determine next round order
+	townPending   map[string]bool   // Name -> bool, tracks if player just founded a town
+	consumedLines map[int]bool      // Line indices that have been consumed by another action
 }
 
 func NewBGAParser(content string) *BGAParser {
@@ -34,12 +35,13 @@ func NewBGAParser(content string) *BGAParser {
 	}
 
 	return &BGAParser{
-		lines:       lines,
-		currentLine: 0,
-		items:       make([]LogItem, 0),
-		players:     make(map[string]string),
-		passOrder:   make([]string, 0),
-		townPending: make(map[string]bool),
+		lines:         lines,
+		currentLine:   0,
+		items:         make([]LogItem, 0),
+		players:       make(map[string]string),
+		passOrder:     make([]string, 0),
+		townPending:   make(map[string]bool),
+		consumedLines: make(map[int]bool),
 	}
 }
 
@@ -71,6 +73,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reExchangeTrack := regexp.MustCompile(`(.*) advances on the Exchange Track for (.*) and earns (\d+) VP`)
 	reTownFound := regexp.MustCompile(`(.*) founds a Town \[(.*)\]`)
 	reTownVP := regexp.MustCompile(`(.*) gets (\d+) VP (?:Victory points )?.*`)
+
+	// Faction-specific stronghold actions
+	reGiantsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* \(Giants Stronghold\) \[(.*)\]`)
+	reSwarmlingStronghold := regexp.MustCompile(`(.*) upgrades a Dwelling to a Trading house for free \(Swarmlings Stronghold\) \[(.*)\]`)
 
 	rePass := regexp.MustCompile(`(.*) passes`)
 	rePriest := regexp.MustCompile(`(.*) sends a Priest to the Order of the Cult of (.*)\. Forever!`)
@@ -180,40 +186,44 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		settings["ScoringTiles"] = strings.Join(tiles, ",")
 	}
 
-	// Add BonusCards setting
-	// We need to map removed bonuses to our internal codes and filter
-	allBonusCodes := []string{
-		"BON-SPD", "BON-4C", "BON-6C", "BON-SHIP", "BON-WP",
-		"BON-BB", "BON-TP", "BON-P", "BON-DW", "BON-SHIP-VP",
-	}
-	// Map BGA codes (BON1..BON10) to internal codes
-	bgaToInternal := map[string]string{
-		"BON1":  "BON-SPD",
-		"BON2":  "BON-4C",
-		"BON3":  "BON-6C",
-		"BON4":  "BON-SHIP",
-		"BON5":  "BON-WP",
-		"BON6":  "BON-BB",
-		"BON7":  "BON-TP",
-		"BON8":  "BON-P",
-		"BON9":  "BON-DW",
-		"BON10": "BON-SHIP-VP",
-	}
-
-	removedSet := make(map[string]bool)
-	for _, rb := range removedBonuses {
-		if internal, ok := bgaToInternal[rb]; ok {
-			removedSet[internal] = true
+	// Add BonusCards setting ONLY if we detected removed bonuses
+	// If no removed bonuses were detected, leave BonusCards empty so the user is prompted to select
+	// This is because BGA logs don't reliably include which bonus cards were removed
+	if len(removedBonuses) > 0 {
+		allBonusCodes := []string{
+			"BON-SPD", "BON-4C", "BON-6C", "BON-SHIP", "BON-WP",
+			"BON-BB", "BON-TP", "BON-P", "BON-DW", "BON-SHIP-VP",
 		}
-	}
-
-	var availableBonuses []string
-	for _, code := range allBonusCodes {
-		if !removedSet[code] {
-			availableBonuses = append(availableBonuses, code)
+		// Map BGA codes (BON1..BON10) to internal codes
+		bgaToInternal := map[string]string{
+			"BON1":  "BON-SPD",
+			"BON2":  "BON-4C",
+			"BON3":  "BON-6C",
+			"BON4":  "BON-SHIP",
+			"BON5":  "BON-WP",
+			"BON6":  "BON-BB",
+			"BON7":  "BON-TP",
+			"BON8":  "BON-P",
+			"BON9":  "BON-DW",
+			"BON10": "BON-SHIP-VP",
 		}
+
+		removedSet := make(map[string]bool)
+		for _, rb := range removedBonuses {
+			if internal, ok := bgaToInternal[rb]; ok {
+				removedSet[internal] = true
+			}
+		}
+
+		var availableBonuses []string
+		for _, code := range allBonusCodes {
+			if !removedSet[code] {
+				availableBonuses = append(availableBonuses, code)
+			}
+		}
+		settings["BonusCards"] = strings.Join(availableBonuses, ",")
 	}
-	settings["BonusCards"] = strings.Join(availableBonuses, ",")
+	// If removedBonuses is empty, BonusCards stays empty -> triggers user prompt
 
 	p.items = append(p.items, GameSettingsItem{Settings: settings})
 
@@ -223,9 +233,15 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 	// fmt.Println("Starting main parsing loop...")
 	for p.currentLine < len(p.lines) {
+		lineIndex := p.currentLine
 		line := p.lines[p.currentLine]
 		// // fmt.Printf("Line %d: %s\n", p.currentLine, line)
 		p.currentLine++
+
+		// Skip lines that were already consumed by another action (e.g., dwelling build merged with bonus card spade)
+		if p.consumedLines[lineIndex] {
+			continue
+		}
 
 		if line == "" {
 			continue
@@ -333,6 +349,18 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			if coordStr != "" {
 				p.handleBuildDwelling(matches[1], coordStr, false)
 			}
+
+		} else if matches := reGiantsStronghold.FindStringSubmatch(line); len(matches) > 2 {
+			// Giants Stronghold: transforms terrain for free
+			playerID := p.getPlayerID(matches[1])
+			coordStr := matches[2]
+			p.handleGiantsStronghold(playerID, coordStr)
+
+		} else if matches := reSwarmlingStronghold.FindStringSubmatch(line); len(matches) > 2 {
+			// Swarmlings Stronghold: free Trading House upgrade
+			playerID := p.getPlayerID(matches[1])
+			coordStr := matches[2]
+			p.handleSwarmlingStronghold(playerID, coordStr)
 
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
@@ -489,7 +517,33 @@ func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr strin
 		}
 	}
 
-	action := game.NewTransformAndBuildAction(playerID, hex, false, targetTerrain)
+	// Look ahead for dwelling build at the same coordinate (like bonus card spade)
+	// This prevents double tunnelling for Dwarves/Fakirs
+	buildDwelling := false
+	reDwellingBuild := regexp.MustCompile(`builds a Dwelling`)
+	for lookAhead := 0; lookAhead < 5 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+		lineIndex := p.currentLine + lookAhead
+		nextLine := p.lines[lineIndex]
+		if reDwellingBuild.MatchString(nextLine) {
+			// Check if it's at the same coordinate
+			nextCoord := p.extractCoordFromLine(nextLine)
+			if nextCoord == coordStr {
+				buildDwelling = true
+				// Mark this line as consumed so it's not parsed again
+				p.consumedLines[lineIndex] = true
+				break
+			}
+		}
+		// If we hit another action start, stop looking
+		if strings.Contains(nextLine, " passes") ||
+			strings.Contains(nextLine, " upgrades") ||
+			strings.Contains(nextLine, " transforms") ||
+			strings.Contains(nextLine, " sends a Priest") {
+			break
+		}
+	}
+
+	action := game.NewTransformAndBuildAction(playerID, hex, buildDwelling, targetTerrain)
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
@@ -961,24 +1015,65 @@ func (p *BGAParser) handleBonusCardSpade(playerID, line string) {
 		coord = p.consumeUntilCoord()
 	}
 	if coord != "" {
-		// hex, _ := ConvertLogCoordToAxial(coord)
-		// Bonus card spade: ACTS-[Coord]
-		// We can use BonusCardSpadeAction or LogSpecialAction
-		// Let's use LogSpecialAction to keep it simple for now, or use the existing BonusCardSpadeAction
-		// But generator for ACTS expects specific types.
-		// Let's use LogSpecialAction with code ACTS-[Coord]
+		// Check if next lines include a dwelling build at the same coordinate
+		// BGA log often has: "transforms ... [G3]" followed by "builds a Dwelling ... [G3]"
+		// If so, we should combine them into ACTS-G3.G3 (transform + build)
+		buildDwelling := false
+
+		// Look ahead for "builds a Dwelling" at the same coordinate
+		reDwellingBuild := regexp.MustCompile(`builds a Dwelling`)
+		dwellingLineIndex := -1
+		for lookAhead := 0; lookAhead < 5 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+			lineIndex := p.currentLine + lookAhead
+			nextLine := p.lines[lineIndex]
+			if reDwellingBuild.MatchString(nextLine) {
+				// Check if it's at the same coordinate
+				nextCoord := p.extractCoordFromLine(nextLine)
+				if nextCoord == coord {
+					buildDwelling = true
+					dwellingLineIndex = lineIndex
+					break
+				}
+			}
+			// If we hit another action start (like "passes", "upgrades", etc.), stop looking
+			if strings.Contains(nextLine, " passes") ||
+				strings.Contains(nextLine, " upgrades") ||
+				strings.Contains(nextLine, " transforms") ||
+				strings.Contains(nextLine, " sends a Priest") {
+				break
+			}
+		}
+
+		// Mark the dwelling build line as consumed if we found one
+		if dwellingLineIndex >= 0 {
+			p.consumedLines[dwellingLineIndex] = true
+		}
+
+		var actionCode string
+		if buildDwelling {
+			// Combined action: transform + build at same hex
+			actionCode = fmt.Sprintf("ACTS-%s.%s", coord, strings.ToLower(coord))
+		} else {
+			// Just transform
+			actionCode = fmt.Sprintf("ACTS-%s", coord)
+		}
+
 		action := &LogSpecialAction{
 			PlayerID:   playerID,
-			ActionCode: fmt.Sprintf("ACTS-%s", coord),
+			ActionCode: actionCode,
 		}
-		// Also need to handle the build part if present?
-		// Usually "transforms ... [C2]" implies transform.
-		// If they build, it would be a separate line "builds a Dwelling"?
-		// Or is it "transforms ... and builds"?
-		// The regex was "transforms ... for 1 spade ... [C2]"
-		// This is just the transform part.
 		p.items = append(p.items, ActionItem{Action: action})
 	}
+}
+
+// extractCoordFromLine extracts coordinate from a specific line without consuming anything
+func (p *BGAParser) extractCoordFromLine(line string) string {
+	reCoord := regexp.MustCompile(`\[([A-Z]\d+)\]`)
+	matches := reCoord.FindStringSubmatch(line)
+	if len(matches) > 1 {
+		return matches[1]
+	}
+	return ""
 }
 
 func (p *BGAParser) handleBridgePower(playerID, line string) {
@@ -1003,23 +1098,20 @@ func (p *BGAParser) handleBridgePower(playerID, line string) {
 	}
 
 	if len(matches) > 2 {
-		// Found coords
-		// Bridge power action is ACT1
-		// But we want to preserve the coords?
-		// Generator for ACT1 just outputs ACT1.
-		// If we want to show coords, we need a special handling or just output ACT1 and let the board state show the bridge?
-		// User said: "We did not parse the bridge power action properly here."
-		// Maybe they just want ACT1 to appear?
-		// Or maybe ACT1-[Coord]-[Coord]?
-		// Standard notation says ACT1.
-		// But if we want to be precise: ACT1-[C1]-[C2]
-		// Let's stick to ACT1 for now, as that's the power action code.
-		// The issue might be that we didn't detect it at all.
+		// Found coords - output ACT1-C2-D4 format
+		coord1 := matches[1] // e.g., "B3"
+		coord2 := matches[2] // e.g., "C3"
+		action := &LogPowerAction{
+			PlayerID:   playerID,
+			ActionCode: fmt.Sprintf("ACT1-%s-%s", coord1, coord2),
+		}
+		p.items = append(p.items, ActionItem{Action: action})
+	} else {
+		// No coords found - output ACT1 (fallback)
 		action := &LogPowerAction{
 			PlayerID:   playerID,
 			ActionCode: "ACT1",
 		}
-
 		p.items = append(p.items, ActionItem{Action: action})
 	}
 }
@@ -1164,4 +1256,26 @@ func contains(slice []string, item string) bool {
 		}
 	}
 	return false
+}
+
+func (p *BGAParser) handleGiantsStronghold(playerID, coordStr string) {
+	// Giants Stronghold: transform 2 spades for free to home terrain
+	// Emit as ACT-SH-S-[coord] (S = Spade, as expected by executeStrongholdAction)
+	p.items = append(p.items, ActionItem{
+		Action: &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: "ACT-SH-S-" + coordStr,
+		},
+	})
+}
+
+func (p *BGAParser) handleSwarmlingStronghold(playerID, coordStr string) {
+	// Swarmlings Stronghold: free Dwelling -> Trading House upgrade
+	// Emit as ACT-SH-TP-[coord] (TP = Trading Post, as expected by executeStrongholdAction)
+	p.items = append(p.items, ActionItem{
+		Action: &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: "ACT-SH-TP-" + coordStr,
+		},
+	})
 }

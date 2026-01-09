@@ -313,11 +313,21 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			return action.Execute(gs)
 		}
 	case "ACTS":
-		// Bonus Card Spade: ACTS-[Coord] or ACTS-[Coord]-[Terrain]
+		// Bonus Card Spade: ACTS-[Coord] or ACTS-[Coord].[coord] (with dwelling build)
 		if len(parts) < 2 {
 			return fmt.Errorf("missing coord for ACTS")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[1])
+
+		// Check for combined format: ACTS-G3.g3 (transform at G3, build dwelling at g3)
+		coordPart := parts[1]
+		buildDwelling := false
+		if dotIdx := strings.Index(coordPart, "."); dotIdx > 0 {
+			// Combined action - extract just the coord and set BuildDwelling=true
+			coordPart = coordPart[:dotIdx]
+			buildDwelling = true
+		}
+
+		hex, err := ConvertLogCoordToAxial(coordPart)
 		if err != nil {
 			return err
 		}
@@ -327,8 +337,7 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			targetTerrain = parseTerrainShortCode(parts[2])
 		}
 
-		// Assume BuildDwelling=false
-		action := game.NewBonusCardSpadeAction(a.PlayerID, hex, false, targetTerrain)
+		action := game.NewBonusCardSpadeAction(a.PlayerID, hex, buildDwelling, targetTerrain)
 		return action.Execute(gs)
 	case "ORD":
 		// Darklings Ordination: ORD-[N]

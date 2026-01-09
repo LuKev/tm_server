@@ -512,12 +512,23 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 	}
 
 	// Check adjacency (or skip range for Fakirs/Dwarves)
+	isAdjacent := gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID)
+
+	// Auto-detect UseSkip for Dwarves and Fakirs if hex is not adjacent
+	if !isAdjacent && !a.UseSkip {
+		factionType := player.Faction.GetType()
+		if factionType == models.FactionDwarves || factionType == models.FactionFakirs {
+			// Automatically enable skip ability for these factions when hex is not adjacent
+			a.UseSkip = true
+		}
+	}
+
 	if a.UseSkip {
 		if err := ValidateSkipAbility(gs, player, *a.TargetHex); err != nil {
 			return err
 		}
 	} else {
-		if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
+		if !isAdjacent {
 			return fmt.Errorf("hex is not adjacent to player's buildings")
 		}
 	}

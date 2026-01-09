@@ -100,22 +100,44 @@ def parse_log_html(html_content):
 
     return "\n".join(cleaned_logs)
 
+def get_default_user_data_dir():
+    """Get the default Chrome user data directory for persistent login."""
+    home = os.path.expanduser("~")
+    data_dir = os.path.join(home, ".tm_server", "chrome_profile")
+    
+    # Create directory if it doesn't exist
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+        print(f"Created Chrome profile directory: {data_dir}")
+    
+    return data_dir
+
 def main():
     parser = argparse.ArgumentParser(description='Fetch BGA game logs.')
     parser.add_argument('table_id', help='The BGA table ID (e.g., 713277654)')
     parser.add_argument('--output', '-o', default='bga_log.txt', help='Output file path')
-    parser.add_argument('--user-data-dir', help='Path to Chrome user data dir for persistent login')
+    parser.add_argument('--user-data-dir', help='Path to Chrome user data dir for persistent login (default: ~/.tm_server/chrome_profile)')
+    parser.add_argument('--no-profile', action='store_true', help='Do not use persistent Chrome profile')
     args = parser.parse_args()
 
     url = f"https://boardgamearena.com/gamereview?table={args.table_id}"
     print(f"Fetching logs for table {args.table_id} from {url}...")
 
     chrome_options = Options()
-    if args.user_data_dir:
-        chrome_options.add_argument(f"user-data-dir={args.user_data_dir}")
+    
+    # Determine user data directory
+    if args.no_profile:
+        print("Using temporary Chrome profile (no persistence).")
+        user_data_dir = None
+    elif args.user_data_dir:
+        user_data_dir = args.user_data_dir
+        print(f"Using specified Chrome profile: {user_data_dir}")
     else:
-        # If no user data dir, we might need manual login
-        print("No user-data-dir provided. You may need to log in manually.")
+        user_data_dir = get_default_user_data_dir()
+        print(f"Using persistent Chrome profile: {user_data_dir}")
+    
+    if user_data_dir:
+        chrome_options.add_argument(f"user-data-dir={user_data_dir}")
 
     # Anti-detection options
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")

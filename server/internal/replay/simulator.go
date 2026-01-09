@@ -90,9 +90,13 @@ func (s *GameSimulator) StepForward() error {
 			if pass, ok := v.Action.(*game.PassAction); ok {
 				// Round 6 pass does not need bonus card
 				if s.CurrentState.Round < 6 && pass.BonusCard == nil {
+					// Scan ahead for ALL missing pass bonus cards
+					allMissing := s.scanAllMissingPassBonusCards()
 					return &game.MissingInfoError{
-						Type:    "pass_bonus_card",
-						Players: []string{pass.PlayerID},
+						Type:             "pass_bonus_card",
+						Players:          []string{pass.PlayerID},
+						Round:            s.CurrentState.Round,
+						AllMissingPasses: allMissing,
 					}
 				}
 			}
@@ -224,4 +228,33 @@ func (s *GameSimulator) GetState() *game.GameState {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.CurrentState
+}
+
+// scanAllMissingPassBonusCards scans all remaining actions for missing pass bonus cards
+func (s *GameSimulator) scanAllMissingPassBonusCards() map[int][]string {
+	result := make(map[int][]string)
+	currentRound := s.CurrentState.Round
+
+	// Scan from current index to end of actions
+	for i := s.CurrentIndex; i < len(s.Actions); i++ {
+		item := s.Actions[i]
+
+		// Track round changes
+		if rs, ok := item.(notation.RoundStartItem); ok {
+			currentRound = rs.Round
+			continue
+		}
+
+		// Check for PassAction with nil BonusCard
+		if actionItem, ok := item.(notation.ActionItem); ok {
+			if pass, ok := actionItem.Action.(*game.PassAction); ok {
+				// Round 6 pass does not need bonus card
+				if currentRound < 6 && pass.BonusCard == nil {
+					result[currentRound] = append(result[currentRound], pass.PlayerID)
+				}
+			}
+		}
+	}
+
+	return result
 }
