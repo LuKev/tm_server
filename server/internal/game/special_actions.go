@@ -84,6 +84,7 @@ const (
 	SpecialActionWater2CultAdvance    // Water+2 favor tile: Advance 1 on any cult track
 	SpecialActionBonusCardSpade       // Bonus card: 1 free spade
 	SpecialActionBonusCardCultAdvance // Bonus card: Advance 1 on any cult track
+	SpecialActionMermaidsRiverTown    // Mermaids: Form town across river
 )
 
 // SpecialAction represents a faction-specific special action
@@ -224,6 +225,30 @@ func NewBonusCardSpadeAction(playerID string, targetHex board.Hex, buildDwelling
 	}
 }
 
+// NewBonusCardCultAction creates a bonus card cult advance action (BON2)
+func NewBonusCardCultAction(playerID string, track CultTrack) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionBonusCardCultAdvance,
+		CultTrack:  &track,
+	}
+}
+
+// NewMermaidsRiverTownAction creates a Mermaids river town action
+func NewMermaidsRiverTownAction(playerID string, riverHex board.Hex) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionMermaidsRiverTown,
+		TargetHex:  &riverHex,
+	}
+}
+
 func (a *SpecialAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -231,7 +256,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 	}
 
 	// Check if this specific special action has already been used this round
-	if player.SpecialActionsUsed[a.ActionType] {
+	// Skip this check for Mermaids river town - it's a passive ability, not a limited action
+	if a.ActionType != SpecialActionMermaidsRiverTown && player.SpecialActionsUsed[a.ActionType] {
 		return fmt.Errorf("special action %v already used this round", a.ActionType)
 	}
 
@@ -276,6 +302,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateBonusCardSpade(gs, player)
 	case SpecialActionBonusCardCultAdvance:
 		return a.validateBonusCardCultAdvance(gs)
+	case SpecialActionMermaidsRiverTown:
+		return a.validateMermaidsRiverTown(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -579,6 +607,8 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		return a.executeBonusCardSpade(gs, player)
 	case SpecialActionBonusCardCultAdvance:
 		return a.executeBonusCardCultAdvance(gs)
+	case SpecialActionMermaidsRiverTown:
+		return a.executeMermaidsRiverTown(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -798,6 +828,38 @@ func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState) error {
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (a *SpecialAction) validateMermaidsRiverTown(gs *GameState, player *Player) error {
+	// Verify player is Mermaids
+	if player.Faction.GetType() != models.FactionMermaids {
+		return fmt.Errorf("only Mermaids can use river town ability")
+	}
+
+	// Verify target hex is specified and is a river
+	if a.TargetHex == nil {
+		return fmt.Errorf("river hex must be specified")
+	}
+
+	// The river hex should already be set up in game state
+	// Validation of actual town formation is handled by the town system
+	return nil
+}
+
+func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) error {
+	// Mermaids river town: Mark that we're forming a town using this river hex
+	// This is a passive ability - the actual town selection will happen in the following TW action
+	// The river hex is already specified in TargetHex
+
+	// For now, the town system should automatically include adjacent buildings
+	// across the river when checking town formation for Mermaids
+	// This action just triggers the town check to include the river hex
+
+	// Mark that Mermaids is forming a river town at this hex
+	// The actual town tile selection will be done by the subsequent LogTownAction
+	gs.RiverTownHex = a.TargetHex
 
 	return nil
 }

@@ -72,11 +72,13 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reWitchesRide := regexp.MustCompile(`(.*) builds a Dwelling for free \(Witches Ride\) \[(.*)\]`)
 	reExchangeTrack := regexp.MustCompile(`(.*) advances on the Exchange Track for (.*) and earns (\d+) VP`)
 	reTownFound := regexp.MustCompile(`(.*) founds a Town \[(.*)\]`)
+	reMermaidsRiverTown := regexp.MustCompile(`(.*) founds a Town on a River space \(Mermaids Ability\) \[(R~.*)\]`)
 	reTownVP := regexp.MustCompile(`(.*) gets (\d+) VP (?:Victory points )?.*`)
 
 	// Faction-specific stronghold actions
 	reGiantsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* \(Giants Stronghold\) \[(.*)\]`)
 	reSwarmlingStronghold := regexp.MustCompile(`(.*) upgrades a Dwelling to a Trading house for free \(Swarmlings Stronghold\) \[(.*)\]`)
+	reNomadsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* for free \(Nomads Stronghold\).*\[(.*)\]`)
 
 	rePass := regexp.MustCompile(`(.*) passes`)
 	rePriest := regexp.MustCompile(`(.*) sends a Priest to the Order of the Cult of (.*)\. Forever!`)
@@ -253,7 +255,15 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			break
 		}
 
-		// Check for Town Found
+		// Check for Mermaids River Town (must be before regular town check)
+		if matches := reMermaidsRiverTown.FindStringSubmatch(line); len(matches) > 2 {
+			playerID := p.getPlayerID(matches[1])
+			riverCoord := matches[2] // e.g., "R~D5"
+			p.handleMermaidsRiverTown(playerID, riverCoord)
+			continue
+		}
+
+		// Check for Town Found (regular)
 		if matches := reTownFound.FindStringSubmatch(line); len(matches) > 2 {
 			p.handleTownFound(matches[1])
 			continue
@@ -316,6 +326,12 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerID := p.getPlayerID(matches[1])
 			p.handleAlchemistsVP(playerID, matches[2], matches[3])
 
+		} else if matches := reBonusCardCult.FindStringSubmatch(line); len(matches) > 2 {
+			// Bonus card cult advance: "gains 1 on the Cult of Y track (Bonus card action)"
+			playerID := p.getPlayerID(matches[1])
+			track := matches[2]
+			p.handleBonusCardCult(playerID, track)
+
 		} else if matches := reBonusCardSpade.FindStringSubmatch(line); len(matches) > 1 {
 			playerID := p.getPlayerID(matches[1])
 			p.handleBonusCardSpade(playerID, line)
@@ -361,6 +377,12 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerID := p.getPlayerID(matches[1])
 			coordStr := matches[2]
 			p.handleSwarmlingStronghold(playerID, coordStr)
+
+		} else if matches := reNomadsStronghold.FindStringSubmatch(line); len(matches) > 2 {
+			// Nomads Stronghold (Sandstorm): transform any hex to desert for free
+			playerID := p.getPlayerID(matches[1])
+			coordStr := matches[2]
+			p.handleNomadsStronghold(playerID, coordStr)
 
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
@@ -1008,6 +1030,19 @@ func (p *BGAParser) handleFavorTileAction(playerID, line string) {
 	}
 }
 
+func (p *BGAParser) handleBonusCardCult(playerID, track string) {
+	// Bonus card cult action: +1 cult step from BON2
+	// Format: ACT-BON-[Track]
+	cultTrack := parseCultTrack(track)
+	trackCode := getCultShortCode(cultTrack)
+
+	action := &LogSpecialAction{
+		PlayerID:   playerID,
+		ActionCode: fmt.Sprintf("ACT-BON-%s", trackCode),
+	}
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
 func (p *BGAParser) handleBonusCardSpade(playerID, line string) {
 	// Look for coordinate in current line or next
 	coord := p.extractCoord(line)
@@ -1113,6 +1148,36 @@ func (p *BGAParser) handleBridgePower(playerID, line string) {
 			ActionCode: "ACT1",
 		}
 		p.items = append(p.items, ActionItem{Action: action})
+	}
+}
+
+func (p *BGAParser) handleMermaidsRiverTown(playerID, riverCoord string) {
+	// Parse river coordinate (e.g., "R~D5") to axial
+	riverHex, err := ConvertRiverCoordToAxial(riverCoord)
+	if err != nil {
+		// Log error but continue parsing
+		return
+	}
+
+	// Create ACT-TOWN action with river hex coordinates
+	// Format: ACT-TOWN-Q_R where Q and R are the axial coordinates
+	actionCode := fmt.Sprintf("ACT-TOWN-%d_%d", riverHex.Q, riverHex.R)
+
+	action := &LogSpecialAction{
+		PlayerID:   playerID,
+		ActionCode: actionCode,
+	}
+
+	// Append the action
+	p.items = append(p.items, ActionItem{Action: action})
+
+	// Set pending flag for town VP merge
+	// The players map is Name -> Faction, so we need to find the name for this faction/playerID
+	for name, faction := range p.players {
+		if faction == playerID {
+			p.townPending[name] = true
+			break
+		}
 	}
 }
 
@@ -1276,6 +1341,50 @@ func (p *BGAParser) handleSwarmlingStronghold(playerID, coordStr string) {
 		Action: &LogSpecialAction{
 			PlayerID:   playerID,
 			ActionCode: "ACT-SH-TP-" + coordStr,
+		},
+	})
+}
+
+func (p *BGAParser) handleNomadsStronghold(playerID, coordStr string) {
+	// Nomads Stronghold (Sandstorm): transform any hex to desert for free
+	// Format: ACT-SH-T-[coord] (transform only) or ACT-SH-T-[coord].[coord] (transform + build)
+
+	// Look ahead for dwelling build at the same coordinate and consume it
+	buildDwelling := false
+	reDwellingBuild := regexp.MustCompile(`builds a Dwelling`)
+	for lookAhead := 0; lookAhead < 5 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+		lineIndex := p.currentLine + lookAhead
+		nextLine := p.lines[lineIndex]
+		if reDwellingBuild.MatchString(nextLine) {
+			// Check if it's at the same coordinate
+			nextCoord := p.extractCoordFromLine(nextLine)
+			if nextCoord == coordStr {
+				buildDwelling = true
+				// Mark this line as consumed so it's not parsed again
+				p.consumedLines[lineIndex] = true
+				break
+			}
+		}
+		// If we hit another action start, stop looking
+		if strings.Contains(nextLine, " passes") ||
+			strings.Contains(nextLine, " upgrades") ||
+			strings.Contains(nextLine, " transforms") ||
+			strings.Contains(nextLine, " sends a Priest") {
+			break
+		}
+	}
+
+	var actionCode string
+	if buildDwelling {
+		actionCode = fmt.Sprintf("ACT-SH-T-%s.%s", coordStr, strings.ToLower(coordStr))
+	} else {
+		actionCode = fmt.Sprintf("ACT-SH-T-%s", coordStr)
+	}
+
+	p.items = append(p.items, ActionItem{
+		Action: &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: actionCode,
 		},
 	})
 }

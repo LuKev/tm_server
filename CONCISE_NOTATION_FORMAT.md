@@ -96,7 +96,7 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
     *   **Witches**: `ACT-SH-D-[Coord]` (Free Dwelling)
     *   **Auren**: `ACT-SH-[Track]` (Advance 2 steps on track)
         *   Example: `ACT-SH-W` (Advance 2 on Water)
-    *   **Nomads**: `ACT-SH-D-[Coord]` (Sandstorm)
+    *   **Nomads**: `ACT-SH-T-[Coord]` (Sandstorm Transform) or `ACT-SH-T-[Coord].[coord]` (Sandstorm + Build Dwelling)
     *   **Giants**: `ACT-SH-S-[Coord]` (Free Spade)
     *   **Swarmlings**: `ACT-SH-TP-[Coord]` (Free Upgrade to TP)
     *   **Chaos Magicians**: `ACT-SH-2X` (Double Turn)

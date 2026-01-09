@@ -115,9 +115,6 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
                 </div>
 
                 <div className="mt-6 text-center">
-                    <p className="text-gray-500 text-sm">
-                        Tiebreaker: Total resource value (Coins + Workers + Priests + Power Value)
-                    </p>
                     <button
                         className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800 font-medium transition-colors"
                         onClick={() => { window.location.reload(); }}

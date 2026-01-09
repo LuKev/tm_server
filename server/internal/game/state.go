@@ -41,6 +41,7 @@ type GameState struct {
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
 	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
 	SuppressTurnAdvance              bool                               `json:"-"`
+	RiverTownHex                     *board.Hex                         `json:"-"` // For Mermaids river town formation
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -311,6 +312,37 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			track := GetCultTrackFromCode(parts[2])
 			action := game.NewWater2CultAdvanceAction(a.PlayerID, track)
 			return action.Execute(gs)
+		} else if parts[1] == "BON" {
+			// ACT-BON-W (Bonus Card cult advance, BON2)
+			if len(parts) < 3 {
+				return fmt.Errorf("invalid bonus card cult action code")
+			}
+			track := GetCultTrackFromCode(parts[2])
+			action := game.NewBonusCardCultAction(a.PlayerID, track)
+			return action.Execute(gs)
+		} else if parts[1] == "TOWN" {
+			// ACT-TOWN-Q_R (Mermaids river town)
+			if len(parts) < 3 {
+				return fmt.Errorf("invalid mermaids town action code")
+			}
+			// Parse axial coordinates from "Q_R" format
+			coordParts := strings.Split(parts[2], "_")
+			if len(coordParts) != 2 {
+				return fmt.Errorf("invalid river hex coordinates: %s", parts[2])
+			}
+			var q, r int
+			if _, err := fmt.Sscanf(coordParts[0], "%d", &q); err != nil {
+				return fmt.Errorf("invalid Q coordinate: %w", err)
+			}
+			if _, err := fmt.Sscanf(coordParts[1], "%d", &r); err != nil {
+				return fmt.Errorf("invalid R coordinate: %w", err)
+			}
+			riverHex := board.NewHex(q, r)
+
+			// Mermaids river town: Mark the river hex as part of a pending town
+			// This will be completed by the subsequent TW[VP] action
+			action := game.NewMermaidsRiverTownAction(a.PlayerID, riverHex)
+			return action.Execute(gs)
 		}
 	case "ACTS":
 		// Bonus Card Spade: ACTS-[Coord] or ACTS-[Coord].[coord] (with dwelling build)
@@ -366,7 +398,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 	}
 
 	switch parts[2] {
-	case "D": // Witches Ride or Nomads Sandstorm
+	case "D": // Witches Ride (Free Dwelling)
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-D")
 		}
@@ -379,12 +411,33 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 			// Witches Ride
 			action := game.NewWitchesRideAction(a.PlayerID, hex)
 			return action.Execute(gs)
-		} else if player.Faction.GetType() == models.FactionNomads {
-			// Sandstorm
-			// Assume ACT-SH-D means Sandstorm AND Build Dwelling (D for Dwelling)
-			action := game.NewNomadsSandstormAction(a.PlayerID, hex, true)
+		}
+		return fmt.Errorf("ACT-SH-D is only valid for Witches, got faction %v", player.Faction.GetType())
+
+	case "T": // Nomads Sandstorm (Transform to Desert)
+		if len(parts) < 4 {
+			return fmt.Errorf("missing coord for ACT-SH-T")
+		}
+
+		// Check for combined format: ACT-SH-T-F4.f4 (sandstorm + build dwelling)
+		coordPart := parts[3]
+		buildDwelling := false
+		if dotIdx := strings.Index(coordPart, "."); dotIdx > 0 {
+			// Combined action - extract just the coord and set BuildDwelling=true
+			coordPart = coordPart[:dotIdx]
+			buildDwelling = true
+		}
+
+		hex, err := ConvertLogCoordToAxial(coordPart)
+		if err != nil {
+			return err
+		}
+
+		if player.Faction.GetType() == models.FactionNomads {
+			action := game.NewNomadsSandstormAction(a.PlayerID, hex, buildDwelling)
 			return action.Execute(gs)
 		}
+		return fmt.Errorf("ACT-SH-T is only valid for Nomads, got faction %v", player.Faction.GetType())
 
 	case "S": // Giants (2 Spades)
 		if len(parts) < 4 {

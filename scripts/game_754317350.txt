@@ -1,0 +1,780 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+Zoras selected the faction Dwarves on mountains to play in position #1
+GeorgeShortwell selected the faction Mermaids on lakes to play in position #2
+deragned: archivecontrol_editmode_centercomment decision
+deragned selected the faction Nomads on desert to play in position #3
+Hefaistos selected the faction Halflings on plains to play in position #4
+deragned: archivecontrol_editmode_centercomment The game plans + valuations
+Hefaistos bids on the Dwarves with 29 VP Starting VPs
+GeorgeShortwell bids on the Dwarves with 25 VP Starting VPs
+Zoras bids on the Dwarves with 30 VP Starting VPs
+deragned bids on the Dwarves with 40 VP Starting VPs
+Hefaistos bids on the Halflings with 36 VP Starting VPs
+GeorgeShortwell bids on the Halflings with 20 VP Starting VPs
+Zoras bids on the Halflings with 36 VP Starting VPs
+deragned bids on the Halflings with 28 VP Starting VPs
+Hefaistos bids on the Mermaids with 22 VP Starting VPs
+GeorgeShortwell bids on the Mermaids with 0 VP Starting VPs
+Zoras bids on the Mermaids with 23 VP Starting VPs
+deragned bids on the Mermaids with 30 VP Starting VPs
+Hefaistos bids on the Nomads with 40 VP Starting VPs
+GeorgeShortwell bids on the Nomads with 15 VP Starting VPs
+Zoras bids on the Nomads with 40 VP Starting VPs
+deragned bids on the Nomads with 35 VP Starting VPs
+Zoras is playing the Dwarves Faction (with 31 VP Starting VPs)
+Hefaistos is playing the Mermaids Faction (with 24 VP Starting VPs)
+GeorgeShortwell is playing the Nomads Faction (with 40 VP Starting VPs)
+deragned is playing the Halflings Faction (with 38 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Zoras places a Dwelling [E7]
+Hefaistos places a Dwelling [D5]
+GeorgeShortwell places a Dwelling [D3]
+deragned places a Dwelling [F5]
+deragned places a Dwelling [F7]
+GeorgeShortwell places a Dwelling [F3]
+Hefaistos places a Dwelling [E4]
+Zoras places a Dwelling [F6]
+GeorgeShortwell places a Dwelling [G4]
+deragned chooses 1 Bonus card
+GeorgeShortwell chooses 1 Bonus card
+Hefaistos chooses 1 Bonus card
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Zoras chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Zoras gets 4 workers 0 Priests 0 coins 0 power (Income)
+GeorgeShortwell gets 6 workers 0 Priests 0 coins 0 power (Income)
+deragned gets 3 workers 0 Priests 2 coins 0 power (Income)
+Hefaistos gets 4 workers 0 Priests 0 coins 3 power (Income)
+~ Action phase ~
+Zoras builds a Dwelling for 1 workers 2 coins + 2 workers (Tunneling) [H6]
+Zoras gets 4 VP (Tunneling)
+GeorgeShortwell gets 1 power via Structures [H6]
+Zoras declines doing Conversions
+Hefaistos upgrades a Dwelling to a Trading house for 2 workers 3 coins [E4]
+Hefaistos gets 3 VP (Scoring tile bonus)
+GeorgeShortwell gets 1 power via Structures [E4]
+Hefaistos declines doing Conversions
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [D3]
+GeorgeShortwell gets 3 VP (Scoring tile bonus)
+GeorgeShortwell declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Hefaistos pays 1 VP and gets 2 power via Structures [D3]
+~ You have decided to automatically decline spending VP for power ~
+deragned sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+deragned spends 3 power to collect 1 Priests (Power action)
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Zoras upgrades a Dwelling to a Trading house for 2 workers 3 coins [E7]
+Zoras gets 3 VP (Scoring tile bonus)
+Hefaistos gets 1 power via Structures [E7]
+Zoras declines doing Conversions
+Hefaistos sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+Hefaistos spends 6 power to get 2 spade(s) (Power action)
+Hefaistos transforms a Terrain space forest → lakes for 1 spade(s) [F2]
+Hefaistos transforms a Terrain space forest → lakes for 1 spade(s) [C3]
+Hefaistos builds a Dwelling for 1 workers 2 coins [F2]
+Hefaistos declines doing Conversions
+GeorgeShortwell upgrades a Trading house to a Faction Stronghold for 4 workers 8 coins [D3]
+Hefaistos declines getting Power via Structures [D3]
+GeorgeShortwell declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+deragned transforms a Terrain space swamp → plains for 1 spade(s) (Bonus card action) [G5]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [G5]
+Zoras pays 1 VP and gets 2 power via Structures [G5]
+GeorgeShortwell gets 1 power via Structures [G5]
+~ You have decided to always be prompted for conversions at the end of the turn ~
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Zoras upgrades a Trading house to a Temple for 2 workers 5 coins [E7]
+Hefaistos gets 1 power via Structures [E7]
+Zoras takes a Favor tile
+Zoras gains 2 on the Cult of Air track (Favor tile)
+Zoras declines doing Conversions
+Hefaistos builds a Dwelling for 1 workers 2 coins [C3]
+Hefaistos declines doing Conversions
+GeorgeShortwell sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+GeorgeShortwell spends 4 power to collect 7 coins (Power action)
+GeorgeShortwell declines doing Conversions
+deragned cancels their move
+deragned sends a Priest to the Order of the Cult of Air. Forever!
+deragned gains 3 on the Cult of Air track and earns 1 power
+deragned declines doing Conversions
+Zoras passes and becomes the first player for the next round
+Zoras gets 0 VP (Bonus card)
+Zoras chooses 1 Bonus card and gets 1 coins
+Zoras declines doing Conversions
+Hefaistos builds a Dwelling for 1 workers 2 coins [H2]
+Hefaistos declines doing Conversions
+GeorgeShortwell transforms a Terrain space forest → desert for free (Nomads Stronghold) [F4]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [F4]
+Zoras pays 1 VP and gets 2 power via Structures [F4]
+GeorgeShortwell declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [H7]
+Zoras gets 1 power via Structures [H7]
+deragned declines doing Conversions
+Hefaistos cancels their move
+Hefaistos upgrades a Dwelling to a Trading house for 2 workers 3 coins [D5]
+Hefaistos gets 3 VP (Scoring tile bonus)
+Zoras pays 1 VP and gets 2 power via Structures [D5]
+Hefaistos declines doing Conversions
+GeorgeShortwell passes
+GeorgeShortwell gets 4 VP (Bonus card)
+GeorgeShortwell chooses 1 Bonus card and gets 1 coins
+GeorgeShortwell declines doing Conversions
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [F5]
+deragned gets 3 VP (Scoring tile bonus)
+Zoras gets 1 power via Structures [F5]
+GeorgeShortwell gets 1 power via Structures [F5]
+deragned declines doing Conversions
+Hefaistos passes
+Hefaistos chooses 1 Bonus card
+Hefaistos declines doing Conversions
+deragned upgrades a Trading house to a Temple for 2 workers 5 coins [F5]
+Zoras gets 1 power via Structures [F5]
+GeorgeShortwell gets 1 power via Structures [F5]
+deragned takes a Favor tile
+deragned gains 2 on the Cult of Air track (Favor tile) and earns 2 power
+deragned declines doing Conversions
+deragned passes
+deragned chooses 1 Bonus card
+deragned declines doing Conversions
+~ Cleanup phase ~
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Zoras gets 3 workers 1 Priests 4 coins 4 power (Income)
+GeorgeShortwell gets 4 workers 0 Priests 0 coins 5 power (Income)
+deragned gets 5 workers 1 Priests 0 coins 7 power (Income)
+Hefaistos gets 6 workers 0 Priests 4 coins 2 power (Income)
+~ Action phase ~
+Zoras spends 4 power to collect 7 coins (Power action)
+Zoras declines doing Conversions
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [F4]
+GeorgeShortwell gets 3 VP (Scoring tile bonus)
+Zoras pays 1 VP and gets 2 power via Structures [F4]
+GeorgeShortwell declines doing Conversions
+Hefaistos upgrades a Trading house to a Temple for 2 workers 5 coins [D5]
+Zoras pays 1 VP and gets 2 power via Structures [D5]
+Hefaistos takes a Favor tile
+Hefaistos gains 1 on the Cult of Earth track (Favor tile)
+Hefaistos declines doing Conversions
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [H7]
+deragned gets 3 VP (Scoring tile bonus)
+Zoras gets 1 power via Structures [H7]
+deragned declines doing Conversions
+Zoras spends 4 power to get 1 spade(s) (Power action)
+Zoras transforms a Terrain space wasteland → mountains for 1 spade(s) [D4]
+Zoras builds a Dwelling for 1 workers 2 coins [D4]
+Hefaistos pays 2 VP and gets 3 power via Structures [D4]
+Zoras declines doing Conversions
+GeorgeShortwell upgrades a Trading house to a Temple for 2 workers 5 coins [F4]
+Zoras pays 1 VP and gets 2 power via Structures [F4]
+GeorgeShortwell takes a Favor tile
+GeorgeShortwell gains 1 on the Cult of Fire track (Favor tile)
+GeorgeShortwell declines doing Conversions
+Hefaistos sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+Hefaistos does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+Hefaistos upgrades a Trading house to a Temple for 2 workers 5 coins [E4]
+GeorgeShortwell pays 2 VP and gets 3 power via Structures [E4]
+Hefaistos takes a Favor tile
+Hefaistos gains 1 on the Cult of Fire track (Favor tile)
+Hefaistos declines doing Conversions
+deragned sends a Priest to the Order of the Cult of Air. Forever!
+deragned gains 2 on the Cult of Air track and earns 2 power
+deragned declines doing Conversions
+Zoras sends a Priest to the Order of the Cult of Air. Forever!
+Zoras gains 2 on the Cult of Air track and earns 1 power
+Zoras declines doing Conversions
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [E8]
+Zoras pays 1 VP and gets 2 power via Structures [E8]
+Hefaistos pays 1 VP and gets 2 power via Structures [E8]
+GeorgeShortwell declines doing Conversions
+Hefaistos passes and becomes the first player for the next round
+Hefaistos gets 0 VP (Bonus card)
+Hefaistos chooses 1 Bonus card and gets 1 coins
+Hefaistos declines doing Conversions
+deragned does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+deragned upgrades a Trading house to a Temple for 2 workers 5 coins [H7]
+Zoras gets 1 power via Structures [H7]
+deragned takes a Favor tile
+deragned gains 1 on the Cult of Earth track (Favor tile)
+deragned declines doing Conversions
+Zoras passes
+Zoras chooses 1 Bonus card
+Zoras declines doing Conversions
+GeorgeShortwell transforms a Terrain space wasteland → desert for free (Nomads Stronghold) [E3]
+GeorgeShortwell declines building a Dwelling for now
+GeorgeShortwell declines doing Conversions
+deragned passes
+deragned chooses 1 Bonus card
+deragned declines doing Conversions
+GeorgeShortwell spends 3 power to collect 1 Priests (Power action)
+GeorgeShortwell declines doing Conversions
+GeorgeShortwell sends a Priest to the Order of the Cult of Fire. Forever!
+GeorgeShortwell gains 3 on the Cult of Fire track and earns 3 power
+GeorgeShortwell declines doing Conversions
+GeorgeShortwell passes
+GeorgeShortwell chooses 1 Bonus card
+GeorgeShortwell declines doing Conversions
+~ Cleanup phase ~
+Zoras gets 1 spade(s) (Cult bonus)
+deragned gets 2 spade(s) (Cult bonus)
+Zoras transforms a Terrain space forest → mountains for 1 spade(s) [E9]
+deragned transforms a Terrain space swamp → plains for 1 spade(s) [E10]
+deragned earns 1 VP (Halflings Ability)
+deragned transforms a Terrain space desert → plains for 1 spade(s) [G7]
+deragned earns 1 VP (Halflings Ability)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Zoras gets 6 workers 1 Priests 0 coins 4 power (Income)
+GeorgeShortwell gets 5 workers 1 Priests 3 coins 5 power (Income)
+deragned gets 3 workers 2 Priests 4 coins 4 power (Income)
+Hefaistos gets 4 workers 2 Priests 5 coins 0 power (Income)
+~ Action phase ~
+Hefaistos sends a Priest to the Order of the Cult of Water. Forever!
+Hefaistos gains 3 on the Cult of Water track and earns 3 power
+Hefaistos declines doing Conversions
+Zoras upgrades a Temple to a Sanctuary for 4 workers 6 coins [E7]
+Zoras gets 5 VP (Scoring tile bonus)
+GeorgeShortwell pays 1 VP and gets 2 power via Structures [E7]
+Hefaistos pays 1 VP and gets 2 power via Structures [E7]
+GeorgeShortwell Power gain via Structures is capped from 3 power to 2 power
+Zoras takes a Favor tile
+Zoras gains 1 on the Cult of Earth track (Favor tile) and earns 1 power
+Zoras declines doing Conversions
+deragned spends 4 power to collect 7 coins (Power action)
+deragned declines doing Conversions
+GeorgeShortwell does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+GeorgeShortwell sends a Priest to the Order of the Cult of Earth. Forever!
+GeorgeShortwell gains 3 on the Cult of Earth track and earns 1 power
+GeorgeShortwell declines doing Conversions
+Hefaistos transforms a Terrain space forest → lakes for 1 spade(s) (Bonus card action) [C4]
+Hefaistos builds a Dwelling for 1 workers 2 coins [C4]
+Hefaistos gets 2 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+Zoras sends a Priest to the Order of the Cult of Air. Forever!
+Zoras gains 2 on the Cult of Air track and earns 2 power
+Zoras does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+deragned upgrades a Temple to a Sanctuary for 4 workers 6 coins [H7]
+deragned gets 5 VP (Scoring tile bonus)
+Zoras gets 1 power via Structures [H7]
+deragned takes a Favor tile
+deragned gains 1 on the Cult of Water track (Favor tile)
+deragned declines doing Conversions
+GeorgeShortwell does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+GeorgeShortwell upgrades a Temple to a Sanctuary for 4 workers 6 coins [F4]
+GeorgeShortwell gets 5 VP (Scoring tile bonus)
+GeorgeShortwell declines doing Conversions
+Zoras pays 2 VP and gets 3 power via Structures [F4]
+GeorgeShortwell takes a Favor tile
+GeorgeShortwell gains 1 on the Cult of Water track (Favor tile)
+GeorgeShortwell declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Hefaistos does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Hefaistos passes and becomes the first player for the next round
+Hefaistos chooses 1 Bonus card and gets 3 coins
+Hefaistos declines doing Conversions
+Zoras spends 4 power to collect 2 workers (Power action)
+Zoras declines doing Conversions
+deragned gains 1 on the Cult of Water track (Bonus card action)
+deragned declines doing Conversions
+GeorgeShortwell does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+GeorgeShortwell transforms a Terrain space lakes → desert for free (Nomads Stronghold) [D2]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [D2]
+GeorgeShortwell declines doing Conversions
+Zoras upgrades a Dwelling to a Trading house for 2 workers 3 coins [D4]
+Zoras declines doing Conversions
+Hefaistos pays 2 VP and gets 3 power via Structures [D4]
+deragned does some Conversions (spent: 0 power 2 Priests 0 workers ; collects: 0 Priests  2 workers 0 coins)
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [G5]
+deragned gets 3 VP (Favor tile bonus)
+Zoras pays 1 VP and gets 2 power via Structures [G5]
+GeorgeShortwell gets 1 power via Structures [G5]
+deragned founds a Town [G5]
+deragned gains 2 on the Cult of Fire track
+deragned gains 2 on the Cult of Air track and earns 3 power
+deragned gains 2 on the Cult of Earth track and earns 1 power
+deragned gains 2 on the Cult of Water track and earns 1 power
+deragned gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+deragned declines doing Conversions
+GeorgeShortwell passes
+GeorgeShortwell chooses 1 Bonus card
+GeorgeShortwell declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Zoras upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [D4]
+Zoras gets 5 VP (Scoring tile bonus)
+Zoras declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Hefaistos declines getting Power via Structures [D4]
+deragned passes
+deragned chooses 1 Bonus card and gets 2 coins
+deragned declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Zoras does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Zoras passes
+Zoras gets 8 VP (Bonus card)
+Zoras chooses 1 Bonus card
+Zoras declines doing Conversions
+~ Cleanup phase ~
+deragned gets 5 workers (Cult bonus)
+Zoras gets 3 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Zoras gets 3 workers 1 Priests 4 coins 6 power (Income)
+GeorgeShortwell gets 5 workers 1 Priests 5 coins 2 power (Income)
+deragned gets 3 workers 2 Priests 2 coins 5 power (Income)
+Hefaistos gets 5 workers 2 Priests 3 coins 3 power (Income)
+~ Action phase ~
+Hefaistos spends 4 power to collect 7 coins (Power action)
+Hefaistos declines doing Conversions
+GeorgeShortwell transforms a Terrain space plains → desert for 1 spade(s) (Bonus card action) [E2]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [E2]
+GeorgeShortwell gets 2 VP (Scoring tile bonus)
+Hefaistos gets 1 power via Structures [E2]
+GeorgeShortwell declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [G7]
+deragned gets 2 VP (Scoring tile bonus)
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Zoras builds a Dwelling for 1 workers 2 coins [E9]
+Zoras gets 2 VP (Scoring tile bonus)
+Zoras gets 2 VP (Favor tile bonus)
+Zoras declines doing Conversions
+deragned pays 1 VP and gets 2 power via Structures [E9]
+Hefaistos advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Hefaistos declines doing Conversions
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [E2]
+GeorgeShortwell gets 3 VP (Favor tile bonus)
+Hefaistos gets 1 power via Structures [E2]
+GeorgeShortwell declines doing Conversions
+deragned does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+deragned builds a Dwelling for 1 workers 2 coins [E10]
+deragned gets 2 VP (Scoring tile bonus)
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Zoras pays 1 VP and gets 2 power via Structures [E10]
+Zoras does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Zoras builds a Dwelling for 1 workers 2 coins + 1 workers (Tunneling) [H8]
+Zoras gets 4 VP (Tunneling)
+Zoras gets 2 VP (Scoring tile bonus)
+Zoras gets 2 VP (Favor tile bonus)
+Zoras declines doing Conversions
+deragned Power gain via Structures is capped from 4 power to 3 power
+deragned pays 2 VP and gets 3 power via Structures [H8]
+Hefaistos advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+Hefaistos declines doing Conversions
+GeorgeShortwell does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+GeorgeShortwell transforms a Terrain space swamp → desert for free (Nomads Stronghold) [E5]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [E5]
+GeorgeShortwell gets 2 VP (Scoring tile bonus)
+GeorgeShortwell declines doing Conversions
+Hefaistos pays 1 VP and gets 2 power via Structures [E5]
+deragned cancels their move
+deragned does some Conversions (spent: 5 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 5 coins)
+deragned passes and becomes the first player for the next round
+deragned gets 2 VP (Bonus card)
+deragned chooses 1 Bonus card and gets 1 coins
+deragned declines doing Conversions
+Zoras builds a Dwelling for 1 workers 2 coins + 1 workers (Tunneling) [C2]
+Zoras gets 4 VP (Tunneling)
+Zoras gets 2 VP (Scoring tile bonus)
+Zoras gets 2 VP (Favor tile bonus)
+Zoras declines doing Conversions
+Hefaistos builds a Dwelling for 1 workers 2 coins [I4]
+Hefaistos gets 2 VP (Scoring tile bonus)
+Hefaistos gets 2 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+GeorgeShortwell sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+GeorgeShortwell does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [E3]
+GeorgeShortwell gets 2 VP (Scoring tile bonus)
+Hefaistos pays 2 VP and gets 3 power via Structures [E3]
+GeorgeShortwell founds a Town [D2]
+GeorgeShortwell gets 5 VP and collects 6 coins (Town bonus)
+GeorgeShortwell declines doing Conversions
+Zoras spends 3 power to build a Bridge (Power action) [C2-D4]
+Zoras founds a Town [C2]
+Zoras gets 7 VP and collects 2 workers (Town bonus)
+Zoras declines doing Conversions
+Hefaistos builds a Dwelling for 1 workers 2 coins [H4]
+Hefaistos gets 2 VP (Scoring tile bonus)
+Hefaistos gets 2 VP (Favor tile bonus)
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+GeorgeShortwell passes
+GeorgeShortwell chooses 1 Bonus card
+GeorgeShortwell declines doing Conversions
+Zoras does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Zoras builds a Dwelling for 1 workers 2 coins + 1 workers (Tunneling) [I9]
+Zoras gets 4 VP (Tunneling)
+Zoras gets 2 VP (Scoring tile bonus)
+Zoras gets 2 VP (Favor tile bonus)
+Zoras declines doing Conversions
+Hefaistos builds a Dwelling for 1 workers 2 coins [A4]
+Hefaistos gets 2 VP (Scoring tile bonus)
+Hefaistos gets 2 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+Zoras spends 4 power to collect 2 workers (Power action)
+Zoras declines doing Conversions
+Hefaistos advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+Hefaistos declines doing Conversions
+Zoras does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Zoras builds a Dwelling for 1 workers 2 coins + 1 workers (Tunneling) [C5]
+Zoras gets 4 VP (Tunneling)
+Zoras gets 2 VP (Scoring tile bonus)
+Zoras gets 2 VP (Favor tile bonus)
+Zoras declines doing Conversions
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Hefaistos upgrades a Dwelling to a Trading house for 2 workers 3 coins [C3]
+Hefaistos declines doing Conversions
+Zoras declines getting Power via Structures [C3]
+Zoras gains 1 on the Cult of Earth track (Bonus card action)
+Zoras declines doing Conversions
+Hefaistos passes
+Hefaistos gets 12 VP (Bonus card)
+Hefaistos chooses 1 Bonus card
+Hefaistos declines doing Conversions
+Zoras sends a Priest to the Order of the Cult of Earth. Forever!
+Zoras gains 2 on the Cult of Earth track and earns 2 power
+Zoras declines doing Conversions
+Zoras passes
+Zoras chooses 1 Bonus card and gets 1 coins
+Zoras declines doing Conversions
+~ Cleanup phase ~
+GeorgeShortwell gets 4 power (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Zoras gets 9 workers 1 Priests 0 coins 9 power (Income)
+GeorgeShortwell gets 8 workers 1 Priests 5 coins 3 power (Income)
+deragned gets 6 workers 2 Priests 2 coins 5 power (Income)
+Hefaistos gets 7 workers 2 Priests 7 coins 1 power (Income)
+~ Action phase ~
+deragned spends 4 power to collect 7 coins (Power action)
+deragned declines doing Conversions
+GeorgeShortwell advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+GeorgeShortwell declines doing Conversions
+Hefaistos spends 3 power to build a Bridge (Power action) [F2-H2]
+Hefaistos declines doing Conversions
+Zoras cancels their move
+Zoras sends a Priest to the Order of the Cult of Earth. Forever!
+Zoras gains 2 on the Cult of Earth track and earns 2 power
+Zoras declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [D8]
+deragned gets 2 VP (Scoring tile bonus)
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+GeorgeShortwell transforms a Terrain space plains → desert for 3 workers → 1 spade(s) [B2]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [B2]
+GeorgeShortwell gets 2 VP (Scoring tile bonus)
+Zoras gets 1 power via Structures [B2]
+Hefaistos gets 1 power via Structures [B2]
+GeorgeShortwell declines doing Conversions
+Hefaistos transforms a Terrain space swamp → lakes for 1 spade(s) (Bonus card action) [I2]
+Hefaistos builds a Dwelling for 1 workers 2 coins [I2]
+Hefaistos gets 2 VP (Scoring tile bonus)
+Hefaistos gets 2 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+Zoras passes and becomes the first player for the next round
+Zoras chooses 1 Bonus card and gets 1 coins
+Zoras declines doing Conversions
+~ You have decided to automatically decline spending VP for power ~
+deragned advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+deragned declines doing Conversions
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+GeorgeShortwell gets 3 VP (Favor tile bonus)
+Hefaistos pays 1 VP and gets 2 power via Structures [E5]
+GeorgeShortwell declines doing Conversions
+Hefaistos builds a Dwelling for 1 workers 2 coins [A11]
+Hefaistos gets 2 VP (Scoring tile bonus)
+Hefaistos gets 2 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+deragned advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+deragned declines doing Conversions
+GeorgeShortwell transforms a Terrain space wasteland → desert for free (Nomads Stronghold) [G2]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [G2]
+GeorgeShortwell gets 2 VP (Scoring tile bonus)
+GeorgeShortwell founds a Town [G2]
+GeorgeShortwell gets 5 VP and collects 6 coins (Town bonus)
+GeorgeShortwell declines doing Conversions
+Hefaistos passes
+Hefaistos chooses 1 Bonus card and gets 1 coins
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Hefaistos declines doing Conversions
+deragned advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+deragned declines doing Conversions
+GeorgeShortwell sends a Priest to the Order of the Cult of Fire. Forever!
+GeorgeShortwell gains 2 on the Cult of Fire track and earns 2 power
+GeorgeShortwell declines doing Conversions
+deragned advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+deragned declines doing Conversions
+GeorgeShortwell spends 4 power to collect 2 workers (Power action)
+GeorgeShortwell declines doing Conversions
+deragned cancels their move
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [B6]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [B6]
+deragned gets 2 VP (Scoring tile bonus)
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [B2]
+GeorgeShortwell gets 3 VP (Favor tile bonus)
+Zoras gets 1 power via Structures [B2]
+Hefaistos gets 1 power via Structures [B2]
+GeorgeShortwell declines doing Conversions
+deragned transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [B5]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [B5]
+deragned gets 2 VP (Scoring tile bonus)
+deragned gets 2 VP (Favor tile bonus)
+Hefaistos gets 1 power via Structures [B5]
+deragned declines doing Conversions
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [A5]
+GeorgeShortwell gets 2 VP (Scoring tile bonus)
+Hefaistos gets 1 power via Structures [A5]
+GeorgeShortwell declines doing Conversions
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [B4]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [B4]
+deragned gets 2 VP (Scoring tile bonus)
+deragned gets 2 VP (Favor tile bonus)
+Hefaistos gets 1 power via Structures [B4]
+deragned declines doing Conversions
+GeorgeShortwell passes
+GeorgeShortwell gets 6 VP (Bonus card)
+GeorgeShortwell chooses 1 Bonus card
+GeorgeShortwell declines doing Conversions
+deragned transforms a Terrain space wasteland → desert for 1 workers → 1 spade(s) [D7]
+deragned earns 1 VP (Halflings Ability)
+deragned declines doing Conversions
+deragned passes
+deragned gets 4 VP (Bonus card)
+deragned chooses 1 Bonus card
+deragned declines doing Conversions
+~ Cleanup phase ~
+Hefaistos gets 1 Priests (Cult bonus)
+deragned gets 1 Priests (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Zoras gets 8 workers 1 Priests 4 coins 6 power (Income)
+GeorgeShortwell gets 8 workers 1 Priests 12 coins 5 power (Income)
+deragned gets 9 workers 2 Priests 2 coins 5 power (Income)
+Hefaistos gets 8 workers 2 Priests 5 coins 4 power (Income)
+~ Action phase ~
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Zoras spends 4 power to collect 7 coins (Power action)
+Zoras declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Hefaistos sends a Priest to the Order of the Cult of Water. Forever!
+Hefaistos gains 2 on the Cult of Water track and earns 2 power
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+GeorgeShortwell transforms a Terrain space wasteland → desert for 1 spade(s) (Bonus card action) [A6]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [A6]
+GeorgeShortwell declines doing Conversions
+deragned sends a Priest to the Order of the Cult of Earth. Forever!
+deragned gains 2 on the Cult of Earth track and earns 2 power
+deragned declines doing Conversions
+Zoras spends 3 power to collect 1 Priests (Power action)
+Zoras declines doing Conversions
+Hefaistos sends a Priest to the Order of the Cult of Fire. Forever!
+Hefaistos gains 2 on the Cult of Fire track and earns 1 power
+Hefaistos declines doing Conversions
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [A5]
+GeorgeShortwell gets 3 VP (Favor tile bonus)
+Hefaistos gets 1 power via Structures [A5]
+GeorgeShortwell declines doing Conversions
+deragned builds a Dwelling for 1 workers 2 coins [A7]
+deragned gets 2 VP (Favor tile bonus)
+GeorgeShortwell gets 1 power via Structures [A7]
+deragned declines doing Conversions
+Zoras spends 4 power to collect 2 workers (Power action)
+Zoras declines doing Conversions
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Hefaistos sends a Priest to the Order of the Cult of Fire. Forever!
+Hefaistos gains 2 on the Cult of Fire track and earns 2 power
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+GeorgeShortwell transforms a Terrain space swamp → desert for free (Nomads Stronghold) [B3]
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [B3]
+Zoras gets 1 power via Structures [B3]
+GeorgeShortwell declines doing Conversions
+deragned does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [F7]
+deragned gets 3 VP (Favor tile bonus)
+Zoras gets 1 power via Structures [F7]
+deragned declines doing Conversions
+Zoras advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Zoras declines doing Conversions
+Hefaistos upgrades a Temple to a Sanctuary for 4 workers 8 coins [D5]
+Hefaistos gets 5 VP (Scoring tile bonus)
+Hefaistos declines doing Conversions
+GeorgeShortwell gets 1 power via Structures [D5]
+Zoras declines getting Power via Structures [D5]
+Hefaistos takes a Favor tile
+Hefaistos gains 1 on the Cult of Water track (Favor tile)
+Hefaistos declines doing Conversions
+GeorgeShortwell upgrades a Trading house to a Temple for 2 workers 5 coins [A5]
+Hefaistos gets 1 power via Structures [A5]
+GeorgeShortwell takes a Favor tile
+GeorgeShortwell gains 3 on the Cult of Fire track (Favor tile) and earns 3 power
+GeorgeShortwell declines doing Conversions
+deragned sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+deragned does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+deragned upgrades a Dwelling to a Trading house for 2 workers 3 coins [E10]
+deragned gets 3 VP (Favor tile bonus)
+deragned declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Zoras declines getting Power via Structures [E10]
+Zoras advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Zoras declines doing Conversions
+Hefaistos upgrades a Dwelling to a Trading house for 2 workers 3 coins [C4]
+Hefaistos gets 3 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+deragned pays 1 VP and gets 2 power via Structures [C4]
+Hefaistos founds a Town on a River space (Mermaids Ability) [R~D5]
+Hefaistos gains 1 on the Cult of Fire track
+Hefaistos gains 1 on the Cult of Air track
+Hefaistos gains 1 on the Cult of Earth track
+Hefaistos gains 1 on the Cult of Water track
+Hefaistos gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+GeorgeShortwell does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+GeorgeShortwell upgrades a Dwelling to a Trading house for 2 workers 3 coins [B3]
+GeorgeShortwell gets 3 VP (Favor tile bonus)
+Zoras gets 1 power via Structures [B3]
+GeorgeShortwell founds a Town [A6]
+GeorgeShortwell advances on the Shipping Track for free and earns 3 VP (Town bonus)
+GeorgeShortwell gets 4 VP (Town bonus)
+GeorgeShortwell declines doing Conversions
+deragned sends a Priest to the Order of the Cult of Water. Forever!
+deragned gains 2 on the Cult of Water track and earns 2 power
+deragned declines doing Conversions
+Zoras transforms a Terrain space forest → mountains for 2 workers → 1 spade(s) [G3]
+Zoras gets 4 VP (Tunneling)
+Zoras declines building a Dwelling for now
+Zoras declines doing Conversions
+Hefaistos does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Hefaistos upgrades a Dwelling to a Trading house for 2 workers 3 coins [F2]
+Hefaistos gets 3 VP (Favor tile bonus)
+Hefaistos declines doing Conversions
+GeorgeShortwell declines getting Power via Structures [F2]
+GeorgeShortwell does some Conversions (spent: 2 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+GeorgeShortwell builds a Dwelling for 1 workers 2 coins [B1]
+GeorgeShortwell declines doing Conversions
+~ You have decided to automatically decline spending VP for power ~
+deragned sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+deragned does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+deragned transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [D7]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [D7]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Zoras declines getting Power via Structures [D7]
+deragned founds a Town [D8]
+deragned gains 1 on the Cult of Fire track and earns 1 power
+deragned gains 1 on the Cult of Earth track and earns 2 power
+deragned gains 1 on the Cult of Water track and earns 2 power
+deragned gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+deragned declines doing Conversions
+Zoras transforms a Terrain space forest → mountains for 2 workers → 1 spade(s) [A10]
+Zoras gets 4 VP (Tunneling)
+Zoras declines building a Dwelling for now
+Zoras declines doing Conversions
+~ You have decided to always be prompted for conversions at the end of the turn ~
+Hefaistos does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Hefaistos transforms a Terrain space swamp → lakes for 3 workers → 1 spade(s) [H5]
+Hefaistos builds a Dwelling for 1 workers 2 coins [H5]
+Hefaistos gets 2 VP (Favor tile bonus)
+Zoras gets 1 power via Structures [H5]
+Hefaistos declines doing Conversions
+GeorgeShortwell passes
+~ This is the last round. No new Bonus cards are taken. ~
+deragned transforms a Terrain space lakes → swamp for 1 workers → 1 spade(s) [I10]
+deragned earns 1 VP (Halflings Ability)
+deragned declines doing Conversions
+Zoras transforms a Terrain space wasteland → mountains for 2 workers → 1 spade(s) [A12]
+Zoras gets 4 VP (Tunneling)
+Zoras declines building a Dwelling for now
+Zoras declines doing Conversions
+Hefaistos sends a Priest to the Order of the Cult of Water then reclaims it into his supply
+Hefaistos gains 1 on the Cult of Water track and earns 3 power
+Hefaistos declines doing Conversions
+deragned sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+deragned does some Conversions (spent: 2 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+deragned transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [A8]
+deragned earns 1 VP (Halflings Ability)
+deragned builds a Dwelling for 1 workers 2 coins [A8]
+deragned gets 2 VP (Favor tile bonus)
+deragned declines doing Conversions
+Zoras cancels their move
+Zoras transforms a Terrain space wasteland → mountains for 2 workers → 1 spade(s) [D6]
+Zoras gets 4 VP (Tunneling)
+Zoras declines building a Dwelling for now
+Zoras declines doing Conversions
+Hefaistos sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Hefaistos does some Conversions (spent: 4 power 0 Priests 2 workers ; collects: 0 Priests  0 workers 6 coins)
+Hefaistos upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [F2]
+Hefaistos gets 5 VP (Scoring tile bonus)
+GeorgeShortwell declines getting Power via Structures [F2]
+Hefaistos advances on the Shipping Track for free and earns 5 VP (Mermaids Stronghold)
+Hefaistos founds a Town on a River space (Mermaids Ability) [R~F2]
+Hefaistos gets 11 VP (Town bonus)
+Hefaistos declines doing Conversions
+deragned passes
+deragned gets 6 VP (Bonus card)
+Zoras transforms a Terrain space desert → wasteland for 2 workers → 1 spade(s) [I7]
+Zoras gets 4 VP (Tunneling)
+Zoras declines doing Conversions
+Hefaistos passes
+Hefaistos gets 15 VP (Bonus card)
+Zoras transforms a Terrain space wasteland → mountains for 2 workers → 1 spade(s) [I7]
+Zoras gets 4 VP (Tunneling)
+Zoras declines building a Dwelling for now
+Zoras declines doing Conversions
+Zoras builds a Dwelling for 1 workers 2 coins + 1 workers (Tunneling) [G3]
+Zoras gets 4 VP (Tunneling)
+Zoras gets 2 VP (Favor tile bonus)
+Hefaistos declines getting Power via Structures [G3]
+Zoras declines doing Conversions
+Zoras transforms a Terrain space swamp → lakes for 2 workers → 1 spade(s) [C1]
+Zoras gets 4 VP (Tunneling)
+Zoras declines doing Conversions
+Zoras gains 1 on the Cult of Water track (Bonus card action)
+Zoras declines doing Conversions
+Zoras passes
+~ Final scoring ~
+GeorgeShortwell scores 8 VP (Cult of Fire)
+Hefaistos scores 4 VP (Cult of Fire)
+deragned scores 2 VP (Cult of Fire)
+Hefaistos scores 8 VP (Cult of Water)
+deragned scores 4 VP (Cult of Water)
+Zoras scores 1 VP (Cult of Water)
+GeorgeShortwell scores 1 VP (Cult of Water)
+Zoras scores 8 VP (Cult of Earth)
+deragned scores 4 VP (Cult of Earth)
+GeorgeShortwell scores 2 VP (Cult of Earth)
+Hefaistos scores 0 VP (Cult of Earth)
+deragned scores 8 VP (Cult of Air)
+Zoras scores 4 VP (Cult of Air)
+Hefaistos scores 2 VP (Cult of Air)
+GeorgeShortwell scores 18 VP with 15 connected Structures (Area scoring)
+deragned scores 12 VP with 13 connected Structures (Area scoring)
+Hefaistos scores 6 VP with 12 connected Structures (Area scoring)
+Zoras scores 0 VP with 10 connected Structures (Area scoring)
+Zoras sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Zoras converts 2 power into 2 coins
+Zoras scores 1 VP with 3 coins (Resource scoring)
+GeorgeShortwell converts 2 power into 2 coins
+GeorgeShortwell scores 0 VP with 2 coins (Resource scoring)
+deragned scores 0 VP with 0 coins (Resource scoring)
+Hefaistos converts 1 Priests into 1 coins
+Hefaistos scores 0 VP with 1 coins (Resource scoring)
+The end of the game: deragned wins!

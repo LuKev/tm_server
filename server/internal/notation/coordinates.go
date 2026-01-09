@@ -70,3 +70,33 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 
 	return board.Hex{}, fmt.Errorf("hex %s not found (row %d, hex %d): only %d non-river hexes in row", coord, row, hexNum, count)
 }
+
+// ConvertRiverCoordToAxial converts river notation (e.g., "R~D5") to axial coordinates
+// The format is R~[Coord] where Coord is a land hex adjacent to the river hex
+// Returns the river hex closest to the given land hex
+func ConvertRiverCoordToAxial(riverCoord string) (board.Hex, error) {
+	// Parse "R~D5" format
+	if !strings.HasPrefix(riverCoord, "R~") {
+		return board.Hex{}, fmt.Errorf("invalid river coordinate format: %s (expected R~[Coord])", riverCoord)
+	}
+
+	landCoord := riverCoord[2:] // Remove "R~" prefix
+	landHex, err := ConvertLogCoordToAxial(landCoord)
+	if err != nil {
+		return board.Hex{}, fmt.Errorf("invalid land coordinate in river ref: %w", err)
+	}
+
+	// Get terrain layout
+	layout := board.BaseGameTerrainLayout()
+
+	// Find adjacent river hexes
+	neighbors := landHex.Neighbors()
+	for _, neighbor := range neighbors {
+		terrain, exists := layout[neighbor]
+		if exists && terrain == models.TerrainRiver {
+			return neighbor, nil
+		}
+	}
+
+	return board.Hex{}, fmt.Errorf("no river hex found adjacent to %s", landCoord)
+}

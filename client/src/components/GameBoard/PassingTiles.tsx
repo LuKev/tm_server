@@ -187,7 +187,7 @@ export const BonusCardContent: React.FC<{
                             </div>
                         </div>
                         <div className="passing-tile-bottom">
-                            <CoinIcon className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }}>3</CoinIcon>
+                            <PowerIcon amount={3} className="flex-shrink-0" style={{ width: '60%', aspectRatio: '1/1', height: 'auto', fontSize: '25cqw' }} />
                         </div>
                     </>
                 );
