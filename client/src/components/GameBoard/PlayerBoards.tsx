@@ -3,7 +3,7 @@ import { useGameStore } from '../../stores/gameStore';
 import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, type PlayerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
-import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon } from '../shared/Icons';
+import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import { TownTileId } from '../../types/game.types';
@@ -36,13 +36,13 @@ const getTownTileConfig = (tileId: TownTileId): { vp: number; rewards: React.Rea
         case TownTileId.Vp4Ship1:
             return { vp: 4, rewards: <span style={{ fontSize: '0.6em' }}>Ship</span> };
         case TownTileId.Vp8Cult1:
-            return { vp: 8, rewards: <div style={{ display: 'flex', gap: '2px' }}><div style={{ width: '0.5em', height: '0.5em', background: 'linear-gradient(to bottom right, #dc2626, #fbbf24, #22c55e, #3b82f6)', borderRadius: '50%' }} /></div> };
+            return { vp: 8, rewards: <CultRhombusIcon className="icon-sm" /> };
         case TownTileId.Vp9Priest1:
             return { vp: 9, rewards: <PriestIcon className="icon-sm" /> };
         case TownTileId.Vp11:
             return { vp: 11, rewards: null };
         case TownTileId.Vp2Cult2:
-            return { vp: 2, rewards: <div style={{ display: 'flex', gap: '2px' }}><div style={{ width: '0.5em', height: '0.5em', background: 'linear-gradient(to bottom right, #dc2626, #fbbf24, #22c55e, #3b82f6)', borderRadius: '50%' }} /><span style={{ fontSize: '0.6em' }}>×2</span></div> };
+            return { vp: 2, rewards: <CultRhombusIcon className="icon-sm" showNumber={true} /> };
         default:
             return { vp: 0, rewards: null };
     }

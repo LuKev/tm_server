@@ -32,7 +32,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
         // Handle object with Type (from Go serialization)
         if (typeof factionRaw === 'object' && 'Type' in factionRaw) {
             const type = (factionRaw as { Type: number }).Type;
-            const f = FACTIONS.find(f => f.id === type);
+            const f = FACTIONS.find(f => f.id === (type as FactionType));
             return f ? f.name : "Unknown";
         }
 
