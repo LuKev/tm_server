@@ -292,6 +292,21 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 			parts = append(parts, generateActionCode(subAction, homeTerrain))
 		}
 		return strings.Join(parts, ".")
+	case *LogHalflingsSpadeAction:
+		// Generate T-[Coord]-[Terrain] for each transform (terrain omitted if home terrain)
+		var parts []string
+		for i, coord := range a.TransformCoords {
+			part := "T-" + coord
+			// Add terrain code if we have it and it's not home terrain (plains for Halflings)
+			if i < len(a.TargetTerrains) && a.TargetTerrains[i] != "" {
+				terrainCode := getTerrainCodeFromName(a.TargetTerrains[i])
+				if terrainCode != "" && terrainCode != "K" { // K = Plains = Halflings home
+					part += "-" + terrainCode
+				}
+			}
+			parts = append(parts, part)
+		}
+		return strings.Join(parts, ".")
 	default:
 		return fmt.Sprintf("UNKNOWN(%T)", action)
 	}
@@ -451,4 +466,25 @@ func formatResources(res map[models.ResourceType]int) string {
 		parts = append(parts, fmt.Sprintf("%dC", amount))
 	}
 	return strings.Join(parts, "")
+}
+
+// getTerrainCodeFromName converts terrain name to single-letter code
+func getTerrainCodeFromName(name string) string {
+	switch strings.ToLower(name) {
+	case "plains":
+		return "K" // Brown
+	case "swamp":
+		return "S" // Black
+	case "lakes", "lake":
+		return "U" // Blue
+	case "forest":
+		return "G" // Green
+	case "mountains", "mountain":
+		return "X" // Grey
+	case "wasteland":
+		return "R" // Red
+	case "desert":
+		return "Y" // Yellow
+	}
+	return ""
 }

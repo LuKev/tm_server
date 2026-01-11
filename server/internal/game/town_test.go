@@ -825,3 +825,30 @@ func setupConnectedBuildings(gs *GameState, playerID string, faction factions.Fa
 
 	return hexes
 }
+
+func TestTownFormation_FakirsTownTile4(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewFakirs()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Set up connected buildings for Fakirs
+	hexes := setupConnectedBuildings(gs, "player1", faction, 4, 7)
+
+	// Form town with TownTile4Points
+	err := gs.FormTown("player1", hexes, models.TownTile4Points, nil)
+	if err != nil {
+		t.Fatalf("failed to form town: %v", err)
+	}
+
+	// Verify Fakirs specific bonus
+	fakirs := player.Faction.(*factions.Fakirs)
+	if !fakirs.HasShippingTownTile() {
+		t.Error("Fakirs should have shipping town tile flag set")
+	}
+
+	// Verify shipping level did NOT increase (Fakirs can't have shipping)
+	if player.ShippingLevel != 0 {
+		t.Errorf("Fakirs shipping level should remain 0, got %d", player.ShippingLevel)
+	}
+}

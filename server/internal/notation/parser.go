@@ -224,7 +224,12 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 	if strings.Contains(code, ".") {
 		parts := strings.Split(code, ".")
 		var actions []game.Action
-		for _, part := range parts {
+
+		// Pre-process to merge T-X + X patterns into single TransformAndBuild
+		// Example: T-A7.A7 becomes single action with buildDwelling=true
+		mergedParts := mergeTransformAndBuildTokens(parts)
+
+		for _, part := range mergedParts {
 			action, err := parseActionCode(playerID, part)
 			if err != nil {
 				return nil, err
@@ -364,6 +369,27 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		hex := parseHex(coord)
 		return game.NewSetupDwellingAction(playerID, hex), nil
 	}
+
+	// TB- prefix: Transform AND Build (merged from T-X + X pattern)
+	// This is an internal notation created by mergeTransformAndBuildTokens
+	if strings.HasPrefix(code, "TB-") {
+		// TB-C4 or TB-C4-Y
+		parts := strings.Split(code, "-")
+		if len(parts) < 2 {
+			return nil, fmt.Errorf("invalid transform+build code: %s", code)
+		}
+		coord := parts[1]
+		hex := parseHex(coord)
+
+		targetTerrain := models.TerrainTypeUnknown
+		if len(parts) > 2 {
+			targetTerrain = parseTerrainShortCode(parts[2])
+		}
+
+		// buildDwelling=true for merged transform+build
+		return game.NewTransformAndBuildAction(playerID, hex, true, targetTerrain), nil
+	}
+
 	if strings.HasPrefix(code, "T-") {
 		// T-C4 or T-C4-Y
 		parts := strings.Split(code, "-")
@@ -492,4 +518,73 @@ func parseResourceString(s string) map[models.ResourceType]int {
 		}
 	}
 	return res
+}
+
+// mergeTransformAndBuildTokens merges T-X + X patterns into single tokens
+// Example: ["BURN2", "ACT6", "T-A7", "T-B2", "A7"] -> ["BURN2", "ACT6", "TB-A7", "T-B2"]
+// Where TB-X means transform AND build (with buildDwelling=true)
+func mergeTransformAndBuildTokens(tokens []string) []string {
+	result := make([]string, 0, len(tokens))
+
+	// First pass: identify which transforms have matching builds
+	// Key = coordinate, Value = index in tokens array
+	transformCoords := make(map[string]int)
+	for i, token := range tokens {
+		if strings.HasPrefix(token, "T-") {
+			// Extract coordinate (e.g., T-A7 -> A7, T-A7-Y -> A7)
+			parts := strings.Split(token, "-")
+			if len(parts) >= 2 {
+				coord := parts[1]
+				transformCoords[coord] = i
+			}
+		}
+	}
+
+	// Track which builds have been merged into their transforms
+	buildMerged := make(map[int]bool)
+
+	// Check each token to see if it's a bare coordinate that matches a transform
+	for i, token := range tokens {
+		// Check if this is a bare coordinate (e.g., "A7") that should be merged
+		if isCoord(token) {
+			if transformIdx, exists := transformCoords[token]; exists && transformIdx < i {
+				// This build should be merged with the earlier transform
+				buildMerged[i] = true
+			}
+		}
+	}
+
+	// Second pass: emit tokens, converting T-X to TB-X where builds were merged
+	for i, token := range tokens {
+		// Skip builds that were merged
+		if buildMerged[i] {
+			continue
+		}
+
+		// Check if this is a transform that needs to be upgraded to transform+build
+		if strings.HasPrefix(token, "T-") {
+			parts := strings.Split(token, "-")
+			if len(parts) >= 2 {
+				coord := parts[1]
+				// Check if there's a merged build for this coord
+				hasBuildMerge := false
+				for buildIdx := range buildMerged {
+					if buildMerged[buildIdx] && tokens[buildIdx] == coord {
+						hasBuildMerge = true
+						break
+					}
+				}
+				if hasBuildMerge {
+					// Emit as TB-X (transform and build)
+					// If there's a terrain suffix (T-A7-Y), preserve it (TB-A7-Y)
+					result = append(result, "TB"+token[1:])
+					continue
+				}
+			}
+		}
+
+		result = append(result, token)
+	}
+
+	return result
 }

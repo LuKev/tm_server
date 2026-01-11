@@ -263,7 +263,24 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	// Step 0: Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
-		PaySkipCost(player)
+		if gs.SkipAbilityUsedThisAction == nil {
+			gs.SkipAbilityUsedThisAction = make(map[string][]board.Hex)
+		}
+
+		usedHexes := gs.SkipAbilityUsedThisAction[player.ID]
+		alreadyPaid := false
+		for _, h := range usedHexes {
+			if h == a.TargetHex {
+				alreadyPaid = true
+				break
+			}
+		}
+
+		if !alreadyPaid {
+			// Not used yet for this hex, pay cost and mark as used
+			PaySkipCost(player)
+			gs.SkipAbilityUsedThisAction[player.ID] = append(usedHexes, a.TargetHex)
+		}
 	}
 
 	// Step 1: Transform terrain to target terrain if needed
@@ -1050,6 +1067,17 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 // Returns error if not valid, or nil if valid.
 // Also validates if the player has enough resources (but does not spend them).
 func ValidateSkipAbility(gs *GameState, player *Player, targetHex board.Hex) error {
+	// Check if already used this action
+	if gs.SkipAbilityUsedThisAction != nil {
+		usedHexes := gs.SkipAbilityUsedThisAction[player.ID]
+		for _, h := range usedHexes {
+			if h == targetHex {
+				// Already paid for this hex, so valid (skip resource checks)
+				return nil
+			}
+		}
+	}
+
 	// Determine if the player's faction has a skip ability and validate its use.
 	// This function also checks for resource costs but does not deduct them.
 	switch f := player.Faction.(type) {

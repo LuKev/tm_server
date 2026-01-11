@@ -26,6 +26,7 @@ go_test(
     name = "notation_test",
     srcs = [
         "bga_parser_test.go",
+        "bga_parser_conversion_test.go",
     ],
     embed = [":notation"],
     deps = [

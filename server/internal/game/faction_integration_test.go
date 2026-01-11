@@ -3357,19 +3357,20 @@ func TestApplyHalflingsSpade_TransformsHexAndAwardsVP(t *testing.T) {
 		TransformedHexes: []board.Hex{},
 	}
 
-	// Target hex that needs transformation
+	// Target hex that needs transformation (Swamp → Plains = 1 spade)
 	targetHex := board.NewHex(0, 0)
-	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest // Not home terrain
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainSwamp // 1 spade to home terrain
 
 	initialVP := player.VictoryPoints
 
-	// Apply one spade
+	// Apply one spade (Forest → Plains = 1 spade, which is Halflings home terrain)
 	action := &ApplyHalflingsSpadeAction{
 		BaseAction: BaseAction{
 			Type:     ActionApplyHalflingsSpade,
 			PlayerID: "player1",
 		},
-		TargetHex: targetHex,
+		TargetHex:     targetHex,
+		TargetTerrain: models.TerrainPlains, // Halflings home terrain (1 spade from Forest)
 	}
 
 	err := action.Execute(gs)
@@ -3412,17 +3413,18 @@ func TestApplyHalflingsSpade_AllThreeSpades(t *testing.T) {
 		TransformedHexes: []board.Hex{},
 	}
 
-	// Apply 3 spades
+	// Apply 3 spades (each Swamp → Plains = 1 spade)
 	hexes := []board.Hex{board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(2, 0)}
 	for i, hex := range hexes {
-		gs.Map.GetHex(hex).Terrain = models.TerrainForest
+		gs.Map.GetHex(hex).Terrain = models.TerrainSwamp // 1 spade each
 
 		action := &ApplyHalflingsSpadeAction{
 			BaseAction: BaseAction{
 				Type:     ActionApplyHalflingsSpade,
 				PlayerID: "player1",
 			},
-			TargetHex: hex,
+			TargetHex:     hex,
+			TargetTerrain: models.TerrainPlains, // 1 spade each (Forest → Plains)
 		}
 
 		err := action.Execute(gs)
@@ -3616,17 +3618,18 @@ func TestHalflingsSpades_WithScoringTile(t *testing.T) {
 	}
 
 	targetHex := board.NewHex(0, 0)
-	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainSwamp // 1 spade to Plains
 
 	initialVP := player.VictoryPoints
 
-	// Apply one spade
+	// Apply one spade (Swamp → Plains = 1 spade)
 	action := &ApplyHalflingsSpadeAction{
 		BaseAction: BaseAction{
 			Type:     ActionApplyHalflingsSpade,
 			PlayerID: "player1",
 		},
-		TargetHex: targetHex,
+		TargetHex:     targetHex,
+		TargetTerrain: models.TerrainPlains, // 1 spade (Swamp → Plains)
 	}
 
 	err := action.Execute(gs)
@@ -3638,6 +3641,197 @@ func TestHalflingsSpades_WithScoringTile(t *testing.T) {
 	expectedVP := initialVP + 3
 	if player.VictoryPoints != expectedVP {
 		t.Errorf("expected %d VP, got %d", expectedVP, player.VictoryPoints)
+	}
+}
+
+// TestHalflingsStronghold_MultiSpadeTransform tests that spades can be distributed
+// across different hexes with varying terrain distances
+// Example: 2 hexes using 3 spades total (1 spade + 2 spades)
+func TestHalflingsStronghold_MultiSpadeTransform(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Create pending spades (simulate stronghold build)
+	faction.BuildStronghold()
+	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
+		PlayerID:         "player1",
+		SpadesRemaining:  3,
+		TransformedHexes: []board.Hex{},
+	}
+
+	initialVP := player.VictoryPoints
+
+	// Hex 1: Swamp → Plains = 1 spade (Halflings home terrain)
+	hex1 := board.NewHex(0, 0)
+	gs.Map.GetHex(hex1).Terrain = models.TerrainSwamp
+
+	action1 := &ApplyHalflingsSpadeAction{
+		BaseAction: BaseAction{
+			Type:     ActionApplyHalflingsSpade,
+			PlayerID: "player1",
+		},
+		TargetHex:     hex1,
+		TargetTerrain: models.TerrainPlains, // 1 spade (Swamp → Plains)
+	}
+
+	err := action1.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to apply first spade: %v", err)
+	}
+
+	// Verify 2 spades remaining after 1 used
+	if gs.PendingHalflingsSpades.SpadesRemaining != 2 {
+		t.Errorf("expected 2 spades remaining, got %d", gs.PendingHalflingsSpades.SpadesRemaining)
+	}
+
+	// Hex 2: Mountain → Desert = 2 spades (NOT home terrain)
+	hex2 := board.NewHex(1, 0)
+	gs.Map.GetHex(hex2).Terrain = models.TerrainMountain
+
+	action2 := &ApplyHalflingsSpadeAction{
+		BaseAction: BaseAction{
+			Type:     ActionApplyHalflingsSpade,
+			PlayerID: "player1",
+		},
+		TargetHex:     hex2,
+		TargetTerrain: models.TerrainDesert, // 2 spades (Mountain → Desert)
+	}
+
+	err = action2.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to apply second spade: %v", err)
+	}
+
+	// Verify 0 spades remaining after 3 total used (1 + 2)
+	if gs.PendingHalflingsSpades.SpadesRemaining != 0 {
+		t.Errorf("expected 0 spades remaining, got %d", gs.PendingHalflingsSpades.SpadesRemaining)
+	}
+
+	// Verify both hexes transformed correctly
+	if gs.Map.GetHex(hex1).Terrain != models.TerrainPlains {
+		t.Errorf("expected hex1 to be Plains, got %v", gs.Map.GetHex(hex1).Terrain)
+	}
+	if gs.Map.GetHex(hex2).Terrain != models.TerrainDesert {
+		t.Errorf("expected hex2 to be Desert, got %v", gs.Map.GetHex(hex2).Terrain)
+	}
+
+	// Verify VP: 3 spades × 1 VP = 3 VP (Halflings ability)
+	expectedVP := initialVP + 3
+	if player.VictoryPoints != expectedVP {
+		t.Errorf("expected %d VP from Halflings ability, got %d", expectedVP, player.VictoryPoints)
+	}
+
+	// Verify both hexes tracked for potential dwelling placement
+	if len(gs.PendingHalflingsSpades.TransformedHexes) != 2 {
+		t.Errorf("expected 2 transformed hexes, got %d", len(gs.PendingHalflingsSpades.TransformedHexes))
+	}
+}
+
+// TestHalflingsStronghold_DwellingAfterSpades tests building a dwelling after
+// applying all stronghold spades
+func TestHalflingsStronghold_DwellingAfterSpades(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	// Give player resources for dwelling
+	player.Resources.Workers = 5
+	player.Resources.Coins = 10
+
+	// Create pending spades (simulate stronghold build)
+	faction.BuildStronghold()
+	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
+		PlayerID:         "player1",
+		SpadesRemaining:  3,
+		TransformedHexes: []board.Hex{},
+	}
+
+	// Apply 3 spades to 2 hexes: Swamp→Plains (1) + Mountain→Desert (2) = 3 spades
+	hex1 := board.NewHex(0, 0)
+	hex2 := board.NewHex(1, 0)
+	gs.Map.GetHex(hex1).Terrain = models.TerrainSwamp    // 1 spade to Plains
+	gs.Map.GetHex(hex2).Terrain = models.TerrainMountain // 2 spades to Desert
+
+	// Hex 1: Swamp → Plains = 1 spade
+	action1 := &ApplyHalflingsSpadeAction{
+		BaseAction:    BaseAction{Type: ActionApplyHalflingsSpade, PlayerID: "player1"},
+		TargetHex:     hex1,
+		TargetTerrain: models.TerrainPlains,
+	}
+	if err := action1.Execute(gs); err != nil {
+		t.Fatalf("failed to apply first spade: %v", err)
+	}
+
+	// Hex 2: Mountain → Desert = 2 spades
+	action2 := &ApplyHalflingsSpadeAction{
+		BaseAction:    BaseAction{Type: ActionApplyHalflingsSpade, PlayerID: "player1"},
+		TargetHex:     hex2,
+		TargetTerrain: models.TerrainDesert,
+	}
+	if err := action2.Execute(gs); err != nil {
+		t.Fatalf("failed to apply second spade: %v", err)
+	}
+
+	// Now build a dwelling on hex1 (which is now Plains = home terrain)
+	dwellingAction := &BuildHalflingsDwellingAction{
+		BaseAction: BaseAction{Type: ActionBuildHalflingsDwelling, PlayerID: "player1"},
+		TargetHex:  hex1,
+	}
+
+	err := dwellingAction.Execute(gs)
+	if err != nil {
+		t.Fatalf("failed to build dwelling: %v", err)
+	}
+
+	// Verify dwelling was placed
+	if gs.Map.GetHex(hex1).Building == nil {
+		t.Error("expected dwelling to be placed on hex1")
+	} else if gs.Map.GetHex(hex1).Building.Type != models.BuildingDwelling {
+		t.Errorf("expected Dwelling, got %v", gs.Map.GetHex(hex1).Building.Type)
+	}
+
+	// Verify pending spades cleared
+	if gs.PendingHalflingsSpades != nil {
+		t.Error("expected PendingHalflingsSpades to be cleared after dwelling build")
+	}
+}
+
+// TestHalflingsStronghold_NotEnoughSpades tests that applying more spades than
+// remaining fails with appropriate error
+func TestHalflingsStronghold_NotEnoughSpades(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	gs.AddPlayer("player1", faction)
+
+	// Create pending spades with only 1 remaining
+	faction.BuildStronghold()
+	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
+		PlayerID:         "player1",
+		SpadesRemaining:  1, // Only 1 spade left
+		TransformedHexes: []board.Hex{},
+	}
+
+	// Try to transform Mountain → Desert (requires 2 spades)
+	targetHex := board.NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainMountain
+
+	action := &ApplyHalflingsSpadeAction{
+		BaseAction:    BaseAction{Type: ActionApplyHalflingsSpade, PlayerID: "player1"},
+		TargetHex:     targetHex,
+		TargetTerrain: models.TerrainDesert, // 2 spades needed
+	}
+
+	err := action.Execute(gs)
+	if err == nil {
+		t.Error("expected error when applying more spades than remaining")
+	}
+	// Verify error message indicates insufficient spades
+	errorMsg := err.Error()
+	if err != nil && !(errorMsg == "not enough spades remaining: have 1, need 2" || len(errorMsg) > 0 && errorMsg[:10] == "not enough") {
+		t.Errorf("expected 'not enough spades' error, got: %v", err)
 	}
 }
 

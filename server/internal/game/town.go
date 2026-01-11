@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -286,8 +287,14 @@ func (gs *GameState) applyTownTileSpecifics(player *Player, tileType models.Town
 	case models.TownTile4Points:
 		player.VictoryPoints += 4
 		player.Keys++
-		// Advance shipping level by 1 and award VP
-		_ = gs.AdvanceShippingLevel(player.ID)
+
+		// Fakirs get carpet flight range upgrade instead of shipping
+		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
+			fakirs.SetShippingTownTile(true)
+		} else {
+			// Advance shipping level by 1 and award VP
+			_ = gs.AdvanceShippingLevel(player.ID)
+		}
 
 	case models.TownTile8Points:
 		player.VictoryPoints += 8

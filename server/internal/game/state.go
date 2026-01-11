@@ -33,7 +33,7 @@ type GameState struct {
 	PendingSpades                    map[string]int                     `json:"pendingSpades"`
 	PendingCultRewardSpades          map[string]int                     `json:"pendingCultRewardSpades"`
 	PendingCultistsLeech             map[string]*CultistsLeechBonus     `json:"pendingCultistsLeech"`
-	SkipAbilityUsedThisAction        map[string]bool                    `json:"skipAbilityUsedThisAction"`
+	SkipAbilityUsedThisAction        map[string][]board.Hex             `json:"skipAbilityUsedThisAction"`
 	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
 	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
@@ -145,7 +145,7 @@ func NewGameState() *GameState {
 		PendingLeechOffers:        make(map[string][]*PowerLeechOffer),
 		PendingTownFormations:     make(map[string][]*PendingTownFormation),
 		PendingSpades:             make(map[string]int),
-		SkipAbilityUsedThisAction: make(map[string]bool),
+		SkipAbilityUsedThisAction: make(map[string][]board.Hex),
 	}
 }
 

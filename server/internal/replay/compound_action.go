@@ -410,10 +410,19 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 	if !isAdjacent {
 		// Check if skip ability has already been used this action
 		if gs.SkipAbilityUsedThisAction == nil {
-			gs.SkipAbilityUsedThisAction = make(map[string]bool)
+			gs.SkipAbilityUsedThisAction = make(map[string][]board.Hex)
 		}
 
-		if !gs.SkipAbilityUsedThisAction[playerID] {
+		usedHexes := gs.SkipAbilityUsedThisAction[playerID]
+		alreadyPaid := false
+		for _, h := range usedHexes {
+			if h == t.TargetHex {
+				alreadyPaid = true
+				break
+			}
+		}
+
+		if !alreadyPaid {
 			// Fakirs carpet flight
 			if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
 				if fakirs.CanCarpetFlight() {
@@ -428,7 +437,7 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 					player.VictoryPoints += 4
 
 					// Mark that skip ability was used this action
-					gs.SkipAbilityUsedThisAction[playerID] = true
+					gs.SkipAbilityUsedThisAction[playerID] = append(usedHexes, t.TargetHex)
 				}
 			}
 
@@ -449,12 +458,9 @@ func (t *TransformTerrainComponent) Execute(gs *game.GameState, playerID string)
 					player.VictoryPoints += 4
 
 					// Mark that skip ability was used this action
-					gs.SkipAbilityUsedThisAction[playerID] = true
+					gs.SkipAbilityUsedThisAction[playerID] = append(usedHexes, t.TargetHex)
 				}
 			}
-		} else {
-			// Skip ability already used, transformation must fail if not adjacent
-			return fmt.Errorf("hex is not adjacent and carpet flight/tunneling was already used this action")
 		}
 	}
 
@@ -628,7 +634,7 @@ func (ca *CompoundAction) Execute(gs *game.GameState, playerID string) error {
 	// Clear skip ability flag at the start of each action
 	// (carpet flight/tunneling can only be used once per action, not once per transform)
 	if gs.SkipAbilityUsedThisAction == nil {
-		gs.SkipAbilityUsedThisAction = make(map[string]bool)
+		gs.SkipAbilityUsedThisAction = make(map[string][]board.Hex)
 	}
 	delete(gs.SkipAbilityUsedThisAction, playerID)
 

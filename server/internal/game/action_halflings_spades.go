@@ -8,15 +8,27 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-// ApplyHalflingsSpadeAction represents applying one of the 3 stronghold spades
+// ApplyHalflingsSpadeAction represents applying spades from the Halflings stronghold ability
+// The stronghold grants 3 spades total, which can be distributed across 1-3 hexes
+// Each spade moves one step on the terrain wheel
 type ApplyHalflingsSpadeAction struct {
 	BaseAction
-	TargetHex board.Hex
+	TargetHex     board.Hex          // The hex to transform
+	TargetTerrain models.TerrainType // The terrain to transform to (determines spades needed)
 }
 
 // GetType returns the action type
 func (a *ApplyHalflingsSpadeAction) GetType() ActionType {
 	return ActionApplyHalflingsSpade
+}
+
+// GetSpadesNeeded calculates how many spades are required for this transform
+func (a *ApplyHalflingsSpadeAction) GetSpadesNeeded(gs *GameState) int {
+	mapHex := gs.Map.GetHex(a.TargetHex)
+	if mapHex == nil {
+		return 0
+	}
+	return gs.Map.GetTerrainDistance(mapHex.Terrain, a.TargetTerrain)
 }
 
 // Validate checks if the action is valid
@@ -47,11 +59,6 @@ func (a *ApplyHalflingsSpadeAction) Validate(gs *GameState) error {
 		return fmt.Errorf("only Halflings can use this action")
 	}
 
-	// Check if spades remain
-	if gs.PendingHalflingsSpades.SpadesRemaining <= 0 {
-		return fmt.Errorf("no spades remaining to apply")
-	}
-
 	// Check if hex is valid (on the map)
 	targetHex := gs.Map.GetHex(a.TargetHex)
 	if targetHex == nil {
@@ -68,9 +75,24 @@ func (a *ApplyHalflingsSpadeAction) Validate(gs *GameState) error {
 		return fmt.Errorf("cannot terraform river hexes")
 	}
 
-	// Check if already transformed to home terrain
-	if targetHex.Terrain == player.Faction.GetHomeTerrain() {
-		return fmt.Errorf("hex is already your home terrain")
+	// Check if target terrain is valid (not river)
+	if a.TargetTerrain == models.TerrainRiver {
+		return fmt.Errorf("cannot transform to river")
+	}
+
+	// Check if already at target terrain
+	if targetHex.Terrain == a.TargetTerrain {
+		return fmt.Errorf("hex is already target terrain")
+	}
+
+	// Calculate spades needed and check if player has enough
+	spadesNeeded := a.GetSpadesNeeded(gs)
+	if spadesNeeded <= 0 {
+		return fmt.Errorf("invalid transform: no spades needed")
+	}
+	if gs.PendingHalflingsSpades.SpadesRemaining < spadesNeeded {
+		return fmt.Errorf("not enough spades remaining: have %d, need %d",
+			gs.PendingHalflingsSpades.SpadesRemaining, spadesNeeded)
 	}
 
 	return nil
@@ -88,20 +110,24 @@ func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 		return fmt.Errorf("player is not Halflings")
 	}
 
-	// Transform the terrain
-	targetTerrain := halflings.GetHomeTerrain()
-	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
+	// Calculate spades needed for this transform
+	spadesNeeded := a.GetSpadesNeeded(gs)
+
+	// Transform the terrain to the specified target (not necessarily home terrain)
+	if err := gs.Map.TransformTerrain(a.TargetHex, a.TargetTerrain); err != nil {
 		return fmt.Errorf("failed to transform terrain: %w", err)
 	}
 
-	// Award VP for spade (Halflings get +1 VP per spade)
-	player.VictoryPoints++
+	// Award VP for each spade used (Halflings get +1 VP per spade)
+	player.VictoryPoints += spadesNeeded
 
-	// Award VP from scoring tile (if applicable)
-	gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	// Award VP from scoring tile for each spade (if applicable)
+	for i := 0; i < spadesNeeded; i++ {
+		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+	}
 
-	// Update pending spades
-	gs.PendingHalflingsSpades.SpadesRemaining--
+	// Update pending spades - decrement by actual spades used
+	gs.PendingHalflingsSpades.SpadesRemaining -= spadesNeeded
 	gs.PendingHalflingsSpades.TransformedHexes = append(gs.PendingHalflingsSpades.TransformedHexes, a.TargetHex)
 
 	// If all spades have been applied, mark as used

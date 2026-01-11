@@ -688,3 +688,79 @@ func ParseBonusCardCode(code string) game.BonusCardType {
 	}
 	return game.BonusCardUnknown
 }
+
+// LogHalflingsSpadeAction represents Halflings Stronghold 3 spades for transform
+type LogHalflingsSpadeAction struct {
+	PlayerID        string
+	TransformCoords []string
+	TargetTerrains  []string // Target terrain for each transform (e.g., "desert", "plains")
+}
+
+// GetType returns the action type.
+func (a *LogHalflingsSpadeAction) GetType() game.ActionType { return game.ActionSpecialAction }
+
+// GetPlayerID returns the player ID.
+func (a *LogHalflingsSpadeAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
+func (a *LogHalflingsSpadeAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the Halflings stronghold spades transformations.
+func (a *LogHalflingsSpadeAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+
+	// Apply each transform using ApplyHalflingsSpadeAction
+	for i, coordStr := range a.TransformCoords {
+		hex, err := ConvertLogCoordToAxial(coordStr)
+		if err != nil {
+			return err
+		}
+
+		// Get target terrain from stored terrains, or default to home terrain
+		var targetTerrain models.TerrainType
+		if i < len(a.TargetTerrains) && a.TargetTerrains[i] != "" {
+			targetTerrain = getTerrainTypeFromName(a.TargetTerrains[i])
+		} else {
+			targetTerrain = player.Faction.GetHomeTerrain()
+		}
+
+		action := &game.ApplyHalflingsSpadeAction{
+			BaseAction:    game.BaseAction{Type: game.ActionApplyHalflingsSpade, PlayerID: a.PlayerID},
+			TargetHex:     hex,
+			TargetTerrain: targetTerrain,
+		}
+		if err := action.Execute(gs); err != nil {
+			return err
+		}
+	}
+
+	// For BGA log replay, just clear the pending state directly
+	// The formal SkipHalflingsDwellingAction checks spade count, but BGA logs
+	// may use fewer hexes (e.g., 2 hexes using 3 spades total)
+	gs.PendingHalflingsSpades = nil
+	return nil
+}
+
+// getTerrainTypeFromName converts a terrain name string to TerrainType
+func getTerrainTypeFromName(name string) models.TerrainType {
+	switch strings.ToLower(name) {
+	case "plains":
+		return models.TerrainPlains
+	case "swamp":
+		return models.TerrainSwamp
+	case "lakes", "lake":
+		return models.TerrainLake
+	case "forest":
+		return models.TerrainForest
+	case "mountains", "mountain":
+		return models.TerrainMountain
+	case "wasteland":
+		return models.TerrainWasteland
+	case "desert":
+		return models.TerrainDesert
+	}
+	return models.TerrainPlains // Default to plains
+}

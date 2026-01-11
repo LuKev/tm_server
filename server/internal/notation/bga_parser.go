@@ -79,6 +79,8 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reGiantsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* \(Giants Stronghold\) \[(.*)\]`)
 	reSwarmlingStronghold := regexp.MustCompile(`(.*) upgrades a Dwelling to a Trading house for free \(Swarmlings Stronghold\) \[(.*)\]`)
 	reNomadsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* for free \(Nomads Stronghold\).*\[(.*)\]`)
+	reCMDoubleTurn := regexp.MustCompile(`(.*) takes a double-turn \(Chaos Magicians Stronghold\)`)
+	reHalflingsSpades := regexp.MustCompile(`(.*) gets 3 Spades to Transform and Build \(Halflings Stronghold\)`)
 
 	rePass := regexp.MustCompile(`(.*) passes`)
 	rePriest := regexp.MustCompile(`(.*) sends a Priest to the Order of the Cult of (.*)\. Forever!`)
@@ -384,6 +386,16 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			coordStr := matches[2]
 			p.handleNomadsStronghold(playerID, coordStr)
 
+		} else if matches := reCMDoubleTurn.FindStringSubmatch(line); len(matches) > 1 {
+			// Chaos Magicians Stronghold: double-turn
+			playerID := p.getPlayerID(matches[1])
+			p.handleCMDoubleTurn(playerID)
+
+		} else if matches := reHalflingsSpades.FindStringSubmatch(line); len(matches) > 1 {
+			// Halflings Stronghold: 3 spades for transform
+			playerID := p.getPlayerID(matches[1])
+			p.handleHalflingsStrongholdSpades(playerID)
+
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
 			coordStr := p.extractCoord(line)
@@ -539,33 +551,13 @@ func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr strin
 		}
 	}
 
-	// Look ahead for dwelling build at the same coordinate (like bonus card spade)
-	// This prevents double tunnelling for Dwarves/Fakirs
-	buildDwelling := false
-	reDwellingBuild := regexp.MustCompile(`builds a Dwelling`)
-	for lookAhead := 0; lookAhead < 5 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
-		lineIndex := p.currentLine + lookAhead
-		nextLine := p.lines[lineIndex]
-		if reDwellingBuild.MatchString(nextLine) {
-			// Check if it's at the same coordinate
-			nextCoord := p.extractCoordFromLine(nextLine)
-			if nextCoord == coordStr {
-				buildDwelling = true
-				// Mark this line as consumed so it's not parsed again
-				p.consumedLines[lineIndex] = true
-				break
-			}
-		}
-		// If we hit another action start, stop looking
-		if strings.Contains(nextLine, " passes") ||
-			strings.Contains(nextLine, " upgrades") ||
-			strings.Contains(nextLine, " transforms") ||
-			strings.Contains(nextLine, " sends a Priest") {
-			break
-		}
-	}
+	// NOTE: We do NOT merge transform + build here anymore.
+	// Each transform is a separate action (T-X), and the build (X) stays separate.
+	// This preserves the correct notation format: T-I7.BURN1.C1W1PW:2C.I7
+	// The carpet flight / tunneling should only be charged ONCE even with separate actions
+	// because the game state tracks SkipAbilityUsedThisAction per hex.
 
-	action := game.NewTransformAndBuildAction(playerID, hex, buildDwelling, targetTerrain)
+	action := game.NewTransformAndBuildAction(playerID, hex, false, targetTerrain)
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
@@ -1111,6 +1103,25 @@ func (p *BGAParser) extractCoordFromLine(line string) string {
 	return ""
 }
 
+// extractTransformInfoFromLine extracts coord and target terrain from a transform line
+func (p *BGAParser) extractTransformInfoFromLine(line string) (coord string, targetTerrain string) {
+	// Extract coord
+	reCoord := regexp.MustCompile(`\[([A-Z]\d+)\]`)
+	coordMatches := reCoord.FindStringSubmatch(line)
+	if len(coordMatches) > 1 {
+		coord = coordMatches[1]
+	}
+
+	// Extract target terrain from "→ [terrain]" pattern
+	reTransform := regexp.MustCompile(`→\s*(\w+)`)
+	terrainMatches := reTransform.FindStringSubmatch(line)
+	if len(terrainMatches) > 1 {
+		targetTerrain = strings.TrimSpace(terrainMatches[1])
+	}
+
+	return coord, targetTerrain
+}
+
 func (p *BGAParser) handleBridgePower(playerID, line string) {
 	// Look ahead for coordinate [C2-D4]
 	// consumeUntilCoord might not work for bridge coords like [C2-D4]
@@ -1263,6 +1274,25 @@ func (p *BGAParser) handleConversion(playerName, spent, collects string) {
 		}
 	}
 
+	// Simplify conversion by subtracting common resources
+	// e.g. Cost: 3 Power, 2 Workers -> Reward: 3 Workers, 2 Coins
+	// Becomes: Cost: 3 Power -> Reward: 1 Worker, 2 Coins
+	for rType, costAmount := range cost {
+		if rewardAmount, ok := reward[rType]; ok {
+			if costAmount > rewardAmount {
+				cost[rType] -= rewardAmount
+				delete(reward, rType)
+			} else if costAmount < rewardAmount {
+				reward[rType] -= costAmount
+				delete(cost, rType)
+			} else {
+				// Equal amounts, remove from both
+				delete(cost, rType)
+				delete(reward, rType)
+			}
+		}
+	}
+
 	if len(cost) == 0 && len(reward) == 0 {
 		return
 	}
@@ -1387,4 +1417,98 @@ func (p *BGAParser) handleNomadsStronghold(playerID, coordStr string) {
 			ActionCode: actionCode,
 		},
 	})
+}
+
+func (p *BGAParser) handleCMDoubleTurn(playerID string) {
+	// Chaos Magicians Stronghold: double-turn
+	// Emit as ACT-SH-2X
+	p.items = append(p.items, ActionItem{
+		Action: &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: "ACT-SH-2X",
+		},
+	})
+}
+
+func (p *BGAParser) handleHalflingsStrongholdSpades(playerID string) {
+	// Halflings Stronghold: 3 spades for transform
+	// This is triggered after building the stronghold
+	// Look ahead for transform actions from this player and merge them with the previous upgrade action
+	// NOTE: Transforms may be in a DIFFERENT Move, so we look past Move boundaries
+
+	// Look ahead for transform lines
+	reTransform := regexp.MustCompile(`transforms a Terrain space`)
+	reDecline := regexp.MustCompile(`declines building`)
+	playerName := p.getPlayerName(playerID)
+
+	var transformCoords []string
+	var targetTerrains []string
+
+	for lookAhead := 0; lookAhead < 50 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+		lineIndex := p.currentLine + lookAhead
+		nextLine := p.lines[lineIndex]
+
+		// Stop at "declines building" from this player
+		if reDecline.MatchString(nextLine) && strings.Contains(nextLine, playerName) {
+			p.consumedLines[lineIndex] = true
+			break
+		}
+
+		// Check if it's the same player's transform
+		if reTransform.MatchString(nextLine) && strings.Contains(nextLine, playerName) {
+			coord, terrain := p.extractTransformInfoFromLine(nextLine)
+			if coord != "" {
+				transformCoords = append(transformCoords, coord)
+				targetTerrains = append(targetTerrains, terrain)
+				p.consumedLines[lineIndex] = true
+			}
+			// Stop after collecting 3 transforms (the stronghold gives exactly 3 spades)
+			if len(transformCoords) >= 3 {
+				break
+			}
+		}
+
+		// Skip Move headers - don't break, continue looking
+		// Move boundaries don't stop the spade application
+	}
+
+	// If we found transform actions, merge them with the previous upgrade action
+	if len(transformCoords) > 0 && len(p.items) > 0 {
+		// Find the last action for this player (the stronghold upgrade)
+		// It might not be the very last item if there was a leech in between
+		var targetIndex int = -1
+		for i := len(p.items) - 1; i >= 0; i-- {
+			item := p.items[i]
+			if actionItem, ok := item.(ActionItem); ok {
+				if actionItem.Action.GetPlayerID() == playerID {
+					targetIndex = i
+					break
+				}
+			}
+		}
+
+		if targetIndex >= 0 {
+			actionItem := p.items[targetIndex].(ActionItem)
+			// Create a compound action by making LogHalflingsSpadeAction
+			halflingsAction := &LogHalflingsSpadeAction{
+				PlayerID:        playerID,
+				TransformCoords: transformCoords,
+				TargetTerrains:  targetTerrains,
+			}
+			compound := &LogCompoundAction{
+				Actions: []game.Action{actionItem.Action, halflingsAction},
+			}
+			p.items[targetIndex] = ActionItem{Action: compound}
+		}
+	}
+}
+
+func (p *BGAParser) getPlayerName(playerID string) string {
+	// Get player name from ID (reverse of getPlayerID)
+	for name, id := range p.players {
+		if id == playerID {
+			return name
+		}
+	}
+	return playerID
 }
