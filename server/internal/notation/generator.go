@@ -307,6 +307,17 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 			parts = append(parts, part)
 		}
 		return strings.Join(parts, ".")
+	case *LogCultistAdvanceAction:
+		trackCode := "F"
+		switch a.Track {
+		case game.CultWater:
+			trackCode = "W"
+		case game.CultEarth:
+			trackCode = "E"
+		case game.CultAir:
+			trackCode = "A"
+		}
+		return fmt.Sprintf("CULT-%s", trackCode)
 	default:
 		return fmt.Sprintf("UNKNOWN(%T)", action)
 	}

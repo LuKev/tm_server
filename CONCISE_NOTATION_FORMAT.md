@@ -165,6 +165,7 @@ Format: `C[Cost]:[Reward]`
 *   **Leech**: `L` (Leech) or `DL` (Decline Leech)
 *   **Cultist Reaction**: `CULT-[Track]`
     *   Example: `CULT-F` (Advance on Fire track due to opponent leeching)
+    *   *Note: For the Cultists faction, this action is ALWAYS chained to the main action that caused the leeching (e.g., `UP-TH-F4.CULT-F`), even if the log shows it occurring after opponents' leech actions.*
 
 ### Other
 

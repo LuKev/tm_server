@@ -28,18 +28,35 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
     const [bonusCards, setBonusCards] = useState<string[]>([]);
     const [playerBonusCards, setPlayerBonusCards] = useState<Record<string, Record<string, string> | undefined>>({});
 
-    // Scoring tiles with cleaner display names
+    // Scoring tiles with cleaner display names - grouped by building type
     const SCORING_TILES = [
+        // Dwelling scoring
+        { value: "SCORE3", label: "Dwelling scoring, Cult Water bonus" },
+        { value: "SCORE5", label: "Dwelling scoring, Cult Fire bonus" },
+        // Trading House scoring
+        { value: "SCORE6", label: "Trading House scoring, Cult Water bonus" },
+        { value: "SCORE8", label: "Trading House scoring, Cult Air bonus" },
+        // Stronghold/Sanctuary scoring
+        { value: "SCORE4", label: "Stronghold/Sanctuary scoring, Cult Fire bonus" },
+        { value: "SCORE7", label: "Stronghold/Sanctuary scoring, Cult Air bonus" },
+        // Temple scoring
+        { value: "SCORE9", label: "Temple scoring, Priest bonus" },
+        // Other scoring
         { value: "SCORE1", label: "Spade scoring, Cult Earth bonus" },
         { value: "SCORE2", label: "Town scoring, Cult Earth bonus" },
-        { value: "SCORE3", label: "Dwelling scoring, Cult Water bonus" },
-        { value: "SCORE4", label: "Stronghold/Sanctuary scoring, Cult Fire bonus" },
-        { value: "SCORE5", label: "Dwelling scoring, Cult Fire bonus" },
-        { value: "SCORE6", label: "Trading House scoring, Cult Water bonus" },
-        { value: "SCORE7", label: "Stronghold/Sanctuary scoring, Cult Air bonus" },
-        { value: "SCORE8", label: "Trading House scoring, Cult Air bonus" },
-        { value: "SCORE9", label: "Temple scoring, Priest bonus" }
     ];
+
+    // Check for duplicate scoring tiles
+    const hasDuplicateScoringTiles = (): boolean => {
+        const selectedTiles = scoringTiles.filter(t => t !== '');
+        const uniqueTiles = new Set(selectedTiles);
+        return selectedTiles.length !== uniqueTiles.size;
+    };
+
+    // Get list of already-selected tiles (for disabling in dropdowns)
+    const getSelectedTilesExcept = (currentIndex: number): string[] => {
+        return scoringTiles.filter((t, i) => t !== '' && i !== currentIndex);
+    };
 
     // Bonus cards with cleaner display names
     const BONUS_CARDS = [
@@ -64,6 +81,11 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
         : (availableBonusCards && availableBonusCards.length > 0 ? availableBonusCards : BONUS_CARDS.map(c => c.value));
 
     const handleSubmit = (): void => {
+        // Prevent submission if there are duplicate tiles
+        if (hasDuplicateScoringTiles()) {
+            alert('Please select unique scoring tiles for each round. Duplicates are not allowed.');
+            return;
+        }
         const data = {
             scoringTiles: scoringTiles.filter(t => t),
             bonusCards: bonusCards,
@@ -82,25 +104,37 @@ export const MissingInfoModal: React.FC<MissingInfoModalProps> = ({ isOpen, miss
                 {missingInfo.GlobalScoringTiles && (
                     <div>
                         <h3 className="font-semibold mb-2">Scoring Tiles (Round 1-6)</h3>
-                        {scoringTiles.map((tile, i) => (
-                            <div key={i} className="flex gap-2 mb-2 items-center">
-                                <label className="w-20 text-sm">Round {i + 1}:</label>
-                                <select
-                                    value={tile}
-                                    onChange={(e) => {
-                                        const newTiles = [...scoringTiles];
-                                        newTiles[i] = e.target.value;
-                                        setScoringTiles(newTiles);
-                                    }}
-                                    className="border p-1 rounded flex-1 text-sm"
-                                >
-                                    <option value="">Select Tile...</option>
-                                    {SCORING_TILES.map(t => (
-                                        <option key={t.value} value={t.value}>{t.label}</option>
-                                    ))}
-                                </select>
-                            </div>
-                        ))}
+                        {hasDuplicateScoringTiles() && (
+                            <p className="text-red-500 text-sm mb-2">⚠️ Duplicate tiles selected! Each round must have a unique tile.</p>
+                        )}
+                        {scoringTiles.map((tile, i) => {
+                            const selectedElsewhere = getSelectedTilesExcept(i);
+                            return (
+                                <div key={i} className="flex gap-2 mb-2 items-center">
+                                    <label className="w-20 text-sm">Round {i + 1}:</label>
+                                    <select
+                                        value={tile}
+                                        onChange={(e) => {
+                                            const newTiles = [...scoringTiles];
+                                            newTiles[i] = e.target.value;
+                                            setScoringTiles(newTiles);
+                                        }}
+                                        className="border p-1 rounded flex-1 text-sm"
+                                    >
+                                        <option value="">Select Tile...</option>
+                                        {SCORING_TILES.map(t => (
+                                            <option 
+                                                key={t.value} 
+                                                value={t.value}
+                                                disabled={selectedElsewhere.includes(t.value)}
+                                            >
+                                                {t.label}{selectedElsewhere.includes(t.value) ? ' (used)' : ''}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            );
+                        })}
                     </div>
                 )}
 

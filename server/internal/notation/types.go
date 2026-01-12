@@ -764,3 +764,37 @@ func getTerrainTypeFromName(name string) models.TerrainType {
 	}
 	return models.TerrainPlains // Default to plains
 }
+
+// LogCultistAdvanceAction represents the Cultists' faction ability to advance on a cult track
+type LogCultistAdvanceAction struct {
+	PlayerID string
+	Track    game.CultTrack
+}
+
+// GetType returns the action type.
+func (a *LogCultistAdvanceAction) GetType() game.ActionType {
+	return game.ActionSelectCultistsCultTrack
+}
+
+// GetPlayerID returns the player ID.
+func (a *LogCultistAdvanceAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
+func (a *LogCultistAdvanceAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
+func (a *LogCultistAdvanceAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+
+	// Cultists ability: Advance 1 step on the chosen track
+	if _, err := gs.AdvanceCultTrack(a.PlayerID, a.Track, 1); err != nil {
+		return fmt.Errorf("failed to advance cult track: %w", err)
+	}
+
+	// Note: In the real game, this consumes a pending permission/state.
+	// For log replay, we just apply the effect.
+	return nil
+}

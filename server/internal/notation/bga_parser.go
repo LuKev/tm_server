@@ -512,10 +512,24 @@ func (p *BGAParser) handleBuildDwelling(playerName, coordStr string, isSetup boo
 	var action game.Action
 	if isSetup {
 		action = game.NewSetupDwellingAction(playerID, hex)
+		p.items = append(p.items, ActionItem{Action: action})
 	} else {
 		action = game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown)
+
+		// Check for Cultists ability
+		if cultCode := p.checkForCultistAbility(playerID); cultCode != "" {
+			cultAction := &LogCultistAdvanceAction{
+				PlayerID: playerID,
+				Track:    GetCultTrackFromCode(cultCode),
+			}
+			compound := &LogCompoundAction{
+				Actions: []game.Action{action, cultAction},
+			}
+			p.items = append(p.items, ActionItem{Action: compound})
+		} else {
+			p.items = append(p.items, ActionItem{Action: action})
+		}
 	}
-	p.items = append(p.items, ActionItem{Action: action})
 }
 
 func (p *BGAParser) handleUpgrade(playerName, from, to, coordStr string) {
@@ -524,7 +538,93 @@ func (p *BGAParser) handleUpgrade(playerName, from, to, coordStr string) {
 	newType := parseBuildingType(to)
 
 	action := game.NewUpgradeBuildingAction(playerID, hex, newType)
-	p.items = append(p.items, ActionItem{Action: action})
+
+	// Check for Cultists ability
+	cultCode := p.checkForCultistAbility(playerID)
+
+	// Check for Favor Tile (Temple/Sanctuary upgrade)
+	// This might be chained after Cultist ability
+	var favorAction *LogFavorTileAction
+	if newType == models.BuildingTemple || newType == models.BuildingSanctuary {
+		// Look ahead for "takes a Favor tile"
+		// We need to be careful not to consume lines that checkForCultistAbility might have skipped over if we didn't use it
+		// But checkForCultistAbility already consumed the cult line if found.
+
+		// Simple lookahead for favor tile
+		reFavor := regexp.MustCompile(fmt.Sprintf(`^%s takes a Favor tile`, regexp.QuoteMeta(playerName)))
+		for lookAhead := 0; lookAhead < 20 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+			lineIndex := p.currentLine + lookAhead
+			if p.consumedLines[lineIndex] {
+				continue
+			}
+			line := p.lines[lineIndex]
+			if reFavor.MatchString(line) {
+				p.consumedLines[lineIndex] = true
+				// The next line should be the favor tile selection
+				// "Player gains X on the Cult of Y track (Favor tile)"
+				// We need to parse that too.
+				// Let's use a helper or just parse it here.
+				// Actually, handleFavorTileAction does this.
+				// But we want to merge it.
+
+				// Look for the favor tile selection line
+				for subLookAhead := 1; subLookAhead < 3 && lineIndex+subLookAhead < len(p.lines); subLookAhead++ {
+					subLineIndex := lineIndex + subLookAhead
+					subLine := p.lines[subLineIndex]
+					if matches := reFavorTileAction.FindStringSubmatch(subLine); len(matches) > 3 {
+						if p.getPlayerID(matches[1]) == playerID {
+							p.consumedLines[subLineIndex] = true
+							track := matches[3]
+							amount, _ := strconv.Atoi(matches[2])
+
+							// Map track name to code
+							trackCode := "F"
+							switch track {
+							case "Fire":
+								trackCode = "F"
+							case "Water":
+								trackCode = "W"
+							case "Earth":
+								trackCode = "E"
+							case "Air":
+								trackCode = "A"
+							}
+
+							favorAction = &LogFavorTileAction{
+								PlayerID: playerID,
+								Tile:     fmt.Sprintf("FAV-%s%d", trackCode, amount),
+							}
+							break
+						}
+					}
+				}
+				break
+			}
+		}
+	}
+
+	if cultCode != "" || favorAction != nil {
+		actions := []game.Action{action}
+
+		if cultCode != "" {
+			cultAction := &LogCultistAdvanceAction{
+				PlayerID: playerID,
+				Track:    GetCultTrackFromCode(cultCode),
+			}
+			actions = append(actions, cultAction)
+		}
+
+		if favorAction != nil {
+			actions = append(actions, favorAction)
+		}
+
+		compound := &LogCompoundAction{
+			Actions: actions,
+		}
+		p.items = append(p.items, ActionItem{Action: compound})
+	} else {
+		p.items = append(p.items, ActionItem{Action: action})
+	}
 }
 
 func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr string) {
@@ -556,6 +656,10 @@ func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr strin
 	// This preserves the correct notation format: T-I7.BURN1.C1W1PW:2C.I7
 	// The carpet flight / tunneling should only be charged ONCE even with separate actions
 	// because the game state tracks SkipAbilityUsedThisAction per hex.
+
+	// Check for Cultists ability
+	// NOTE: We do NOT check for Cultists ability here because it's usually triggered by the Build action
+	// which follows the Transform action.
 
 	action := game.NewTransformAndBuildAction(playerID, hex, false, targetTerrain)
 	p.items = append(p.items, ActionItem{Action: action})
@@ -1083,13 +1187,54 @@ func (p *BGAParser) handleBonusCardSpade(playerID, line string) {
 		} else {
 			// Just transform
 			actionCode = fmt.Sprintf("ACTS-%s", coord)
+
+			// Try to parse target terrain from the line
+			// "transforms a Terrain space lakes → swamp for"
+			reTransform := regexp.MustCompile(`transforms a Terrain space .* → (.*) for`)
+			if matches := reTransform.FindStringSubmatch(line); len(matches) > 1 {
+				targetTerrainName := strings.TrimSpace(matches[1])
+				var terrainCode string
+				switch strings.ToLower(targetTerrainName) {
+				case "plains":
+					terrainCode = "Br"
+				case "swamp":
+					terrainCode = "Bk"
+				case "lakes", "lake":
+					terrainCode = "Bl"
+				case "forest":
+					terrainCode = "G"
+				case "mountains", "mountain":
+					terrainCode = "Gy"
+				case "wasteland":
+					terrainCode = "R"
+				case "desert":
+					terrainCode = "Y"
+				}
+
+				if terrainCode != "" {
+					actionCode += "-" + terrainCode
+				}
+			}
 		}
 
 		action := &LogSpecialAction{
 			PlayerID:   playerID,
 			ActionCode: actionCode,
 		}
-		p.items = append(p.items, ActionItem{Action: action})
+
+		// Check for Cultists ability
+		if cultCode := p.checkForCultistAbility(playerID); cultCode != "" {
+			cultAction := &LogCultistAdvanceAction{
+				PlayerID: playerID,
+				Track:    GetCultTrackFromCode(cultCode),
+			}
+			compound := &LogCompoundAction{
+				Actions: []game.Action{action, cultAction},
+			}
+			p.items = append(p.items, ActionItem{Action: compound})
+		} else {
+			p.items = append(p.items, ActionItem{Action: action})
+		}
 	}
 }
 
@@ -1511,4 +1656,82 @@ func (p *BGAParser) getPlayerName(playerID string) string {
 		}
 	}
 	return playerID
+}
+
+// checkForCultistAbility looks ahead for "gains X on the Cult of Y track (Cultists ability)"
+// and returns the cult track code (F, W, E, A) if found.
+// It consumes the line if found.
+func (p *BGAParser) checkForCultistAbility(playerID string) string {
+	reCultistAbility := regexp.MustCompile(`(.*) gains \d+ on the Cult of (\w+) track \(Cultists ability\)`)
+	reLeech := regexp.MustCompile(`gets \d+ power via Structures`)
+	reDecline := regexp.MustCompile(`declines doing Conversions`)
+	rePowerCap := regexp.MustCompile(`Power gain via Structures is capped`)
+	reAutoAccept := regexp.MustCompile(`You have enabled automatic acceptance of Power`)
+	reVPGain := regexp.MustCompile(`gets \d+ VP`)
+
+	// Look ahead a reasonable number of lines (e.g., 10) to skip over leeches
+	for lookAhead := 0; lookAhead < 15 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+		lineIndex := p.currentLine + lookAhead
+		line := p.lines[lineIndex]
+
+		// Skip already consumed lines
+		if p.consumedLines[lineIndex] {
+			continue
+		}
+
+		// Check for Cultists ability
+		if matches := reCultistAbility.FindStringSubmatch(line); len(matches) > 2 {
+			// Verify it's the same player
+			if p.getPlayerID(matches[1]) == playerID {
+				trackName := matches[2]
+				p.consumedLines[lineIndex] = true
+
+				switch trackName {
+				case "Fire":
+					return "F"
+				case "Water":
+					return "W"
+				case "Earth":
+					return "E"
+				case "Air":
+					return "A"
+				}
+				return "F" // Default fallback
+			}
+		}
+
+		// Allow skipping over:
+		// 1. Leech actions (by anyone)
+		// 2. Decline conversions (by anyone)
+		// 3. Power cap messages
+		// 4. Auto accept messages
+		// 5. VP gain messages (e.g. Scoring tile bonus)
+		if reLeech.MatchString(line) ||
+			reDecline.MatchString(line) ||
+			rePowerCap.MatchString(line) ||
+			reAutoAccept.MatchString(line) ||
+			reVPGain.MatchString(line) {
+			continue
+		}
+
+		// Stop if we hit anything else (e.g. another player's move, start of round, etc.)
+		// But be careful not to stop on "Move X :" or timestamps which are skipped in main loop
+		if strings.Contains(line, "Move ") || strings.Contains(line, " AM") || strings.Contains(line, " PM") {
+			continue
+		}
+
+		// If we see a player name at the start of the line doing something else, stop
+		// Simple heuristic: if line starts with a known player name and it's not one of the skipped actions
+		for name := range p.players {
+			if strings.HasPrefix(line, name) {
+				return ""
+			}
+		}
+
+		// If we hit a phase change
+		if strings.HasPrefix(line, "~") {
+			continue // Skip phase messages? Or stop? Usually phase messages are fine to skip e.g. auto accept
+		}
+	}
+	return ""
 }
