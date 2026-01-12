@@ -1,0 +1,724 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+deuxfleurs selected the faction Darklings on swamp to play in position #1
+Arivor selected the faction Witches on forest to play in position #2
+WoodMarco selected the faction Fakirs on desert to play in position #3
+bassano selected the faction Dwarves on mountains to play in position #4
+deuxfleurs bids on the Darklings with 40 Starting VPs
+Arivor bids on the Fakirs with 40 Starting VPs
+WoodMarco bids on the Darklings with 39 Starting VPs
+bassano bids on the Darklings with 38 Starting VPs
+deuxfleurs bids on the Darklings with 37 Starting VPs
+Arivor has not been outbid for Faction Fakirs and is skipped
+WoodMarco bids on the Darklings with 36 Starting VPs
+bassano bids on the Darklings with 35 Starting VPs
+deuxfleurs bids on the Darklings with 31 Starting VPs
+Arivor has not been outbid for Faction Fakirs and is skipped
+WoodMarco bids on the Darklings with 30 Starting VPs
+bassano bids on the Darklings with 29 Starting VPs
+deuxfleurs bids on the Dwarves with 40 Starting VPs
+Arivor has not been outbid for Faction Fakirs and is skipped
+WoodMarco bids on the Darklings with 28 Starting VPs
+bassano bids on the Darklings with 27 Starting VPs
+deuxfleurs has not been outbid for Faction Dwarves and is skipped
+Arivor has not been outbid for Faction Fakirs and is skipped
+WoodMarco bids on the Darklings with 26 Starting VPs
+bassano bids on the Dwarves with 39 Starting VPs
+deuxfleurs bids on the Witches with 40 Starting VPs
+~ The Factions auction is over ~
+WoodMarco is playing the Darklings Faction (with 26 VP Starting VPs)
+deuxfleurs is playing the Witches Faction (with 40 VP Starting VPs)
+Arivor is playing the Fakirs Faction (with 40 VP Starting VPs)
+bassano is playing the Dwarves Faction (with 39 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+WoodMarco places a Dwelling [E5]
+deuxfleurs places a Dwelling [E9]
+Arivor places a Dwelling [F3]
+bassano places a Dwelling [E7]
+bassano places a Dwelling [F6]
+Arivor places a Dwelling [E8]
+deuxfleurs places a Dwelling [F4]
+WoodMarco places a Dwelling [G5]
+bassano chooses 1 Bonus card
+Arivor chooses 1 Bonus card
+deuxfleurs chooses 1 Bonus card
+WoodMarco chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deuxfleurs gets 5 workers 0 Priests 0 coins 0 power (Income)
+Arivor gets 3 workers 1 Priests 0 coins 0 power (Income)
+WoodMarco gets 3 workers 0 Priests 4 coins 0 power (Income)
+bassano gets 3 workers 0 Priests 2 coins 0 power (Income)
+~ Action phase ~
+WoodMarco transforms a Terrain space plains → swamp for 1 Priests → 1 spade(s) [E6]
+WoodMarco earns 2 VP (Darklings Ability)
+WoodMarco builds a Dwelling for 1 workers 2 coins [E6]
+deuxfleurs gets 1 power via Structures [E6]
+Arivor gets 1 power via Structures [E6]
+bassano gets 1 power via Structures [E6]
+WoodMarco declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+deuxfleurs upgrades a Dwelling to a Trading house for 2 workers 3 coins [E9]
+bassano gets 1 power via Structures [E9]
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+deuxfleurs gets 1 power via Structures [F3]
+WoodMarco pays 1 VP and gets 2 power via Structures [F3]
+Arivor declines doing Conversions
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [E7]
+deuxfleurs gets 1 power via Structures [E7]
+Arivor gets 1 power via Structures [E7]
+WoodMarco gets 1 power via Structures [E7]
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+bassano declines doing Conversions
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+WoodMarco declines doing Conversions
+deuxfleurs gets 1 power via Structures [E6]
+bassano pays 1 VP and gets 2 power via Structures [E6]
+Arivor pays 1 VP and gets 2 power via Structures [E6]
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+deuxfleurs upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [E9]
+bassano gets 1 power via Structures [E9]
+Arivor upgrades a Trading house to a Temple for 2 workers 5 coins [F3]
+deuxfleurs gets 1 power via Structures [F3]
+WoodMarco pays 2 VP and gets 3 power via Structures [F3]
+Arivor takes a Favor tile
+Arivor gains 2 on the Cult of Water track (Favor tile)
+Arivor declines doing Conversions
+bassano cancels their move
+bassano transforms a Terrain space wasteland → mountains for 1 spade(s) (Bonus card action) [D4]
+bassano builds a Dwelling for 1 workers 2 coins [D4]
+WoodMarco pays 1 VP and gets 2 power via Structures [D4]
+bassano declines doing Conversions
+WoodMarco spends 3 power to collect 1 Priests (Power action)
+WoodMarco declines doing Conversions
+deuxfleurs builds a Dwelling for free (Witches Ride) [C3]
+bassano gets 1 power via Structures [C3]
+Arivor sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+Arivor spends 4 power to get 1 spade(s) (Power action)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) + 1 Priests [D6]
+Arivor gets 4 VP (Carpet Flight)
+Arivor builds a Dwelling for 1 workers 2 coins [D6]
+Arivor declines doing Conversions
+bassano sacrificed 5 power in Bowl 2 to get 5 power from Bowl 2 to Bowl 3
+bassano spends 6 power to get 2 spade(s) (Power action)
+bassano transforms a Terrain space lakes → mountains for 2 spade(s) [G6]
+bassano builds a Dwelling for 1 workers 2 coins [G6]
+WoodMarco gets 1 power via Structures [G6]
+bassano declines doing Conversions
+WoodMarco sends a Priest to the Order of the Cult of Water. Forever!
+WoodMarco gains 3 on the Cult of Water track and earns 1 power
+WoodMarco declines doing Conversions
+deuxfleurs upgrades a Dwelling to a Trading house for 2 workers 3 coins [C3]
+bassano gets 1 power via Structures [C3]
+Arivor gains 1 on the Cult of Water track (Favor tile action) and earns 1 power
+Arivor declines doing Conversions
+bassano upgrades a Trading house to a Temple for 2 workers 5 coins [E7]
+deuxfleurs gets 1 power via Structures [E7]
+Arivor gets 1 power via Structures [E7]
+WoodMarco pays 1 VP and gets 2 power via Structures [E7]
+bassano takes a Favor tile
+bassano gains 2 on the Cult of Earth track (Favor tile) and earns 1 power
+bassano declines doing Conversions
+WoodMarco sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+WoodMarco spends 4 power to collect 2 workers (Power action)
+WoodMarco declines doing Conversions
+deuxfleurs passes and becomes the first player for the next round
+deuxfleurs gets 4 VP (Bonus card)
+deuxfleurs chooses 1 Bonus card and gets 1 coins
+Arivor passes
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+bassano passes
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+WoodMarco upgrades a Trading house to a Temple for 2 workers 5 coins [E6]
+deuxfleurs gets 1 power via Structures [E6]
+Arivor pays 1 VP and gets 2 power via Structures [E6]
+bassano pays 2 VP and gets 3 power via Structures [E6]
+WoodMarco takes a Favor tile
+WoodMarco gains 2 on the Cult of Water track (Favor tile) and earns 2 power
+WoodMarco declines doing Conversions
+WoodMarco gains 1 on the Cult of Water track (Bonus card action) and earns 2 power
+WoodMarco declines doing Conversions
+WoodMarco gains 1 on the Cult of Water track (Favor tile action)
+WoodMarco declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+~ Cleanup phase ~
+bassano gets 1 spade(s) (Cult bonus)
+bassano transforms a Terrain space plains → desert for 1 spade(s) [H7]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deuxfleurs gets 2 workers 0 Priests 8 coins 3 power (Income)
+Arivor gets 3 workers 1 Priests 2 coins 0 power (Income)
+WoodMarco gets 3 workers 1 Priests 2 coins 0 power (Income)
+bassano gets 7 workers 1 Priests 0 coins 1 power (Income)
+~ Action phase ~
+deuxfleurs builds a Dwelling for free (Witches Ride) [G3]
+deuxfleurs gets 2 VP (Scoring tile bonus)
+Arivor gains 1 on the Cult of Water track (Favor tile action)
+Arivor declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Earth. Forever!
+bassano gains 3 on the Cult of Earth track and earns 4 power
+bassano declines doing Conversions
+WoodMarco upgrades a Temple to a Sanctuary for 4 workers 10 coins [E6]
+deuxfleurs gets 1 power via Structures [E6]
+Arivor pays 1 VP and gets 2 power via Structures [E6]
+bassano pays 2 VP and gets 3 power via Structures [E6]
+WoodMarco takes a Favor tile
+WoodMarco gains 1 on the Cult of Earth track (Favor tile)
+WoodMarco declines doing Conversions
+deuxfleurs spends 6 power to get 2 spade(s) (Power action)
+deuxfleurs transforms a Terrain space lakes → forest for 1 spade(s) [D5]
+deuxfleurs transforms a Terrain space lakes → forest for 1 spade(s) [H4]
+deuxfleurs builds a Dwelling for 1 workers 2 coins [D5]
+deuxfleurs gets 2 VP (Scoring tile bonus)
+Arivor gets 1 power via Structures [D5]
+bassano Power gain via Structures is capped from 3 power to 0 power
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [E8]
+deuxfleurs gets 1 power via Structures [E8]
+bassano Power gain via Structures is capped from 2 power to 0 power
+Arivor declines doing Conversions
+bassano spends 4 power to collect 7 coins (Power action)
+bassano declines doing Conversions
+WoodMarco sends a Priest to the Order of the Cult of Fire. Forever!
+WoodMarco gains 3 on the Cult of Fire track and earns 1 power
+WoodMarco declines doing Conversions
+deuxfleurs passes and becomes the first player for the next round
+deuxfleurs chooses 1 Bonus card and gets 1 coins
+Arivor builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [B4]
+Arivor gets 4 VP (Carpet Flight)
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+bassano upgrades a Temple to a Sanctuary for 4 workers 6 coins [E7]
+bassano declines doing Conversions
+Arivor pays 1 VP and gets 2 power via Structures [E7]
+WoodMarco pays 2 VP and gets 3 power via Structures [E7]
+deuxfleurs pays 1 VP and gets 2 power via Structures [E7]
+bassano takes a Favor tile
+bassano gains 1 on the Cult of Earth track (Favor tile)
+bassano declines doing Conversions
+WoodMarco transforms a Terrain space lakes → swamp for 1 spade(s) (Bonus card action) [E4]
+WoodMarco declines building a Dwelling for now
+WoodMarco declines doing Conversions
+Arivor sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Arivor spends 4 power to get 1 spade(s) (Power action)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) [G2]
+Arivor declines building a Dwelling for now
+Arivor declines doing Conversions
+bassano builds a Dwelling for 1 workers 2 coins [H8]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+WoodMarco gains 1 on the Cult of Earth track (Favor tile action) and earns 1 power
+WoodMarco declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [G2]
+Arivor gets 2 VP (Scoring tile bonus)
+deuxfleurs gets 1 power via Structures [G2]
+Arivor declines doing Conversions
+bassano spends 3 power to collect 1 Priests (Power action)
+bassano declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco declines doing Conversions
+Arivor passes
+Arivor gets 3 VP (Bonus card)
+Arivor chooses 1 Bonus card
+Arivor declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Air. Forever!
+bassano gains 3 on the Cult of Air track and earns 1 power
+bassano declines doing Conversions
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [G6]
+WoodMarco gets 1 power via Structures [G6]
+bassano declines doing Conversions
+bassano passes
+bassano gets 4 VP (Bonus card)
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+~ Cleanup phase ~
+WoodMarco gets 2 Priests (Cult bonus)
+Arivor gets 1 Priests (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deuxfleurs gets 4 workers 1 Priests 2 coins 3 power (Income)
+Arivor gets 4 workers 1 Priests 4 coins 1 power (Income)
+WoodMarco gets 3 workers 2 Priests 4 coins 0 power (Income)
+bassano gets 5 workers 1 Priests 9 coins 2 power (Income)
+~ Action phase ~
+deuxfleurs builds a Dwelling for 1 workers 2 coins [H4]
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [I7]
+Arivor gets 4 VP (Carpet Flight)
+deuxfleurs gets 1 power via Structures [I7]
+Arivor declines doing Conversions
+bassano upgrades a Trading house to a Temple for 2 workers 5 coins [G6]
+WoodMarco gets 1 power via Structures [G6]
+bassano takes a Favor tile
+bassano gains 1 on the Cult of Water track (Favor tile)
+bassano declines doing Conversions
+deuxfleurs upgrades a Dwelling to a Trading house for 2 workers 3 coins [F4]
+deuxfleurs gets 3 VP (Scoring tile bonus)
+Arivor pays 2 VP and gets 3 power via Structures [F4]
+WoodMarco pays 2 VP and gets 3 power via Structures [F4]
+bassano pays 2 VP and gets 3 power via Structures [F4]
+WoodMarco transforms a Terrain space desert → swamp for 2 Priests → 2 spade(s) [H7]
+WoodMarco earns 4 VP (Darklings Ability)
+WoodMarco builds a Dwelling for 1 workers 2 coins [H7]
+WoodMarco gets 2 VP (Favor tile bonus)
+bassano pays 2 VP and gets 3 power via Structures [H7]
+WoodMarco declines doing Conversions
+Arivor transforms a Terrain space plains → desert for 1 spade(s) + 1 Priests (Bonus card action) [A7]
+Arivor gets 4 VP (Carpet Flight)
+Arivor builds a Dwelling for 1 workers 2 coins [A7]
+Arivor declines doing Conversions
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [H8]
+bassano gets 3 VP (Scoring tile bonus)
+bassano gets 3 VP (Favor tile bonus)
+WoodMarco gets 1 power via Structures [H8]
+bassano declines doing Conversions
+deuxfleurs sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+deuxfleurs spends 3 power to build a Bridge (Power action) [F4-G3]
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco spends 4 power to collect 2 workers (Power action)
+WoodMarco declines doing Conversions
+Arivor gains 1 on the Cult of Water track (Favor tile action) and earns 2 power
+Arivor declines doing Conversions
+bassano passes and becomes the first player for the next round
+bassano chooses 1 Bonus card and gets 3 coins
+bassano declines doing Conversions
+deuxfleurs builds a Dwelling for free (Witches Ride) [C4]
+Arivor pays 1 VP and gets 2 power via Structures [C4]
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+WoodMarco gets 3 VP (Scoring tile bonus)
+Arivor pays 1 VP and gets 2 power via Structures [E5]
+WoodMarco declines doing Conversions
+Arivor spends 3 power to collect 1 Priests (Power action)
+Arivor declines doing Conversions
+deuxfleurs upgrades a Dwelling to a Trading house for 2 workers 3 coins [H4]
+deuxfleurs gets 3 VP (Scoring tile bonus)
+Arivor gets 1 power via Structures [H4]
+WoodMarco gains 1 on the Cult of Fire track (Bonus card action)
+WoodMarco declines doing Conversions
+Arivor does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [A5]
+Arivor gets 4 VP (Carpet Flight)
+Arivor declines doing Conversions
+deuxfleurs passes
+deuxfleurs chooses 1 Bonus card and gets 1 coins
+WoodMarco gains 1 on the Cult of Fire track (Favor tile action) and earns 2 power
+WoodMarco declines doing Conversions
+Arivor passes
+Arivor chooses 1 Bonus card
+Arivor declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [E4]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+WoodMarco upgrades a Trading house to a Temple for 2 workers 5 coins [E5]
+Arivor pays 1 VP and gets 2 power via Structures [E5]
+WoodMarco takes a Favor tile
+WoodMarco gains 2 on the Cult of Fire track (Favor tile) and earns 2 power
+WoodMarco founds a Town [E4]
+WoodMarco gains 2 on the Cult of Fire track
+WoodMarco gains 2 on the Cult of Air track
+WoodMarco gains 2 on the Cult of Earth track and earns 2 power
+WoodMarco gains 2 on the Cult of Water track and earns 3 power
+WoodMarco gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+WoodMarco declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco declines doing Conversions
+~ Cleanup phase ~
+Arivor gets 1 spade(s) (Cult bonus)
+WoodMarco gets 2 spade(s) (Cult bonus)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) [A6]
+WoodMarco transforms a Terrain space plains → swamp for 1 spade(s) [F5]
+WoodMarco transforms a Terrain space lakes → swamp for 1 spade(s) [I10]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deuxfleurs gets 6 workers 0 Priests 6 coins 6 power (Income)
+Arivor gets 7 workers 1 Priests 8 coins 1 power (Income)
+WoodMarco gets 4 workers 3 Priests 2 coins 0 power (Income)
+bassano gets 5 workers 2 Priests 3 coins 2 power (Income)
+~ Action phase ~
+bassano spends 4 power to collect 7 coins (Power action)
+bassano declines doing Conversions
+deuxfleurs spends 3 power to build a Bridge (Power action) [C4-D5]
+Arivor gains 1 on the Cult of Fire track (Favor tile action)
+Arivor declines doing Conversions
+WoodMarco gains 1 on the Cult of Fire track (Favor tile action) and earns 3 power
+WoodMarco does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [D4]
+bassano gets 3 VP (Favor tile bonus)
+bassano declines doing Conversions
+WoodMarco pays 2 VP and gets 3 power via Structures [D4]
+deuxfleurs declines getting Power via Structures [D4]
+deuxfleurs upgrades a Trading house to a Temple for 2 workers 5 coins [H4]
+Arivor gets 1 power via Structures [H4]
+deuxfleurs takes a Favor tile
+deuxfleurs gains 1 on the Cult of Earth track (Favor tile)
+deuxfleurs declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [B4]
+deuxfleurs gets 1 power via Structures [B4]
+Arivor declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [F5]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+bassano gets 1 power via Structures [F5]
+deuxfleurs declines getting Power via Structures [F5]
+bassano cancels their move
+bassano builds a Dwelling for 1 workers 2 coins + 2 workers (Tunneling) [C2]
+bassano gets 4 VP (Tunneling)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+deuxfleurs upgrades a Temple to a Sanctuary for 4 workers 6 coins [H4]
+deuxfleurs gets 5 VP (Scoring tile bonus)
+Arivor gets 1 power via Structures [H4]
+deuxfleurs takes a Favor tile
+deuxfleurs gains 2 on the Cult of Fire track (Favor tile)
+deuxfleurs founds a Town [G3]
+deuxfleurs gets 5 VP and collects 6 coins (Town bonus)
+deuxfleurs gets 5 VP (Witches ability)
+deuxfleurs declines doing Conversions
+Arivor spends 4 power to get 1 spade(s) (Power action)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) + 1 Priests [D7]
+Arivor gets 4 VP (Carpet Flight)
+Arivor builds a Dwelling for 1 workers 2 coins [D7]
+Arivor declines doing Conversions
+deuxfleurs pays 2 VP and gets 3 power via Structures [D7]
+WoodMarco builds a Dwelling for 1 workers 2 coins [I10]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+bassano sends a Priest to the Order of the Cult of Fire. Forever!
+bassano gains 2 on the Cult of Fire track
+bassano declines doing Conversions
+deuxfleurs builds a Dwelling for free (Witches Ride) [A10]
+deuxfleurs gets 2 VP (Favor tile bonus)
+Arivor passes and becomes the first player for the next round
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+WoodMarco cancels their move
+WoodMarco transforms a Terrain space mountains → lakes for 2 Priests → 2 spade(s) [H6]
+WoodMarco earns 4 VP (Darklings Ability)
+WoodMarco declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Fire. Forever!
+bassano gains 2 on the Cult of Fire track and earns 1 power
+bassano declines doing Conversions
+deuxfleurs passes
+deuxfleurs gets 8 VP (Bonus card)
+deuxfleurs chooses 1 Bonus card and gets 1 coins
+WoodMarco passes
+WoodMarco gets 5 VP (Bonus card)
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+bassano passes
+bassano gets 4 VP (Bonus card)
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+~ Cleanup phase ~
+Arivor gets 1 workers (Cult bonus)
+deuxfleurs gets 1 workers (Cult bonus)
+WoodMarco gets 5 workers (Cult bonus)
+bassano gets 2 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deuxfleurs gets 5 workers 1 Priests 8 coins 4 power (Income)
+Arivor gets 7 workers 1 Priests 6 coins 2 power (Income)
+WoodMarco gets 6 workers 3 Priests 6 coins 0 power (Income)
+bassano gets 6 workers 2 Priests 5 coins 3 power (Income)
+~ Action phase ~
+Arivor upgrades a Trading house to a Faction Stronghold for 4 workers 10 coins [B4]
+Arivor gets 5 VP (Scoring tile bonus)
+deuxfleurs gets 1 power via Structures [B4]
+Arivor declines doing Conversions
+deuxfleurs spends 6 power to get 2 spade(s) (Power action)
+deuxfleurs transforms a Terrain space swamp → forest for 2 spade(s) [B5]
+deuxfleurs builds a Dwelling for 1 workers 2 coins [B5]
+deuxfleurs gets 2 VP (Favor tile bonus)
+Arivor pays 2 VP and gets 3 power via Structures [B5]
+deuxfleurs founds a Town [C4]
+deuxfleurs gets 6 VP and gains 8 power (Town bonus)
+deuxfleurs gets 5 VP (Witches ability)
+deuxfleurs declines doing Conversions
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+bassano sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+bassano spends 3 power to build a Bridge (Power action) [C2-D4]
+bassano declines doing Conversions
+Arivor transforms a Terrain space swamp → desert for 1 spade(s) + 3 workers → 2 spade(s) (Bonus card action) [A8]
+Arivor declines building a Dwelling for now
+Arivor declines doing Conversions
+deuxfleurs builds a Dwelling for free (Witches Ride) [I6]
+deuxfleurs gets 2 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [I6]
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+WoodMarco declines doing Conversions
+bassano upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [D4]
+bassano gets 5 VP (Scoring tile bonus)
+bassano declines doing Conversions
+WoodMarco pays 2 VP and gets 3 power via Structures [D4]
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+deuxfleurs declines getting Power via Structures [D4]
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+bassano founds a Town [E7]
+bassano gets 5 VP and collects 6 coins (Town bonus)
+Arivor gains 1 on the Cult of Air track (Favor tile action)
+Arivor declines doing Conversions
+deuxfleurs advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+WoodMarco cancels their move
+WoodMarco cancels their move
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+WoodMarco declines doing Conversions
+bassano advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+bassano declines doing Conversions
+Arivor passes and becomes the first player for the next round
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+deuxfleurs advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+WoodMarco gains 1 on the Cult of Air track (Favor tile action) and earns 1 power
+WoodMarco declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Air. Forever!
+bassano gains 2 on the Cult of Air track and earns 2 power
+bassano declines doing Conversions
+deuxfleurs gains 1 on the Cult of Air track (Bonus card action) and earns 1 power
+deuxfleurs declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco declines doing Conversions
+bassano advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+bassano declines doing Conversions
+deuxfleurs spends 3 power to collect 1 Priests (Power action)
+bassano passes
+bassano gets 8 VP (Bonus card)
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+deuxfleurs passes
+deuxfleurs chooses 1 Bonus card
+~ Cleanup phase ~
+Arivor gets 1 workers (Cult bonus)
+WoodMarco gets 1 workers (Cult bonus)
+bassano gets 2 workers (Cult bonus)
+deuxfleurs gets 1 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+deuxfleurs gets 9 workers 1 Priests 4 coins 4 power (Income)
+Arivor gets 7 workers 2 Priests 4 coins 1 power (Income)
+WoodMarco gets 7 workers 3 Priests 0 coins 0 power (Income)
+Not enough Priests in the supply: WoodMarco collects 2 Priests
+bassano gets 4 workers 2 Priests 5 coins 4 power (Income)
+~ Action phase ~
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor spends 4 power to collect 7 coins (Power action)
+Arivor declines doing Conversions
+WoodMarco transforms a Terrain space mountains → swamp for 3 Priests → 3 spade(s) [C5]
+WoodMarco earns 6 VP (Darklings Ability)
+WoodMarco builds a Dwelling for 1 workers 2 coins [C5]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [C5]
+WoodMarco declines doing Conversions
+bassano transforms a Terrain space forest → mountains for 1 spade(s) (Bonus card action) [I11]
+bassano builds a Dwelling for 1 workers 2 coins [I11]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+WoodMarco pays 1 VP and gets 2 power via Structures [I11]
+deuxfleurs transforms a Terrain space swamp → forest for 2 workers → 2 spade(s) [E10]
+deuxfleurs builds a Dwelling for 1 workers 2 coins [E10]
+deuxfleurs gets 2 VP (Scoring tile bonus)
+deuxfleurs gets 2 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [E10]
+bassano gets 1 power via Structures [E10]
+Arivor builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [G4]
+Arivor gets 4 VP (Carpet Flight)
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+WoodMarco pays 1 VP and gets 2 power via Structures [G4]
+WoodMarco spends 3 power to collect 1 Priests (Power action)
+WoodMarco declines doing Conversions
+bassano transforms a Terrain space lakes → mountains for 3 workers → 2 spade(s) [E11]
+bassano gets 4 VP (Tunneling)
+bassano builds a Dwelling for 1 workers 2 coins [E11]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+deuxfleurs gets 1 power via Structures [E11]
+bassano declines doing Conversions
+deuxfleurs sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+deuxfleurs spends 4 power to collect 2 workers (Power action)
+Arivor builds a Dwelling for 1 workers 2 coins [A8]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+WoodMarco transforms a Terrain space lakes → swamp for 1 Priests → 1 spade(s) [A11]
+WoodMarco earns 2 VP (Darklings Ability)
+WoodMarco builds a Dwelling for 1 workers 2 coins [A11]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+deuxfleurs gets 1 power via Structures [A11]
+WoodMarco declines doing Conversions
+bassano does some Conversions (spent: 3 power 1 Priests 0 workers ; collects: 0 Priests  2 workers 0 coins)
+bassano transforms a Terrain space plains → mountains for 3 workers → 3 spade(s) [F7]
+bassano builds a Dwelling for 1 workers 2 coins [F7]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+deuxfleurs gets 1 power via Structures [F7]
+bassano founds a Town [G6]
+bassano gets 7 VP and collects 2 workers (Town bonus)
+bassano declines doing Conversions
+deuxfleurs upgrades a Dwelling to a Trading house for 2 workers 3 coins [E10]
+Arivor gets 1 power via Structures [E10]
+bassano declines getting Power via Structures [E10]
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+Arivor declines doing Conversions
+deuxfleurs pays 1 VP and gets 2 power via Structures [G2]
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco spends 3 power to build a Bridge (Power action) [A11-C5]
+WoodMarco declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Air. Forever!
+bassano gains 2 on the Cult of Air track and earns 2 power
+bassano declines doing Conversions
+deuxfleurs transforms a Terrain space plains → forest for 3 workers → 3 spade(s) [D8]
+deuxfleurs builds a Dwelling for 1 workers 2 coins [D8]
+deuxfleurs gets 2 VP (Scoring tile bonus)
+deuxfleurs gets 2 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [D8]
+bassano gets 1 power via Structures [D8]
+Arivor builds a Dwelling for 1 workers 2 coins [A6]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor founds a Town [A8]
+Arivor gets 11 VP (Town bonus)
+Arivor declines doing Conversions
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [I10]
+bassano gets 1 power via Structures [I10]
+WoodMarco declines doing Conversions
+bassano transforms a Terrain space wasteland → mountains for 1 workers → 1 spade(s) [I12]
+bassano builds a Dwelling for 1 workers 2 coins [I12]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+deuxfleurs builds a Dwelling for free (Witches Ride) [F2]
+deuxfleurs gets 2 VP (Scoring tile bonus)
+deuxfleurs gets 2 VP (Favor tile bonus)
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [G4]
+WoodMarco pays 1 VP and gets 2 power via Structures [G4]
+Arivor declines doing Conversions
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [G5]
+WoodMarco declines doing Conversions
+Arivor pays 1 VP and gets 2 power via Structures [G5]
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+bassano declines getting Power via Structures [G5]
+~ You have decided to automatically decline spending VP for power ~
+WoodMarco founds a Town [F5]
+WoodMarco gets 9 VP and collects 1 Priests (Town bonus)
+bassano passes
+~ This is the last round. No new Bonus cards are taken. ~
+deuxfleurs sends a Priest to the Order of the Cult of Air. Forever!
+deuxfleurs gains 2 on the Cult of Air track and earns 2 power
+deuxfleurs declines doing Conversions
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Arivor builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [D3]
+Arivor gets 4 VP (Carpet Flight)
+Arivor gets 2 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [D3]
+Arivor declines doing Conversions
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+WoodMarco transforms a Terrain space wasteland → swamp for 3 Priests → 3 spade(s) [A12]
+WoodMarco earns 6 VP (Darklings Ability)
+WoodMarco builds a Dwelling for 1 workers 2 coins [A12]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+deuxfleurs sends a Priest to the Order of the Cult of Fire. Forever!
+deuxfleurs gains 2 on the Cult of Fire track and earns 1 power
+deuxfleurs declines doing Conversions
+Arivor does some Conversions (spent: 1 power 0 Priests 4 workers ; collects: 0 Priests  0 workers 5 coins)
+Arivor upgrades a Trading house to a Temple for 2 workers 5 coins [G4]
+Arivor declines doing Conversions
+WoodMarco declines getting Power via Structures [G4]
+Arivor takes a Favor tile
+Arivor gains 3 on the Cult of Fire track (Favor tile) and earns 3 power
+Arivor declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 0 Priests 3 workers ; collects: 0 Priests  0 workers 3 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [C5]
+Arivor gets 1 power via Structures [C5]
+WoodMarco declines doing Conversions
+deuxfleurs sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+deuxfleurs does some Conversions (spent: 4 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 4 coins)
+deuxfleurs upgrades a Trading house to a Temple for 2 workers 5 coins [E10]
+Arivor gets 1 power via Structures [E10]
+bassano declines getting Power via Structures [E10]
+deuxfleurs takes a Favor tile
+deuxfleurs gains 3 on the Cult of Air track (Favor tile) and earns 2 power
+deuxfleurs declines doing Conversions
+Arivor sends a Priest to the Order of the Cult of Earth. Forever!
+Arivor gains 2 on the Cult of Earth track
+Arivor declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 0 Priests 2 workers ; collects: 0 Priests  0 workers 2 coins)
+WoodMarco builds a Dwelling for 1 workers 2 coins [A13]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+deuxfleurs passes
+deuxfleurs gets 8 VP (Bonus card)
+Arivor gains 1 on the Cult of Air track (Favor tile action) and earns 1 power
+Arivor declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 0 Priests 3 workers ; collects: 0 Priests  0 workers 3 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [A11]
+deuxfleurs gets 1 power via Structures [A11]
+WoodMarco founds a Town [A13]
+WoodMarco gets 9 VP and collects 1 Priests (Town bonus)
+WoodMarco declines doing Conversions
+Arivor passes
+Arivor gets 8 VP (Bonus card)
+WoodMarco gains 1 on the Cult of Earth track (Favor tile action)
+WoodMarco declines doing Conversions
+WoodMarco sends a Priest to the Order of the Cult of Earth. Forever!
+WoodMarco gains 2 on the Cult of Earth track and earns 2 power
+WoodMarco declines doing Conversions
+WoodMarco passes
+WoodMarco gets 8 VP (Bonus card)
+~ Final scoring ~
+WoodMarco scores 8 VP (Cult of Fire)
+Arivor scores 4 VP (Cult of Fire)
+deuxfleurs scores 1 VP (Cult of Fire)
+bassano scores 1 VP (Cult of Fire)
+WoodMarco scores 8 VP (Cult of Water)
+Arivor scores 4 VP (Cult of Water)
+bassano scores 2 VP (Cult of Water)
+WoodMarco scores 6 VP (Cult of Earth)
+bassano scores 6 VP (Cult of Earth)
+Arivor scores 2 VP (Cult of Earth)
+deuxfleurs scores 0 VP (Cult of Earth)
+deuxfleurs scores 8 VP (Cult of Air)
+bassano scores 4 VP (Cult of Air)
+Arivor scores 1 VP (Cult of Air)
+WoodMarco scores 1 VP (Cult of Air)
+Arivor scores 18 VP with 13 connected Structures (Area scoring)
+WoodMarco scores 12 VP with 8 connected Structures (Area scoring)
+bassano scores 6 VP with 7 connected Structures (Area scoring)
+deuxfleurs scores 0 VP with 5 connected Structures (Area scoring)
+deuxfleurs sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+deuxfleurs converts 3 power into 3 coins
+deuxfleurs converts 2 workers into 2 coins
+deuxfleurs scores 1 VP with 5 coins (Resource scoring)
+Arivor converts 3 power into 3 coins
+Arivor scores 1 VP with 3 coins (Resource scoring)
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco converts 1 power into 1 coins
+WoodMarco scores 0 VP with 1 coins (Resource scoring)
+bassano sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+bassano converts 3 power into 3 coins
+bassano scores 1 VP with 5 coins (Resource scoring)
+The end of the game: WoodMarco and bassano win!

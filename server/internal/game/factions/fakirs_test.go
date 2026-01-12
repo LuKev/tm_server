@@ -146,3 +146,29 @@ func TestFakirs_StandardCosts(t *testing.T) {
 		t.Errorf("unexpected sanctuary cost: %+v", sanctuaryCost)
 	}
 }
+func TestFakirs_FlightRange(t *testing.T) {
+	fakirs := NewFakirs()
+
+	// Base flight range is 1
+	if fakirs.GetFlightRange() != 1 {
+		t.Errorf("expected base flight range 1, got %d", fakirs.GetFlightRange())
+	}
+
+	// Stronghold increases range by 1
+	fakirs.BuildStronghold()
+	if fakirs.GetFlightRange() != 2 {
+		t.Errorf("expected flight range 2 after stronghold, got %d", fakirs.GetFlightRange())
+	}
+
+	// Shipping town tile increases range by 1
+	fakirs.IncrementFlightRange()
+	if fakirs.GetFlightRange() != 3 {
+		t.Errorf("expected flight range 3 after shipping town tile, got %d", fakirs.GetFlightRange())
+	}
+
+	// Multiple shipping town tiles increase range further
+	fakirs.IncrementFlightRange()
+	if fakirs.GetFlightRange() != 4 {
+		t.Errorf("expected flight range 4 after second shipping town tile, got %d", fakirs.GetFlightRange())
+	}
+}

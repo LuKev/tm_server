@@ -14,9 +14,14 @@ import (
 
 // TestBGAParser_HalflingsStronghold tests parsing Halflings stronghold spade transforms
 func TestBGAParser_HalflingsStronghold(t *testing.T) {
-	content := `Arivor is playing the Halflings Faction
+	content := `
+Game board: Base
+Arivor is playing the Halflings Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
 Arivor places a Dwelling [E6]
 Arivor places a Dwelling [F5]
+~ The Factions auction is over ~
 ~ Action phase ~
 Move 1 :
 Arivor does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests 0 workers 3 coins)
@@ -84,9 +89,14 @@ Arivor declines building a Dwelling for now
 
 // TestBGAParser_ChaosMagiciansDoubleTurn tests parsing Chaos Magicians stronghold double turn
 func TestBGAParser_ChaosMagiciansDoubleTurn(t *testing.T) {
-	content := `Player1 is playing the Chaos Magicians Faction
+	content := `
+Game board: Base
+Player1 is playing the Chaos Magicians Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
 Player1 places a Dwelling [D2]
 Player1 places a Dwelling [G2]
+~ The Factions auction is over ~
 ~ Action phase ~
 Move 1 :
 Player1 upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [D2]
@@ -347,6 +357,55 @@ Player1 takes a Witches Ride (Stronghold) [F6]
 	t.Logf("Parsed %d items, foundWitchesRide=%v", len(items), foundWitchesRide)
 }
 
+// TestBGAParser_WitchesRideDwellingFormat tests parsing Witches Ride using the actual BGA log format
+// Regression test: the "builds a Dwelling for free (Witches Ride)" pattern must be checked before
+// the general "builds a Dwelling for" pattern
+func TestBGAParser_WitchesRideDwellingFormat(t *testing.T) {
+	content := `
+Game board: Base
+Player1 is playing the Witches Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [E9]
+~ Action phase ~
+Move 1 :
+Player1 builds a Dwelling for free (Witches Ride) [C3]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	// Find ACT-SH-D action for Witches Ride
+	foundWitchesRide := false
+	for _, item := range items {
+		if actionItem, ok := item.(ActionItem); ok {
+			if specialAction, ok := actionItem.Action.(*LogSpecialAction); ok {
+				if strings.HasPrefix(specialAction.ActionCode, "ACT-SH-D-") {
+					foundWitchesRide = true
+					t.Logf("Found Witches ride action: %s for player %s", specialAction.ActionCode, specialAction.PlayerID)
+					if specialAction.ActionCode != "ACT-SH-D-C3" {
+						t.Errorf("Expected ACT-SH-D-C3, got %s", specialAction.ActionCode)
+					}
+				}
+			}
+		}
+	}
+
+	if !foundWitchesRide {
+		// Log all actions for debugging
+		for i, item := range items {
+			t.Logf("Item %d: %T", i, item)
+			if actionItem, ok := item.(ActionItem); ok {
+				t.Logf("  Action: %T", actionItem.Action)
+			}
+		}
+		t.Error("Did not find Witches Ride action with ACT-SH-D prefix")
+	}
+}
+
 // TestBGAParser_NotationGeneration verifies generated notation includes correct terrain codes
 func TestBGAParser_NotationGeneration(t *testing.T) {
 	// Test that Halflings notation includes terrain suffix for non-home terrain
@@ -435,9 +494,14 @@ func TestBGAParser_FakirsCarpetFlightMultiple(t *testing.T) {
 	// - gets 4 VP (Carpet Flight)
 	// - transform plains -> desert [B2] (1 spade + 1 priest carpet flight implied if needed)
 	// - builds Dwelling [A7]
-	content := `Mellus is playing the Fakirs Faction
+	content := `
+Game board: Base
+Mellus is playing the Fakirs Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
 Mellus places a Dwelling [E6]
 Mellus places a Dwelling [F5]
+~ The Factions auction is over ~
 ~ Action phase ~
 Move 1 :
 Mellus sacrificed 2 in Bowl 2 to get 2 from Bowl 2 to Bowl 3
@@ -468,10 +532,9 @@ Mellus gets 2 VP (Scoring tile bonus)
 		if actionItem, ok := item.(ActionItem); ok {
 			if tba, ok := actionItem.Action.(*game.TransformAndBuildAction); ok {
 				// Check if this is at A7 (convert to axial: A=column 0, row 7)
-				// In our coordinate system, A7 should be specific hex
-				// We can check the hex coordinates directly or trust the parser test setup
-				// Since we only have A7 and B2 in the input, and B2 is distinct
-				if tba.TargetHex.Q == 0 && tba.TargetHex.R == 7 { // A7
+				// In our coordinate system, A7 corresponds to Hex(6,0)
+				// (Row 0, 7th non-river hex)
+				if tba.TargetHex.Q == 6 && tba.TargetHex.R == 0 { // A7
 					countA7Actions++
 					if tba.BuildDwelling {
 						foundBuild = true

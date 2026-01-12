@@ -290,7 +290,7 @@ func (gs *GameState) applyTownTileSpecifics(player *Player, tileType models.Town
 
 		// Fakirs get carpet flight range upgrade instead of shipping
 		if fakirs, ok := player.Faction.(*factions.Fakirs); ok {
-			fakirs.SetShippingTownTile(true)
+			fakirs.IncrementFlightRange()
 		} else {
 			// Advance shipping level by 1 and award VP
 			_ = gs.AdvanceShippingLevel(player.ID)

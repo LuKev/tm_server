@@ -532,24 +532,21 @@ func (m *TerraMysticaMap) getNeighborsForAreaScoring(h Hex, faction factions.Fac
 	neighbors := []Hex{}
 
 	// Check for Fakirs (carpet flight)
-	// Fakirs can connect via carpet flight (range 1-3 depending on upgrades)
+	// Flight range N means can skip N hexes, so can connect buildings at distance N+1
+	// E.g., range 1 = skip 1 hex = connect buildings 2 apart (A1 to A3)
 	if fakir, ok := faction.(*factions.Fakirs); ok {
-		flightRange := 1
-		if fakir.HasStronghold() {
-			flightRange++
-		}
-		if fakir.HasShippingTownTile() {
-			flightRange++
-		}
+		flightRange := fakir.GetFlightRange()
+		// Flight range N = can connect buildings at distance N+1
+		maxDistance := flightRange + 1
 
-		// Get all hexes within flight range
+		// Get all hexes within connection distance
 		for candidate := range m.Hexes {
 			if candidate == h {
 				continue
 			}
 
 			distance := h.Distance(candidate)
-			if distance <= flightRange {
+			if distance <= maxDistance {
 				neighbors = append(neighbors, candidate)
 			}
 		}

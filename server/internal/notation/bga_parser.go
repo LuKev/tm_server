@@ -358,6 +358,13 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			// fmt.Printf("Matched BuildDwelling (Setup): %s\n", line)
 			p.handleBuildDwelling(matches[1], matches[2], true)
 
+		} else if matches := reWitchesRide.FindStringSubmatch(line); len(matches) > 2 {
+			// Witches Ride MUST be checked BEFORE general reBuildDwellingGameStart
+			// since both match "builds a Dwelling for"
+			playerName := matches[1]
+			coordStr := matches[2]
+			p.handleWitchesRide(playerName, coordStr)
+
 		} else if matches := reBuildDwellingGameStart.FindStringSubmatch(line); len(matches) > 1 {
 			// fmt.Printf("Matched BuildDwelling Start (Game): %s\n", line)
 			coordStr := p.extractCoord(line)
@@ -449,12 +456,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerName := matches[1]
 			// fmt.Printf("Matched Favor Tile Start: %s\n", playerName)
 			p.handleFavorTile(playerName)
-
-		} else if matches := reWitchesRide.FindStringSubmatch(line); len(matches) > 2 {
-			playerName := matches[1]
-			coordStr := matches[2]
-			// fmt.Printf("Matched Witches Ride: %s at %s\n", playerName, coordStr)
-			p.handleWitchesRide(playerName, coordStr)
 
 		} else if matches := reLeechPays.FindStringSubmatch(line); len(matches) > 4 {
 			// Single-line Leech (Pays):

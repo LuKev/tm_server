@@ -1,0 +1,735 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+WoodMarco selected the faction Fakirs on desert to play in position #1
+fajprieto selected the faction Halflings on plains to play in position #2
+Mellus selected the faction Mermaids on lakes to play in position #3
+Arivor selected the faction Chaos Magicians on wasteland to play in position #4
+WoodMarco bids on the Mermaids with 40 Starting VPs
+fajprieto bids on the Halflings with 40 Starting VPs
+Mellus bids on the Mermaids with 39 Starting VPs
+Arivor bids on the Mermaids with 38 Starting VPs
+WoodMarco bids on the Mermaids with 37 Starting VPs
+fajprieto has not been outbid for Faction Halflings and is skipped
+Mellus bids on the Mermaids with 36 Starting VPs
+Arivor bids on the Halflings with 39 Starting VPs
+WoodMarco bids on the Mermaids with 35 Starting VPs
+fajprieto bids on the Chaos Magicians with 10 Starting VPs
+Mellus bids on the Halflings with 38 Starting VPs
+Arivor bids on the Halflings with 37 Starting VPs
+WoodMarco has not been outbid for Faction Mermaids and is skipped
+fajprieto has not been outbid for Faction Chaos Magicians and is skipped
+Mellus bids on the Halflings with 36 Starting VPs
+Arivor bids on the Halflings with 35 Starting VPs
+WoodMarco has not been outbid for Faction Mermaids and is skipped
+fajprieto has not been outbid for Faction Chaos Magicians and is skipped
+Mellus bids on the Mermaids with 34 Starting VPs
+Arivor has not been outbid for Faction Halflings and is skipped
+WoodMarco bids on the Mermaids with 33 Starting VPs
+fajprieto has not been outbid for Faction Chaos Magicians and is skipped
+Mellus bids on the Halflings with 34 Starting VPs
+Arivor bids on the Halflings with 33 Starting VPs
+WoodMarco has not been outbid for Faction Mermaids and is skipped
+fajprieto has not been outbid for Faction Chaos Magicians and is skipped
+Mellus bids on the Mermaids with 32 Starting VPs
+Arivor has not been outbid for Faction Halflings and is skipped
+WoodMarco bids on the Mermaids with 31 Starting VPs
+fajprieto has not been outbid for Faction Chaos Magicians and is skipped
+Mellus bids on the Halflings with 32 Starting VPs
+Arivor bids on the Halflings with 31 Starting VPs
+WoodMarco has not been outbid for Faction Mermaids and is skipped
+fajprieto has not been outbid for Faction Chaos Magicians and is skipped
+Mellus bids on the Fakirs with 40 Starting VPs
+~ The Factions auction is over ~
+Mellus is playing the Fakirs Faction (with 40 VP Starting VPs)
+Arivor is playing the Halflings Faction (with 31 VP Starting VPs)
+WoodMarco is playing the Mermaids Faction (with 31 VP Starting VPs)
+fajprieto is playing the Chaos Magicians Faction (with 10 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Mellus places a Dwelling [D3]
+Arivor places a Dwelling [F5]
+WoodMarco places a Dwelling [E4]
+WoodMarco places a Dwelling [D5]
+Arivor places a Dwelling [E6]
+Mellus places a Dwelling [E8]
+fajprieto places a Dwelling [E3]
+fajprieto chooses 1 Bonus card
+WoodMarco chooses 1 Bonus card
+Arivor chooses 1 Bonus card
+Mellus chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+WoodMarco gets 3 workers 1 Priests 0 coins 0 power (Income)
+fajprieto gets 2 workers 0 Priests 2 coins 0 power (Income)
+Mellus gets 3 workers 0 Priests 4 coins 0 power (Income)
+Arivor gets 4 workers 0 Priests 0 coins 3 power (Income)
+~ Action phase ~
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [D3]
+WoodMarco gets 1 power via Structures [D3]
+fajprieto gets 1 power via Structures [D3]
+Mellus declines doing Conversions
+Arivor sacrificed 6 power in Bowl 2 to get 6 power from Bowl 2 to Bowl 3
+Arivor spends 6 power to get 2 spade(s) (Power action)
+Arivor transforms a Terrain space swamp → plains for 1 spade(s) [E5]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor earns 1 VP (Halflings Ability)
+Arivor transforms a Terrain space desert → plains for 1 spade(s) [F3]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor earns 1 VP (Halflings Ability)
+Arivor builds a Dwelling for 1 workers 2 coins [E5]
+WoodMarco gets 1 power via Structures [E5]
+Arivor declines doing Conversions
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [E4]
+WoodMarco declines doing Conversions
+fajprieto gets 1 power via Structures [E4]
+Arivor gets 1 power via Structures [E4]
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Mellus pays 1 VP and gets 2 power via Structures [E4]
+fajprieto sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+fajprieto spends 4 power to get 1 spade(s) (Power action)
+fajprieto transforms a Terrain space forest → mountains for 1 spade(s) [F2]
+fajprieto gets 2 VP (Scoring tile bonus)
+Mellus upgrades a Trading house to a Temple for 2 workers 5 coins [D3]
+WoodMarco pays 1 VP and gets 2 power via Structures [D3]
+fajprieto gets 1 power via Structures [D3]
+Mellus takes a Favor tile
+Mellus gains 1 on the Cult of Earth track (Favor tile)
+Mellus declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [F3]
+Arivor declines doing Conversions
+WoodMarco sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+WoodMarco spends 3 power to collect 1 Priests (Power action)
+WoodMarco declines doing Conversions
+fajprieto transforms a Terrain space mountains → wasteland for 1 spade(s) (Bonus card action) [F2]
+fajprieto gets 2 VP (Scoring tile bonus)
+fajprieto builds a Dwelling for 1 workers 2 coins [F2]
+Mellus gains 1 on the Cult of Earth track (Bonus card action)
+Mellus declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+WoodMarco pays 1 VP and gets 2 power via Structures [E5]
+Arivor declines doing Conversions
+WoodMarco upgrades a Trading house to a Temple for 2 workers 5 coins [E4]
+WoodMarco declines doing Conversions
+fajprieto gets 1 power via Structures [E4]
+Arivor pays 1 VP and gets 2 power via Structures [E4]
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Mellus pays 1 VP and gets 2 power via Structures [E4]
+WoodMarco takes a Favor tile
+WoodMarco gains 1 on the Cult of Earth track (Favor tile)
+WoodMarco declines doing Conversions
+fajprieto upgrades a Dwelling to a Trading house for 2 workers 3 coins [E3]
+WoodMarco pays 1 VP and gets 2 power via Structures [E3]
+Mellus pays 1 VP and gets 2 power via Structures [E3]
+Mellus passes and becomes the first player for the next round
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus declines doing Conversions
+Arivor upgrades a Trading house to a Temple for 2 workers 5 coins [E5]
+WoodMarco pays 1 VP and gets 2 power via Structures [E5]
+Arivor takes a Favor tile
+Arivor gains 1 on the Cult of Earth track (Favor tile)
+Arivor declines doing Conversions
+WoodMarco sends a Priest to the Order of the Cult of Earth. Forever!
+WoodMarco gains 3 on the Cult of Earth track and earns 1 power
+WoodMarco declines doing Conversions
+fajprieto upgrades a Trading house to a Temple for 2 workers 5 coins [E3]
+WoodMarco pays 1 VP and gets 2 power via Structures [E3]
+Mellus pays 1 VP and gets 2 power via Structures [E3]
+fajprieto takes a Favor tile
+fajprieto gains 2 on the Cult of Earth track (Favor tile)
+fajprieto takes another Favor tile (Chaos Magicians ability)
+fajprieto takes a Favor tile
+fajprieto gains 2 on the Cult of Air track (Favor tile)
+fajprieto declines doing Conversions
+Arivor passes
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+WoodMarco declines doing Conversions
+fajprieto passes
+fajprieto chooses 1 Bonus card and gets 1 coins
+WoodMarco passes
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+~ Cleanup phase ~
+Mellus gets 2 coins (Cult bonus)
+Arivor gets 2 coins (Cult bonus)
+fajprieto gets 2 coins (Cult bonus)
+WoodMarco gets 4 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+WoodMarco gets 2 workers 1 Priests 2 coins 0 power (Income)
+fajprieto gets 3 workers 1 Priests 0 coins 8 power (Income)
+Mellus gets 2 workers 1 Priests 2 coins 0 power (Income)
+Arivor gets 4 workers 1 Priests 6 coins 0 power (Income)
+~ Action phase ~
+Mellus sends a Priest to the Order of the Cult of Fire. Forever!
+Mellus gains 3 on the Cult of Fire track and earns 1 power
+Mellus declines doing Conversions
+Arivor upgrades a Temple to a Sanctuary for 4 workers 6 coins [E5]
+Arivor gets 5 VP (Scoring tile bonus)
+WoodMarco pays 1 VP and gets 2 power via Structures [E5]
+Arivor takes a Favor tile
+Arivor gains 2 on the Cult of Earth track (Favor tile) and earns 1 power
+Arivor declines doing Conversions
+fajprieto upgrades a Temple to a Sanctuary for 4 workers 8 coins [E3]
+fajprieto gets 5 VP (Scoring tile bonus)
+WoodMarco pays 1 VP and gets 2 power via Structures [E3]
+Mellus pays 1 VP and gets 2 power via Structures [E3]
+fajprieto takes a Favor tile
+fajprieto gains 2 on the Cult of Fire track (Favor tile) and earns 1 power
+fajprieto takes another Favor tile (Chaos Magicians ability)
+fajprieto takes a Favor tile
+fajprieto gains 2 on the Cult of Water track (Favor tile)
+fajprieto declines doing Conversions
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+Mellus upgrades a Temple to a Sanctuary for 4 workers 6 coins [D3]
+Mellus gets 5 VP (Scoring tile bonus)
+Mellus declines doing Conversions
+WoodMarco pays 1 VP and gets 2 power via Structures [D3]
+fajprieto pays 2 VP and gets 3 power via Structures [D3]
+Mellus cancels their move
+Mellus takes a Favor tile
+Mellus gains 2 on the Cult of Air track (Favor tile) and earns 1 power
+Mellus declines doing Conversions
+Arivor sends a Priest to the Order of the Cult of Air. Forever!
+Arivor gains 3 on the Cult of Air track and earns 1 power
+Arivor declines doing Conversions
+fajprieto does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+fajprieto advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+WoodMarco sends a Priest to the Order of the Cult of Water. Forever!
+WoodMarco gains 3 on the Cult of Water track and earns 3 power
+WoodMarco declines doing Conversions
+Mellus passes and becomes the first player for the next round
+Mellus gets 1 VP (Bonus card)
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+~ You have decided to automatically decline spending VP for power ~
+Arivor passes
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+fajprieto spends 4 power to get 1 spade(s) (Power action)
+fajprieto transforms a Terrain space mountains → wasteland for 1 spade(s) [G1]
+fajprieto declines building a Dwelling for now
+WoodMarco transforms a Terrain space swamp → lakes for 1 spade(s) (Bonus card action) [C1]
+WoodMarco builds a Dwelling for 1 workers 2 coins [C1]
+WoodMarco gets 2 VP (Favor tile bonus)
+Mellus declines getting Power via Structures [C1]
+WoodMarco declines doing Conversions
+fajprieto gains 1 on the Cult of Fire track (Favor tile action) and earns 2 power
+fajprieto declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [D2]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus declines getting Power via Structures [D2]
+fajprieto pays 2 VP and gets 3 power via Structures [D2]
+fajprieto passes
+fajprieto gets 3 VP (Bonus card)
+fajprieto chooses 1 Bonus card
+WoodMarco spends 6 power to get 2 spade(s) (Power action)
+WoodMarco transforms a Terrain space forest → lakes for 1 spade(s) [C3]
+WoodMarco transforms a Terrain space forest → lakes for 1 spade(s) [C4]
+WoodMarco builds a Dwelling for 1 workers 2 coins [C3]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+~ Cleanup phase ~
+Mellus gets 2 workers (Cult bonus)
+fajprieto gets 2 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+WoodMarco gets 5 workers 1 Priests 0 coins 3 power (Income)
+fajprieto gets 3 workers 1 Priests 6 coins 5 power (Income)
+Mellus gets 3 workers 1 Priests 0 coins 7 power (Income)
+Arivor gets 5 workers 1 Priests 4 coins 1 power (Income)
+~ Action phase ~
+Mellus spends 6 power to get 2 spade(s) (Power action)
+Mellus transforms a Terrain space mountains → desert for 2 spade(s) + 1 Priests [C2]
+Mellus gets 4 VP (Carpet Flight)
+Mellus builds a Dwelling for 1 workers 2 coins [C2]
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+Arivor sends a Priest to the Order of the Cult of Air. Forever!
+Arivor gains 2 on the Cult of Air track and earns 2 power
+Arivor declines doing Conversions
+fajprieto builds a Dwelling for 1 workers 2 coins [G1]
+WoodMarco sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [E8]
+WoodMarco gets 1 power via Structures [E8]
+Mellus declines doing Conversions
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor spends 3 power to collect 1 Priests (Power action)
+Arivor declines doing Conversions
+fajprieto spends 4 power to collect 2 workers (Power action)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [C1]
+Mellus declines getting Power via Structures [C1]
+WoodMarco declines doing Conversions
+Mellus upgrades a Trading house to a Temple for 2 workers 5 coins [E8]
+Mellus gets 4 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [E8]
+Mellus takes a Favor tile
+Mellus gains 1 on the Cult of Fire track (Favor tile) and earns 2 power
+Mellus declines doing Conversions
+Arivor advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+Arivor declines doing Conversions
+fajprieto builds a Dwelling for 1 workers 2 coins [G2]
+Arivor gets 1 power via Structures [G2]
+WoodMarco upgrades a Trading house to a Temple for 2 workers 5 coins [C1]
+WoodMarco gets 4 VP (Scoring tile bonus)
+Mellus declines getting Power via Structures [C1]
+WoodMarco takes a Favor tile
+WoodMarco gains 2 on the Cult of Water track (Favor tile) and earns 2 power
+WoodMarco declines doing Conversions
+Mellus passes and becomes the first player for the next round
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+fajprieto gets 1 power via Structures [F3]
+Arivor declines doing Conversions
+fajprieto does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+fajprieto upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+Arivor pays 1 VP and gets 2 power via Structures [G2]
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+WoodMarco declines doing Conversions
+Arivor upgrades a Trading house to a Temple for 2 workers 5 coins [F3]
+Arivor gets 4 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+fajprieto pays 1 VP and gets 2 power via Structures [F3]
+Arivor takes a Favor tile
+Arivor gains 2 on the Cult of Water track (Favor tile)
+Arivor declines doing Conversions
+fajprieto sends a Priest to the Order of the Cult of Air. Forever!
+fajprieto gains 2 on the Cult of Air track and earns 1 power
+fajprieto declines doing Conversions
+WoodMarco gains 1 on the Cult of Earth track (Favor tile action) and earns 2 power
+WoodMarco declines doing Conversions
+Arivor gains 1 on the Cult of Air track (Favor tile action) and earns 2 power
+Arivor declines doing Conversions
+fajprieto gains 1 on the Cult of Air track (Favor tile action) and earns 2 power
+fajprieto declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+WoodMarco passes
+WoodMarco gets 9 VP (Bonus card)
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco declines doing Conversions
+Arivor gains 1 on the Cult of Air track (Bonus card action)
+Arivor declines doing Conversions
+fajprieto does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+fajprieto builds a Dwelling for 1 workers 2 coins [I5]
+Arivor passes
+Arivor chooses 1 Bonus card and gets 2 coins
+Arivor declines doing Conversions
+fajprieto passes
+fajprieto chooses 1 Bonus card
+~ Cleanup phase ~
+Mellus gets 2 coins (Cult bonus)
+WoodMarco gets 4 coins (Cult bonus)
+Arivor gets 4 coins (Cult bonus)
+fajprieto gets 2 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+WoodMarco gets 4 workers 2 Priests 2 coins 0 power (Income)
+fajprieto gets 6 workers 1 Priests 2 coins 9 power (Income)
+Mellus gets 2 workers 2 Priests 5 coins 4 power (Income)
+Arivor gets 4 workers 3 Priests 0 coins 1 power (Income)
+~ Action phase ~
+Mellus spends 3 power to build a Bridge (Power action) [C2-D3]
+Mellus declines doing Conversions
+WoodMarco upgrades a Temple to a Sanctuary for 4 workers 8 coins [C1]
+WoodMarco gets 5 VP (Scoring tile bonus)
+Mellus declines getting Power via Structures [C1]
+WoodMarco takes a Favor tile
+WoodMarco gains 1 on the Cult of Water track (Favor tile)
+WoodMarco declines doing Conversions
+Arivor gains 1 on the Cult of Earth track (Favor tile action) and earns 2 power
+Arivor declines doing Conversions
+fajprieto upgrades a Trading house to a Faction Stronghold for 4 workers 4 coins [G2]
+fajprieto gets 5 VP (Scoring tile bonus)
+Arivor Power gain via Structures is capped from 2 power to 0 power
+Mellus builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [A5]
+Mellus gets 4 VP (Carpet Flight)
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+WoodMarco gains 1 on the Cult of Earth track (Favor tile action)
+WoodMarco declines doing Conversions
+Arivor spends 4 power to collect 2 workers (Power action)
+Arivor declines doing Conversions
+fajprieto takes a double-turn (Chaos Magicians Stronghold)
+fajprieto spends 4 power to collect 7 coins (Power action)
+fajprieto spends 4 power to get 1 spade(s) (Power action)
+fajprieto transforms a Terrain space mountains → wasteland for 1 spade(s) [F1]
+fajprieto builds a Dwelling for 1 workers 2 coins [F1]
+Mellus transforms a Terrain space wasteland → desert for 1 spade(s) + 1 Priests (Bonus card action) [D4]
+Mellus gets 4 VP (Carpet Flight)
+Mellus builds a Dwelling for 1 workers 2 coins [D4]
+Mellus gets 2 VP (Favor tile bonus)
+WoodMarco pays 1 VP and gets 2 power via Structures [D4]
+Arivor gets 1 power via Structures [D4]
+Mellus declines doing Conversions
+WoodMarco passes and becomes the first player for the next round
+WoodMarco gets 3 VP (Bonus card)
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+Mellus gets 1 power via Structures [E6]
+Arivor founds a Town [F3]
+Arivor gains 2 on the Cult of Fire track
+Arivor gains 2 on the Cult of Air track and earns 3 power
+Arivor gains 2 on the Cult of Earth track and earns 2 power
+Arivor gains 2 on the Cult of Water track and earns 1 power
+Arivor gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+Arivor declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+fajprieto gains 1 on the Cult of Air track (Favor tile action)
+Mellus passes
+Mellus chooses 1 Bonus card
+Mellus declines doing Conversions
+Arivor sends a Priest to the Order of the Cult of Earth. Forever!
+Arivor gains 2 on the Cult of Earth track
+Arivor declines doing Conversions
+fajprieto does some Conversions (spent: 0 power 1 Priests 1 workers ; collects: 0 Priests  1 workers 1 coins)
+fajprieto upgrades a Dwelling to a Trading house for 2 workers 6 coins [F1]
+fajprieto founds a Town [F1]
+fajprieto gains 1 on the Cult of Fire track
+fajprieto gains 1 on the Cult of Air track and earns 2 power
+fajprieto gains 1 on the Cult of Earth track and earns 1 power
+fajprieto gains 1 on the Cult of Water track and earns 1 power
+fajprieto gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+fajprieto declines doing Conversions
+Arivor does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+Arivor upgrades a Trading house to a Faction Stronghold for 4 workers 8 coins [E6]
+Arivor gets 5 VP (Scoring tile bonus)
+Mellus gets 1 power via Structures [E6]
+Arivor gets 3 Spades to Transform and Build (Halflings Stronghold)
+Arivor transforms a Terrain space swamp → plains for 1 spade(s) [G5]
+Arivor earns 1 VP (Halflings Ability)
+Arivor transforms a Terrain space mountains → desert for 2 spade(s) [F6]
+Arivor earns 2 VP (Halflings Ability)
+Arivor declines building a Dwelling for now
+Arivor declines doing Conversions
+fajprieto passes
+fajprieto chooses 1 Bonus card and gets 1 coins
+Arivor passes
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+~ Cleanup phase ~
+Mellus gets 1 workers (Cult bonus)
+fajprieto gets 3 workers (Cult bonus)
+Arivor gets 5 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+WoodMarco gets 4 workers 2 Priests 0 coins 3 power (Income)
+fajprieto gets 7 workers 1 Priests 6 coins 6 power (Income)
+Mellus gets 4 workers 2 Priests 5 coins 4 power (Income)
+Arivor gets 3 workers 2 Priests 6 coins 3 power (Income)
+~ Action phase ~
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+Mellus cancels their move
+Mellus sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Mellus spends 6 power to get 2 spade(s) (Power action)
+Mellus transforms a Terrain space plains → desert for 1 spade(s) + 1 Priests [A7]
+Mellus gets 4 VP (Carpet Flight)
+Mellus transforms a Terrain space plains → desert for 1 spade(s) [B2]
+Mellus builds a Dwelling for 1 workers 2 coins [A7]
+Mellus gets 2 VP (Scoring tile bonus)
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+fajprieto takes a double-turn (Chaos Magicians Stronghold)
+fajprieto sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+fajprieto spends 4 power to get 1 spade(s) (Power action)
+fajprieto transforms a Terrain space desert → wasteland for 1 spade(s) [H1]
+fajprieto builds a Dwelling for 1 workers 2 coins [H1]
+fajprieto gets 2 VP (Scoring tile bonus)
+fajprieto builds a Dwelling for 1 workers 2 coins [I1]
+fajprieto gets 2 VP (Scoring tile bonus)
+Arivor gains 1 on the Cult of Earth track (Favor tile action) and earns 3 power
+Arivor declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [C4]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [B4]
+Mellus gets 4 VP (Carpet Flight)
+Mellus gets 2 VP (Scoring tile bonus)
+Mellus gets 2 VP (Favor tile bonus)
+WoodMarco gets 1 power via Structures [B4]
+Mellus declines doing Conversions
+fajprieto gains 1 on the Cult of Fire track (Bonus card action) and earns 2 power
+fajprieto declines doing Conversions
+Arivor advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+Arivor declines doing Conversions
+WoodMarco sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+WoodMarco gains 1 on the Cult of Earth track and earns 2 power
+WoodMarco declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins [B2]
+Mellus gets 2 VP (Scoring tile bonus)
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+fajprieto gains 1 on the Cult of Fire track (Favor tile action)
+Arivor spends 4 power to collect 2 workers (Power action)
+Arivor declines doing Conversions
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+WoodMarco declines doing Conversions
+Mellus passes and becomes the first player for the next round
+Mellus gets 6 VP (Bonus card)
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus declines doing Conversions
+fajprieto sends a Priest to the Order of the Cult of Fire. Forever!
+fajprieto gains 2 on the Cult of Fire track and earns 3 power
+fajprieto declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [G5]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 5 VP
+WoodMarco declines doing Conversions
+fajprieto does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+fajprieto upgrades a Trading house to a Temple for 2 workers 5 coins [F1]
+fajprieto takes a Favor tile
+fajprieto gains 3 on the Cult of Water track (Favor tile) and earns 2 power
+fajprieto takes another Favor tile (Chaos Magicians ability)
+fajprieto takes a Favor tile
+fajprieto gains 3 on the Cult of Earth track (Favor tile) and earns 2 power
+fajprieto declines doing Conversions
+Arivor sends a Priest to the Order of the Cult of Water. Forever!
+Arivor gains 2 on the Cult of Water track and earns 2 power
+Arivor declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [A4]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+Mellus declines getting Power via Structures [A4]
+WoodMarco declines doing Conversions
+fajprieto spends 3 power to collect 1 Priests (Power action)
+Arivor builds a Dwelling for 1 workers 2 coins [H7]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+WoodMarco cancels their move
+WoodMarco gains 1 on the Cult of Water track (Favor tile action)
+WoodMarco declines doing Conversions
+fajprieto sends a Priest to the Order of the Cult of Water. Forever!
+fajprieto gains 2 on the Cult of Water track and earns 2 power
+fajprieto declines doing Conversions
+Arivor transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [F6]
+Arivor earns 1 VP (Halflings Ability)
+Arivor builds a Dwelling for 1 workers 2 coins [F6]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+WoodMarco passes
+WoodMarco gets 15 VP (Bonus card)
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+fajprieto transforms a Terrain space desert → wasteland for 3 workers → 1 spade(s) [I7]
+fajprieto sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+fajprieto does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+fajprieto builds a Dwelling for 1 workers 2 coins [I7]
+fajprieto gets 2 VP (Scoring tile bonus)
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+Arivor sends a Priest to the Order of the Cult of Water. Forever!
+Arivor gains 2 on the Cult of Water track and earns 2 power
+Arivor declines doing Conversions
+fajprieto passes
+fajprieto chooses 1 Bonus card and gets 1 coins
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+Arivor builds a Dwelling for 1 workers 2 coins [F7]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+Arivor transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [E10]
+Arivor earns 1 VP (Halflings Ability)
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor does some Conversions (spent: 1 power 1 Priests 1 workers ; collects: 0 Priests  1 workers 2 coins)
+Arivor builds a Dwelling for 1 workers 2 coins [E10]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+Arivor passes
+Arivor chooses 1 Bonus card
+Arivor declines doing Conversions
+~ Cleanup phase ~
+WoodMarco gets 2 Priests (Cult bonus)
+fajprieto gets 2 Priests (Cult bonus)
+Arivor gets 2 Priests (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+WoodMarco gets 6 workers 2 Priests 2 coins 0 power (Income)
+fajprieto gets 10 workers 2 Priests 2 coins 5 power (Income)
+Mellus gets 7 workers 3 Priests 3 coins 4 power (Income)
+Arivor gets 8 workers 2 Priests 4 coins 3 power (Income)
+Not enough Priests in the supply: Arivor collects 0 Priests
+~ Action phase ~
+Mellus sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+Mellus spends 4 power to collect 7 coins (Power action)
+Mellus declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 1 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [D2]
+WoodMarco gets 3 VP (Scoring tile bonus)
+WoodMarco gets 3 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus declines getting Power via Structures [D2]
+fajprieto Power gain via Structures is capped from 3 power to 2 power
+fajprieto pays 1 VP and gets 2 power via Structures [D2]
+fajprieto takes a double-turn (Chaos Magicians Stronghold)
+fajprieto spends 3 power to build a Bridge (Power action) [G2-I6]
+fajprieto transforms a Terrain space forest → wasteland for 1 spade(s) + 3 workers → 2 spade(s) (Bonus card action) [I6]
+fajprieto builds a Dwelling for 1 workers 2 coins [I6]
+fajprieto founds a Town [G2]
+fajprieto gains 1 on the Cult of Air track
+fajprieto gains 1 on the Cult of Earth track and earns 2 power
+fajprieto gains 1 on the Cult of Water track
+fajprieto gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+fajprieto declines doing Conversions
+Arivor transforms a Terrain space desert → plains for 1 workers → 1 spade(s) [G4]
+Arivor earns 1 VP (Halflings Ability)
+Arivor builds a Dwelling for 1 workers 2 coins [G4]
+Arivor gets 2 VP (Favor tile bonus)
+Arivor founds a Town [F6]
+Arivor gets 5 VP and collects 6 coins (Town bonus)
+Arivor declines doing Conversions
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [A5]
+Mellus gets 3 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [A5]
+Mellus founds a Town [A5]
+Mellus gets 4 VP and can now, as a Fakir, skip 1 additional space when doing a Carpet Flight (Town bonus)
+Mellus declines doing Conversions
+WoodMarco sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+WoodMarco does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [A4]
+WoodMarco gets 3 VP (Scoring tile bonus)
+WoodMarco gets 3 VP (Favor tile bonus)
+Mellus declines getting Power via Structures [A4]
+WoodMarco founds a Town on a River space (Mermaids Ability) [R~B1]
+WoodMarco gets 5 VP and collects 6 coins (Town bonus)
+WoodMarco declines doing Conversions
+fajprieto gains 1 on the Cult of Water track (Favor tile action) and earns 3 power
+fajprieto declines doing Conversions
+Arivor gains 1 on the Cult of Water track (Favor tile action)
+Arivor declines doing Conversions
+Mellus transforms a Terrain space wasteland → desert for 3 workers 1 Priests → 1 spade(s) [D6]
+Mellus gets 4 VP (Carpet Flight)
+Mellus builds a Dwelling for 1 workers 2 coins [D6]
+Mellus gets 2 VP (Favor tile bonus)
+WoodMarco gets 1 power via Structures [D6]
+Mellus declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [I4]
+WoodMarco gets 2 VP (Favor tile bonus)
+fajprieto gets 1 power via Structures [I4]
+WoodMarco declines doing Conversions
+fajprieto does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+fajprieto spends 4 power to get 1 spade(s) (Power action)
+fajprieto transforms a Terrain space forest → wasteland for 1 spade(s) + 3 workers → 2 spade(s) [F4]
+fajprieto builds a Dwelling for 1 workers 2 coins [F4]
+Arivor pays 1 VP and gets 2 power via Structures [F4]
+Arivor Power gain via Structures is capped from 5 power to 2 power
+Arivor transforms a Terrain space mountains → plains for 3 workers → 3 spade(s) [E7]
+Arivor earns 3 VP (Halflings Ability)
+Arivor builds a Dwelling for 1 workers 2 coins [E7]
+Arivor gets 2 VP (Favor tile bonus)
+WoodMarco gets 1 power via Structures [E7]
+fajprieto gets 1 power via Structures [E7]
+Mellus declines getting Power via Structures [E7]
+Arivor declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins + 1 Priests (Carpet Flight) [B1]
+Mellus gets 4 VP (Carpet Flight)
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+WoodMarco builds a Dwelling for 1 workers 2 coins [H2]
+WoodMarco gets 2 VP (Favor tile bonus)
+fajprieto gets 1 power via Structures [H2]
+WoodMarco declines doing Conversions
+fajprieto does some Conversions (spent: 0 power 3 Priests 2 workers ; collects: 0 Priests  3 workers 2 coins)
+fajprieto upgrades a Dwelling to a Trading house for 2 workers 3 coins [F4]
+fajprieto gets 3 VP (Scoring tile bonus)
+Arivor Power gain via Structures is capped from 6 power to 0 power
+Arivor advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Arivor declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Fire. Forever!
+Mellus gains 2 on the Cult of Fire track and earns 2 power
+Mellus declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [H4]
+WoodMarco gets 2 VP (Favor tile bonus)
+fajprieto gets 1 power via Structures [H4]
+WoodMarco declines doing Conversions
+fajprieto sends a Priest to the Order of the Cult of Earth. Forever!
+fajprieto gains 2 on the Cult of Earth track
+Arivor does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [E7]
+Arivor gets 3 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+WoodMarco gets 1 power via Structures [E7]
+Mellus declines getting Power via Structures [E7]
+fajprieto declines getting Power via Structures [E7]
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [D6]
+Mellus gets 3 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [D6]
+Mellus declines doing Conversions
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+WoodMarco builds a Dwelling for 1 workers 2 coins [A11]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+fajprieto passes
+~ This is the last round. No new Bonus cards are taken. ~
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Arivor does some Conversions (spent: 2 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+Arivor gains 1 on the Cult of Fire track (Bonus card action) and earns 1 power
+Arivor declines doing Conversions
+Mellus passes
+WoodMarco gains 1 on the Cult of Earth track (Favor tile action)
+WoodMarco declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [D8]
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 4 Priests 3 workers ; collects: 0 Priests  4 workers 3 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [C3]
+WoodMarco gets 3 VP (Scoring tile bonus)
+WoodMarco gets 3 VP (Favor tile bonus)
+Mellus gets 1 power via Structures [C3]
+WoodMarco declines doing Conversions
+Arivor passes
+WoodMarco sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+WoodMarco gains 1 on the Cult of Earth track
+WoodMarco declines doing Conversions
+WoodMarco passes
+WoodMarco gets 6 VP (Bonus card)
+~ Final scoring ~
+fajprieto scores 8 VP (Cult of Fire)
+Mellus scores 4 VP (Cult of Fire)
+Arivor scores 2 VP (Cult of Fire)
+fajprieto scores 8 VP (Cult of Water)
+WoodMarco scores 3 VP (Cult of Water)
+Arivor scores 3 VP (Cult of Water)
+Arivor scores 8 VP (Cult of Earth)
+WoodMarco scores 3 VP (Cult of Earth)
+fajprieto scores 3 VP (Cult of Earth)
+Mellus scores 0 VP (Cult of Earth)
+Arivor scores 8 VP (Cult of Air)
+fajprieto scores 4 VP (Cult of Air)
+Mellus scores 2 VP (Cult of Air)
+WoodMarco scores 15 VP with 11 connected Structures (Area scoring)
+fajprieto scores 15 VP with 11 connected Structures (Area scoring)
+Mellus scores 6 VP with 10 connected Structures (Area scoring)
+Arivor scores 0 VP with 8 connected Structures (Area scoring)
+WoodMarco scores 0 VP with 0 coins (Resource scoring)
+fajprieto sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+fajprieto converts 1 power into 1 coins
+fajprieto scores 0 VP with 1 coins (Resource scoring)
+Mellus sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Mellus converts 1 power into 1 coins
+Mellus scores 2 VP with 7 coins (Resource scoring)
+Arivor scores 0 VP with 0 coins (Resource scoring)
+End of game

@@ -16,11 +16,11 @@ import (
 //	Cannot upgrade Shipping
 //	Can only upgrade Digging by 1 level (max level 1, not 2)
 //	Expensive Stronghold (4 workers, 10 coins vs standard 4 workers, 6 coins)
-//	Shipping town tile increases Carpet Flight range by 1
+//	Shipping town tile increases Carpet Flight range by 1 (can get multiple)
 type Fakirs struct {
 	BaseFaction
-	hasStronghold       bool
-	hasShippingTownTile bool // Shipping town tile bonus
+	hasStronghold bool
+	flightRange   int // Base flight range (starts at 1, +1 for stronghold, +1 per shipping town tile)
 }
 
 // NewFakirs creates a new Fakirs faction
@@ -39,8 +39,8 @@ func NewFakirs() *Fakirs {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:       false,
-		hasShippingTownTile: false,
+		hasStronghold: false,
+		flightRange:   1, // Base flight range of 1
 	}
 }
 
@@ -92,9 +92,12 @@ func (f *Fakirs) GetMaxDiggingLevel() int {
 	return 1 // Fakirs can only reach digging level 1 (not 2)
 }
 
-// BuildStronghold marks that the stronghold has been built
+// BuildStronghold marks that the stronghold has been built and increases flight range
 func (f *Fakirs) BuildStronghold() {
-	f.hasStronghold = true
+	if !f.hasStronghold {
+		f.hasStronghold = true
+		f.flightRange++ // Stronghold adds +1 flight range
+	}
 }
 
 // HasStronghold returns whether the stronghold has been built
@@ -102,14 +105,17 @@ func (f *Fakirs) HasStronghold() bool {
 	return f.hasStronghold
 }
 
-// SetShippingTownTile marks that the Fakirs have acquired the Shipping town tile
-func (f *Fakirs) SetShippingTownTile(has bool) {
-	f.hasShippingTownTile = has
+// GetFlightRange returns the current carpet flight range
+// Range 1 = can skip 1 hex (connect buildings 2 apart)
+// Range 2 = can skip 2 hexes (connect buildings 3 apart)
+// etc.
+func (f *Fakirs) GetFlightRange() int {
+	return f.flightRange
 }
 
-// HasShippingTownTile returns whether the Fakirs have acquired the Shipping town tile
-func (f *Fakirs) HasShippingTownTile() bool {
-	return f.hasShippingTownTile
+// IncrementFlightRange increases the flight range by 1 (e.g., from shipping town tile)
+func (f *Fakirs) IncrementFlightRange() {
+	f.flightRange++
 }
 
 // CanCarpetFlight returns whether Fakirs can use carpet flight

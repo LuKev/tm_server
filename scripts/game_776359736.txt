@@ -1,0 +1,780 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+Haruby selected the faction Witches on forest to play in position #1
+Arivor selected the faction Nomads on desert to play in position #2
+WoodMarco selected the faction Cultists on plains to play in position #3
+Mellus selected the faction Mermaids on lakes to play in position #4
+Haruby bids on the Witches with 40 Starting VPs
+Arivor bids on the Nomads with 40 Starting VPs
+WoodMarco bids on the Cultists with 40 Starting VPs
+Mellus bids on the Witches with 39 Starting VPs
+Haruby bids on the Witches with 38 Starting VPs
+Arivor has not been outbid for Faction Nomads and is skipped
+WoodMarco has not been outbid for Faction Cultists and is skipped
+Mellus bids on the Nomads with 39 Starting VPs
+Haruby has not been outbid for Faction Witches and is skipped
+Arivor bids on the Nomads with 38 Starting VPs
+WoodMarco has not been outbid for Faction Cultists and is skipped
+Mellus bids on the Cultists with 39 Starting VPs
+Haruby has not been outbid for Faction Witches and is skipped
+Arivor has not been outbid for Faction Nomads and is skipped
+WoodMarco bids on the Cultists with 38 Starting VPs
+Mellus bids on the Nomads with 37 Starting VPs
+Haruby has not been outbid for Faction Witches and is skipped
+Arivor bids on the Nomads with 36 Starting VPs
+WoodMarco has not been outbid for Faction Cultists and is skipped
+Mellus bids on the Mermaids with 40 Starting VPs
+~ The Factions auction is over ~
+Haruby is playing the Witches Faction (with 38 VP Starting VPs)
+Arivor is playing the Nomads Faction (with 36 VP Starting VPs)
+WoodMarco is playing the Cultists Faction (with 38 VP Starting VPs)
+Mellus is playing the Mermaids Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Haruby places a Dwelling [F4]
+Arivor places a Dwelling [F3]
+WoodMarco places a Dwelling [E6]
+Mellus places a Dwelling [D5]
+Mellus places a Dwelling [E4]
+WoodMarco places a Dwelling [F5]
+Arivor places a Dwelling [D3]
+Haruby places a Dwelling [C4]
+Arivor places a Dwelling [B4]
+Mellus chooses 1 Bonus card
+WoodMarco chooses 1 Bonus card
+Arivor chooses 1 Bonus card
+Haruby chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Haruby gets 4 workers 0 Priests 0 coins 3 power (Income)
+Arivor gets 4 workers 1 Priests 0 coins 0 power (Income)
+WoodMarco gets 3 workers 0 Priests 2 coins 0 power (Income)
+Mellus gets 3 workers 0 Priests 0 coins 3 power (Income)
+~ Action phase ~
+Haruby upgrades a Dwelling to a Trading house for 2 workers 3 coins [F4]
+Arivor gets 1 power via Structures [F4]
+WoodMarco gets 1 power via Structures [F4]
+Arivor sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+Arivor spends 4 power to get 1 spade(s) (Power action)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) [G2]
+Arivor builds a Dwelling for 1 workers 2 coins [G2]
+Arivor declines doing Conversions
+Haruby pays 1 VP and gets 2 power via Structures [G2]
+WoodMarco transforms a Terrain space swamp → plains for 1 spade(s) (Bonus card action) [E5]
+WoodMarco builds a Dwelling for 1 workers 2 coins [E5]
+WoodMarco declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+Mellus gets 1 power via Structures [E5]
+Arivor gets 1 power via Structures [E5]
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+WoodMarco gains 1 on the Cult of Fire track (Cultists ability)
+WoodMarco declines doing Conversions
+Mellus sacrificed 5 power in Bowl 2 to get 5 power from Bowl 2 to Bowl 3
+Mellus spends 6 power to get 2 spade(s) (Power action)
+Mellus transforms a Terrain space forest → lakes for 1 spade(s) [C3]
+Mellus transforms a Terrain space forest → lakes for 1 spade(s) [F2]
+Mellus builds a Dwelling for 1 workers 2 coins [C3]
+Mellus declines doing Conversions
+Haruby upgrades a Trading house to a Temple for 2 workers 5 coins [F4]
+Haruby gets 4 VP (Scoring tile bonus)
+Arivor pays 1 VP and gets 2 power via Structures [F4]
+WoodMarco gets 1 power via Structures [F4]
+Haruby takes a Favor tile
+Haruby gains 2 on the Cult of Air track (Favor tile) and earns 1 power
+Haruby declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+Arivor declines doing Conversions
+WoodMarco pays 1 VP and gets 2 power via Structures [F3]
+Haruby pays 1 VP and gets 2 power via Structures [F3]
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+WoodMarco declines doing Conversions
+Haruby pays 1 VP and gets 2 power via Structures [E6]
+Arivor pays 1 VP and gets 2 power via Structures [E6]
+WoodMarco gains 1 on the Cult of Fire track (Cultists ability) and earns 1 power
+WoodMarco declines doing Conversions
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [E4]
+Arivor gets 1 power via Structures [E4]
+WoodMarco gets 1 power via Structures [E4]
+Mellus declines doing Conversions
+Haruby spends 3 power to collect 1 Priests (Power action)
+Arivor sends a Priest to the Order of the Cult of Air. Forever!
+Arivor gains 3 on the Cult of Air track and earns 1 power
+Arivor declines doing Conversions
+WoodMarco upgrades a Trading house to a Temple for 2 workers 5 coins [E6]
+WoodMarco gets 4 VP (Scoring tile bonus)
+WoodMarco declines doing Conversions
+Arivor pays 1 VP and gets 2 power via Structures [E6]
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+~ You have enabled automatic acceptance of Power via Structures up to 3 power for 2 VP ~
+Haruby pays 1 VP and gets 2 power via Structures [E6]
+WoodMarco gains 1 on the Cult of Fire track (Cultists ability)
+WoodMarco takes a Favor tile
+WoodMarco gains 1 on the Cult of Earth track (Favor tile)
+WoodMarco declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+Mellus upgrades a Trading house to a Temple for 2 workers 5 coins [E4]
+Mellus gets 4 VP (Scoring tile bonus)
+Arivor gets 1 power via Structures [E4]
+WoodMarco gets 1 power via Structures [E4]
+Mellus takes a Favor tile
+Mellus gains 1 on the Cult of Fire track (Favor tile)
+Mellus declines doing Conversions
+Haruby advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Arivor sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Arivor spends 4 power to collect 2 workers (Power action)
+Arivor declines doing Conversions
+WoodMarco passes and becomes the first player for the next round
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco declines doing Conversions
+Mellus passes
+Mellus gets 3 VP (Bonus card)
+Mellus chooses 1 Bonus card
+Mellus declines doing Conversions
+Haruby builds a Dwelling for 1 workers 2 coins [G3]
+Arivor upgrades a Trading house to a Faction Stronghold for 4 workers 8 coins [F3]
+Arivor declines doing Conversions
+WoodMarco pays 2 VP and gets 3 power via Structures [F3]
+Haruby pays 1 VP and gets 2 power via Structures [F3]
+Haruby passes
+Haruby chooses 1 Bonus card and gets 1 coins
+Arivor transforms a Terrain space swamp → desert for free (Nomads Stronghold) [A8]
+Arivor declines building a Dwelling for now
+Arivor declines doing Conversions
+Arivor passes
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+~ Cleanup phase ~
+Arivor gets 2 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Haruby gets 3 workers 1 Priests 6 coins 4 power (Income)
+Arivor gets 4 workers 0 Priests 4 coins 2 power (Income)
+WoodMarco gets 3 workers 1 Priests 2 coins 0 power (Income)
+Mellus gets 3 workers 1 Priests 5 coins 0 power (Income)
+~ Action phase ~
+WoodMarco sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+WoodMarco spends 6 power to get 2 spade(s) (Power action)
+WoodMarco transforms a Terrain space desert → plains for 1 spade(s) [G4]
+WoodMarco transforms a Terrain space swamp → plains for 1 spade(s) [G5]
+WoodMarco builds a Dwelling for 1 workers 2 coins [G4]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Water. Forever!
+Mellus gains 3 on the Cult of Water track and earns 3 power
+Mellus declines doing Conversions
+Haruby spends 4 power to get 1 spade(s) (Power action)
+Haruby transforms a Terrain space mountains → forest for 1 spade(s) [C5]
+Haruby builds a Dwelling for 1 workers 2 coins [C5]
+Haruby gets 2 VP (Scoring tile bonus)
+Arivor builds a Dwelling for 1 workers 2 coins [A8]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+WoodMarco sends a Priest to the Order of the Cult of Fire. Forever!
+WoodMarco gains 3 on the Cult of Fire track and earns 4 power
+WoodMarco declines doing Conversions
+Mellus transforms a Terrain space swamp → lakes for 1 spade(s) (Bonus card action) [B3]
+Mellus builds a Dwelling for 1 workers 2 coins [B3]
+Mellus gets 2 VP (Scoring tile bonus)
+Mellus declines doing Conversions
+Haruby builds a Dwelling for 1 workers 2 coins [E9]
+Haruby gets 2 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [E9]
+Arivor transforms a Terrain space lakes → desert for free (Nomads Stronghold) [D2]
+Arivor builds a Dwelling for 1 workers 2 coins [D2]
+Arivor gets 2 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [G5]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins [F2]
+Mellus gets 2 VP (Scoring tile bonus)
+Mellus declines doing Conversions
+Haruby builds a Dwelling for 1 workers 2 coins [A10]
+Haruby gets 2 VP (Scoring tile bonus)
+Arivor gains 1 on the Cult of Air track (Bonus card action)
+Arivor declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [H7]
+WoodMarco gets 2 VP (Scoring tile bonus)
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins [H2]
+Mellus gets 2 VP (Scoring tile bonus)
+Mellus declines doing Conversions
+Haruby sends a Priest to the Order of the Cult of Earth. Forever!
+Haruby gains 3 on the Cult of Earth track and earns 1 power
+Haruby declines doing Conversions
+Arivor passes and becomes the first player for the next round
+Arivor chooses 1 Bonus card and gets 1 coins
+Arivor declines doing Conversions
+WoodMarco passes
+WoodMarco gets 5 VP (Bonus card)
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+Mellus passes
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus declines doing Conversions
+Haruby sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Haruby spends 4 power to collect 7 coins (Power action)
+Haruby passes
+Haruby chooses 1 Bonus card
+~ Cleanup phase ~
+WoodMarco gets 4 power (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Haruby gets 6 workers 1 Priests 2 coins 4 power (Income)
+Arivor gets 7 workers 0 Priests 0 coins 5 power (Income)
+WoodMarco gets 6 workers 1 Priests 4 coins 0 power (Income)
+Mellus gets 6 workers 1 Priests 3 coins 3 power (Income)
+~ Action phase ~
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor spends 4 power to collect 7 coins (Power action)
+Arivor declines doing Conversions
+WoodMarco sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+WoodMarco spends 6 power to get 2 spade(s) (Power action)
+WoodMarco transforms a Terrain space mountains → plains for 2 spade(s) + 3 workers → 3 spade(s) [E7]
+WoodMarco builds a Dwelling for 1 workers 2 coins [E7]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus gets 1 power via Structures [E7]
+Haruby pays 1 VP and gets 2 power via Structures [E7]
+WoodMarco gains 1 on the Cult of Air track (Cultists ability)
+WoodMarco declines doing Conversions
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [D5]
+Mellus gets 3 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [D5]
+Mellus declines doing Conversions
+Haruby transforms a Terrain space mountains → forest for 1 spade(s) (Bonus card action) [F6]
+Haruby builds a Dwelling for 1 workers 2 coins [F6]
+WoodMarco pays 1 VP and gets 2 power via Structures [F6]
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [B4]
+Arivor gets 3 VP (Scoring tile bonus)
+Haruby gets 1 power via Structures [B4]
+Arivor declines doing Conversions
+WoodMarco gains 1 on the Cult of Air track (Bonus card action)
+WoodMarco declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Fire. Forever!
+Mellus gains 2 on the Cult of Fire track and earns 1 power
+Mellus declines doing Conversions
+Haruby upgrades a Dwelling to a Trading house for 2 workers 3 coins [E9]
+Haruby gets 3 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [E9]
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [D3]
+Arivor gets 3 VP (Scoring tile bonus)
+Mellus pays 1 VP and gets 2 power via Structures [D3]
+Arivor declines doing Conversions
+WoodMarco sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+WoodMarco does some Conversions (spent: 2 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+WoodMarco upgrades a Temple to a Sanctuary for 4 workers 8 coins [E6]
+WoodMarco declines doing Conversions
+Arivor pays 2 VP and gets 3 power via Structures [E6]
+Haruby pays 1 VP and gets 2 power via Structures [E6]
+WoodMarco gains 1 on the Cult of Air track (Cultists ability) and earns 1 power
+WoodMarco takes a Favor tile
+WoodMarco gains 1 on the Cult of Water track (Favor tile)
+WoodMarco declines doing Conversions
+Mellus passes and becomes the first player for the next round
+Mellus gets 3 VP (Bonus card)
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus declines doing Conversions
+Haruby cancels their move
+Haruby passes
+Haruby chooses 1 Bonus card and gets 1 coins
+Arivor transforms a Terrain space plains → desert for free (Nomads Stronghold) [A7]
+Arivor builds a Dwelling for 1 workers 2 coins [A7]
+Arivor declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+Arivor gets 3 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+Haruby pays 1 VP and gets 2 power via Structures [G2]
+Arivor passes
+Arivor chooses 1 Bonus card and gets 2 coins
+Arivor declines doing Conversions
+~ Cleanup phase ~
+Mellus gets 1 spade(s) (Cult bonus)
+Mellus transforms a Terrain space swamp → lakes for 1 spade(s) [I2]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Haruby gets 6 workers 1 Priests 8 coins 5 power (Income)
+Arivor gets 4 workers 1 Priests 7 coins 5 power (Income)
+WoodMarco gets 7 workers 1 Priests 2 coins 0 power (Income)
+Mellus gets 5 workers 1 Priests 7 coins 1 power (Income)
+~ Action phase ~
+Mellus spends 3 power to build a Bridge (Power action) [F2-H2]
+Mellus declines doing Conversions
+Haruby spends 6 power to get 2 spade(s) (Power action)
+Haruby transforms a Terrain space swamp → forest for 2 spade(s) [B5]
+Haruby builds a Dwelling for 1 workers 2 coins [B5]
+Arivor gets 1 power via Structures [B5]
+Arivor Power gain via Structures is capped from 2 power to 1 power
+WoodMarco sends a Priest to the Order of the Cult of Air. Forever!
+WoodMarco gains 2 on the Cult of Air track and earns 2 power
+WoodMarco declines doing Conversions
+Arivor spends 4 power to get 1 spade(s) (Power action)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) [E3]
+Arivor builds a Dwelling for 1 workers 2 coins [E3]
+Arivor declines doing Conversions
+Mellus pays 2 VP and gets 3 power via Structures [E3]
+Mellus upgrades a Trading house to a Temple for 2 workers 5 coins [D5]
+WoodMarco gets 1 power via Structures [D5]
+Mellus takes a Favor tile
+Mellus gains 1 on the Cult of Water track (Favor tile)
+Mellus declines doing Conversions
+Haruby upgrades a Trading house to a Temple for 2 workers 5 coins [E9]
+WoodMarco gets 1 power via Structures [E9]
+Haruby takes a Favor tile
+Haruby gains 1 on the Cult of Water track (Favor tile)
+Haruby declines doing Conversions
+WoodMarco does some Conversions (spent: 0 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 1 coins)
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [G5]
+WoodMarco gets 3 VP (Scoring tile bonus)
+WoodMarco gets 3 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Haruby declines getting Power via Structures [G5]
+WoodMarco gains 1 power (Cultists ability)
+WoodMarco declines doing Conversions
+Arivor advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Arivor declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Fire. Forever!
+Mellus gains 2 on the Cult of Fire track and earns 2 power
+Mellus declines doing Conversions
+Haruby sends a Priest to the Order of the Cult of Air. Forever!
+Haruby gains 2 on the Cult of Air track and earns 2 power
+Haruby declines doing Conversions
+WoodMarco sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [E3]
+Arivor gets 3 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+Mellus pays 2 VP and gets 3 power via Structures [E3]
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [F2]
+Mellus gets 3 VP (Scoring tile bonus)
+Mellus gets 3 VP (Favor tile bonus)
+Arivor pays 1 VP and gets 2 power via Structures [F2]
+Mellus declines doing Conversions
+Haruby upgrades a Dwelling to a Trading house for 2 workers 3 coins [F6]
+Haruby gets 3 VP (Scoring tile bonus)
+Haruby gets 3 VP (Favor tile bonus)
+WoodMarco pays 2 VP and gets 3 power via Structures [F6]
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+WoodMarco gets 3 VP (Scoring tile bonus)
+WoodMarco gets 3 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus pays 1 VP and gets 2 power via Structures [E5]
+Arivor pays 2 VP and gets 3 power via Structures [E5]
+WoodMarco gains 1 on the Cult of Air track (Cultists ability)
+WoodMarco declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [I7]
+Arivor declines doing Conversions
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus passes and becomes the first player for the next round
+Mellus gets 3 VP (Bonus card)
+Mellus chooses 1 Bonus card and gets 1 coins
+Mellus declines doing Conversions
+Haruby transforms a Terrain space lakes → forest for 3 workers → 1 spade(s) [H4]
+Haruby builds a Dwelling for 1 workers 2 coins [H4]
+Arivor gets 1 power via Structures [H4]
+WoodMarco upgrades a Dwelling to a Trading house for 2 workers 3 coins [F5]
+WoodMarco gets 3 VP (Scoring tile bonus)
+WoodMarco gets 3 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Haruby pays 3 VP and gets 4 power via Structures [F5]
+WoodMarco gains 1 on the Cult of Air track (Cultists ability) and earns 2 power
+WoodMarco declines doing Conversions
+Arivor does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Arivor transforms a Terrain space forest → desert for free (Nomads Stronghold) [I6]
+Arivor builds a Dwelling for 1 workers 2 coins [I6]
+Arivor declines doing Conversions
+Haruby upgrades a Dwelling to a Trading house for 2 workers 3 coins [H4]
+Haruby gets 3 VP (Scoring tile bonus)
+Haruby gets 3 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [H4]
+WoodMarco transforms a Terrain space lakes → swamp for 1 spade(s) (Bonus card action) [G6]
+WoodMarco declines doing Conversions
+Arivor does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor passes
+Arivor chooses 1 Bonus card
+Arivor declines doing Conversions
+Haruby sends a Priest to the Order of the Cult of Air. Forever!
+Haruby gains 2 on the Cult of Air track and earns 2 power
+Haruby declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+WoodMarco does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+WoodMarco passes
+WoodMarco chooses 1 Bonus card
+WoodMarco declines doing Conversions
+Haruby passes
+Haruby chooses 1 Bonus card
+~ Cleanup phase ~
+Arivor gets 1 spade(s) (Cult bonus)
+WoodMarco gets 1 spade(s) (Cult bonus)
+Haruby gets 2 spade(s) (Cult bonus)
+Arivor transforms a Terrain space wasteland → desert for 1 spade(s) [A6]
+WoodMarco transforms a Terrain space swamp → plains for 1 spade(s) [G6]
+Haruby transforms a Terrain space wasteland → forest for 2 spade(s) [D7]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Haruby gets 6 workers 2 Priests 6 coins 6 power (Income)
+Arivor gets 6 workers 0 Priests 13 coins 6 power (Income)
+WoodMarco gets 4 workers 2 Priests 6 coins 4 power (Income)
+Mellus gets 4 workers 2 Priests 9 coins 1 power (Income)
+~ Action phase ~
+Mellus upgrades a Temple to a Sanctuary for 4 workers 8 coins [D5]
+Mellus gets 5 VP (Scoring tile bonus)
+WoodMarco gets 1 power via Structures [D5]
+Mellus takes a Favor tile
+Mellus gains 1 on the Cult of Earth track (Favor tile)
+Mellus declines doing Conversions
+Arivor spends 3 power to build a Bridge (Power action) [G2-I6]
+Arivor founds a Town [I7]
+Arivor advances on the Shipping Track for free and earns 3 VP (Town bonus)
+Arivor gets 4 VP (Town bonus)
+Arivor declines doing Conversions
+WoodMarco spends 4 power to collect 7 coins (Power action)
+WoodMarco declines doing Conversions
+Haruby does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Haruby upgrades a Temple to a Sanctuary for 4 workers 6 coins [F4]
+Haruby gets 5 VP (Scoring tile bonus)
+Arivor pays 4 VP and gets 5 power via Structures [F4]
+WoodMarco declines getting Power via Structures [F4]
+Haruby takes a Favor tile
+Haruby gains 1 on the Cult of Air track (Favor tile)
+Haruby declines doing Conversions
+Mellus spends 6 power to get 2 spade(s) (Power action)
+Mellus transforms a Terrain space mountains → lakes for 2 spade(s) [C2]
+Mellus builds a Dwelling for 1 workers 2 coins [C2]
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+Arivor upgrades a Trading house to a Temple for 2 workers 5 coins [D3]
+Mellus pays 1 VP and gets 2 power via Structures [D3]
+Arivor takes a Favor tile
+Arivor gains 1 on the Cult of Earth track (Favor tile)
+Arivor declines doing Conversions
+WoodMarco upgrades a Trading house to a Faction Stronghold for 4 workers 8 coins [E5]
+WoodMarco gets 5 VP (Scoring tile bonus)
+WoodMarco declines doing Conversions
+Arivor Power gain via Structures is capped from 3 power to 2 power
+Arivor pays 1 VP and gets 2 power via Structures [E5]
+Mellus pays 1 VP and gets 2 power via Structures [E5]
+WoodMarco gains 1 on the Cult of Air track (Cultists ability)
+WoodMarco gets 7 VP (Cultists Stronghold)
+WoodMarco founds a Town [E7]
+WoodMarco gains 2 on the Cult of Fire track
+WoodMarco gains 2 on the Cult of Air track and earns 3 power
+WoodMarco gains 2 on the Cult of Earth track and earns 1 power
+WoodMarco gains 2 on the Cult of Water track and earns 1 power
+WoodMarco gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+WoodMarco declines doing Conversions
+Haruby does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+Haruby passes and becomes the first player for the next round
+Haruby gets 3 VP (Favor tile bonus)
+Haruby chooses 1 Bonus card and gets 2 coins
+Mellus upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [F2]
+Mellus gets 5 VP (Scoring tile bonus)
+Arivor Power gain via Structures is capped from 2 power to 0 power
+Mellus advances on the Shipping Track for free and earns 2 VP (Mermaids Stronghold)
+Mellus declines doing Conversions
+Arivor cancels their move
+Arivor does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor upgrades a Temple to a Sanctuary for 4 workers 6 coins [D3]
+Arivor gets 5 VP (Scoring tile bonus)
+Mellus pays 1 VP and gets 2 power via Structures [D3]
+Arivor takes a Favor tile
+Arivor gains 1 on the Cult of Air track (Favor tile) and earns 2 power
+Arivor declines doing Conversions
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+WoodMarco declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Earth. Forever!
+Mellus gains 2 on the Cult of Earth track and earns 1 power
+Mellus declines doing Conversions
+Arivor cancels their move
+Arivor does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor spends 4 power to collect 2 workers (Power action)
+Arivor declines doing Conversions
+WoodMarco passes
+WoodMarco chooses 1 Bonus card and gets 1 coins
+WoodMarco does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus gains 1 on the Cult of Earth track (Bonus card action)
+Mellus declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [A6]
+Arivor gets 2 VP (Favor tile bonus)
+Mellus gets 1 power via Structures [A6]
+Arivor declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Earth. Forever!
+Mellus gains 2 on the Cult of Earth track and earns 2 power
+Mellus declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [A5]
+Arivor gets 2 VP (Favor tile bonus)
+Mellus gets 1 power via Structures [A5]
+Arivor declines doing Conversions
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus builds a Dwelling for 1 workers 2 coins [A4]
+Mellus gets 2 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [A4]
+Mellus declines doing Conversions
+Arivor does some Conversions (spent: 0 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor transforms a Terrain space plains → desert for free (Nomads Stronghold) [B2]
+Arivor declines building a Dwelling for now
+Arivor declines doing Conversions
+Mellus spends 3 power to collect 1 Priests (Power action)
+Mellus declines doing Conversions
+Arivor builds a Dwelling for 1 workers 2 coins [E8]
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+WoodMarco gets 1 power via Structures [E8]
+Mellus pays 2 VP and gets 3 power via Structures [E8]
+Mellus sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+Mellus gains 1 on the Cult of Earth track and earns 2 power
+Mellus declines doing Conversions
+Arivor passes
+Arivor gets 8 VP (Bonus card)
+Arivor gets 3 VP (Favor tile bonus)
+Arivor chooses 1 Bonus card and gets 2 coins
+Arivor declines doing Conversions
+Mellus passes
+Mellus chooses 1 Bonus card
+Mellus declines doing Conversions
+~ Cleanup phase ~
+Haruby gets 4 workers (Cult bonus)
+WoodMarco gets 5 workers (Cult bonus)
+Arivor gets 2 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Haruby gets 6 workers 2 Priests 4 coins 9 power (Income)
+Arivor gets 9 workers 1 Priests 7 coins 8 power (Income)
+WoodMarco gets 4 workers 1 Priests 10 coins 4 power (Income)
+Mellus gets 6 workers 2 Priests 5 coins 4 power (Income)
+~ Action phase ~
+Haruby spends 3 power to build a Bridge (Power action) [F4-G3]
+WoodMarco does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+WoodMarco builds a Dwelling for 1 workers 2 coins [G6]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Haruby declines getting Power via Structures [G6]
+WoodMarco gains 1 power (Cultists ability)
+WoodMarco founds a Town [G4]
+WoodMarco gains 1 on the Cult of Fire track and earns 3 power
+WoodMarco gains 1 on the Cult of Earth track and earns 2 power
+WoodMarco gains 1 on the Cult of Water track
+WoodMarco gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+WoodMarco gets 5 VP (Scoring tile bonus)
+WoodMarco does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Arivor spends 4 power to collect 7 coins (Power action)
+Arivor declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins [I2]
+Mellus gets 2 VP (Favor tile bonus)
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus founds a Town on a River space (Mermaids Ability) [R~F2]
+Mellus gains 1 on the Cult of Fire track
+Mellus gains 1 on the Cult of Air track
+Mellus gains 1 on the Cult of Earth track
+Mellus gains 1 on the Cult of Water track and earns 2 power
+Mellus gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+Mellus gets 5 VP (Scoring tile bonus)
+Mellus declines doing Conversions
+Haruby sends a Priest to the Order of the Cult of Earth. Forever!
+Haruby gains 2 on the Cult of Earth track and earns 2 power
+Haruby declines doing Conversions
+WoodMarco builds a Dwelling for 1 workers 2 coins [F7]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Haruby declines getting Power via Structures [F7]
+WoodMarco gains 1 power (Cultists ability)
+WoodMarco declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [A5]
+Mellus gets 1 power via Structures [A5]
+Mellus Power gain via Structures is capped from 2 power to 1 power
+Arivor founds a Town [A5]
+Arivor gets 11 VP (Town bonus)
+Arivor gets 5 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus upgrades a Dwelling to a Trading house for 2 workers 3 coins [B3]
+Mellus gets 3 VP (Favor tile bonus)
+Arivor pays 2 VP and gets 3 power via Structures [B3]
+Mellus founds a Town on a River space (Mermaids Ability) [R~C2]
+Mellus gets 5 VP and collects 6 coins (Town bonus)
+Mellus gets 5 VP (Scoring tile bonus)
+Mellus declines doing Conversions
+Haruby upgrades a Trading house to a Temple for 2 workers 5 coins [F6]
+WoodMarco gets 1 power via Structures [F6]
+WoodMarco Power gain via Structures is capped from 6 power to 1 power
+Haruby takes a Favor tile
+Haruby gains 2 on the Cult of Fire track (Favor tile)
+Haruby founds a Town [F4]
+Haruby gets 5 VP and collects 6 coins (Town bonus)
+Haruby gets 5 VP (Scoring tile bonus)
+Haruby gets 5 VP (Witches ability)
+Haruby declines doing Conversions
+WoodMarco spends 4 power to get 1 spade(s) (Power action)
+WoodMarco transforms a Terrain space swamp → plains for 1 spade(s) [E10]
+WoodMarco builds a Dwelling for 1 workers 2 coins [E10]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Haruby declines getting Power via Structures [E10]
+WoodMarco gains 1 power (Cultists ability)
+WoodMarco declines doing Conversions
+Arivor transforms a Terrain space plains → desert for free (Nomads Stronghold) [E2]
+Arivor builds a Dwelling for 1 workers 2 coins [E2]
+Arivor gets 2 VP (Favor tile bonus)
+Mellus pays 1 VP and gets 2 power via Structures [E2]
+Mellus Power gain via Structures is capped from 3 power to 2 power
+Arivor founds a Town [D2]
+Arivor gets 9 VP and collects 1 Priests (Town bonus)
+Arivor gets 5 VP (Scoring tile bonus)
+Arivor declines doing Conversions
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus spends 6 power to get 2 spade(s) (Power action)
+Mellus transforms a Terrain space forest → lakes for 1 spade(s) [A3]
+Mellus transforms a Terrain space swamp → lakes for 1 spade(s) [C1]
+Mellus builds a Dwelling for 1 workers 2 coins [A3]
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+Haruby does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Haruby builds a Dwelling for 1 workers 2 coins [D7]
+WoodMarco gets 1 power via Structures [D7]
+Haruby founds a Town [E9]
+Haruby gets 6 VP and gains 8 power (Town bonus)
+Haruby gets 5 VP (Scoring tile bonus)
+Haruby gets 5 VP (Witches ability)
+Haruby declines doing Conversions
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+WoodMarco declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Arivor sends a Priest to the Order of the Cult of Water. Forever!
+Arivor gains 2 on the Cult of Water track
+Arivor declines doing Conversions
+Mellus builds a Dwelling for 1 workers 2 coins [C1]
+Mellus gets 2 VP (Favor tile bonus)
+Mellus declines doing Conversions
+Arivor declines getting Power via Structures [C1]
+Haruby advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+WoodMarco advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+WoodMarco declines doing Conversions
+Arivor upgrades a Trading house to a Temple for 2 workers 5 coins [E3]
+Arivor declines doing Conversions
+Mellus declines getting Power via Structures [E3]
+Arivor takes a Favor tile
+Arivor gains 3 on the Cult of Water track (Favor tile) and earns 3 power
+Arivor declines doing Conversions
+Mellus sends a Priest to the Order of the Cult of Fire. Forever!
+Mellus gains 2 on the Cult of Fire track and earns 2 power
+Mellus declines doing Conversions
+Haruby transforms a Terrain space lakes → forest for 3 workers → 1 spade(s) [A11]
+Haruby builds a Dwelling for 1 workers 2 coins [A11]
+WoodMarco builds a Dwelling for 1 workers 2 coins [D8]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Haruby declines getting Power via Structures [D8]
+WoodMarco gains 1 power (Cultists ability)
+WoodMarco declines doing Conversions
+Arivor sends a Priest to the Order of the Cult of Water. Forever!
+Arivor gains 2 on the Cult of Water track and earns 2 power
+Arivor declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+Mellus advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+Mellus declines doing Conversions
+Haruby upgrades a Dwelling to a Trading house for 2 workers 3 coins [C4]
+Haruby gets 3 VP (Favor tile bonus)
+Arivor gets 1 power via Structures [C4]
+Arivor Power gain via Structures is capped from 2 power to 1 power
+WoodMarco builds a Dwelling for 1 workers 2 coins [H3]
+WoodMarco gets 2 VP (Favor tile bonus)
+WoodMarco declines doing Conversions
+Mellus gets 1 power via Structures [H3]
+WoodMarco gains 1 on the Cult of Earth track (Cultists ability)
+WoodMarco declines doing Conversions
+Arivor spends 3 power to collect 1 Priests (Power action)
+Arivor declines doing Conversions
+Mellus sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Mellus does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Mellus builds a Dwelling for 1 workers 2 coins [I4]
+Mellus gets 2 VP (Favor tile bonus)
+WoodMarco gets 1 power via Structures [I4]
+Mellus declines doing Conversions
+Haruby upgrades a Dwelling to a Trading house for 2 workers 3 coins [B5]
+Haruby gets 3 VP (Favor tile bonus)
+Arivor pays 1 VP and gets 2 power via Structures [B5]
+Haruby founds a Town [C4]
+Haruby advances on the Shipping Track for free and earns 4 VP (Town bonus)
+Haruby gets 4 VP (Town bonus)
+Haruby gets 5 VP (Scoring tile bonus)
+Haruby gets 5 VP (Witches ability)
+WoodMarco sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+WoodMarco does some Conversions (spent: 2 power 0 Priests 2 workers ; collects: 0 Priests  0 workers 4 coins)
+WoodMarco upgrades a Trading house to a Temple for 2 workers 5 coins [G5]
+WoodMarco declines doing Conversions
+Haruby Power gain via Structures is capped from 2 power to 1 power
+Haruby declines getting Power via Structures [G5]
+WoodMarco gains 1 power (Cultists ability)
+WoodMarco takes a Favor tile
+WoodMarco gains 3 on the Cult of Earth track (Favor tile) and earns 2 power
+WoodMarco declines doing Conversions
+Arivor upgrades a Dwelling to a Trading house for 2 workers 3 coins [D2]
+Mellus gets 1 power via Structures [D2]
+Arivor declines doing Conversions
+Mellus passes
+Mellus gets 8 VP (Bonus card)
+~ This is the last round. No new Bonus cards are taken. ~
+Haruby spends 4 power to collect 2 workers (Power action)
+WoodMarco passes
+Arivor builds a Dwelling for 1 workers 2 coins [B1]
+Arivor gets 2 VP (Favor tile bonus)
+Arivor declines doing Conversions
+Haruby does some Conversions (spent: 2 power 2 Priests 0 workers ; collects: 0 Priests  2 workers 2 coins)
+Haruby transforms a Terrain space lakes → forest for 3 workers → 1 spade(s) [I10]
+Haruby builds a Dwelling for 1 workers 2 coins [I10]
+WoodMarco gets 1 power via Structures [I10]
+Arivor sends a Priest to the Order of the Cult of Water. Forever!
+Arivor gains 2 on the Cult of Water track
+Arivor declines doing Conversions
+Haruby does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Haruby builds a Dwelling for 1 workers 2 coins [I11]
+WoodMarco Power gain via Structures is capped from 1 power to 0 power
+Arivor passes
+Arivor gets 4 VP (Favor tile bonus)
+Haruby passes
+Haruby gets 9 VP (Bonus card)
+Haruby gets 3 VP (Favor tile bonus)
+~ Final scoring ~
+WoodMarco scores 8 VP (Cult of Fire)
+Mellus scores 4 VP (Cult of Fire)
+Haruby scores 2 VP (Cult of Fire)
+Arivor scores 0 VP (Cult of Fire)
+Arivor scores 8 VP (Cult of Water)
+Mellus scores 4 VP (Cult of Water)
+WoodMarco scores 2 VP (Cult of Water)
+Haruby scores 0 VP (Cult of Water)
+WoodMarco scores 8 VP (Cult of Earth)
+Mellus scores 4 VP (Cult of Earth)
+Haruby scores 2 VP (Cult of Earth)
+Arivor scores 0 VP (Cult of Earth)
+WoodMarco scores 8 VP (Cult of Air)
+Haruby scores 4 VP (Cult of Air)
+Arivor scores 2 VP (Cult of Air)
+Mellus scores 0 VP (Cult of Air)
+Arivor scores 18 VP with 15 connected Structures (Area scoring)
+Haruby scores 12 VP with 13 connected Structures (Area scoring)
+WoodMarco scores 3 VP with 12 connected Structures (Area scoring)
+Mellus scores 3 VP with 12 connected Structures (Area scoring)
+Haruby converts 2 power into 2 coins
+Haruby scores 0 VP with 2 coins (Resource scoring)
+Arivor sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Arivor converts 3 power into 3 coins
+Arivor converts 3 workers into 3 coins
+Arivor scores 2 VP with 7 coins (Resource scoring)
+WoodMarco converts 2 power into 2 coins
+WoodMarco scores 0 VP with 2 coins (Resource scoring)
+Mellus sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Mellus converts 1 power into 1 coins
+Mellus scores 0 VP with 1 coins (Resource scoring)
+The end of the game: Haruby wins!

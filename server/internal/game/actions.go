@@ -1086,13 +1086,7 @@ func ValidateSkipAbility(gs *GameState, player *Player, targetHex board.Hex) err
 			return fmt.Errorf("fakirs cannot use carpet flight")
 		}
 		// Calculate skip range for Fakirs
-		skipRange := 1
-		if f.HasStronghold() {
-			skipRange++
-		}
-		if f.HasShippingTownTile() {
-			skipRange++
-		}
+		skipRange := f.GetFlightRange()
 		if !gs.Map.IsWithinSkipRange(targetHex, player.ID, skipRange) {
 			return fmt.Errorf("target hex is not within carpet flight range %d", skipRange)
 		}

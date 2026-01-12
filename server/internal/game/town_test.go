@@ -843,8 +843,8 @@ func TestTownFormation_FakirsTownTile4(t *testing.T) {
 
 	// Verify Fakirs specific bonus
 	fakirs := player.Faction.(*factions.Fakirs)
-	if !fakirs.HasShippingTownTile() {
-		t.Error("Fakirs should have shipping town tile flag set")
+	if fakirs.GetFlightRange() <= 1 {
+		t.Errorf("Fakirs should have increased flight range (expected > 1, got %d)", fakirs.GetFlightRange())
 	}
 
 	// Verify shipping level did NOT increase (Fakirs can't have shipping)
