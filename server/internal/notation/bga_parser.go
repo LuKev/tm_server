@@ -781,6 +781,19 @@ func (p *BGAParser) handleLeech(playerName, coordStr string, amount int, cost in
 			PowerAmount: amount,
 			VPCost:      cost,
 		}
+
+		// Check for duplicate (BGA sometimes logs leech twice)
+		if len(p.items) > 0 {
+			if lastItem, ok := p.items[len(p.items)-1].(ActionItem); ok {
+				if lastAction, ok := lastItem.Action.(*LogAcceptLeechAction); ok {
+					if lastAction.PlayerID == playerID && lastAction.PowerAmount == amount && lastAction.VPCost == cost {
+						// Duplicate, ignore
+						return
+					}
+				}
+			}
+		}
+
 		p.items = append(p.items, ActionItem{Action: action})
 	} else {
 		// For decline, we use the standard action (it's simpler) or we could make a LogDecline
@@ -789,6 +802,21 @@ func (p *BGAParser) handleLeech(playerName, coordStr string, amount int, cost in
 		// But wait, NewDeclinePowerLeechAction takes (playerID, amount).
 		// We have amount.
 		action := game.NewDeclinePowerLeechAction(playerID, amount)
+
+		// Check for duplicate (BGA sometimes logs leech twice)
+		if len(p.items) > 0 {
+			if lastItem, ok := p.items[len(p.items)-1].(ActionItem); ok {
+				if lastAction, ok := lastItem.Action.(*game.DeclinePowerLeechAction); ok {
+					// Note: In the parser, we pass 'amount' as the 'offerIndex' to NewDeclinePowerLeechAction
+					// This is a bit of a hack, but it means we check OfferIndex here.
+					if lastAction.PlayerID == playerID && lastAction.OfferIndex == amount {
+						// Duplicate, ignore
+						return
+					}
+				}
+			}
+		}
+
 		p.items = append(p.items, ActionItem{Action: action})
 	}
 }
