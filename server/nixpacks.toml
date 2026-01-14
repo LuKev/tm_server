@@ -1,3 +1,6 @@
+[phases.setup]
+nixPkgs = ["go", "python3"]
+
 [phases.build]
 cmds = ["go build -o out ./cmd/server"]
 

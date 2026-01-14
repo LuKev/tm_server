@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 	"github.com/lukev/tm_server/internal/api"
@@ -20,8 +21,12 @@ func main() {
 	// Create managers
 	gameMgr := game.NewManager()
 	lobbyMgr := lobby.NewManager()
-	// TODO: Make this configurable or relative to executable
-	replayMgr := replay.NewReplayManager("/Users/kevin/projects/tm_server/scripts")
+	// Get scripts directory from environment or default to relative path
+	scriptDir := os.Getenv("SCRIPTS_DIR")
+	if scriptDir == "" {
+		scriptDir = "./scripts"
+	}
+	replayMgr := replay.NewReplayManager(scriptDir)
 	replayHandler := api.NewReplayHandler(replayMgr)
 
 	deps := websocket.ServerDeps{
