@@ -182,6 +182,25 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 	return string(content), nil
 }
 
+// ImportLog imports a log from raw HTML content
+func (m *ReplayManager) ImportLog(gameID string, htmlContent string) error {
+	// Parse HTML to text
+	logContent, err := notation.ParseBGAHTML(htmlContent)
+	if err != nil {
+		return fmt.Errorf("failed to parse HTML: %w", err)
+	}
+
+	// Save to file
+	outputPath := filepath.Join(m.scriptDir, fmt.Sprintf("game_%s.txt", gameID))
+	if err := os.WriteFile(outputPath, []byte(logContent), 0644); err != nil {
+		return fmt.Errorf("failed to save log file: %w", err)
+	}
+
+	// Start replay (force restart)
+	_, err = m.StartReplay(gameID, true)
+	return err
+}
+
 // ProvideInfo updates the session with missing information
 func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error {
 	m.mu.Lock()

@@ -128,15 +128,35 @@ export const ImportGame: React.FC = () => {
                 </div>
 
                 <div className="import-game-info">
+                    <h3>Bookmarklet Import (Recommended)</h3>
+                    <p>Drag this button to your bookmarks bar:</p>
+                    <div className="bookmarklet-container">
+                        <a
+                            className="bookmarklet-button"
+                            href="javascript:(function(){var logs=document.getElementById('gamelogs');if(!logs){alert('No game logs found! Are you on a BGA game page?');return;}var html=logs.innerHTML;var gameId=window.location.search.match(/table=(\d+)/);if(!gameId){alert('Could not find game ID in URL');return;}gameId=gameId[1];var btn=document.createElement('div');btn.style.cssText='position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);padding:20px;background:white;border:2px solid black;z-index:9999;font-size:20px;box-shadow:0 0 10px rgba(0,0,0,0.5);border-radius:8px;';btn.innerText='Importing to Kezilu...';document.body.appendChild(btn);fetch('https://kezilu.com/api/replay/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gameId:gameId,html:html})}).then(r=>{if(!r.ok)return r.text().then(t=>{throw new Error(t)});return r.json()}).then(d=>{window.location.href='https://kezilu.com/tm/replay/'+gameId}).catch(e=>{btn.innerText='Error: '+e;btn.style.color='red';setTimeout(()=>btn.remove(),5000)});})();"
+                            onClick={(e) => e.preventDefault()}
+                            title="Drag to bookmarks bar"
+                        >
+                            Import to Kezilu
+                        </a>
+                    </div>
+                    <p className="bookmarklet-instructions">
+                        <strong>How to use:</strong>
+                        <ol>
+                            <li>Drag the button above to your browser's bookmarks bar.</li>
+                            <li>Go to a Terra Mystica game on Board Game Arena.</li>
+                            <li>Click the bookmark.</li>
+                        </ol>
+                    </p>
+                </div>
+
+                <div className="import-game-info">
                     <h3>Supported Sources</h3>
                     <ul>
-                        <li><strong>Board Game Arena</strong> - Paste the game URL or table ID</li>
+                        <li><strong>Bookmarklet</strong> - Best for importing directly from BGA</li>
+                        <li><strong>Paste URL</strong> - Works if you are running the server locally (requires login)</li>
                         <li><strong>Local</strong> - Uses the test file in the server</li>
                     </ul>
-                    <p className="import-game-note">
-                        Note: The first time you import a BGA game, a browser window may open for you to log in.
-                        Your session will be saved for future imports.
-                    </p>
                 </div>
             </div>
         </div>

@@ -204,3 +204,43 @@
     margin-top: 1rem;
     font-style: italic;
 }
+
+.bookmarklet-container {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0;
+}
+
+.bookmarklet-button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background: #e2e8f0;
+    color: #1e293b;
+    border: 2px dashed #94a3b8;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.bookmarklet-button:hover {
+    background: #f1f5f9;
+    border-color: #64748b;
+    transform: scale(1.02);
+}
+
+.bookmarklet-button:active {
+    cursor: grabbing;
+}
+
+.bookmarklet-instructions ol {
+    margin: 0.5rem 0 0 1.5rem;
+    padding: 0;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+}
+
+.bookmarklet-instructions li {
+    padding: 0.2rem 0;
+}
