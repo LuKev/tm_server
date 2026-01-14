@@ -1,0 +1,18 @@
+# Caddyfile for serving the frontend at /tm base path
+:8080 {
+    root * /app/dist
+    
+    # Handle requests starting with /tm
+    @tm path /tm /tm/*
+    handle @tm {
+        # Strip /tm prefix and serve from root
+        uri strip_prefix /tm
+        try_files {path} /index.html
+        file_server
+    }
+    
+    # Fallback for any other requests
+    handle {
+        respond "Not Found" 404
+    }
+}
