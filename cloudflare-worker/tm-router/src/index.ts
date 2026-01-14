@@ -25,9 +25,9 @@ export default {
 		}
 
 		// Route /api/* to the TM server (backend)
+		// Backend expects /api/... paths, so we forward the path as-is
 		if (path.startsWith('/api')) {
-			const newPath = path.replace(/^\/api/, '');
-			const targetUrl = `https://tm-server-production.up.railway.app${newPath}${url.search}`;
+			const targetUrl = `https://tm-server-production.up.railway.app${path}${url.search}`;
 
 			const response = await fetch(targetUrl, {
 				method: request.method,
