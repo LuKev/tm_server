@@ -22,6 +22,7 @@ func (h *ReplayHandler) RegisterRoutes(router *mux.Router) {
 	s := router.PathPrefix("/api/replay").Subrouter()
 	s.HandleFunc("/start", h.handleStart).Methods("POST")
 	s.HandleFunc("/import", h.handleImport).Methods("POST")
+	s.HandleFunc("/import_form", h.handleImportForm).Methods("POST")
 	s.HandleFunc("/next", h.handleNext).Methods("POST")
 	s.HandleFunc("/jump", h.handleJump).Methods("POST")
 	s.HandleFunc("/state", h.handleState).Methods("GET")
@@ -261,4 +262,34 @@ func (h *ReplayHandler) handleImport(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+func (h *ReplayHandler) handleImportForm(w http.ResponseWriter, r *http.Request) {
+	// Increase max body size for large HTML logs
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024) // 10MB limit
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Failed to parse form: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	gameID := r.FormValue("gameId")
+	htmlContent := r.FormValue("html")
+
+	if gameID == "" || htmlContent == "" {
+		http.Error(w, "missing gameId or html", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("handleImportForm called for game %s\n", gameID)
+
+	if err := h.manager.ImportLog(gameID, htmlContent); err != nil {
+		fmt.Printf("ImportLog failed: %v\n", err)
+		http.Error(w, "Import failed: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Redirect to the replay page
+	// Note: We use /tm/replay/ because that's the frontend route
+	http.Redirect(w, r, "/tm/replay/"+gameID, http.StatusSeeOther)
 }
