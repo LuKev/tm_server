@@ -129,27 +129,27 @@ export const ImportGame: React.FC = () => {
 
                 <div className="import-game-info">
                     <h3>Bookmarklet Import (Recommended)</h3>
-                    <p>Drag this button to your bookmarks bar:</p>
-                    <div className="bookmarklet-container">
-                        <a
-                            className="bookmarklet-button"
-                            href="javascript:(function(){var logs=document.getElementById('gamelogs');if(!logs){alert('No game logs found! Are you on a BGA game page?');return;}var html=logs.innerHTML;var gameId=window.location.search.match(/table=(\d+)/);if(!gameId){alert('Could not find game ID in URL');return;}gameId=gameId[1];var form=document.createElement('form');form.method='POST';form.action='https://kezilu.com/api/replay/import_form';var i1=document.createElement('input');i1.type='hidden';i1.name='gameId';i1.value=gameId;form.appendChild(i1);var i2=document.createElement('input');i2.type='hidden';i2.name='html';i2.value=html;form.appendChild(i2);document.body.appendChild(form);form.submit();})();"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                alert('Do not click this button here!\n\n1. Drag this button to your Bookmarks Bar.\n2. Go to Board Game Arena.\n3. Click the bookmark there.');
-                            }}
-                            title="Drag to bookmarks bar"
-                        >
-                            Import to Kezilu
-                        </a>
-                    </div>
+                    <p>Copy the code below and save it as a bookmark:</p>
+                    <textarea 
+                        className="bookmarklet-code"
+                        readOnly
+                        value="javascript:(function(){var logs=document.getElementById('gamelogs');if(!logs){alert('No game logs found! Are you on a BGA game page?');return;}var html=logs.innerHTML;var gameId=window.location.search.match(/table=(\\d+)/);if(!gameId){alert('Could not find game ID in URL');return;}gameId=gameId[1];var form=document.createElement('form');form.method='POST';form.action='https://kezilu.com/api/replay/import_form';var i1=document.createElement('input');i1.type='hidden';i1.name='gameId';i1.value=gameId;form.appendChild(i1);var i2=document.createElement('input');i2.type='hidden';i2.name='html';i2.value=html;form.appendChild(i2);document.body.appendChild(form);form.submit();})();"
+                        onClick={(e) => {
+                            const target = e.target as HTMLTextAreaElement;
+                            target.select();
+                            void navigator.clipboard.writeText(target.value);
+                        }}
+                    />
                     <p className="bookmarklet-instructions">
-                        <strong>How to use:</strong>
+                        <strong>How to install:</strong>
                         <ol>
-                            <li>Drag the button above to your browser's bookmarks bar.</li>
-                            <li>Go to a Terra Mystica game on Board Game Arena.</li>
-                            <li>Click the bookmark.</li>
+                            <li>Click the code above to copy it.</li>
+                            <li>Create a new bookmark in your browser (Ctrl/Cmd+D or right-click bookmarks bar).</li>
+                            <li>Name it "Import to Kezilu".</li>
+                            <li>Paste the code into the URL/Location field.</li>
+                            <li>Save the bookmark.</li>
                         </ol>
+                        <strong>To use:</strong> Go to any Terra Mystica game on Board Game Arena and click the bookmark.
                     </p>
                 </div>
 

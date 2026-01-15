@@ -211,27 +211,30 @@
     margin: 1rem 0;
 }
 
-.bookmarklet-button {
-    display: inline-block;
-    padding: 0.75rem 1.5rem;
-    background: #e2e8f0;
-    color: #1e293b;
-    border: 2px dashed #94a3b8;
+.bookmarklet-code {
+    width: 100%;
+    min-height: 80px;
+    padding: 0.75rem;
+    background: rgba(15, 23, 42, 0.8);
+    color: #cbd5e1;
+    border: 1px solid rgba(148, 163, 184, 0.3);
     border-radius: 0.5rem;
-    font-weight: 600;
-    text-decoration: none;
-    cursor: grab;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    resize: vertical;
+    cursor: pointer;
     transition: all 0.2s;
 }
 
-.bookmarklet-button:hover {
-    background: #f1f5f9;
+.bookmarklet-code:hover {
+    background: rgba(15, 23, 42, 0.9);
     border-color: #64748b;
-    transform: scale(1.02);
 }
 
-.bookmarklet-button:active {
-    cursor: grabbing;
+.bookmarklet-code:focus {
+    outline: none;
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
 }
 
 .bookmarklet-instructions ol {
