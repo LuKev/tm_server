@@ -264,7 +264,7 @@ export function Lobby(): React.ReactElement {
         {/* Info Footer */}
         <div className="mt-6 text-center text-sm text-gray-400">
           <p>Phase 2: Lobby wired to server (list/create/join)</p>
-          <p className="mt-1">Server running on ws://localhost:8080/ws</p>
+          <p className="mt-1">Server connected</p>
         </div>
       </div>
     </div>

@@ -42,7 +42,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
 
     setConnectionStatus('connecting')
-    const ws = new WebSocket('ws://localhost:8080/ws')
+    // Use secure WebSocket (wss) if on https, otherwise ws
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host; // This will be kezilu.com in production
+    // Connect to /api/ws which Cloudflare routes to the backend
+    const wsUrl = `${protocol}//${host}/api/ws`;
+
+    console.log(`Connecting to WebSocket at ${wsUrl}`);
+    const ws = new WebSocket(wsUrl);
 
     ws.onopen = () => {
       // console.log('WebSocket connected')
