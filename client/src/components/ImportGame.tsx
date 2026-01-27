@@ -130,10 +130,10 @@ export const ImportGame: React.FC = () => {
                 <div className="import-game-info">
                     <h3>Bookmarklet Import (Recommended)</h3>
                     <p>Copy the code below and save it as a bookmark:</p>
-                    <textarea 
+                    <textarea
                         className="bookmarklet-code"
                         readOnly
-                        value="javascript:(function(){var logs=document.getElementById('gamelogs');if(!logs){alert('No game logs found! Are you on a BGA game page?');return;}var html=logs.innerHTML;var gameId=window.location.search.match(/table=(\\d+)/);if(!gameId){alert('Could not find game ID in URL');return;}gameId=gameId[1];var form=document.createElement('form');form.method='POST';form.action='https://kezilu.com/api/replay/import_form';var i1=document.createElement('input');i1.type='hidden';i1.name='gameId';i1.value=gameId;form.appendChild(i1);var i2=document.createElement('input');i2.type='hidden';i2.name='html';i2.value=html;form.appendChild(i2);document.body.appendChild(form);form.submit();})();"
+                        value={"javascript:(function(){var logs=document.getElementById('gamelogs')||document.getElementById('logs');if(!logs){alert('No game logs found!\\n\\nMake sure you are on the Game Review page:\\nhttps://boardgamearena.com/gamereview?table=YOUR_TABLE_ID\\n\\n(Not the /table page)');return;}var html=logs.innerHTML;var m=window.location.href.match(/table[=/](\\d+)/);if(!m){alert('Could not find game ID in URL');return;}var gameId=m[1];var form=document.createElement('form');form.method='POST';form.action='https://kezilu.com/api/replay/import_form';var i1=document.createElement('input');i1.type='hidden';i1.name='gameId';i1.value=gameId;form.appendChild(i1);var i2=document.createElement('input');i2.type='hidden';i2.name='html';i2.value=html;form.appendChild(i2);document.body.appendChild(form);form.submit();})();"}
                         onClick={(e) => {
                             const target = e.target as HTMLTextAreaElement;
                             target.select();
@@ -149,7 +149,10 @@ export const ImportGame: React.FC = () => {
                             <li>Paste the code into the URL/Location field.</li>
                             <li>Save the bookmark.</li>
                         </ol>
-                        <strong>To use:</strong> Go to any Terra Mystica game on Board Game Arena and click the bookmark.
+                        <strong>To use:</strong> Go to the <strong>Game Review</strong> page on Board Game Arena
+                        (URL should look like: <code>boardgamearena.com/gamereview?table=XXX</code>) and click the bookmark.
+                        <br /><br />
+                        <em>Note: This works on the Game Review page, not the live game page (/table).</em>
                     </p>
                 </div>
 
