@@ -38,7 +38,7 @@ func main() {
 	router := mux.NewRouter()
 
 	// WebSocket endpoint
-	router.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/api/ws", func(w http.ResponseWriter, r *http.Request) {
 		websocket.ServeWs(hub, deps, w, r)
 	})
 

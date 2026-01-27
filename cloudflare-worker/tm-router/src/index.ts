@@ -26,14 +26,20 @@ export default {
 		}
 
 		// Route /api/* to the TM server (backend)
-		// Backend expects /api/... paths, so we forward the path as-is
 		if (path.startsWith('/api')) {
 			const targetUrl = `https://tm-server-production.up.railway.app${path}${url.search}`;
+			console.log(`Forwarding API request to: ${targetUrl}`);
+
+			// Special handling for WebSockets
+			if (request.headers.get('Upgrade') === 'websocket') {
+				return fetch(targetUrl, request);
+			}
 
 			const response = await fetch(targetUrl, {
 				method: request.method,
 				headers: request.headers,
 				body: request.body,
+				redirect: 'manual', // Don't follow redirects, let the browser handle them
 			});
 
 			return new Response(response.body, {
@@ -48,16 +54,16 @@ export default {
 			`<!DOCTYPE html>
 <html>
 <head>
-  <title>kezilu.com</title>
+  <title>kezilu.com - Worker Default</title>
   <style>
-    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; }
+    body { font-family: system-ui, sans-serif; max-width: 600px; margin: 100px auto; padding: 20px; background: #f0f0f0; }
     h1 { color: #333; }
     a { color: #0066cc; }
     ul { line-height: 2; }
   </style>
 </head>
 <body>
-  <h1>Welcome to kezilu.com</h1>
+  <h1>kezilu.com - Worker Default</h1>
   <p>Available apps:</p>
   <ul>
     <li><a href="/tm/replay">Terra Mystica Log Replayer</a></li>
