@@ -82,6 +82,8 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reCMDoubleTurn := regexp.MustCompile(`(.*) takes a double-turn \(Chaos Magicians Stronghold\)`)
 	reHalflingsSpades := regexp.MustCompile(`(.*) gets 3 Spades to Transform and Build \(Halflings Stronghold\)`)
 
+	reConversionLine := regexp.MustCompile(`(.*) does some Conversions \(spent: (.*); collects: (.*)\)`)
+
 	rePass := regexp.MustCompile(`(.*) passes`)
 	rePriest := regexp.MustCompile(`(.*) sends a Priest to the Order of the Cult of (.*)\. Forever!`)
 	reShipping := regexp.MustCompile(`(.*) advances on the Shipping track`)
@@ -497,6 +499,16 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerName := matches[1]
 			// fmt.Printf("Matched Exchange Track (Digging): %s\n", playerName)
 			p.handleAdvanceDigging(playerName)
+
+		} else if matches := reConversionLine.FindStringSubmatch(line); len(matches) > 3 {
+			// Single-line Conversion:
+			// Player does some Conversions (spent: X; collects: Y)
+			playerName := matches[1]
+			spentStr := matches[2]
+			collectsStr := matches[3]
+
+			// fmt.Printf("Matched Conversion: %s spent %s collects %s\n", playerName, spentStr, collectsStr)
+			p.handleConversionLine(playerName, spentStr, collectsStr)
 
 		} else if matches := reDeclineLeech.FindStringSubmatch(line); len(matches) > 2 {
 			// fmt.Printf("Matched Decline Leech: %s\n", line)
@@ -1764,4 +1776,53 @@ func (p *BGAParser) checkForCultistAbility(playerID string) string {
 		}
 	}
 	return ""
+}
+
+func (p *BGAParser) handleConversionLine(playerName, spentStr, collectsStr string) {
+	playerID := p.getPlayerID(playerName)
+
+	cost := p.parseResources(spentStr)
+	reward := p.parseResources(collectsStr)
+
+	action := &LogConversionAction{
+		PlayerID: playerID,
+		Cost:     cost,
+		Reward:   reward,
+	}
+
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) parseResources(str string) map[models.ResourceType]int {
+	res := make(map[models.ResourceType]int)
+
+	// Units: power, workers, Priests, coins, VP, spade(s)
+	// Note: ParseBGAHTML normalizes these
+
+	re := regexp.MustCompile(`(\d+)\s+([a-zA-Z\(\)]+)`)
+	matches := re.FindAllStringSubmatch(str, -1)
+
+	for _, match := range matches {
+		amount, _ := strconv.Atoi(match[1])
+		unit := strings.ToLower(match[2])
+
+		if amount == 0 {
+			continue
+		}
+
+		switch unit {
+		case "power":
+			res[models.ResourcePower] += amount
+		case "worker", "workers":
+			res[models.ResourceWorker] += amount
+		case "priest", "priests":
+			res[models.ResourcePriest] += amount
+		case "coin", "coins":
+			res[models.ResourceCoin] += amount
+		case "vp":
+			res[models.ResourceVictoryPoint] += amount
+		}
+	}
+
+	return res
 }
