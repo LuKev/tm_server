@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "start": "npx serve dist -s -p $PORT",
+    "build": "tsc -b && vite build && cp serve.json dist/",
+    "start": "npx serve dist -c serve.json -p $PORT",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "type-check": "tsc -b --noEmit",
