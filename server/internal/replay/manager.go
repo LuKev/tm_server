@@ -190,7 +190,10 @@ func (m *ReplayManager) ImportLog(gameID string, htmlContent string) error {
 		return fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
-	// Save to file
+	// Save to file (create directory if needed)
+	if err := os.MkdirAll(m.scriptDir, 0755); err != nil {
+		return fmt.Errorf("failed to create scripts directory: %w", err)
+	}
 	outputPath := filepath.Join(m.scriptDir, fmt.Sprintf("game_%s.txt", gameID))
 	if err := os.WriteFile(outputPath, []byte(logContent), 0644); err != nil {
 		return fmt.Errorf("failed to save log file: %w", err)

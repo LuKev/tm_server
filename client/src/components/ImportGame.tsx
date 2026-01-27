@@ -67,9 +67,6 @@ export const ImportGame: React.FC = () => {
         }
     };
 
-    const handleLocalGame = (): void => {
-        void navigate('/replay/local');
-    };
 
     const handleKeyDown = (e: React.KeyboardEvent): void => {
         if (e.key === 'Enter' && importStatus.status !== 'loading') {
@@ -113,19 +110,7 @@ export const ImportGame: React.FC = () => {
                     </div>
                 )}
 
-                <div className="import-game-divider">
-                    <span>or</span>
-                </div>
 
-                <div className="import-game-section">
-                    <button
-                        className="import-game-button secondary"
-                        onClick={handleLocalGame}
-                        disabled={importStatus.status === 'loading'}
-                    >
-                        Load Local Test Game
-                    </button>
-                </div>
 
                 <div className="import-game-info">
                     <h3>Bookmarklet Import (Recommended)</h3>
@@ -159,9 +144,8 @@ export const ImportGame: React.FC = () => {
                 <div className="import-game-info">
                     <h3>Supported Sources</h3>
                     <ul>
-                        <li><strong>Bookmarklet</strong> - Best for importing directly from BGA</li>
+                        <li><strong>Bookmarklet</strong> - Best for importing directly from BGA (recommended)</li>
                         <li><strong>Paste URL</strong> - Works if you are running the server locally (requires login)</li>
-                        <li><strong>Local</strong> - Uses the test file in the server</li>
                     </ul>
                 </div>
             </div>
