@@ -118,12 +118,6 @@ func (f *Fakirs) IncrementFlightRange() {
 	f.flightRange++
 }
 
-// CanCarpetFlight returns whether Fakirs can use carpet flight
-// Carpet flight is always available for Fakirs (it's their core ability)
-func (f *Fakirs) CanCarpetFlight() bool {
-	return true
-}
-
 // Income methods (Fakirs-specific)
 
 // GetStrongholdIncome returns the income for the stronghold

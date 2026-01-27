@@ -97,21 +97,6 @@ func TestFakirs_MaxDiggingLevel(t *testing.T) {
 	}
 }
 
-func TestFakirs_CanCarpetFlight(t *testing.T) {
-	fakirs := NewFakirs()
-
-	// Fakirs can always use carpet flight
-	if !fakirs.CanCarpetFlight() {
-		t.Errorf("Fakirs should always be able to use carpet flight")
-	}
-
-	// Even after building stronghold
-	fakirs.BuildStronghold()
-	if !fakirs.CanCarpetFlight() {
-		t.Errorf("Fakirs should still be able to use carpet flight after stronghold")
-	}
-}
-
 func TestFakirs_HasStronghold(t *testing.T) {
 	fakirs := NewFakirs()
 

@@ -1082,9 +1082,6 @@ func ValidateSkipAbility(gs *GameState, player *Player, targetHex board.Hex) err
 	// This function also checks for resource costs but does not deduct them.
 	switch f := player.Faction.(type) {
 	case *factions.Fakirs:
-		if !f.CanCarpetFlight() {
-			return fmt.Errorf("fakirs cannot use carpet flight")
-		}
 		// Calculate skip range for Fakirs
 		skipRange := f.GetFlightRange()
 		if !gs.Map.IsWithinSkipRange(targetHex, player.ID, skipRange) {
@@ -1095,9 +1092,6 @@ func ValidateSkipAbility(gs *GameState, player *Player, targetHex board.Hex) err
 			return fmt.Errorf("not enough priests for carpet flight: need 1, have %d", player.Resources.Priests)
 		}
 	case *factions.Dwarves:
-		if !f.CanTunnel() {
-			return fmt.Errorf("dwarves cannot tunnel")
-		}
 		// Dwarves can tunnel 1 space
 		if !gs.Map.IsWithinSkipRange(targetHex, player.ID, 1) {
 			return fmt.Errorf("target hex is not within tunneling range 1")

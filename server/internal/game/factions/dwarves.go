@@ -65,12 +65,6 @@ func (f *Dwarves) HasStronghold() bool {
 	return f.hasStronghold
 }
 
-// CanTunnel returns whether Dwarves can use tunneling
-// Tunneling is always available for Dwarves (it's their core ability)
-func (f *Dwarves) CanTunnel() bool {
-	return true
-}
-
 // Income methods (Dwarves-specific)
 
 // GetTradingHouseIncome returns the income for trading houses

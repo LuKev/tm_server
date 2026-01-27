@@ -49,21 +49,6 @@ func TestDwarves_CannotUpgradeShipping(t *testing.T) {
 	}
 }
 
-func TestDwarves_CanTunnel(t *testing.T) {
-	dwarves := NewDwarves()
-
-	// Dwarves can always tunnel
-	if !dwarves.CanTunnel() {
-		t.Errorf("Dwarves should always be able to tunnel")
-	}
-
-	// Even after building stronghold
-	dwarves.BuildStronghold()
-	if !dwarves.CanTunnel() {
-		t.Errorf("Dwarves should still be able to tunnel after stronghold")
-	}
-}
-
 func TestDwarves_HasStronghold(t *testing.T) {
 	dwarves := NewDwarves()
 
