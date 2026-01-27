@@ -1,0 +1,652 @@
+Assigning faction Halflings on plains to play in position #1
+Assigning faction Chaos Magicians on wasteland to play in position #2
+Assigning faction Engineers on mountains to play in position #3
+Assigning faction Mermaids on lakes to play in position #4
+Game board: Base Game
+Mini-expansions: Off
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+Squillard is playing the Cultists Faction (with 15 VP Starting VPs)
+manwemx is playing the Chaos Magicians Faction (with 20 VP Starting VPs)
+bassano is playing the Dwarves Faction (with 20 VP Starting VPs)
+gamerdad is playing the Swarmlings Faction (with 20 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Squillard places a Dwelling [E6]
+bassano places a Dwelling [E7]
+gamerdad places a Dwelling [D2]
+gamerdad places a Dwelling [G6]
+bassano places a Dwelling [F6]
+Squillard places a Dwelling [F7]
+manwemx places a Dwelling [D4]
+gamerdad chooses 1 Bonus card
+bassano chooses 1 Bonus card
+manwemx chooses 1 Bonus card
+Squillard chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Squillard gets 3 workers 0 Priests 4 coins 0 power (Income)
+manwemx gets 3 workers 0 Priests 0 coins 0 power (Income)
+bassano gets 4 workers 0 Priests 0 coins 3 power (Income)
+gamerdad gets 4 workers 0 Priests 2 coins 0 power (Income)
+~ Action phase ~
+Squillard transforms a Terrain space swamp → plains for 3 workers → 1 spade(s) [E10]
+Squillard builds a Dwelling for 1 workers 2 coins [E10]
+Squillard gets 2 VP (Scoring tile bonus)
+bassano declines getting Power via Structures [E10]
+Squillard gains 1 power (Cultists ability)
+Squillard declines doing Conversions
+manwemx upgrades a Dwelling to a Trading house for 2 workers 3 coins [D4]
+Squillard gets 1 power via Structures [D4]
+bassano gets 1 power via Structures [D4]
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [E7]
+bassano declines doing Conversions
+Squillard gets 1 power via Structures [E7]
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+manwemx pays 1 VP and gets 2 power via Structures [E7]
+gamerdad upgrades a Dwelling to a Trading house for 3 workers 4 coins [G6]
+Squillard gets 1 power via Structures [G6]
+bassano gets 1 power via Structures [G6]
+gamerdad declines doing Conversions
+Squillard upgrades a Dwelling to a Trading house for 2 workers 3 coins [F7]
+bassano gets 1 power via Structures [F7]
+gamerdad pays 1 VP and gets 2 power via Structures [F7]
+Squillard gains 1 on the Cult of Fire track (Cultists ability)
+manwemx upgrades a Trading house to a Temple for 2 workers 5 coins [D4]
+Squillard gets 1 power via Structures [D4]
+bassano pays 1 VP and gets 2 power via Structures [D4]
+manwemx takes a Favor tile
+manwemx gains 2 on the Cult of Earth track (Favor tile)
+manwemx takes another Favor tile (Chaos Magicians ability)
+manwemx takes a Favor tile
+manwemx gains 2 on the Cult of Water track (Favor tile)
+manwemx declines doing Conversions
+bassano sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+bassano spends 6 power to get 2 spade(s) (Power action)
+bassano transforms a Terrain space forest → mountains for 1 spade(s) [F4]
+bassano transforms a Terrain space forest → mountains for 1 spade(s) [E9]
+bassano builds a Dwelling for 1 workers 2 coins [E9]
+bassano gets 2 VP (Scoring tile bonus)
+Squillard gets 1 power via Structures [E9]
+bassano declines doing Conversions
+gamerdad upgrades a Trading house to a Faction Stronghold for 5 workers 8 coins [G6]
+gamerdad declines doing Conversions
+bassano gets 1 power via Structures [G6]
+Squillard pays 1 VP and gets 2 power via Structures [G6]
+Squillard gains 1 on the Cult of Fire track (Bonus card action) and earns 1 power
+Squillard declines doing Conversions
+manwemx gains 1 on the Cult of Water track (Favor tile action) and earns 1 power
+manwemx declines doing Conversions
+bassano upgrades a Trading house to a Temple for 2 workers 5 coins [E7]
+bassano declines doing Conversions
+Squillard gets 1 power via Structures [E7]
+manwemx pays 1 VP and gets 2 power via Structures [E7]
+bassano takes a Favor tile
+bassano gains 2 on the Cult of Earth track (Favor tile) and earns 1 power
+bassano declines doing Conversions
+gamerdad sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+gamerdad spends 4 power to collect 2 workers (Power action)
+gamerdad declines doing Conversions
+Squillard spends 3 power to collect 1 Priests (Power action)
+manwemx sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+manwemx spends 3 power to build a Bridge (Power action) [C2-D4]
+bassano builds a Dwelling for 1 workers 2 coins [F4]
+bassano gets 2 VP (Scoring tile bonus)
+Squillard gets 1 power via Structures [F4]
+bassano declines doing Conversions
+gamerdad transforms a Terrain space plains → lakes for 1 spade(s) + 3 workers → 2 spade(s) (Bonus card action) [H7]
+gamerdad builds a Dwelling for 2 workers 3 coins [H7]
+gamerdad gets 2 VP (Scoring tile bonus)
+gamerdad declines doing Conversions
+Squillard sends a Priest to the Order of the Cult of Fire. Forever!
+Squillard gains 3 on the Cult of Fire track and earns 2 power
+Squillard declines doing Conversions
+manwemx passes and becomes the first player for the next round
+manwemx gets 0 VP (Bonus card)
+manwemx chooses 1 Bonus card and gets 1 coins
+bassano passes
+bassano chooses 1 Bonus card and gets 1 coins
+bassano declines doing Conversions
+gamerdad upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H7]
+gamerdad declines doing Conversions
+Squillard passes
+Squillard chooses 1 Bonus card
+gamerdad passes
+gamerdad chooses 1 Bonus card
+gamerdad declines doing Conversions
+~ Cleanup phase ~
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Squillard gets 4 workers 0 Priests 2 coins 4 power (Income)
+manwemx gets 2 workers 1 Priests 0 coins 4 power (Income)
+bassano gets 5 workers 1 Priests 6 coins 1 power (Income)
+gamerdad gets 4 workers 0 Priests 2 coins 6 power (Income)
+~ Action phase ~
+manwemx sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+manwemx spends 4 power to get 1 spade(s) (Power action)
+manwemx transforms a Terrain space mountains → wasteland for 1 spade(s) [C2]
+manwemx builds a Dwelling for 1 workers 2 coins [C2]
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [F4]
+bassano gets 3 VP (Scoring tile bonus)
+Squillard gets 1 power via Structures [F4]
+bassano declines doing Conversions
+gamerdad upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [D2]
+gamerdad gets 3 VP (Scoring tile bonus)
+gamerdad declines doing Conversions
+Squillard spends 4 power to collect 2 workers (Power action)
+manwemx gains 1 on the Cult of Air track (Favor tile action)
+bassano sends a Priest to the Order of the Cult of Earth. Forever!
+bassano gains 3 on the Cult of Earth track and earns 4 power
+bassano declines doing Conversions
+gamerdad builds a Dwelling for 2 workers 3 coins [I10]
+gamerdad declines doing Conversions
+Squillard upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+Squillard gets 3 VP (Scoring tile bonus)
+bassano pays 3 VP and gets 4 power via Structures [E6]
+manwemx pays 1 VP and gets 2 power via Structures [E6]
+Squillard gains 1 on the Cult of Fire track (Cultists ability) and earns 2 power
+Squillard declines doing Conversions
+manwemx sends a Priest to the Order of the Cult of Water. Forever!
+manwemx gains 3 on the Cult of Water track and earns 2 power
+manwemx declines doing Conversions
+bassano sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+bassano spends 6 power to get 2 spade(s) (Power action)
+bassano transforms a Terrain space wasteland → mountains for 1 spade(s) [D7]
+bassano transforms a Terrain space wasteland → mountains for 1 spade(s) [G2]
+bassano builds a Dwelling for 1 workers 2 coins [D7]
+Squillard gets 1 power via Structures [D7]
+bassano declines doing Conversions
+gamerdad upgrades a Trading house to a Temple for 3 workers 6 coins [D2]
+gamerdad takes a Favor tile
+gamerdad gains 1 on the Cult of Water track (Favor tile)
+gamerdad declines doing Conversions
+Squillard transforms a Terrain space desert → plains for 3 workers → 1 spade(s) [F3]
+Squillard builds a Dwelling for 1 workers 2 coins [F3]
+bassano pays 1 VP and gets 2 power via Structures [F3]
+Squillard gains 1 on the Cult of Earth track (Cultists ability)
+manwemx transforms a Terrain space desert → wasteland for 3 workers → 1 spade(s) [D3]
+manwemx builds a Dwelling for 1 workers 2 coins [D3]
+gamerdad pays 1 VP and gets 2 power via Structures [D3]
+bassano builds a Dwelling for 1 workers 2 coins [G2]
+Squillard gets 1 power via Structures [G2]
+bassano declines doing Conversions
+gamerdad passes and becomes the first player for the next round
+gamerdad gets 2 VP (Bonus card)
+gamerdad chooses 1 Bonus card and gets 1 coins
+gamerdad declines doing Conversions
+Squillard does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Squillard builds a Dwelling for 1 workers 2 coins [D8]
+bassano declines getting Power via Structures [D8]
+Squillard gains 1 power (Cultists ability)
+Squillard declines doing Conversions
+manwemx passes
+manwemx chooses 1 Bonus card
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+bassano gets 3 VP (Scoring tile bonus)
+Squillard gets 1 power via Structures [G2]
+bassano declines doing Conversions
+Squillard sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+Squillard spends 3 power to build a Bridge (Power action) [B6-D8]
+bassano passes
+bassano chooses 1 Bonus card and gets 2 coins
+bassano declines doing Conversions
+Squillard passes
+Squillard chooses 1 Bonus card and gets 1 coins
+~ Cleanup phase ~
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Squillard gets 4 workers 0 Priests 8 coins 2 power (Income)
+manwemx gets 5 workers 1 Priests 0 coins 1 power (Income)
+bassano gets 5 workers 1 Priests 7 coins 3 power (Income)
+gamerdad gets 3 workers 1 Priests 4 coins 6 power (Income)
+~ Action phase ~
+gamerdad spends 4 power to get 1 spade(s) (Power action)
+gamerdad transforms a Terrain space forest → lakes for 1 spade(s) [I11]
+gamerdad builds a Dwelling for 2 workers 3 coins [I11]
+gamerdad founds a Town [I10]
+gamerdad gains 1 on the Cult of Fire track
+gamerdad gains 1 on the Cult of Air track
+gamerdad gains 1 on the Cult of Earth track
+gamerdad gains 1 on the Cult of Water track and earns 1 power
+gamerdad gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+gamerdad gets 5 VP (Scoring tile bonus)
+gamerdad collects 3 workers (Swarmlings ability)
+gamerdad declines doing Conversions
+Squillard upgrades a Trading house to a Temple for 2 workers 5 coins [E6]
+manwemx pays 1 VP and gets 2 power via Structures [E6]
+bassano pays 3 VP and gets 4 power via Structures [E6]
+Squillard gains 1 on the Cult of Earth track (Cultists ability) and earns 1 power
+Squillard takes a Favor tile
+Squillard gains 2 on the Cult of Earth track (Favor tile) and earns 2 power
+Squillard declines doing Conversions
+manwemx upgrades a Dwelling to a Trading house for 2 workers 3 coins [D3]
+gamerdad pays 1 VP and gets 2 power via Structures [D3]
+bassano upgrades a Temple to a Sanctuary for 4 workers 6 coins [E7]
+bassano declines doing Conversions
+Squillard pays 1 VP and gets 2 power via Structures [E7]
+manwemx pays 1 VP and gets 2 power via Structures [E7]
+bassano takes a Favor tile
+bassano gains 1 on the Cult of Earth track (Favor tile)
+bassano founds a Town [G2]
+bassano gets 9 VP and collects 1 Priests (Town bonus)
+bassano gets 5 VP (Scoring tile bonus)
+bassano declines doing Conversions
+gamerdad spends 4 power to collect 7 coins (Power action)
+gamerdad declines doing Conversions
+Squillard sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Squillard spends 4 power to collect 2 workers (Power action)
+manwemx spends 3 power to build a Bridge (Power action) [C2-D3]
+bassano builds a Dwelling for 1 workers 2 coins [C5]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad sends a Priest to the Order of the Cult of Earth. Forever!
+gamerdad gains 2 on the Cult of Earth track and earns 1 power
+gamerdad declines doing Conversions
+Squillard upgrades a Dwelling to a Trading house for 2 workers 3 coins [E10]
+bassano pays 2 VP and gets 3 power via Structures [E10]
+Squillard gains 1 on the Cult of Earth track (Cultists ability)
+manwemx gains 1 on the Cult of Air track (Favor tile action)
+bassano sends a Priest to the Order of the Cult of Air. Forever!
+bassano gains 3 on the Cult of Air track and earns 1 power
+bassano does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+gamerdad transforms a Terrain space forest → lakes for 1 spade(s) (Bonus card action) [D1]
+gamerdad builds a Dwelling for 2 workers 3 coins [D1]
+gamerdad declines doing Conversions
+Squillard upgrades a Trading house to a Temple for 2 workers 5 coins [F7]
+gamerdad pays 2 VP and gets 3 power via Structures [F7]
+bassano gets 1 power via Structures [F7]
+Squillard gains 1 on the Cult of Earth track (Cultists ability) and earns 2 power
+Squillard takes a Favor tile
+Squillard gains 2 on the Cult of Water track (Favor tile)
+Squillard declines doing Conversions
+manwemx sends a Priest to the Order of the Cult of Water. Forever!
+manwemx gains 2 on the Cult of Water track and earns 2 power
+manwemx declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Earth. Forever!
+bassano gains 2 on the Cult of Earth track and earns 3 power
+bassano does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+gamerdad upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [D1]
+gamerdad gets 3 VP (Favor tile bonus)
+gamerdad declines doing Conversions
+Squillard gains 1 on the Cult of Water track (Favor tile action) and earns 1 power
+Squillard declines doing Conversions
+manwemx does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+manwemx builds a Dwelling for 1 workers 2 coins [E3]
+gamerdad pays 1 VP and gets 2 power via Structures [E3]
+bassano passes and becomes the first player for the next round
+bassano gets 4 VP (Bonus card)
+bassano chooses 1 Bonus card and gets 1 coins
+bassano declines doing Conversions
+gamerdad passes
+gamerdad chooses 1 Bonus card
+gamerdad does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Squillard gains 1 on the Cult of Water track (Bonus card action)
+manwemx passes
+manwemx gets 2 VP (Bonus card)
+manwemx chooses 1 Bonus card and gets 1 coins
+Squillard passes
+Squillard chooses 1 Bonus card
+~ Cleanup phase ~
+bassano gets 2 spade(s) (Cult bonus)
+gamerdad gets 1 spade(s) (Cult bonus)
+Squillard gets 1 spade(s) (Cult bonus)
+bassano transforms a Terrain space lakes → mountains for 2 spade(s) [D5]
+gamerdad transforms a Terrain space swamp → lakes for 1 spade(s) [C1]
+Squillard transforms a Terrain space swamp → plains for 1 spade(s) [E5]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Squillard gets 5 workers 2 Priests 2 coins 2 power (Income)
+manwemx gets 5 workers 1 Priests 2 coins 5 power (Income)
+bassano gets 6 workers 1 Priests 11 coins 3 power (Income)
+gamerdad gets 4 workers 1 Priests 6 coins 8 power (Income)
+~ Action phase ~
+bassano builds a Dwelling for 1 workers 2 coins [D5]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+manwemx pays 1 VP and gets 2 power via Structures [D5]
+gamerdad does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+gamerdad sends a Priest to the Order of the Cult of Earth. Forever!
+gamerdad gains 2 on the Cult of Earth track and earns 2 power
+gamerdad declines doing Conversions
+Squillard transforms a Terrain space desert → plains for 3 workers → 1 spade(s) [G7]
+Squillard gets 2 VP (Scoring tile bonus)
+Squillard builds a Dwelling for 1 workers 2 coins [G7]
+gamerdad Power gain via Structures is capped from 3 power to 1 power
+gamerdad declines getting Power via Structures [G7]
+Squillard gains 1 power (Cultists ability)
+Squillard declines doing Conversions
+manwemx spends 4 power to collect 7 coins (Power action)
+bassano spends 4 power to get 1 spade(s) (Power action)
+bassano transforms a Terrain space forest → mountains for 1 spade(s) + 2 workers [C4]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 4 VP (Tunneling)
+bassano builds a Dwelling for 1 workers 2 coins [C4]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad spends 3 power to collect 1 Priests (Power action)
+gamerdad declines doing Conversions
+Squillard gains 1 on the Cult of Water track (Favor tile action) and earns 2 power
+Squillard declines doing Conversions
+manwemx upgrades a Temple to a Sanctuary for 4 workers 8 coins [D4]
+bassano pays 3 VP and gets 4 power via Structures [D4]
+Squillard pays 1 VP and gets 2 power via Structures [D4]
+manwemx takes a Favor tile
+manwemx gains 1 on the Cult of Fire track (Favor tile) and earns 1 power
+manwemx takes another Favor tile (Chaos Magicians ability)
+manwemx takes a Favor tile
+manwemx gains 2 on the Cult of Fire track (Favor tile) and earns 2 power
+manwemx founds a Town [D4]
+manwemx gets 7 VP and collects 2 workers (Town bonus)
+manwemx declines doing Conversions
+bassano advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+bassano declines doing Conversions
+gamerdad sends a Priest to the Order of the Cult of Air. Forever!
+gamerdad gains 2 on the Cult of Air track and earns 1 power
+gamerdad declines doing Conversions
+Squillard spends 4 power to collect 2 workers (Power action)
+manwemx sends a Priest to the Order of the Cult of Water. Forever!
+manwemx gains 2 on the Cult of Water track and earns 3 power
+manwemx does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+bassano passes and becomes the first player for the next round
+bassano chooses 1 Bonus card and gets 1 coins
+bassano declines doing Conversions
+gamerdad cancels their move
+gamerdad upgrades a Temple to a Sanctuary for 5 workers 8 coins [D2]
+gamerdad declines doing Conversions
+manwemx pays 2 VP and gets 3 power via Structures [D2]
+gamerdad takes a Favor tile
+gamerdad gains 2 on the Cult of Water track (Favor tile) and earns 2 power
+gamerdad declines doing Conversions
+Squillard upgrades a Dwelling to a Trading house for 2 workers 3 coins [G7]
+gamerdad declines getting Power via Structures [G7]
+Squillard gains 1 power (Cultists ability)
+Squillard founds a Town [E10]
+Squillard gets 7 VP and collects 2 workers (Town bonus)
+Squillard declines doing Conversions
+manwemx gains 1 on the Cult of Earth track (Favor tile action) and earns 1 power
+manwemx declines doing Conversions
+gamerdad does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+gamerdad builds a Dwelling for 2 workers 3 coins [C1]
+manwemx Power gain via Structures is capped from 2 power to 0 power
+gamerdad declines doing Conversions
+Squillard builds a Dwelling for 1 workers 2 coins [E5]
+manwemx does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+manwemx upgrades a Trading house to a Temple for 2 workers 5 coins [D3]
+gamerdad declines getting Power via Structures [D3]
+manwemx takes a Favor tile
+manwemx gains 3 on the Cult of Earth track (Favor tile) and earns 2 power
+manwemx takes another Favor tile (Chaos Magicians ability)
+manwemx takes a Favor tile
+manwemx gains 3 on the Cult of Fire track (Favor tile) and earns 2 power
+manwemx declines doing Conversions
+gamerdad upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [C1]
+gamerdad gets 3 VP (Favor tile bonus)
+manwemx Power gain via Structures is capped from 2 power to 0 power
+gamerdad founds a Town [D1]
+gamerdad gets 9 VP and collects 1 Priests (Town bonus)
+gamerdad collects 3 workers (Swarmlings ability)
+gamerdad declines doing Conversions
+Squillard sends a Priest to the Order of the Cult of Water. Forever!
+Squillard gains 2 on the Cult of Water track and earns 2 power
+Squillard declines doing Conversions
+manwemx does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+manwemx upgrades a Dwelling to a Trading house for 2 workers 3 coins [E3]
+gamerdad declines getting Power via Structures [E3]
+gamerdad sends a Priest to the Order of the Cult of Air. Forever!
+gamerdad gains 2 on the Cult of Air track and earns 2 power
+gamerdad declines doing Conversions
+Squillard sends a Priest to the Order of the Cult of Fire. Forever!
+Squillard gains 2 on the Cult of Fire track
+manwemx passes
+manwemx chooses 1 Bonus card and gets 1 coins
+gamerdad cancels their move
+gamerdad gains 1 on the Cult of Earth track (Favor tile action) and earns 2 power
+gamerdad declines doing Conversions
+Squillard passes
+Squillard gets 4 VP (Bonus card)
+Squillard chooses 1 Bonus card
+gamerdad sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+gamerdad does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+gamerdad upgrades a Trading house to a Temple for 3 workers 6 coins [D1]
+gamerdad takes a Favor tile
+gamerdad gains 1 on the Cult of Air track (Favor tile) and earns 2 power
+gamerdad declines doing Conversions
+gamerdad passes
+gamerdad gets 2 VP (Bonus card)
+gamerdad gets 3 VP (Favor tile bonus)
+gamerdad chooses 1 Bonus card
+gamerdad declines doing Conversions
+~ Cleanup phase ~
+bassano gets 10 coins (Cult bonus)
+gamerdad gets 7 coins (Cult bonus)
+Squillard gets 7 coins (Cult bonus)
+manwemx gets 6 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Squillard gets 6 workers 2 Priests 4 coins 6 power (Income)
+manwemx gets 3 workers 2 Priests 7 coins 2 power (Income)
+bassano gets 8 workers 1 Priests 9 coins 3 power (Income)
+gamerdad gets 5 workers 3 Priests 4 coins 8 power (Income)
+~ Action phase ~
+bassano upgrades a Trading house to a Temple for 2 workers 5 coins [G2]
+Squillard gets 1 power via Structures [G2]
+bassano takes a Favor tile
+bassano gains 1 on the Cult of Water track (Favor tile)
+bassano declines doing Conversions
+gamerdad cancels their move
+gamerdad spends 4 power to collect 7 coins (Power action)
+gamerdad declines doing Conversions
+Squillard gains 1 on the Cult of Fire track (Favor tile action) and earns 3 power
+Squillard declines doing Conversions
+manwemx sends a Priest to the Order of the Cult of Air. Forever!
+manwemx gains 2 on the Cult of Air track and earns 1 power
+manwemx declines doing Conversions
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [E9]
+bassano gets 3 VP (Scoring tile bonus)
+bassano gets 3 VP (Favor tile bonus)
+Squillard Power gain via Structures is capped from 2 power to 0 power
+bassano declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+gamerdad advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+gamerdad declines doing Conversions
+Squillard spends 4 power to collect 2 workers (Power action)
+manwemx gains 1 on the Cult of Air track (Favor tile action) and earns 2 power
+manwemx declines doing Conversions
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [D7]
+bassano gets 3 VP (Scoring tile bonus)
+bassano gets 3 VP (Favor tile bonus)
+bassano declines doing Conversions
+Squillard pays 2 VP and gets 3 power via Structures [D7]
+gamerdad cancels their move
+gamerdad cancels their move
+gamerdad spends 3 power to collect 1 Priests (Power action)
+gamerdad declines doing Conversions
+Squillard upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+Squillard gets 3 VP (Scoring tile bonus)
+bassano Power gain via Structures is capped from 4 power to 3 power
+bassano pays 2 VP and gets 3 power via Structures [F3]
+Squillard gains 1 on the Cult of Water track (Cultists ability)
+manwemx sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+manwemx gains 1 on the Cult of Earth track and earns 2 power
+manwemx declines doing Conversions
+bassano does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [F6]
+bassano gets 3 VP (Scoring tile bonus)
+bassano gets 3 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad declines getting Power via Structures [F6]
+Squillard pays 3 VP and gets 4 power via Structures [F6]
+bassano does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+bassano founds a Town [C5]
+bassano gets 6 VP and gains 8 power (Town bonus)
+bassano declines doing Conversions
+gamerdad upgrades a Dwelling to a Trading house for 3 workers 8 coins [I11]
+gamerdad gets 3 VP (Scoring tile bonus)
+gamerdad gets 3 VP (Favor tile bonus)
+gamerdad declines doing Conversions
+Squillard does some Conversions (spent: 5 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+Squillard upgrades a Dwelling to a Trading house for 2 workers 6 coins [E5]
+Squillard gets 3 VP (Scoring tile bonus)
+manwemx spends 6 power to get 2 spade(s) (Power action)
+manwemx transforms a Terrain space forest → wasteland for 2 spade(s) [C3]
+manwemx builds a Dwelling for 1 workers 2 coins [C3]
+bassano gets 1 power via Structures [C3]
+bassano does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+bassano passes and becomes the first player for the next round
+bassano chooses 1 Bonus card and gets 1 coins
+bassano declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+gamerdad upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [I10]
+gamerdad gets 3 VP (Scoring tile bonus)
+gamerdad gets 3 VP (Favor tile bonus)
+gamerdad declines doing Conversions
+Squillard transforms a Terrain space desert → plains for 3 workers → 1 spade(s) [B6]
+Squillard builds a Dwelling for 1 workers 2 coins [B6]
+manwemx upgrades a Dwelling to a Trading house for 2 workers 3 coins [C3]
+manwemx gets 3 VP (Scoring tile bonus)
+bassano gets 1 power via Structures [C3]
+gamerdad sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+gamerdad gains 1 on the Cult of Air track
+gamerdad declines doing Conversions
+Squillard does some Conversions (spent: 1 power 1 Priests 1 workers ; collects: 0 Priests  1 workers 2 coins)
+Squillard advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+manwemx transforms a Terrain space plains → desert for 1 spade(s) (Bonus card action) [B2]
+gamerdad sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+gamerdad gains 1 on the Cult of Air track
+gamerdad declines doing Conversions
+Squillard passes
+Squillard chooses 1 Bonus card and gets 1 coins
+manwemx passes
+manwemx chooses 1 Bonus card
+gamerdad sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+gamerdad gains 1 on the Cult of Air track and earns 3 power
+gamerdad declines doing Conversions
+gamerdad gains 1 on the Cult of Earth track (Favor tile action)
+gamerdad declines doing Conversions
+gamerdad passes
+gamerdad gets 8 VP (Bonus card)
+gamerdad gets 4 VP (Favor tile bonus)
+gamerdad chooses 1 Bonus card
+gamerdad declines doing Conversions
+~ Cleanup phase ~
+gamerdad gets 1 spade(s) (Cult bonus)
+Squillard gets 2 spade(s) (Cult bonus)
+manwemx gets 2 spade(s) (Cult bonus)
+gamerdad transforms a Terrain space swamp → lakes for 1 spade(s) [G5]
+Squillard transforms a Terrain space lakes → plains for 2 spade(s) [A11]
+manwemx transforms a Terrain space swamp → desert for 2 spade(s) [B3]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+Squillard gets 4 workers 2 Priests 14 coins 7 power (Income)
+manwemx gets 4 workers 2 Priests 7 coins 6 power (Income)
+bassano gets 5 workers 2 Priests 12 coins 7 power (Income)
+gamerdad gets 2 workers 3 Priests 13 coins 12 power (Income)
+~ Action phase ~
+bassano spends 4 power to collect 2 workers (Power action)
+bassano declines doing Conversions
+gamerdad advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+gamerdad declines doing Conversions
+Squillard upgrades a Temple to a Sanctuary for 4 workers 8 coins [E6]
+Squillard gets 5 VP (Scoring tile bonus)
+manwemx pays 2 VP and gets 3 power via Structures [E6]
+bassano declines getting Power via Structures [E6]
+Squillard gains 1 on the Cult of Earth track (Cultists ability)
+Squillard takes a Favor tile
+Squillard gains 1 on the Cult of Air track (Favor tile)
+Squillard founds a Town [E6]
+Squillard gets 5 VP and collects 6 coins (Town bonus)
+Squillard declines doing Conversions
+manwemx gains 1 on the Cult of Air track (Favor tile action)
+bassano builds a Dwelling for 1 workers 2 coins + 2 workers (Tunneling) [G1]
+bassano gets 4 VP (Tunneling)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad spends 3 power to collect 1 Priests (Power action)
+gamerdad declines doing Conversions
+Squillard sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Squillard does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+Squillard upgrades a Trading house to a Faction Stronghold for 4 workers 8 coins [E5]
+Squillard gets 5 VP (Scoring tile bonus)
+Squillard gets 7 VP (Cultists Stronghold)
+manwemx upgrades a Trading house to a Faction Stronghold for 4 workers 4 coins [E3]
+manwemx gets 5 VP (Scoring tile bonus)
+gamerdad declines getting Power via Structures [E3]
+bassano advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+bassano declines doing Conversions
+gamerdad sends a Priest to the Order of the Cult of Fire. Forever!
+gamerdad gains 2 on the Cult of Fire track and earns 1 power
+gamerdad declines doing Conversions
+Squillard sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+Squillard gains 1 on the Cult of Earth track
+manwemx sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+manwemx spends 4 power to get 1 spade(s) (Power action)
+manwemx transforms a Terrain space desert → wasteland for 1 spade(s) [B3]
+manwemx builds a Dwelling for 1 workers 2 coins [B3]
+bassano builds a Dwelling for 1 workers 2 coins + 2 workers (Tunneling) [I3]
+bassano gets 4 VP (Tunneling)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad gains 1 on the Cult of Earth track (Favor tile action)
+gamerdad declines doing Conversions
+Squillard sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+Squillard gains 1 on the Cult of Air track
+manwemx passes
+~ This is the last round. No new Bonus cards are taken. ~
+bassano does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+bassano builds a Dwelling for 1 workers 2 coins + 2 workers (Tunneling) [H6]
+bassano gets 4 VP (Tunneling)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad declines getting Power via Structures [H6]
+gamerdad advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+gamerdad declines doing Conversions
+Squillard gains 1 on the Cult of Air track (Favor tile action) and earns 1 power
+Squillard declines doing Conversions
+bassano does some Conversions (spent: 0 power 2 Priests 0 workers ; collects: 0 Priests  2 workers 0 coins)
+bassano transforms a Terrain space wasteland → mountains for 1 workers → 1 spade(s) [D6]
+bassano builds a Dwelling for 1 workers 2 coins [D6]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+gamerdad gains 1 on the Cult of Fire track (Bonus card action) and earns 2 power
+gamerdad declines doing Conversions
+Squillard passes
+Squillard gets 3 VP (Favor tile bonus)
+bassano passes
+bassano gets 7 VP (Bonus card)
+gamerdad spends 4 power to collect 7 coins (Power action)
+gamerdad declines doing Conversions
+gamerdad advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+gamerdad declines doing Conversions
+gamerdad passes
+gamerdad gets 4 VP (Favor tile bonus)
+~ Final scoring ~
+Squillard scores 8 VP (Cult of Fire)
+manwemx scores 4 VP (Cult of Fire)
+gamerdad scores 2 VP (Cult of Fire)
+manwemx scores 8 VP (Cult of Water)
+Squillard scores 4 VP (Cult of Water)
+gamerdad scores 2 VP (Cult of Water)
+bassano scores 0 VP (Cult of Water)
+bassano scores 8 VP (Cult of Earth)
+Squillard scores 3 VP (Cult of Earth)
+gamerdad scores 3 VP (Cult of Earth)
+manwemx scores 0 VP (Cult of Earth)
+gamerdad scores 8 VP (Cult of Air)
+manwemx scores 4 VP (Cult of Air)
+Squillard scores 1 VP (Cult of Air)
+bassano scores 1 VP (Cult of Air)
+bassano scores 18 VP with 13 connected Structures (Area scoring)
+manwemx scores 12 VP with 6 connected Structures (Area scoring)
+Squillard scores 6 VP with 5 connected Structures (Area scoring)
+gamerdad scores 0 VP with 4 connected Structures (Area scoring)
+Squillard sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Squillard converts 2 power into 2 coins
+Squillard scores 2 VP with 7 coins (Resource scoring)
+manwemx converts 2 Priests into 2 coins
+manwemx scores 4 VP with 12 coins (Resource scoring)
+bassano scores 4 VP with 14 coins (Resource scoring)
+gamerdad sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+gamerdad converts 1 power into 1 coins
+gamerdad scores 4 VP with 13 coins (Resource scoring)
+The end of the game: bassano wins!

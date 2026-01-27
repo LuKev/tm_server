@@ -1,0 +1,856 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+1ndas selected the faction Swarmlings on lakes to play in position #1
+skoomymooms selected the faction Halflings on plains to play in position #2
+CIaybo selected the faction Giants on wasteland to play in position #3
+Redrame selected the faction Engineers on mountains to play in position #4
+1ndas bids on the Swarmlings with 40 Starting VPs
+skoomymooms bids on the Engineers with 40 Starting VPs
+CIaybo bids on the Swarmlings with 39 Starting VPs
+Redrame bids on the Engineers with 39 Starting VPs
+1ndas bids on the Swarmlings with 38 Starting VPs
+skoomymooms bids on the Engineers with 35 Starting VPs
+CIaybo bids on the Swarmlings with 37 Starting VPs
+Redrame bids on the Halflings with 40 Starting VPs
+1ndas bids on the Swarmlings with 36 Starting VPs
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Halflings with 39 Starting VPs
+Redrame bids on the Halflings with 38 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Halflings with 37 Starting VPs
+Redrame bids on the Halflings with 36 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Engineers with 34 Starting VPs
+Redrame has not been outbid for Faction Halflings and is skipped
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms bids on the Engineers with 33 Starting VPs
+CIaybo bids on the Engineers with 32 Starting VPs
+Redrame has not been outbid for Faction Halflings and is skipped
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms bids on the Halflings with 35 Starting VPs
+CIaybo has not been outbid for Faction Engineers and is skipped
+Redrame bids on the Engineers with 31 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms has not been outbid for Faction Halflings and is skipped
+CIaybo bids on the Halflings with 34 Starting VPs
+Redrame has not been outbid for Faction Engineers and is skipped
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms bids on the Engineers with 30 Starting VPs
+CIaybo has not been outbid for Faction Halflings and is skipped
+Redrame bids on the Halflings with 33 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Swarmlings with 35 Starting VPs
+Redrame has not been outbid for Faction Halflings and is skipped
+1ndas bids on the Swarmlings with 34 Starting VPs
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Swarmlings with 33 Starting VPs
+Redrame has not been outbid for Faction Halflings and is skipped
+1ndas bids on the Swarmlings with 32 Starting VPs
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Halflings with 32 Starting VPs
+Redrame bids on the Halflings with 31 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Swarmlings with 31 Starting VPs
+Redrame has not been outbid for Faction Halflings and is skipped
+1ndas bids on the Swarmlings with 30 Starting VPs
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Halflings with 30 Starting VPs
+Redrame bids on the Halflings with 29 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms has not been outbid for Faction Engineers and is skipped
+CIaybo bids on the Halflings with 28 Starting VPs
+Redrame bids on the Engineers with 29 Starting VPs
+1ndas has not been outbid for Faction Swarmlings and is skipped
+skoomymooms bids on the Halflings with 27 Starting VPs
+CIaybo bids on the Swarmlings with 29 Starting VPs
+Redrame has not been outbid for Faction Engineers and is skipped
+1ndas bids on the Halflings with 26 Starting VPs
+skoomymooms bids on the Giants with 40 Starting VPs
+~ The Factions auction is over ~
+CIaybo is playing the Swarmlings Faction (with 29 VP Starting VPs)
+1ndas is playing the Halflings Faction (with 26 VP Starting VPs)
+skoomymooms is playing the Giants Faction (with 40 VP Starting VPs)
+Redrame is playing the Engineers Faction (with 29 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+CIaybo places a Dwelling [G6]
+1ndas places a Dwelling [E6]
+skoomymooms places a Dwelling [D4]
+Redrame places a Dwelling [E7]
+Redrame places a Dwelling [F6]
+skoomymooms places a Dwelling [G2]
+1ndas places a Dwelling [F5]
+CIaybo places a Dwelling [H4]
+Redrame chooses 1 Bonus card
+skoomymooms chooses 1 Bonus card
+1ndas chooses 1 Bonus card
+CIaybo chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+1ndas gets 4 workers 0 Priests 0 coins 3 power (Income)
+skoomymooms gets 5 workers 0 Priests 0 coins 0 power (Income)
+CIaybo gets 4 workers 0 Priests 0 coins 3 power (Income)
+Redrame gets 2 workers 0 Priests 2 coins 0 power (Income)
+~ Action phase ~
+CIaybo sacrificed 6 power in Bowl 2 to get 6 power from Bowl 2 to Bowl 3
+CIaybo spends 6 power to get 2 spade(s) (Power action)
+CIaybo transforms a Terrain space swamp → lakes for 1 spade(s) [G5]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo transforms a Terrain space swamp → lakes for 1 spade(s) [H5]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo builds a Dwelling for 2 workers 3 coins [G5]
+1ndas gets 1 power via Structures [G5]
+Redrame gets 1 power via Structures [G5]
+CIaybo declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+skoomymooms gets 1 power via Structures [E6]
+Redrame gets 1 power via Structures [E6]
+1ndas declines doing Conversions
+skoomymooms upgrades a Dwelling to a Trading house for 2 workers 3 coins [D4]
+skoomymooms declines doing Conversions
+Redrame gets 1 power via Structures [D4]
+1ndas pays 1 VP and gets 2 power via Structures [D4]
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [F6]
+Redrame declines doing Conversions
+1ndas gets 1 power via Structures [F6]
+CIaybo pays 1 VP and gets 2 power via Structures [F6]
+CIaybo upgrades a Dwelling to a Trading house for 3 workers 4 coins [G5]
+CIaybo declines doing Conversions
+1ndas gets 1 power via Structures [G5]
+Redrame pays 1 VP and gets 2 power via Structures [G5]
+1ndas spends 3 power to collect 1 Priests (Power action)
+1ndas declines doing Conversions
+skoomymooms upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [D4]
+skoomymooms declines doing Conversions
+Redrame gets 1 power via Structures [D4]
+1ndas pays 1 VP and gets 2 power via Structures [D4]
+Redrame sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Redrame spends 4 power to get 1 spade(s) (Power action)
+Redrame transforms a Terrain space forest → mountains for 1 spade(s) [F4]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame builds a Dwelling for 1 workers 1 coins [F4]
+Redrame declines doing Conversions
+skoomymooms gets 1 power via Structures [F4]
+1ndas pays 1 VP and gets 2 power via Structures [F4]
+CIaybo upgrades a Trading house to a Faction Stronghold for 5 workers 8 coins [G5]
+CIaybo declines doing Conversions
+1ndas gets 1 power via Structures [G5]
+Redrame pays 1 VP and gets 2 power via Structures [G5]
+1ndas cancels their move
+1ndas spends 4 power to collect 2 workers (Power action)
+1ndas declines doing Conversions
+skoomymooms transforms a Terrain space lakes → wasteland for 2 spade(s) (Giants Stronghold) [D5]
+skoomymooms gets 4 VP (Scoring tile bonus)
+skoomymooms builds a Dwelling for 1 workers 2 coins [D5]
+Redrame gets 1 power via Structures [D5]
+skoomymooms declines doing Conversions
+Redrame upgrades a Trading house to a Temple for 1 workers 4 coins [F6]
+Redrame declines doing Conversions
+1ndas gets 1 power via Structures [F6]
+CIaybo pays 3 VP and gets 4 power via Structures [F6]
+Redrame takes a Favor tile
+Redrame gains 2 on the Cult of Earth track (Favor tile)
+Redrame declines doing Conversions
+CIaybo upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H4]
+CIaybo declines doing Conversions
+1ndas sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+1ndas spends 4 power to collect 7 coins (Power action)
+1ndas declines doing Conversions
+skoomymooms passes and becomes the first player for the next round
+skoomymooms gets 4 VP (Bonus card)
+skoomymooms chooses 1 Bonus card and gets 1 coins
+skoomymooms declines doing Conversions
+Redrame transforms a Terrain space forest → mountains for 1 spade(s) (Bonus card action) [E9]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame builds a Dwelling for 1 workers 1 coins [E9]
+1ndas gets 1 power via Structures [E9]
+Redrame declines doing Conversions
+CIaybo passes
+CIaybo chooses 1 Bonus card
+CIaybo declines doing Conversions
+1ndas sends a Priest to the Order of the Cult of Earth. Forever!
+1ndas gains 3 on the Cult of Earth track and earns 1 power
+1ndas declines doing Conversions
+Redrame passes
+Redrame chooses 1 Bonus card
+Redrame declines doing Conversions
+1ndas upgrades a Trading house to a Temple for 2 workers 5 coins [E6]
+1ndas declines doing Conversions
+Redrame pays 1 VP and gets 2 power via Structures [E6]
+skoomymooms pays 2 VP and gets 3 power via Structures [E6]
+1ndas takes a Favor tile
+1ndas gains 1 on the Cult of Earth track (Favor tile) and earns 2 power
+1ndas declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [F5]
+1ndas declines doing Conversions
+Redrame pays 2 VP and gets 3 power via Structures [F5]
+CIaybo declines getting Power via Structures [F5]
+1ndas upgrades a Trading house to a Temple for 2 workers 5 coins [F5]
+1ndas declines doing Conversions
+CIaybo declines getting Power via Structures [F5]
+Redrame pays 2 VP and gets 3 power via Structures [F5]
+1ndas takes a Favor tile
+1ndas gains 2 on the Cult of Earth track (Favor tile) and earns 2 power
+1ndas declines doing Conversions
+1ndas passes
+1ndas chooses 1 Bonus card
+1ndas declines doing Conversions
+~ Cleanup phase ~
+CIaybo gets 1 coins (Cult bonus)
+Redrame gets 2 coins (Cult bonus)
+1ndas gets 7 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+1ndas gets 2 workers 2 Priests 2 coins 1 power (Income)
+skoomymooms gets 3 workers 0 Priests 6 coins 4 power (Income)
+CIaybo gets 5 workers 0 Priests 2 coins 6 power (Income)
+Redrame gets 3 workers 1 Priests 0 coins 4 power (Income)
+~ Action phase ~
+skoomymooms upgrades a Dwelling to a Trading house for 2 workers 3 coins [D5]
+skoomymooms gets 3 VP (Scoring tile bonus)
+Redrame Power gain via Structures is capped from 1 power to 0 power
+skoomymooms declines doing Conversions
+CIaybo spends 6 power to get 2 spade(s) (Power action)
+CIaybo transforms a Terrain space forest → lakes for 1 spade(s) [G3]
+CIaybo transforms a Terrain space mountains → forest for 1 spade(s) [H6]
+CIaybo builds a Dwelling for 2 workers 3 coins [G3]
+CIaybo declines doing Conversions
+Redrame spends 4 power to get 1 spade(s) (Power action)
+Redrame transforms a Terrain space wasteland → mountains for 1 spade(s) [D6]
+Redrame builds a Dwelling for 1 workers 1 coins [D6]
+Redrame declines doing Conversions
+1ndas transforms a Terrain space swamp → plains for 1 spade(s) (Bonus card action) [E5]
+1ndas earns 1 VP (Halflings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [E5]
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+skoomymooms spends 4 power to collect 2 workers (Power action)
+skoomymooms declines doing Conversions
+CIaybo upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [G3]
+CIaybo gets 3 VP (Scoring tile bonus)
+CIaybo declines doing Conversions
+Redrame sends a Priest to the Order of the Cult of Water. Forever!
+Redrame gains 3 on the Cult of Water track and earns 1 power
+Redrame declines doing Conversions
+1ndas sends a Priest to the Order of the Cult of Air. Forever!
+1ndas gains 3 on the Cult of Air track and earns 1 power
+1ndas declines doing Conversions
+skoomymooms upgrades a Trading house to a Temple for 2 workers 5 coins [D5]
+Redrame gets 1 power via Structures [D5]
+skoomymooms takes a Favor tile
+skoomymooms gains 1 on the Cult of Earth track (Favor tile)
+skoomymooms declines doing Conversions
+CIaybo passes and becomes the first player for the next round
+CIaybo gets 4 VP (Bonus card)
+CIaybo chooses 1 Bonus card and gets 2 coins
+CIaybo declines doing Conversions
+Redrame spends 3 power to collect 1 Priests (Power action)
+Redrame declines doing Conversions
+1ndas cancels their move
+1ndas sends a Priest to the Order of the Cult of Fire. Forever!
+1ndas gains 3 on the Cult of Fire track and earns 1 power
+1ndas declines doing Conversions
+skoomymooms cancels their move
+skoomymooms sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+skoomymooms spends 4 power to collect 7 coins (Power action)
+skoomymooms declines doing Conversions
+Redrame sends a Priest to the Order of the Cult of Water. Forever!
+Redrame gains 2 on the Cult of Water track and earns 2 power
+Redrame declines doing Conversions
+1ndas passes
+1ndas chooses 1 Bonus card
+1ndas declines doing Conversions
+skoomymooms transforms a Terrain space desert → wasteland for 2 spade(s) (Giants Stronghold) [E8]
+skoomymooms builds a Dwelling for 1 workers 2 coins [E8]
+skoomymooms gets 2 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [E8]
+skoomymooms declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [E9]
+Redrame gets 3 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [E9]
+skoomymooms passes
+skoomymooms chooses 1 Bonus card and gets 2 coins
+skoomymooms declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [F4]
+Redrame gets 3 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+skoomymooms gets 1 power via Structures [F4]
+1ndas pays 1 VP and gets 2 power via Structures [F4]
+Redrame passes
+Redrame chooses 1 Bonus card
+Redrame declines doing Conversions
+~ Cleanup phase ~
+Redrame gets 1 spade(s) (Cult bonus)
+Redrame transforms a Terrain space wasteland → mountains for 1 spade(s) [D7]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+1ndas gets 5 workers 2 Priests 0 coins 1 power (Income)
+skoomymooms gets 3 workers 1 Priests 0 coins 7 power (Income)
+CIaybo gets 3 workers 0 Priests 6 coins 8 power (Income)
+Redrame gets 3 workers 1 Priests 6 coins 3 power (Income)
+~ Action phase ~
+CIaybo upgrades a Trading house to a Temple for 3 workers 6 coins [G3]
+CIaybo takes a Favor tile
+CIaybo gains 1 on the Cult of Earth track (Favor tile)
+CIaybo declines doing Conversions
+1ndas spends 6 power to get 2 spade(s) (Power action)
+1ndas transforms a Terrain space desert → plains for 1 spade(s) [F3]
+1ndas earns 1 VP (Halflings Ability)
+1ndas transforms a Terrain space desert → plains for 1 spade(s) [G4]
+1ndas earns 1 VP (Halflings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [F3]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+skoomymooms gets 1 power via Structures [F3]
+Redrame pays 1 VP and gets 2 power via Structures [F3]
+skoomymooms advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+skoomymooms declines doing Conversions
+Redrame spends 4 power to collect 7 coins (Power action)
+Redrame declines doing Conversions
+CIaybo builds a Dwelling for 2 workers 3 coins [H5]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo gets 2 VP (Favor tile bonus)
+CIaybo declines doing Conversions
+1ndas advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+1ndas declines doing Conversions
+skoomymooms transforms a Terrain space mountains → wasteland for 2 spade(s) (Giants Stronghold) [G1]
+skoomymooms builds a Dwelling for 1 workers 2 coins [G1]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+Redrame spends 3 power to collect 1 Priests (Power action)
+Redrame declines doing Conversions
+CIaybo sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+CIaybo spends 4 power to get 1 spade(s) (Power action)
+CIaybo transforms a Terrain space forest → lakes for 1 spade(s) [H6]
+CIaybo builds a Dwelling for 2 workers 3 coins [H6]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo gets 2 VP (Favor tile bonus)
+CIaybo declines doing Conversions
+1ndas transforms a Terrain space desert → plains for 3 workers → 1 spade(s) [D3]
+1ndas earns 1 VP (Halflings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [D3]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+skoomymooms builds a Dwelling for 1 workers 2 coins [E3]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+1ndas gets 1 power via Structures [E3]
+skoomymooms declines doing Conversions
+Redrame advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Redrame declines doing Conversions
+CIaybo upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H6]
+CIaybo declines doing Conversions
+1ndas builds a Dwelling for 1 workers 2 coins [B2]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+skoomymooms builds a Dwelling for 1 workers 2 coins [I5]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+Redrame advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+Redrame declines doing Conversions
+CIaybo passes and becomes the first player for the next round
+CIaybo gets 2 VP (Bonus card)
+CIaybo chooses 1 Bonus card and gets 1 coins
+CIaybo declines doing Conversions
+1ndas sends a Priest to the Order of the Cult of Fire. Forever!
+1ndas gains 2 on the Cult of Fire track and earns 2 power
+1ndas declines doing Conversions
+skoomymooms passes
+skoomymooms gets 3 VP (Bonus card)
+skoomymooms chooses 1 Bonus card
+skoomymooms declines doing Conversions
+Redrame transforms a Terrain space forest → mountains for 1 spade(s) (Bonus card action) [C3]
+Redrame builds a Dwelling for 1 workers 1 coins [C3]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+skoomymooms declines getting Power via Structures [C3]
+1ndas builds a Dwelling for 1 workers 2 coins [G4]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+CIaybo declines getting Power via Structures [G4]
+Redrame builds a Dwelling for 1 workers 1 coins [C2]
+Redrame gets 2 VP (Scoring tile bonus)
+1ndas gets 1 power via Structures [C2]
+Redrame declines doing Conversions
+1ndas passes
+1ndas gets 0 VP (Bonus card)
+1ndas chooses 1 Bonus card and gets 2 coins
+1ndas declines doing Conversions
+Redrame builds a Dwelling for 1 workers 1 coins [C5]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+Redrame passes
+Redrame chooses 1 Bonus card
+Redrame declines doing Conversions
+~ Cleanup phase ~
+1ndas gets 4 power (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+1ndas gets 8 workers 2 Priests 0 coins 4 power (Income)
+skoomymooms gets 6 workers 1 Priests 2 coins 4 power (Income)
+CIaybo gets 4 workers 1 Priests 10 coins 8 power (Income)
+Redrame gets 7 workers 1 Priests 4 coins 3 power (Income)
+~ Action phase ~
+CIaybo spends 4 power to collect 7 coins (Power action)
+CIaybo declines doing Conversions
+skoomymooms does some Conversions (spent: 4 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 4 coins)
+skoomymooms upgrades a Temple to a Sanctuary for 4 workers 6 coins [D5]
+skoomymooms gets 5 VP (Scoring tile bonus)
+skoomymooms declines doing Conversions
+Redrame pays 1 VP and gets 2 power via Structures [D5]
+skoomymooms takes a Favor tile
+skoomymooms gains 1 on the Cult of Water track (Favor tile)
+skoomymooms founds a Town [E8]
+skoomymooms gets 5 VP and collects 6 coins (Town bonus)
+skoomymooms declines doing Conversions
+1ndas does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+1ndas upgrades a Temple to a Sanctuary for 4 workers 6 coins [E6]
+1ndas gets 5 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+skoomymooms pays 2 VP and gets 3 power via Structures [E6]
+Redrame pays 2 VP and gets 3 power via Structures [E6]
+1ndas takes a Favor tile
+1ndas gains 1 on the Cult of Water track (Favor tile)
+1ndas declines doing Conversions
+Redrame upgrades a Temple to a Sanctuary for 3 workers 6 coins [F6]
+Redrame gets 5 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [F6]
+CIaybo declines getting Power via Structures [F6]
+CIaybo declines getting Power via Structures [F6]
+Redrame takes a Favor tile
+Redrame gains 1 on the Cult of Water track (Favor tile)
+Redrame declines doing Conversions
+CIaybo upgrades a Temple to a Sanctuary for 5 workers 8 coins [G3]
+CIaybo gets 5 VP (Scoring tile bonus)
+CIaybo takes a Favor tile
+CIaybo gains 1 on the Cult of Air track (Favor tile)
+CIaybo declines doing Conversions
+skoomymooms transforms a Terrain space desert → wasteland for 2 spade(s) (Giants Stronghold) [B4]
+skoomymooms builds a Dwelling for 1 workers 2 coins [B4]
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+1ndas sends a Priest to the Order of the Cult of Air. Forever!
+1ndas gains 2 on the Cult of Air track and earns 2 power
+1ndas declines doing Conversions
+Redrame passes and becomes the first player for the next round
+Redrame gets 4 VP (Bonus card)
+Redrame chooses 1 Bonus card and gets 1 coins
+Redrame declines doing Conversions
+CIaybo upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [G6]
+CIaybo declines doing Conversions
+Redrame pays 2 VP and gets 3 power via Structures [G6]
+skoomymooms builds a Dwelling for 1 workers 2 coins [A9]
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+1ndas does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+1ndas passes
+1ndas chooses 1 Bonus card
+1ndas declines doing Conversions
+CIaybo cancels their move
+CIaybo advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+CIaybo declines doing Conversions
+skoomymooms sends a Priest to the Order of the Cult of Air. Forever!
+skoomymooms gains 2 on the Cult of Air track and earns 1 power
+skoomymooms declines doing Conversions
+CIaybo passes
+CIaybo gets 3 VP (Favor tile bonus)
+CIaybo chooses 1 Bonus card and gets 1 coins
+CIaybo declines doing Conversions
+skoomymooms passes
+skoomymooms gets 7 VP (Bonus card)
+skoomymooms chooses 1 Bonus card
+skoomymooms declines doing Conversions
+~ Cleanup phase ~
+1ndas gets 3 workers (Cult bonus)
+CIaybo gets 1 workers (Cult bonus)
+skoomymooms gets 1 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+1ndas gets 9 workers 2 Priests 0 coins 1 power (Income)
+skoomymooms gets 8 workers 1 Priests 6 coins 4 power (Income)
+CIaybo gets 3 workers 2 Priests 8 coins 10 power (Income)
+Redrame gets 5 workers 1 Priests 4 coins 6 power (Income)
+~ Action phase ~
+Redrame spends 4 power to collect 7 coins (Power action)
+Redrame declines doing Conversions
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+1ndas declines doing Conversions
+CIaybo does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+CIaybo builds a Dwelling for 2 workers 3 coins [I10]
+CIaybo gets 2 VP (Favor tile bonus)
+CIaybo does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+CIaybo founds a Town [I10]
+CIaybo gains 2 on the Cult of Fire track and earns 1 power
+CIaybo gains 2 on the Cult of Air track and earns 1 power
+CIaybo gains 2 on the Cult of Earth track and earns 1 power
+CIaybo gains 2 on the Cult of Water track and earns 1 power
+CIaybo gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+CIaybo gets 5 VP (Scoring tile bonus)
+CIaybo collects 3 workers (Swarmlings ability)
+CIaybo declines doing Conversions
+skoomymooms upgrades a Dwelling to a Trading house for 2 workers 3 coins [E3]
+skoomymooms gets 3 VP (Favor tile bonus)
+1ndas gets 1 power via Structures [E3]
+skoomymooms declines doing Conversions
+Redrame builds a Dwelling for 1 workers 1 coins [D7]
+Redrame founds a Town [D7]
+Redrame gains 1 on the Cult of Fire track
+Redrame gains 1 on the Cult of Air track
+Redrame gains 1 on the Cult of Earth track and earns 1 power
+Redrame gains 1 on the Cult of Water track and earns 2 power
+Redrame gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+Redrame gets 5 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas advances on the Exchange Track for 2 workers 1 coins 1 Priests and earns 6 VP
+1ndas declines doing Conversions
+CIaybo does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+CIaybo upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H5]
+CIaybo founds a Town [H5]
+CIaybo gains 1 on the Cult of Fire track
+CIaybo gains 1 on the Cult of Air track and earns 2 power
+CIaybo gains 1 on the Cult of Earth track and earns 2 power
+CIaybo gains 1 on the Cult of Water track
+CIaybo gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+CIaybo gets 5 VP (Scoring tile bonus)
+CIaybo collects 3 workers (Swarmlings ability)
+CIaybo declines doing Conversions
+skoomymooms transforms a Terrain space forest → wasteland for 2 spade(s) (Giants Stronghold) [C4]
+skoomymooms builds a Dwelling for 1 workers 2 coins [C4]
+skoomymooms gets 2 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [C4]
+skoomymooms declines doing Conversions
+Redrame spends 6 power to get 2 spade(s) (Power action)
+Redrame transforms a Terrain space lakes → mountains for 2 spade(s) [E4]
+Redrame builds a Dwelling for 1 workers 1 coins [E4]
+Redrame declines doing Conversions
+skoomymooms pays 1 VP and gets 2 power via Structures [E4]
+1ndas pays 1 VP and gets 2 power via Structures [E4]
+1ndas does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+1ndas gets 3 VP (Favor tile bonus)
+1ndas declines doing Conversions
+skoomymooms gets 1 power via Structures [F3]
+Redrame pays 1 VP and gets 2 power via Structures [F3]
+CIaybo advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+CIaybo declines doing Conversions
+skoomymooms does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+skoomymooms upgrades a Dwelling to a Trading house for 2 workers 3 coins [C4]
+skoomymooms gets 3 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [C4]
+skoomymooms declines doing Conversions
+Redrame cancels their move
+Redrame sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+Redrame sends a Priest to the Order of the Cult of Earth. Forever!
+Redrame gains 2 on the Cult of Earth track and earns 2 power
+Redrame declines doing Conversions
+1ndas sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+1ndas does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+1ndas gets 3 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [E5]
+1ndas founds a Town [F3]
+1ndas gets 5 VP and collects 6 coins (Town bonus)
+1ndas gets 5 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+CIaybo transforms a Terrain space forest → lakes for 1 spade(s) (Bonus card action) [I6]
+CIaybo declines building a Dwelling for now
+CIaybo declines doing Conversions
+skoomymooms does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+skoomymooms advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+skoomymooms declines doing Conversions
+Redrame advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+Redrame declines doing Conversions
+1ndas passes and becomes the first player for the next round
+1ndas gets 4 VP (Bonus card)
+1ndas chooses 1 Bonus card and gets 1 coins
+1ndas declines doing Conversions
+CIaybo does some Conversions (spent: 4 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 4 coins)
+CIaybo passes
+CIaybo gets 4 VP (Favor tile bonus)
+CIaybo chooses 1 Bonus card
+CIaybo declines doing Conversions
+skoomymooms does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+skoomymooms upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+skoomymooms gets 3 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [G2]
+Redrame pays 1 VP and gets 2 power via Structures [G2]
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame upgrades a Trading house to a Temple for 1 workers 4 coins [E9]
+Redrame declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [E9]
+Redrame takes a Favor tile
+Redrame gains 3 on the Cult of Earth track (Favor tile) and earns 2 power
+Redrame declines doing Conversions
+skoomymooms passes
+skoomymooms chooses 1 Bonus card
+skoomymooms declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [E7]
+Redrame gets 3 VP (Favor tile bonus)
+Redrame declines doing Conversions
+1ndas declines getting Power via Structures [E7]
+skoomymooms declines getting Power via Structures [E7]
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [D6]
+Redrame gets 3 VP (Favor tile bonus)
+Redrame declines doing Conversions
+skoomymooms pays 1 VP and gets 2 power via Structures [D6]
+Redrame does some Conversions (spent: 4 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 4 coins)
+Redrame upgrades a Trading house to a Temple for 1 workers 4 coins [E7]
+Redrame declines doing Conversions
+skoomymooms declines getting Power via Structures [E7]
+1ndas pays 2 VP and gets 3 power via Structures [E7]
+Redrame takes a Favor tile
+Redrame gains 1 on the Cult of Air track (Favor tile)
+Redrame declines doing Conversions
+Redrame passes
+Redrame gets 9 VP (Bonus card)
+Redrame gets 3 VP (Favor tile bonus)
+Redrame chooses 1 Bonus card
+Redrame declines doing Conversions
+~ Cleanup phase ~
+1ndas gets 1 spade(s) (Cult bonus)
+CIaybo gets 1 spade(s) (Cult bonus)
+Redrame gets 2 spade(s) (Cult bonus)
+1ndas transforms a Terrain space desert → plains for 1 spade(s) [A5]
+1ndas earns 1 VP (Halflings Ability)
+CIaybo transforms a Terrain space forest → lakes for 1 spade(s) [I11]
+Redrame transforms a Terrain space wasteland → mountains for 1 spade(s) [A12]
+Redrame transforms a Terrain space forest → mountains for 1 spade(s) [A3]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+1ndas gets 5 workers 2 Priests 6 coins 3 power (Income)
+skoomymooms gets 6 workers 1 Priests 8 coins 8 power (Income)
+CIaybo gets 5 workers 2 Priests 9 coins 12 power (Income)
+Redrame gets 5 workers 2 Priests 10 coins 8 power (Income)
+~ Action phase ~
+1ndas spends 4 power to collect 7 coins (Power action)
+1ndas declines doing Conversions
+CIaybo does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+CIaybo sends a Priest to the Order of the Cult of Air. Forever!
+CIaybo gains 2 on the Cult of Air track and earns 2 power
+CIaybo declines doing Conversions
+skoomymooms builds a Dwelling for 1 workers 2 coins [A6]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+Redrame builds a Dwelling for 1 workers 1 coins [A3]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas builds a Dwelling for 1 workers 2 coins [A5]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+skoomymooms gets 1 power via Structures [A5]
+1ndas declines doing Conversions
+CIaybo spends 3 power to collect 1 Priests (Power action)
+CIaybo declines doing Conversions
+skoomymooms upgrades a Trading house to a Temple for 2 workers 5 coins [C4]
+Redrame gets 1 power via Structures [C4]
+Redrame Power gain via Structures is capped from 2 power to 1 power
+skoomymooms takes a Favor tile
+skoomymooms gains 2 on the Cult of Fire track (Favor tile) and earns 1 power
+skoomymooms declines doing Conversions
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame builds a Dwelling for 1 workers 1 coins [F1]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas transforms a Terrain space lakes → plains for 2 workers → 2 spade(s) [A4]
+1ndas earns 2 VP (Halflings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [A4]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+Redrame gets 1 power via Structures [A4]
+1ndas declines doing Conversions
+CIaybo builds a Dwelling for 2 workers 3 coins [I6]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo gets 2 VP (Favor tile bonus)
+skoomymooms gets 1 power via Structures [I6]
+CIaybo declines doing Conversions
+skoomymooms does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+skoomymooms transforms a Terrain space swamp → wasteland for 2 spade(s) (Giants Stronghold) [A8]
+skoomymooms builds a Dwelling for 1 workers 2 coins [A8]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+Redrame cancels their move
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [E4]
+Redrame gets 3 VP (Favor tile bonus)
+Redrame declines doing Conversions
+skoomymooms pays 1 VP and gets 2 power via Structures [E4]
+1ndas pays 2 VP and gets 3 power via Structures [E4]
+1ndas transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [B3]
+1ndas earns 1 VP (Halflings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [B3]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+skoomymooms gets 1 power via Structures [B3]
+Redrame gets 1 power via Structures [B3]
+1ndas declines doing Conversions
+CIaybo builds a Dwelling for 2 workers 3 coins [I4]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo gets 2 VP (Favor tile bonus)
+skoomymooms Power gain via Structures is capped from 1 power to 0 power
+CIaybo declines doing Conversions
+skoomymooms cancels their move
+skoomymooms cancels their move
+skoomymooms does some Conversions (spent: 6 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 6 coins)
+skoomymooms upgrades a Dwelling to a Trading house for 2 workers 6 coins [A9]
+skoomymooms gets 3 VP (Favor tile bonus)
+skoomymooms founds a Town [A8]
+skoomymooms gets 7 VP and collects 2 workers (Town bonus)
+skoomymooms declines doing Conversions
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame builds a Dwelling for 1 workers 1 coins [A2]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas builds a Dwelling for 1 workers 2 coins [A7]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+skoomymooms pays 1 VP and gets 2 power via Structures [A7]
+CIaybo builds a Dwelling for 2 workers 3 coins [I11]
+CIaybo gets 2 VP (Scoring tile bonus)
+CIaybo gets 2 VP (Favor tile bonus)
+CIaybo declines doing Conversions
+skoomymooms does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+skoomymooms transforms a Terrain space desert → wasteland for 1 spade(s) + 3 workers → 2 spade(s) (Bonus card action) [H1]
+skoomymooms builds a Dwelling for 1 workers 2 coins [H1]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+Redrame does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Redrame sends a Priest to the Order of the Cult of Earth. Forever!
+Redrame gains 2 on the Cult of Earth track and earns 3 power
+Redrame declines doing Conversions
+1ndas sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+1ndas spends 3 power to build a Bridge (Power action) [B2-C1]
+1ndas declines doing Conversions
+CIaybo sends a Priest to the Order of the Cult of Fire. Forever!
+CIaybo gains 2 on the Cult of Fire track and earns 2 power
+CIaybo declines doing Conversions
+skoomymooms sends a Priest to the Order of the Cult of Fire. Forever!
+skoomymooms gains 2 on the Cult of Fire track and earns 2 power
+skoomymooms declines doing Conversions
+Redrame builds a Dwelling for 1 workers 1 coins [A12]
+Redrame gets 2 VP (Scoring tile bonus)
+Redrame declines doing Conversions
+1ndas transforms a Terrain space swamp → plains for 1 workers → 1 spade(s) [C1]
+1ndas earns 1 VP (Halflings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [C1]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+1ndas declines doing Conversions
+CIaybo advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+CIaybo declines doing Conversions
+skoomymooms sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+skoomymooms does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+skoomymooms builds a Dwelling for 1 workers 2 coins [I1]
+skoomymooms gets 2 VP (Scoring tile bonus)
+skoomymooms gets 2 VP (Favor tile bonus)
+skoomymooms declines doing Conversions
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [C3]
+Redrame gets 3 VP (Favor tile bonus)
+Redrame declines doing Conversions
+skoomymooms declines getting Power via Structures [C3]
+1ndas advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+1ndas declines doing Conversions
+CIaybo advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+CIaybo declines doing Conversions
+skoomymooms passes
+~ This is the last round. No new Bonus cards are taken. ~
+Redrame spends 4 power to get 1 spade(s) (Power action)
+Redrame transforms a Terrain space forest → mountains for 1 spade(s) [A10]
+Redrame builds a Dwelling for 1 workers 1 coins [A10]
+Redrame gets 2 VP (Scoring tile bonus)
+skoomymooms declines getting Power via Structures [A10]
+Redrame declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [A5]
+1ndas gets 3 VP (Favor tile bonus)
+skoomymooms gets 1 power via Structures [A5]
+1ndas founds a Town [D3]
+1ndas gets 9 VP and collects 1 Priests (Town bonus)
+1ndas declines doing Conversions
+CIaybo passes
+CIaybo gets 8 VP (Bonus card)
+CIaybo gets 4 VP (Favor tile bonus)
+Redrame upgrades a Trading house to a Temple for 1 workers 4 coins [C3]
+skoomymooms declines getting Power via Structures [C3]
+Redrame takes a Favor tile
+Redrame gains 3 on the Cult of Air track (Favor tile) and earns 3 power
+Redrame declines doing Conversions
+1ndas builds a Dwelling for 1 workers 2 coins [H3]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas gets 2 VP (Favor tile bonus)
+skoomymooms gets 1 power via Structures [H3]
+CIaybo gets 1 power via Structures [H3]
+1ndas declines doing Conversions
+Redrame does some Conversions (spent: 2 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+Redrame upgrades a Dwelling to a Trading house for 1 workers 2 coins [A10]
+Redrame gets 3 VP (Favor tile bonus)
+skoomymooms declines getting Power via Structures [A10]
+Redrame declines doing Conversions
+1ndas sends a Priest to the Order of the Cult of Fire then reclaims it into his supply
+1ndas gains 1 on the Cult of Fire track
+1ndas declines doing Conversions
+Redrame passes
+Redrame gets 4 VP (Favor tile bonus)
+1ndas sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+1ndas gains 1 on the Cult of Air track and earns 2 power
+1ndas declines doing Conversions
+1ndas transforms a Terrain space lakes → plains for 2 workers → 2 spade(s) [D2]
+1ndas earns 2 VP (Halflings Ability)
+1ndas declines building a Dwelling for now
+1ndas declines doing Conversions
+1ndas passes
+1ndas gets 8 VP (Bonus card)
+~ Final scoring ~
+1ndas scores 6 VP (Cult of Fire)
+CIaybo scores 6 VP (Cult of Fire)
+skoomymooms scores 2 VP (Cult of Fire)
+Redrame scores 0 VP (Cult of Fire)
+Redrame scores 8 VP (Cult of Water)
+CIaybo scores 4 VP (Cult of Water)
+1ndas scores 1 VP (Cult of Water)
+skoomymooms scores 1 VP (Cult of Water)
+Redrame scores 8 VP (Cult of Earth)
+1ndas scores 4 VP (Cult of Earth)
+CIaybo scores 2 VP (Cult of Earth)
+skoomymooms scores 0 VP (Cult of Earth)
+1ndas scores 6 VP (Cult of Air)
+CIaybo scores 6 VP (Cult of Air)
+Redrame scores 2 VP (Cult of Air)
+skoomymooms scores 0 VP (Cult of Air)
+Redrame scores 18 VP with 15 connected Structures (Area scoring)
+skoomymooms scores 12 VP with 14 connected Structures (Area scoring)
+1ndas scores 6 VP with 11 connected Structures (Area scoring)
+CIaybo scores 0 VP with 10 connected Structures (Area scoring)
+1ndas sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+1ndas converts 1 power into 1 coins
+1ndas scores 0 VP with 2 coins (Resource scoring)
+skoomymooms sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+skoomymooms converts 1 power into 1 coins
+skoomymooms scores 0 VP with 1 coins (Resource scoring)
+CIaybo sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+CIaybo converts 2 power into 2 coins
+CIaybo converts 3 workers into 3 coins
+CIaybo scores 4 VP with 13 coins (Resource scoring)
+Redrame sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Redrame converts 2 power into 2 coins
+Redrame scores 0 VP with 2 coins (Resource scoring)
+The end of the game: 1ndas wins!

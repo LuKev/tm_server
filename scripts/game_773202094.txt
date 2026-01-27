@@ -1,0 +1,731 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: Off
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+MoffettiMoffetta selected the faction Swarmlings on lakes to play in position #1
+alwaysmo selected the faction Nomads on desert to play in position #2
+Slim120 selected the faction Auren on forest to play in position #3
+bassano selected the faction Alchemists on swamp to play in position #4
+MoffettiMoffetta bids on the Swarmlings with 39 Starting VPs
+alwaysmo bids on the Swarmlings with 38 Starting VPs
+Slim120 bids on the Alchemists with 40 Starting VPs
+bassano bids on the Auren with 40 Starting VPs
+MoffettiMoffetta bids on the Swarmlings with 37 Starting VPs
+alwaysmo bids on the Auren with 39 Starting VPs
+Slim120 has not been outbid for Faction Alchemists and is skipped
+bassano bids on the Auren with 37 Starting VPs
+MoffettiMoffetta has not been outbid for Faction Swarmlings and is skipped
+alwaysmo bids on the Swarmlings with 36 Starting VPs
+Slim120 has not been outbid for Faction Alchemists and is skipped
+bassano has not been outbid for Faction Auren and is skipped
+MoffettiMoffetta bids on the Swarmlings with 35 Starting VPs
+alwaysmo bids on the Alchemists with 39 Starting VPs
+Slim120 bids on the Nomads with 40 Starting VPs
+~ The Factions auction is over ~
+MoffettiMoffetta is playing the Swarmlings Faction (with 35 VP Starting VPs)
+Slim120 is playing the Nomads Faction (with 40 VP Starting VPs)
+bassano is playing the Auren Faction (with 37 VP Starting VPs)
+alwaysmo is playing the Alchemists Faction (with 39 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+MoffettiMoffetta places a Dwelling [D2]
+Slim120 places a Dwelling [D3]
+bassano places a Dwelling [F4]
+alwaysmo places a Dwelling [C1]
+alwaysmo places a Dwelling [E10]
+bassano places a Dwelling [E9]
+Slim120 places a Dwelling [F3]
+MoffettiMoffetta places a Dwelling [G6]
+Slim120 places a Dwelling [E8]
+alwaysmo chooses 1 Bonus card
+bassano chooses 1 Bonus card
+Slim120 chooses 1 Bonus card
+MoffettiMoffetta chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+MoffettiMoffetta gets 4 workers 0 Priests 0 coins 3 power (Income)
+alwaysmo gets 5 workers 0 Priests 0 coins 0 power (Income)
+Slim120 gets 4 workers 0 Priests 4 coins 0 power (Income)
+bassano gets 3 workers 0 Priests 2 coins 0 power (Income)
+~ Action phase ~
+MoffettiMoffetta sacrificed 6 power in Bowl 2 to get 6 power from Bowl 2 to Bowl 3
+MoffettiMoffetta spends 6 power to get 2 spade(s) (Power action)
+MoffettiMoffetta transforms a Terrain space forest → lakes for 1 spade(s) [D1]
+MoffettiMoffetta transforms a Terrain space swamp → lakes for 1 spade(s) [G5]
+MoffettiMoffetta builds a Dwelling for 2 workers 3 coins [D1]
+Slim120 upgrades a Dwelling to a Trading house for 2 workers 3 coins [F3]
+bassano gets 1 power via Structures [F3]
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [E9]
+alwaysmo gets 1 power via Structures [E9]
+bassano declines doing Conversions
+alwaysmo sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+alwaysmo spends 3 power to collect 1 Priests (Power action)
+MoffettiMoffetta upgrades a Dwelling to a Trading house for 3 workers 4 coins [D2]
+alwaysmo gets 1 power via Structures [D2]
+Slim120 gets 1 power via Structures [D2]
+Slim120 upgrades a Trading house to a Faction Stronghold for 4 workers 8 coins [F3]
+Slim120 gets 5 VP (Scoring tile bonus)
+bassano gets 1 power via Structures [F3]
+bassano sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+bassano spends 4 power to collect 2 workers (Power action)
+bassano declines doing Conversions
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [C1]
+Slim120 gets 1 power via Structures [C1]
+MoffettiMoffetta pays 1 VP and gets 2 power via Structures [C1]
+MoffettiMoffetta upgrades a Trading house to a Faction Stronghold for 5 workers 8 coins [D2]
+MoffettiMoffetta gets 5 VP (Scoring tile bonus)
+Slim120 gets 1 power via Structures [D2]
+alwaysmo pays 1 VP and gets 2 power via Structures [D2]
+Slim120 transforms a Terrain space lakes → desert for free (Nomads Stronghold) [E4]
+Slim120 declines building a Dwelling for now
+bassano transforms a Terrain space mountains → forest for 1 spade(s) (Bonus card action) [E7]
+bassano builds a Dwelling for 1 workers 2 coins [E7]
+Slim120 gets 1 power via Structures [E7]
+bassano declines doing Conversions
+alwaysmo upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [C1]
+alwaysmo gets 5 VP (Scoring tile bonus)
+Slim120 gets 1 power via Structures [C1]
+MoffettiMoffetta pays 2 VP and gets 3 power via Structures [C1]
+alwaysmo gains 12 power (Alchemists Stronghold)
+alwaysmo does some Conversions (spent: 5 power 0 Priests 0 workers ; collects: 1 Priests  0 workers 0 coins)
+MoffettiMoffetta upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [D1]
+Slim120 gains 1 on the Cult of Air track (Bonus card action)
+bassano upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [E9]
+bassano gets 5 VP (Scoring tile bonus)
+alwaysmo gets 1 power via Structures [E9]
+bassano takes a Favor tile
+bassano gains 2 on the Cult of Air track (Favor tile) and earns 1 power
+bassano declines doing Conversions
+alwaysmo advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+MoffettiMoffetta builds a Dwelling for 2 workers 3 coins [G5]
+Slim120 passes and becomes the first player for the next round
+Slim120 chooses 1 Bonus card and gets 1 coins
+bassano gains 2 on the Cult of Air track (Auren Stronghold) and earns 2 power
+bassano declines doing Conversions
+alwaysmo converts 2 VP into 2 coins (Alchemists ability)
+alwaysmo advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+MoffettiMoffetta passes
+MoffettiMoffetta gets 0 VP (Bonus card)
+MoffettiMoffetta chooses 1 Bonus card and gets 1 coins
+bassano passes
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+alwaysmo converts 6 VP into 6 coins (Alchemists ability)
+alwaysmo builds a Dwelling for 1 workers 2 coins [E5]
+Slim120 pays 2 VP and gets 3 power via Structures [E5]
+alwaysmo builds a Dwelling for 1 workers 2 coins [B3]
+alwaysmo does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+alwaysmo builds a Dwelling for 1 workers 2 coins [A8]
+alwaysmo passes
+alwaysmo gets 4 VP (Bonus card)
+alwaysmo chooses 1 Bonus card
+~ Cleanup phase ~
+bassano gets 2 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+MoffettiMoffetta gets 4 workers 0 Priests 8 coins 6 power (Income)
+alwaysmo gets 5 workers 0 Priests 8 coins 0 power (Income)
+Slim120 gets 3 workers 0 Priests 2 coins 2 power (Income)
+bassano gets 3 workers 0 Priests 4 coins 6 power (Income)
+~ Action phase ~
+Slim120 builds a Dwelling for 1 workers 2 coins [E4]
+Slim120 gets 2 VP (Scoring tile bonus)
+alwaysmo gets 1 power via Structures [E4]
+MoffettiMoffetta upgrades a Trading house to a Temple for 3 workers 6 coins [D1]
+MoffettiMoffetta takes a Favor tile
+MoffettiMoffetta gains 1 on the Cult of Water track (Favor tile)
+MoffettiMoffetta declines doing Conversions
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [E7]
+Slim120 gets 1 power via Structures [E7]
+bassano declines doing Conversions
+alwaysmo transforms a Terrain space plains → swamp for 1 spade(s) (Bonus card action) [B2]
+alwaysmo gains 2 power (Alchemists Stronghold)
+alwaysmo builds a Dwelling for 1 workers 2 coins [B2]
+alwaysmo gets 2 VP (Scoring tile bonus)
+alwaysmo declines doing Conversions
+Slim120 transforms a Terrain space plains → desert for free (Nomads Stronghold) [E6]
+Slim120 builds a Dwelling for 1 workers 2 coins [E6]
+Slim120 gets 2 VP (Scoring tile bonus)
+alwaysmo gets 1 power via Structures [E6]
+bassano pays 2 VP and gets 3 power via Structures [E6]
+~ You have enabled automatic acceptance of Power via Structures up to 4 power for 3 VP ~
+MoffettiMoffetta upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [G6]
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+bassano upgrades a Trading house to a Temple for 2 workers 5 coins [E7]
+bassano declines doing Conversions
+Slim120 pays 1 VP and gets 2 power via Structures [E7]
+bassano takes a Favor tile
+bassano gains 1 on the Cult of Earth track (Favor tile)
+bassano declines doing Conversions
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [E10]
+bassano pays 2 VP and gets 3 power via Structures [E10]
+Slim120 spends 4 power to get 1 spade(s) (Power action)
+Slim120 transforms a Terrain space wasteland → desert for 1 spade(s) [D4]
+Slim120 builds a Dwelling for 1 workers 2 coins [D4]
+Slim120 gets 2 VP (Scoring tile bonus)
+bassano Power gain via Structures is capped from 2 power to 0 power
+MoffettiMoffetta spends 4 power to collect 7 coins (Power action)
+bassano spends 6 power to get 2 spade(s) (Power action)
+bassano transforms a Terrain space lakes → forest for 1 spade(s) [D5]
+bassano transforms a Terrain space wasteland → mountains for 1 spade(s) [D7]
+bassano builds a Dwelling for 1 workers 2 coins [D5]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+Slim120 pays 1 VP and gets 2 power via Structures [D5]
+alwaysmo converts 2 VP into 2 coins (Alchemists ability)
+alwaysmo upgrades a Trading house to a Temple for 2 workers 5 coins [E10]
+bassano pays 2 VP and gets 3 power via Structures [E10]
+alwaysmo takes a Favor tile
+alwaysmo gains 1 on the Cult of Water track (Favor tile)
+alwaysmo declines doing Conversions
+Slim120 spends 4 power to collect 2 workers (Power action)
+MoffettiMoffetta passes and becomes the first player for the next round
+MoffettiMoffetta chooses 1 Bonus card and gets 1 coins
+bassano does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+bassano builds a Dwelling for 1 workers 2 coins [C3]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+Slim120 gets 1 power via Structures [C3]
+bassano declines doing Conversions
+alwaysmo passes
+alwaysmo chooses 1 Bonus card and gets 1 coins
+Slim120 upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+alwaysmo gets 1 power via Structures [E6]
+bassano pays 2 VP and gets 3 power via Structures [E6]
+bassano gains 1 on the Cult of Water track (Bonus card action)
+bassano declines doing Conversions
+Slim120 passes
+Slim120 gets 4 VP (Bonus card)
+Slim120 chooses 1 Bonus card and gets 2 coins
+bassano gains 2 on the Cult of Water track (Auren Stronghold) and earns 1 power
+bassano declines doing Conversions
+bassano passes
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+~ Cleanup phase ~
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+MoffettiMoffetta gets 5 workers 1 Priests 2 coins 6 power (Income)
+alwaysmo gets 5 workers 1 Priests 6 coins 3 power (Income)
+Slim120 gets 6 workers 0 Priests 2 coins 3 power (Income)
+bassano gets 4 workers 1 Priests 2 coins 6 power (Income)
+~ Action phase ~
+MoffettiMoffetta cancels their move
+MoffettiMoffetta sends a Priest to the Order of the Cult of Water. Forever!
+MoffettiMoffetta gains 3 on the Cult of Water track and earns 3 power
+MoffettiMoffetta declines doing Conversions
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [E5]
+alwaysmo gets 3 VP (Scoring tile bonus)
+alwaysmo gets 3 VP (Favor tile bonus)
+Slim120 pays 5 VP and gets 6 power via Structures [E5]
+Slim120 transforms a Terrain space wasteland → desert for free (Nomads Stronghold) [G2]
+Slim120 builds a Dwelling for 1 workers 2 coins [G2]
+bassano gets 1 power via Structures [G2]
+Slim120 founds a Town [F3]
+Slim120 gains 1 on the Cult of Fire track
+Slim120 gains 1 on the Cult of Air track
+Slim120 gains 1 on the Cult of Earth track
+Slim120 gains 1 on the Cult of Water track
+Slim120 gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+bassano spends 4 power to collect 7 coins (Power action)
+bassano declines doing Conversions
+MoffettiMoffetta spends 6 power to get 2 spade(s) (Power action)
+MoffettiMoffetta transforms a Terrain space plains → lakes for 2 spade(s) [H7]
+MoffettiMoffetta builds a Dwelling for 2 workers 3 coins [H7]
+alwaysmo sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+alwaysmo spends 4 power to get 1 spade(s) (Power action)
+alwaysmo transforms a Terrain space plains → swamp for 1 spade(s) [F7]
+alwaysmo gains 2 power (Alchemists Stronghold)
+alwaysmo builds a Dwelling for 1 workers 2 coins [F7]
+alwaysmo declines doing Conversions
+MoffettiMoffetta pays 1 VP and gets 2 power via Structures [F7]
+Slim120 upgrades a Dwelling to a Trading house for 2 workers 3 coins [G2]
+Slim120 gets 3 VP (Scoring tile bonus)
+bassano gets 1 power via Structures [G2]
+bassano sends a Priest to the Order of the Cult of Fire. Forever!
+bassano gains 3 on the Cult of Fire track and earns 1 power
+bassano declines doing Conversions
+MoffettiMoffetta builds a Dwelling for 2 workers 3 coins [I10]
+alwaysmo converts 1 VP into 1 coins (Alchemists ability)
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [F7]
+alwaysmo gets 3 VP (Scoring tile bonus)
+alwaysmo gets 3 VP (Favor tile bonus)
+MoffettiMoffetta pays 1 VP and gets 2 power via Structures [F7]
+Slim120 spends 4 power to collect 2 workers (Power action)
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [D5]
+bassano gets 3 VP (Scoring tile bonus)
+bassano declines doing Conversions
+Slim120 pays 1 VP and gets 2 power via Structures [D5]
+MoffettiMoffetta upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [G5]
+MoffettiMoffetta gets 3 VP (Scoring tile bonus)
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+alwaysmo sends a Priest to the Order of the Cult of Water. Forever!
+alwaysmo gains 2 on the Cult of Water track and earns 1 power
+alwaysmo declines doing Conversions
+Slim120 does some Conversions (spent: 0 power 0 Priests 2 workers ; collects: 0 Priests  0 workers 2 coins)
+Slim120 upgrades a Dwelling to a Trading house for 2 workers 3 coins [E4]
+Slim120 gets 3 VP (Scoring tile bonus)
+alwaysmo pays 1 VP and gets 2 power via Structures [E4]
+bassano gains 2 on the Cult of Water track (Auren Stronghold) and earns 2 power
+bassano declines doing Conversions
+MoffettiMoffetta passes and becomes the first player for the next round
+MoffettiMoffetta gets 4 VP (Bonus card)
+MoffettiMoffetta chooses 1 Bonus card and gets 1 coins
+alwaysmo passes
+alwaysmo gets 6 VP (Bonus card)
+alwaysmo chooses 1 Bonus card and gets 1 coins
+Slim120 passes
+Slim120 gets 6 VP (Bonus card)
+Slim120 chooses 1 Bonus card and gets 1 coins
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [C3]
+bassano gets 3 VP (Scoring tile bonus)
+Slim120 gets 1 power via Structures [C3]
+bassano founds a Town [C3]
+bassano gains 1 on the Cult of Fire track
+bassano gains 1 on the Cult of Air track
+bassano gains 1 on the Cult of Earth track
+bassano gains 1 on the Cult of Water track and earns 2 power
+bassano gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+bassano declines doing Conversions
+bassano does some Conversions (spent: 4 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 4 coins)
+bassano passes
+bassano gets 1 VP (Bonus card)
+bassano chooses 1 Bonus card
+bassano declines doing Conversions
+~ Cleanup phase ~
+MoffettiMoffetta gets 1 spade(s) (Cult bonus)
+alwaysmo gets 1 spade(s) (Cult bonus)
+bassano gets 1 spade(s) (Cult bonus)
+MoffettiMoffetta transforms a Terrain space swamp → lakes for 1 spade(s) [E1]
+alwaysmo transforms a Terrain space plains → swamp for 1 spade(s) [D8]
+alwaysmo gains 2 power (Alchemists Stronghold)
+bassano transforms a Terrain space mountains → forest for 1 spade(s) [D7]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+MoffettiMoffetta gets 4 workers 1 Priests 10 coins 8 power (Income)
+alwaysmo gets 4 workers 1 Priests 12 coins 2 power (Income)
+Slim120 gets 4 workers 0 Priests 11 coins 5 power (Income)
+bassano gets 4 workers 1 Priests 4 coins 8 power (Income)
+~ Action phase ~
+MoffettiMoffetta upgrades a Trading house to a Temple for 3 workers 6 coins [G6]
+MoffettiMoffetta gets 4 VP (Scoring tile bonus)
+alwaysmo gets 1 power via Structures [G6]
+alwaysmo Power gain via Structures is capped from 2 power to 1 power
+MoffettiMoffetta takes a Favor tile
+MoffettiMoffetta gains 1 on the Cult of Air track (Favor tile)
+MoffettiMoffetta declines doing Conversions
+alwaysmo cancels their move
+alwaysmo does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+alwaysmo upgrades a Trading house to a Temple for 2 workers 5 coins [F7]
+alwaysmo gets 4 VP (Scoring tile bonus)
+MoffettiMoffetta Power gain via Structures is capped from 2 power to 0 power
+alwaysmo takes a Favor tile
+alwaysmo gains 1 on the Cult of Earth track (Favor tile)
+alwaysmo declines doing Conversions
+Slim120 upgrades a Trading house to a Temple for 2 workers 5 coins [E4]
+Slim120 gets 4 VP (Scoring tile bonus)
+alwaysmo pays 1 VP and gets 2 power via Structures [E4]
+Slim120 takes a Favor tile
+Slim120 gains 1 on the Cult of Water track (Favor tile)
+Slim120 declines doing Conversions
+bassano sends a Priest to the Order of the Cult of Earth. Forever!
+bassano gains 3 on the Cult of Earth track and earns 3 power
+bassano does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+MoffettiMoffetta spends 4 power to collect 2 workers (Power action)
+alwaysmo spends 6 power to get 2 spade(s) (Power action)
+alwaysmo transforms a Terrain space lakes → swamp for 1 spade(s) [A4]
+alwaysmo gains 2 power (Alchemists Stronghold)
+alwaysmo transforms a Terrain space plains → swamp for 1 spade(s) [A7]
+alwaysmo gains 2 power (Alchemists Stronghold)
+alwaysmo declines building a Dwelling for now
+alwaysmo declines doing Conversions
+Slim120 upgrades a Trading house to a Temple for 2 workers 5 coins [G2]
+Slim120 gets 4 VP (Scoring tile bonus)
+bassano gets 1 power via Structures [G2]
+Slim120 takes a Favor tile
+Slim120 gains 2 on the Cult of Water track (Favor tile) and earns 1 power
+Slim120 declines doing Conversions
+bassano spends 4 power to get 1 spade(s) (Power action)
+bassano transforms a Terrain space mountains → forest for 1 spade(s) [F6]
+bassano builds a Dwelling for 1 workers 2 coins [F6]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+alwaysmo declines getting Power via Structures [F6]
+MoffettiMoffetta pays 3 VP and gets 4 power via Structures [F6]
+MoffettiMoffetta upgrades a Temple to a Sanctuary for 5 workers 8 coins [D1]
+MoffettiMoffetta takes a Favor tile
+MoffettiMoffetta gains 2 on the Cult of Water track (Favor tile) and earns 2 power
+MoffettiMoffetta declines doing Conversions
+alwaysmo sends a Priest to the Order of the Cult of Air. Forever!
+alwaysmo gains 3 on the Cult of Air track and earns 1 power
+alwaysmo declines doing Conversions
+Slim120 transforms a Terrain space wasteland → desert for free (Nomads Stronghold) [E3]
+Slim120 builds a Dwelling for 1 workers 2 coins [E3]
+MoffettiMoffetta Power gain via Structures is capped from 3 power to 2 power
+MoffettiMoffetta pays 1 VP and gets 2 power via Structures [E3]
+bassano builds a Dwelling for 1 workers 2 coins [D7]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+alwaysmo pays 1 VP and gets 2 power via Structures [D7]
+MoffettiMoffetta does some Conversions (spent: 3 power 1 Priests 0 workers ; collects: 0 Priests  2 workers 0 coins)
+MoffettiMoffetta builds a Dwelling for 2 workers 3 coins [E1]
+MoffettiMoffetta founds a Town [E1]
+MoffettiMoffetta gains 2 on the Cult of Fire track and earns 1 power
+MoffettiMoffetta gains 2 on the Cult of Air track and earns 1 power
+MoffettiMoffetta gains 2 on the Cult of Earth track and earns 1 power
+MoffettiMoffetta gains 2 on the Cult of Water track
+MoffettiMoffetta gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+MoffettiMoffetta collects 3 workers (Swarmlings ability)
+MoffettiMoffetta declines doing Conversions
+alwaysmo transforms a Terrain space lakes → swamp for 1 spade(s) (Bonus card action) [E11]
+alwaysmo gains 2 power (Alchemists Stronghold)
+alwaysmo declines building a Dwelling for now
+alwaysmo declines doing Conversions
+Slim120 spends 4 power to collect 7 coins (Power action)
+bassano gains 2 on the Cult of Fire track (Auren Stronghold) and earns 2 power
+bassano declines doing Conversions
+MoffettiMoffetta cancels their move
+MoffettiMoffetta cancels their move
+MoffettiMoffetta does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+MoffettiMoffetta gains 1 on the Cult of Water track (Favor tile action) and earns 3 power
+MoffettiMoffetta declines doing Conversions
+alwaysmo upgrades a Trading house to a Temple for 2 workers 5 coins [E5]
+alwaysmo gets 4 VP (Scoring tile bonus)
+Slim120 pays 6 VP and gets 7 power via Structures [E5]
+alwaysmo takes a Favor tile
+alwaysmo gains 2 on the Cult of Fire track (Favor tile) and earns 1 power
+alwaysmo declines doing Conversions
+Slim120 spends 3 power to collect 1 Priests (Power action)
+bassano upgrades a Trading house to a Temple for 2 workers 5 coins [D5]
+bassano gets 4 VP (Scoring tile bonus)
+bassano declines doing Conversions
+Slim120 pays 1 VP and gets 2 power via Structures [D5]
+bassano takes a Favor tile
+bassano gains 1 on the Cult of Air track (Favor tile) and earns 2 power
+bassano declines doing Conversions
+MoffettiMoffetta cancels their move
+MoffettiMoffetta does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+MoffettiMoffetta upgrades a Trading house to a Temple for 3 workers 6 coins [G5]
+MoffettiMoffetta gets 4 VP (Scoring tile bonus)
+bassano gets 1 power via Structures [G5]
+MoffettiMoffetta takes a Favor tile
+MoffettiMoffetta gains 3 on the Cult of Air track (Favor tile) and earns 4 power
+MoffettiMoffetta declines doing Conversions
+alwaysmo passes and becomes the first player for the next round
+alwaysmo chooses 1 Bonus card and gets 1 coins
+Slim120 sends a Priest to the Order of the Cult of Water. Forever!
+Slim120 gains 2 on the Cult of Water track and earns 2 power
+Slim120 declines doing Conversions
+bassano cancels their move
+bassano does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+bassano passes
+bassano gets 4 VP (Bonus card)
+bassano gets 2 VP (Favor tile bonus)
+bassano chooses 1 Bonus card and gets 1 coins
+bassano declines doing Conversions
+MoffettiMoffetta upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H7]
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+MoffettiMoffetta founds a Town [H7]
+MoffettiMoffetta gets 9 VP and collects 1 Priests (Town bonus)
+MoffettiMoffetta collects 3 workers (Swarmlings ability)
+Slim120 gains 1 on the Cult of Water track (Favor tile action) and earns 2 power
+Slim120 declines doing Conversions
+MoffettiMoffetta does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+MoffettiMoffetta passes
+MoffettiMoffetta gets 2 VP (Favor tile bonus)
+MoffettiMoffetta chooses 1 Bonus card
+Slim120 gains 1 on the Cult of Water track (Bonus card action)
+Slim120 passes
+Slim120 chooses 1 Bonus card and gets 1 coins
+~ Cleanup phase ~
+alwaysmo gets 4 coins (Cult bonus)
+bassano gets 4 coins (Cult bonus)
+MoffettiMoffetta gets 2 coins (Cult bonus)
+Slim120 gets 2 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+MoffettiMoffetta gets 6 workers 4 Priests 2 coins 6 power (Income)
+alwaysmo gets 4 workers 3 Priests 8 coins 0 power (Income)
+Slim120 gets 6 workers 2 Priests 2 coins 3 power (Income)
+bassano gets 4 workers 2 Priests 2 coins 10 power (Income)
+~ Action phase ~
+alwaysmo spends 4 power to collect 2 workers (Power action)
+bassano spends 4 power to get 1 spade(s) (Power action)
+bassano transforms a Terrain space mountains → forest for 1 spade(s) [C5]
+bassano builds a Dwelling for 1 workers 2 coins [C5]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 2 power for 1 VP ~
+MoffettiMoffetta does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+MoffettiMoffetta sends a Priest to the Order of the Cult of Air. Forever!
+MoffettiMoffetta gains 2 on the Cult of Air track
+Slim120 spends 3 power to build a Bridge (Power action) [F3-G1]
+alwaysmo builds a Dwelling for 1 workers 2 coins [A4]
+alwaysmo gets 2 VP (Scoring tile bonus)
+alwaysmo gets 2 VP (Favor tile bonus)
+bassano advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+bassano declines doing Conversions
+MoffettiMoffetta spends 4 power to collect 7 coins (Power action)
+Slim120 advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+alwaysmo builds a Dwelling for 1 workers 2 coins [D8]
+alwaysmo gets 2 VP (Scoring tile bonus)
+alwaysmo gets 2 VP (Favor tile bonus)
+bassano gets 1 power via Structures [D8]
+bassano builds a Dwelling for 1 workers 2 coins [C4]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+MoffettiMoffetta gains 1 on the Cult of Air track (Favor tile action) and earns 3 power
+MoffettiMoffetta declines doing Conversions
+Slim120 transforms a Terrain space plains → desert for free (Nomads Stronghold) [E2]
+Slim120 builds a Dwelling for 1 workers 2 coins [E2]
+Slim120 gets 2 VP (Scoring tile bonus)
+MoffettiMoffetta declines getting Power via Structures [E2]
+alwaysmo builds a Dwelling for 1 workers 2 coins [E11]
+alwaysmo gets 2 VP (Scoring tile bonus)
+alwaysmo gets 2 VP (Favor tile bonus)
+alwaysmo founds a Town [D8]
+alwaysmo gets 7 VP and collects 2 workers (Town bonus)
+bassano upgrades a Dwelling to a Trading house for 2 workers 3 coins [D7]
+bassano declines doing Conversions
+alwaysmo pays 2 VP and gets 3 power via Structures [D7]
+bassano founds a Town [C5]
+bassano advances on the Shipping Track for free and earns 3 VP (Town bonus)
+bassano gets 4 VP (Town bonus)
+MoffettiMoffetta advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Slim120 builds a Dwelling for 1 workers 2 coins [I7]
+Slim120 gets 2 VP (Scoring tile bonus)
+alwaysmo builds a Dwelling for 1 workers 2 coins [A7]
+alwaysmo gets 2 VP (Scoring tile bonus)
+alwaysmo gets 2 VP (Favor tile bonus)
+bassano gains 2 on the Cult of Earth track (Auren Stronghold) and earns 2 power
+bassano declines doing Conversions
+MoffettiMoffetta advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+Slim120 transforms a Terrain space plains → desert for 3 workers → 1 spade(s) [I8]
+Slim120 builds a Dwelling for 1 workers 2 coins [I8]
+Slim120 gets 2 VP (Scoring tile bonus)
+alwaysmo advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+bassano spends 3 power to collect 1 Priests (Power action)
+bassano declines doing Conversions
+MoffettiMoffetta advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+Slim120 sends a Priest to the Order of the Cult of Earth. Forever!
+Slim120 gains 2 on the Cult of Earth track and earns 1 power
+Slim120 declines doing Conversions
+alwaysmo builds a Dwelling for 1 workers 2 coins [B5]
+alwaysmo gets 2 VP (Scoring tile bonus)
+alwaysmo gets 2 VP (Favor tile bonus)
+bassano gets 1 power via Structures [B5]
+bassano does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+bassano builds a Dwelling for 1 workers 2 coins [A10]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+alwaysmo gets 1 power via Structures [A10]
+bassano declines doing Conversions
+MoffettiMoffetta upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [E1]
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+Slim120 gets 1 power via Structures [E1]
+Slim120 gains 1 on the Cult of Water track (Favor tile action)
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [B5]
+alwaysmo gets 3 VP (Favor tile bonus)
+bassano pays 1 VP and gets 2 power via Structures [B5]
+bassano cancels their move
+bassano sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+bassano does some Conversions (spent: 2 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 2 coins)
+bassano builds a Dwelling for 1 workers 2 coins [I6]
+bassano gets 2 VP (Scoring tile bonus)
+bassano gets 2 VP (Favor tile bonus)
+Slim120 gets 1 power via Structures [I6]
+bassano declines doing Conversions
+MoffettiMoffetta does some Conversions (spent: 0 power 0 Priests 2 workers ; collects: 0 Priests  0 workers 2 coins)
+MoffettiMoffetta advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Slim120 sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+Slim120 spends 6 power to get 2 spade(s) (Power action)
+Slim120 transforms a Terrain space swamp → desert for 2 spade(s) [H5]
+Slim120 declines building a Dwelling for now
+alwaysmo sends a Priest to the Order of the Cult of Fire. Forever!
+alwaysmo gains 2 on the Cult of Fire track and earns 2 power
+alwaysmo declines doing Conversions
+bassano passes and becomes the first player for the next round
+bassano gets 6 VP (Bonus card)
+bassano gets 3 VP (Favor tile bonus)
+bassano chooses 1 Bonus card and gets 1 coins
+bassano declines doing Conversions
+MoffettiMoffetta passes
+MoffettiMoffetta gets 8 VP (Bonus card)
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+MoffettiMoffetta chooses 1 Bonus card
+Slim120 passes
+Slim120 gets 2 VP (Bonus card)
+Slim120 chooses 1 Bonus card and gets 1 coins
+alwaysmo does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+alwaysmo passes
+alwaysmo gets 7 VP (Bonus card)
+alwaysmo chooses 1 Bonus card
+~ Cleanup phase ~
+bassano gets 1 Priests (Cult bonus)
+MoffettiMoffetta gets 2 Priests (Cult bonus)
+Slim120 gets 2 Priests (Cult bonus)
+alwaysmo gets 1 Priests (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+MoffettiMoffetta gets 3 workers 4 Priests 4 coins 11 power (Income)
+Not enough Priests in the supply: MoffettiMoffetta collects 3 Priests
+alwaysmo gets 10 workers 3 Priests 8 coins 1 power (Income)
+Slim120 gets 8 workers 2 Priests 6 coins 3 power (Income)
+bassano gets 7 workers 2 Priests 6 coins 8 power (Income)
+~ Action phase ~
+bassano spends 4 power to collect 7 coins (Power action)
+bassano declines doing Conversions
+~ You have enabled automatic acceptance of Power via Structures up to 1 power for 0 VP ~
+MoffettiMoffetta does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+MoffettiMoffetta sends a Priest to the Order of the Cult of Fire. Forever!
+MoffettiMoffetta gains 2 on the Cult of Fire track and earns 2 power
+MoffettiMoffetta declines doing Conversions
+Slim120 upgrades a Temple to a Sanctuary for 4 workers 6 coins [E4]
+Slim120 gets 5 VP (Scoring tile bonus)
+alwaysmo pays 1 VP and gets 2 power via Structures [E4]
+Slim120 takes a Favor tile
+Slim120 gains 3 on the Cult of Earth track (Favor tile) and earns 4 power
+Slim120 declines doing Conversions
+alwaysmo spends 4 power to collect 2 workers (Power action)
+bassano sends a Priest to the Order of the Cult of Earth. Forever!
+bassano gains 2 on the Cult of Earth track
+bassano declines doing Conversions
+MoffettiMoffetta sends a Priest to the Order of the Cult of Fire. Forever!
+MoffettiMoffetta gains 2 on the Cult of Fire track and earns 2 power
+MoffettiMoffetta does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+Slim120 transforms a Terrain space lakes → desert for free (Nomads Stronghold) [H4]
+Slim120 builds a Dwelling for 1 workers 2 coins [H4]
+alwaysmo advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+bassano builds a Dwelling for 1 workers 2 coins [G3]
+bassano gets 2 VP (Favor tile bonus)
+Slim120 gets 1 power via Structures [G3]
+bassano declines doing Conversions
+MoffettiMoffetta spends 4 power to get 1 spade(s) (Power action)
+MoffettiMoffetta transforms a Terrain space forest → lakes for 1 spade(s) [A3]
+MoffettiMoffetta builds a Dwelling for 2 workers 3 coins [A3]
+alwaysmo gets 1 power via Structures [A3]
+Slim120 sends a Priest to the Order of the Cult of Earth. Forever!
+Slim120 gains 2 on the Cult of Earth track
+alwaysmo converts 2 VP into 2 coins (Alchemists ability)
+alwaysmo advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+bassano sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+bassano gains 1 on the Cult of Earth track and earns 3 power
+bassano declines doing Conversions
+MoffettiMoffetta gains 1 on the Cult of Fire track (Favor tile action)
+Slim120 sends a Priest to the Order of the Cult of Air. Forever!
+Slim120 gains 2 on the Cult of Air track and earns 1 power
+Slim120 declines doing Conversions
+alwaysmo converts 2 VP into 2 coins (Alchemists ability)
+alwaysmo transforms a Terrain space desert → swamp for 2 workers → 2 spade(s) [B4]
+alwaysmo gains 4 power (Alchemists Stronghold)
+alwaysmo builds a Dwelling for 1 workers 2 coins [B4]
+alwaysmo gets 2 VP (Favor tile bonus)
+bassano gets 1 power via Structures [B4]
+alwaysmo declines doing Conversions
+bassano gains 2 on the Cult of Fire track (Auren Stronghold) and earns 2 power
+bassano declines doing Conversions
+MoffettiMoffetta sends a Priest to the Order of the Cult of Fire then reclaims it into his supply
+MoffettiMoffetta gains 1 on the Cult of Fire track
+Slim120 spends 3 power to collect 1 Priests (Power action)
+alwaysmo sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+alwaysmo spends 3 power to build a Bridge (Power action) [B2-C1]
+alwaysmo founds a Town [A4]
+alwaysmo gets 7 VP and collects 2 workers (Town bonus)
+bassano upgrades a Temple to a Sanctuary for 4 workers 8 coins [E7]
+bassano gets 5 VP (Scoring tile bonus)
+bassano does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+Slim120 declines getting Power via Structures [E7]
+bassano takes a Favor tile
+bassano gains 2 on the Cult of Fire track (Favor tile) and earns 3 power
+bassano declines doing Conversions
+MoffettiMoffetta advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+Slim120 sends a Priest to the Order of the Cult of Air. Forever!
+Slim120 gains 2 on the Cult of Air track and earns 2 power
+Slim120 declines doing Conversions
+alwaysmo sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+alwaysmo converts 2 VP into 2 coins (Alchemists ability)
+alwaysmo does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [B4]
+alwaysmo gets 3 VP (Favor tile bonus)
+bassano gets 1 power via Structures [B4]
+alwaysmo founds a Town [A8]
+alwaysmo gets 11 VP (Town bonus)
+bassano transforms a Terrain space mountains → forest for 1 spade(s) (Bonus card action) [G1]
+bassano builds a Dwelling for 1 workers 2 coins [G1]
+bassano gets 2 VP (Favor tile bonus)
+bassano declines doing Conversions
+Slim120 declines getting Power via Structures [G1]
+MoffettiMoffetta upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [I10]
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+Slim120 gains 1 on the Cult of Air track (Favor tile action) and earns 2 power
+Slim120 declines doing Conversions
+alwaysmo converts 2 VP into 2 coins (Alchemists ability)
+alwaysmo transforms a Terrain space forest → swamp for 2 workers → 2 spade(s) [F2]
+alwaysmo gains 4 power (Alchemists Stronghold)
+alwaysmo builds a Dwelling for 1 workers 2 coins [F2]
+alwaysmo gets 2 VP (Favor tile bonus)
+alwaysmo declines doing Conversions
+Slim120 declines getting Power via Structures [F2]
+bassano does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+bassano advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+bassano declines doing Conversions
+MoffettiMoffetta passes
+MoffettiMoffetta gets 9 VP (Bonus card)
+MoffettiMoffetta gets 3 VP (Favor tile bonus)
+~ This is the last round. No new Bonus cards are taken. ~
+Slim120 gains 1 on the Cult of Air track (Bonus card action)
+alwaysmo sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+alwaysmo converts 1 VP into 1 coins (Alchemists ability)
+alwaysmo does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+alwaysmo upgrades a Dwelling to a Trading house for 2 workers 3 coins [A4]
+alwaysmo gets 3 VP (Favor tile bonus)
+MoffettiMoffetta gets 1 power via Structures [A4]
+bassano passes
+bassano gets 3 VP (Favor tile bonus)
+Slim120 does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+Slim120 upgrades a Dwelling to a Trading house for 2 workers 3 coins [H4]
+Slim120 gets 3 VP (Favor tile bonus)
+bassano gets 1 power via Structures [H4]
+alwaysmo passes
+alwaysmo gets 4 VP (Bonus card)
+Slim120 passes
+~ Final scoring ~
+bassano scores 8 VP (Cult of Fire)
+MoffettiMoffetta scores 4 VP (Cult of Fire)
+alwaysmo scores 2 VP (Cult of Fire)
+Slim120 scores 0 VP (Cult of Fire)
+MoffettiMoffetta scores 8 VP (Cult of Water)
+Slim120 scores 4 VP (Cult of Water)
+bassano scores 2 VP (Cult of Water)
+alwaysmo scores 0 VP (Cult of Water)
+bassano scores 8 VP (Cult of Earth)
+Slim120 scores 4 VP (Cult of Earth)
+MoffettiMoffetta scores 2 VP (Cult of Earth)
+alwaysmo scores 0 VP (Cult of Earth)
+MoffettiMoffetta scores 8 VP (Cult of Air)
+Slim120 scores 4 VP (Cult of Air)
+bassano scores 2 VP (Cult of Air)
+alwaysmo scores 0 VP (Cult of Air)
+alwaysmo scores 18 VP with 14 connected Structures (Area scoring)
+bassano scores 12 VP with 13 connected Structures (Area scoring)
+Slim120 scores 6 VP with 11 connected Structures (Area scoring)
+MoffettiMoffetta scores 0 VP with 4 connected Structures (Area scoring)
+MoffettiMoffetta converts 1 Priests into 1 coins
+MoffettiMoffetta converts 4 workers into 4 coins
+MoffettiMoffetta scores 1 VP with 5 coins (Resource scoring)
+alwaysmo converts 2 Priests into 2 coins
+alwaysmo converts 2 workers into 2 coins
+alwaysmo scores 2 VP with 4 coins (Resource scoring)
+Slim120 sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+Slim120 converts 4 power into 4 coins
+Slim120 converts 2 Priests into 2 coins
+Slim120 scores 2 VP with 6 coins (Resource scoring)
+bassano sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+bassano converts 5 power into 5 coins
+bassano converts 1 workers into 1 coins
+bassano scores 2 VP with 6 coins (Resource scoring)
+The end of the game: alwaysmo wins!

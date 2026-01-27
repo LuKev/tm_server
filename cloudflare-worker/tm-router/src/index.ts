@@ -4,10 +4,11 @@ export default {
 		const path = url.pathname;
 
 		// Route /tm/* to the TM client (frontend)
-		// The frontend is configured with base path /tm, so we forward the path as-is
+		// Strip /tm prefix before forwarding - assets are at /assets/, not /tm/assets/
 		if (path.startsWith('/tm')) {
-			// Forward the FULL path - the frontend expects /tm/...
-			const targetUrl = `https://tm-client-production.up.railway.app${path}${url.search}`;
+			// Strip /tm prefix. /tm -> /, /tm/replay -> /replay, /tm/assets/... -> /assets/...
+			const strippedPath = path === '/tm' ? '/' : path.slice(3);
+			const targetUrl = `https://tm-client-production.up.railway.app${strippedPath}${url.search}`;
 
 			// Forward the request
 			const response = await fetch(targetUrl, {

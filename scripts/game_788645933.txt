@@ -1,0 +1,868 @@
+Game board: Base Game
+Mini-expansions: On
+Landscapes expansion: On
+Fire and Ice - Final Scoring tiles: Off
+Fire and Ice - Factions: Off
+Fan Factions: Off
+tomyimkc selected the faction Engineers on mountains to play in position #1
+samshazam83 selected the faction Auren on forest to play in position #2
+1ndas selected the faction Swarmlings on lakes to play in position #3
+MrCrowley83 selected the faction Darklings on swamp to play in position #4
+tomyimkc bids on the Darklings with 40 Starting VPs
+samshazam83 bids on the Darklings with 35 Starting VPs
+1ndas bids on the Darklings with 30 Starting VPs
+MrCrowley83 bids on the Engineers with 40 Starting VPs
+tomyimkc bids on the Darklings with 29 Starting VPs
+samshazam83 bids on the Darklings with 25 Starting VPs
+1ndas bids on the Darklings with 24 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc bids on the Darklings with 23 Starting VPs
+samshazam83 bids on the Darklings with 22 Starting VPs
+1ndas bids on the Swarmlings with 40 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc bids on the Swarmlings with 39 Starting VPs
+samshazam83 has not been outbid for Faction Darklings and is skipped
+1ndas bids on the Swarmlings with 38 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc bids on the Swarmlings with 37 Starting VPs
+samshazam83 has not been outbid for Faction Darklings and is skipped
+1ndas bids on the Swarmlings with 36 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc bids on the Swarmlings with 35 Starting VPs
+samshazam83 has not been outbid for Faction Darklings and is skipped
+1ndas bids on the Darklings with 21 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc has not been outbid for Faction Swarmlings and is skipped
+samshazam83 bids on the Engineers with 38 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 bids on the Swarmlings with 33 Starting VPs
+tomyimkc bids on the Swarmlings with 32 Starting VPs
+samshazam83 has not been outbid for Faction Engineers and is skipped
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 bids on the Swarmlings with 30 Starting VPs
+tomyimkc bids on the Engineers with 37 Starting VPs
+samshazam83 bids on the Engineers with 36 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 has not been outbid for Faction Swarmlings and is skipped
+tomyimkc bids on the Engineers with 35 Starting VPs
+samshazam83 bids on the Engineers with 34 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 has not been outbid for Faction Swarmlings and is skipped
+tomyimkc bids on the Engineers with 33 Starting VPs
+samshazam83 bids on the Darklings with 20 Starting VPs
+1ndas bids on the Darklings with 19 Starting VPs
+MrCrowley83 has not been outbid for Faction Swarmlings and is skipped
+tomyimkc has not been outbid for Faction Engineers and is skipped
+samshazam83 bids on the Darklings with 18 Starting VPs
+1ndas bids on the Swarmlings with 29 Starting VPs
+MrCrowley83 bids on the Engineers with 32 Starting VPs
+tomyimkc bids on the Swarmlings with 28 Starting VPs
+samshazam83 has not been outbid for Faction Darklings and is skipped
+1ndas bids on the Swarmlings with 27 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc bids on the Swarmlings with 26 Starting VPs
+samshazam83 has not been outbid for Faction Darklings and is skipped
+1ndas bids on the Darklings with 17 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc has not been outbid for Faction Swarmlings and is skipped
+samshazam83 bids on the Darklings with 16 Starting VPs
+1ndas bids on the Swarmlings with 25 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc bids on the Swarmlings with 24 Starting VPs
+samshazam83 has not been outbid for Faction Darklings and is skipped
+1ndas bids on the Darklings with 15 Starting VPs
+MrCrowley83 has not been outbid for Faction Engineers and is skipped
+tomyimkc has not been outbid for Faction Swarmlings and is skipped
+samshazam83 bids on the Engineers with 31 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 bids on the Engineers with 30 Starting VPs
+tomyimkc has not been outbid for Faction Swarmlings and is skipped
+samshazam83 bids on the Engineers with 29 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 bids on the Engineers with 28 Starting VPs
+tomyimkc has not been outbid for Faction Swarmlings and is skipped
+samshazam83 bids on the Engineers with 27 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 bids on the Engineers with 26 Starting VPs
+tomyimkc has not been outbid for Faction Swarmlings and is skipped
+samshazam83 bids on the Engineers with 25 Starting VPs
+1ndas has not been outbid for Faction Darklings and is skipped
+MrCrowley83 bids on the Auren with 40 Starting VPs
+~ The Factions auction is over ~
+samshazam83 is playing the Engineers Faction (with 25 VP Starting VPs)
+MrCrowley83 is playing the Auren Faction (with 40 VP Starting VPs)
+tomyimkc is playing the Swarmlings Faction (with 24 VP Starting VPs)
+1ndas is playing the Darklings Faction (with 15 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+samshazam83 places a Dwelling [E7]
+MrCrowley83 places a Dwelling [F4]
+tomyimkc places a Dwelling [G6]
+1ndas places a Dwelling [G5]
+1ndas places a Dwelling [E5]
+tomyimkc places a Dwelling [H4]
+MrCrowley83 places a Dwelling [E9]
+samshazam83 places a Dwelling [F6]
+1ndas chooses 1 Bonus card
+tomyimkc chooses 1 Bonus card
+MrCrowley83 chooses 1 Bonus card
+samshazam83 chooses 1 Bonus card
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+tomyimkc gets 6 workers 0 Priests 0 coins 0 power (Income)
+samshazam83 gets 3 workers 0 Priests 0 coins 0 power (Income)
+1ndas gets 3 workers 0 Priests 2 coins 0 power (Income)
+MrCrowley83 gets 3 workers 1 Priests 0 coins 0 power (Income)
+~ Action phase ~
+samshazam83 upgrades a Dwelling to a Trading house for 1 workers 2 coins [F6]
+tomyimkc gets 1 power via Structures [F6]
+1ndas gets 1 power via Structures [F6]
+MrCrowley83 gets 1 power via Structures [F6]
+samshazam83 declines doing Conversions
+MrCrowley83 sends a Priest to the Order of the Cult of Earth. Forever!
+MrCrowley83 gains 3 on the Cult of Earth track and earns 1 power
+MrCrowley83 declines doing Conversions
+tomyimkc upgrades a Dwelling to a Trading house for 3 workers 4 coins [G6]
+tomyimkc declines doing Conversions
+1ndas gets 1 power via Structures [G6]
+samshazam83 pays 1 VP and gets 2 power via Structures [G6]
+1ndas sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+1ndas spends 4 power to collect 2 workers (Power action)
+1ndas declines doing Conversions
+samshazam83 upgrades a Dwelling to a Trading house for 1 workers 2 coins [E7]
+MrCrowley83 gets 1 power via Structures [E7]
+samshazam83 declines doing Conversions
+MrCrowley83 upgrades a Dwelling to a Trading house for 2 workers 3 coins [E9]
+MrCrowley83 declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [E9]
+tomyimkc upgrades a Trading house to a Faction Stronghold for 5 workers 8 coins [G6]
+tomyimkc declines doing Conversions
+1ndas gets 1 power via Structures [G6]
+samshazam83 pays 1 VP and gets 2 power via Structures [G6]
+1ndas transforms a Terrain space plains → swamp for 1 spade(s) (Bonus card action) [F5]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas builds a Dwelling for 1 workers 2 coins [F5]
+1ndas declines doing Conversions
+MrCrowley83 pays 1 VP and gets 2 power via Structures [F5]
+samshazam83 pays 1 VP and gets 2 power via Structures [F5]
+samshazam83 upgrades a Trading house to a Temple for 1 workers 4 coins [E7]
+MrCrowley83 gets 1 power via Structures [E7]
+samshazam83 takes a Favor tile
+samshazam83 gains 1 on the Cult of Earth track (Favor tile)
+samshazam83 declines doing Conversions
+MrCrowley83 sacrificed 5 power in Bowl 2 to get 5 power from Bowl 2 to Bowl 3
+MrCrowley83 spends 6 power to get 2 spade(s) (Power action)
+MrCrowley83 transforms a Terrain space wasteland → forest for 2 spade(s) [D7]
+MrCrowley83 gets 4 VP (Scoring tile bonus)
+MrCrowley83 places his Special Landscape [D7]
+MrCrowley83 declines doing Conversions
+tomyimkc upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H4]
+tomyimkc declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [F5]
+1ndas declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [F5]
+MrCrowley83 pays 1 VP and gets 2 power via Structures [F5]
+samshazam83 spends 4 power to get 1 spade(s) (Power action)
+samshazam83 transforms a Terrain space wasteland → mountains for 1 spade(s) [D4]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 builds a Dwelling for 1 workers 1 coins [D4]
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+MrCrowley83 upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [E9]
+MrCrowley83 declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [E9]
+1ndas pays 1 VP and gets 2 power via Structures [E9]
+MrCrowley83 takes a Favor tile
+MrCrowley83 gains 1 on the Cult of Earth track (Favor tile)
+MrCrowley83 declines doing Conversions
+tomyimkc upgrades a Trading house to a Temple for 3 workers 6 coins [H4]
+tomyimkc takes a Favor tile
+tomyimkc gains 1 on the Cult of Earth track (Favor tile)
+tomyimkc declines doing Conversions
+1ndas upgrades a Trading house to a Temple for 2 workers 5 coins [F5]
+1ndas declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [F5]
+MrCrowley83 pays 2 VP and gets 3 power via Structures [F5]
+1ndas takes a Favor tile
+1ndas gains 2 on the Cult of Earth track (Favor tile) and earns 1 power
+1ndas declines doing Conversions
+samshazam83 spends 3 power to build a Bridge (Power action) [C2-D4]
+samshazam83 declines doing Conversions
+MrCrowley83 gains 2 on the Cult of Fire track (Auren Stronghold)
+MrCrowley83 declines doing Conversions
+tomyimkc passes and becomes the first player for the next round
+tomyimkc gets 4 VP (Bonus card)
+tomyimkc chooses 1 Bonus card and gets 1 coins
+tomyimkc declines doing Conversions
+1ndas transforms a Terrain space plains → swamp for 1 Priests → 1 spade(s) [H7]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas earns 2 VP (Darklings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [H7]
+1ndas declines doing Conversions
+tomyimkc pays 2 VP and gets 3 power via Structures [H7]
+samshazam83 passes
+samshazam83 gets 2 VP (Bonus card)
+samshazam83 chooses 1 Bonus card
+samshazam83 declines doing Conversions
+MrCrowley83 passes
+MrCrowley83 chooses 1 Bonus card and gets 1 coins
+MrCrowley83 declines doing Conversions
+1ndas passes
+1ndas chooses 1 Bonus card and gets 1 coins
+1ndas declines doing Conversions
+~ Cleanup phase ~
+tomyimkc gets 2 coins (Cult bonus)
+samshazam83 gets 1 coins (Cult bonus)
+MrCrowley83 gets 4 coins (Cult bonus)
+1ndas gets 3 coins (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+tomyimkc gets 2 workers 1 Priests 4 coins 4 power (Income)
+samshazam83 gets 3 workers 1 Priests 2 coins 1 power (Income)
+1ndas gets 5 workers 1 Priests 2 coins 1 power (Income)
+MrCrowley83 gets 2 workers 0 Priests 0 coins 5 power (Income)
+~ Action phase ~
+tomyimkc sends a Priest to the Order of the Cult of Fire. Forever!
+tomyimkc gains 3 on the Cult of Fire track and earns 1 power
+tomyimkc declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Earth. Forever!
+samshazam83 gains 2 on the Cult of Earth track and earns 1 power
+samshazam83 declines doing Conversions
+MrCrowley83 spends 3 power to collect 1 Priests (Power action)
+MrCrowley83 declines doing Conversions
+1ndas upgrades a Temple to a Sanctuary for 4 workers 10 coins [F5]
+1ndas gets 5 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 pays 2 VP and gets 3 power via Structures [F5]
+samshazam83 pays 1 VP and gets 2 power via Structures [F5]
+1ndas takes a Favor tile
+1ndas gains 1 on the Cult of Fire track (Favor tile)
+1ndas declines doing Conversions
+tomyimkc cancels their move
+tomyimkc cancels their move
+tomyimkc cancels their move
+tomyimkc spends 6 power to get 2 spade(s) (Power action)
+tomyimkc transforms a Terrain space forest → lakes for 1 spade(s) [G3]
+tomyimkc transforms a Terrain space swamp → lakes for 1 spade(s) [H5]
+tomyimkc builds a Dwelling for 2 workers 3 coins [G3]
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+samshazam83 sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+samshazam83 spends 4 power to collect 7 coins (Power action)
+samshazam83 declines doing Conversions
+MrCrowley83 advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+MrCrowley83 declines doing Conversions
+1ndas sends a Priest to the Order of the Cult of Water. Forever!
+1ndas gains 3 on the Cult of Water track and earns 1 power
+1ndas declines doing Conversions
+tomyimkc gains 1 on the Cult of Fire track (Bonus card action) and earns 2 power
+tomyimkc declines doing Conversions
+samshazam83 upgrades a Temple to a Sanctuary for 3 workers 6 coins [E7]
+samshazam83 gets 5 VP (Scoring tile bonus)
+MrCrowley83 gets 1 power via Structures [E7]
+samshazam83 takes a Favor tile
+samshazam83 gains 2 on the Cult of Earth track (Favor tile) and earns 2 power
+samshazam83 declines doing Conversions
+MrCrowley83 gains 2 on the Cult of Fire track (Auren Stronghold) and earns 1 power
+MrCrowley83 declines doing Conversions
+1ndas passes and becomes the first player for the next round
+1ndas gets 3 VP (Bonus card)
+1ndas chooses 1 Bonus card and gets 1 coins
+1ndas declines doing Conversions
+tomyimkc upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [G3]
+tomyimkc declines doing Conversions
+samshazam83 builds a Dwelling for 1 workers 1 coins [C2]
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+MrCrowley83 passes
+MrCrowley83 gets 3 VP (Bonus card)
+MrCrowley83 chooses 1 Bonus card
+MrCrowley83 declines doing Conversions
+tomyimkc upgrades a Trading house to a Temple for 3 workers 6 coins [G3]
+tomyimkc takes a Favor tile
+tomyimkc gains 1 on the Cult of Fire track (Favor tile)
+tomyimkc declines doing Conversions
+samshazam83 passes
+samshazam83 gets 4 VP (Bonus card)
+samshazam83 chooses 1 Bonus card
+samshazam83 declines doing Conversions
+tomyimkc passes
+tomyimkc chooses 1 Bonus card
+tomyimkc declines doing Conversions
+~ Cleanup phase ~
+MrCrowley83 gets 2 workers (Cult bonus)
+tomyimkc gets 3 workers (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+tomyimkc gets 4 workers 2 Priests 3 coins 4 power (Income)
+samshazam83 gets 3 workers 1 Priests 2 coins 5 power (Income)
+1ndas gets 5 workers 2 Priests 5 coins 1 power (Income)
+MrCrowley83 gets 2 workers 0 Priests 2 coins 2 power (Income)
+~ Action phase ~
+1ndas sacrificed 4 power in Bowl 2 to get 4 power from Bowl 2 to Bowl 3
+1ndas spends 4 power to collect 7 coins (Power action)
+1ndas declines doing Conversions
+MrCrowley83 spends 4 power to get 1 spade(s) (Power action)
+MrCrowley83 transforms a Terrain space mountains → forest for 1 spade(s) [C5]
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [C5]
+MrCrowley83 gets 2 VP (Scoring tile bonus)
+MrCrowley83 gets 2 VP (Favor tile bonus)
+MrCrowley83 declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Earth. Forever!
+samshazam83 gains 2 on the Cult of Earth track and earns 2 power
+samshazam83 declines doing Conversions
+tomyimkc sends a Priest to the Order of the Cult of Air. Forever!
+tomyimkc gains 3 on the Cult of Air track and earns 1 power
+tomyimkc declines doing Conversions
+1ndas transforms a Terrain space lakes → swamp for 1 spade(s) (Bonus card action) [E4]
+1ndas builds a Dwelling for 1 workers 2 coins [E4]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [C4]
+MrCrowley83 gets 2 VP (Scoring tile bonus)
+MrCrowley83 gets 2 VP (Favor tile bonus)
+MrCrowley83 declines doing Conversions
+samshazam83 spends 3 power to collect 1 Priests (Power action)
+samshazam83 declines doing Conversions
+tomyimkc sends a Priest to the Order of the Cult of Earth. Forever!
+tomyimkc gains 2 on the Cult of Earth track and earns 1 power
+tomyimkc declines doing Conversions
+1ndas transforms a Terrain space desert → swamp for 2 Priests → 2 spade(s) [D3]
+1ndas earns 4 VP (Darklings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [D3]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [C3]
+MrCrowley83 gets 2 VP (Scoring tile bonus)
+MrCrowley83 gets 2 VP (Favor tile bonus)
+samshazam83 gets 1 power via Structures [C3]
+MrCrowley83 declines doing Conversions
+samshazam83 cancels their move
+samshazam83 advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+samshazam83 declines doing Conversions
+tomyimkc builds a Dwelling for 2 workers 3 coins [H5]
+tomyimkc gets 2 VP (Scoring tile bonus)
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+1ndas builds a Dwelling for 1 workers 2 coins [C1]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 gains 2 on the Cult of Earth track (Auren Stronghold) and earns 2 power
+MrCrowley83 declines doing Conversions
+samshazam83 passes and becomes the first player for the next round
+samshazam83 gets 3 VP (Bonus card)
+samshazam83 chooses 1 Bonus card and gets 2 coins
+samshazam83 declines doing Conversions
+tomyimkc upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [H5]
+tomyimkc declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [H7]
+1ndas declines doing Conversions
+tomyimkc pays 2 VP and gets 3 power via Structures [H7]
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [A10]
+MrCrowley83 gets 2 VP (Scoring tile bonus)
+MrCrowley83 gets 2 VP (Favor tile bonus)
+MrCrowley83 declines doing Conversions
+tomyimkc sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+tomyimkc does some Conversions (spent: 8 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 8 coins)
+tomyimkc upgrades a Temple to a Sanctuary for 5 workers 8 coins [H4]
+tomyimkc takes a Favor tile
+tomyimkc gains 1 on the Cult of Air track (Favor tile) and earns 2 power
+tomyimkc founds a Town [H4]
+tomyimkc gains 2 on the Cult of Fire track and earns 2 power
+tomyimkc gains 2 on the Cult of Air track and earns 2 power
+tomyimkc gains 2 on the Cult of Earth track and earns 2 power
+tomyimkc gains 2 on the Cult of Water track and earns 1 power
+tomyimkc gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+tomyimkc collects 3 workers (Swarmlings ability)
+tomyimkc declines doing Conversions
+1ndas passes
+1ndas chooses 1 Bonus card and gets 1 coins
+1ndas declines doing Conversions
+MrCrowley83 passes
+MrCrowley83 gets 5 VP (Bonus card)
+MrCrowley83 chooses 1 Bonus card
+MrCrowley83 declines doing Conversions
+tomyimkc passes
+tomyimkc gets 8 VP (Bonus card)
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc chooses 1 Bonus card and gets 2 coins
+tomyimkc does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+~ Cleanup phase ~
+MrCrowley83 gets 4 power (Cult bonus)
+tomyimkc gets 8 power (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+tomyimkc gets 2 workers 4 Priests 5 coins 6 power (Income)
+samshazam83 gets 4 workers 1 Priests 2 coins 2 power (Income)
+1ndas gets 7 workers 2 Priests 9 coins 2 power (Income)
+MrCrowley83 gets 6 workers 0 Priests 2 coins 2 power (Income)
+~ Action phase ~
+samshazam83 sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+samshazam83 spends 4 power to collect 7 coins (Power action)
+samshazam83 declines doing Conversions
+1ndas upgrades a Trading house to a Temple for 2 workers 5 coins [H7]
+tomyimkc Power gain via Structures is capped from 3 power to 0 power
+1ndas takes a Favor tile
+1ndas gains 1 on the Cult of Water track (Favor tile) and earns 2 power
+1ndas declines doing Conversions
+MrCrowley83 spends 3 power to build a Bridge (Power action) [A11-C5]
+MrCrowley83 declines doing Conversions
+tomyimkc spends 6 power to get 2 spade(s) (Power action)
+tomyimkc transforms a Terrain space plains → lakes for 2 spade(s) [F7]
+tomyimkc places his Special Landscape [F7]
+tomyimkc declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [F7]
+samshazam83 upgrades a Trading house to a Temple for 1 workers 4 coins [F6]
+samshazam83 declines doing Conversions
+1ndas pays 3 VP and gets 4 power via Structures [F6]
+tomyimkc pays 3 VP and gets 4 power via Structures [F6]
+MrCrowley83 pays 2 VP and gets 3 power via Structures [F6]
+samshazam83 takes a Favor tile
+samshazam83 gains 1 on the Cult of Water track (Favor tile)
+samshazam83 declines doing Conversions
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas transforms a Terrain space plains → swamp for 1 Priests → 1 spade(s) [E6]
+1ndas earns 2 VP (Darklings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [E6]
+1ndas declines doing Conversions
+MrCrowley83 gets 1 power via Structures [E6]
+samshazam83 pays 3 VP and gets 4 power via Structures [E6]
+MrCrowley83 transforms a Terrain space lakes → forest for 1 spade(s) (Bonus card action) [A11]
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [A11]
+MrCrowley83 gets 2 VP (Favor tile bonus)
+MrCrowley83 founds a Town [D7]
+MrCrowley83 gains 1 on the Cult of Fire track and earns 2 power
+MrCrowley83 gains 1 on the Cult of Air track
+MrCrowley83 gains 1 on the Cult of Earth track and earns 2 power
+MrCrowley83 gains 1 on the Cult of Water track
+MrCrowley83 gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+MrCrowley83 gets 5 VP (Scoring tile bonus)
+MrCrowley83 does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+tomyimkc sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+tomyimkc spends 4 power to get 1 spade(s) (Power action)
+tomyimkc transforms a Terrain space swamp → lakes for 1 spade(s) [E10]
+tomyimkc builds a Dwelling for 2 workers 3 coins [E10]
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+MrCrowley83 Power gain via Structures is capped from 4 power to 2 power
+MrCrowley83 pays 1 VP and gets 2 power via Structures [E10]
+samshazam83 pays 1 VP and gets 2 power via Structures [E10]
+samshazam83 upgrades a Dwelling to a Trading house for 1 workers 2 coins [D4]
+samshazam83 gets 3 VP (Favor tile bonus)
+1ndas gets 1 power via Structures [D4]
+MrCrowley83 Power gain via Structures is capped from 1 power to 0 power
+samshazam83 declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [E6]
+1ndas gets 3 VP (Favor tile bonus)
+1ndas declines doing Conversions
+samshazam83 Power gain via Structures is capped from 5 power to 3 power
+MrCrowley83 Power gain via Structures is capped from 1 power to 0 power
+samshazam83 pays 2 VP and gets 3 power via Structures [E6]
+MrCrowley83 spends 3 power to collect 1 Priests (Power action)
+MrCrowley83 declines doing Conversions
+tomyimkc builds a Dwelling for 2 workers 3 coins [E11]
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+samshazam83 does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+samshazam83 upgrades a Dwelling to a Trading house for 1 workers 4 coins [C2]
+samshazam83 gets 3 VP (Favor tile bonus)
+samshazam83 founds a Town [E7]
+samshazam83 advances on the Shipping Track for free and earns 3 VP (Town bonus)
+samshazam83 gets 4 VP (Town bonus)
+samshazam83 gets 5 VP (Scoring tile bonus)
+samshazam83 declines doing Conversions
+1ndas upgrades a Trading house to a Temple for 2 workers 5 coins [E6]
+1ndas declines doing Conversions
+MrCrowley83 gets 1 power via Structures [E6]
+samshazam83 Power gain via Structures is capped from 5 power to 2 power
+samshazam83 pays 1 VP and gets 2 power via Structures [E6]
+1ndas takes a Favor tile
+1ndas gains 2 on the Cult of Fire track (Favor tile) and earns 1 power
+1ndas founds a Town [G5]
+1ndas advances on the Shipping Track for free and earns 2 VP (Town bonus)
+1ndas gets 4 VP (Town bonus)
+1ndas gets 5 VP (Scoring tile bonus)
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas founds a Town [C1]
+1ndas gains 1 on the Cult of Fire track
+1ndas gains 1 on the Cult of Air track
+1ndas gains 1 on the Cult of Earth track
+1ndas gains 1 on the Cult of Water track
+1ndas gets 8 VP Victory points and moves 1 space forward on each of the 4 Cult tracks
+1ndas gets 5 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 sends a Priest to the Order of the Cult of Earth then reclaims it into his supply
+MrCrowley83 gains 1 on the Cult of Earth track
+MrCrowley83 declines doing Conversions
+tomyimkc upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [E11]
+tomyimkc founds a Town [G6]
+tomyimkc gets 5 VP and collects 6 coins (Town bonus)
+tomyimkc gets 5 VP (Scoring tile bonus)
+tomyimkc collects 3 workers (Swarmlings ability)
+tomyimkc declines doing Conversions
+samshazam83 does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+samshazam83 upgrades a Trading house to a Temple for 1 workers 4 coins [C2]
+samshazam83 takes a Favor tile
+samshazam83 gains 3 on the Cult of Earth track (Favor tile) and earns 3 power
+samshazam83 declines doing Conversions
+1ndas gains 1 on the Cult of Water track (Bonus card action) and earns 2 power
+1ndas declines doing Conversions
+MrCrowley83 gains 2 on the Cult of Water track (Auren Stronghold) and earns 1 power
+MrCrowley83 declines doing Conversions
+tomyimkc does some Conversions (spent: 0 power 3 Priests 0 workers ; collects: 0 Priests  3 workers 0 coins)
+tomyimkc passes and becomes the first player for the next round
+tomyimkc gets 3 VP (Favor tile bonus)
+tomyimkc chooses 1 Bonus card and gets 1 coins
+tomyimkc declines doing Conversions
+samshazam83 does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+samshazam83 advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+samshazam83 declines doing Conversions
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas passes
+1ndas chooses 1 Bonus card and gets 1 coins
+1ndas declines doing Conversions
+MrCrowley83 does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+MrCrowley83 passes
+MrCrowley83 chooses 1 Bonus card and gets 1 coins
+MrCrowley83 declines doing Conversions
+samshazam83 does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+samshazam83 passes
+samshazam83 gets 2 VP (Bonus card)
+samshazam83 chooses 1 Bonus card
+samshazam83 declines doing Conversions
+~ Cleanup phase ~
+tomyimkc gets 1 spade(s) (Cult bonus)
+1ndas gets 1 spade(s) (Cult bonus)
+MrCrowley83 gets 2 spade(s) (Cult bonus)
+samshazam83 gets 2 spade(s) (Cult bonus)
+tomyimkc transforms a Terrain space plains → swamp for 1 spade(s) [D8]
+1ndas transforms a Terrain space plains → swamp for 1 spade(s) [B2]
+MrCrowley83 transforms a Terrain space wasteland → forest for 2 spade(s) [D6]
+samshazam83 transforms a Terrain space forest → mountains for 1 spade(s) [I6]
+samshazam83 transforms a Terrain space desert → wasteland for 1 spade(s) [G4]
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+tomyimkc gets 5 workers 3 Priests 7 coins 8 power (Income)
+samshazam83 gets 1 workers 2 Priests 4 coins 7 power (Income)
+1ndas gets 7 workers 4 Priests 5 coins 1 power (Income)
+MrCrowley83 gets 7 workers 0 Priests 0 coins 5 power (Income)
+~ Action phase ~
+tomyimkc sacrificed 2 power in Bowl 2 to get 2 power from Bowl 2 to Bowl 3
+tomyimkc spends 4 power to collect 7 coins (Power action)
+tomyimkc declines doing Conversions
+1ndas builds a Dwelling for 1 workers 2 coins [B2]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [B2]
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [D6]
+MrCrowley83 gets 2 VP (Scoring tile bonus)
+MrCrowley83 gets 2 VP (Favor tile bonus)
+MrCrowley83 declines doing Conversions
+samshazam83 spends 4 power to get 1 spade(s) (Power action)
+samshazam83 transforms a Terrain space wasteland → mountains for 1 spade(s) [G4]
+samshazam83 places his Special Landscape [G4]
+1ndas gets 1 power via Structures [G4]
+1ndas Power gain via Structures is capped from 4 power to 1 power
+samshazam83 declines doing Conversions
+tomyimkc advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+tomyimkc declines doing Conversions
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas builds a Dwelling for 1 workers 2 coins [B3]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [B3]
+MrCrowley83 transforms a Terrain space lakes → forest for 3 workers → 1 spade(s) [D5]
+MrCrowley83 builds a Dwelling for 1 workers 2 coins [D5]
+MrCrowley83 gets 2 VP (Scoring tile bonus)
+MrCrowley83 gets 2 VP (Favor tile bonus)
+MrCrowley83 declines doing Conversions
+samshazam83 declines getting Power via Structures [D5]
+samshazam83 builds a Dwelling for 1 workers 1 coins [I6]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc advances on the Exchange Track for 2 workers 5 coins 1 Priests and earns 6 VP
+tomyimkc declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [B3]
+1ndas gets 3 VP (Favor tile bonus)
+1ndas declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [B3]
+MrCrowley83 spends 3 power to build a Bridge (Power action) [C4-D5]
+MrCrowley83 declines doing Conversions
+samshazam83 builds a Dwelling for 1 workers 1 coins [G1]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc transforms a Terrain space mountains → lakes for 2 workers → 2 spade(s) [H8]
+tomyimkc builds a Dwelling for 2 workers 3 coins [H8]
+tomyimkc gets 2 VP (Scoring tile bonus)
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [H8]
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas transforms a Terrain space lakes → swamp for 1 Priests → 1 spade(s) [A4]
+1ndas earns 2 VP (Darklings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [A4]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+MrCrowley83 upgrades a Dwelling to a Trading house for 2 workers 3 coins [D5]
+MrCrowley83 declines doing Conversions
+samshazam83 Power gain via Structures is capped from 5 power to 4 power
+samshazam83 declines getting Power via Structures [D5]
+samshazam83 builds a Dwelling for 1 workers 1 coins [A2]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc transforms a Terrain space forest → lakes for 1 workers → 1 spade(s) [I11]
+tomyimkc builds a Dwelling for 2 workers 3 coins [I11]
+tomyimkc gets 2 VP (Scoring tile bonus)
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [I11]
+1ndas does some Conversions (spent: 1 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 1 coins)
+1ndas transforms a Terrain space desert → swamp for 2 Priests → 2 spade(s) [A5]
+1ndas earns 4 VP (Darklings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [A5]
+1ndas gets 2 VP (Scoring tile bonus)
+1ndas declines doing Conversions
+MrCrowley83 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+MrCrowley83 does some Conversions (spent: 1 power 0 Priests 4 workers ; collects: 0 Priests  0 workers 5 coins)
+MrCrowley83 upgrades a Trading house to a Temple for 2 workers 5 coins [D5]
+MrCrowley83 declines doing Conversions
+samshazam83 Power gain via Structures is capped from 5 power to 4 power
+samshazam83 declines getting Power via Structures [D5]
+MrCrowley83 takes a Favor tile
+MrCrowley83 gains 3 on the Cult of Water track (Favor tile) and earns 4 power
+MrCrowley83 declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Water. Forever!
+samshazam83 gains 2 on the Cult of Water track and earns 1 power
+samshazam83 declines doing Conversions
+tomyimkc does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+tomyimkc builds a Dwelling for 2 workers 3 coins [I10]
+tomyimkc gets 2 VP (Scoring tile bonus)
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+1ndas pays 1 VP and gets 2 power via Structures [I10]
+1ndas does some Conversions (spent: 2 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 2 coins)
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [B2]
+1ndas gets 3 VP (Favor tile bonus)
+1ndas declines doing Conversions
+samshazam83 pays 1 VP and gets 2 power via Structures [B2]
+1ndas founds a Town [A4]
+1ndas gets 5 VP and collects 6 coins (Town bonus)
+MrCrowley83 gains 2 on the Cult of Water track (Auren Stronghold)
+MrCrowley83 declines doing Conversions
+samshazam83 spends 4 power to collect 2 workers (Power action)
+samshazam83 declines doing Conversions
+tomyimkc passes and becomes the first player for the next round
+tomyimkc gets 8 VP (Bonus card)
+tomyimkc gets 3 VP (Favor tile bonus)
+tomyimkc chooses 1 Bonus card and gets 1 coins
+tomyimkc declines doing Conversions
+1ndas advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+1ndas declines doing Conversions
+MrCrowley83 passes
+MrCrowley83 gets 3 VP (Bonus card)
+MrCrowley83 chooses 1 Bonus card
+MrCrowley83 declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Water. Forever!
+samshazam83 gains 2 on the Cult of Water track and earns 2 power
+samshazam83 declines doing Conversions
+1ndas transforms a Terrain space desert → plains for 1 Priests → 1 spade(s) [B4]
+1ndas earns 2 VP (Darklings Ability)
+1ndas declines doing Conversions
+samshazam83 builds a Dwelling for 1 workers 1 coins [H6]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc gets 1 power via Structures [H6]
+1ndas pays 2 VP and gets 3 power via Structures [H6]
+1ndas does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+1ndas passes
+1ndas gets 7 VP (Bonus card)
+1ndas chooses 1 Bonus card
+1ndas declines doing Conversions
+samshazam83 builds a Dwelling for 1 workers 1 coins [I9]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc declines getting Power via Structures [I9]
+samshazam83 builds a Dwelling for 1 workers 1 coins [F1]
+samshazam83 gets 2 VP (Scoring tile bonus)
+samshazam83 gets 2 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+samshazam83 transforms a Terrain space forest → mountains for 1 spade(s) (Bonus card action) [F2]
+samshazam83 declines building a Dwelling for now
+samshazam83 declines doing Conversions
+samshazam83 passes
+samshazam83 chooses 1 Bonus card
+samshazam83 declines doing Conversions
+~ Cleanup phase ~
+MrCrowley83 gets 2 Priests (Cult bonus)
+1ndas gets 1 Priests (Cult bonus)
+samshazam83 gets 1 Priests (Cult bonus)
+~ Leftover Bonus cards receive 1 Coin each ~
+~ Income phase ~
+tomyimkc gets 7 workers 3 Priests 7 coins 8 power (Income)
+samshazam83 gets 5 workers 2 Priests 4 coins 7 power (Income)
+1ndas gets 9 workers 4 Priests 7 coins 6 power (Income)
+MrCrowley83 gets 10 workers 1 Priests 0 coins 2 power (Income)
+~ Action phase ~
+tomyimkc spends 4 power to collect 7 coins (Power action)
+tomyimkc declines doing Conversions
+MrCrowley83 sends a Priest to the Order of the Cult of Water then reclaims it into his supply
+MrCrowley83 gains 1 on the Cult of Water track and earns 3 power
+MrCrowley83 scores 4 VP (Special Landscape)
+MrCrowley83 declines doing Conversions
+1ndas transforms a Terrain space plains → swamp for 1 Priests → 1 spade(s) [B4]
+1ndas earns 2 VP (Darklings Ability)
+1ndas builds a Dwelling for 1 workers 2 coins [B4]
+MrCrowley83 gets 1 power via Structures [B4]
+1ndas declines doing Conversions
+samshazam83 spends 3 power to build a Bridge (Power action) [F6-G4]
+samshazam83 declines doing Conversions
+tomyimkc cancels their move
+tomyimkc upgrades a Trading house to a Temple for 3 workers 6 coins [E11]
+tomyimkc takes a Favor tile
+tomyimkc gains 2 on the Cult of Fire track (Favor tile) and earns 3 power
+tomyimkc declines doing Conversions
+MrCrowley83 does some Conversions (spent: 5 power 0 Priests 3 workers ; collects: 0 Priests  0 workers 8 coins)
+MrCrowley83 upgrades a Temple to a Sanctuary for 4 workers 8 coins [D5]
+MrCrowley83 gets 5 VP (Scoring tile bonus)
+MrCrowley83 declines doing Conversions
+samshazam83 declines getting Power via Structures [D5]
+MrCrowley83 takes a Favor tile
+MrCrowley83 gains 2 on the Cult of Fire track (Favor tile) and earns 2 power
+MrCrowley83 founds a Town [D6]
+MrCrowley83 gets 11 VP (Town bonus)
+MrCrowley83 declines doing Conversions
+1ndas upgrades a Dwelling to a Trading house for 2 workers 3 coins [B4]
+1ndas gets 3 VP (Favor tile bonus)
+MrCrowley83 gets 1 power via Structures [B4]
+1ndas declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Water. Forever!
+samshazam83 gains 2 on the Cult of Water track and earns 2 power
+samshazam83 declines doing Conversions
+tomyimkc transforms a Terrain space swamp → lakes for 1 workers → 1 spade(s) [D8]
+tomyimkc builds a Dwelling for 2 workers 3 coins [D8]
+tomyimkc gets 2 VP (Favor tile bonus)
+MrCrowley83 gets 1 power via Structures [D8]
+tomyimkc declines doing Conversions
+MrCrowley83 sends a Priest to the Order of the Cult of Air. Forever!
+MrCrowley83 gains 2 on the Cult of Air track and earns 1 power
+MrCrowley83 declines doing Conversions
+1ndas upgrades a Trading house to a Faction Stronghold for 4 workers 6 coins [B4]
+1ndas gets 5 VP (Scoring tile bonus)
+MrCrowley83 gets 1 power via Structures [B4]
+1ndas trades 2 workers for 2 Priests (Darklings Stronghold)
+1ndas declines doing Conversions
+samshazam83 upgrades a Dwelling to a Trading house for 1 workers 2 coins [I9]
+samshazam83 gets 3 VP (Favor tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc pays 1 VP and gets 2 power via Structures [I9]
+tomyimkc sends a Priest to the Order of the Cult of Air. Forever!
+tomyimkc gains 2 on the Cult of Air track
+tomyimkc declines doing Conversions
+MrCrowley83 sends a Priest to the Order of the Cult of Air. Forever!
+MrCrowley83 gains 2 on the Cult of Air track and earns 2 power
+MrCrowley83 declines doing Conversions
+1ndas transforms a Terrain space desert → swamp for 2 Priests → 2 spade(s) [E8]
+1ndas earns 4 VP (Darklings Ability)
+1ndas places his Special Landscape [E8]
+1ndas declines doing Conversions
+MrCrowley83 declines getting Power via Structures [E8]
+samshazam83 declines getting Power via Structures [E8]
+samshazam83 does some Conversions (spent: 4 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 4 coins)
+samshazam83 upgrades a Trading house to a Faction Stronghold for 3 workers 6 coins [I9]
+samshazam83 gets 5 VP (Scoring tile bonus)
+samshazam83 declines doing Conversions
+tomyimkc pays 1 VP and gets 2 power via Structures [I9]
+tomyimkc spends 4 power to collect 2 workers (Power action)
+tomyimkc declines doing Conversions
+MrCrowley83 gains 2 on the Cult of Fire track (Auren Stronghold)
+MrCrowley83 declines doing Conversions
+1ndas transforms a Terrain space mountains → wasteland for 1 Priests → 1 spade(s) [F2]
+1ndas earns 2 VP (Darklings Ability)
+1ndas declines doing Conversions
+samshazam83 does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 0 coins)
+samshazam83 spends 2 workers to build a Bridge (Engineers Ability) [H6-I9]
+samshazam83 founds a Town [H6]
+samshazam83 gets 9 VP and collects 1 Priests (Town bonus)
+samshazam83 declines doing Conversions
+tomyimkc advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+tomyimkc declines doing Conversions
+MrCrowley83 passes
+MrCrowley83 gets 8 VP (Bonus card)
+~ This is the last round. No new Bonus cards are taken. ~
+1ndas does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+1ndas advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+1ndas declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+samshazam83 gains 1 on the Cult of Air track
+samshazam83 declines doing Conversions
+tomyimkc advances on the Shipping track for 1 Priests 4 coins and gets 3 VP
+tomyimkc declines doing Conversions
+1ndas transforms a Terrain space desert → swamp for 2 Priests → 2 spade(s) [H1]
+1ndas earns 4 VP (Darklings Ability)
+1ndas declines building a Dwelling for now
+1ndas declines doing Conversions
+samshazam83 sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+samshazam83 gains 1 on the Cult of Air track
+samshazam83 declines doing Conversions
+tomyimkc upgrades a Dwelling to a Trading house for free (Swarmlings Stronghold) [I11]
+tomyimkc declines doing Conversions
+1ndas declines getting Power via Structures [I11]
+tomyimkc founds a Town [I11]
+tomyimkc gets 9 VP and collects 1 Priests (Town bonus)
+tomyimkc collects 3 workers (Swarmlings ability)
+1ndas passes
+1ndas gets 9 VP (Bonus card)
+samshazam83 passes
+samshazam83 gets 5 VP (Bonus card)
+samshazam83 gets 9 VP (Engineers Stronghold)
+tomyimkc sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+tomyimkc does some Conversions (spent: 1 power 0 Priests 1 workers ; collects: 0 Priests  0 workers 2 coins)
+tomyimkc advances on the Shipping track for 1 Priests 4 coins and gets 4 VP
+tomyimkc declines doing Conversions
+tomyimkc does some Conversions (spent: 0 power 0 Priests 3 workers ; collects: 0 Priests  0 workers 3 coins)
+tomyimkc builds a Dwelling for 2 workers 3 coins [I4]
+tomyimkc gets 2 VP (Favor tile bonus)
+tomyimkc declines doing Conversions
+tomyimkc sends a Priest to the Order of the Cult of Air then reclaims it into his supply
+tomyimkc gains 1 on the Cult of Air track and earns 3 power
+tomyimkc declines doing Conversions
+tomyimkc passes
+tomyimkc gets 4 VP (Bonus card)
+tomyimkc gets 3 VP (Favor tile bonus)
+~ Final scoring ~
+tomyimkc scores 8 VP (Cult of Fire)
+MrCrowley83 scores 4 VP (Cult of Fire)
+1ndas scores 2 VP (Cult of Fire)
+MrCrowley83 scores 8 VP (Cult of Water)
+samshazam83 scores 3 VP (Cult of Water)
+1ndas scores 3 VP (Cult of Water)
+tomyimkc scores 0 VP (Cult of Water)
+samshazam83 scores 8 VP (Cult of Earth)
+MrCrowley83 scores 4 VP (Cult of Earth)
+tomyimkc scores 2 VP (Cult of Earth)
+1ndas scores 0 VP (Cult of Earth)
+tomyimkc scores 8 VP (Cult of Air)
+MrCrowley83 scores 4 VP (Cult of Air)
+samshazam83 scores 2 VP (Cult of Air)
+1ndas scores 0 VP (Cult of Air)
+1ndas scores 18 VP with 14 connected Structures (Area scoring)
+tomyimkc scores 12 VP with 12 connected Structures (Area scoring)
+samshazam83 scores 6 VP with 11 connected Structures (Area scoring)
+MrCrowley83 scores 0 VP with 9 connected Structures (Area scoring)
+tomyimkc sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+tomyimkc converts 1 power into 1 coins
+tomyimkc scores 0 VP with 1 coins (Resource scoring)
+samshazam83 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+samshazam83 converts 1 power into 1 coins
+samshazam83 scores 0 VP with 1 coins (Resource scoring)
+1ndas scores 0 VP with 0 coins (Resource scoring)
+MrCrowley83 sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+MrCrowley83 converts 4 power into 4 coins
+MrCrowley83 converts 3 workers into 3 coins
+MrCrowley83 scores 2 VP with 7 coins (Resource scoring)
+End of game
