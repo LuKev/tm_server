@@ -81,6 +81,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reNomadsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* for free \(Nomads Stronghold\).*\[(.*)\]`)
 	reCMDoubleTurn := regexp.MustCompile(`(.*) takes a double-turn \(Chaos Magicians Stronghold\)`)
 	reHalflingsSpades := regexp.MustCompile(`(.*) gets 3 Spades to Transform and Build \(Halflings Stronghold\)`)
+	reEngineersBridge := regexp.MustCompile(`(.*) spends 2 workers to build a Bridge \(Engineers Ability\) \[(.*)\]`)
 
 	reConversionLine := regexp.MustCompile(`(.*) does some Conversions \(spent: (.*); collects: (.*)\)`)
 
@@ -405,6 +406,17 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			// Halflings Stronghold: 3 spades for transform
 			playerID := p.getPlayerID(matches[1])
 			p.handleHalflingsStrongholdSpades(playerID)
+
+		} else if matches := reHalflingsSpades.FindStringSubmatch(line); len(matches) > 1 {
+			// Halflings Stronghold: 3 spades for transform
+			playerID := p.getPlayerID(matches[1])
+			p.handleHalflingsStrongholdSpades(playerID)
+
+		} else if matches := reEngineersBridge.FindStringSubmatch(line); len(matches) > 2 {
+			// Engineers Ability: 2 workers for bridge
+			playerID := p.getPlayerID(matches[1])
+			coordStr := matches[2]
+			p.handleEngineersBridge(playerID, coordStr)
 
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
@@ -1825,4 +1837,20 @@ func (p *BGAParser) parseResources(str string) map[models.ResourceType]int {
 	}
 
 	return res
+}
+
+func (p *BGAParser) handleEngineersBridge(playerID, coordStr string) {
+	// Format: C5-D6
+	parts := strings.Split(coordStr, "-")
+	if len(parts) != 2 {
+		fmt.Printf("Warning: Invalid bridge coordinates for Engineers: %s\n", coordStr)
+		return
+	}
+
+	action := &LogSpecialAction{
+		PlayerID:   playerID,
+		ActionCode: fmt.Sprintf("ACT-BR-%s-%s", parts[0], parts[1]),
+	}
+
+	p.items = append(p.items, ActionItem{Action: action})
 }
