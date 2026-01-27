@@ -153,6 +153,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		if strings.Contains(line, "Every player has chosen a Faction") {
 			break
 		}
+		fmt.Printf("Setup Line: %s\n", line) // Debug logging
 		if matches := reFactionSelection.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := strings.TrimSpace(matches[1])
 			factionName := strings.TrimSpace(matches[2])
