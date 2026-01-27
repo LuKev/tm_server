@@ -344,6 +344,34 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			action := game.NewMermaidsRiverTownAction(a.PlayerID, riverHex)
 			return action.Execute(gs)
 		}
+	case "ACT-BR":
+		// Engineers Bridge: ACT-BR-[Coord]-[Coord]
+		if len(parts) < 4 {
+			return fmt.Errorf("invalid engineers bridge action code")
+		}
+		hex1, err := ConvertLogCoordToAxial(parts[2])
+		if err != nil {
+			return err
+		}
+		hex2, err := ConvertLogCoordToAxial(parts[3])
+		if err != nil {
+			return err
+		}
+
+		if err := gs.Map.BuildBridge(hex1, hex2, a.PlayerID); err != nil {
+			return fmt.Errorf("failed to build bridge: %w", err)
+		}
+
+		// Check for town formation after building bridge
+		gs.CheckAllTownFormations(a.PlayerID)
+
+		// Engineers get 3 VP per bridge if Stronghold is built
+		player.BridgesBuilt++
+		if player.HasStrongholdAbility && player.Faction.GetType() == models.FactionEngineers {
+			player.VictoryPoints += 3
+		}
+
+		return nil
 	case "ACTS":
 		// Bonus Card Spade: ACTS-[Coord] or ACTS-[Coord].[coord] (with dwelling build)
 		if len(parts) < 2 {
