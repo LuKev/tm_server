@@ -289,7 +289,6 @@ func (h *ReplayHandler) handleImportForm(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Redirect to the replay page
-	// Note: We use /tm/replay/ because that's the frontend route
-	http.Redirect(w, r, "/tm/replay/"+gameID, http.StatusSeeOther)
+	// Redirect to the replay page on the frontend
+	http.Redirect(w, r, "https://kezilu.com/tm/replay/"+gameID, http.StatusSeeOther)
 }
