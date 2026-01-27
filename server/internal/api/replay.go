@@ -46,7 +46,11 @@ func (h *ReplayHandler) handleStart(w http.ResponseWriter, r *http.Request) {
 	session, err := h.manager.StartReplay(req.GameID, req.Restart)
 	if err != nil {
 		fmt.Printf("StartReplay error: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": err.Error(),
+		})
 		return
 	}
 
