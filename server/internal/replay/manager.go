@@ -169,6 +169,12 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 	scriptPath := filepath.Join(m.scriptDir, "fetch_bga_log.py")
 	outputPath := filepath.Join(m.scriptDir, fmt.Sprintf("game_%s.txt", gameID))
 
+	// Check if the log file already exists (e.g., from ImportLog)
+	if content, err := os.ReadFile(outputPath); err == nil {
+		return string(content), nil
+	}
+
+	// If file doesn't exist, try to fetch it using the Python script
 	cmd := exec.Command("python3", scriptPath, gameID, "--output", outputPath)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
