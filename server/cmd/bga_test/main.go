@@ -162,10 +162,14 @@ func main() {
 	fmt.Printf("\n✅ Simulation completed successfully!\n")
 	fmt.Printf("   Executed %d actions\n", successCount)
 
-	// Print final scores
-	fmt.Println("\n📊 Final Scores:")
-	for playerID, player := range simulator.GetState().Players {
-		fmt.Printf("   %s: %d VP\n", playerID, player.VictoryPoints)
+	// Calculate final scoring
+	finalScores := simulator.GetState().CalculateFinalScoring()
+	rankedScores := game.GetRankedPlayers(finalScores)
+
+	fmt.Printf("\n📊 Final Scores:\n")
+	for i, score := range rankedScores {
+		fmt.Printf("   %d. %s: %d VP (Base: %d, Area: %d, Cult: %d, Res: %d)\n",
+			i+1, score.PlayerName, score.TotalVP, score.BaseVP, score.AreaVP, score.CultVP, score.ResourceVP)
 	}
 }
 
