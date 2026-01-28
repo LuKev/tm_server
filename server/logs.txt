@@ -1,0 +1,500 @@
+  Card: 8, Coins: 0
+DEBUG: Processing RoundStartItem for Round 1. TurnOrder: [Engineers Alchemists Swarmlings Nomads]
+  Card: 0, Coins: 0
+DEBUG: Simulator skipped existing player: Alchemists
+DEBUG: Set starting VP for Alchemists to 40
+DEBUG: Simulator skipped existing player: Swarmlings
+DEBUG: Set starting VP for Swarmlings to 40
+DEBUG: Simulator skipped existing player: Nomads
+DEBUG: Set starting VP for Nomads to 31
+DEBUG: Simulator skipped existing player: Engineers
+DEBUG: Set starting VP for Engineers to 32
+Executing action 1: *game.SetupDwellingAction
+Executing action 2: *game.SetupDwellingAction
+Executing action 3: *game.SetupDwellingAction
+Executing action 4: *game.SetupDwellingAction
+Executing action 5: *game.SetupDwellingAction
+Executing action 6: *game.SetupDwellingAction
+Executing action 7: *game.SetupDwellingAction
+Executing action 8: *game.SetupDwellingAction
+Executing action 9: *game.SetupDwellingAction
+Executing action 10: *notation.LogBonusCardSelectionAction
+Executing action 11: *notation.LogBonusCardSelectionAction
+Executing action 12: *notation.LogBonusCardSelectionAction
+Executing action 13: *notation.LogBonusCardSelectionAction
+DEBUG: GrantIncome called for Round 1
+DEBUG: Income for Alchemists: Coins=0, Workers=3, Priests=1, Power=0 (BonusCard: 0)
+DEBUG: Income for Swarmlings: Coins=0, Workers=6, Priests=0, Power=0 (BonusCard: 8)
+DEBUG: Income for Nomads: Coins=2, Workers=4, Priests=0, Power=0 (BonusCard: 4)
+DEBUG: Income for Engineers: Coins=6, Workers=2, Priests=0, Power=0 (BonusCard: 6)
+Executing action 15: *game.UpgradeBuildingAction
+Executing action 16: *notation.LogAcceptLeechAction
+Executing action 17: *notation.LogAcceptLeechAction
+Executing action 18: *game.UpgradeBuildingAction
+Executing action 19: *notation.LogAcceptLeechAction
+Executing action 20: *notation.LogAcceptLeechAction
+Executing action 21: *game.UpgradeBuildingAction
+Executing action 22: *notation.LogAcceptLeechAction
+Executing action 23: *notation.LogAcceptLeechAction
+Executing action 24: *game.UpgradeBuildingAction
+Executing action 25: *notation.LogAcceptLeechAction
+Executing action 26: *notation.LogAcceptLeechAction
+Executing action 27: *notation.LogCompoundAction
+Executing action 28: *notation.LogAcceptLeechAction
+Executing action 29: *notation.LogAcceptLeechAction
+Executing action 30: *notation.LogBurnAction
+Executing action 31: *notation.LogPowerAction
+Executing action 32: *notation.LogBurnAction
+Executing action 33: *notation.LogPowerAction
+Executing action 34: *notation.LogBurnAction
+Executing action 35: *notation.LogPowerAction
+Executing action 36: *game.TransformAndBuildAction
+Executing action 37: *game.TransformAndBuildAction
+Executing action 38: *notation.LogAcceptLeechAction
+Executing action 39: *game.UpgradeBuildingAction
+Executing action 40: *game.UpgradeBuildingAction
+Executing action 41: *notation.LogAcceptLeechAction
+Executing action 42: *notation.LogAcceptLeechAction
+Executing action 43: *game.UpgradeBuildingAction
+Executing action 44: *notation.LogAcceptLeechAction
+Executing action 45: *notation.LogAcceptLeechAction
+Executing action 46: *notation.LogSpecialAction
+Executing action 47: *notation.LogAcceptLeechAction
+Executing action 48: *notation.LogCompoundAction
+Executing action 49: *notation.LogAcceptLeechAction
+Executing action 50: *notation.LogConversionAction
+Executing action 51: *game.AdvanceShippingAction
+Executing action 52: *notation.LogBurnAction
+Executing action 69: *notation.LogConversionAction
+Executing action 70: *game.TransformAndBuildAction
+Executing action 71: *notation.LogCompoundAction
+Executing action 72: *notation.LogAcceptLeechAction
+Executing action 73: *notation.LogAcceptLeechAction
+Executing action 74: *game.SendPriestToCultAction
+Executing action 75: *notation.LogCompoundAction
+Executing action 53: *notation.LogPowerAction
+Executing action 54: *notation.LogCompoundAction
+Executing action 55: *notation.LogAcceptLeechAction
+Executing action 56: *notation.LogAcceptLeechAction
+Executing action 57: *game.PassAction
+Executing action 58: *notation.LogPowerAction
+Executing action 59: *game.TransformAndBuildAction
+Executing action 60: *game.TransformAndBuildAction
+Executing action 61: *game.TransformAndBuildAction
+Executing action 62: *notation.LogAcceptLeechAction
+Executing action 63: *notation.LogSpecialAction
+Executing action 64: *notation.LogAcceptLeechAction
+Executing action 65: *notation.LogAcceptLeechAction
+Executing action 66: *game.PassAction
+Executing action 67: *notation.LogBurnAction
+Executing action 68: *notation.LogConversionAction
+Executing action 76: *notation.LogAcceptLeechAction
+Executing action 77: *notation.LogAcceptLeechAction
+Executing action 78: *notation.LogBurnAction
+Executing action 79: *notation.LogConversionAction
+Executing action 80: *notation.LogConversionAction
+Executing action 81: *game.TransformAndBuildAction
+Executing action 82: *game.PassAction
+Executing action 83: *notation.LogConversionAction
+Executing action 84: *game.PassAction
+DEBUG: All players passed, executing Cleanup Phase
+DEBUG: AwardCultRewards for Alchemists. Track: 0, Position: 4, Threshold: 4
+DEBUG: Awarding 4 (x1) to Alchemists
+DEBUG: AwardCultRewards for Swarmlings. Track: 0, Position: 1, Threshold: 4
+DEBUG: AwardCultRewards for Nomads. Track: 0, Position: 1, Threshold: 4
+DEBUG: AwardCultRewards for Engineers. Track: 0, Position: 0, Threshold: 4
+DEBUG: Processing RoundStartItem for Round 2. TurnOrder: [Engineers Nomads Swarmlings Alchemists]
+DEBUG: GrantIncome called for Round 2
+DEBUG: Income for Alchemists: Coins=6, Workers=7, Priests=0, Power=0 (BonusCard: 8)
+DEBUG: Income for Swarmlings: Coins=2, Workers=3, Priests=2, Power=5 (BonusCard: 4)
+DEBUG: Income for Nomads: Coins=6, Workers=5, Priests=1, Power=4 (BonusCard: 6)
+Executing action 103: *notation.LogConversionAction
+Executing action 104: *game.SendPriestToCultAction
+Executing action 105: *notation.LogBurnAction
+Executing action 106: *notation.LogPowerAction
+DEBUG: Income for Engineers: Coins=4, Workers=1, Priests=1, Power=6 (BonusCard: 7)
+Executing action 86: *notation.LogPowerAction
+Executing action 87: *notation.LogBurnAction
+Executing action 88: *notation.LogPowerAction
+Executing action 89: *game.TransformAndBuildAction
+Executing action 90: *game.TransformAndBuildAction
+Executing action 91: *notation.LogAcceptLeechAction
+Executing action 92: *notation.LogConversionAction
+Executing action 93: *game.SendPriestToCultAction
+Executing action 94: *game.UpgradeBuildingAction
+Executing action 95: *notation.LogPowerAction
+Executing action 96: *game.TransformAndBuildAction
+Executing action 97: *game.TransformAndBuildAction
+Executing action 98: *game.TransformAndBuildAction
+Executing action 99: *notation.LogAcceptLeechAction
+Executing action 100: *game.TransformAndBuildAction
+Executing action 101: *game.TransformAndBuildAction
+Executing action 102: *notation.LogAcceptLeechAction
+Executing action 107: *game.TransformAndBuildAction
+Executing action 108: *game.PassAction
+Executing action 109: *notation.LogSpecialAction
+Executing action 110: *notation.LogConversionAction
+Executing action 111: *notation.LogCompoundAction
+Executing action 112: *notation.LogAcceptLeechAction
+Executing action 113: *notation.LogSpecialAction
+Executing action 114: *notation.LogSpecialAction
+Executing action 115: *notation.LogConversionAction
+Executing action 116: *notation.LogConversionAction
+Executing action 117: *game.AdvanceShippingAction
+Executing action 118: *game.AdvanceShippingAction
+Executing action 119: *notation.LogConversionAction
+Executing action 120: *game.PassAction
+Executing action 121: *notation.LogConversionAction
+Executing action 122: *game.TransformAndBuildAction
+Executing action 123: *notation.LogAcceptLeechAction
+Executing action 124: *game.PassAction
+Executing action 125: *notation.LogConversionAction
+Executing action 126: *game.TransformAndBuildAction
+Executing action 127: *game.PassAction
+StepForward failed for game 555795328: action execution failed at index 127: bonus card 2 is not available. Available: [6 0 7]
+Setup Line: Lustrous bids on the Nomads with 31 Starting VPs
+handleStart called
+Setup Line: Eirik_Olavsson bids on the Engineers with 33 Starting VPs
+handleStart for game 555795328 (restart=true)
+Warning: Did not find auction over line
+Setup Line: Stahlbrötchen selected the faction Engineers on mountains to play in position #1
+Setup Line: skoomymooms selected the faction Alchemists on swamp to play in position #2
+Setup Line: Lustrous selected the faction Swarmlings on lakes to play in position #3
+Setup Line: Eirik_Olavsson selected the faction Nomads on desert to play in position #4
+Setup Line: Stahlbrötchen bids on the Engineers with 40 Starting VPs
+Setup Line: skoomymooms bids on the Nomads with 40 Starting VPs
+Setup Line: Lustrous bids on the Nomads with 39 Starting VPs
+Setup Line: Eirik_Olavsson bids on the Engineers with 39 Starting VPs
+Setup Line: Stahlbrötchen bids on the Engineers with 38 Starting VPs
+Setup Line: skoomymooms bids on the Nomads with 35 Starting VPs
+Setup Line: Lustrous bids on the Nomads with 34 Starting VPs
+Setup Line: Eirik_Olavsson bids on the Engineers with 36 Starting VPs
+Setup Line: Stahlbrötchen bids on the Engineers with 35 Starting VPs
+Setup Line: skoomymooms bids on the Nomads with 32 Starting VPs
+Setup Line: Stahlbrötchen bids on the Engineers with 32 Starting VPs
+Setup Line: skoomymooms bids on the Swarmlings with 40 Starting VPs
+Setup Line: Lustrous has not been outbid for Faction Nomads and is skipped
+Setup Line: Eirik_Olavsson bids on the Alchemists with 40 Starting VPs
+Setup Line: ~ The Factions auction is over ~
+Setup Line: Stahlbrötchen is playing the Engineers Faction (with 32 VP Starting VPs)
+Setup Line: Eirik_Olavsson is playing the Alchemists Faction (with 40 VP Starting VPs)
+Setup Line: skoomymooms is playing the Swarmlings Faction (with 40 VP Starting VPs)
+Setup Line: Lustrous is playing the Nomads Faction (with 31 VP Starting VPs)
+DEBUG: Processing Bridge/Engineers line: Stahlbrötchen spends 3 power to build a Bridge (Power action) [F4-G3]
+DEBUG: Matched Bridge Power: Stahlbrötchen spends 3 power to build a Bridge (Power action) [F4-G3]
+DEBUG: Processing Bridge/Engineers line: Stahlbrötchen spends 2 workers to build a Bridge (Engineers Ability) [C5-D6]
+DEBUG: Matched Engineers Bridge: Stahlbrötchen spends 2 workers to build a Bridge (Engineers Ability) [C5-D6]
+DEBUG: Processing Bridge/Engineers line: Stahlbrötchen spends 3 power to build a Bridge (Power action) [D6-E9]
+DEBUG: Matched Bridge Power: Stahlbrötchen spends 3 power to build a Bridge (Power action) [D6-E9]
+DEBUG: Processing Bridge/Engineers line: Eirik_Olavsson spends 3 power to build a Bridge (Power action) [B2-C1]
+DEBUG: Matched Bridge Power: Eirik_Olavsson spends 3 power to build a Bridge (Power action) [B2-C1]
+Found Final Scoring, stopping parse.
+DEBUG: createInitialState - BonusCards Available: 0
+DEBUG: Starting detectMissingInfo
+DEBUG: Global Missing Info Detected: GlobalBonusCards=true, GlobalScoringTiles=true
+handleStart success
+handleProvideInfo called for game 555795328
+Updated PassAction for Engineers with card BON-4C at index 57 (Round 1)
+Updated PassAction for Nomads with card BON-6C at index 66 (Round 1)
+Updated PassAction for Swarmlings with card BON-SPD at index 82 (Round 1)
+Updated PassAction for Alchemists with card BON-BB at index 84 (Round 1)
+Updated PassAction for Nomads with card BON-DW at index 108 (Round 2)
+Updated PassAction for Swarmlings with card BON-TP at index 120 (Round 2)
+Updated PassAction for Engineers with card BON-SPD at index 124 (Round 2)
+Updated PassAction for Alchemists with card BON-P at index 127 (Round 2)
+Updated PassAction for Nomads with card BON-BB at index 154 (Round 3)
+Updated PassAction for Swarmlings with card BON-6C at index 160 (Round 3)
+Updated PassAction for Engineers with card BON-4C at index 161 (Round 3)
+Updated PassAction for Alchemists with card BON-SPD at index 167 (Round 3)
+Updated PassAction for Swarmlings with card BON-TP at index 221 (Round 4)
+Updated PassAction for Alchemists with card BON-DW at index 224 (Round 4)
+Updated PassAction for Nomads with card BON-SPD at index 232 (Round 4)
+Updated PassAction for Engineers with card BON-BB at index 239 (Round 4)
+Updated PassAction for Swarmlings with card BON-6C at index 302 (Round 5)
+Updated PassAction for Alchemists with card BON-TP at index 304 (Round 5)
+Updated PassAction for Nomads with card BON-DW at index 305 (Round 5)
+Updated PassAction for Engineers with card BON-4C at index 306 (Round 5)
+DEBUG: createInitialState - BonusCards Available: 7
+  Card: 0, Coins: 0
+  Card: 2, Coins: 0
+  Card: 4, Coins: 0
+  Card: 7, Coins: 0
+  Card: 6, Coins: 0
+  Card: 5, Coins: 0
+  Card: 8, Coins: 0
+DEBUG: Starting detectMissingInfo
+DEBUG: No global missing info detected
+handleStart called
+handleStart for game 555795328 (restart=false)
+handleStart success
+handleState called for game 555795328
+handleState: returning state for 555795328. Players: 4
+ - Player: Nomads
+ - Player: Alchemists
+ - Player: Engineers
+ - Player: Swarmlings
+handleState success
+DEBUG: Simulator skipped existing player: Engineers
+DEBUG: Set starting VP for Engineers to 32
+DEBUG: Simulator skipped existing player: Swarmlings
+DEBUG: Set starting VP for Swarmlings to 40
+DEBUG: Simulator skipped existing player: Nomads
+DEBUG: Set starting VP for Nomads to 31
+DEBUG: Simulator skipped existing player: Alchemists
+DEBUG: Set starting VP for Alchemists to 40
+Executing action 1: *game.SetupDwellingAction
+Executing action 2: *game.SetupDwellingAction
+Executing action 3: *game.SetupDwellingAction
+Executing action 4: *game.SetupDwellingAction
+Executing action 5: *game.SetupDwellingAction
+Executing action 6: *game.SetupDwellingAction
+Executing action 7: *game.SetupDwellingAction
+Executing action 8: *game.SetupDwellingAction
+Executing action 9: *game.SetupDwellingAction
+Executing action 10: *notation.LogBonusCardSelectionAction
+Executing action 11: *notation.LogBonusCardSelectionAction
+Executing action 12: *notation.LogBonusCardSelectionAction
+Executing action 13: *notation.LogBonusCardSelectionAction
+DEBUG: Processing RoundStartItem for Round 1. TurnOrder: [Engineers Alchemists Swarmlings Nomads]
+DEBUG: GrantIncome called for Round 1
+DEBUG: Income for Engineers: Coins=6, Workers=2, Priests=0, Power=0 (BonusCard: 6)
+DEBUG: Income for Swarmlings: Coins=0, Workers=6, Priests=0, Power=0 (BonusCard: 8)
+DEBUG: Income for Nomads: Coins=2, Workers=4, Priests=0, Power=0 (BonusCard: 4)
+DEBUG: Income for Alchemists: Coins=0, Workers=3, Priests=1, Power=0 (BonusCard: 0)
+Executing action 15: *game.UpgradeBuildingAction
+Executing action 16: *notation.LogAcceptLeechAction
+Executing action 17: *notation.LogAcceptLeechAction
+Executing action 18: *game.UpgradeBuildingAction
+Executing action 19: *notation.LogAcceptLeechAction
+Executing action 20: *notation.LogAcceptLeechAction
+Executing action 21: *game.UpgradeBuildingAction
+Executing action 22: *notation.LogAcceptLeechAction
+Executing action 23: *notation.LogAcceptLeechAction
+Executing action 24: *game.UpgradeBuildingAction
+Executing action 25: *notation.LogAcceptLeechAction
+Executing action 26: *notation.LogAcceptLeechAction
+Executing action 27: *notation.LogCompoundAction
+Executing action 28: *notation.LogAcceptLeechAction
+Executing action 29: *notation.LogAcceptLeechAction
+Executing action 30: *notation.LogBurnAction
+Executing action 31: *notation.LogPowerAction
+Executing action 32: *notation.LogBurnAction
+Executing action 33: *notation.LogPowerAction
+Executing action 34: *notation.LogBurnAction
+Executing action 35: *notation.LogPowerAction
+Executing action 36: *game.TransformAndBuildAction
+Executing action 37: *game.TransformAndBuildAction
+Executing action 38: *notation.LogAcceptLeechAction
+Executing action 39: *game.UpgradeBuildingAction
+Executing action 40: *game.UpgradeBuildingAction
+Executing action 41: *notation.LogAcceptLeechAction
+Executing action 42: *notation.LogAcceptLeechAction
+Executing action 43: *game.UpgradeBuildingAction
+Executing action 44: *notation.LogAcceptLeechAction
+Executing action 45: *notation.LogAcceptLeechAction
+Executing action 46: *notation.LogSpecialAction
+Executing action 47: *notation.LogAcceptLeechAction
+Executing action 48: *notation.LogCompoundAction
+Executing action 49: *notation.LogAcceptLeechAction
+Executing action 50: *notation.LogConversionAction
+Executing action 51: *game.AdvanceShippingAction
+Executing action 52: *notation.LogBurnAction
+Executing action 53: *notation.LogPowerAction
+Executing action 54: *notation.LogCompoundAction
+Executing action 55: *notation.LogAcceptLeechAction
+Executing action 56: *notation.LogAcceptLeechAction
+Executing action 57: *game.PassAction
+Executing action 58: *notation.LogPowerAction
+Executing action 59: *game.TransformAndBuildAction
+Executing action 60: *game.TransformAndBuildAction
+Executing action 61: *game.TransformAndBuildAction
+Executing action 62: *notation.LogAcceptLeechAction
+Executing action 63: *notation.LogSpecialAction
+Executing action 64: *notation.LogAcceptLeechAction
+Executing action 65: *notation.LogAcceptLeechAction
+Executing action 66: *game.PassAction
+Executing action 67: *notation.LogBurnAction
+Executing action 68: *notation.LogConversionAction
+Executing action 69: *notation.LogConversionAction
+Executing action 70: *game.TransformAndBuildAction
+Executing action 71: *notation.LogCompoundAction
+Executing action 72: *notation.LogAcceptLeechAction
+Executing action 73: *notation.LogAcceptLeechAction
+Executing action 74: *game.SendPriestToCultAction
+Executing action 75: *notation.LogCompoundAction
+Executing action 76: *notation.LogAcceptLeechAction
+Executing action 77: *notation.LogAcceptLeechAction
+Executing action 78: *notation.LogBurnAction
+Executing action 79: *notation.LogConversionAction
+Executing action 80: *notation.LogConversionAction
+Executing action 81: *game.TransformAndBuildAction
+Executing action 82: *game.PassAction
+Executing action 83: *notation.LogConversionAction
+Executing action 84: *game.PassAction
+DEBUG: All players passed, executing Cleanup Phase
+DEBUG: AwardCultRewards for Alchemists. Track: 0, Position: 4, Threshold: 4
+DEBUG: Awarding 4 (x1) to Alchemists
+DEBUG: AwardCultRewards for Engineers. Track: 0, Position: 0, Threshold: 4
+DEBUG: AwardCultRewards for Swarmlings. Track: 0, Position: 1, Threshold: 4
+DEBUG: AwardCultRewards for Nomads. Track: 0, Position: 1, Threshold: 4
+DEBUG: Processing RoundStartItem for Round 2. TurnOrder: [Engineers Nomads Swarmlings Alchemists]
+DEBUG: GrantIncome called for Round 2
+DEBUG: Income for Nomads: Coins=6, Workers=5, Priests=1, Power=4 (BonusCard: 6)
+DEBUG: Income for Alchemists: Coins=6, Workers=7, Priests=0, Power=0 (BonusCard: 8)
+DEBUG: Income for Engineers: Coins=4, Workers=1, Priests=1, Power=6 (BonusCard: 7)
+DEBUG: Income for Swarmlings: Coins=2, Workers=3, Priests=2, Power=5 (BonusCard: 4)
+Executing action 86: *notation.LogPowerAction
+Executing action 87: *notation.LogBurnAction
+Executing action 88: *notation.LogPowerAction
+Executing action 89: *game.TransformAndBuildAction
+Executing action 90: *game.TransformAndBuildAction
+Executing action 91: *notation.LogAcceptLeechAction
+Executing action 92: *notation.LogConversionAction
+Executing action 93: *game.SendPriestToCultAction
+Executing action 94: *game.UpgradeBuildingAction
+Executing action 95: *notation.LogPowerAction
+Executing action 96: *game.TransformAndBuildAction
+Executing action 97: *game.TransformAndBuildAction
+Executing action 98: *game.TransformAndBuildAction
+Executing action 99: *notation.LogAcceptLeechAction
+Executing action 100: *game.TransformAndBuildAction
+Executing action 101: *game.TransformAndBuildAction
+Executing action 102: *notation.LogAcceptLeechAction
+Executing action 103: *notation.LogConversionAction
+Executing action 104: *game.SendPriestToCultAction
+Executing action 105: *notation.LogBurnAction
+Executing action 106: *notation.LogPowerAction
+Executing action 107: *game.TransformAndBuildAction
+Executing action 108: *game.PassAction
+Executing action 109: *notation.LogSpecialAction
+Executing action 110: *notation.LogConversionAction
+Executing action 111: *notation.LogCompoundAction
+Executing action 112: *notation.LogAcceptLeechAction
+Executing action 113: *notation.LogSpecialAction
+Executing action 114: *notation.LogSpecialAction
+Executing action 115: *notation.LogConversionAction
+Executing action 116: *notation.LogConversionAction
+Executing action 117: *game.AdvanceShippingAction
+Executing action 118: *game.AdvanceShippingAction
+Executing action 119: *notation.LogConversionAction
+Executing action 120: *game.PassAction
+Executing action 121: *notation.LogConversionAction
+Executing action 122: *game.TransformAndBuildAction
+Executing action 123: *notation.LogAcceptLeechAction
+Executing action 124: *game.PassAction
+Executing action 125: *notation.LogConversionAction
+Executing action 126: *game.TransformAndBuildAction
+Executing action 127: *game.PassAction
+DEBUG: All players passed, executing Cleanup Phase
+DEBUG: AwardCultRewards for Engineers. Track: 2, Position: 4, Threshold: 1
+DEBUG: Awarding 4 (x4) to Engineers
+DEBUG: AwardCultRewards for Swarmlings. Track: 2, Position: 7, Threshold: 1
+DEBUG: Awarding 7 (x4) to Swarmlings
+DEBUG: AwardCultRewards for Nomads. Track: 2, Position: 1, Threshold: 1
+DEBUG: Awarding 1 (x4) to Nomads
+DEBUG: AwardCultRewards for Alchemists. Track: 2, Position: 1, Threshold: 1
+DEBUG: Awarding 1 (x4) to Alchemists
+DEBUG: Processing RoundStartItem for Round 3. TurnOrder: [Nomads Swarmlings Engineers Alchemists]
+DEBUG: GrantIncome called for Round 3
+DEBUG: Income for Swarmlings: Coins=2, Workers=4, Priests=2, Power=7 (BonusCard: 5)
+DEBUG: Income for Nomads: Coins=2, Workers=7, Priests=1, Power=4 (BonusCard: 2)
+DEBUG: Income for Alchemists: Coins=6, Workers=6, Priests=2, Power=0 (BonusCard: 0)
+DEBUG: Income for Engineers: Coins=2, Workers=3, Priests=1, Power=6 (BonusCard: 4)
+Executing action 129: *notation.LogPowerAction
+Executing action 130: *notation.LogPowerAction
+Executing action 131: *game.TransformAndBuildAction
+Executing action 132: *game.TransformAndBuildAction
+Executing action 133: *notation.LogAcceptLeechAction
+Executing action 134: *notation.LogBurnAction
+Executing action 135: *notation.LogPowerAction
+Executing action 136: *game.TransformAndBuildAction
+Executing action 137: *game.TransformAndBuildAction
+Executing action 138: *game.TransformAndBuildAction
+Executing action 139: *game.TransformAndBuildAction
+Executing action 140: *notation.LogAcceptLeechAction
+Executing action 141: *notation.LogAcceptLeechAction
+Executing action 142: *game.AdvanceShippingAction
+Executing action 143: *notation.LogConversionAction
+Executing action 144: *game.TransformAndBuildAction
+Executing action 145: *notation.LogCompoundAction
+Executing action 146: *notation.LogAcceptLeechAction
+Executing action 147: *game.SendPriestToCultAction
+Executing action 148: *game.TransformAndBuildAction
+Executing action 149: *notation.LogAcceptLeechAction
+Executing action 150: *game.TransformAndBuildAction
+Executing action 151: *notation.LogCompoundAction
+Executing action 152: *notation.LogSpecialAction
+Executing action 153: *game.AdvanceShippingAction
+Executing action 154: *game.PassAction
+Executing action 155: *notation.LogSpecialAction
+Executing action 156: *notation.LogAcceptLeechAction
+Executing action 157: *game.TransformAndBuildAction
+Executing action 158: *notation.LogConversionAction
+Executing action 159: *game.TransformAndBuildAction
+Executing action 160: *game.PassAction
+Executing action 161: *game.PassAction
+Executing action 162: *notation.LogConversionAction
+Executing action 163: *notation.LogConversionAction
+Executing action 164: *game.UpgradeBuildingAction
+Executing action 165: *notation.LogAcceptLeechAction
+Executing action 166: *notation.LogAcceptLeechAction
+Executing action 167: *game.PassAction
+DEBUG: All players passed, executing Cleanup Phase
+DEBUG: AwardCultRewards for Nomads. Track: 1, Position: 0, Threshold: 4
+DEBUG: AwardCultRewards for Alchemists. Track: 1, Position: 1, Threshold: 4
+DEBUG: AwardCultRewards for Engineers. Track: 1, Position: 0, Threshold: 4
+DEBUG: AwardCultRewards for Swarmlings. Track: 1, Position: 7, Threshold: 4
+DEBUG: Awarding 1 (x0) to Swarmlings
+DEBUG: Processing RoundStartItem for Round 4. TurnOrder: [Nomads Swarmlings Engineers Alchemists]
+DEBUG: GrantIncome called for Round 4
+DEBUG: Income for Nomads: Coins=0, Workers=10, Priests=1, Power=4 (BonusCard: 8)
+DEBUG: Income for Alchemists: Coins=10, Workers=8, Priests=1, Power=1 (BonusCard: 4)
+DEBUG: Income for Engineers: Coins=4, Workers=5, Priests=1, Power=6 (BonusCard: 7)
+DEBUG: Income for Swarmlings: Coins=8, Workers=4, Priests=3, Power=7 (BonusCard: 6)
+Executing action 169: *notation.LogPowerAction
+Executing action 170: *notation.LogPowerAction
+Executing action 171: *game.TransformAndBuildAction
+Executing action 172: *game.TransformAndBuildAction
+Executing action 173: *notation.LogAcceptLeechAction
+Executing action 174: *notation.LogPowerAction
+Executing action 175: *game.TransformAndBuildAction
+Executing action 176: *game.TransformAndBuildAction
+Executing action 177: *notation.LogCompoundAction
+Executing action 178: *notation.LogAcceptLeechAction
+Executing action 179: *notation.LogAcceptLeechAction
+Executing action 180: *notation.LogCompoundAction
+Executing action 181: *game.DeclinePowerLeechAction
+Executing action 182: *notation.LogAcceptLeechAction
+Executing action 183: *game.TransformAndBuildAction
+Executing action 184: *notation.LogPowerAction
+Executing action 185: *notation.LogSpecialAction
+Executing action 186: *game.UpgradeBuildingAction
+Executing action 187: *game.DeclinePowerLeechAction
+Executing action 188: *notation.LogSpecialAction
+Executing action 189: *notation.LogBurnAction
+Executing action 190: *notation.LogPowerAction
+Executing action 191: *notation.LogPowerAction
+Executing action 192: *game.UpgradeBuildingAction
+Executing action 193: *game.DeclinePowerLeechAction
+Executing action 194: *notation.LogConversionAction
+Executing action 195: *notation.LogCompoundAction
+Executing action 196: *notation.LogAcceptLeechAction
+Executing action 197: *notation.LogSpecialAction
+Executing action 198: *notation.LogCompoundAction
+Executing action 199: *notation.LogAcceptLeechAction
+Executing action 200: *notation.LogAcceptLeechAction
+Executing action 201: *game.DeclinePowerLeechAction
+Executing action 202: *notation.LogCompoundAction
+Executing action 203: *notation.LogAcceptLeechAction
+Executing action 204: *game.SendPriestToCultAction
+Executing action 205: *game.UpgradeBuildingAction
+Executing action 206: *notation.LogAcceptLeechAction
+Executing action 207: *notation.LogConversionAction
+Executing action 208: *game.AdvanceDiggingAction
+Executing action 209: *game.UpgradeBuildingAction
+Executing action 210: *notation.LogAcceptLeechAction
+Executing action 211: *notation.LogBurnAction
+Executing action 212: *notation.LogConversionAction
+Executing action 213: *notation.LogCompoundAction
+Executing action 214: *notation.LogCompoundAction
+StepForward failed for game 555795328: action execution failed at index 214: failed to select town tile: no pending town formation for player Engineers

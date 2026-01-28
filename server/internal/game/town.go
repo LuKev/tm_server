@@ -345,8 +345,10 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 // This is useful when a condition changes (e.g. Fire+2 favor tile) that might allow
 // existing clusters to form towns
 func (gs *GameState) CheckAllTownFormations(playerID string) {
+	fmt.Printf("DEBUG: CheckAllTownFormations for %s\n", playerID)
 	for hex, mapHex := range gs.Map.Hexes {
 		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && !mapHex.PartOfTown {
+			// fmt.Printf("DEBUG: Checking town formation for hex %s\n", hex)
 			gs.CheckForTownFormation(playerID, hex)
 		}
 	}
