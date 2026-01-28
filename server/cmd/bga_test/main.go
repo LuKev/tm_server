@@ -15,12 +15,21 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
 	"github.com/lukev/tm_server/internal/replay"
+	"gopkg.in/yaml.v3"
 )
+
+// GameConfig holds the game setup configuration
+type GameConfig struct {
+	ScoringTiles        []string                     `yaml:"scoring_tiles"`
+	BonusCards          []string                     `yaml:"bonus_cards"`
+	BonusCardSelections map[string]map[string]string `yaml:"bonus_card_selections"`
+}
 
 func main() {
 	// Flags
 	urlFlag := flag.String("url", "", "BGA table URL or table ID (e.g., 555795328 or https://boardgamearena.com/table?table=555795328)")
 	fileFlag := flag.String("file", "", "Path to pre-downloaded log file (text format after HTML parsing)")
+	configFlag := flag.String("config", "", "Path to YAML config file with scoring tiles, bonus cards, and selections")
 	scoringFlag := flag.String("scoring", "", "Comma-separated scoring tiles (e.g., SCORE1,SCORE2,SCORE3,SCORE4,SCORE5,SCORE6)")
 	bonusFlag := flag.String("bonus", "", "Comma-separated bonus cards (e.g., BON-SPD,BON-6C,BON-TP,BON-BB,BON-P,BON-DW,BON-SHIP-VP)")
 	helpFlag := flag.Bool("help", false, "Show usage")
@@ -31,6 +40,18 @@ func main() {
 	if *helpFlag || (*urlFlag == "" && *fileFlag == "") {
 		printUsage()
 		os.Exit(0)
+	}
+
+	// Load config if provided
+	var config *GameConfig
+	if *configFlag != "" {
+		var err error
+		config, err = loadConfig(*configFlag)
+		if err != nil {
+			fmt.Printf("❌ Failed to load config: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Printf("📋 Loaded config from %s\n", *configFlag)
 	}
 
 	var logContent string
@@ -73,9 +94,25 @@ func main() {
 	}
 	fmt.Printf("✓ Parsed %d log items\n", len(items))
 
-	// Inject scoring tiles and bonus cards if provided
-	if *scoringFlag != "" || *bonusFlag != "" {
-		items = injectSettings(items, *scoringFlag, *bonusFlag)
+	// Inject settings from config or flags
+	scoringStr := *scoringFlag
+	bonusStr := *bonusFlag
+	if config != nil {
+		if len(config.ScoringTiles) > 0 {
+			scoringStr = strings.Join(config.ScoringTiles, ",")
+		}
+		if len(config.BonusCards) > 0 {
+			bonusStr = strings.Join(config.BonusCards, ",")
+		}
+	}
+
+	if scoringStr != "" || bonusStr != "" {
+		items = injectSettings(items, scoringStr, bonusStr)
+	}
+
+	// Inject bonus card selections from config
+	if config != nil && len(config.BonusCardSelections) > 0 {
+		items = injectBonusCardSelections(items, config.BonusCardSelections)
 	}
 
 	// Create initial game state
@@ -114,7 +151,7 @@ func main() {
 				fmt.Printf("   Type: %s\n", missingErr.Type)
 				fmt.Printf("   Round: %d\n", missingErr.Round)
 				fmt.Printf("   Players: %v\n", missingErr.Players)
-				fmt.Println("\n   Use --scoring and --bonus flags to provide this info")
+				fmt.Println("\n   Use -config flag to provide a YAML config file with bonus card selections")
 			}
 
 			os.Exit(1)
@@ -132,6 +169,18 @@ func main() {
 	}
 }
 
+func loadConfig(path string) (*GameConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var config GameConfig
+	if err := yaml.Unmarshal(data, &config); err != nil {
+		return nil, err
+	}
+	return &config, nil
+}
+
 func printUsage() {
 	fmt.Println("BGA Replay Tester - Test if a BGA game can be replayed to completion")
 	fmt.Println()
@@ -142,6 +191,7 @@ func printUsage() {
 	fmt.Println("Options:")
 	fmt.Println("  -url string     BGA table URL or table ID")
 	fmt.Println("  -file string    Path to pre-downloaded log file")
+	fmt.Println("  -config string  Path to YAML config file with setup info")
 	fmt.Println("  -scoring string Comma-separated scoring tiles (e.g., SCORE1,SCORE2,...)")
 	fmt.Println("  -bonus string   Comma-separated bonus cards (e.g., BON-SPD,BON-6C,...)")
 	fmt.Println("  -v              Verbose output")
@@ -149,7 +199,51 @@ func printUsage() {
 	fmt.Println()
 	fmt.Println("Examples:")
 	fmt.Println("  bga_test -url 555795328")
-	fmt.Println("  bga_test -file game_555795328.txt --scoring SCORE1,SCORE2,SCORE3,SCORE4,SCORE5,SCORE6")
+	fmt.Println("  bga_test -file game.txt -config game_config.yaml")
+}
+
+// injectBonusCardSelections updates PassAction bonus cards from config
+func injectBonusCardSelections(items []notation.LogItem, selections map[string]map[string]string) []notation.LogItem {
+	// For round 0 (initial bonus cards), we need to find GameSettingsItem
+	if round0, ok := selections["0"]; ok {
+		for i, item := range items {
+			if s, ok := item.(notation.GameSettingsItem); ok {
+				for playerID, cardCode := range round0 {
+					s.Settings["InitialBonusCard:"+playerID] = cardCode
+				}
+				items[i] = s
+				break
+			}
+		}
+	}
+
+	// For rounds 1-5, update PassAction items
+	currentRound := 0
+	for i, item := range items {
+		// Track round changes
+		if _, ok := item.(notation.RoundStartItem); ok {
+			currentRound++
+		}
+
+		// Update PassAction bonus cards
+		if actionItem, ok := item.(notation.ActionItem); ok {
+			if passAction, ok := actionItem.Action.(*game.PassAction); ok {
+				roundKey := strconv.Itoa(currentRound)
+				if roundSelections, ok := selections[roundKey]; ok {
+					if cardCode, ok := roundSelections[passAction.PlayerID]; ok {
+						cardType := notation.ParseBonusCardCode(cardCode)
+						if cardType != game.BonusCardUnknown {
+							passAction.BonusCard = &cardType
+							items[i] = notation.ActionItem{Action: passAction}
+							fmt.Printf("  Injected %s for %s in round %d\n", cardCode, passAction.PlayerID, currentRound)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return items
 }
 
 func extractTableID(input string) string {
@@ -251,6 +345,7 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 	// Pre-populate players and settings from GameSettingsItem if present
 	for _, item := range items {
 		if s, ok := item.(notation.GameSettingsItem); ok {
+			// First pass: create players
 			for k, v := range s.Settings {
 				if strings.HasPrefix(k, "Player:") {
 					factionName := v
@@ -299,6 +394,23 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 						}
 						if i < 6 {
 							initialState.ScoringTiles.Tiles = append(initialState.ScoringTiles.Tiles, tile)
+						}
+					}
+				}
+			}
+
+			// Second pass: assign initial bonus cards (must happen after players and bonus cards are set up)
+			for k, v := range s.Settings {
+				if strings.HasPrefix(k, "InitialBonusCard:") {
+					playerID := strings.TrimPrefix(k, "InitialBonusCard:")
+					cardType := notation.ParseBonusCardCode(v)
+					if cardType != game.BonusCardUnknown {
+						// Assign the card to the player
+						_, err := initialState.BonusCards.TakeBonusCard(playerID, cardType)
+						if err != nil {
+							fmt.Printf("Warning: failed to assign initial bonus card %s to %s: %v\n", v, playerID, err)
+						} else {
+							fmt.Printf("  Assigned initial bonus card %s to %s\n", v, playerID)
 						}
 					}
 				}
