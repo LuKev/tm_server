@@ -324,10 +324,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		// Try to match actions
 		// Check specific actions first to avoid being consumed by general ones
 
-		if strings.Contains(line, "Bridge") || strings.Contains(line, "Engineers") {
-			fmt.Printf("DEBUG: Processing Bridge/Engineers line: %s\n", line)
-		}
-
 		if matches := reConversion.FindStringSubmatch(line); len(matches) > 3 {
 			playerID := p.getPlayerID(matches[1])
 			p.handleConversion(playerID, matches[2], matches[3])
@@ -359,7 +355,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			p.handleFavorTileAction(playerID, line)
 
 		} else if matches := reBridgePower.FindStringSubmatch(line); len(matches) > 1 {
-			fmt.Printf("DEBUG: Matched Bridge Power: %s\n", line)
 			playerID := p.getPlayerID(matches[1])
 			p.handleBridgePower(playerID, line)
 
@@ -419,7 +414,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 		} else if matches := reEngineersBridge.FindStringSubmatch(line); len(matches) > 2 {
 			// Engineers Ability: 2 workers for bridge
-			fmt.Printf("DEBUG: Matched Engineers Bridge: %s\n", line)
 			playerID := p.getPlayerID(matches[1])
 			coordStr := matches[2]
 			p.handleEngineersBridge(playerID, coordStr)

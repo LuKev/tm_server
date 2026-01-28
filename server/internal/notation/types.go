@@ -362,7 +362,6 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			}
 
 			// Check for town formation after building bridge
-			fmt.Printf("DEBUG: Engineers bridge built %s-%s, checking town formations for %s\n", parts[2], parts[3], a.PlayerID)
 			gs.CheckAllTownFormations(a.PlayerID)
 
 			// Engineers get 3 VP per bridge if Stronghold is built
