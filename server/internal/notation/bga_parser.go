@@ -930,21 +930,19 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 		if actItem, ok := item.(ActionItem); ok {
 			if actItem.Action.GetPlayerID() == playerID {
 				// Check if it's a relevant action
-				switch actItem.Action.(type) {
+				switch v := actItem.Action.(type) {
 				case *game.UpgradeBuildingAction:
 					// Check for Auren Stronghold upgrade
-					if upgrade, ok := actItem.Action.(*game.UpgradeBuildingAction); ok {
-						if upgrade.NewBuildingType == models.BuildingStronghold {
-							// Check if player is Auren
-							if p.players[playerName] == "Auren" {
-								// Merge into compound action
-								compoundAction := &LogCompoundAction{
-									Actions: []game.Action{upgrade, action},
-								}
-								p.items[i] = ActionItem{Action: compoundAction}
-								inserted = true
-								break
+					if v.NewBuildingType == models.BuildingStronghold {
+						// Check if player is Auren
+						if p.players[playerName] == "Auren" {
+							// Merge into compound action
+							compoundAction := &LogCompoundAction{
+								Actions: []game.Action{v, action},
 							}
+							p.items[i] = ActionItem{Action: compoundAction}
+							inserted = true
+							break
 						}
 					}
 					// Fallthrough for other upgrades
@@ -954,6 +952,23 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 					// Insert after
 					p.items = append(p.items[:i+1], append([]LogItem{newItem}, p.items[i+1:]...)...)
 					inserted = true
+				case *LogCompoundAction:
+					// Check if the compound action contains a structure action
+					// Usually it's the first one (e.g. Upgrade -> Town)
+					isStructure := false
+					for _, subAction := range v.Actions {
+						switch subAction.(type) {
+						case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
+							isStructure = true
+						}
+					}
+
+					if isStructure {
+						// Append to the compound action
+						v.Actions = append(v.Actions, action)
+						// No need to update p.items[i] as we modified the pointer
+						inserted = true
+					}
 				}
 				if inserted {
 					break
