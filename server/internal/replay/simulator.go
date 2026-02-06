@@ -164,6 +164,7 @@ func (s *GameSimulator) StepForward() error {
 				cards := strings.Split(settingValue, ",")
 				availableCards := make([]game.BonusCardType, 0)
 				for _, cardCode := range cards {
+					cardCode = strings.TrimSpace(cardCode)
 					// Parse "BON1 (Desc)" -> "BON1"
 					parts := strings.Split(cardCode, " ")
 					code := parts[0]

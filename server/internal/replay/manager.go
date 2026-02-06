@@ -190,8 +190,14 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 
 // ImportLog imports a log from raw HTML content
 func (m *ReplayManager) ImportLog(gameID string, htmlContent string) error {
-	// Parse HTML to text
-	logContent, err := notation.ParseBGAHTML(htmlContent)
+	// Detect source type and parse accordingly
+	var logContent string
+	var err error
+	if notation.IsSnellmanHTML(htmlContent) {
+		logContent, err = notation.ParseSnellmanHTML(htmlContent)
+	} else {
+		logContent, err = notation.ParseBGAHTML(htmlContent)
+	}
 	if err != nil {
 		return fmt.Errorf("failed to parse HTML: %w", err)
 	}

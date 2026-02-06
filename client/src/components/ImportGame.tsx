@@ -118,7 +118,7 @@ export const ImportGame: React.FC = () => {
                     <textarea
                         className="bookmarklet-code"
                         readOnly
-                        value={"javascript:(function(){var logs=document.getElementById('gamelogs')||document.getElementById('logs');if(!logs){alert('No game logs found!\\n\\nMake sure you are on the Game Review page:\\nhttps://boardgamearena.com/gamereview?table=YOUR_TABLE_ID\\n\\n(Not the /table page)');return;}var html=logs.innerHTML;var m=window.location.href.match(/table[=/](\\d+)/);if(!m){alert('Could not find game ID in URL');return;}var gameId=m[1];var form=document.createElement('form');form.method='POST';form.action='https://kezilu.com/api/replay/import_form';var i1=document.createElement('input');i1.type='hidden';i1.name='gameId';i1.value=gameId;form.appendChild(i1);var i2=document.createElement('input');i2.type='hidden';i2.name='html';i2.value=html;form.appendChild(i2);document.body.appendChild(form);form.submit();})();"}
+                        value={"javascript:(function(){var url=window.location.href;var html,gameId;if(url.includes('terra.snellman.net')){var ledger=document.getElementById('ledger');if(!ledger){alert('No ledger found!\\n\\nMake sure to click \"Load full log\" first.');return;}html=ledger.outerHTML;var m=url.match(/\\/(faction|game)\\/([^/]+)/);if(!m){alert('Could not find game ID in URL');return;}gameId=m[2];}else{var logs=document.getElementById('gamelogs')||document.getElementById('logs');if(!logs){alert('No game logs found!\\n\\nMake sure you are on the Game Review page:\\nhttps://boardgamearena.com/gamereview?table=YOUR_TABLE_ID\\n\\n(Not the /table page)');return;}html=logs.innerHTML;var m=url.match(/table[=/](\\d+)/);if(!m){alert('Could not find game ID in URL');return;}gameId=m[1];}var form=document.createElement('form');form.method='POST';form.action='https://kezilu.com/api/replay/import_form';var i1=document.createElement('input');i1.type='hidden';i1.name='gameId';i1.value=gameId;form.appendChild(i1);var i2=document.createElement('input');i2.type='hidden';i2.name='html';i2.value=html;form.appendChild(i2);document.body.appendChild(form);form.submit();})();"}
                         onClick={(e) => {
                             const target = e.target as HTMLTextAreaElement;
                             target.select();
@@ -130,22 +130,23 @@ export const ImportGame: React.FC = () => {
                         <ol>
                             <li>Click the code above to copy it.</li>
                             <li>Create a new bookmark in your browser (Ctrl/Cmd+D or right-click bookmarks bar).</li>
-                            <li>Name it "Import to Kezilu".</li>
+                            <li>Name it &quot;Import to Kezilu&quot;.</li>
                             <li>Paste the code into the URL/Location field.</li>
                             <li>Save the bookmark.</li>
                         </ol>
-                        <strong>To use:</strong> Go to the <strong>Game Review</strong> page on Board Game Arena
-                        (URL should look like: <code>boardgamearena.com/gamereview?table=XXX</code>) and click the bookmark.
-                        <br /><br />
-                        <em>Note: This works on the Game Review page, not the live game page (/table).</em>
+                        <strong>To use:</strong>
+                        <ul>
+                            <li><strong>BGA:</strong> Go to the Game Review page (<code>boardgamearena.com/gamereview?table=XXX</code>) and click the bookmark.</li>
+                            <li><strong>Snellman:</strong> Go to the faction page (<code>terra.snellman.net/faction/GAME_ID</code>), click &quot;Load full log&quot;, then click the bookmark.</li>
+                        </ul>
                     </p>
                 </div>
 
                 <div className="import-game-info">
                     <h3>Supported Sources</h3>
                     <ul>
-                        <li><strong>Bookmarklet</strong> - Best for importing directly from BGA (recommended)</li>
-                        <li><strong>Paste URL</strong> - Works if you are running the server locally (requires login)</li>
+                        <li><strong>Board Game Arena</strong> - Game Review pages</li>
+                        <li><strong>Snellman</strong> - Faction/game pages (remember to load full log first)</li>
                     </ul>
                 </div>
             </div>

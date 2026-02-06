@@ -163,9 +163,11 @@ Format: `C[Cost]:[Reward]`
 ### Reactions
 
 *   **Leech**: `L` (Leech) or `DL` (Decline Leech)
-*   **Cultist Reaction**: `CULT-[Track]`
-    *   Example: `CULT-F` (Advance on Fire track due to opponent leeching)
-    *   *Note: For the Cultists faction, this action is ALWAYS chained to the main action that caused the leeching (e.g., `UP-TH-F4.CULT-F`), even if the log shows it occurring after opponents' leech actions.*
+    *   *Note: Leech actions are always on their own row, never chained with other actions.*
+*   **Cultist Cult Bonus**: `+[Track]` (e.g., `+E`, `+W`, `+F`, `+A`)
+    *   When Cultists accept power (via Leech), they gain a cult step from their faction ability.
+    *   This cult bonus is ALWAYS chained to the Cultists' main action that triggered the leeching (e.g., `UP-TH-F4.+E`), even if the Snellman log shows it occurring after opponents' leech actions.
+    *   The leech itself (`L`) is a separate row.
 
 ### Other
 
