@@ -1,0 +1,207 @@
+Game: Base
+ScoringTiles: SCORE2, SCORE1, SCORE7, SCORE8, SCORE6, SCORE9
+BonusCards: BON-SPD, BON-4C, BON-6C, BON-WP, BON-TP, BON-DW, BON-SHIP-VP
+StartingVPs: Cultists:20, Darklings:20, Engineers:20, Auren:20
+
+Setup
+TurnOrder: Cultists, Darklings, Engineers, Auren
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+S-E6         | S-E10        | S-E7         | S-F4        
+S-F5         | S-G5         | S-F6         | S-E9        
+BON-6C       | BON-4C       | BON-WP       | BON-SPD     
+
+Round 1
+TurnOrder: auren, engineers, darklings, cultists
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+UP-TH-E6.+E  |              | L            | L           
+L            | UP-TH-G5     | L            |             
+L            | L            | UP-TH-F6     | L           
+L            |              | L            | UP-TH-F4    
+UP-TE-E6.FAV-E1 |              | L            | L           
+             | BURN4.ACT3   |              |             
+             | L            | BURN2.ACT6.G6 |             
+             |              |              | BURN3.ACT2  
+PASS-BON-DW  |              |              |             
+L            | UP-TE-G5.FAV-E2 | L            |             
+             | L            | UP-TE-F6.FAV-E2 | L           
+             |              |              | +SHIP       
+             | ACT-BON-E    |              |             
+L            |              | UP-TH-E7     | L           
+L            |              | L            | UP-TE-F4.FAV-E1
+L            | BURN3.C1P:1W.C3PW:1W.UP-SA-G5.FAV-E1 | L            |             
+L            |              |              |             
+             |              | BURN3.C5PW:1P |             
+             |              |              | ACT-BON-SPD.T-C5-G
+             | PASS-BON-6C  |              |             
+             |              | H8           |             
+             |              |              | C5          
+             |              | PASS-BON-4C  |             
+             |              |              | BURN4.ACT4  
+             |              |              | C4.PASS-BON-TP
+
+Round 2
+TurnOrder: cultists, darklings, engineers, auren
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+ACT5.G4.+E   | L            |              |             
+             | BURN1.ACT4   |              |             
+             |              | ->A          |             
+             |              |              | C3          
++SHIP        |              |              |             
+             | H7           | L            |             
+L            |              | D4           | L           
+             |              |              | ->W         
+BURN3.ACT6.T-E5-Br.T-H5-Br.E5 |              |              |             
+             | I10          |              |             
+L            |              | UP-TE-E7.FAV-W1 | L           
+             |              |              | G3          
+H5           |              |              | L           
+             | D8           |              |             
+             |              | ACT-BON-E    |             
+             |              |              | A10         
+F3           |              |              | L           
+             | PASS-BON-SPD |              |             
+             |              | C3PW:1W.PASS-BON-SHIP-VP |             
+             |              | L            | UP-TH-C3    
+BURN3.ACT2   |              |              |             
+             |              |              | PASS-BON-4C 
+C1P:1W.I8.PASS-BON-6C |              |              |             
+
+Round 3
+TurnOrder: darklings, engineers, auren, cultists
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+             | UP-TH-H7     | DL           |             
+             |              | ACT4         |             
+             |              |              | ->F         
+UP-SA-E6.FAV-W1.+A |              | L            | L           
+             | UP-TE-H7.FAV-W1 | L            |             
+L            | L            | UP-SA-F6.FAV-A2 | L           
+             |              |              | ACT5.C2     
++SHIP        |              |              |             
+             | ACT-BON-SPD.I11.+T | L            |             
+             |              | ACT2         |             
+             |              | L            | ACT-BON-A   
+B2.+A        |              |              | L           
+             | F7           | L            |             
+             |              | +SHIP        |             
+PASS-BON-DW  |              |              |             
+             | PASS-BON-TP  |              |             
+             |              | +SHIP        |             
+             |              |              | ACTA.+2     
+L            |              | ACT6.E4      |             
+             |              |              | PASS-BON-SPD
+             |              | G1.PASS-BON-6C |             
+
+Round 4
+TurnOrder: cultists, darklings, auren, engineers
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+UP-TH-E5.+A  |              | L            |             
+             | ACT4         |              |             
+             |              |              | ->A         
+             | DL           | UP-TH-G6     |             
+C2W:2C.UP-TH-F3.+T.+A |              |              | L           
+             | UP-TH-F7     | DL           |             
+             |              |              | ACTA.+2.C1PW:1C
+             | L            | UP-TH-H8     |             
+->E          |              |              |             
+             | UP-TH-E10    | L            | L           
+             |              | L            | ACT-BON-SPD.D5
+             |              | C1PW:1C.C1PW:1C |             
+C2PW:2C.H3.+W |              | L            |             
+             | G7           | L            |             
+             |              | L            | UP-TH-D5    
+             |              | C5PW:5C.PASS-BON-SHIP-VP |             
+PASS-BON-WP  |              |              |             
+             | UP-TH-G7     | DL           |             
+             |              |              | ACT1        
+             | PASS-BON-DW  |              |             
+DL           |              |              | PASS-BON-TP 
+
+Round 5
+TurnOrder: engineers, cultists, darklings, auren
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+             | L            | C1PW:1C.UP-TE-H8.FAV-A1 |             
+ACT4         |              |              |             
+             | C1PW:1C      |              |             
+             |              |              | D6. +TW1    
+             |              | C1PW:1C      |             
+I7           |              |              | L           
+             | B6           |              |             
+             |              |              | ->W         
+             |              | C1PW:1C      |             
+UP-TH-I8     |              |              | DL          
+             | A11          |              | L           
+             |              |              | ACT1        
+L            |              | UP-TH-E4     |             
+UP-TE-E5.FAV-A1.+W |              | L            |             
+             | B5           |              | L           
+L            |              |              | UP-TH-G3    
+L            |              | ACT6.T-I6-Gy.T-I5-Gy.I6 |             
+UP-TH-H5     |              |              | DL          
+             | C2PW:2C.C1W:1C.UP-TH-B5 |              | L           
+             |              |              | ACTA.+2     
+L            |              | UP-TH-G1     |             
+C2PW:2C.UP-TH-I7.+A |              | L            | L           
+             | PASS-BON-4C  |              |             
+L            |              |              | UP-TH-H4    
+DL           |              | UP-TH-I6     |             
+C4PW:4C      |              |              |             
+             | DL           |              | UP-TH-A10   
+             |              | I5           |             
+C1PW:1C.C1PW:1C.A7 |              |              |             
+             |              |              | C4PW:4C.PASS-BON-DW
+             |              | C1PW:1C.PASS-BON-TP |             
+PASS-BON-SHIP-VP |              |              |             
+
+Round 6
+TurnOrder: darklings, auren, engineers, cultists
+------------------------------------------------------------
+Cultists     | Darklings    | Engineers    | Auren       
+------------------------------------------------------------
+             | C1PW:1C.B4   |              | L           
+DL           |              |              | C1PW:1C.G2.+t
+             |              | ACT1         |             
+BURN1.ACT4   |              |              |             
+L            | A8           |              |             
+             |              |              | ACT2        
+L            |              | ACT5.I4      |             
++DIG         |              |              |             
+             | A9           |              | DL          
+DL           |              |              | UP-TE-H4    
+L            |              | UP-TE-I6.FAV-F2 |             
++DIG         |              |              |             
+             | UP-TE-F7.FAV-F2 | DL           |             
+L            |              | I3           |             
+I9           |              |              |             
+             | UP-TH-A9     |              | DL          
+             |              |              | A3          
+L            |              | UP-TH-I3     |             
+B1           |              |              |             
+             | C1PW:1C.ACT-BON-W |              |             
+             |              |              | D1          
+             |              | ->W          |             
+C1PW:1C.A1   |              |              |             
+             | C3PW:3C.UP-TE-G7.FAV-W2 | DL           |             
+DL           |              |              | ACTA.+2     
+             |              | E3           |             
+             | FAV6.+F      |              |             
+             |              | F2. +TW4     |             
+             | BURN1.C2PW:2C.A13 |              |             
+             |              | ->F          |             
+             |              | F1           |             
+             |              | ACT3.C2PW:2C |             
+             |              | +DIG.+3.+2.+3.+8.+3 |             
+             | +3.+4.+3.+3  |              |             
+             |              |              | +8.+8.+4.+1 
++8.+2.+1     |              |              |             
