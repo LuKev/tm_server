@@ -1,0 +1,4 @@
+interface:
+  display_name: "Tech Debt Reducer"
+  short_description: "Reduce duplication and remove dead code safely"
+  default_prompt: "Find duplicated code and dead code, apply safe refactors in small patches, and verify behavior with project checks."

@@ -25,6 +25,24 @@ export default {
 			});
 		}
 
+		// Route /foodle/* to the Foodle client (frontend)
+		// Forward the full /foodle path because Foodle is built with basePath=/foodle.
+		if (path.startsWith('/foodle')) {
+			const targetUrl = `https://foodle-web-production.up.railway.app${path}${url.search}`;
+
+			const response = await fetch(targetUrl, {
+				method: request.method,
+				headers: request.headers,
+				body: request.body,
+			});
+
+			return new Response(response.body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers: response.headers,
+			});
+		}
+
 		// Route /api/* to the TM server (backend)
 		if (path.startsWith('/api')) {
 			const targetUrl = `https://tm-server-production.up.railway.app${path}${url.search}`;
@@ -67,6 +85,7 @@ export default {
   <p>Available apps:</p>
   <ul>
     <li><a href="/tm/replay">Terra Mystica Log Replayer</a></li>
+    <li><a href="/foodle">Foodle</a></li>
   </ul>
 </body>
 </html>`,
