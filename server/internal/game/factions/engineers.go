@@ -46,10 +46,9 @@ func (f *Engineers) GetDwellingCost() Cost {
 	}
 }
 
-// GetTradingHouseCost returns the cheaper trading house cost for Engineers
 func (f *Engineers) GetTradingHouseCost() Cost {
 	return Cost{
-		Coins:   4, // Cheaper than standard (6)
+		Coins:   4, // Cheaper than standard (6). Base is 4, Adjacent is 2.
 		Workers: 1, // Cheaper than standard (2)
 		Priests: 0,
 		Power:   0,
