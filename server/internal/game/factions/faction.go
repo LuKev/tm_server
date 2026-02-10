@@ -33,11 +33,6 @@ type Faction interface {
 	GetTempleIncome(templeCount int) Income
 	GetSanctuaryIncome() Income // Only 1 sanctuary per faction, no count parameter
 	GetStrongholdIncome() Income
-
-	// Special abilities
-
-	CanUseSpecialAction(action string, gameState interface{}) bool
-	ExecuteSpecialAction(action string, gameState interface{}) error
 }
 
 // BaseFaction provides default implementations for common faction behavior
@@ -210,16 +205,6 @@ func (f *BaseFaction) GetShippingCost(currentLevel int) Cost {
 // GetDiggingCost returns the cost to advance digging
 func (f *BaseFaction) GetDiggingCost(currentLevel int) Cost {
 	return StandardDiggingCost(currentLevel)
-}
-
-// CanUseSpecialAction checks if a special action can be used
-func (f *BaseFaction) CanUseSpecialAction(action string, gameState interface{}) bool {
-	return false // Override in specific factions
-}
-
-// ExecuteSpecialAction executes a special action
-func (f *BaseFaction) ExecuteSpecialAction(action string, gameState interface{}) error {
-	return nil // Override in specific factions
 }
 
 // Income method implementations (defaults)

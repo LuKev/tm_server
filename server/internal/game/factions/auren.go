@@ -14,7 +14,6 @@ import (
 // Special: Sanctuary costs 4 workers/8 coins (more expensive than standard)
 type Auren struct {
 	BaseFaction
-	hasStronghold bool
 }
 
 // NewAuren creates a new Auren faction
@@ -33,7 +32,6 @@ func NewAuren() *Auren {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold: false,
 	}
 }
 
@@ -55,6 +53,5 @@ func (f *Auren) GetSanctuaryCost() Cost {
 // BuildStronghold marks that the stronghold has been built
 // Returns true to indicate the player should receive a favor tile
 func (f *Auren) BuildStronghold() bool {
-	f.hasStronghold = true
 	return true // Grant favor tile
 }

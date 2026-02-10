@@ -18,7 +18,6 @@ import (
 // Special: Start with 2 workers, 15 coins (not standard 3 workers, 15 coins)
 type Nomads struct {
 	BaseFaction
-	hasStronghold          bool
 	sandstormUsedThisRound bool // Special action usage tracking
 }
 
@@ -38,7 +37,6 @@ func NewNomads() *Nomads {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:          false,
 		sandstormUsedThisRound: false,
 	}
 }
@@ -50,7 +48,6 @@ func (f *Nomads) GetStartingCultPositions() CultPositions {
 
 // BuildStronghold marks that the stronghold has been built
 func (f *Nomads) BuildStronghold() {
-	f.hasStronghold = true
 }
 
 // GetStrongholdCost returns the expensive stronghold cost for Nomads (8 coins, 4 workers)

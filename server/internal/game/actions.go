@@ -490,7 +490,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		Type:       a.NewBuildingType,
 		Faction:    player.Faction.GetType(),
 		PlayerID:   a.PlayerID,
-		PowerValue: getNewPowerValue(a.NewBuildingType),
+		PowerValue: GetPowerValue(a.NewBuildingType),
 	}
 
 	// Handle special rewards based on upgrade type
@@ -510,21 +510,6 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	gs.NextTurn()
 
 	return nil
-}
-
-func getNewPowerValue(buildingType models.BuildingType) int {
-	switch buildingType {
-	case models.BuildingTradingHouse:
-		return 2
-	case models.BuildingTemple:
-		return 2
-	case models.BuildingSanctuary:
-		return 3
-	case models.BuildingStronghold:
-		return 3
-	default:
-		return 1
-	}
 }
 
 func (a *UpgradeBuildingAction) handleUpgradeRewards(gs *GameState, player *Player) {

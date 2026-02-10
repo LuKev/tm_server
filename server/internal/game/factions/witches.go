@@ -12,7 +12,6 @@ import (
 //	and ignoring adjacency rule
 type Witches struct {
 	BaseFaction
-	hasStronghold            bool
 	witchesRideUsedThisRound bool
 }
 
@@ -32,7 +31,6 @@ func NewWitches() *Witches {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:            false,
 		witchesRideUsedThisRound: false,
 	}
 }
@@ -44,5 +42,4 @@ func (f *Witches) GetStartingCultPositions() CultPositions {
 
 // BuildStronghold marks that the stronghold has been built
 func (f *Witches) BuildStronghold() {
-	f.hasStronghold = true
 }

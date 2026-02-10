@@ -17,7 +17,6 @@ import (
 //	Stronghold costs 4 workers, 8 coins (more expensive than standard 4 workers, 6 coins)
 type Cultists struct {
 	BaseFaction
-	hasStronghold bool
 }
 
 // NewCultists creates a new Cultists faction
@@ -36,7 +35,6 @@ func NewCultists() *Cultists {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold: false,
 	}
 }
 
@@ -68,6 +66,5 @@ func (f *Cultists) GetStrongholdCost() Cost {
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time VP bonus (7 VP)
 func (f *Cultists) BuildStronghold() int {
-	f.hasStronghold = true
 	return 7 // Grant 7 VP
 }

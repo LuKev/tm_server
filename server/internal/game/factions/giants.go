@@ -17,7 +17,6 @@ import (
 // Special: All standard building costs
 type Giants struct {
 	BaseFaction
-	hasStronghold           bool
 	freeSpadesUsedThisRound bool // Special action usage tracking
 }
 
@@ -37,7 +36,6 @@ func NewGiants() *Giants {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:           false,
 		freeSpadesUsedThisRound: false,
 	}
 }
@@ -62,7 +60,6 @@ func (f *Giants) GetTerraformCost(distance int) int {
 
 // BuildStronghold marks that the stronghold has been built
 func (f *Giants) BuildStronghold() {
-	f.hasStronghold = true
 }
 
 // Income methods (Giants-specific)

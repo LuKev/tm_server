@@ -626,51 +626,7 @@ func (m *TerraMysticaMap) GetPowerLeechTargets(h Hex, placedFaction models.Facti
 // GetConnectedBuildingsIncludingBridges finds all buildings connected to the starting hex
 // This includes connections via bridges
 func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playerID string) []Hex {
-	visited := make(map[Hex]bool)
-	connected := []Hex{}
-	queue := []Hex{start}
-	visited[start] = true
-
-	for len(queue) > 0 {
-		current := queue[0]
-		queue = queue[1:]
-
-		currentHex := m.GetHex(current)
-		if currentHex == nil || currentHex.Building == nil {
-			continue
-		}
-
-		// Only include buildings belonging to this player
-		if currentHex.Building.PlayerID != playerID {
-			continue
-		}
-
-		connected = append(connected, current)
-
-		// Get all adjacent hexes (including via bridges)
-		neighbors := m.GetDirectNeighbors(current)
-
-		// Also check for bridge connections
-		for bridge := range m.Bridges {
-			if bridge.H1 == current {
-				neighbors = append(neighbors, bridge.H2)
-			} else if bridge.H2 == current {
-				neighbors = append(neighbors, bridge.H1)
-			}
-		}
-
-		// Add unvisited neighbors to queue
-		for _, neighbor := range neighbors {
-			if !visited[neighbor] {
-				neighborHex := m.GetHex(neighbor)
-				if neighborHex != nil && neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
-					visited[neighbor] = true
-					queue = append(queue, neighbor)
-				}
-			}
-		}
-	}
-
+	connected, _ := m.getConnectedBuildings(start, playerID, false)
 	return connected
 }
 
@@ -678,6 +634,10 @@ func (m *TerraMysticaMap) GetConnectedBuildingsIncludingBridges(start Hex, playe
 // Mermaids can skip ONE river hex when forming towns (town tile goes on the skipped river)
 // Returns: connected buildings, and the skipped river hex (if any)
 func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID string) ([]Hex, *Hex) {
+	return m.getConnectedBuildings(start, playerID, true)
+}
+
+func (m *TerraMysticaMap) getConnectedBuildings(start Hex, playerID string, allowMermaidRiverSkip bool) ([]Hex, *Hex) {
 	visited := make(map[Hex]bool)
 	connected := []Hex{}
 	queue := []Hex{start}
@@ -700,17 +660,7 @@ func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID s
 
 		connected = append(connected, current)
 
-		// Get all adjacent hexes (including via bridges)
-		neighbors := m.GetDirectNeighbors(current)
-
-		// Also check for bridge connections
-		for bridge := range m.Bridges {
-			if bridge.H1 == current {
-				neighbors = append(neighbors, bridge.H2)
-			} else if bridge.H2 == current {
-				neighbors = append(neighbors, bridge.H1)
-			}
-		}
+		neighbors := m.getBuildingTraversalNeighbors(current)
 
 		// Add unvisited neighbors to queue
 		for _, neighbor := range neighbors {
@@ -725,12 +675,27 @@ func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID s
 
 		// Mermaids special ability: Check for buildings across ONE river hex
 		// Only use this ability once per town formation
-		if skippedRiver == nil {
+		if allowMermaidRiverSkip && skippedRiver == nil {
 			skippedRiver = m.checkMermaidsRiverSkip(current, playerID, visited, &queue, neighbors)
 		}
 	}
 
 	return connected, skippedRiver
+}
+
+func (m *TerraMysticaMap) getBuildingTraversalNeighbors(current Hex) []Hex {
+	neighbors := m.GetDirectNeighbors(current)
+
+	// Include bridge connections in connected-building traversal.
+	for bridge := range m.Bridges {
+		if bridge.H1 == current {
+			neighbors = append(neighbors, bridge.H2)
+		} else if bridge.H2 == current {
+			neighbors = append(neighbors, bridge.H1)
+		}
+	}
+
+	return neighbors
 }
 
 func (m *TerraMysticaMap) checkMermaidsRiverSkip(current Hex, playerID string, visited map[Hex]bool, queue *[]Hex, neighbors []Hex) *Hex {

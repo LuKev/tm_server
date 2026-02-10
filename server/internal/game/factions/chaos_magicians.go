@@ -19,7 +19,6 @@ import (
 //	Expensive Sanctuary (4 workers, 8 coins vs standard 4 workers, 6 coins)
 type ChaosMagicians struct {
 	BaseFaction
-	hasStronghold           bool
 	doubleTurnUsedThisRound bool // Special action usage tracking
 }
 
@@ -39,7 +38,6 @@ func NewChaosMagicians() *ChaosMagicians {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:           false,
 		doubleTurnUsedThisRound: false,
 	}
 }
@@ -71,7 +69,6 @@ func (f *ChaosMagicians) GetStrongholdCost() Cost {
 
 // BuildStronghold marks that the stronghold has been built
 func (f *ChaosMagicians) BuildStronghold() {
-	f.hasStronghold = true
 }
 
 // Income methods (Chaos Magicians-specific)

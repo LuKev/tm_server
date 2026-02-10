@@ -15,7 +15,6 @@ import (
 //	Start with 12 workers and 20 coins (not standard 3 workers and 15 coins)
 type Swarmlings struct {
 	BaseFaction
-	hasStronghold                    bool
 	tradingHouseUpgradeUsedThisRound bool // Special action usage tracking
 }
 
@@ -35,7 +34,6 @@ func NewSwarmlings() *Swarmlings {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold:                    false,
 		tradingHouseUpgradeUsedThisRound: false,
 	}
 }
@@ -97,7 +95,6 @@ func (f *Swarmlings) GetStrongholdCost() Cost {
 
 // BuildStronghold marks that the stronghold has been built
 func (f *Swarmlings) BuildStronghold() {
-	f.hasStronghold = true
 }
 
 // Income methods (Swarmlings-specific)

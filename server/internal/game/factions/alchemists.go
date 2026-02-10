@@ -13,7 +13,6 @@ import (
 //	From now on, gain 2 Power for each Spade throughout remainder of game
 type Alchemists struct {
 	BaseFaction
-	hasStronghold bool
 }
 
 // NewAlchemists creates a new Alchemists faction
@@ -32,7 +31,6 @@ func NewAlchemists() *Alchemists {
 			},
 			DiggingLevel: 0,
 		},
-		hasStronghold: false,
 	}
 }
 
@@ -44,7 +42,6 @@ func (f *Alchemists) GetStartingCultPositions() CultPositions {
 // BuildStronghold marks that the stronghold has been built
 // Returns the one-time power bonus (12 power gained via GainPower)
 func (f *Alchemists) BuildStronghold() int {
-	f.hasStronghold = true
 	return 12 // 12 power gained via GainPower (cycles through bowls)
 }
 
