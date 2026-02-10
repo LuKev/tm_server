@@ -244,11 +244,8 @@ func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player
 
 	// Check if player can afford dwelling (coins and priests)
 	dwellingCost := player.Faction.GetDwellingCost()
-	if player.Resources.Coins < dwellingCost.Coins {
-		return fmt.Errorf("not enough coins for dwelling: need %d, have %d", dwellingCost.Coins, player.Resources.Coins)
-	}
-	if player.Resources.Priests < dwellingCost.Priests {
-		return fmt.Errorf("not enough priests for dwelling: need %d, have %d", dwellingCost.Priests, player.Resources.Priests)
+	if !player.Resources.CanAfford(dwellingCost) {
+		return fmt.Errorf("not enough resources for dwelling: need %v, have %v", dwellingCost, player.Resources)
 	}
 	return nil
 }

@@ -81,8 +81,6 @@ func (rp *ResourcePool) GainPower(amount int) int {
 	return rp.Power.GainPower(amount)
 }
 
-// ConvertPowerToCoins converts 1 power (from bowl 3) to 1 coin
-// Power moves from bowl 3 to bowl 1
 func (rp *ResourcePool) ConvertPowerToCoins(amount int) error {
 	if !rp.Power.CanSpend(amount) {
 		return fmt.Errorf("need %d power in bowl 3, only have %d", amount, rp.Power.Bowl3)
@@ -96,8 +94,6 @@ func (rp *ResourcePool) ConvertPowerToCoins(amount int) error {
 	return nil
 }
 
-// ConvertPowerToWorkers converts 3 power (from bowl 3) to 1 worker
-// Power moves from bowl 3 to bowl 1
 func (rp *ResourcePool) ConvertPowerToWorkers(numWorkers int) error {
 	powerNeeded := numWorkers * 3
 	if !rp.Power.CanSpend(powerNeeded) {
@@ -112,10 +108,6 @@ func (rp *ResourcePool) ConvertPowerToWorkers(numWorkers int) error {
 	return nil
 }
 
-// ConvertPowerToPriests converts 5 power (from bowl 3) to 1 priest
-// Power moves from bowl 3 to bowl 1
-// NOTE: Priests can be in 3 locations: resource pool, cult tracks, or supply
-// Total priests for a player is always exactly 7
 func (rp *ResourcePool) ConvertPowerToPriests(numPriests int) error {
 	powerNeeded := numPriests * 5
 	if !rp.Power.CanSpend(powerNeeded) {
@@ -130,7 +122,6 @@ func (rp *ResourcePool) ConvertPowerToPriests(numPriests int) error {
 	return nil
 }
 
-// ConvertPriestToWorker converts 1 priest to 1 worker
 func (rp *ResourcePool) ConvertPriestToWorker(numWorkers int) error {
 	if rp.Priests < numWorkers {
 		return fmt.Errorf("need %d priests, only have %d", numWorkers, rp.Priests)
@@ -141,7 +132,6 @@ func (rp *ResourcePool) ConvertPriestToWorker(numWorkers int) error {
 	return nil
 }
 
-// ConvertWorkerToCoin converts 1 worker to 1 coin
 func (rp *ResourcePool) ConvertWorkerToCoin(numCoins int) error {
 	if rp.Workers < numCoins {
 		return fmt.Errorf("need %d workers, only have %d", numCoins, rp.Workers)
