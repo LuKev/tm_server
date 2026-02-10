@@ -1,0 +1,139 @@
+Game: Base
+ScoringTiles: SCORE6, SCORE3, SCORE7, SCORE5, SCORE8, SCORE2
+BonusCards: BON-SPD, BON-WP, BON-BB, BON-TP, BON-P, BON-DW, BON-SHIP-VP
+StartingVPs: Darklings:20, Witches:20, Chaosmagicians:20, Nomads:20
+
+Setup
+TurnOrder: Darklings, Witches, Chaosmagicians, Nomads
+------------------------------------------------------------
+Darklings    | Witches      | Chaosmagicians | Nomads      
+------------------------------------------------------------
+S-E10        | S-F4         | S-D7         | S-G4        
+S-G5         | S-C4         | BON-SPD      | S-B4        
+BON-P        | BON-WP       |              | S-F3        
+             |              |              | BON-BB      
+
+Round 1
+TurnOrder: darklings, witches, chaosmagicians, nomads
+------------------------------------------------------------
+Darklings    | Witches      | Chaosmagicians | Nomads      
+------------------------------------------------------------
+UP-TH-E10    |              | L            |             
+             | UP-TH-F4     |              | L           
+             |              | UP-TH-D7     |             
+L            |              |              | BURN4.ACT4  
+->W3         | BURN3.ACT2   | UP-TE-D7.FAV-E1 |             
+L            |              |              | UP-TH-G4    
+L            |              |              |             
+UP-TE-E10.FAV-E1 |              | L            |             
+             | UP-TE-F4.FAV-E1 |              | L           
+             |              | ACTS-C5.C5   | UP-TH-F3    
+             | L            |              |             
+BURN2.C3PW:1W.F5 |              |              | L           
+             | ->A3         | ACT-FAV-W    | UP-SH-G4    
+L            |              |              |             
+PASS-BON-DW  | UP-TH-C4     |              | L           
+             |              | PASS-BON-SHIP-VP | ACT-SH-T-E5 
+             | PASS-BON-SPD |              | PASS-BON-TP 
+
+Round 2
+TurnOrder: darklings, witches, chaosmagicians, nomads
+------------------------------------------------------------
+Darklings    | Witches      | Chaosmagicians | Nomads      
+------------------------------------------------------------
+H7           | BURN3.ACT4   | +SHIP        | E5          
+I10          | +SHIP        | D6           |             
+             | L            |              | ACT-SH-T-E4.E4
+PASS-BON-BB  | ACTS-E7.E7   | ACT-FAV-W    | D3          
+             | G3           | A12          | PASS-BON-DW 
+             | PASS-BON-WP  | BURN4.C2PW:2C.ACT5.E8 |             
+             | L            | PASS-BON-SPD |             
+
+Round 3
+TurnOrder: darklings, witches, chaosmagicians, nomads
+------------------------------------------------------------
+Darklings    | Witches      | Chaosmagicians | Nomads      
+------------------------------------------------------------
+BURN4.ACT4   | ->F3         | ->E3         | BURN2.ACT5.G2
+             | L            |              |             
+UP-SA-E10.FAV-W1 |              | L            |             
+             | ACT6.B5      |              | L           
+             |              | ->A2         | UP-TH-G2    
+             | L            |              |             
+T-D8         | PASS-BON-P   | ACT-FAV-E    | +SHIP       
+T-F7         |              | ACTS-B6      | BURN1.C1PW:1C.C1W:1C.I7
+D8           |              | L            |             
+             |              | C1W:1C.UP-TH-D6 |             
+             | L            |              | ACT-SH-T-I8 
+C2W:2C.F7    |              | PASS-BON-SHIP-VP | PASS-BON-SPD
+PASS-BON-DW  |              |              |             
+
+Round 4
+TurnOrder: witches, chaosmagicians, nomads, darklings
+------------------------------------------------------------
+Witches      | Chaosmagicians | Nomads       | Darklings   
+------------------------------------------------------------
+A10          | ACT4         | I8           | E11         
+D5           | L            |              |             
+             | UP-SA-D7.FAV-F1 |              | L           
+             |              | ACTS-B2.B2   | ->W2        
+C3           | ACT-FAV-F    | ACT-SH-T-H5.H5 |             
+L            |              |              | PASS-BON-TP 
++SHIP        | B6           | PASS-BON-DW  |             
+I6           |              | L            |             
+             | ->E2         |              |             
+->F2         | C2PW:2C.PASS-BON-BB |              |             
+C2PW:2C.E9   | DL           |              | L           
+PASS-BON-SHIP-VP |              |              |             
+
+Round 5
+TurnOrder: darklings, witches, chaosmagicians, nomads
+------------------------------------------------------------
+Darklings    | Witches      | Chaosmagicians | Nomads      
+------------------------------------------------------------
+ACT4         | C1PW:1C.UP-TH-B5 |              | DL          
+             |              | ACT2         | C1PW:1C.UP-TH-B4
+             | L            |              |             
+UP-TH-F5     | DL           |              | DL          
+             | C3PW:3C.UP-TH-E7 |              |             
+DL           |              | L            |             
+             |              | UP-TE-D6.FAV-A3 |             
+             | L            |              | A5          
+UP-TH-D8     |              | L            |             
+             | C3W:3C.UP-TH-E9 | DL           |             
+             |              | C1PW:1C      | C1PW:1C.UP-TH-H5
+             | L            |              |             
+UP-TH-G5     |              |              | DL          
+             | BURN1.C4PW:4C | C2W:2C.C1PW:1C | C2W:2C.ACT-SH-T-A8.A8
+C2PW:2C.C4W:4C.UP-TH-E11 | PASS-BON-SPD | C1W:1C.C2PW:2C.UP-TH-E8 |             
+             | L            |              | ACT1.TW5VP  
+             |              | ACT-FAV-A    | PASS-BON-WP 
+T-G7.C2W:2C.G7 |              | C1PW:1C.PASS-BON-SHIP-VP |             
+PASS-BON-DW  |              |              |             
+
+Round 6
+TurnOrder: witches, chaosmagicians, nomads, darklings
+------------------------------------------------------------
+Witches      | Chaosmagicians | Nomads       | Darklings   
+------------------------------------------------------------
+ACT4         | A7           | L            |             
+             |              | UP-TE-B4.FAV-W1 |             
+DL           |              |              | BURN3.ACT2  
+ACTS-A11.A11 | L            |              |             
+             | ACT1         | UP-TH-A8     |             
+             | L            |              |             
+UP-TE-C4     | DL           | DL           | I11.TW9VP   
+             | C1PW:1C.UP-TE-E8.FAV-W3.FAV-F2.C3PW:3C.TW11VP |              |             
+DL           |              | ACT-SH-T-A9.A9 |             
+DL           |              |              | G6          
+G1           | A6           | L            |             
+             |              | UP-SA-B4.FAV-F2 |             
+DL           |              |              | UP-TE-E11.FAV-A1
+F2           | C1PW:1C.D4   |              |             
+DL           |              | UP-TE-G2.FAV-A1 |             
+DL           |              |              | T-F6-R      
+->F2         | C1P:1W.C5PW:5C | C3PW:3C.UP-TH-A9 |             
+DL           |              |              | PASS        
+BURN1.C3PW:1W.UP-TE-B5.FAV-E3 |              | DL           |             
+             | ACT-FAV-F    | PASS         |             
+PASS         | PASS         |              |             

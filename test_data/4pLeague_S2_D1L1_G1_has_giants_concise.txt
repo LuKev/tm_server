@@ -1,0 +1,151 @@
+Game: Base
+ScoringTiles: SCORE7, SCORE8, SCORE5, SCORE6, SCORE4, SCORE2
+BonusCards: BON-4C, BON-SHIP, BON-WP, BON-TP, BON-P, BON-DW, BON-SHIP-VP
+StartingVPs: Witches:20, Giants:20, Mermaids:20, Cultists:20
+
+Setup
+TurnOrder: Witches, Giants, Mermaids, Cultists
+------------------------------------------------------------
+Witches      | Giants       | Mermaids     | Cultists    
+------------------------------------------------------------
+S-F4         | S-D7         | S-E4         | S-D8        
+S-E9         | S-D4         | S-D5         | S-E6        
+BON-WP       | BON-SHIP     | BON-SHIP-VP  | BON-P       
+
+Round 1
+TurnOrder: witches, giants, mermaids, cultists
+------------------------------------------------------------
+Witches      | Giants       | Mermaids     | Cultists    
+------------------------------------------------------------
+UP-TH-F4     |              |              | L           
+             | UP-TH-D4     | L            | L           
+             |              | UP-TH-D5     |             
+             | L            |              | ->A3        
+BURN4.ACT5.E7 | L            | L            | L           
+             | BURN2.ACT3   | UP-SH-D5     |             
+L            | L            |              | UP-TH-E6.+A 
+L            | L            |              |             
+UP-SH-F4     |              |              | L           
+             | UP-SH-D4     | L            | L           
+L            |              | BURN3.C3PW:1W.ACT6.T-F2.C4 | E10.+A      
+L            | L            |              |             
+ACT-SH-D-G3  | ACTG.C3      | DL           |             
+             |              | PASS-BON-4C  | ACT2        
+PASS-BON-TP  | D6           | L            | ->A2        
+             | PASS-BON-DW  |              | PASS-BON-WP 
+
+Round 2
+TurnOrder: mermaids, cultists, witches, giants
+------------------------------------------------------------
+Mermaids     | Cultists     | Witches      | Giants      
+------------------------------------------------------------
+UP-TH-C4     |              |              | L           
+             | ACT4         | BURN1.ACT2   | UP-TH-D7    
+             | L            | L            |             
+ACT-BON-W    | UP-TH-E10.+A | L            | L           
+             |              | ACT-SH-D-A10 | C3PW:3C.UP-TE-D7.FAV-E1
+             | L            | L            |             
+A11          |              | L            |             
+             | UP-TE-E6.FAV-E1.+F | L            | L           
+             |              | ->A2         | C2PW:2C.PASS-BON-SHIP
+PASS-BON-SHIP-VP | UP-TH-D8     |              | DL          
+             |              | UP-TH-A10    |             
+L            | F7           | C1PW:1C.UP-TH-E7 |             
+             | L            |              | L           
+             | BURN1.ACT6.T-G6 | C3PW:3C.UP-TH-E9 | DL          
+L            | L            |              |             
+             | PASS-BON-DW  | PASS-BON-P   |             
+
+Round 3
+TurnOrder: giants, mermaids, cultists, witches
+------------------------------------------------------------
+Giants       | Mermaids     | Cultists     | Witches     
+------------------------------------------------------------
+C1PW:1C.->F3 | ACT4         | E5.+F        |             
+             | L            |              | ACT3        
+A6           | UP-TE-C4.FAV-E1 |              |             
+L            |              | ->F2         | ->W3        
+C1PW:1C.ACTG.C5 | ACT5.B5      |              | L           
+             |              | G6           | ACT-SH-D-I11
+C1PW:1C.A12  | L            |              |             
+             | PASS-BON-TP  | BURN2.C3PW:1W.H7.TW6VP.+F | L           
+             |              |              | UP-TE-E9.FAV-A1
+L            |              | L            |             
+ACT1         |              | F3.+F        | L           
+             |              |              | H4          
+PASS-BON-4C  |              | BURN2.ACT2   | C3PW:3C.PASS-BON-WP
+             |              | ->F2         |             
+             |              | PASS-BON-P   |             
+
+Round 4
+TurnOrder: mermaids, cultists, witches, giants
+------------------------------------------------------------
+Mermaids     | Cultists     | Witches      | Giants      
+------------------------------------------------------------
+BURN3.ACT4   | C1PW:1C.UP-TE-E10.FAV-W1.+W | L            | DL          
+             |              | ACT6.T-H8.I10 |             
+             | L            |              | C1PW:1C.UP-TH-D6
+L            |              |              |             
+->W2         | C1PW:1C.UP-TH-E5 |              |             
+DL           |              | ->W2         | ACT-BON-F.C1PW:1C
+H2           | C1PW:1C.->E3 | UP-TH-I11    |             
+             | L            |              | ACTG.B3     
+UP-TH-E4     | DL           |              |             
+             | C1PW:1C.UP-TH-F3 | DL           |             
+             |              | UP-TH-I10    |             
+             | L            |              | C4PW:4C.PASS-BON-SHIP-VP
+UP-TH-B5     |              | L            |             
+             | C2PW:2C.C1P:1W.UP-TH-H7 | DL           |             
+             |              | ACT-SH-D-H8  |             
+             | DL           |              |             
+PASS-BON-DW  | C2PW:2C.PASS-BON-TP | BURN2.ACT1.TW9VP |             
+             |              | PASS-BON-4C  |             
+
+Round 5
+TurnOrder: giants, mermaids, cultists, witches
+------------------------------------------------------------
+Giants       | Mermaids     | Cultists     | Witches     
+------------------------------------------------------------
+ACT4         | ACT3         | C4PW:4C.UP-SA-E6.FAV-A1.TW9VP | DL          
+DL           |              |              | ACT2        
++SHIP        | ->W2         | ACT5.CP:W.G5 | ACT-SH-D-H6 
+             |              | DL           |             
++SHIP        | UP-SA-C4.FAV-A1 |              |             
+L            |              | C1P:1W.F5    | DL          
+             |              |              | ACT-BON-F   
+UP-SA-D7.FAV-F1 |              | DL           | L           
+             | F2           | CPW:C.PASS-BON-WP | UP-SA-E9.FAV-W2
+L            |              | DL           |             
+ACTG.D3      | L            |              |             
+             | BURN3.ACT1   |              | ACT-FAV-W   
+C2W:2C.C1PW:1C.UP-TH-D3 | DL           |              |             
+             | PASS-BON-TP  |              | +SHIP       
+BURN2.ACT6.T-D2 |              |              | ->F2        
+PASS-BON-DW  |              |              | C2PW:2C.PASS-BON-SHIP-VP
+
+Round 6
+TurnOrder: cultists, witches, giants, mermaids
+------------------------------------------------------------
+Cultists     | Witches      | Giants       | Mermaids    
+------------------------------------------------------------
+ACT4         | C2PW:2C.UP-TE-I10.FAV-W1 |              |             
+L            |              | BURN3.ACT1   | C1PW:1C.TW5VP.->E2
++SHIP        | UP-TH-H8     |              |             
+L            |              | E3           | L           
+             |              |              | ACT2        
++SHIP        | ACT-SH-D-I6  | UP-TE-D6.FAV-F2 | DL          
+             |              |              | I2          
+E8           | DL           |              | DL          
+             | ACT-FAV-E    | D2           | UP-TH-H2    
+BURN1.C5PW:1P | C1PW:1C.UP-TE-H8.FAV-E3 |              |             
+DL           |              | ACTG.D1      | UP-TH-F2    
+             |              | L            |             
+A7.+E        |              | L            |             
+             | C2PW:2C      | ->A2         | ->E2        
+B2.+E        |              | L            |             
+             | C3PW:3C.UP-TH-H6 |              |             
+DL           |              | UP-TH-E3     | DL          
+             |              |              | ->E2        
+C1W:1C.H3    |              |              | DL          
+             | PASS         | BURN1.C3PW:3C | PASS        
+PASS         |              | PASS         |             

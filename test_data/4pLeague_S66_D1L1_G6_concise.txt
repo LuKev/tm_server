@@ -1,0 +1,151 @@
+Game: Base
+ScoringTiles: SCORE2, SCORE9, SCORE3, SCORE5, SCORE7, SCORE4
+BonusCards: BON-SPD, BON-4C, BON-6C, BON-WP, BON-BB, BON-TP, BON-SHIP-VP
+StartingVPs: Engineers:20, Darklings:20, Cultists:20, Witches:20
+
+Setup
+TurnOrder: Engineers, Darklings, Cultists, Witches
+------------------------------------------------------------
+Engineers    | Darklings    | Cultists     | Witches     
+------------------------------------------------------------
+S-E7         | S-G5         | S-E6         | S-F4        
+S-F1         | S-E5         | S-F5         | S-E9        
+BON-SHIP-VP  | BON-BB       | BON-WP       | BON-SPD     
+
+Round 1
+TurnOrder: engineers, darklings, cultists, witches
+------------------------------------------------------------
+Engineers    | Darklings    | Cultists     | Witches     
+------------------------------------------------------------
+BURN6.ACT6.T-F2.D4 |              | L            |             
+             | UP-TH-E5     | L            |             
+             |              | UP-TH-F5.+E  | L           
+             | L            |              | BURN3.ACT2  
+UP-TH-D4     |              | L            |             
+             | UP-TE-E5.FAV-E1 | L            |             
+             |              | UP-TE-F5.FAV-E1.+E | L           
+             | L            |              | UP-TH-F4    
+L            |              | L            |             
+UP-TE-D4.FAV-E1 |              | L            |             
+             | G6           | ACT5.F3.+W   | L           
+             | L            |              | +SHIP       
+PASS-BON-4C  | PASS-BON-6C  | UP-TH-F3.+W  | L           
+             | L            |              | ACTS-C5.C5  
+             |              | PASS-BON-BB  | C4          
+             |              |              | G3          
+             |              |              | C3          
+L            |              |              | PASS-BON-SHIP-VP
+
+Round 2
+TurnOrder: engineers, darklings, cultists, witches
+------------------------------------------------------------
+Engineers    | Darklings    | Cultists     | Witches     
+------------------------------------------------------------
+->W3         | UP-SA-E5.FAV-W1 | L            |             
+             |              | ->F3         | BURN2.ACT4  
+UP-TH-E7     |              | L            | L           
+             | BURN3.ACT3   | C1W:1C.UP-TE-F3.FAV-F1.+W | L           
+             | L            |              | UP-TE-F4.FAV-F1
+L            |              | L            |             
+ACT-BON-W    | E4           | PASS-BON-SPD | PASS-BON-BB 
+F2           | BURN3.ACT2   |              |             
+UP-TE-E7.FAV-E2 |              | L            | L           
+             | ->E3         |              |             
+C1PW:1C.PASS-BON-TP | PASS-BON-4C  |              |             
+
+Round 3
+TurnOrder: cultists, witches, engineers, darklings
+------------------------------------------------------------
+Cultists     | Witches      | Engineers    | Darklings   
+------------------------------------------------------------
+ACT6.T-G2.G4.+W |              |              | L           
+             | ->A3         | +SHIP        | F7          
+ACT4         | C2           | ACT5.E3      | L           
+             |              |              | E10         
+             | L            |              |             
++SHIP        | UP-TH-E9     |              | L           
+L            |              | G1           | PASS-BON-6C 
+ACTS-H5.H5.+F | L            |              |             
+             | C2PW:2C.UP-SH-E9 |              | L           
+L            |              | PASS-BON-WP  |             
+G2.+F        | L            |              |             
+             | ACT-SH-D-I11 |              |             
+PASS-BON-SHIP-VP | PASS-BON-SPD |              |             
+
+Round 4
+TurnOrder: darklings, engineers, cultists, witches
+------------------------------------------------------------
+Darklings    | Engineers    | Cultists     | Witches     
+------------------------------------------------------------
+BURN1.ACT4   | ACT6.D3      |              |             
+L            |              | +SHIP        | ACT1        
+D8           | C1P:1W.D5    |              | L           
+             |              | BURN4.ACT5.B3.+F | L           
+             |              |              | ACTS-F6.F6  
+L            |              | L            |             
+UP-TH-E10    |              |              | L           
+             | PASS-BON-4C  | ->A2         | C1PW:1C.T-H4
+UP-TH-F7     |              |              | L           
+             |              | B2.+E        | L           
+             |              |              | C1PW:1C.ACT-SH-D-H4
+             |              | L            |             
+B6           |              | ->A2         | C1PW:1C.PASS-BON-BB
+A13          |              | ->A2         |             
+PASS-BON-TP  |              | C1PW:1C.I8   | DL          
+             |              | C2PW:2C.A7   |             
+             |              | PASS-BON-SPD |             
+
+Round 5
+TurnOrder: engineers, witches, darklings, cultists
+------------------------------------------------------------
+Engineers    | Witches      | Darklings    | Cultists    
+------------------------------------------------------------
+C1W:1C.UP-SA-E7.FAV-W1 | L            |              | L           
+             | C1PW:1C.UP-SA-F4.FAV-W1 |              | L           
+L            |              | BURN1.ACT4   | ACT1        
+C2PW:2C.UP-TH-D5.TW11VP | L            |              |             
+             | UP-TH-H4     |              | L           
+             |              | A11          |             
+             | L            |              | UP-TH-E6.+A 
+L            | L            | DL           |             
+C1PW:1C.->E2.C1PW:1C | C1PW:1C.UP-TH-G3.TW5VP |              | L           
+             |              | B5           | C6PW:6C.UP-SA-F3.FAV-F2.TW7VP
+             | DL           | DL           |             
+->E2         | +DIG         | UP-TH-B5     |             
+             | L            |              | ->W2        
+ACT2         | ACT6.C1W:1C.D7 | DL           |             
+             |              | T-A10-Bl     | C2W:2C.ACTS-I7.I7.TW9VP.+W
+             | L            |              |             
+->W2         | T-H8         | UP-TH-D8     |             
+             | L            |              |             
+ACT-BON-E    | ACT-SH-D-H8  | L            | ->W2        
+             |              | PASS-BON-6C  | C1P:1W.C2PW:2C.PASS-BON-SHIP-VP
+PASS-BON-TP  | ->F2         |              |             
+             | PASS-BON-4C  |              |             
+
+Round 6
+TurnOrder: darklings, cultists, engineers, witches
+------------------------------------------------------------
+Darklings    | Cultists     | Engineers    | Witches     
+------------------------------------------------------------
+UP-SH-B5     |              |              | L           
+             | ACT4         | UP-TH-E3     |             
+L            |              |              | UP-TH-H8    
+L            |              |              |             
+ACT3         | UP-TH-B3.+E  |              | L           
+             |              | UP-TH-D3     |             
+L            |              |              | +SHIP       
+B4           |              |              | L           
+             | A6           | ->F2         | H6          
+L            | L            |              |             
+UP-TH-B4     |              |              | L           
+             | UP-SH-B3     |              | DL          
+             |              | C1PW:1C      | C3PW:3C.UP-TE-H4.FAV-F2.TW5VP
+             | DL           |              |             
+A10.TW4VP    | C2PW:2C      | ACT2         | UP-TH-H6    
+L            | L            |              |             
+H7           |              |              | DL          
+             | PASS         | C2PW:2C.C1W:1C.UP-TH-F2.TW9VP | C3PW:1W.I10.TW2VP
+L            |              |              |             
+T-D6-Y       |              | BURN1.C1PW:1C.C3W:3C | ACT-BON-W   
+PASS         |              | PASS         | PASS        

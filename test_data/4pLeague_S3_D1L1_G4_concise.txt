@@ -1,0 +1,169 @@
+Game: Base
+ScoringTiles: SCORE4, SCORE2, SCORE6, SCORE8, SCORE3, SCORE5
+BonusCards: BON-SPD, BON-6C, BON-WP, BON-BB, BON-TP, BON-P, BON-DW
+StartingVPs: Swarmlings:20, Nomads:20, Engineers:20, Alchemists:20
+
+Setup
+TurnOrder: Swarmlings, Nomads, Engineers, Alchemists
+------------------------------------------------------------
+Swarmlings   | Nomads       | Engineers    | Alchemists  
+------------------------------------------------------------
+S-D5         | S-F3         | S-E7         | S-E5        
+S-D2         | S-G4         | S-H6         | S-G5        
+BON-6C       | S-D3         | BON-SPD      | BON-BB      
+             | BON-WP       |              |             
+
+Round 1
+TurnOrder: swarmlings, nomads, engineers, alchemists
+------------------------------------------------------------
+Swarmlings   | Nomads       | Engineers    | Alchemists  
+------------------------------------------------------------
+UP-TH-D2     | L            |              |             
+             | UP-TH-G4     | L            | L           
+             |              | UP-TH-E7     |             
+L            |              |              | UP-TH-G5    
+             |              | L            |             
+             | L            |              |             
+UP-SH-D2     | L            |              |             
+             | BURN1.ACT2   | UP-TE-E7.FAV-W1 |             
+L            |              |              | UP-SH-G5    
+ACTS.UP-TH-D5 |              | L            |             
+             | BURN4.ACT5.F5 |              | L           
+             | L            | UP-TH-H6     | L           
+             | L            |              | ACT6.T-G6.E6
+             | L            | L            |             
+UP-TE-D5.FAV-E1 |              | L            |             
+             | ->F3         | ACT3         | G6          
+PASS-BON-TP  | UP-SH-G4     | L            | L           
+             |              | UP-TE-H6.FAV-E1 | L           
+             | L            | L            | ACT4        
+             | BURN1.C3PW:1W.ACT-SH-T-F6.F6 |              | L           
+             |              | ACTS-D4.C1PW:1C.D4 | L           
+L            |              |              | PASS-BON-P  
+             | PASS-BON-DW  | PASS-BON-6C  |             
+
+Round 2
+TurnOrder: swarmlings, nomads, engineers, alchemists
+------------------------------------------------------------
+Swarmlings   | Nomads       | Engineers    | Alchemists  
+------------------------------------------------------------
+BURN1.ACT6.T-C1.T-D1.C1 | L            |              |             
+             | ACT-SH-T-F7.F7 |              | L           
+             |              | +SHIP        | ACT5.H7     
+             |              | L            |             
+->W3         | BURN1.C1PW:1C.G7.TW5VP |              | L           
+             |              | C2           | ACT3        
+D1           | UP-TH-F3     |              | L           
+             |              | ACT4         | UP-TH-E5    
+             | L            |              |             
+BURN3.ACT2   | C1PW:1C.C1W:1C.UP-TE-F3.FAV-E1 |              | L           
+             |              | PASS-BON-SPD | UP-TE-E5.FAV-W1
+             | L            |              |             
+->E3         | PASS-BON-6C  |              | PASS-BON-BB 
+ACTS.UP-TH-D1 |              |              |             
+PASS-BON-WP  |              |              |             
+
+Round 3
+TurnOrder: engineers, alchemists, swarmlings, nomads
+------------------------------------------------------------
+Engineers    | Alchemists   | Swarmlings   | Nomads      
+------------------------------------------------------------
+BURN4.ACT6.I10 | L            |              |             
+             | BURN3.ACT5.E4 |              | L           
+             |              | ACT4         | ACT-SH-T-F4.F4
+L            | L            |              |             
+ACTS-I11.I11 | L            |              |             
+             | ->A3         | E1.TW7VP     | UP-TH-D3    
+             | L            | L            |             
+H8           | L            |              | L           
+             | ACT2         | +DIG         | C2PW:2C.UP-TH-F4
+L            | L            |              |             
+PASS-BON-TP  | UP-TH-H7     |              |             
+L            |              | +SHIP        | ->A2        
+             | UP-TE-H7.FAV-W2 |              |             
+DL           |              | BURN2.C2PW:2C.A4 | PASS-BON-SPD
+             | ->W2         | ACTS.UP-TH-A4 |             
+             | BURN2.ACT3   | PASS-BON-DW  |             
+             | C3VP:3C.UP-SA-H7.FAV-E2.TW9VP |              |             
+DL           | ACT-FAV-W    |              |             
+             | ->A2         |              |             
+             | PASS-BON-6C  |              |             
+
+Round 4
+TurnOrder: engineers, alchemists, swarmlings, nomads
+------------------------------------------------------------
+Engineers    | Alchemists   | Swarmlings   | Nomads      
+------------------------------------------------------------
+ACT4         | ACT5.E3      | DL           | L           
+             |              | ACT3         | C1PW:1C     
+UP-TH-H8     | DL           |              | L           
+             | UP-TH-E4     |              | L           
+             |              | A3           | ACTS-B2.B2.C1PW:1C
+L            |              | L            |             
+UP-TH-I11    | DL           |              |             
+             | UP-TH-E3     | DL           | L           
+             |              | C1PW:1C      | C1PW:1C.UP-TH-B2
+L            |              | L            |             
+ACT6.T-G3.C3 |              | L            |             
+             | ACT-FAV-A    | ACTS.UP-TH-A3 | ACT-SH-T-B3 
+UP-TH-C2     |              |              | L           
+             | C3PW:3C.PASS-BON-BB | T-A2-G       | C2PW:2C.A5  
+             |              | L            |             
+UP-TH-C3     |              | L            |             
+             |              | T-A2         | C3PW:3C.UP-TH-A5
+             |              | DL           |             
+C1P:1W.UP-TE-C3.FAV-A1 |              | DL           |             
+             |              | C1PW:1C.T-C4 | PASS-BON-WP 
++SHIP        |              | ACT2         |             
+PASS-BON-SPD |              | C1PW:1C.PASS-BON-TP |             
+
+Round 5
+TurnOrder: alchemists, swarmlings, nomads, engineers
+------------------------------------------------------------
+Alchemists   | Swarmlings   | Nomads       | Engineers   
+------------------------------------------------------------
+ACT3         | ACT4         | ACT5.G2      | G3          
+F2           | A2           | E8           | L           
+             | DL           |              | ACT6.T-I6.T-D6.D6
++DIG         | C1P:1W.T-A1.A1 | B3           | L           
+             |              |              | C1P:1W.ACTS-E9.E9
+             |              | L            |             
++SHIP        | ACTS.UP-TH-A2.TW6VP | ACT-SH-T-A6.A6 | PASS-BON-DW 
++DIG         | C4           |              | L           
+             |              | ->F2         |             
+H2           | ->E2         | BURN1.C1PW:1C.UP-TE-D3.FAV-F2.TW7VP |             
+DL           | DL           |              |             
+ACT-FAV-E    | B5           | ->A2         |             
+->E1         | BURN1.ACT1   | BURN1.ACT2   |             
+BURN2.C2PW:2C.I2 | PASS-BON-6C  | PASS-BON-TP  |             
+PASS-BON-WP  |              |              |             
+
+Round 6
+TurnOrder: engineers, alchemists, swarmlings, nomads
+------------------------------------------------------------
+Engineers    | Alchemists   | Swarmlings   | Nomads      
+------------------------------------------------------------
+I6           | ACT3         | C1PW:1C.A10  | UP-SA-F3.FAV-A1
+             | DL           |              |             
+G1           | H3           |              |             
+L            |              | A11          | C1PW:1C.UP-TH-B3
+L            |              |              |             
+ACT1.TW6VP   | I4           |              |             
+L            |              | C3PW:1W.UP-TE-D1.FAV-A1 | C1PW:1C     
+C5           | ->F2         | ACTS.UP-TH-A10.TW2VP | C2PW:2C.C1W:1C
+UP-TH-E9     |              |              | L           
+             | C2PW:2C.I5   | +SHIP        | BURN1.C1PW:1C.C1W:1C.B4
+             |              | L            |             
+F1           | L            | L            |             
+             | C2PW:2C.->E2 | ->E2         | ACT-SH-T-A8 
+C3PW:1W.C1P:1W.UP-SH-E9 |              |              | DL          
+             | UP-TH-H3     |              |             
+L            |              |              | ->W2        
+             |              | PASS         |             
+C1P:1W.UP-TH-D6 | ACT-FAV-E    |              | PASS        
+C1PW:1C.C1P:1W.I9 |              | L            |             
+             | C3PW:1W.C1P:1W.UP-TH-I5.TW8VP |              |             
+L            |              |              |             
+PASS         | ACT4         |              |             
+             | ->E1         |              |             
+             | PASS         |              |             

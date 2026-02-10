@@ -77,8 +77,6 @@ Actions are represented by short, uppercase codes. Parameters are appended with 
 
 ### Power Actions
 
-### Power Actions
-
 *   **Standard Actions**: `ACT[N]`
     *   `ACT1`: Bridge
         *   Format: `ACT1` or `ACT1-<Hex1>-<Hex2>`
@@ -138,7 +136,6 @@ Format: `C[Cost]:[Reward]`
 
 *   **Send Priest**: `->[Track]` or `->[Track][Spot]`
     *   Tracks: `F` (Fire), `W` (Water), `E` (Earth), `A` (Air)
-    *   Example: `->F` (Implicit spot)
     *   Example: `->E3` (Send priest to Earth track spot 3)
 *   **Favor Tiles**: `FAV-[Track][Amount]`
     *   `FAV-F1`: Fire 1 (+3 Coins)
@@ -179,28 +176,22 @@ Format: `C[Cost]:[Reward]`
 
 ```text
 Game: Base
-ScoringTiles: SCORE1, SCORE2
-BonusCards: BON-SPD, BON-4C
-StartingVPs: Cultists:20, Nomads:20, Witches:20
-Options: OPT1
+ScoringTiles: SCORE2, SCORE1, SCORE7, SCORE8, SCORE6, SCORE9
+BonusCards: BON-SPD, BON-4C, BON-6C, BON-WP, BON-TP, BON-DW, BON-SHIP-VP
+StartingVPs: Cultists:20, Darklings:20, Engineers:20, Auren:20
 
 Round 1
-TurnOrder: Cultists, Nomads, Witches
+TurnOrder: Cultists, Darklings, Engineers, Auren
 ----------------------------------------------------------------
-Cultists     | Nomads       | Witches      
+Cultists     | Darklings    | Engineers    | Auren
 ----------------------------------------------------------------
-C4           | L            | DL           
-CULT-F       |              |              
-             | D-F5         |              
-             | ACT4         |              
-             |              | C7           
+UP-TH-E6.+E  |              | L            | DL
+             | UP-TH-G5     | ACT3         |
+L            |              | UP-TH-F6     | L
+L            | L            |              | UP-TH-F4
 ```
 
 In this example:
-1.  **Cultists** build at `C4`.
-2.  **Nomads** leech (`L`).
-3.  **Witches** decline leech (`DL`).
-4.  **Cultists** gain a cult step (`CULT-F`) because Nomads leeched.
-5.  **Nomads** dig and build at `F5`.
-6.  **Nomads** take Power Action 4 (Coins).
-7.  **Witches** build at `C7`.
+1.  **Cultists** trigger leech with `UP-TH-E6` and gain the Cultists bonus `+E` chained to the triggering action.
+2.  The same trigger shows both accepted leech (`L`) and declined leech (`DL`).
+3.  A power action is shown with `ACT3`.

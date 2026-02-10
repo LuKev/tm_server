@@ -10,6 +10,7 @@ go_library(
         "models.go",
         "parser.go",
         "regex_definitions.go",
+        "snellman_to_concise.go",
         "types.go",
     ],
     importpath = "github.com/lukev/tm_server/internal/notation",
@@ -31,6 +32,7 @@ go_test(
         "bga_parser_acts_test.go",
         "bga_parser_special_action_test.go",
         "duplicate_leech_test.go",
+        "snellman_to_concise_test.go",
     ],
     embed = [":notation"],
     deps = [

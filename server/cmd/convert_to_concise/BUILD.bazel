@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "convert_to_concise_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/lukev/tm_server/cmd/convert_to_concise",
+    visibility = ["//visibility:private"],
+    deps = ["//internal/notation"],
+)
+
+go_binary(
+    name = "convert_to_concise",
+    embed = [":convert_to_concise_lib"],
+    visibility = ["//visibility:public"],
+)

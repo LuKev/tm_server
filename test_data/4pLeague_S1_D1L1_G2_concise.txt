@@ -1,0 +1,153 @@
+Game: Base
+ScoringTiles: SCORE8, SCORE2, SCORE1, SCORE3, SCORE5, SCORE4
+BonusCards: BON-SPD, BON-4C, BON-6C, BON-SHIP, BON-WP, BON-DW, BON-SHIP-VP
+StartingVPs: Halflings:20, Darklings:20, Dwarves:20, Mermaids:20
+
+Setup
+TurnOrder: Halflings, Darklings, Dwarves, Mermaids
+------------------------------------------------------------
+Halflings    | Darklings    | Dwarves      | Mermaids    
+------------------------------------------------------------
+S-F7         | S-G5         | S-F6         | S-G6        
+S-F5         | S-H5         | S-E7         | S-D5        
+BON-6C       | BON-4C       | BON-WP       | BON-SPD     
+
+Round 1
+TurnOrder: halflings, darklings, dwarves, mermaids
+------------------------------------------------------------
+Halflings    | Darklings    | Dwarves      | Mermaids    
+------------------------------------------------------------
+UP-TH-F5     | L            | L            |             
+             | H7           |              |             
+L            |              |              | L           
+             |              | UP-TH-E7     | L           
+             |              |              | UP-TH-G6    
+L            | L            | L            |             
+UP-TE-F5.FAV-E1 | L            | L            |             
+             | BURN3.ACT2   | UP-TE-E7.FAV-E1 | L           
+             |              |              | BURN6.ACT6.T-C3.T-C4
+BURN4.ACT5.E10 |              | L            |             
+             | UP-TH-G5     | L            | L           
+             |              | H8           | L           
+             | L            |              | UP-TE-G6.FAV-E1
+L            | L            | L            |             
+D8           | ->E3         | PASS-BON-DW  | C3          
+PASS-BON-WP  | ACT-BON-E    |              | C4          
+             | BURN1.ACT3   |              | ACTS-B5     
+             | UP-TE-G5.FAV-E2 | L            | L           
+L            |              |              | PASS-BON-6C 
+             | PASS-BON-SPD |              |             
+
+Round 2
+TurnOrder: dwarves, mermaids, halflings, darklings
+------------------------------------------------------------
+Dwarves      | Mermaids     | Halflings    | Darklings   
+------------------------------------------------------------
+ACT6.T-E9.T-D7.E9 |              | L            |             
+             | ->E2         | ACT3         | ACTS-I10.I10
+->E2         | UP-TH-D5     |              |             
+L            |              | PASS-BON-SHIP | BURN1.C1PW:1C.UP-SA-G5.FAV-W2
+             | L            | L            |             
+L            |              |              |             
+BURN2.ACT2   | UP-TE-D5.FAV-W2 |              |             
+L            |              |              | ACT-FAV-E   
+->F3         | ACT4         |              | PASS-BON-4C 
+PASS-BON-SPD | ACT-FAV-E    |              |             
+             | PASS-BON-SHIP-VP |              |             
+
+Round 3
+TurnOrder: halflings, darklings, dwarves, mermaids
+------------------------------------------------------------
+Halflings    | Darklings    | Dwarves      | Mermaids    
+------------------------------------------------------------
+BURN2.ACT3   | BURN3.ACT2   | D4           | L           
+             |              |              | ->E2        
++DIG         | G4           |              |             
+L            |              | D7           |             
+L            |              |              | ACT4        
++DIG         | I11.TW7VP    | L            |             
+             |              | C5           | B5          
+B6           | ->W3         | ACTS-F4.F4   | A11         
+T-G7         | ACT-FAV-E    | PASS-BON-DW  | ACT-FAV-E   
+D6           |              |              | L           
+             | ACT-BON-W    |              | +SHIP       
+T-A12        | C1PW:1C.C1W:1C.UP-TH-I11 | L            | B3          
+T-A13        | PASS-BON-6C  |              | PASS-BON-SPD
+PASS-BON-SHIP-VP |              |              |             
+
+Round 4
+TurnOrder: dwarves, mermaids, halflings, darklings
+------------------------------------------------------------
+Dwarves      | Mermaids     | Halflings    | Darklings   
+------------------------------------------------------------
+BURN3.ACT4   | ->A3         | A12          |             
+             | L            |              | H4          
+H6           |              |              | DL          
+             |              | G7           |             
+             | L            |              |             
+L            | +SHIP        |              | I8          
+UP-TH-D4     | L            |              |             
+             | C1PW:1C.ACTS-A10.A10 | A13          | ACT-FAV-W   
+I9           |              |              | L           
+             | E4           | C3PW:3C      | ACT2        
+->F2         | ACT-FAV-F    | PASS-BON-WP  | G3          
+->F2         | UP-TH-C3     |              |             
+L            |              |              | UP-TE-I11.FAV-F1
+L            |              |              |             
+ACT3         | I4           |              | +SHIP       
+UP-TH-E9     |              | L            | PASS-BON-4C 
+             | A4           |              |             
+PASS-BON-6C  | C2PW:2C.PASS-BON-SHIP-VP |              |             
+
+Round 5
+TurnOrder: halflings, darklings, dwarves, mermaids
+------------------------------------------------------------
+Halflings    | Darklings    | Dwarves      | Mermaids    
+------------------------------------------------------------
+BURN1.ACT4   | UP-TH-H5     | L            |             
+             |              | +DIG         | ->F2        
+UP-TH-A12    |              |              | L           
+             | UP-TH-I8     | L            |             
+             |              | G2           | ACT-FAV-F.C1PW:1C
+UP-TE-A12.FAV-W1 |              |              | L           
+             | +SHIP        | PASS-BON-DW  | +SHIP       
+->A2         | ACT-FAV-E    |              | UP-TH-A11   
+L            |              |              |             
+BURN2.C2PW:2C.UP-TH-E10 |              | DL           |             
+             | ACT-BON-A    |              | D2          
+C2W:2C.E11   | T-E8-Br      |              | C1PW:1C.->A2
+PASS-BON-6C  | T-E8         |              | C2PW:2C.UP-TH-C4
+L            | C1PW:1C.E8   |              | L           
+             |              |              | C2PW:2C.H2  
+             | T-I7-Br      |              | C1PW:1C.PASS-BON-SPD
+             | T-I7.C2W:2C.I7.TW7VP | DL           |             
+             | C2PW:2C      |              |             
+             | PASS-BON-SHIP-VP |              |             
+
+Round 6
+TurnOrder: dwarves, mermaids, halflings, darklings
+------------------------------------------------------------
+Dwarves      | Mermaids     | Halflings    | Darklings   
+------------------------------------------------------------
+ACT4         | C1PW:1C.->A2 | UP-SA-A12.FAV-F2 |             
+             | L            |              | C1PW:1C.B4  
+             | DL           |              |             
+UP-TH-F4     | C3PW:3C.UP-SA-D5.FAV-F2.TW4VP.TW9VP.C1PW:1C |              | L           
+L            |              | UP-TH-B6     | ACT2        
+BURN2.ACT3   | UP-SH-A11    | L            |             
+             |              | +SHIP        | +SHIP       
+UP-SH-E9     |              | L            |             
+             | ACT-FAV-F    | C1PW:1C      | T-A7        
+G1           | ACTS-A3      | C1PW:1C.A7   | C2W:2C.UP-SH-I8.C3W:3P
+L            |              |              |             
+UP-TH-D7     |              | L            |             
+             | C2PW:2C.UP-TH-B5 |              | L           
+             |              | C2PW:2C.E6   |             
+DL           |              |              | T-A9        
+C2           | L            |              |             
+             | C2PW:2C.C1P:1W.A3 | PASS         | ACT-FAV-F   
+BURN1.C1PW:1C.UP-SA-E7.FAV-W2 | DL           | L            | L           
+             | PASS         |              | PASS        
+ACT-FAV-F    |              |              |             
+->F1         |              |              |             
+PASS         |              |              |             
