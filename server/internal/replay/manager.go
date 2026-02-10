@@ -22,6 +22,15 @@ type ReplayManager struct {
 	scriptDir string
 }
 
+type ReplayLogFormat string
+
+const (
+	ReplayLogFormatAuto     ReplayLogFormat = "auto"
+	ReplayLogFormatBGA      ReplayLogFormat = "bga"
+	ReplayLogFormatSnellman ReplayLogFormat = "snellman"
+	ReplayLogFormatConcise  ReplayLogFormat = "concise"
+)
+
 // NewReplayManager creates a new ReplayManager
 func NewReplayManager(scriptDir string) *ReplayManager {
 	return &ReplayManager{
@@ -83,51 +92,9 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 	}
 
 	// Parse log
-	var items []notation.LogItem
-	if gameID == "local" {
-		items, err = notation.ParseConciseLog(logContent)
-	} else {
-		parser := notation.NewBGAParser(logContent)
-		items, err = parser.Parse()
-	}
+	items, _, err := m.parseReplayLogContent(logContent, ReplayLogFormatAuto)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse log: %w", err)
-	}
-
-	// Special case for local testing: Inject hardcoded settings
-	if gameID == "local" {
-		// Remove any existing GameSettingsItem
-		newItems := make([]notation.LogItem, 0)
-		for _, item := range items {
-			if _, ok := item.(notation.GameSettingsItem); !ok {
-				newItems = append(newItems, item)
-			}
-		}
-
-		// Inject hardcoded settings
-		// Scoring Tiles: SCORE5, SCORE8, SCORE4, SCORE1, SCORE6, SCORE7
-		// Bonus Cards: All except BON2, BON4, BON5 -> BON1, BON3, BON6, BON7, BON8, BON9, BON10
-		settings := notation.GameSettingsItem{
-			Settings: map[string]string{
-				"ScoringTiles": "SCORE5,SCORE8,SCORE4,SCORE1,SCORE6,SCORE7",
-				"BonusCards":   "BON-SPD,BON-6C,BON-TP,BON-BB,BON-P,BON-DW,BON-SHIP-VP",
-			},
-		}
-
-		// Preserve player mappings if they existed in the original settings (which we removed)
-		// Actually, we should check if there was an existing settings item and copy player mappings
-		for _, item := range items {
-			if s, ok := item.(notation.GameSettingsItem); ok {
-				for k, v := range s.Settings {
-					if strings.HasPrefix(k, "Player:") || strings.HasPrefix(k, "StartingVP:") {
-						settings.Settings[k] = v
-					}
-				}
-			}
-		}
-
-		// Prepend settings
-		items = append([]notation.LogItem{settings}, newItems...)
 	}
 
 	// Create simulator
@@ -151,21 +118,6 @@ func (m *ReplayManager) StartReplay(gameID string, restart bool) (*ReplaySession
 }
 
 func (m *ReplayManager) fetchLog(gameID string) (string, error) {
-	// Special case for local testing
-	if gameID == "local" {
-		// Try absolute path to concise_log.txt
-		absPath := "/Users/kevin/projects/tm_server/server/internal/notation/concise_log.txt"
-		content, err := os.ReadFile(absPath)
-		if err != nil {
-			// Fallback to relative path
-			content, err = os.ReadFile("internal/notation/concise_log.txt")
-			if err != nil {
-				return "", fmt.Errorf("failed to read local log: %w", err)
-			}
-		}
-		return string(content), nil
-	}
-
 	scriptPath := filepath.Join(m.scriptDir, "fetch_bga_log.py")
 	outputPath := filepath.Join(m.scriptDir, fmt.Sprintf("game_%s.txt", gameID))
 
@@ -192,9 +144,11 @@ func (m *ReplayManager) fetchLog(gameID string) (string, error) {
 func (m *ReplayManager) ImportLog(gameID string, htmlContent string) error {
 	// Detect source type and parse accordingly
 	var logContent string
+	format := ReplayLogFormatBGA
 	var err error
 	if notation.IsSnellmanHTML(htmlContent) {
 		logContent, err = notation.ParseSnellmanHTML(htmlContent)
+		format = ReplayLogFormatSnellman
 	} else {
 		logContent, err = notation.ParseBGAHTML(htmlContent)
 	}
@@ -202,18 +156,135 @@ func (m *ReplayManager) ImportLog(gameID string, htmlContent string) error {
 		return fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
-	// Save to file (create directory if needed)
-	if err := os.MkdirAll(m.scriptDir, 0755); err != nil {
-		return fmt.Errorf("failed to create scripts directory: %w", err)
+	_, canonicalLogContent, err := m.parseReplayLogContent(logContent, format)
+	if err != nil {
+		return fmt.Errorf("failed to parse imported log: %w", err)
 	}
-	outputPath := filepath.Join(m.scriptDir, fmt.Sprintf("game_%s.txt", gameID))
-	if err := os.WriteFile(outputPath, []byte(logContent), 0644); err != nil {
-		return fmt.Errorf("failed to save log file: %w", err)
+
+	if err := m.storeImportedLog(gameID, canonicalLogContent); err != nil {
+		return err
 	}
 
 	// Start replay (force restart)
 	_, err = m.StartReplay(gameID, true)
 	return err
+}
+
+// ImportText imports replay logs from raw text.
+func (m *ReplayManager) ImportText(gameID string, logText string, format string) error {
+	trimmedGameID := strings.TrimSpace(gameID)
+	if trimmedGameID == "" {
+		return fmt.Errorf("gameID is required")
+	}
+
+	logFormat := parseReplayLogFormat(format)
+	_, canonicalLogContent, err := m.parseReplayLogContent(logText, logFormat)
+	if err != nil {
+		return fmt.Errorf("failed to parse imported text log: %w", err)
+	}
+
+	if err := m.storeImportedLog(trimmedGameID, canonicalLogContent); err != nil {
+		return err
+	}
+
+	_, err = m.StartReplay(trimmedGameID, true)
+	return err
+}
+
+func parseReplayLogFormat(format string) ReplayLogFormat {
+	switch strings.ToLower(strings.TrimSpace(format)) {
+	case "", "auto":
+		return ReplayLogFormatAuto
+	case "bga":
+		return ReplayLogFormatBGA
+	case "snellman":
+		return ReplayLogFormatSnellman
+	case "concise":
+		return ReplayLogFormatConcise
+	default:
+		return ReplayLogFormatAuto
+	}
+}
+
+func (m *ReplayManager) parseReplayLogContent(content string, format ReplayLogFormat) ([]notation.LogItem, string, error) {
+	trimmed := strings.TrimSpace(content)
+	if trimmed == "" {
+		return nil, "", fmt.Errorf("log content is empty")
+	}
+
+	switch format {
+	case ReplayLogFormatConcise:
+		items, err := notation.ParseConciseLogStrict(trimmed)
+		if err != nil {
+			return nil, "", err
+		}
+		return items, trimmed, nil
+	case ReplayLogFormatSnellman:
+		concise, err := notation.ConvertSnellmanToConcise(trimmed)
+		if err != nil {
+			return nil, "", err
+		}
+		items, err := notation.ParseConciseLogStrict(concise)
+		if err != nil {
+			return nil, "", err
+		}
+		return items, concise, nil
+	case ReplayLogFormatBGA:
+		parser := notation.NewBGAParser(trimmed)
+		items, err := parser.Parse()
+		if err != nil {
+			return nil, "", err
+		}
+		return items, trimmed, nil
+	case ReplayLogFormatAuto:
+		if looksLikeConciseLog(trimmed) {
+			items, err := notation.ParseConciseLogStrict(trimmed)
+			if err != nil {
+				return nil, "", err
+			}
+			return items, trimmed, nil
+		}
+		if notation.IsSnellmanTextFormat(trimmed) {
+			concise, err := notation.ConvertSnellmanToConcise(trimmed)
+			if err != nil {
+				return nil, "", err
+			}
+			items, err := notation.ParseConciseLogStrict(concise)
+			if err != nil {
+				return nil, "", err
+			}
+			return items, concise, nil
+		}
+		parser := notation.NewBGAParser(trimmed)
+		items, err := parser.Parse()
+		if err != nil {
+			return nil, "", err
+		}
+		return items, trimmed, nil
+	default:
+		return nil, "", fmt.Errorf("unsupported log format: %s", format)
+	}
+}
+
+func looksLikeConciseLog(content string) bool {
+	if strings.Contains(content, "Game:") || strings.Contains(content, "StartingVPs:") {
+		return true
+	}
+	if strings.Contains(content, "TurnOrder:") && strings.Contains(content, "|") {
+		return true
+	}
+	return false
+}
+
+func (m *ReplayManager) storeImportedLog(gameID string, content string) error {
+	if err := os.MkdirAll(m.scriptDir, 0755); err != nil {
+		return fmt.Errorf("failed to create scripts directory: %w", err)
+	}
+	outputPath := filepath.Join(m.scriptDir, fmt.Sprintf("game_%s.txt", gameID))
+	if err := os.WriteFile(outputPath, []byte(content), 0644); err != nil {
+		return fmt.Errorf("failed to save log file: %w", err)
+	}
+	return nil
 }
 
 // ProvideInfo updates the session with missing information

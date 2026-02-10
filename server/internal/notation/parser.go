@@ -12,8 +12,36 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+// ConciseParseError includes source location for concise parsing failures.
+type ConciseParseError struct {
+	Line     int
+	Column   int
+	PlayerID string
+	Token    string
+	Cause    error
+}
+
+func (e *ConciseParseError) Error() string {
+	if e == nil {
+		return "concise parse error"
+	}
+	if e.PlayerID != "" {
+		return fmt.Sprintf("line %d, column %d, player %q, token %q: %v", e.Line, e.Column, e.PlayerID, e.Token, e.Cause)
+	}
+	return fmt.Sprintf("line %d, column %d, token %q: %v", e.Line, e.Column, e.Token, e.Cause)
+}
+
 // ParseConciseLog parses a concise log string into LogItems
 func ParseConciseLog(content string) ([]LogItem, error) {
+	return parseConciseLog(content, false)
+}
+
+// ParseConciseLogStrict parses concise logs and fails fast with line/column context.
+func ParseConciseLogStrict(content string) ([]LogItem, error) {
+	return parseConciseLog(content, true)
+}
+
+func parseConciseLog(content string, strict bool) ([]LogItem, error) {
 	lines := strings.Split(content, "\n")
 	items := make([]LogItem, 0)
 
@@ -22,8 +50,8 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 	headerFound := false
 	settings := make(map[string]string)
 
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
+	for lineIdx, rawLine := range lines {
+		line := strings.TrimSpace(rawLine)
 		if line == "" {
 			continue
 		}
@@ -146,6 +174,15 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 				// Parse the action code
 				action, err := parseActionCode(playerID, part)
 				if err != nil {
+					if strict {
+						return nil, &ConciseParseError{
+							Line:     lineIdx + 1,
+							Column:   i + 1,
+							PlayerID: playerID,
+							Token:    part,
+							Cause:    err,
+						}
+					}
 					fmt.Printf("Error parsing action '%s': %v\n", part, err)
 					continue
 				}
@@ -158,10 +195,17 @@ func ParseConciseLog(content string) ([]LogItem, error) {
 		}
 	}
 
+	// Header-only concise logs should still emit settings.
+	if len(settings) > 0 && len(items) == 0 {
+		items = append(items, GameSettingsItem{Settings: settings})
+	}
+
 	return items, nil
 }
 
 func parseActionCode(playerID, code string) (game.Action, error) {
+	upperCode := strings.ToUpper(code)
+
 	// Simple parser based on prefixes
 	if strings.HasPrefix(code, "PASS") {
 		var bonusCard *game.BonusCardType
@@ -181,6 +225,14 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 	}
 	if code == "+SHIP" {
 		return game.NewAdvanceShippingAction(playerID), nil
+	}
+	if len(upperCode) == 2 && strings.HasPrefix(upperCode, "+") {
+		if track, ok := parseCultShortCodeOk(string(upperCode[1])); ok {
+			return &LogCultistAdvanceAction{
+				PlayerID: playerID,
+				Track:    track,
+			}, nil
+		}
 	}
 	if code == "DL" {
 		// Return standard action or Log action?
@@ -255,6 +307,14 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		}, nil
 	}
 
+	// Bonus Card cult action, Mermaids town action, Engineers bridge action
+	if strings.HasPrefix(code, "ACT-BON-") || strings.HasPrefix(code, "ACT-TOWN-") || strings.HasPrefix(code, "ACT-BR-") {
+		return &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: code,
+		}, nil
+	}
+
 	// Bonus Card Spade: ACTS-<Coord>
 	if strings.HasPrefix(code, "ACTS-") {
 		return &LogSpecialAction{
@@ -307,6 +367,9 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 	}
 
 	if strings.HasPrefix(code, "ACT") {
+		if ParsePowerActionCode(code) == game.PowerActionUnknown {
+			return nil, fmt.Errorf("unknown ACT code: %s", code)
+		}
 		// ACT1, ACT2...
 		return &LogPowerAction{
 			PlayerID:   playerID,
@@ -417,17 +480,25 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 }
 
 func parseCultShortCode(s string) game.CultTrack {
-	switch s {
-	case "F":
-		return game.CultFire
-	case "W":
-		return game.CultWater
-	case "E":
-		return game.CultEarth
-	case "A":
-		return game.CultAir
+	if track, ok := parseCultShortCodeOk(s); ok {
+		return track
 	}
 	return game.CultFire
+}
+
+func parseCultShortCodeOk(s string) (game.CultTrack, bool) {
+	s = strings.ToUpper(s)
+	switch s {
+	case "F":
+		return game.CultFire, true
+	case "W":
+		return game.CultWater, true
+	case "E":
+		return game.CultEarth, true
+	case "A":
+		return game.CultAir, true
+	}
+	return game.CultFire, false
 }
 
 func parseBuildingShortCode(s string) models.BuildingType {

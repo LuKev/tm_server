@@ -35,6 +35,7 @@ go_test(
         "convert_upgrade_test.go",
         "cult_spade_test.go",
         "darklings_dig_test.go",
+        "manager_import_test.go",
         "manager_test.go",
         "parser_test.go",
         "snapshot_test.go",

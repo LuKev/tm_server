@@ -22,6 +22,7 @@ func (h *ReplayHandler) RegisterRoutes(router *mux.Router) {
 	s := router.PathPrefix("/api/replay").Subrouter()
 	s.HandleFunc("/start", h.handleStart).Methods("POST")
 	s.HandleFunc("/import", h.handleImport).Methods("POST")
+	s.HandleFunc("/import_text", h.handleImportText).Methods("POST")
 	s.HandleFunc("/import_form", h.handleImportForm).Methods("POST")
 	s.HandleFunc("/next", h.handleNext).Methods("POST")
 	s.HandleFunc("/jump", h.handleJump).Methods("POST")
@@ -295,4 +296,32 @@ func (h *ReplayHandler) handleImportForm(w http.ResponseWriter, r *http.Request)
 
 	// Redirect to the replay page on the frontend
 	http.Redirect(w, r, "https://kezilu.com/tm/replay/"+gameID, http.StatusSeeOther)
+}
+
+func (h *ReplayHandler) handleImportText(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		GameID  string `json:"gameId"`
+		LogText string `json:"logText"`
+		Format  string `json:"format"`
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 10*1024*1024) // 10MB limit
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if req.GameID == "" || req.LogText == "" {
+		http.Error(w, "missing gameId or logText", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.manager.ImportText(req.GameID, req.LogText, req.Format); err != nil {
+		fmt.Printf("ImportText failed: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }

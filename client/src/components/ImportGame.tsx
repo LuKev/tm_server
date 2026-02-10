@@ -18,7 +18,7 @@ function extractGameId(input: string): string {
     const numericRegex = /^\d+$/;
     if (numericRegex.test(trimmed)) return trimmed;
 
-    // Return as-is (could be "local" or other special values)
+    // Return as-is for non-numeric replay IDs
     return trimmed;
 }
 
@@ -29,6 +29,9 @@ interface ImportStatus {
 
 export const ImportGame: React.FC = () => {
     const [urlInput, setUrlInput] = useState('');
+    const [manualGameIdInput, setManualGameIdInput] = useState('');
+    const [manualLogInput, setManualLogInput] = useState('');
+    const [manualFormat, setManualFormat] = useState<'auto' | 'concise' | 'snellman' | 'bga'>('auto');
     const [importStatus, setImportStatus] = useState<ImportStatus>({ status: 'idle', message: '' });
     const navigate = useNavigate();
 
@@ -64,6 +67,41 @@ export const ImportGame: React.FC = () => {
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Unknown error';
             setImportStatus({ status: 'error', message: `Failed to import game: ${message}` });
+        }
+    };
+
+    const handleImportText = async (): Promise<void> => {
+        if (!manualLogInput.trim()) {
+            setImportStatus({ status: 'error', message: 'Please paste a log before importing.' });
+            return;
+        }
+
+        const gameId = manualGameIdInput.trim() ? extractGameId(manualGameIdInput) : `import-${Date.now()}`;
+        setImportStatus({ status: 'loading', message: 'Parsing log and building replay...' });
+
+        try {
+            const res = await fetch('/api/replay/import_text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    gameId,
+                    logText: manualLogInput,
+                    format: manualFormat
+                })
+            });
+
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(errorText || 'Failed to import log text');
+            }
+
+            setImportStatus({ status: 'success', message: 'Log imported! Redirecting...' });
+            setTimeout(() => {
+                void navigate(`/replay/${gameId}`);
+            }, 500);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Unknown error';
+            setImportStatus({ status: 'error', message: `Failed to import log text: ${message}` });
         }
     };
 
@@ -110,6 +148,54 @@ export const ImportGame: React.FC = () => {
                     </div>
                 )}
 
+                <div className="import-game-divider">
+                    <span>or paste a log</span>
+                </div>
+
+                <div className="import-game-section">
+                    <label className="import-game-label">
+                        Replay ID (optional):
+                    </label>
+                    <input
+                        type="text"
+                        className="import-game-input"
+                        placeholder="my-snellman-game-2026"
+                        value={manualGameIdInput}
+                        onChange={(e) => { setManualGameIdInput(e.target.value); }}
+                        disabled={importStatus.status === 'loading'}
+                    />
+                    <label className="import-game-label">
+                        Log format:
+                    </label>
+                    <select
+                        className="import-game-input import-game-select"
+                        value={manualFormat}
+                        onChange={(e) => { setManualFormat(e.target.value as 'auto' | 'concise' | 'snellman' | 'bga'); }}
+                        disabled={importStatus.status === 'loading'}
+                    >
+                        <option value="auto">Auto-detect</option>
+                        <option value="concise">Concise notation</option>
+                        <option value="snellman">Snellman text log</option>
+                        <option value="bga">BGA text log</option>
+                    </select>
+                    <label className="import-game-label">
+                        Paste log text:
+                    </label>
+                    <textarea
+                        className="import-game-input import-game-textarea"
+                        placeholder="Game: Base&#10;ScoringTiles: ...&#10;..."
+                        value={manualLogInput}
+                        onChange={(e) => { setManualLogInput(e.target.value); }}
+                        disabled={importStatus.status === 'loading'}
+                    />
+                    <button
+                        className="import-game-button primary"
+                        onClick={() => { void handleImportText(); }}
+                        disabled={importStatus.status === 'loading' || !manualLogInput.trim()}
+                    >
+                        {importStatus.status === 'loading' ? 'Importing...' : 'Import Pasted Log'}
+                    </button>
+                </div>
 
 
                 <div className="import-game-info">

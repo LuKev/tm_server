@@ -1,0 +1,80 @@
+package replay
+
+import (
+	"strings"
+	"testing"
+
+	"github.com/lukev/tm_server/internal/notation"
+)
+
+func TestParseReplayLogContent_AutoDetectsConcise(t *testing.T) {
+	manager := NewReplayManager(t.TempDir())
+	concise := `Game: Base
+ScoringTiles: SCORE1, SCORE2, SCORE3, SCORE4, SCORE5, SCORE6
+BonusCards: BON-SPD, BON-4C, BON-6C, BON-SHIP, BON-WP, BON-BB, BON-TP
+StartingVPs: Cultists:20, Engineers:20
+
+Round 1
+TurnOrder: Cultists, Engineers
+------------------------------------------------------------
+Cultists     | Engineers
+------------------------------------------------------------
+UP-TH-E6.+E  | L`
+
+	items, canonical, err := manager.parseReplayLogContent(concise, ReplayLogFormatAuto)
+	if err != nil {
+		t.Fatalf("parseReplayLogContent(auto concise) error = %v", err)
+	}
+	if len(items) == 0 {
+		t.Fatalf("parseReplayLogContent(auto concise) returned no items")
+	}
+	if strings.TrimSpace(canonical) != strings.TrimSpace(concise) {
+		t.Fatalf("canonical concise log should match input")
+	}
+}
+
+func TestParseReplayLogContent_SnellmanConvertsToConcise(t *testing.T) {
+	manager := NewReplayManager(t.TempDir())
+	snellman := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tsetup",
+		"engineers\t\t20 VP\t\t10 C\t\t2 W\t\t0 P\t\t3/9/0 PW\t\t0/0/0/0\t\tsetup",
+		"Round 1 income\tshow history",
+		"Round 1, turn 1\tshow history",
+		"cultists\t\t20 VP\t-3\t12 C\t-1\t2 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tupgrade E6 to TP",
+	}, "\n")
+
+	items, canonical, err := manager.parseReplayLogContent(snellman, ReplayLogFormatSnellman)
+	if err != nil {
+		t.Fatalf("parseReplayLogContent(snellman) error = %v", err)
+	}
+	if len(items) == 0 {
+		t.Fatalf("parseReplayLogContent(snellman) returned no items")
+	}
+	if !strings.Contains(canonical, "Game: Base") {
+		t.Fatalf("snellman canonical log should be concise output, got:\n%s", canonical)
+	}
+}
+
+func TestParseReplayLogContent_ConciseStrictErrors(t *testing.T) {
+	manager := NewReplayManager(t.TempDir())
+	badConcise := `Game: Base
+ScoringTiles: SCORE1, SCORE2, SCORE3, SCORE4, SCORE5, SCORE6
+BonusCards: BON-SPD, BON-4C, BON-6C, BON-SHIP, BON-WP, BON-BB, BON-TP
+StartingVPs: Cultists:20, Engineers:20
+
+Round 1
+TurnOrder: Cultists, Engineers
+------------------------------------------------------------
+Cultists     | Engineers
+------------------------------------------------------------
+BADTOKEN     |`
+
+	_, _, err := manager.parseReplayLogContent(badConcise, ReplayLogFormatConcise)
+	if err == nil {
+		t.Fatalf("parseReplayLogContent(concise strict) expected error")
+	}
+	if _, ok := err.(*notation.ConciseParseError); !ok {
+		t.Fatalf("error type = %T, want *notation.ConciseParseError", err)
+	}
+}
