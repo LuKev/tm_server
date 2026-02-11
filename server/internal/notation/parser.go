@@ -211,6 +211,25 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	code = strings.TrimSpace(code)
 	upperCode := strings.ToUpper(code)
 
+	// Compound Action: Code.Code
+	if strings.Contains(code, ".") {
+		parts := strings.Split(code, ".")
+		var actions []game.Action
+
+		// Pre-process to merge T-X + X patterns into single TransformAndBuild
+		// Example: T-A7.A7 becomes single action with buildDwelling=true
+		mergedParts := mergeTransformAndBuildTokens(parts)
+
+		for _, part := range mergedParts {
+			action, err := parseActionCodeWithContext(playerID, part, true)
+			if err != nil {
+				return nil, err
+			}
+			actions = append(actions, action)
+		}
+		return &LogCompoundAction{Actions: actions}, nil
+	}
+
 	// Simple parser based on prefixes
 	if strings.HasPrefix(upperCode, "PASS") {
 		var bonusCard *game.BonusCardType
@@ -275,25 +294,6 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			PlayerID:   playerID,
 			ActionCode: upperCode,
 		}, nil
-	}
-
-	// Compound Action: Code.Code
-	if strings.Contains(code, ".") {
-		parts := strings.Split(code, ".")
-		var actions []game.Action
-
-		// Pre-process to merge T-X + X patterns into single TransformAndBuild
-		// Example: T-A7.A7 becomes single action with buildDwelling=true
-		mergedParts := mergeTransformAndBuildTokens(parts)
-
-		for _, part := range mergedParts {
-			action, err := parseActionCodeWithContext(playerID, part, true)
-			if err != nil {
-				return nil, err
-			}
-			actions = append(actions, action)
-		}
-		return &LogCompoundAction{Actions: actions}, nil
 	}
 
 	// Auren Stronghold: ACT-SH-<Track>

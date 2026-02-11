@@ -103,6 +103,27 @@ func TestParseActionCode_IsCaseInsensitiveForCompoundTokens(t *testing.T) {
 	}
 }
 
+func TestParseActionCode_ParsesPassWithTrailingCultBonusAsCompound(t *testing.T) {
+	action, err := parseActionCode("Cultists", "PASS-BON-BB.+A")
+	if err != nil {
+		t.Fatalf("parseActionCode(pass+cult bonus compound) error = %v", err)
+	}
+
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(pass+cult bonus compound) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 2 {
+		t.Fatalf("compound action count = %d, want 2", len(compound.Actions))
+	}
+	if gotType := fmt.Sprintf("%T", compound.Actions[0]); !strings.HasSuffix(gotType, ".PassAction") {
+		t.Fatalf("compound first action type = %s, want *game.PassAction", gotType)
+	}
+	if _, ok := compound.Actions[1].(*LogCultistAdvanceAction); !ok {
+		t.Fatalf("compound second action type = %T, want *LogCultistAdvanceAction", compound.Actions[1])
+	}
+}
+
 func TestParseConciseLogStrict_ReturnsLocationForInvalidToken(t *testing.T) {
 	input := `Game: Base
 ScoringTiles: SCORE1, SCORE2, SCORE3, SCORE4, SCORE5, SCORE6

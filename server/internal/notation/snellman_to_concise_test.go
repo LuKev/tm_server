@@ -431,6 +431,31 @@ func TestConvertSnellmanToConcise_DelayedCultBonusFromPassBacktracks(t *testing.
 	}
 }
 
+func TestConvertSnellmanToConcise_StandaloneCultBonusAfterPassBacktracksToLeechSource(t *testing.T) {
+	input := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"Round 2 income\tshow history",
+		"Round 2, turn 7\tshow history",
+		"cultists\t+2\t36 VP\t-2\t1 C\t-1\t0 W\t\t0 P\t\t5/3/0 PW\t\t2/4/3/0\t\tbuild A7",
+		"cultists\t+9\t45 VP\t+1\t2 C\t\t0 W\t\t0 P\t\t5/3/0 PW\t\t2/4/3/0\t\tpass BON6",
+		"cultists\t\t45 VP\t\t2 C\t\t0 W\t\t0 P\t\t5/3/0 PW\t+1\t2/4/3/0\t\t[opponent accepted power]",
+		"engineers\t\t35 VP\t\t2 C\t\t0 W\t\t0 P\t+1\t2/2/3 PW\t\t0/0/3/0\t\tLeech 1 from cultists",
+		"cultists\t\t45 VP\t\t2 C\t\t0 W\t\t0 P\t\t5/3/0 PW\t\t2/4/3/1\t\t+AIR",
+	}, "\n")
+
+	got, err := ConvertSnellmanToConcise(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
+	}
+
+	if !strings.Contains(got, "A7.+A") {
+		t.Fatalf("expected standalone cult bonus to backtrack to leech-source action:\n%s", got)
+	}
+	if strings.Contains(got, "PASS-BON-BB.+A") {
+		t.Fatalf("unexpected cult bonus attached to pass token:\n%s", got)
+	}
+}
+
 func TestConvertSnellmanToConcise_LeechFromLeftColumnsMovesToLaterRow(t *testing.T) {
 	input := strings.Join([]string{
 		"option strict-leech\tshow history",

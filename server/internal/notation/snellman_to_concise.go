@@ -258,16 +258,36 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 			continue
 		}
 
+		appendCultBonus := func(cultBonus string) {
+			targetRows := make([]int, 0, 2)
+			if rowIdx, ok := lastLeechSourceRow[factionName]; ok {
+				targetRows = append(targetRows, rowIdx)
+			}
+			if rowIdx, ok := lastMainActionRow[factionName]; ok {
+				targetRows = append(targetRows, rowIdx)
+			}
+
+			for _, rowIdx := range targetRows {
+				if rowIdx < 0 || rowIdx >= len(currentRound.Rows) {
+					continue
+				}
+				existing := strings.TrimSpace(currentRound.Rows[rowIdx][factionName])
+				if existing == "" || existing == "L" || existing == "DL" {
+					continue
+				}
+				if !strings.Contains(existing, "."+cultBonus) {
+					currentRound.Rows[rowIdx][factionName] = existing + "." + cultBonus
+				}
+				return
+			}
+		}
+
 		// SPECIAL: Handle cult bonus + leech pattern (e.g., "+EARTH. Leech 1 from engineers")
 		// This is Cultists' faction power - the cult advance should be merged with their last main action,
 		// while the leech should be a separate row
 		if m := cultPrefixPattern.FindStringSubmatch(action); len(m) > 2 && currentRound != nil && !inSetupPhase && factionName == "cultists" {
 			cultBonus := "+" + trackToShort(m[1])
-			if rowIdx, ok := lastMainActionRow[factionName]; ok &&
-				rowIdx >= 0 && rowIdx < len(currentRound.Rows) &&
-				currentRound.Rows[rowIdx][factionName] != "" {
-				currentRound.Rows[rowIdx][factionName] += "." + cultBonus
-			}
+			appendCultBonus(cultBonus)
 			remainder := strings.TrimSpace(m[2])
 			if remainder == "" {
 				continue
@@ -278,11 +298,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 			cultBonus := "+" + trackToShort(m[1])
 
 			// Backtrack to the faction's latest main action row and add the cult bonus there.
-			if rowIdx, ok := lastMainActionRow[factionName]; ok &&
-				rowIdx >= 0 && rowIdx < len(currentRound.Rows) &&
-				currentRound.Rows[rowIdx][factionName] != "" {
-				currentRound.Rows[rowIdx][factionName] += "." + cultBonus
-			}
+			appendCultBonus(cultBonus)
 
 			// Preserve the source faction for row placement by keeping only the leech part.
 			action = extractTrailingLeechAction(action)
@@ -291,11 +307,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		// The cult step belongs to Cultists' prior triggering action, not to the pass itself.
 		if m := cultPassPattern.FindStringSubmatch(action); len(m) > 2 && currentRound != nil && !inSetupPhase {
 			cultBonus := "+" + trackToShort(m[1])
-			if rowIdx, ok := lastMainActionRow[factionName]; ok &&
-				rowIdx >= 0 && rowIdx < len(currentRound.Rows) &&
-				currentRound.Rows[rowIdx][factionName] != "" {
-				currentRound.Rows[rowIdx][factionName] += "." + cultBonus
-			}
+			appendCultBonus(cultBonus)
 			action = m[2]
 		}
 
