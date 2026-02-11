@@ -204,6 +204,10 @@ func parseConciseLog(content string, strict bool) ([]LogItem, error) {
 }
 
 func parseActionCode(playerID, code string) (game.Action, error) {
+	return parseActionCodeWithContext(playerID, code, false)
+}
+
+func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Action, error) {
 	upperCode := strings.ToUpper(code)
 
 	// Simple parser based on prefixes
@@ -282,7 +286,7 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 		mergedParts := mergeTransformAndBuildTokens(parts)
 
 		for _, part := range mergedParts {
-			action, err := parseActionCode(playerID, part)
+			action, err := parseActionCodeWithContext(playerID, part, true)
 			if err != nil {
 				return nil, err
 			}
@@ -356,9 +360,16 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 	if strings.HasPrefix(code, "C") && strings.Contains(code, ":") {
 		parts := strings.Split(strings.TrimPrefix(code, "C"), ":")
 		if len(parts) == 2 {
-			// In strict replay notation, conversions must be chained with a main action
-			// (e.g. "C1PW:1C.PASS-..."), not represented as a standalone turn action.
-			return nil, fmt.Errorf("standalone conversion is not a legal main action; chain it with a main action in the same token")
+			if !inCompound {
+				// In strict replay notation, conversions must be chained with a main action
+				// (e.g. "C1PW:1C.PASS-..."), not represented as a standalone turn action.
+				return nil, fmt.Errorf("standalone conversion is not a legal main action; chain it with a main action in the same token")
+			}
+			return &LogConversionAction{
+				PlayerID: playerID,
+				Cost:     parseResourceString(parts[0]),
+				Reward:   parseResourceString(parts[1]),
+			}, nil
 		}
 	}
 

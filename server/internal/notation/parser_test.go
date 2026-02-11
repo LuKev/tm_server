@@ -2,6 +2,7 @@ package notation
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
@@ -50,6 +51,30 @@ func TestParseActionCode_RejectsStandaloneConversion(t *testing.T) {
 	_, err := parseActionCode("Cultists", "C5PW:1P")
 	if err == nil {
 		t.Fatalf("parseActionCode(standalone conversion) expected error, got nil")
+	}
+}
+
+func TestParseActionCode_AllowsConversionInsideCompound(t *testing.T) {
+	action, err := parseActionCode("Witches", "BURN3.C5PW:1P.+SHIP")
+	if err != nil {
+		t.Fatalf("parseActionCode(compound conversion) error = %v", err)
+	}
+
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(compound conversion) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 3 {
+		t.Fatalf("compound action count = %d, want 3", len(compound.Actions))
+	}
+	if _, ok := compound.Actions[0].(*LogBurnAction); !ok {
+		t.Fatalf("compound first action type = %T, want *LogBurnAction", compound.Actions[0])
+	}
+	if _, ok := compound.Actions[1].(*LogConversionAction); !ok {
+		t.Fatalf("compound second action type = %T, want *LogConversionAction", compound.Actions[1])
+	}
+	if gotType := fmt.Sprintf("%T", compound.Actions[2]); gotType != "*game.AdvanceShippingAction" {
+		t.Fatalf("compound third action type = %s, want *game.AdvanceShippingAction", gotType)
 	}
 }
 
