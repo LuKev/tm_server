@@ -27,6 +27,12 @@ type PlayerFinalScore struct {
 // CalculateFinalScoring calculates all end-game scoring
 // Should be called after round 6 cleanup
 func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
+	// If final scoring has already been finalized for this end-state snapshot,
+	// return it directly to avoid double-counting when callers recompute.
+	if gs.Phase == PhaseEnd && gs.FinalScoring != nil {
+		return gs.FinalScoring
+	}
+
 	scores := make(map[string]*PlayerFinalScore)
 
 	// Initialize scores with base VP

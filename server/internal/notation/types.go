@@ -142,10 +142,7 @@ func (a *LogPowerAction) Validate(gs *game.GameState) error {
 
 	powerCost := game.GetPowerCost(actionType)
 	if player.Resources.Power.Bowl3 < powerCost {
-		neededFromBurn := powerCost - player.Resources.Power.Bowl3
-		if !player.Resources.Power.CanBurn(neededFromBurn) {
-			return fmt.Errorf("not enough power in Bowl III: need %d, have %d", powerCost, player.Resources.Power.Bowl3)
-		}
+		return fmt.Errorf("not enough power in Bowl III: need %d, have %d", powerCost, player.Resources.Power.Bowl3)
 	}
 
 	return nil
@@ -160,14 +157,8 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	actionType := ParsePowerActionCode(a.ActionCode)
 
-	// Spend power through canonical power system to prevent illegal negative bowls.
+	// Spend power from Bowl III only. Explicit burns are represented as separate log actions.
 	powerCost := game.GetPowerCost(actionType)
-	if player.Resources.Power.Bowl3 < powerCost {
-		neededFromBurn := powerCost - player.Resources.Power.Bowl3
-		if err := player.Resources.Power.BurnPower(neededFromBurn); err != nil {
-			return fmt.Errorf("failed to burn power for %s: %w", a.ActionCode, err)
-		}
-	}
 	if err := player.Resources.Power.SpendPower(powerCost); err != nil {
 		return fmt.Errorf("failed to spend power for %s: %w", a.ActionCode, err)
 	}
@@ -573,14 +564,6 @@ func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	// Spend cost
 	// We need to map models.ResourceType to factions.Cost
 	powerCost := a.Cost[models.ResourcePower]
-	if powerCost > 0 && player.Resources.Power.Bowl3 < powerCost {
-		neededFromBurn := powerCost - player.Resources.Power.Bowl3
-		if player.Resources.Power.CanBurn(neededFromBurn) {
-			if err := player.Resources.Power.BurnPower(neededFromBurn); err != nil {
-				return fmt.Errorf("failed to burn power for conversion: %w", err)
-			}
-		}
-	}
 	cost := factions.Cost{
 		Workers: a.Cost[models.ResourceWorker],
 		Priests: a.Cost[models.ResourcePriest],
@@ -668,6 +651,25 @@ func compoundHasMainAction(actions []game.Action) bool {
 	return false
 }
 
+func isReplayAffordabilityError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not enough resources") ||
+		strings.Contains(msg, "not enough workers") ||
+		strings.Contains(msg, "cannot afford")
+}
+
+func isReplayPreExecutableAction(action game.Action) bool {
+	switch action.(type) {
+	case *LogConversionAction, *LogBurnAction:
+		return true
+	default:
+		return false
+	}
+}
+
 // Execute applies the action to the game state.
 func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 	if len(a.Actions) == 0 {
@@ -686,9 +688,38 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 		gs.NextTurn()
 	}()
 
-	for _, action := range a.Actions {
+	preExecuted := make(map[int]bool, len(a.Actions))
+
+	for i, action := range a.Actions {
+		if preExecuted[i] {
+			continue
+		}
 		if err := action.Execute(gs); err != nil {
-			return err
+			// Snellman rows often place resource conversions at the end of the
+			// compound token even when they fund an earlier build/upgrade.
+			// If an affordability check fails, opportunistically run trailing
+			// burn/convert steps once and retry the failed action.
+			if !isReplayAffordabilityError(err) {
+				return err
+			}
+
+			replayed := false
+			for j := i + 1; j < len(a.Actions); j++ {
+				if preExecuted[j] || !isReplayPreExecutableAction(a.Actions[j]) {
+					continue
+				}
+				if execErr := a.Actions[j].Execute(gs); execErr != nil {
+					return execErr
+				}
+				preExecuted[j] = true
+				replayed = true
+			}
+			if !replayed {
+				return err
+			}
+			if retryErr := action.Execute(gs); retryErr != nil {
+				return retryErr
+			}
 		}
 	}
 	return nil

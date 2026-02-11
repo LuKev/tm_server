@@ -108,7 +108,7 @@ func (s *GameSimulator) StepForward() error {
 					s.CurrentIndex++
 					return nil
 				}
-				return fmt.Errorf("action execution failed at index %d: %w", s.CurrentIndex, err)
+				return fmt.Errorf("action execution failed at index %d (%T %#v): %w", s.CurrentIndex, v.Action, v.Action, err)
 			}
 		}
 

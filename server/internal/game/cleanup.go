@@ -15,6 +15,15 @@ func (gs *GameState) ExecuteCleanupPhase() bool {
 	if gs.Round >= 6 {
 		gs.Phase = PhaseEnd
 		gs.FinalScoring = gs.CalculateFinalScoring()
+		// Keep player VP counters aligned with final scoring totals for replay/UI parity.
+		for playerID, score := range gs.FinalScoring {
+			if score == nil {
+				continue
+			}
+			if player := gs.GetPlayer(playerID); player != nil {
+				player.VictoryPoints = score.TotalVP
+			}
+		}
 		return false
 	}
 
@@ -55,7 +64,16 @@ func (gs *GameState) ResetRoundState() {
 
 	// Reset pending offers/formations
 	gs.PendingLeechOffers = make(map[string][]*PowerLeechOffer)
-	gs.PendingTownFormations = make(map[string][]*PendingTownFormation)
+	// Keep only delayed town formations (Mermaids river towns can be claimed later).
+	retainedTownFormations := make(map[string][]*PendingTownFormation)
+	for playerID, formations := range gs.PendingTownFormations {
+		for _, formation := range formations {
+			if formation != nil && formation.CanBeDelayed {
+				retainedTownFormations[playerID] = append(retainedTownFormations[playerID], formation)
+			}
+		}
+	}
+	gs.PendingTownFormations = retainedTownFormations
 
 	// Note: PendingSpades will be cleared at the start of the next income phase
 	// This allows cult reward spades to be used for bonus transforms during cleanup

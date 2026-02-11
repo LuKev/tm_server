@@ -1,0 +1,220 @@
+{
+  "games": [
+    {
+      "expected_total_vp": {
+        "darklings": 153,
+        "engineers": 98,
+        "nomads": 123,
+        "witches": 126
+      },
+      "game_id": "4pLeague_S67_D1L1_G1",
+      "log_file": "4pLeague_S67_D1L1_G1.txt"
+    },
+    {
+      "expected_total_vp": {
+        "chaosmagicians": 122,
+        "cultists": 135,
+        "darklings": 129,
+        "witches": 157
+      },
+      "game_id": "4pLeague_S67_D1L1_G2",
+      "log_file": "4pLeague_S67_D1L1_G2.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 158,
+        "darklings": 135,
+        "engineers": 135,
+        "witches": 137
+      },
+      "game_id": "4pLeague_S67_D1L1_G3",
+      "log_file": "4pLeague_S67_D1L1_G3.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 141,
+        "darklings": 138,
+        "engineers": 115,
+        "witches": 136
+      },
+      "game_id": "4pLeague_S67_D1L1_G4",
+      "log_file": "4pLeague_S67_D1L1_G4.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 144,
+        "darklings": 131,
+        "engineers": 130,
+        "witches": 134
+      },
+      "game_id": "4pLeague_S67_D1L1_G5",
+      "log_file": "4pLeague_S67_D1L1_G5.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 151,
+        "darklings": 129,
+        "engineers": 135,
+        "mermaids": 121
+      },
+      "game_id": "4pLeague_S67_D1L1_G6",
+      "log_file": "4pLeague_S67_D1L1_G6.txt"
+    },
+    {
+      "expected_total_vp": {
+        "darklings": 146,
+        "engineers": 131,
+        "halflings": 170,
+        "witches": 131
+      },
+      "game_id": "4pLeague_S67_D1L1_G7",
+      "log_file": "4pLeague_S67_D1L1_G7.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 140,
+        "darklings": 122,
+        "nomads": 123,
+        "witches": 139
+      },
+      "game_id": "4pLeague_S68_D1L1_G1",
+      "log_file": "4pLeague_S68_D1L1_G1.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 166,
+        "darklings": 121,
+        "mermaids": 147,
+        "witches": 131
+      },
+      "game_id": "4pLeague_S68_D1L1_G2",
+      "log_file": "4pLeague_S68_D1L1_G2.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 138,
+        "darklings": 139,
+        "engineers": 116,
+        "witches": 129
+      },
+      "game_id": "4pLeague_S68_D1L1_G3",
+      "log_file": "4pLeague_S68_D1L1_G3.txt"
+    },
+    {
+      "expected_total_vp": {
+        "alchemists": 106,
+        "cultists": 136,
+        "nomads": 127,
+        "witches": 122
+      },
+      "game_id": "4pLeague_S68_D1L1_G4",
+      "log_file": "4pLeague_S68_D1L1_G4.txt"
+    },
+    {
+      "expected_total_vp": {
+        "darklings": 138,
+        "halflings": 147,
+        "swarmlings": 108,
+        "witches": 149
+      },
+      "game_id": "4pLeague_S68_D1L1_G5",
+      "log_file": "4pLeague_S68_D1L1_G5.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 99,
+        "darklings": 126,
+        "dwarves": 124,
+        "swarmlings": 135
+      },
+      "game_id": "4pLeague_S68_D1L1_G6",
+      "log_file": "4pLeague_S68_D1L1_G6.txt"
+    },
+    {
+      "expected_total_vp": {
+        "darklings": 142,
+        "engineers": 152,
+        "mermaids": 139,
+        "nomads": 156
+      },
+      "game_id": "4pLeague_S68_D1L1_G7",
+      "log_file": "4pLeague_S68_D1L1_G7.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 137,
+        "engineers": 132,
+        "nomads": 113,
+        "swarmlings": 157
+      },
+      "game_id": "4pLeague_S69_D1L1_G1",
+      "log_file": "4pLeague_S69_D1L1_G1.txt"
+    },
+    {
+      "expected_total_vp": {
+        "darklings": 137,
+        "mermaids": 130,
+        "nomads": 166,
+        "witches": 124
+      },
+      "game_id": "4pLeague_S69_D1L1_G2",
+      "log_file": "4pLeague_S69_D1L1_G2.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 148,
+        "darklings": 143,
+        "engineers": 147,
+        "witches": 119
+      },
+      "game_id": "4pLeague_S69_D1L1_G3",
+      "log_file": "4pLeague_S69_D1L1_G3.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 147,
+        "darklings": 135,
+        "dwarves": 160,
+        "swarmlings": 130
+      },
+      "game_id": "4pLeague_S69_D1L1_G4",
+      "log_file": "4pLeague_S69_D1L1_G4.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 135,
+        "darklings": 157,
+        "dwarves": 112,
+        "witches": 140
+      },
+      "game_id": "4pLeague_S69_D1L1_G5",
+      "log_file": "4pLeague_S69_D1L1_G5.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 122,
+        "darklings": 119,
+        "mermaids": 129,
+        "witches": 132
+      },
+      "game_id": "4pLeague_S69_D1L1_G6",
+      "log_file": "4pLeague_S69_D1L1_G6.txt"
+    },
+    {
+      "expected_total_vp": {
+        "cultists": 131,
+        "engineers": 133,
+        "nomads": 135,
+        "swarmlings": 139
+      },
+      "game_id": "4pLeague_S69_D1L1_G7",
+      "log_file": "4pLeague_S69_D1L1_G7.txt"
+    }
+  ],
+  "seasons": [
+    67,
+    68,
+    69
+  ],
+  "source": "https://terra.snellman.net/app/view-game/"
+}

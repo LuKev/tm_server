@@ -627,7 +627,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 			if vp == 0 {
 				vp = 20 // default
 			}
-			vpParts = append(vpParts, fmt.Sprintf("%s:%d", strings.Title(f), vp))
+			vpParts = append(vpParts, fmt.Sprintf("%s:%d", factionDisplayName(f), vp))
 		}
 		result = append(result, fmt.Sprintf("StartingVPs: %s", strings.Join(vpParts, ", ")))
 	}
@@ -2401,6 +2401,55 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 			actType := strings.TrimSpace(part[len("action "):])
 			actType = strings.ToUpper(actType)
 
+			// Chaos Magicians SH double turn marker.
+			if actType == "ACTC" {
+				resultParts = append(resultParts, "ACT-SH-2X")
+				continue
+			}
+
+			// Engineers SH bridge action: action ACTE. bridge C2:D4 -> ACT-BR-C2-D4
+			if actType == "ACTE" {
+				merged := false
+				for j := i + 1; j < len(parts); j++ {
+					nextPart := strings.TrimSpace(parts[j])
+					bridgeRe := regexp.MustCompile(`(?i)^bridge\s+([A-I]\d{1,2})\s*:\s*([A-I]\d{1,2})$`)
+					if m := bridgeRe.FindStringSubmatch(nextPart); len(m) > 2 {
+						c1 := strings.ToUpper(strings.TrimSpace(m[1]))
+						c2 := strings.ToUpper(strings.TrimSpace(m[2]))
+						resultParts = append(resultParts, fmt.Sprintf("ACT-BR-%s-%s", c1, c2))
+						parts[j] = ""
+						merged = true
+						break
+					}
+				}
+				if !merged {
+					// Keep token as-is for now; downstream parsing will surface unknown ACTE if encountered.
+					resultParts = append(resultParts, actType)
+				}
+				continue
+			}
+
+			// Swarmlings SH upgrade action:
+			// action ACTS. upgrade C3 to TP -> ACT-SH-TP-C3
+			if actType == "ACTS" {
+				merged := false
+				for j := i + 1; j < len(parts); j++ {
+					nextPart := strings.TrimSpace(parts[j])
+					re := regexp.MustCompile(`(?i)^upgrade\s+([A-I]\d{1,2})\s+to\s+TP$`)
+					if m := re.FindStringSubmatch(nextPart); len(m) > 1 {
+						coord := strings.ToUpper(strings.TrimSpace(m[1]))
+						resultParts = append(resultParts, fmt.Sprintf("ACT-SH-TP-%s", coord))
+						parts[j] = ""
+						merged = true
+						break
+					}
+				}
+				if !merged {
+					resultParts = append(resultParts, actType)
+				}
+				continue
+			}
+
 			// Auren SH: ACTA +2TRACK -> ACT-SH-<track>
 			if actType == "ACTA" {
 				merged := false
@@ -2581,6 +2630,11 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 				for j := len(resultParts) - 1; j >= 0; j-- {
 					if resultParts[j] == "ACT1" {
 						resultParts[j] = fmt.Sprintf("ACT1-%s-%s", c1, c2)
+						updated = true
+						break
+					}
+					if resultParts[j] == "ACTE" {
+						resultParts[j] = fmt.Sprintf("ACT-BR-%s-%s", c1, c2)
 						updated = true
 						break
 					}
@@ -2929,7 +2983,7 @@ func getBonusCardsMinusRemoved(removed []string) []string {
 func formatFactionList(factions []string) string {
 	var titled []string
 	for _, f := range factions {
-		titled = append(titled, strings.Title(f))
+		titled = append(titled, factionDisplayName(f))
 	}
 	return strings.Join(titled, ", ")
 }
@@ -2937,9 +2991,18 @@ func formatFactionList(factions []string) string {
 func formatFactionHeader(factions []string) string {
 	var parts []string
 	for _, f := range factions {
-		parts = append(parts, fmt.Sprintf("%-12s", strings.Title(f)))
+		parts = append(parts, fmt.Sprintf("%-12s", factionDisplayName(f)))
 	}
 	return strings.Join(parts, " | ")
+}
+
+func factionDisplayName(name string) string {
+	switch normalizeFactionNameForMatching(name) {
+	case "chaosmagicians":
+		return "Chaos Magicians"
+	default:
+		return strings.Title(strings.ToLower(strings.TrimSpace(name)))
+	}
 }
 
 func formatTableRow(actions []string) string {

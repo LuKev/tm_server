@@ -1,0 +1,418 @@
+ Default game options
+option strict-leech
+option strict-darkling-sh
+option strict-chaosmagician-sh
+option errata-cultist-power
+option mini-expansion-1
+option shipping-bonus
+option temple-scoring-tile
+option email-notify
+option maintain-player-order
+option variable-turn-order
+ Randomize setup
+Round 1 scoring: SCORE5, D >> 2
+Round 2 scoring: SCORE8, TP >> 3
+Round 3 scoring: SCORE7, SA/SH >> 5
+Round 4 scoring: SCORE9, TE >> 4
+Round 5 scoring: SCORE6, TP >> 3
+Round 6 scoring: SCORE2, TOWN >> 5
+Removing tile BON4
+Removing tile BON5
+Removing tile BON6
+Player 1: Fujiwara
+Player 2: RA
+Player 3: tom8918
+Player 4: Gewalf
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		setup
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		setup
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build F4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build D3
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build C1
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		build D5
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		build E4
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build G5
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build F3
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build E9
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build A5
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		Pass BON1
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON8
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		Pass BON2
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		Pass BON3
+Round 1 income
+witches		20 VP	+6	21 C	+3	6 W		0 P		5/7/0 PW		0/0/0/2		other_income_for_faction
+nomads		20 VP	+4	19 C	+4	6 W		0 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+darklings		20 VP		15 C	+3	4 W	+1	2 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+mermaids		20 VP	+2	17 C	+3	6 W		0 P		3/9/0 PW		0/2/0/0		other_income_for_faction
+Round 1, turn 1
+witches		20 VP	-3	18 C	-2	4 W		0 P		5/7/0 PW		0/0/0/2	1	upgrade F4 to TP
+nomads		20 VP		19 C		6 W		0 P	+1	4/8/0 PW		1/0/1/0		Leech 1 from witches
+nomads		20 VP	-3	16 C	-2	4 W		0 P		4/8/0 PW		1/0/1/0	1 1	upgrade D3 to TP
+mermaids		20 VP		17 C		6 W		0 P	+1	2/10/0 PW		0/2/0/0		Leech 1 from nomads
+darklings		20 VP		15 C		4 W		2 P	+1	4/8/0 PW		0/1/1/0		Leech 1 from nomads
+darklings		20 VP		15 C	+2	6 W		2 P	-8	8/0/0 PW		0/1/1/0		burn 4. action ACT3
+mermaids		20 VP	-3	14 C	-2	4 W		0 P		2/10/0 PW		0/2/0/0	2	upgrade E4 to TP
+nomads	-1	19 VP		16 C		4 W		0 P	+2	2/10/0 PW		1/0/1/0		Leech 2 from mermaids
+Round 1, turn 2
+witches		20 VP		18 C		4 W		0 P	-6	8/1/0 PW		0/0/0/2		burn 3. action ACT1. Bridge F4:G3
+nomads		19 VP		16 C		4 W		0 P		2/10/0 PW	+1	1/0/1/1		action BON2. +AIR
+darklings		20 VP	-3	12 C	-2	4 W		2 P		8/0/0 PW		0/1/1/0	2	upgrade C1 to TP
+nomads	-1	18 VP		16 C		4 W		0 P	+2	0/12/0 PW		1/0/1/1		Leech 2 from darklings
+mermaids		20 VP		14 C		4 W	+1	1 P	-6	5/4/0 PW		0/2/0/0		burn 3. action ACT2
+Round 1, turn 3
+witches		20 VP	-5	13 C	-2	2 W		0 P	+1	7/2/0 PW	+2	0/0/0/4	1	upgrade F4 to TE. +FAV8
+nomads		18 VP		16 C		4 W		0 P	+1	0/11/1 PW		1/0/1/1		Leech 1 from witches
+nomads		18 VP	-5	11 C	-2	2 W		0 P	+1	0/10/2 PW	+2	1/0/1/3	2 2	upgrade D3 to TE. +FAV8
+darklings	-1	19 VP		12 C		4 W		2 P	+2	6/2/0 PW		0/1/1/0		Leech 2 from nomads
+darklings		19 VP	-5	7 C	-2	2 W		2 P		6/2/0 PW	+1	0/1/2/0	2	upgrade C1 to TE. +FAV11
+mermaids	-1	19 VP		14 C		4 W		1 P	+2	3/6/0 PW		0/2/0/0		Leech 2 from nomads
+mermaids		19 VP		14 C		4 W	-1	0 P	+1	2/7/0 PW	+3	0/2/0/3		send p to Air
+nomads	-1	17 VP		11 C		2 W		0 P	+2	0/8/4 PW		1/0/1/3		Leech 2 from darklings
+Round 1, turn 4
+witches	+2	22 VP	-2	11 C	-1	1 W		0 P		7/2/0 PW		0/0/0/4		build G3
+nomads	+2	19 VP	-2	9 C	-1	1 W		0 P	-12	6/4/0 PW		1/0/1/3	2	burn 2. action ACT6. transform E6 to yellow. build E3
+darklings	+6	25 VP	-2	5 C	-1	1 W	-1	1 P		6/2/0 PW		0/1/2/0	3	dig 1. build D2
+nomads	-2	17 VP		9 C		1 W		0 P	+3	3/7/0 PW		1/0/1/3		Leech 3 from darklings
+mermaids	-1	18 VP		14 C		4 W		0 P	+2	0/9/0 PW		0/2/0/3		Leech 2 from nomads
+mermaids	+2	20 VP	-2	12 C	-1	3 W		0 P		0/9/0 PW		0/2/0/3	1	action BON1. build F2
+Round 1, turn 5
+witches		22 VP	+1	12 C		1 W		0 P		7/2/0 PW		0/0/0/4		pass BON10
+nomads		17 VP		9 C		1 W		0 P	+1	2/8/0 PW		1/0/1/3		Leech 1 from mermaids
+nomads	+2	19 VP	-2	7 C	-1	0 W		0 P	-8	6/0/0 PW		1/0/1/3	1 1	burn 4. action ACT5. build E2
+mermaids		20 VP		12 C		3 W		0 P	+1	0/8/1 PW		0/2/0/3		Leech 1 from nomads
+darklings		25 VP		5 C		1 W		1 P	+1	5/3/0 PW		0/1/2/0		Leech 1 from nomads
+darklings	+6	31 VP	-2	3 C	-1	0 W	-1	0 P		5/3/0 PW		0/1/2/0	1	dig 1. build F5
+mermaids		20 VP	-5	7 C	-2	1 W		0 P	+2	0/6/3 PW	+2	0/2/0/5	3	upgrade E4 to TE. +FAV8
+nomads	-2	17 VP		7 C		0 W		0 P	+3	3/3/0 PW		1/0/1/3		Leech 3 from mermaids
+Round 1, turn 6
+nomads		17 VP		7 C		0 W		0 P		3/3/0 PW		1/0/1/3		Pass bon3
+darklings		31 VP		3 C		0 W		0 P		5/3/0 PW		0/1/2/0		pass BON2
+mermaids	+2	22 VP	-2	5 C	-1	0 W		0 P		0/6/3 PW		0/2/0/5		build H2
+mermaids		22 VP	+1	6 C		0 W		0 P		0/6/3 PW		0/2/0/5		pass BON9
+witches		22 VP		12 C		1 W		0 P	+1	6/3/0 PW		0/0/0/4		Leech 1 from darklings
+Round 2 income
+witches		22 VP		12 C		1 W		0 P		6/3/0 PW		0/0/0/4		cult_income_for_faction
+nomads		17 VP		7 C		0 W		0 P		3/3/0 PW		1/0/1/3		cult_income_for_faction
+darklings		31 VP		3 C		0 W		0 P		5/3/0 PW		0/1/2/0		cult_income_for_faction
+mermaids		22 VP		6 C		0 W		0 P		0/6/3 PW		0/2/0/5		cult_income_for_faction
+Round 2 income
+witches		22 VP		12 C	+3	4 W	+1	1 P	+7	0/8/1 PW		0/0/0/4		other_income_for_faction
+nomads		17 VP	+6	13 C	+5	5 W	+1	1 P	+4	0/5/1 PW		1/0/1/3		other_income_for_faction
+darklings		31 VP	+4	7 C	+4	4 W	+1	1 P		5/3/0 PW		0/1/2/0		other_income_for_faction
+mermaids		22 VP	+2	8 C	+4	4 W	+1	1 P	+4	0/2/7 PW		0/2/0/5		other_income_for_faction
+Round 2, turn 1
+witches		22 VP	-2	10 C	-1	3 W		1 P	-8	4/2/0 PW		0/0/0/4	2	burn 3. action ACT5. build F6
+nomads		17 VP		13 C		5 W	-1	0 P	+2	0/3/3 PW	+2	1/0/1/5		Send p to air
+darklings	-1	30 VP		7 C		4 W		1 P	+2	3/5/0 PW		0/1/2/0		Leech 2 from witches
+darklings	+4	34 VP	-2	5 C	-1	3 W	-1	0 P		3/5/0 PW		0/1/2/0	1	dig 1. build G6
+mermaids		22 VP	-2	6 C	-1	3 W		1 P	-12	6/2/1 PW		0/2/0/5	1	action ACT6. transform C4 to blue. build E5
+nomads		17 VP		13 C		5 W		0 P	+1	0/2/4 PW		1/0/1/5		Leech 1 from mermaids
+witches		22 VP		10 C		3 W		1 P	+1	3/3/0 PW		0/0/0/4		Leech 1 from darklings
+Round 2, turn 2
+witches		22 VP		10 C		3 W	-1	0 P	+1	2/4/0 PW	+3	3/0/0/4		send p to Fire
+nomads		17 VP	+7	20 C		5 W		0 P	-8	4/2/0 PW		1/0/1/5		action ACT4
+darklings	+3	37 VP	-3	2 C	-2	1 W		0 P		3/5/0 PW		0/1/2/0	2	upgrade F5 to TP
+mermaids		22 VP	-2	4 C	-1	2 W		1 P		6/2/1 PW		0/2/0/5		build C4
+witches	-1	21 VP		10 C		3 W		0 P	+2	0/6/0 PW		3/0/0/4		Leech 2 from darklings
+Round 2, turn 3
+witches		21 VP	+1	11 C		3 W		0 P		0/6/0 PW		3/0/0/4		pass BON1
+nomads	+3	20 VP	-3	17 C	-2	3 W		0 P		4/2/0 PW		1/0/1/5	1 2	upgrade F3 to TP
+mermaids		22 VP		4 C		2 W		1 P	+1	5/3/1 PW		0/2/0/5		Leech 1 from nomads
+witches	-1	20 VP		11 C		3 W		0 P	+2	0/4/2 PW		3/0/0/4		Leech 2 from nomads
+darklings		37 VP		2 C		1 W		0 P	+1	2/6/0 PW	+1	0/1/3/0		action BON2. +EARTH
+mermaids		22 VP		4 C		2 W	-1	0 P	+2	3/5/1 PW	+2	0/2/0/7		send p to Air
+Round 2, turn 4
+nomads		20 VP	-5	12 C	-2	1 W		0 P		4/2/0 PW	+1	1/0/2/5	1 2	upgrade F3 to TE. +FAV11
+darklings		37 VP		2 C		1 W	+1	1 P	-6	5/0/0 PW		0/1/3/0		burn 3. action ACT2
+witches		20 VP		11 C		3 W		0 P		0/4/2 PW		3/0/0/4		Decline 2 from nomads
+mermaids		22 VP		4 C		2 W		0 P	+1	2/6/1 PW		0/2/0/7		Leech 1 from nomads
+mermaids	+5	27 VP		4 C		2 W		0 P		2/6/1 PW		0/2/0/7		pass BON10
+Round 2, turn 5
+nomads	+2	22 VP	-2	10 C	-1	0 W		0 P		4/2/0 PW		1/0/2/5	1 2	build E6
+mermaids		27 VP		4 C		2 W		0 P	+1	1/7/1 PW		0/2/0/7		Leech 1 from nomads
+witches		20 VP		11 C		3 W		0 P		0/4/2 PW		3/0/0/4		Decline 2 from nomads
+darklings		37 VP		2 C		1 W	-1	0 P	+1	4/1/0 PW	+3	0/4/3/0		send p to Water
+Round 2, turn 6
+nomads		22 VP	+2	12 C		0 W		0 P		4/2/0 PW		1/0/2/5		Pass bon7
+darklings		37 VP		2 C		1 W		0 P		4/1/0 PW		0/4/3/0		pass BON3
+Round 3 income
+witches		20 VP		11 C		3 W		0 P		0/4/2 PW		3/0/0/4		cult_income_for_faction
+mermaids		27 VP		4 C		2 W		0 P		1/7/1 PW		0/2/0/7		cult_income_for_faction
+nomads		22 VP		12 C		0 W		0 P		4/2/0 PW		1/0/2/5		cult_income_for_faction
+darklings		37 VP		2 C		1 W		0 P		4/1/0 PW		0/4/3/0		cult_income_for_faction
+witches		20 VP		11 C		3 W		0 P		0/4/2 PW		3/0/0/4		transform H4 to green
+mermaids		27 VP		4 C		2 W		0 P		1/7/1 PW		0/2/0/7		transform B5 to blue
+nomads		22 VP		12 C		0 W		0 P		4/2/0 PW		1/0/2/5		transform G2 to yellow
+Round 3 income
+witches		20 VP	+2	13 C	+4	7 W	+1	1 P	+4	0/0/6 PW		3/0/0/4		other_income_for_faction
+mermaids		27 VP		4 C	+6	8 W	+1	1 P	+7	0/2/7 PW		0/2/0/7		other_income_for_faction
+nomads		22 VP		12 C	+6	6 W	+2	2 P	+4	0/6/0 PW		1/0/2/5		other_income_for_faction
+darklings		37 VP	+8	10 C	+4	5 W	+1	1 P	+1	3/2/0 PW		0/4/3/0		other_income_for_faction
+Round 3, turn 1
+witches		20 VP	+7	20 C		7 W		1 P	-8	4/0/2 PW		3/0/0/4		action ACT4
+mermaids	+5	32 VP	-4	0 C	-4	4 W		1 P	-8	4/2/3 PW	+1	0/2/1/7	3	convert 4PW to 4C. upgrade E4 to SA. +FAV11
+nomads	-2	20 VP		12 C		6 W		2 P	+3	0/3/3 PW		1/0/2/5		Leech 3 from mermaids
+nomads		20 VP	+1	13 C		6 W	-1	1 P		1/1/4 PW	+2	1/0/2/7		Send p to air. Convert pw to c
+darklings	+5	42 VP	-10	0 C	-4	1 W		1 P		3/2/0 PW	+1	1/4/3/0	2	upgrade C1 to SA. +FAV9
+nomads	-1	19 VP		13 C		6 W		1 P	+2	0/1/5 PW		1/0/2/7		Leech 2 from darklings
+Round 3, turn 2
+witches		20 VP		20 C		7 W	-1	0 P	+1	3/1/2 PW	+3	3/0/3/4		send p to Earth
+mermaids	+3	35 VP	+1	1 C		4 W		1 P		4/2/3 PW		0/2/1/7		pass BON9
+nomads	+5	24 VP	-6	7 C	-4	2 W		1 P		0/1/5 PW	+1	1/1/2/7	4 3	upgrade D3 to SA. +FAV10
+darklings	-3	39 VP		0 C		1 W		1 P	+4	0/4/1 PW		1/4/3/0		Leech 4 from nomads
+darklings		39 VP	+2	2 C		1 W		1 P		0/4/1 PW		1/4/3/0		pass BON8
+mermaids	-2	33 VP		1 C		4 W		1 P	+3	1/5/3 PW		0/2/1/7		Leech 3 from nomads
+Round 3, turn 3
+witches		20 VP	-2	18 C	-1	6 W		0 P		3/1/2 PW		3/0/3/4	1 1	action BON1. build E7
+nomads		24 VP		7 C		2 W		1 P	+1	0/0/6 PW		1/1/2/7		Leech 1 from witches
+nomads	+3	27 VP	-2	5 C	-2	0 W		1 P	-2	1/0/5 PW		1/1/2/7	1 1	Convert pw to c. upgrade E2 to TP
+darklings		39 VP		2 C		1 W		1 P	+1	0/3/2 PW		1/4/3/0		Leech 1 from nomads
+Round 3, turn 4
+witches		20 VP	-3	15 C	-2	4 W		0 P		3/1/2 PW		3/0/3/4	1 1	upgrade E7 to TP
+mermaids		33 VP		1 C		4 W		1 P	+1	0/6/3 PW		0/2/1/7		Leech 1 from witches
+mermaids		33 VP		1 C		4 W		1 P	+1	0/5/4 PW		0/2/1/7		Leech 1 from nomads
+mermaids		33 VP		1 C		4 W		1 P	+1	0/4/5 PW		0/2/1/7		Leech 1 from witches
+nomads		27 VP		5 C		0 W		1 P	+1	0/1/5 PW		1/1/2/7		Leech 1 from witches
+nomads		27 VP		5 C	+2	2 W		1 P	-8	4/1/1 PW		1/1/2/7		action ACT3
+Round 3, turn 5
+witches	+5	25 VP	-6	9 C	-4	0 W		0 P		3/1/2 PW		3/0/3/4	1 1	upgrade E7 to SH
+nomads		27 VP		5 C		2 W		1 P	+1	3/2/1 PW		1/1/2/7		Leech 1 from witches
+nomads	+5	32 VP	-3	2 C	-2	0 W		1 P	+3	0/5/1 PW	+8	3/3/4/9	1 4	upgrade E3 to TP. +TW6
+darklings		39 VP		2 C		1 W		1 P	+1	0/2/3 PW		1/4/3/0		Leech 1 from nomads
+Round 3, turn 6
+witches		25 VP		9 C		0 W		0 P		3/1/2 PW		3/0/3/4		action ACTW. build I11
+mermaids		33 VP		1 C		4 W		1 P		0/4/5 PW		0/2/1/7		Decline 1 from witches
+mermaids		33 VP		1 C		4 W		1 P		0/4/5 PW		0/2/1/7		Decline 4 from nomads
+nomads	+4	36 VP	+1	3 C		0 W		1 P		0/5/1 PW		3/3/4/9		Pass bon2
+witches		25 VP		9 C		0 W		0 P		3/1/2 PW		3/0/3/4		pass BON3
+Round 4 income
+mermaids		33 VP		1 C	+3	7 W		1 P		0/4/5 PW		0/2/1/7		cult_income_for_faction
+darklings		39 VP		2 C		1 W		1 P		0/2/3 PW		1/4/3/0		cult_income_for_faction
+nomads		36 VP		3 C	+4	4 W		1 P		0/5/1 PW		3/3/4/9		cult_income_for_faction
+witches		25 VP		9 C	+2	2 W		0 P		3/1/2 PW		3/0/3/4		cult_income_for_faction
+Round 4 income
+mermaids		33 VP	+2	3 C	+6	13 W	+1	2 P	+4	0/0/9 PW		0/2/1/7		other_income_for_faction
+darklings		39 VP	+5	7 C	+4	5 W	+3	4 P	+1	0/1/4 PW		1/4/3/0		other_income_for_faction
+nomads		36 VP	+8	11 C	+3	7 W	+2	3 P	+5	0/0/6 PW		3/3/4/9		other_income_for_faction
+witches		25 VP	+6	15 C	+5	7 W	+1	1 P	+6	0/1/5 PW		3/0/3/4		other_income_for_faction
+Round 4, turn 1
+mermaids		33 VP	+7	10 C		13 W		2 P	-8	4/0/5 PW		0/2/1/7		action ACT4
+darklings	+4	43 VP	-4	3 C	-2	3 W		4 P		0/1/4 PW	+1	1/5/3/0	2	convert 1PW to 1C. upgrade F5 to TE. +FAV10
+nomads	+2	38 VP	-2	9 C	-1	6 W		3 P	-12	6/0/0 PW		3/3/4/9	1 3	action ACT6. transform A6 to yellow. build D4
+mermaids		33 VP		10 C		13 W		2 P	+1	3/1/5 PW		0/2/1/7		Leech 1 from nomads
+witches		25 VP		15 C		7 W		1 P	+1	0/0/6 PW		3/0/3/4		Leech 2 from darklings
+witches		25 VP		15 C		7 W		1 P		0/0/6 PW		3/0/3/4		Decline 3 from nomads
+witches		25 VP	-2	13 C	-1	6 W		1 P	-8	4/0/2 PW		3/0/3/4		action ACT5. build I10
+Round 4, turn 2
+mermaids	+2	35 VP	-2	8 C	-1	12 W		2 P		3/1/5 PW		0/2/1/7		build B5
+darklings	+6	49 VP	-2	1 C	-1	2 W	-2	2 P		0/1/4 PW		1/5/3/0	2	dig 2. build D1
+nomads	-1	37 VP		9 C		6 W		3 P	+2	4/2/0 PW		3/3/4/9		Leech 2 from darklings
+nomads		37 VP		9 C		6 W	-1	2 P	+2	2/4/0 PW	+2	3/5/4/9		Send p to water
+witches		25 VP		13 C		6 W	-1	0 P	+2	2/2/2 PW	+2	3/0/5/4		send p to Earth
+Round 4, turn 3
+mermaids		35 VP		8 C		12 W	-1	1 P	+1	2/2/5 PW	+2	0/4/1/7		send p to WATER
+darklings		49 VP	+1	2 C		2 W	-1	1 P		0/1/4 PW	+2	1/7/3/0		convert 1PW to 1C. send p to WATER
+nomads	+2	39 VP	-2	7 C	-1	5 W		2 P		2/4/0 PW		3/5/4/9		build A6
+witches		25 VP	-3	10 C	-2	4 W		0 P		2/2/2 PW		3/0/5/4	2	upgrade E9 to TP
+darklings		49 VP		2 C		2 W		1 P	+1	0/0/5 PW		1/7/3/0		Leech 2 from witches
+Round 4, turn 4
+mermaids	+2	37 VP	-2	6 C	-1	11 W		1 P		2/2/5 PW		0/4/1/7		build A11
+darklings		49 VP	+2	4 C		2 W		1 P	-2	1/0/4 PW		1/7/3/0		convert 1PW to 1C. pass BON7
+nomads	+4	43 VP	-5	2 C	-2	3 W		2 P	+3	0/5/1 PW	+1	3/5/4/10	2 1	upgrade E2 to TE. +FAV12
+witches	+14	39 VP	-2	8 C	-1	3 W	+1	1 P		2/2/2 PW		3/0/5/4		build H4. +TW3
+darklings	-1	48 VP		4 C		2 W		1 P	+2	0/0/5 PW		1/7/3/0		Leech 2 from nomads
+mermaids		37 VP		6 C		11 W		1 P	+1	1/3/5 PW		0/4/1/7		Leech 1 from nomads
+Round 4, turn 5
+mermaids		37 VP		6 C		11 W	+1	2 P	-6	4/3/2 PW		0/4/1/7		action ACT2
+nomads		43 VP		2 C		3 W	-1	1 P	+2	0/3/3 PW	+2	3/5/6/10		Send p to earth
+witches	+4	43 VP	-5	3 C	-2	1 W		1 P		2/2/2 PW	+1	3/1/5/4	2	upgrade E9 to TE. +FAV10
+darklings		48 VP		4 C		2 W		1 P		0/0/5 PW		1/7/3/0		Decline 2 from witches
+Round 4, turn 6
+mermaids	+7	44 VP	+1	7 C		11 W		2 P		4/3/2 PW		0/4/1/7		pass BON10
+nomads		43 VP		2 C		3 W		1 P	+2	0/1/5 PW	+1	3/5/7/10		action BON2. +EARTH
+witches		43 VP		3 C		1 W		1 P		2/2/2 PW		3/1/5/4		action ACTW. build I6
+Round 4, turn 7
+nomads	+2	45 VP	+2	4 C	+1	4 W	-1	0 P	-4	2/1/3 PW		3/5/7/10		convert p to w. convert 2pw to 2c. pass bon9
+witches		43 VP	+2	5 C		1 W	-1	0 P	-2	2/4/0 PW	+2	5/1/5/4		send p to Fire. convert 2PW to 2C
+witches		43 VP	+1	6 C		1 W		0 P		2/4/0 PW		5/1/5/4		pass BON1
+Round 5 income
+darklings		48 VP	+4	8 C		2 W		1 P		0/0/5 PW		1/7/3/0		cult_income_for_faction
+mermaids		44 VP	+6	13 C		11 W		2 P		4/3/2 PW		0/4/1/7		cult_income_for_faction
+nomads		45 VP	+8	12 C		4 W		0 P		2/1/3 PW		3/5/7/10		cult_income_for_faction
+witches		43 VP	+8	14 C		1 W		0 P		2/4/0 PW		5/1/5/4		cult_income_for_faction
+Round 5 income
+darklings		48 VP	+3	11 C	+6	8 W	+3	4 P		0/0/5 PW		1/7/3/0		other_income_for_faction
+mermaids		44 VP		13 C	+8	19 W	+1	3 P	+7	0/4/5 PW		0/4/1/7		other_income_for_faction
+nomads		45 VP	+4	16 C	+5	9 W	+3	3 P	+5	0/0/6 PW		3/5/7/10		other_income_for_faction
+witches		43 VP	+2	16 C	+7	8 W	+2	2 P	+6	0/2/4 PW		5/1/5/4		other_income_for_faction
+Round 5, turn 1
+darklings		48 VP	+7	18 C		8 W		4 P	-8	4/0/1 PW		1/7/3/0		action ACT4
+mermaids	+3	47 VP	-3	10 C	-2	17 W		3 P		0/4/5 PW		0/4/1/7	3	upgrade E5 to TP
+nomads		45 VP		16 C		9 W		3 P		0/0/6 PW		3/5/7/10		Decline 3 from mermaids
+nomads	+2	47 VP	-2	14 C	-1	8 W		3 P	-12	6/0/0 PW		3/5/7/10		action ACT6. transform B2 to yellow. build A7
+witches		43 VP	-2	14 C	-1	7 W		2 P	-8	4/2/0 PW		5/1/5/4	1	action ACT5. build H6
+darklings		48 VP		18 C		8 W		4 P	+1	3/1/1 PW		1/7/3/0		Leech 1 from witches
+Round 5, turn 2
+darklings	+6	54 VP	-3	15 C	-2	6 W		4 P		3/1/1 PW		1/7/3/0	7	upgrade D2 to TP
+nomads		47 VP		14 C		8 W		3 P		6/0/0 PW		3/5/7/10		Decline 7 from darklings
+mermaids	+3	50 VP	-3	7 C	-2	15 W		3 P		0/4/5 PW		0/4/1/7	3 1	upgrade D5 to TP
+nomads		47 VP		14 C		8 W		3 P	+1	5/1/0 PW		3/5/7/10		Leech 1 from mermaids
+nomads	+6	53 VP	-3	11 C	-2	6 W		3 P		5/1/0 PW		3/5/7/10	2 5	upgrade E6 to TP
+mermaids	-1	49 VP		7 C		15 W		3 P	+2	0/2/7 PW		0/4/1/7		Leech 2 from nomads
+witches	-2	41 VP		14 C		7 W		2 P	+3	1/5/0 PW		5/1/5/4		Leech 3 from mermaids
+witches	-4	37 VP		14 C		7 W		2 P	+5	0/2/4 PW		5/1/5/4		Leech 5 from nomads
+witches	+6	43 VP	-3	11 C	-2	5 W		2 P		0/2/4 PW		5/1/5/4	4	upgrade F6 to TP
+darklings	-3	51 VP		15 C		6 W		4 P	+4	0/3/2 PW		1/7/3/0		Leech 4 from witches
+Round 5, turn 3
+darklings	+8	59 VP	-2	13 C	-1	5 W		4 P		0/3/2 PW		1/7/3/0	2	build E1. +TW7
+mermaids	+3	52 VP	-3	4 C	-2	13 W		3 P		0/2/7 PW		0/4/1/7	4	upgrade F2 to TP
+nomads	-1	52 VP		11 C		6 W		3 P	+2	3/3/0 PW		3/5/7/10		Leech 2 from darklings
+nomads	-3	49 VP		11 C		6 W		3 P	+4	0/5/1 PW		3/5/7/10		Leech 4 from mermaids
+nomads	+2	51 VP	-2	9 C	-1	5 W		3 P		0/5/1 PW		3/5/7/10		build B2
+witches	+6	49 VP	-3	8 C	-2	3 W		2 P		0/2/4 PW		5/1/5/4	1	upgrade H6 to TP
+darklings		59 VP		13 C		5 W		4 P	+1	0/2/3 PW		1/7/3/0		Leech 1 from witches
+Round 5, turn 4
+darklings	+6	65 VP	-3	10 C	-2	3 W		4 P		0/2/3 PW		1/7/3/0	4	upgrade G5 to TP
+mermaids	+2	54 VP	-4	0 C		13 W	-1	2 P		0/2/7 PW		0/4/1/7		advance ship
+nomads	+6	57 VP	-3	6 C	-2	3 W		3 P		0/5/1 PW		3/5/7/10	2 3	upgrade D4 to TP
+witches	-1	48 VP		8 C		3 W		2 P	+2	0/0/6 PW		5/1/5/4		Leech 4 from darklings
+witches		48 VP		8 C		3 W		2 P		0/0/6 PW		5/1/5/4		Leech 3 from nomads
+witches		48 VP		8 C	+2	5 W		2 P	-8	4/0/2 PW		5/1/5/4		action ACT3
+Round 5, turn 5
+darklings	+6	71 VP	-3	7 C	-2	1 W		4 P		0/2/3 PW		1/7/3/0	2	upgrade G6 to TP
+witches	-1	47 VP		8 C		5 W		2 P	+2	2/2/2 PW		5/1/5/4		Leech 2 from darklings
+mermaids	-1	53 VP		0 C		13 W		2 P	+2	0/0/9 PW		0/4/1/7		Leech 2 from nomads
+mermaids	+3	56 VP		0 C		13 W	-1	1 P	-8	4/0/5 PW		0/4/1/7		convert 4PW to 4C. advance ship
+nomads		57 VP		6 C		3 W	-1	2 P		0/5/1 PW	+2	3/5/9/10		Send p to earth
+witches		47 VP		8 C		5 W	-1	1 P	+2	0/4/2 PW	+2	7/1/5/4		send p to Fire
+Round 5, turn 6
+darklings	+3	74 VP	-4	3 C		1 W	-1	3 P		0/2/3 PW		1/7/3/0		advance ship
+mermaids	+4	60 VP		0 C	-3	10 W	-1	0 P	-2	5/0/4 PW		0/4/1/7		convert 1PW to 1C. convert 3W to 3C. advance ship
+nomads	+2	59 VP	-4	2 C		3 W	-1	1 P		0/5/1 PW		3/5/9/10		Advance ship
+witches		47 VP		8 C		5 W		1 P		0/4/2 PW		7/1/5/4		action BON1. transform H8 to green
+Round 5, turn 7
+darklings	+6	80 VP	-2	1 C	-1	0 W	-2	1 P		0/2/3 PW		1/7/3/0	2 3	dig 2. build E8
+witches	-2	45 VP		8 C		5 W		1 P	+3	0/1/5 PW		7/1/5/4		Leech 3 from darklings
+mermaids	-1	59 VP		0 C		10 W		0 P	+2	3/2/4 PW		0/4/1/7		Leech 2 from darklings
+mermaids	+2	61 VP		0 C	-1	9 W		0 P	-4	5/2/2 PW		0/4/1/7	2	convert 1PW to 1C. convert 1PW to 1C. build A4
+nomads	-1	58 VP		2 C		3 W		1 P	+2	0/3/3 PW		3/5/9/10		Leech 2 from mermaids
+nomads	+6	64 VP	-2	0 C	-2	1 W		1 P	-2	1/3/2 PW		3/5/9/10	1	Convert pw to c. Upgrade b2 to tp
+mermaids		61 VP		0 C		9 W		0 P	+1	4/3/2 PW		0/4/1/7		Leech 1 from nomads
+witches		45 VP		8 C		5 W		1 P		0/1/5 PW		7/1/5/4	2	action ACTW. build H8
+darklings	-1	79 VP		1 C		0 W		1 P	+2	0/0/5 PW		1/7/3/0		Leech 2 from witches
+Round 5, turn 8
+darklings		79 VP		1 C		0 W	+1	2 P	-6	3/0/2 PW		1/7/3/0		action ACT2
+mermaids	+2	63 VP		0 C	-1	8 W		0 P	-4	6/3/0 PW		0/4/1/7		convert 2PW to 2C. build I4
+nomads	+11	75 VP		0 C	-1	0 W	+1	2 P	-4	3/3/0 PW		3/5/9/10	2	Convert 2pw to 2c. build G2. +TW3
+witches		45 VP		8 C		5 W		1 P	+1	0/0/6 PW		7/1/5/4		Leech 2 from nomads
+witches	+6	51 VP	-2	6 C	-2	3 W		1 P	-2	1/0/5 PW		7/1/5/4	2	convert 1PW to 1C. upgrade H8 to TP
+darklings	-1	78 VP		1 C		0 W		2 P	+2	1/2/2 PW		1/7/3/0		Leech 2 from witches
+Round 5, turn 9
+darklings	+6	84 VP	+1	2 C		0 W		2 P		1/2/2 PW		1/7/3/0		pass BON3
+mermaids	+12	75 VP		0 C		8 W		0 P		6/3/0 PW		0/4/1/7		pass BON7
+nomads	+8	83 VP		0 C	+2	2 W	-2	0 P		3/3/0 PW		3/5/9/10		Convert 2p to 2w. Pass bon10
+witches	+2	53 VP		6 C		3 W	-1	0 P	-8	5/0/1 PW		7/1/5/4		advance ship. convert 4PW to 4C
+witches		53 VP		6 C		3 W		0 P		5/0/1 PW		7/1/5/4		pass BON9
+Round 6 income
+darklings		84 VP		2 C		0 W		2 P		1/2/2 PW		1/7/3/0		cult_income_for_faction
+mermaids		75 VP		0 C		8 W		0 P		6/3/0 PW		0/4/1/7		cult_income_for_faction
+nomads		83 VP		0 C		2 W		0 P		3/3/0 PW		3/5/9/10		cult_income_for_faction
+witches		53 VP		6 C		3 W		0 P		5/0/1 PW		7/1/5/4		cult_income_for_faction
+darklings		84 VP		2 C		0 W		2 P		1/2/2 PW		1/7/3/0		transform F7 to black
+mermaids		75 VP		0 C		8 W		0 P		6/3/0 PW		0/4/1/7		transform A10 to blue
+nomads		83 VP		0 C		2 W		0 P		3/3/0 PW		3/5/9/10		transform A8 to brown
+Round 6 income
+darklings		84 VP	+15	17 C	+4	4 W	+3	5 P	+4	0/0/5 PW		1/7/3/0		other_income_for_faction
+mermaids		75 VP	+6	6 C	+8	16 W	+1	1 P	+8	0/7/2 PW		0/4/1/7		other_income_for_faction
+nomads		83 VP	+11	11 C	+5	7 W	+2	2 P	+9	0/0/6 PW		3/5/9/10		other_income_for_faction
+witches		53 VP	+8	14 C	+6	9 W	+2	2 P	+10	0/0/6 PW		7/1/5/4		other_income_for_faction
+Round 6, turn 1
+darklings	+6	90 VP	-1	16 C	-1	3 W	-2	3 P	-2	1/0/4 PW		1/7/3/0	2 2	dig 2. build C3. convert 1PW to 1C
+nomads		83 VP		11 C		7 W		2 P		0/0/6 PW		3/5/9/10		Decline 2 from darklings
+mermaids	-1	74 VP		6 C		16 W		1 P	+2	0/5/4 PW		0/4/1/7		Leech 2 from darklings
+mermaids	+10	84 VP	+13	19 C		16 W		1 P	-8	4/5/0 PW		0/4/1/7		action ACT4. connect r20. +TW1
+nomads	+2	85 VP	-2	9 C	-1	6 W		2 P	-8	4/0/2 PW		3/5/9/10		action ACT5. build A8
+witches		53 VP	-2	12 C	-1	8 W		2 P	-12	6/0/0 PW		7/1/5/4		action ACT6. build D7
+Round 6, turn 2
+darklings	+8	98 VP	-2	14 C	-1	2 W	-3	0 P		1/0/4 PW		1/7/3/0	2	dig 3. build C2
+nomads		85 VP		9 C		6 W		2 P		4/0/2 PW		3/5/9/10		Decline 2 from darklings
+mermaids	+2	86 VP	-2	17 C	-1	15 W		1 P		4/5/0 PW		0/4/1/7		build A10
+nomads	+18	103 VP	-2	7 C	-1	5 W		2 P		4/0/2 PW		3/5/9/10	2	build B4. +TW8
+witches	+15	68 VP	+1	13 C	-2	6 W		2 P		6/0/0 PW	+2	9/1/5/4	2	upgrade H6 to TE. +FAV5. +TW1
+darklings		98 VP		14 C		2 W		0 P		1/0/4 PW		1/7/3/0		Decline 2 from witches
+Round 6, turn 3
+darklings	+14	112 VP	-2	12 C	+1	3 W		0 P		1/0/4 PW		1/7/3/0	2	build F7. +TW2
+mermaids	-1	85 VP		17 C		15 W		1 P	+2	2/7/0 PW		0/4/1/7		Leech 2 from nomads
+mermaids		85 VP		17 C		15 W	+1	2 P	-6	5/1/0 PW		0/4/1/7		burn 3. action ACT2
+nomads	+3	106 VP	-4	3 C		5 W	-1	1 P		4/0/2 PW		3/5/9/10		Advance ship
+witches		68 VP		13 C		6 W		2 P		6/0/0 PW		9/1/5/4		Decline 2 from darklings
+witches	+17	85 VP	-2	11 C	-2	4 W		2 P		6/0/0 PW		9/1/5/4		dig 1. build C5. +TW2
+Round 6, turn 4
+darklings		112 VP		12 C	+2	5 W		0 P	-8	5/0/0 PW		1/7/3/0		action ACT3
+mermaids		85 VP		17 C		15 W	-1	1 P		5/1/0 PW	+2	2/4/1/7		send p to Fire
+nomads	+2	108 VP	-2	1 C	-1	4 W		1 P		4/0/2 PW		3/5/9/10		build B1
+witches		85 VP		11 C	-3	1 W		2 P		6/0/0 PW		9/1/5/4		dig 1. transform I9 to green
+Round 6, turn 5
+darklings	+2	114 VP	-2	10 C	-1	4 W		0 P		5/0/0 PW		1/7/3/0	2	build H5
+mermaids		85 VP	-3	14 C	-2	13 W		1 P		5/1/0 PW		2/4/1/7	1	upgrade C4 to TP
+nomads		108 VP		1 C		4 W		1 P	+1	3/1/2 PW		3/5/9/10		Leech 1 from mermaids
+nomads	+2	110 VP		1 C	-1	3 W		1 P	-4	5/1/0 PW		3/5/9/10	2	Convert 2pw to 2c. build I7
+witches		85 VP		11 C		1 W		2 P		6/0/0 PW		9/1/5/4		Decline 2 from darklings
+witches		85 VP		11 C		1 W		2 P		6/0/0 PW		9/1/5/4		Decline 2 from nomads
+witches		85 VP		11 C		1 W		2 P		6/0/0 PW		9/1/5/4	1	action ACTW. build I9
+darklings		114 VP		10 C		4 W		0 P	+1	4/1/0 PW		1/7/3/0		Leech 1 from witches
+Round 6, turn 6
+darklings	+2	116 VP	-2	8 C	-1	3 W		0 P		4/1/0 PW		1/7/3/0	4	build B3
+nomads		110 VP		1 C		3 W		1 P		5/1/0 PW		3/5/9/10		Decline 4 from darklings
+mermaids	+5	90 VP	-4	10 C		13 W	-1	0 P		5/1/0 PW		2/4/1/7		advance ship
+nomads	+4	114 VP	-1	0 C	-3	0 W	-1	0 P		5/1/0 PW		3/5/9/10		Convert 3w to 3c. Advance ship
+witches	+3	88 VP	-4	7 C		1 W	-1	1 P		6/0/0 PW		9/1/5/4		advance ship
+Round 6, turn 7
+darklings	+3	119 VP	-3	5 C	-2	1 W		0 P		4/1/0 PW		1/7/3/0	3	upgrade H5 to TP
+mermaids		90 VP	-5	5 C	-2	11 W		0 P	+2	3/3/0 PW	+2	2/6/1/7	4	upgrade F2 to TE. +FAV6
+nomads		114 VP		0 C		0 W		0 P		5/1/0 PW		3/5/9/10		Decline 4 from mermaids
+nomads	+13	127 VP		0 C		0 W		0 P		5/1/0 PW		3/5/9/10		pass
+witches		88 VP		7 C		1 W		1 P		6/0/0 PW		9/1/5/4		Decline 3 from darklings
+witches	+4	92 VP	-4	3 C		1 W	-1	0 P		6/0/0 PW		9/1/5/4		advance ship
+Round 6, turn 8
+darklings	+2	121 VP	-2	3 C	-1	0 W		0 P		4/1/0 PW		1/7/3/0	5	build E10
+witches		92 VP		3 C		1 W		0 P		6/0/0 PW		9/1/5/4		Decline 5 from darklings
+mermaids		90 VP	-3	2 C	-2	9 W		0 P		3/3/0 PW		2/6/1/7	3	upgrade A4 to TP
+nomads		127 VP		0 C		0 W		0 P		5/1/0 PW		3/5/9/10		Decline 3 from mermaids
+witches	+8	100 VP		3 C		1 W		0 P		6/0/0 PW		9/1/5/4		pass
+Round 6, turn 9
+darklings		121 VP		3 C		0 W		0 P		4/1/0 PW		1/7/3/0		pass
+mermaids	+13	103 VP	+3	5 C		9 W		0 P	-3	3/0/0 PW	+5	3/8/2/8		action FAV6. +WATER. connect r16. +TW5. burn 3. convert 3PW to 3C
+Round 6, turn 10
+mermaids		103 VP	-2	3 C	-5	4 W		0 P		3/0/0 PW	+1	3/8/2/9	1	upgrade C4 to TE. +FAV12. convert 3W to 3C
+Round 6, turn 11
+mermaids		103 VP	-3	0 C	-2	2 W		0 P		3/0/0 PW		3/8/2/9	1	upgrade B5 to TP
+mermaids	+12	115 VP		0 C		2 W		0 P		3/0/0 PW		3/8/2/9		pass
+nomads		127 VP		0 C		0 W		0 P	+1	4/2/0 PW		3/5/9/10		Leech 1 from mermaids
+nomads		127 VP		0 C		0 W		0 P	+1	3/3/0 PW		3/5/9/10		Leech 1 from mermaids
+Scoring FIRE cult
+nomads	+3	130 VP		0 C		0 W		0 P		3/3/0 PW		3/5/9/10		+3vp for FIRE
+witches	+8	108 VP		3 C		1 W		0 P		6/0/0 PW		9/1/5/4		+8vp for FIRE
+mermaids	+3	118 VP		0 C		2 W		0 P		3/0/0 PW		3/8/2/9		+3vp for FIRE
+Scoring WATER cult
+nomads	+2	132 VP		0 C		0 W		0 P		3/3/0 PW		3/5/9/10		+2vp for WATER
+darklings	+4	125 VP		3 C		0 W		0 P		4/1/0 PW		1/7/3/0		+4vp for WATER
+mermaids	+8	126 VP		0 C		2 W		0 P		3/0/0 PW		3/8/2/9		+8vp for WATER
+Scoring EARTH cult
+nomads	+8	140 VP		0 C		0 W		0 P		3/3/0 PW		3/5/9/10		+8vp for EARTH
+witches	+4	112 VP		3 C		1 W		0 P		6/0/0 PW		9/1/5/4		+4vp for EARTH
+darklings	+2	127 VP		3 C		0 W		0 P		4/1/0 PW		1/7/3/0		+2vp for EARTH
+Scoring AIR cult
+nomads	+8	148 VP		0 C		0 W		0 P		3/3/0 PW		3/5/9/10		+8vp for AIR
+witches	+2	114 VP		3 C		1 W		0 P		6/0/0 PW		9/1/5/4		+2vp for AIR
+mermaids	+4	130 VP		0 C		2 W		0 P		3/0/0 PW		3/8/2/9		+4vp for AIR
+Scoring network
+nomads	+18	166 VP		0 C		0 W		0 P		3/3/0 PW		3/5/9/10		+18vp for network
+witches	+9	123 VP		3 C		1 W		0 P		6/0/0 PW		9/1/5/4		+9vp for network
+darklings	+9	136 VP		3 C		0 W		0 P		4/1/0 PW		1/7/3/0		+9vp for network
+Converting resources to VPs
+nomads		166 VP	+1	1 C		0 W		0 P	-2	4/1/0 PW		3/5/9/10		score_resources
+witches	+1	124 VP	-2	1 C	-1	0 W		0 P		6/0/0 PW		9/1/5/4		score_resources
+darklings	+1	137 VP	-3	0 C		0 W		0 P		4/1/0 PW		1/7/3/0		score_resources
+mermaids		130 VP	+2	2 C	-2	0 W		0 P		3/0/0 PW		3/8/2/9		score_resources

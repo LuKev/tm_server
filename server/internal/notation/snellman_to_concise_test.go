@@ -63,6 +63,32 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 	}
 }
 
+func TestConvertSnellmanToConcise_LegacySpecialActionMappings(t *testing.T) {
+	t.Run("Chaos Magicians ACTC maps to ACT-SH-2X", func(t *testing.T) {
+		got := convertCompoundActionToConcise("action ACTC. advance dig. build F2", "chaosmagicians", 0)
+		want := "ACT-SH-2X.+DIG.F2"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("Engineers ACTE with bridge maps to ACT-BR", func(t *testing.T) {
+		got := convertCompoundActionToConcise("action ACTE. bridge D6:C5", "engineers", 0)
+		want := "ACT-BR-D6-C5"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("Swarmlings ACTS with TP upgrade maps to ACT-SH-TP", func(t *testing.T) {
+		got := convertCompoundActionToConcise("action ACTS. upgrade C3 to TP", "swarmlings", 0)
+		want := "ACT-SH-TP-C3"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+}
+
 func TestConvertSnellmanToConcise_CompoundSendPriestAndBon1SpadeTransform(t *testing.T) {
 	t.Run("Compound send priest is preserved", func(t *testing.T) {
 		input := "burn 3. convert 5PW to 1P. send p to EARTH"

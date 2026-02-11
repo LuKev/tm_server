@@ -1,0 +1,420 @@
+ Default game options
+option strict-leech
+option strict-darkling-sh
+option strict-chaosmagician-sh
+option errata-cultist-power
+option mini-expansion-1
+option shipping-bonus
+option temple-scoring-tile
+option email-notify
+option maintain-player-order
+option variable-turn-order
+ Randomize setup
+Round 1 scoring: SCORE9, TE >> 4
+Round 2 scoring: SCORE6, TP >> 3
+Round 3 scoring: SCORE1, SPADE >> 2
+Round 4 scoring: SCORE8, TP >> 3
+Round 5 scoring: SCORE3, D >> 2
+Round 6 scoring: SCORE2, TOWN >> 5
+Removing tile BON6
+Removing tile BON2
+Removing tile BON1
+Player 1: Fenistil
+Player 2: GeorgeShortwell
+Player 3: tom8918
+Player 4: Nyx
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		setup
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		setup
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build E10
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build D3
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		build E4
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		build F6
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		build E7
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		build D5
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build F3
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build G5
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build E8
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		Pass BON5
+mermaids		20 VP		15 C		3 W		0 P		3/9/0 PW		0/2/0/0		Pass BON4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		Pass BON8
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON3
+Round 1 income
+darklings		20 VP	+6	21 C	+3	4 W		1 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+nomads		20 VP		15 C	+4	6 W	+1	1 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+mermaids		20 VP		15 C	+3	6 W		0 P	+3	0/12/0 PW		0/2/0/0		other_income_for_faction
+engineers		20 VP		10 C	+3	5 W		0 P	+3	0/12/0 PW		0/0/0/0		other_income_for_faction
+Round 1, turn 1
+darklings		20 VP	-3	18 C	-2	2 W		1 P		5/7/0 PW		0/1/1/0	1	upgrade G5 to TP
+nomads		20 VP	-3	12 C	-2	4 W		1 P		5/7/0 PW		1/0/1/0	1	upgrade D3 to TP
+mermaids		20 VP		15 C		6 W		0 P	+1	0/11/1 PW		0/2/0/0		Leech 1 from nomads
+mermaids		20 VP	-2	13 C	-1	5 W		0 P	-12	6/1/0 PW		0/2/0/0	2	burn 5. action ACT6. transform C3 to blue. build C1
+nomads	-1	19 VP		12 C		4 W		1 P	+2	3/9/0 PW		1/0/1/0		Leech 2 from mermaids
+engineers		20 VP		10 C		5 W		0 P	+1	0/11/1 PW		0/0/0/0		Leech 1 from darklings
+engineers		20 VP	-2	8 C	-1	4 W		0 P		0/11/1 PW		0/0/0/0	3	upgrade F6 to TP
+darklings	-2	18 VP		18 C		2 W		1 P	+3	2/10/0 PW		0/1/1/0		Leech 3 from engineers
+Round 1, turn 2
+darklings		18 VP		18 C		2 W	-1	0 P	+1	1/11/0 PW	+3	0/4/1/0		send p to WATER
+nomads		19 VP	-2	10 C	-1	3 W		1 P	-8	7/1/0 PW		1/0/1/0	1	burn 4. action ACT5. build E6
+engineers		20 VP		8 C		4 W		0 P	+1	0/10/2 PW		0/0/0/0		Leech 1 from nomads
+mermaids		20 VP	-3	10 C	-2	3 W		0 P		6/1/0 PW		0/2/0/0	1 1	upgrade D5 to TP
+nomads		19 VP		10 C		3 W		1 P	+1	6/2/0 PW		1/0/1/0		Leech 1 from mermaids
+engineers		20 VP		8 C		4 W		0 P	+1	0/9/3 PW		0/0/0/0		Leech 1 from mermaids
+engineers		20 VP		8 C		4 W	+1	1 P	-6	3/9/0 PW		0/0/0/0		action ACT2
+Round 1, turn 3
+darklings	+4	22 VP	-5	13 C	-2	0 W		0 P		1/11/0 PW	+1	0/4/2/0	2	upgrade G5 to TE. +FAV11
+engineers	-1	19 VP		8 C		4 W		1 P	+2	1/11/0 PW		0/0/0/0		Leech 2 from darklings
+nomads		19 VP		10 C		3 W	-1	0 P	+1	5/3/0 PW	+3	1/0/4/0		send p to EARTH
+mermaids	+4	24 VP	-5	5 C	-2	1 W		0 P		6/1/0 PW	+1	0/2/1/0	1 1	upgrade D5 to TE. +FAV11
+nomads		19 VP		10 C		3 W		0 P	+1	4/4/0 PW		1/0/4/0		Leech 1 from mermaids
+engineers		19 VP		8 C		4 W		1 P	+1	0/12/0 PW		0/0/0/0		Leech 1 from mermaids
+engineers	+4	23 VP	-4	4 C	-1	3 W		1 P		0/12/0 PW	+1	0/0/1/0	3	upgrade F6 to TE. +FAV11
+darklings	-2	20 VP		13 C		0 W		0 P	+3	0/10/2 PW		0/4/2/0		Leech 3 from engineers
+Round 1, turn 4
+darklings		20 VP	+1	14 C		0 W		0 P		0/10/2 PW		0/4/2/0		pass BON9
+nomads	+4	23 VP	-5	5 C	-2	1 W		0 P	+2	2/6/0 PW	+2	1/0/6/0	2	upgrade D3 to TE. +FAV7
+mermaids	-1	23 VP		5 C		1 W		0 P	+2	4/3/0 PW		0/2/1/0		Leech 2 from nomads
+mermaids		23 VP		5 C		1 W		0 P		4/3/0 PW		0/2/1/0		pass BON3
+engineers		23 VP		4 C		3 W	-1	0 P	+1	0/11/1 PW	+2	0/0/3/0		send p to EARTH
+Round 1, turn 5
+nomads		23 VP		5 C		1 W		0 P		2/6/0 PW		1/0/6/0		pass BON4
+engineers		23 VP		4 C	-1	2 W		0 P	-4	2/9/0 PW		0/0/3/0	2 2	upgrade E7 to TP. burn 1. convert 2PW to 2C
+Round 1, turn 6
+engineers	+4	27 VP	-4	0 C	-1	1 W		0 P	+2	0/11/0 PW	+2	0/0/5/0	2 2	upgrade E7 to TE. +FAV7
+engineers		27 VP		0 C		1 W		0 P		0/11/0 PW		0/0/5/0		pass BON8
+nomads	-1	22 VP		5 C		1 W		0 P	+2	0/8/0 PW		1/0/6/0		Leech 2 from engineers
+nomads	-1	21 VP		5 C		1 W		0 P	+2	0/6/2 PW		1/0/6/0		Leech 2 from engineers
+mermaids	-1	22 VP		5 C		1 W		0 P	+2	2/5/0 PW		0/2/1/0		Leech 2 from engineers
+mermaids	-1	21 VP		5 C		1 W		0 P	+2	0/7/0 PW		0/2/1/0		Leech 2 from engineers
+Round 2 income
+darklings		20 VP	+2	16 C		0 W		0 P		0/10/2 PW		0/4/2/0		cult_income_for_faction
+mermaids		21 VP		5 C		1 W		0 P		0/7/0 PW		0/2/1/0		cult_income_for_faction
+nomads		21 VP	+2	7 C		1 W		0 P		0/6/2 PW		1/0/6/0		cult_income_for_faction
+engineers		27 VP	+2	2 C		1 W		0 P		0/11/0 PW		0/0/5/0		cult_income_for_faction
+Round 2 income
+darklings		20 VP	+2	18 C	+2	2 W	+1	1 P		0/10/2 PW		0/4/2/0		other_income_for_faction
+mermaids		21 VP	+6	11 C	+3	4 W	+1	1 P		0/7/0 PW		0/2/1/0		other_income_for_faction
+nomads		21 VP		7 C	+5	6 W	+1	1 P	+4	0/2/6 PW		1/0/6/0		other_income_for_faction
+engineers		27 VP		2 C	+1	2 W	+2	2 P	+6	0/5/6 PW		0/0/5/0		other_income_for_faction
+Round 2, turn 1
+darklings		20 VP		18 C		2 W	+1	2 P	-6	3/8/0 PW		0/4/2/0		burn 1. action ACT2
+mermaids	+2	23 VP	-2	9 C	-1	3 W		1 P		0/7/0 PW		0/2/1/0		build A4
+nomads		21 VP	-2	5 C	-1	5 W		1 P	-12	6/2/0 PW		1/0/6/0	1	action ACT6. transform G2 to yellow. build B2
+engineers	+2	29 VP	-1	1 C	-1	1 W		2 P	-8	4/5/2 PW		0/0/5/0	2 1	action ACT5. build D4
+nomads		21 VP		5 C		5 W		1 P	+1	5/3/0 PW		1/0/6/0		Leech 1 from engineers
+mermaids		23 VP		9 C		3 W		1 P	+1	0/6/1 PW		0/2/1/0		Leech 1 from nomads
+mermaids	-1	22 VP		9 C		3 W		1 P	+2	0/4/3 PW		0/2/1/0		Leech 2 from engineers
+Round 2, turn 2
+darklings	+4	24 VP	-2	16 C	-1	1 W	-1	1 P		3/8/0 PW		0/4/2/0	2	dig 1. build F5
+mermaids	+2	24 VP	-2	7 C	-1	2 W		1 P		0/4/3 PW		0/2/1/0	1	build C3
+nomads		21 VP		5 C		5 W	-1	0 P	+2	3/5/0 PW	+2	1/0/8/0		send p to EARTH
+engineers	-1	28 VP		1 C		1 W		2 P	+2	2/7/2 PW		0/0/5/0		Leech 2 from darklings
+engineers		28 VP		1 C		1 W		2 P	+1	1/8/2 PW		0/0/5/0		Leech 1 from mermaids
+engineers		28 VP	+7	8 C		1 W		2 P	-8	5/4/0 PW		0/0/5/0		burn 2. action ACT4
+Round 2, turn 3
+darklings	+4	28 VP	-2	14 C	-1	0 W	-1	0 P		3/8/0 PW		0/4/2/0		dig 1. build H7
+mermaids		24 VP		7 C		2 W	-1	0 P	+1	0/3/4 PW	+2	0/4/1/0		send p to WATER
+nomads		21 VP	-2	3 C	-1	4 W		0 P		3/5/0 PW		1/0/8/0		build G2
+engineers		28 VP	+1	9 C		1 W		2 P		5/4/0 PW		0/0/5/0		pass BON5
+Round 2, turn 4
+darklings	+3	31 VP		14 C		0 W		0 P		3/8/0 PW		0/4/2/0		pass BON8
+mermaids	+3	27 VP	-3	4 C	-2	0 W		0 P		0/3/4 PW		0/4/1/0	1	upgrade C3 to TP
+engineers		28 VP		9 C		1 W		2 P	+1	4/5/0 PW		0/0/5/0		Leech 1 from mermaids
+nomads	+3	24 VP	-3	0 C	-2	2 W		0 P		3/5/0 PW		1/0/8/0	3	upgrade E6 to TP
+Round 2, turn 5
+mermaids		27 VP		4 C		0 W		0 P		0/3/4 PW		0/4/1/0		pass BON9
+engineers	-2	26 VP		9 C		1 W		2 P	+3	1/8/0 PW		0/0/5/0		Leech 3 from nomads
+nomads		24 VP		0 C	-1	1 W		0 P	-4	5/1/0 PW		1/0/8/0		burn 2. convert 2PW to 2C. build I7
+nomads		24 VP		0 C		1 W		0 P		5/1/0 PW		1/0/8/0		pass BON3
+Round 3 income
+engineers		26 VP		9 C		1 W		2 P		1/8/0 PW		0/0/5/0		cult_income_for_faction
+darklings		31 VP		14 C		0 W		0 P		3/8/0 PW		0/4/2/0		cult_income_for_faction
+mermaids		27 VP		4 C		0 W		0 P		0/3/4 PW		0/4/1/0		cult_income_for_faction
+nomads		24 VP		0 C		1 W		0 P		5/1/0 PW		1/0/8/0		cult_income_for_faction
+darklings		31 VP		14 C		0 W		0 P		3/8/0 PW		0/4/2/0		transform D8 to black
+mermaids		27 VP		4 C		0 W		0 P		0/3/4 PW		0/4/1/0		transform F2 to blue
+Round 3 income
+engineers		26 VP		9 C	+3	4 W	+1	3 P	+9	0/1/8 PW		0/0/5/0		other_income_for_faction
+darklings		31 VP		14 C	+4	4 W	+2	2 P		3/8/0 PW		0/4/2/0		other_income_for_faction
+mermaids		27 VP	+4	8 C	+4	4 W	+1	1 P	+1	0/2/5 PW		0/4/1/0		other_income_for_faction
+nomads		24 VP	+8	8 C	+7	8 W	+1	1 P	+2	3/3/0 PW		1/0/8/0		other_income_for_faction
+Round 3, turn 1
+engineers	+6	32 VP	-1	8 C	-1	3 W		3 P	-12	6/1/2 PW		0/0/5/0	4	action ACT6. transform E9 to gray. build F4
+nomads	-3	21 VP		8 C		8 W		1 P	+4	0/5/1 PW		1/0/8/0		Leech 4 from engineers
+darklings		31 VP		14 C		4 W	+1	3 P	-6	6/2/0 PW		0/4/2/0		burn 3. action ACT2
+mermaids		27 VP	+7	15 C		4 W		1 P	-8	4/2/1 PW		0/4/1/0		action ACT4
+nomads		21 VP		8 C		8 W	-1	0 P	+1	0/4/2 PW	+3	1/0/8/3		send p to AIR
+Round 3, turn 2
+engineers		32 VP		8 C		3 W	-1	2 P	+2	4/3/2 PW	+2	0/0/7/0		send p to EARTH
+darklings	+6	37 VP	-2	12 C	-1	3 W	-1	2 P		6/2/0 PW		0/4/2/0		dig 1. build I10
+mermaids		27 VP		15 C		4 W	-1	0 P	+1	3/3/1 PW	+3	3/4/1/0		send p to Fire
+nomads	+2	23 VP	-2	6 C	-4	4 W		0 P		0/4/2 PW		1/0/8/3	1	dig 1. build E3
+mermaids		27 VP		15 C		4 W		0 P	+1	2/4/1 PW		3/4/1/0		Leech 1 from nomads
+Round 3, turn 3
+engineers	+2	34 VP	-1	7 C	-1	2 W		2 P		4/3/2 PW		0/0/7/0	2	build E9
+darklings	-1	36 VP		12 C		3 W		2 P	+2	4/4/0 PW		0/4/2/0		Leech 2 from engineers
+darklings	+2	38 VP	-2	10 C	-1	2 W		2 P		4/4/0 PW		0/4/2/0		build D8
+mermaids	+2	29 VP	-2	13 C	-1	3 W		0 P		2/4/1 PW		3/4/1/0	1	build F2
+nomads		23 VP		6 C		4 W		0 P	+1	0/3/3 PW		1/0/8/3		Leech 1 from mermaids
+nomads		23 VP	-5	1 C	-2	2 W		0 P		0/3/3 PW	+1	1/1/8/3	4	upgrade E6 to TE. +FAV10
+engineers	-3	31 VP		7 C		2 W		2 P	+4	0/7/2 PW		0/0/7/0		Leech 4 from nomads
+Round 3, turn 4
+engineers	+2	33 VP	-4	3 C		2 W	-1	1 P		0/7/2 PW		0/0/7/0		advance ship
+darklings	+6	44 VP	-2	8 C	-1	1 W	-1	1 P		4/4/0 PW		0/4/2/0	2	dig 1. build F7
+engineers	-1	32 VP		3 C		2 W		1 P	+2	0/5/4 PW		0/0/7/0		Leech 2 from darklings
+mermaids	+2	31 VP	-2	11 C	-1	2 W		0 P		2/4/1 PW		3/4/1/0	3	build D2
+nomads	-2	21 VP		1 C		2 W		0 P	+3	0/0/6 PW		1/1/8/3		Leech 3 from mermaids
+nomads		21 VP	+4	5 C		2 W		0 P	-2	1/0/5 PW		1/1/8/3		convert 1PW to 1C. pass BON7
+Round 3, turn 5
+engineers	+2	34 VP	-1	2 C	-1	1 W		1 P		0/5/4 PW		0/0/7/0	1	build C2
+darklings	+4	48 VP		8 C		1 W	-1	0 P		4/4/0 PW		0/4/2/0		dig 1. transform E11 to black
+mermaids	+2	33 VP	-2	9 C	-1	1 W		0 P		2/4/1 PW		3/4/1/0		build H2
+nomads		21 VP		5 C		2 W		0 P	+1	0/1/5 PW		1/1/8/3		Leech 1 from engineers
+Round 3, turn 6
+engineers	+2	36 VP	-1	1 C	-1	0 W		1 P		0/5/4 PW		0/0/7/0		build C5
+darklings		48 VP	+3	11 C		1 W		0 P		4/4/0 PW		0/4/2/0		pass BON10
+mermaids	+6	39 VP		9 C		1 W		0 P		2/4/1 PW		3/4/1/0		pass BON3
+Round 3, turn 7
+engineers	+4	40 VP	-1	0 C		0 W	-1	0 P	-8	4/5/0 PW		0/0/7/0	2	action ACT5. convert 1P to 1W. build D7
+engineers		40 VP		0 C		0 W		0 P		4/5/0 PW		0/0/7/0		pass BON9
+darklings	-1	47 VP		11 C		1 W		0 P	+2	2/6/0 PW		0/4/2/0		Leech 2 from engineers
+Round 4 income
+nomads		21 VP	+8	13 C		2 W		0 P		0/1/5 PW		1/1/8/3		cult_income_for_faction
+darklings		47 VP	+2	13 C		1 W		0 P		2/6/0 PW		0/4/2/0		cult_income_for_faction
+mermaids		39 VP	+1	10 C		1 W		0 P		2/4/1 PW		3/4/1/0		cult_income_for_faction
+engineers		40 VP	+7	7 C		0 W		0 P		4/5/0 PW		0/0/7/0		cult_income_for_faction
+Round 4 income
+nomads		21 VP		13 C	+9	11 W	+2	2 P	+1	0/0/6 PW		1/1/8/3		other_income_for_faction
+darklings		47 VP		13 C	+7	8 W	+1	1 P	+3	0/7/1 PW		0/4/2/0		other_income_for_faction
+mermaids		39 VP	+8	18 C	+7	8 W	+1	1 P	+1	1/5/1 PW		3/4/1/0		other_income_for_faction
+engineers		40 VP	+2	9 C	+5	5 W	+1	1 P	+6	0/7/2 PW		0/0/7/0		other_income_for_faction
+Round 4, turn 1
+nomads		21 VP	+7	20 C		11 W		2 P	-8	4/0/2 PW		1/1/8/3		action ACT4
+darklings	+3	50 VP	-3	10 C	-2	6 W		1 P		0/7/1 PW		0/4/2/0	2	upgrade F7 to TP
+engineers	-1	39 VP		9 C		5 W		1 P	+2	0/5/4 PW		0/0/7/0		Leech 2 from darklings
+mermaids		39 VP	-8	10 C	-4	4 W		1 P	+2	0/5/2 PW	+1	3/5/1/0	3 1	upgrade D5 to SA. +FAV10
+nomads		21 VP		20 C		11 W		2 P	+1	3/1/2 PW		1/1/8/3		Leech 1 from mermaids
+engineers	-2	37 VP		9 C		5 W		1 P	+3	0/2/7 PW		0/0/7/0		Leech 3 from mermaids
+engineers		37 VP	-6	3 C	-3	2 W		1 P		0/2/7 PW	+1	0/1/7/0	3 3	upgrade E7 to SA. +FAV10
+nomads	-2	19 VP		20 C		11 W		2 P	+3	0/4/2 PW		1/1/8/3		Leech 3 from engineers
+Round 4, turn 2
+nomads		19 VP	-2	18 C	-1	10 W		2 P		0/4/2 PW		1/1/8/3	1	build A5
+darklings	+3	53 VP	-3	7 C	-2	4 W		1 P		0/7/1 PW		0/4/2/0	3	upgrade F5 to TP
+engineers	-1	36 VP		3 C		2 W		1 P	+2	0/0/9 PW		0/1/7/0		Leech 3 from darklings
+mermaids	-2	37 VP		10 C		4 W		1 P	+3	0/2/5 PW		3/5/1/0		Leech 3 from engineers
+mermaids		37 VP		10 C		4 W		1 P	+1	0/1/6 PW		3/5/1/0		Leech 1 from nomads
+mermaids		37 VP		10 C		4 W		1 P	-12	6/1/0 PW		3/5/1/0		action ACT6. transform D1 to blue. transform C4 to blue
+engineers		36 VP		3 C	+2	4 W		1 P	-8	4/0/5 PW		0/1/7/0		action ACT3
+Round 4, turn 3
+nomads		19 VP		18 C		10 W	-1	1 P	+2	0/2/4 PW	+2	1/1/8/5		send p to AIR
+darklings	+3	56 VP	-3	4 C	-2	2 W		1 P		0/7/1 PW		0/4/2/0	4	upgrade E10 to TP
+mermaids	+6	43 VP	-3	7 C	-2	2 W		1 P		6/1/0 PW		3/5/1/0	2	upgrade C1 to TP
+engineers	-3	33 VP		3 C		4 W		1 P	+4	0/4/5 PW		0/1/7/0		Leech 4 from darklings
+engineers		33 VP		3 C		4 W	-1	0 P		0/4/5 PW	+2	0/1/7/2		send p to AIR
+nomads	-1	18 VP		18 C		10 W		1 P	+2	0/0/6 PW		1/1/8/5		Leech 2 from mermaids
+Round 4, turn 4
+nomads		18 VP	-2	16 C	-1	9 W		1 P	-8	4/0/2 PW		1/1/8/5		action ACT5. build A6
+darklings	+3	59 VP	-3	1 C	-2	0 W		1 P		0/7/1 PW		0/4/2/0	1	upgrade D8 to TP
+engineers		33 VP		3 C		4 W		0 P	+1	0/3/6 PW		0/1/7/2		Leech 1 from darklings
+mermaids	+6	49 VP	-3	4 C	-2	0 W		1 P		6/1/0 PW		3/5/1/0	2	upgrade A4 to TP
+engineers	+6	39 VP	-2	1 C	-1	3 W		0 P		0/3/6 PW		0/1/7/2	4	upgrade F4 to TP
+nomads	-1	17 VP		16 C		9 W		1 P	+2	2/2/2 PW		1/1/8/5		Leech 2 from mermaids
+nomads	-3	14 VP		16 C		9 W		1 P	+4	0/2/4 PW		1/1/8/5		Leech 4 from engineers
+Round 4, turn 5
+nomads	+6	20 VP	-3	13 C	-2	7 W		1 P		0/2/4 PW		1/1/8/5	2	upgrade A5 to TP
+mermaids	-1	48 VP		4 C		0 W		1 P	+2	4/3/0 PW		3/5/1/0		Leech 2 from nomads
+darklings	+2	61 VP	-1	0 C		0 W	-1	0 P	-6	3/3/0 PW		0/4/2/0		burn 2. convert 3PW to 3C. advance ship
+mermaids		48 VP	+2	6 C		0 W		1 P		4/3/0 PW		3/5/1/0		pass BON4
+engineers	+8	47 VP	-1	0 C	-1	2 W		0 P		0/3/6 PW	+8	2/3/9/4	5 2	convert 1PW to 1C. upgrade D4 to TP. +TW6
+mermaids		48 VP		6 C		0 W		1 P		4/3/0 PW		3/5/1/0		Decline 5 from engineers
+nomads	-1	19 VP		13 C		7 W		1 P	+2	0/0/6 PW		1/1/8/5		Leech 2 from engineers
+Round 4, turn 6
+nomads		19 VP		13 C		7 W	+1	2 P	-6	3/0/3 PW		1/1/8/5		action ACT2
+darklings	+3	64 VP	+1	1 C		0 W		0 P		3/3/0 PW		0/4/2/0		pass BON8
+engineers	+6	53 VP		0 C	-1	1 W		0 P	-4	2/3/4 PW		2/3/9/4	4	convert 2PW to 2C. upgrade E9 to TP
+Round 4, turn 7
+nomads		19 VP		13 C		7 W	-1	1 P	+2	1/2/3 PW	+2	1/1/8/7		send p to AIR
+engineers		53 VP		0 C	-1	0 W		0 P	-6	4/5/0 PW	+1	2/3/9/5	4	convert 4PW to 4C. upgrade E9 to TE. +FAV12
+Round 4, turn 8
+nomads	+6	25 VP	-3	10 C	-2	5 W		1 P		1/2/3 PW		1/1/8/7	2 1	upgrade B2 to TP
+mermaids	-1	47 VP		6 C		0 W		1 P	+2	2/5/0 PW		3/5/1/0		Leech 2 from nomads
+darklings		64 VP		1 C		0 W		0 P		3/3/0 PW		0/4/2/0		Decline 4 from engineers
+darklings		64 VP		1 C		0 W		0 P		3/3/0 PW		0/4/2/0		Decline 4 from engineers
+engineers		53 VP		0 C		0 W		0 P	+1	3/6/0 PW		2/3/9/5		Leech 1 from nomads
+engineers	+6	59 VP		0 C		0 W		0 P		3/6/0 PW		2/3/9/5		pass BON10
+Round 4, turn 9
+nomads		25 VP		10 C		5 W	-1	0 P		1/2/3 PW	+1	1/1/8/8		send p to AIR for 1
+Round 4, turn 10
+nomads	+6	31 VP	-3	7 C	-2	3 W		0 P		1/2/3 PW		1/1/8/8	2	upgrade G2 to TP
+Round 4, turn 11
+nomads	+6	37 VP	-2	5 C	-2	1 W		0 P	-2	2/2/2 PW		1/1/8/8	3	upgrade E3 to TP. convert 1PW to 1C
+nomads	+8	45 VP		5 C		1 W		0 P		2/2/2 PW		1/1/8/8		pass BON9
+mermaids		47 VP		6 C		0 W		1 P		2/5/0 PW		3/5/1/0		Decline 3 from nomads
+engineers		59 VP		0 C		0 W		0 P		3/6/0 PW		2/3/9/5		Decline 2 from nomads
+Round 5 income
+mermaids		47 VP		6 C		0 W		1 P		2/5/0 PW		3/5/1/0		cult_income_for_faction
+darklings		64 VP		1 C		0 W		0 P		3/3/0 PW		0/4/2/0		cult_income_for_faction
+engineers		59 VP		0 C		0 W		0 P		3/6/0 PW		2/3/9/5		cult_income_for_faction
+nomads		45 VP		5 C		1 W		0 P		2/2/2 PW		1/1/8/8		cult_income_for_faction
+engineers		59 VP		0 C		0 W		0 P		3/6/0 PW		2/3/9/5		transform G3 to gray
+nomads		45 VP		5 C		1 W		0 P		2/2/2 PW		1/1/8/8		transform A7 to yellow. transform E2 to yellow
+Round 5 income
+mermaids		47 VP	+6	12 C	+5	5 W	+1	2 P	+7	0/2/5 PW		3/5/1/0		other_income_for_faction
+darklings		64 VP	+8	9 C	+3	3 W	+2	2 P	+6	0/3/3 PW		0/4/2/0		other_income_for_faction
+engineers		59 VP	+4	4 C	+3	3 W	+2	2 P	+11	0/1/8 PW		2/3/9/5		other_income_for_faction
+nomads		45 VP	+13	18 C	+6	7 W	+2	2 P	+5	0/1/5 PW		1/1/8/8		other_income_for_faction
+Round 5, turn 1
+mermaids		47 VP	+7	19 C		5 W		2 P	-8	4/2/1 PW		3/5/1/0		action ACT4
+darklings	+8	72 VP	-2	7 C	-1	2 W	-2	0 P		0/3/3 PW		0/4/2/0		dig 2. build B6
+engineers	+3	62 VP	-4	0 C		3 W	-1	1 P		0/1/8 PW		2/3/9/5		advance ship
+nomads	+2	47 VP	-2	16 C	-1	6 W		2 P		0/1/5 PW		1/1/8/8	2	build E2
+mermaids	-1	46 VP		19 C		5 W		2 P	+2	2/4/1 PW		3/5/1/0		Leech 2 from nomads
+Round 5, turn 2
+mermaids	+4	50 VP	-2	17 C	-1	4 W		2 P		2/4/1 PW		3/5/1/0		build C4
+darklings	+4	76 VP	-2	5 C	-1	1 W		0 P		0/3/3 PW		0/4/2/0		build A13
+engineers		62 VP	+2	2 C		3 W	-1	0 P	-1	1/0/8 PW	+1	2/3/10/5		convert 1PW to 1C. send p to EARTH for 1. convert 1PW to 1C
+nomads	+2	49 VP	-2	14 C	-1	5 W		2 P		0/1/5 PW		1/1/8/8		build A7
+Round 5, turn 3
+mermaids	+4	54 VP	-2	15 C	-1	3 W		2 P		2/4/1 PW		3/5/1/0		build A11
+darklings		76 VP	+3	8 C		1 W		0 P	-4	2/3/1 PW		0/4/2/0		convert 2PW to 2C. pass BON7
+engineers	+4	66 VP	-1	1 C	-1	2 W		0 P	-12	7/0/2 PW		2/3/10/5	1	action ACT6. transform D6 to gray. build I6
+nomads		49 VP		14 C		5 W		2 P	+1	0/0/6 PW		1/1/8/8		Leech 1 from engineers
+nomads	+2	51 VP	-2	12 C	-4	1 W		2 P	-8	4/0/2 PW		1/1/8/8	1	action ACT5. dig 1. build F1
+mermaids		54 VP		15 C		3 W		2 P	+1	1/5/1 PW		3/5/1/0		Leech 1 from nomads
+Round 5, turn 4
+mermaids	+4	58 VP	-2	13 C	-1	2 W		2 P		1/5/1 PW		3/5/1/0	1	build D1
+engineers	+4	70 VP	-1	0 C	-1	1 W		0 P		7/0/2 PW		2/3/10/5		build G3
+nomads		51 VP		12 C		1 W		2 P	+1	3/1/2 PW		1/1/8/8		Leech 1 from mermaids
+nomads	+2	53 VP	-4	8 C		1 W	-1	1 P		3/1/2 PW		1/1/8/8		advance ship
+Round 5, turn 5
+mermaids	+2	60 VP	-4	9 C		2 W	-1	1 P		1/5/1 PW		3/5/1/0		advance ship
+engineers	+4	74 VP		0 C	-1	0 W		0 P	-2	8/0/1 PW		2/3/10/5	4	convert 1PW to 1C. build H6
+nomads	+2	55 VP	-2	6 C	-1	0 W		1 P		3/1/2 PW		1/1/8/8	1	build B4
+darklings		76 VP		8 C		1 W		0 P		2/3/1 PW		0/4/2/0		Decline 4 from engineers
+mermaids		60 VP		9 C		2 W		1 P	+1	0/6/1 PW		3/5/1/0		Leech 1 from nomads
+Round 5, turn 6
+mermaids	+4	64 VP	-2	7 C	-1	1 W		1 P		0/6/1 PW		3/5/1/0		build I4
+engineers	+9	83 VP	+1	1 C		0 W		0 P		8/0/1 PW		2/3/10/5		pass BON3
+nomads	+8	63 VP	+1	7 C	+1	1 W	-1	0 P	-2	4/1/1 PW		1/1/8/8		convert 1P to 1W. convert 1PW to 1C. pass BON10
+Round 5, turn 7
+mermaids		64 VP		7 C		1 W	-1	0 P	+2	0/2/4 PW	+2	5/5/1/0		send p to FIRE. burn 1
+Round 5, turn 8
+mermaids		64 VP		7 C	+2	3 W		0 P	-8	4/2/0 PW		5/5/1/0		action ACT3
+Round 5, turn 9
+mermaids	+3	67 VP	-3	4 C	-2	1 W		0 P		4/2/0 PW		5/5/1/0	4	upgrade F2 to TP
+Round 5, turn 10
+mermaids	+4	71 VP	-2	2 C	-1	0 W		0 P		4/2/0 PW		5/5/1/0	1 1	build H4
+mermaids		71 VP		2 C		0 W		0 P		4/2/0 PW		5/5/1/0		pass BON9
+engineers		83 VP		1 C		0 W		0 P	+1	7/1/1 PW		2/3/10/5		Leech 1 from mermaids
+nomads		63 VP		7 C		1 W		0 P		4/1/1 PW		1/1/8/8		Decline 4 from mermaids
+nomads		63 VP		7 C		1 W		0 P	+1	3/2/1 PW		1/1/8/8		Leech 1 from mermaids
+Round 6 income
+darklings		76 VP		8 C		1 W	+1	1 P		2/3/1 PW		0/4/2/0		cult_income_for_faction
+engineers		83 VP		1 C		0 W		0 P		7/1/1 PW		2/3/10/5		cult_income_for_faction
+nomads		63 VP		7 C		1 W		0 P		3/2/1 PW		1/1/8/8		cult_income_for_faction
+mermaids		71 VP		2 C		0 W	+1	1 P		4/2/0 PW		5/5/1/0		cult_income_for_faction
+Round 6 income
+darklings		76 VP	+8	16 C	+6	7 W	+1	2 P	+6	0/1/5 PW		0/4/2/0		other_income_for_faction
+engineers		83 VP	+10	11 C	+5	5 W	+2	2 P	+8	0/7/2 PW		2/3/10/5		other_income_for_faction
+nomads		63 VP	+11	18 C	+9	10 W	+2	2 P	+8	0/0/6 PW		1/1/8/8		other_income_for_faction
+mermaids		71 VP	+10	12 C	+8	8 W	+1	2 P	+6	0/4/2 PW		5/5/1/0		other_income_for_faction
+Round 6, turn 1
+darklings	+16	92 VP	-2	14 C	-1	6 W	+1	3 P		0/1/5 PW		0/4/2/0		build E11. +TW3
+engineers	+2	85 VP	-1	10 C	-1	4 W		2 P	-8	4/3/0 PW		2/3/10/5	2	burn 2. action ACT5. build A3
+nomads	+42	105 VP	-2	16 C	-4	6 W		2 P	-1	0/1/5 PW	+9	5/3/9/10	7	convert 4PW to 4C. upgrade E6 to SA. +FAV5. +2TW5. +TW8
+mermaids	-1	70 VP		12 C		8 W		2 P	+2	0/2/4 PW		5/5/1/0		Leech 2 from engineers
+mermaids		70 VP		12 C		8 W		2 P	-6	3/2/1 PW		5/5/1/0		action ACT1. Bridge F2:H2
+Round 6, turn 2
+darklings	+20	112 VP	-2	12 C	-1	5 W	-1	2 P		0/1/5 PW		0/4/2/0	1	dig 2. build G4. +TW3
+engineers		85 VP		10 C		4 W		2 P		4/3/0 PW		2/3/10/5		Decline 7 from nomads
+engineers		85 VP		10 C		4 W		2 P	+1	3/4/0 PW		2/3/10/5		Leech 1 from darklings
+engineers	+15	100 VP	-2	8 C	+1	5 W		2 P		3/4/0 PW		2/3/10/5	4	upgrade D7 to TP. +TW2
+nomads	+3	108 VP	-4	12 C		6 W	-1	1 P		0/1/5 PW		5/3/9/10		advance ship
+darklings		112 VP		12 C		5 W		2 P	+1	0/0/6 PW		0/4/2/0		Leech 4 from engineers
+mermaids	+23	93 VP	-3	9 C		8 W		2 P	+6	1/0/5 PW	+2	7/5/1/0	2	upgrade C1 to TE. +FAV5. connect r1. +TW2. connect r10. convert 1PW to 1C. +TW4. convert 1PW to 1C
+nomads		108 VP		12 C		6 W		1 P	+1	0/0/6 PW		5/3/9/10		Leech 2 from mermaids
+Round 6, turn 3
+darklings	+4	116 VP	-1	11 C	-1	4 W	-1	1 P	-2	1/0/5 PW		0/4/2/0	2	convert 1PW to 1C. dig 1. build G6
+engineers	-1	99 VP		8 C		5 W		2 P	+2	1/6/0 PW		2/3/10/5		Leech 2 from darklings
+engineers	+2	101 VP	-1	7 C	-1	4 W		2 P		1/6/0 PW		2/3/10/5	1	build D6
+nomads		108 VP	-3	9 C	-2	4 W		1 P	-2	1/0/5 PW	+3	8/3/9/10	2	convert 1PW to 1C. upgrade G2 to TE. +FAV1. convert 1PW to 1C
+engineers	-1	100 VP		7 C		4 W		2 P	+2	0/6/1 PW		2/3/10/5		Leech 2 from nomads
+mermaids		93 VP		9 C		8 W		2 P	+1	0/1/5 PW		7/5/1/0		Leech 1 from engineers
+mermaids		93 VP	+7	16 C		8 W		2 P	-8	4/1/1 PW		7/5/1/0		action ACT4
+Round 6, turn 4
+darklings	+2	118 VP	-2	9 C	-1	3 W		1 P		1/0/5 PW		0/4/2/0	1 1	build H5
+mermaids		93 VP		16 C		8 W		2 P	+1	3/2/1 PW		7/5/1/0		Leech 1 from darklings
+engineers		100 VP		7 C		4 W		2 P	+1	0/5/2 PW		2/3/10/5		Leech 1 from darklings
+engineers		100 VP		7 C		4 W	-1	1 P	+2	0/3/4 PW	+2	2/5/10/5		send p to WATER
+nomads		108 VP		9 C		4 W	+1	2 P	-6	4/0/2 PW		8/3/9/10		action ACT2
+mermaids		93 VP		16 C		8 W	-1	1 P	+2	1/4/1 PW	+2	7/7/1/0		send p to Water
+Round 6, turn 5
+darklings		118 VP		9 C	+2	5 W		1 P	-8	5/0/1 PW		0/4/2/0		action ACT3
+engineers	+2	102 VP	-1	6 C	-1	3 W		1 P		0/3/4 PW		2/5/10/5	1	build I9
+nomads		108 VP		9 C		4 W	-1	1 P	+3	1/3/2 PW	+2	10/3/9/10		send p to FIRE
+mermaids	+3	96 VP	-3	13 C	-2	6 W		1 P		1/4/1 PW		7/7/1/0	4	upgrade E4 to TP
+darklings		118 VP		9 C		5 W		1 P	+1	4/1/1 PW		0/4/2/0		Leech 1 from engineers
+Round 6, turn 6
+darklings		118 VP	-5	4 C	-2	3 W		1 P		4/1/1 PW	+1	0/4/2/1	4	upgrade F5 to TE. +FAV12
+nomads	-3	105 VP		9 C		4 W		1 P	+4	0/1/5 PW		10/3/9/10		Leech 4 from mermaids
+engineers		102 VP		6 C		3 W		1 P		0/3/4 PW		2/5/10/5		Decline 4 from darklings
+engineers	+3	105 VP	-2	4 C	-1	2 W		1 P		0/3/4 PW		2/5/10/5	1	upgrade D6 to TP
+nomads	+3	108 VP	-3	6 C	-2	2 W		1 P		0/1/5 PW		10/3/9/10	1	upgrade B4 to TP
+mermaids		96 VP		13 C		6 W		1 P	+1	0/5/1 PW		7/7/1/0		Leech 1 from engineers
+mermaids		96 VP		13 C		6 W		1 P	+1	0/4/2 PW		7/7/1/0		Leech 1 from nomads
+mermaids	+14	110 VP	-2	11 C	-4	2 W		1 P		0/4/2 PW		7/7/1/0	4	dig 1. build E5. connect r20. +TW7
+nomads		108 VP		6 C		2 W		1 P	+1	0/0/6 PW		10/3/9/10		Leech 4 from mermaids
+Round 6, turn 7
+darklings		118 VP	-3	1 C	-2	1 W		1 P		4/1/1 PW		0/4/2/1	2	upgrade G6 to TP
+engineers		105 VP		4 C		2 W		1 P		0/3/4 PW		2/5/10/5		Decline 2 from darklings
+engineers	+2	107 VP	-1	3 C	-1	1 W		1 P		0/3/4 PW		2/5/10/5		build G1
+nomads		108 VP	-2	4 C	-1	1 W		1 P		0/0/6 PW		10/3/9/10		build B1
+mermaids		110 VP	-5	6 C	-2	0 W		1 P		0/4/2 PW	+1	7/7/1/1	4	upgrade F2 to TE. +FAV12
+nomads		108 VP		4 C		1 W		1 P		0/0/6 PW		10/3/9/10		Leech 4 from mermaids
+Round 6, turn 8
+darklings	+4	122 VP	-1	0 C	-1	0 W	-1	0 P	-2	5/1/0 PW		0/4/2/1	1 1 1	convert 1PW to 1C. dig 1. build I8
+engineers		107 VP		3 C		1 W		1 P	+1	0/2/5 PW		2/5/10/5		Leech 1 from darklings
+engineers		107 VP	-3	0 C	-1	0 W		1 P		0/2/5 PW	+2	2/7/10/5	4	convert 1PW to 1C. upgrade D7 to TE. +FAV6
+nomads		108 VP		4 C		1 W		1 P		0/0/6 PW		10/3/9/10		Leech 1 from darklings
+nomads	+4	112 VP	-4	0 C		1 W	-1	0 P		0/0/6 PW		10/3/9/10		advance ship
+darklings		122 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		Decline 4 from engineers
+mermaids		110 VP		6 C		0 W		1 P	+1	0/3/3 PW		7/7/1/1		Leech 1 from darklings
+mermaids	+4	114 VP	-4	2 C		0 W	-1	0 P		0/3/3 PW		7/7/1/1		advance ship
+Round 6, turn 9
+darklings	+12	134 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		pass
+engineers		107 VP		0 C		0 W		1 P		0/2/5 PW	+1	2/8/10/5		action FAV6. +WATER
+nomads		112 VP		0 C		1 W		0 P	-12	6/0/0 PW		10/3/9/10		action ACT6. transform A2 to yellow
+mermaids	+11	125 VP		2 C		0 W		0 P		0/3/3 PW		7/7/1/1		pass
+Round 6, turn 10
+engineers	+3	110 VP		0 C		0 W	-1	0 P	-4	2/2/3 PW		2/8/10/5	5	convert 1P to 1W. convert 2PW to 2C. upgrade H6 to TP
+darklings		134 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		Decline 5 from engineers
+nomads	+9	121 VP		0 C		1 W		0 P		6/0/0 PW		10/3/9/10		pass
+engineers	+4	114 VP		0 C		0 W		0 P		2/2/3 PW		2/8/10/5		pass
+Scoring FIRE cult
+mermaids	+4	129 VP		2 C		0 W		0 P		0/3/3 PW		7/7/1/1		+4vp for FIRE
+nomads	+8	129 VP		0 C		1 W		0 P		6/0/0 PW		10/3/9/10		+8vp for FIRE
+engineers	+2	116 VP		0 C		0 W		0 P		2/2/3 PW		2/8/10/5		+2vp for FIRE
+Scoring WATER cult
+darklings	+2	136 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		+2vp for WATER
+mermaids	+4	133 VP		2 C		0 W		0 P		0/3/3 PW		7/7/1/1		+4vp for WATER
+engineers	+8	124 VP		0 C		0 W		0 P		2/2/3 PW		2/8/10/5		+8vp for WATER
+Scoring EARTH cult
+darklings	+2	138 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		+2vp for EARTH
+nomads	+4	133 VP		0 C		1 W		0 P		6/0/0 PW		10/3/9/10		+4vp for EARTH
+engineers	+8	132 VP		0 C		0 W		0 P		2/2/3 PW		2/8/10/5		+8vp for EARTH
+Scoring AIR cult
+darklings	+1	139 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		+1vp for AIR
+mermaids	+1	134 VP		2 C		0 W		0 P		0/3/3 PW		7/7/1/1		+1vp for AIR
+nomads	+8	141 VP		0 C		1 W		0 P		6/0/0 PW		10/3/9/10		+8vp for AIR
+engineers	+4	136 VP		0 C		0 W		0 P		2/2/3 PW		2/8/10/5		+4vp for AIR
+Scoring network
+darklings	+3	142 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		+3vp for network
+mermaids	+3	137 VP		2 C		0 W		0 P		0/3/3 PW		7/7/1/1		+3vp for network
+nomads	+15	156 VP		0 C		1 W		0 P		6/0/0 PW		10/3/9/10		+15vp for network
+engineers	+15	151 VP		0 C		0 W		0 P		2/2/3 PW		2/8/10/5		+15vp for network
+Converting resources to VPs
+darklings		142 VP		0 C		0 W		0 P		5/1/0 PW		0/4/2/1		score_resources
+mermaids	+2	139 VP	-2	0 C		0 W		0 P	-8	4/1/0 PW		7/7/1/1		score_resources
+nomads		156 VP	+1	1 C	-1	0 W		0 P		6/0/0 PW		10/3/9/10		score_resources
+engineers	+1	152 VP	+1	1 C		0 W		0 P	-8	6/0/0 PW		2/8/10/5		score_resources

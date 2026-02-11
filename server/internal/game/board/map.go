@@ -638,11 +638,14 @@ func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID s
 }
 
 func (m *TerraMysticaMap) getConnectedBuildings(start Hex, playerID string, allowMermaidRiverSkip bool) ([]Hex, *Hex) {
+	if allowMermaidRiverSkip {
+		return m.getConnectedBuildingsForMermaids(start, playerID)
+	}
+
 	visited := make(map[Hex]bool)
 	connected := []Hex{}
 	queue := []Hex{start}
 	visited[start] = true
-	var skippedRiver *Hex
 
 	for len(queue) > 0 {
 		current := queue[0]
@@ -673,14 +676,9 @@ func (m *TerraMysticaMap) getConnectedBuildings(start Hex, playerID string, allo
 			}
 		}
 
-		// Mermaids special ability: Check for buildings across ONE river hex
-		// Only use this ability once per town formation
-		if allowMermaidRiverSkip && skippedRiver == nil {
-			skippedRiver = m.checkMermaidsRiverSkip(current, playerID, visited, &queue, neighbors)
-		}
 	}
 
-	return connected, skippedRiver
+	return connected, nil
 }
 
 func (m *TerraMysticaMap) getBuildingTraversalNeighbors(current Hex) []Hex {
@@ -698,31 +696,122 @@ func (m *TerraMysticaMap) getBuildingTraversalNeighbors(current Hex) []Hex {
 	return neighbors
 }
 
-func (m *TerraMysticaMap) checkMermaidsRiverSkip(current Hex, playerID string, visited map[Hex]bool, queue *[]Hex, neighbors []Hex) *Hex {
-	for _, neighbor := range neighbors {
-		neighborHex := m.GetHex(neighbor)
-		// Check if this neighbor is a river hex
-		if neighborHex != nil && neighborHex.Terrain == models.TerrainRiver && !visited[neighbor] {
-			// Check hexes on the other side of this river
-			riverNeighbors := neighbor.Neighbors()
-			for _, acrossRiver := range riverNeighbors {
-				if acrossRiver == current {
-					continue // Skip the hex we came from
-				}
-				if !visited[acrossRiver] {
-					acrossHex := m.GetHex(acrossRiver)
-					// If there's a player building on the other side, connect it
-					if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
-						visited[acrossRiver] = true
-						*queue = append(*queue, acrossRiver)
-						n := neighbor
-						return &n // Track which river was skipped
-					}
-				}
+func (m *TerraMysticaMap) getConnectedBuildingsForMermaids(start Hex, playerID string) ([]Hex, *Hex) {
+	baseComponent := m.collectConnectedBuildingsWithRiver(start, playerID, nil)
+	if len(baseComponent) == 0 {
+		return nil, nil
+	}
+
+	candidateRivers := make(map[Hex]bool)
+	for _, h := range baseComponent {
+		for _, n := range h.Neighbors() {
+			neighborHex := m.GetHex(n)
+			if neighborHex == nil || neighborHex.Terrain != models.TerrainRiver {
+				continue
+			}
+			if m.hasPlayerBuildingAcrossRiver(h, n, playerID) {
+				candidateRivers[n] = true
 			}
 		}
 	}
-	return nil
+
+	bestComponent := baseComponent
+	var bestRiver *Hex
+	bestPower := m.totalBuildingPower(baseComponent)
+
+	for river := range candidateRivers {
+		r := river
+		componentWithSkip := m.collectConnectedBuildingsWithRiver(start, playerID, &r)
+		componentPower := m.totalBuildingPower(componentWithSkip)
+		if componentPower > bestPower || (componentPower == bestPower && len(componentWithSkip) > len(bestComponent)) {
+			bestComponent = componentWithSkip
+			bestPower = componentPower
+			bestRiver = &r
+		}
+	}
+
+	return bestComponent, bestRiver
+}
+
+func (m *TerraMysticaMap) collectConnectedBuildingsWithRiver(start Hex, playerID string, allowedRiver *Hex) []Hex {
+	visited := make(map[Hex]bool)
+	connected := make([]Hex, 0, 8)
+	queue := []Hex{start}
+	visited[start] = true
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		currentHex := m.GetHex(current)
+		if currentHex == nil || currentHex.Building == nil || currentHex.Building.PlayerID != playerID {
+			continue
+		}
+
+		connected = append(connected, current)
+
+		for _, neighbor := range m.getBuildingTraversalNeighbors(current) {
+			if visited[neighbor] {
+				continue
+			}
+			neighborHex := m.GetHex(neighbor)
+			if neighborHex != nil && neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
+				visited[neighbor] = true
+				queue = append(queue, neighbor)
+			}
+		}
+
+		if allowedRiver == nil {
+			continue
+		}
+		if !current.IsDirectlyAdjacent(*allowedRiver) {
+			continue
+		}
+		for _, across := range allowedRiver.Neighbors() {
+			if across == current || visited[across] {
+				continue
+			}
+			acrossHex := m.GetHex(across)
+			if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
+				visited[across] = true
+				queue = append(queue, across)
+			}
+		}
+	}
+
+	return connected
+}
+
+func (m *TerraMysticaMap) hasPlayerBuildingAcrossRiver(current, river Hex, playerID string) bool {
+	for _, across := range river.Neighbors() {
+		if across == current {
+			continue
+		}
+		acrossHex := m.GetHex(across)
+		if acrossHex != nil && acrossHex.Building != nil && acrossHex.Building.PlayerID == playerID {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *TerraMysticaMap) totalBuildingPower(hexes []Hex) int {
+	total := 0
+	for _, h := range hexes {
+		mapHex := m.GetHex(h)
+		if mapHex == nil || mapHex.Building == nil {
+			continue
+		}
+		switch mapHex.Building.Type {
+		case models.BuildingDwelling:
+			total += 1
+		case models.BuildingTradingHouse, models.BuildingTemple:
+			total += 2
+		case models.BuildingStronghold, models.BuildingSanctuary:
+			total += 3
+		}
+	}
+	return total
 }
 
 // CanTerraform checks if a hex can be terraformed
