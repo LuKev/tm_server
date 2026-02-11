@@ -42,6 +42,11 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 			expected: "C1PW:1C.ACT-SH-D-H4",
 		},
 		{
+			name:     "Lowercase single-unit conversion reward",
+			input:    "convert 3pw to w. build c2",
+			expected: "C3PW:1W.C2",
+		},
+		{
 			name:     "Pass with Cult Advance Prefix",
 			input:    "+FIRE. pass BON10",
 			expected: "+F.PASS-BON-SHIP-VP",

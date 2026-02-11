@@ -2636,7 +2636,14 @@ func parseSnellmanResources(s string) string {
 	// 1PW -> 1PW usually, but sometimes 1PW means 1W (Worker) in Snellman logs?
 	// Heuristic: 1PW -> 1W REMOVED. 1PW should mean 1 Power.
 	s = strings.ToUpper(strings.ReplaceAll(s, " ", ""))
-	return s
+	switch s {
+	case "PW", "VP", "P", "W", "C":
+		// Snellman occasionally emits bare unit rewards/costs like "convert 3pw to w".
+		// Normalize to explicit quantity for concise parser compatibility.
+		return "1" + s
+	default:
+		return s
+	}
 }
 
 func trackToShort(track string) string {
