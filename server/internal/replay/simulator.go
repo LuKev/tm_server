@@ -104,6 +104,10 @@ func (s *GameSimulator) StepForward() error {
 			fmt.Printf("Executing action %d: %T\n", s.CurrentIndex, v.Action)
 			// Execute the action against the current state
 			if err := v.Action.Execute(s.CurrentState); err != nil {
+				if shouldIgnoreMissingDeclineLeechAtFullPower(v.Action, s.CurrentState, err) {
+					s.CurrentIndex++
+					return nil
+				}
 				return fmt.Errorf("action execution failed at index %d: %w", s.CurrentIndex, err)
 			}
 		}
@@ -165,8 +169,11 @@ func (s *GameSimulator) StepForward() error {
 				availableCards := make([]game.BonusCardType, 0)
 				for _, cardCode := range cards {
 					cardCode = strings.TrimSpace(cardCode)
+					if cardCode == "" {
+						continue
+					}
 					// Parse "BON1 (Desc)" -> "BON1"
-					parts := strings.Split(cardCode, " ")
+					parts := strings.Fields(cardCode)
 					code := parts[0]
 					cardType := notation.ParseBonusCardCode(code)
 					if cardType != game.BonusCardUnknown {
@@ -180,7 +187,11 @@ func (s *GameSimulator) StepForward() error {
 				s.CurrentState.ScoringTiles = game.NewScoringTileState()
 				for i, tileCode := range tiles {
 					// Parse "SCORE1 (Desc)" -> "SCORE1"
-					parts := strings.Split(tileCode, " ")
+					tileCode = strings.TrimSpace(tileCode)
+					if tileCode == "" {
+						continue
+					}
+					parts := strings.Fields(tileCode)
 					code := parts[0]
 					tile, err := parseScoringTile(code)
 					if err != nil {
@@ -198,6 +209,25 @@ func (s *GameSimulator) StepForward() error {
 
 	s.CurrentIndex++
 	return nil
+}
+
+func shouldIgnoreMissingDeclineLeechAtFullPower(action game.Action, gs *game.GameState, err error) bool {
+	if err == nil || action == nil || gs == nil {
+		return false
+	}
+	if _, ok := action.(*game.DeclinePowerLeechAction); !ok {
+		return false
+	}
+	if !strings.Contains(err.Error(), "no pending leech offers") {
+		return false
+	}
+	player := gs.GetPlayer(action.GetPlayerID())
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return false
+	}
+	// Replay-only tolerance: Snellman can emit delayed decline rows after leech has
+	// already been resolved. Ignore only when player cannot gain any power anyway.
+	return player.Resources.Power.Bowl1 == 0 && player.Resources.Power.Bowl2 == 0
 }
 
 // JumpTo fast-forwards the simulator to the target index

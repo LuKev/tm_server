@@ -35,10 +35,15 @@ go_test(
         "convert_upgrade_test.go",
         "cult_spade_test.go",
         "darklings_dig_test.go",
+        "full_snellman_replay_test.go",
         "manager_import_test.go",
         "manager_test.go",
         "parser_test.go",
         "snapshot_test.go",
+        "simulator_leech_tolerance_test.go",
+    ],
+    data = [
+        "testdata/s69_full_game_concise.txt",
     ],
     embed = [":replay"],
     deps = [
