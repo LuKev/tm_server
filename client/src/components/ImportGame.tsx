@@ -216,7 +216,7 @@ export const ImportGame: React.FC = () => {
                         <ol>
                             <li>Click the code above to copy it.</li>
                             <li>Create a new bookmark in your browser (Ctrl/Cmd+D or right-click bookmarks bar).</li>
-                            <li>Name it &quot;Import to Kezilu&quot;.</li>
+                            <li>Name it &quot;TM Replayer&quot;.</li>
                             <li>Paste the code into the URL/Location field.</li>
                             <li>Save the bookmark.</li>
                         </ol>
