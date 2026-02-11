@@ -89,3 +89,43 @@ func TestNewPowerLeechOffer_CapacityCalculation(t *testing.T) {
 		})
 	}
 }
+
+func TestAcceptPowerLeech_ChargesByActualGain(t *testing.T) {
+	t.Run("no capacity at accept time costs zero VP", func(t *testing.T) {
+		rp := &ResourcePool{
+			Power: NewPowerSystem(0, 0, 12),
+		}
+		offer := &PowerLeechOffer{
+			Amount:       2,
+			VPCost:       1, // stale snapshot cost from offer creation
+			FromPlayerID: "neighbor",
+		}
+
+		vpCost := rp.AcceptPowerLeech(offer)
+		if vpCost != 0 {
+			t.Fatalf("expected vp cost 0 when no power can be gained, got %d", vpCost)
+		}
+		if rp.Power.Bowl1 != 0 || rp.Power.Bowl2 != 0 || rp.Power.Bowl3 != 12 {
+			t.Fatalf("expected power bowls unchanged at 0/0/12, got %d/%d/%d", rp.Power.Bowl1, rp.Power.Bowl2, rp.Power.Bowl3)
+		}
+	})
+
+	t.Run("partial gain recomputes VP cost", func(t *testing.T) {
+		rp := &ResourcePool{
+			Power: NewPowerSystem(0, 1, 11),
+		}
+		offer := &PowerLeechOffer{
+			Amount:       2,
+			VPCost:       1, // stale snapshot cost from offer creation
+			FromPlayerID: "neighbor",
+		}
+
+		vpCost := rp.AcceptPowerLeech(offer)
+		if vpCost != 0 {
+			t.Fatalf("expected vp cost 0 when only 1 power is gained, got %d", vpCost)
+		}
+		if rp.Power.Bowl1 != 0 || rp.Power.Bowl2 != 0 || rp.Power.Bowl3 != 12 {
+			t.Fatalf("expected final bowls 0/0/12 after gaining 1 power, got %d/%d/%d", rp.Power.Bowl1, rp.Power.Bowl2, rp.Power.Bowl3)
+		}
+	})
+}

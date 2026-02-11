@@ -217,8 +217,14 @@ func (rp *ResourcePool) AcceptPowerLeech(offer *PowerLeechOffer) int {
 		return 0
 	}
 
-	rp.GainPower(offer.Amount)
-	return offer.VPCost
+	// VP cost is based on power actually gained now, not on the offer's
+	// original snapshot. This matters when multiple pending leeches resolve
+	// sequentially and the player no longer has capacity for the full amount.
+	actualGained := rp.GainPower(offer.Amount)
+	if actualGained <= 1 {
+		return 0
+	}
+	return actualGained - 1
 }
 
 // DeclinePowerLeech declines a power leech offer (no effect)

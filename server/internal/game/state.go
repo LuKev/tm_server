@@ -447,11 +447,9 @@ func (gs *GameState) AcceptLeechOffer(playerID string, offerIndex int) error {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Gain power
-	player.Resources.Power.GainPower(offer.Amount)
-
-	// Lose VP
-	player.VictoryPoints -= offer.VPCost
+	// Gain power and lose VP based on the amount actually gained.
+	vpCost := player.Resources.AcceptPowerLeech(offer)
+	player.VictoryPoints -= vpCost
 
 	// Remove the offer
 	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
