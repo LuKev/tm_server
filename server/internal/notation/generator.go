@@ -270,6 +270,8 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 		return "DL"
 	case *LogAcceptLeechAction:
 		return "L" // Just "L", amount is implicit or lost in concise notation
+	case *LogDeclineLeechAction:
+		return "DL"
 	case *LogPowerAction:
 		return a.ActionCode
 	case *game.AdvanceDiggingAction:
@@ -329,6 +331,8 @@ func shouldChain(prev, curr game.Action) bool {
 	switch prev.(type) {
 	case *LogAcceptLeechAction, *game.AcceptPowerLeechAction:
 		return false
+	case *LogDeclineLeechAction:
+		return false
 	case *game.DeclinePowerLeechAction:
 		return false
 	}
@@ -336,6 +340,8 @@ func shouldChain(prev, curr game.Action) bool {
 	// Don't chain if current action is Leech or Decline Leech
 	switch curr.(type) {
 	case *LogAcceptLeechAction, *game.AcceptPowerLeechAction:
+		return false
+	case *LogDeclineLeechAction:
 		return false
 	case *game.DeclinePowerLeechAction:
 		return false

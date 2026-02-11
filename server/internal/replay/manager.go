@@ -535,7 +535,11 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 					availableCards := make([]game.BonusCardType, 0)
 					for _, cardCode := range cards {
 						// Parse "BON1 (Desc)" -> "BON1"
-						parts := strings.Split(cardCode, " ")
+						cardCode = strings.TrimSpace(cardCode)
+						if cardCode == "" {
+							continue
+						}
+						parts := strings.Fields(cardCode)
 						code := parts[0]
 						cardType := notation.ParseBonusCardCode(code)
 						if cardType != game.BonusCardUnknown {
@@ -549,7 +553,11 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 					initialState.ScoringTiles = game.NewScoringTileState()
 					for i, tileCode := range tiles {
 						// Parse "SCORE1 (Desc)" -> "SCORE1"
-						parts := strings.Split(tileCode, " ")
+						tileCode = strings.TrimSpace(tileCode)
+						if tileCode == "" {
+							continue
+						}
+						parts := strings.Fields(tileCode)
 						code := parts[0]
 						tile, err := parseScoringTile(code)
 						if err != nil {

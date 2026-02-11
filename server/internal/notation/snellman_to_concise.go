@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -72,6 +73,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 	setupActions := make(map[string][]string) // faction -> setup dwelling placements
 	setupPassOrder := []string{}              // Track setup phase pass order for Round 1
 	actionsAddedThisTurn := make(map[string]bool)
+	turnMainActionRow := make(map[string]int)
 	lastMainActionRow := make(map[string]int)
 	lastLeechSourceRow := make(map[string]int)
 	leechAnchorSource := make(map[int]map[string]string) // row -> reactor faction -> source faction
@@ -160,6 +162,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 					copy(currentRound.TurnOrder, turnOrder)
 					rounds = append(rounds, currentRound)
 					actionsAddedThisTurn = make(map[string]bool)
+					turnMainActionRow = make(map[string]int)
 					lastMainActionRow = make(map[string]int)
 					lastLeechSourceRow = make(map[string]int)
 					leechAnchorSource = make(map[int]map[string]string)
@@ -183,7 +186,18 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 					savedLine = incomeLine
 					break
 				}
-				// Income lines are skipped - simulator handles income calculation
+
+				// Snellman can include non-income setup/transform rows between two
+				// "Round X income" headers. Stop skipping as soon as we hit an action row.
+				parts := strings.Split(incomeLine, "\t")
+				if len(parts) >= 2 && isKnownFaction(strings.TrimSpace(strings.ToLower(parts[0]))) {
+					action := strings.ToLower(strings.TrimSpace(extractSnellmanAction(parts)))
+					if !isSnellmanIncomeMetaAction(action) {
+						savedLine = incomeLine
+						break
+					}
+				}
+				// Income-meta lines are skipped - simulator handles income calculation.
 			}
 			continue
 		}
@@ -206,6 +220,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 					copy(currentRound.TurnOrder, turnOrder)
 					rounds = append(rounds, currentRound)
 					actionsAddedThisTurn = make(map[string]bool)
+					turnMainActionRow = make(map[string]int)
 					lastMainActionRow = make(map[string]int)
 					lastLeechSourceRow = make(map[string]int)
 					leechAnchorSource = make(map[int]map[string]string)
@@ -218,6 +233,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 				} else {
 					// Same round, new turn: reset per-turn merge tracking.
 					actionsAddedThisTurn = make(map[string]bool)
+					turnMainActionRow = make(map[string]int)
 					turnActionRow = -1
 					turnActionCol = -1
 					turnBaseRow = len(currentRound.Rows)
@@ -272,7 +288,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 					continue
 				}
 				existing := strings.TrimSpace(currentRound.Rows[rowIdx][factionName])
-				if existing == "" || existing == "L" || existing == "DL" {
+				if existing == "" || isLeechOrDeclineToken(existing) {
 					continue
 				}
 				if !strings.Contains(existing, "."+cultBonus) {
@@ -313,6 +329,12 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 
 		// Convert action
 		cultDelta := extractCultDelta(parts)
+		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(action)), "leech ") {
+			if leechGain := extractPowerDelta(parts); leechGain > 0 {
+				re := regexp.MustCompile(`(?i)^leech\s+\d+`)
+				action = re.ReplaceAllString(action, fmt.Sprintf("Leech %d", leechGain))
+			}
+		}
 		conciseAction := convertActionToConcise(action, factionName, inSetupPhase, cultDelta)
 		if conciseAction == "" {
 			continue
@@ -335,8 +357,39 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 				}
 			}
 		} else if currentRound != nil {
+			// Emit actions in strict source order to preserve legality-sensitive
+			// resource timing (leech/convert/power sequencing).
+			isLeech := isLeechOrDeclineToken(conciseAction)
+			rowIdx := placeRoundAction(currentRound, factionName, conciseAction, len(currentRound.Rows))
+			if isLeech {
+				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+			} else {
+				lastMainActionRow[factionName] = rowIdx
+				turnMainActionRow[factionName] = rowIdx
+				if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
+					lastLeechSourceRow[factionName] = rowIdx
+				}
+				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+				actionsAddedThisTurn[factionName] = true
+				turnActionRow = rowIdx
+				turnActionCol = factionColumnIndex(roundColumns(currentRound, factions), factionName)
+			}
+			if conciseAction == "PASS" || strings.Contains(conciseAction, "PASS-") {
+				alreadyPassed := false
+				for _, p := range currentRound.PassOrder {
+					if p == factionName {
+						alreadyPassed = true
+						break
+					}
+				}
+				if !alreadyPassed {
+					currentRound.PassOrder = append(currentRound.PassOrder, factionName)
+				}
+			}
+			continue
+
 			// Check if this is a leech action - leeches should be their own row, not merged
-			isLeechAction := conciseAction == "L" || conciseAction == "DL"
+			isLeechAction := isLeechOrDeclineToken(conciseAction)
 
 			if isLeechAction {
 				targetRow := len(currentRound.Rows)
@@ -403,7 +456,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 					// If two different source factions collide on the same reactor cell,
 					// split the current source action into its own row to preserve attribution.
 					if sourceRow >= 0 &&
-						(existing == "L" || existing == "DL") &&
+						(isLeechOrDeclineToken(existing)) &&
 						existingSource != "" && sourceFaction != "" && existingSource != sourceFaction {
 						// Only move the source action if the collision is on the exact inline source row.
 						// For delayed rows (sourceRow+1 etc), just place leech on the next row.
@@ -467,9 +520,12 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 					leechAnchorSource[rowIdx][factionName] = sourceFaction
 				}
 				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+				// If a faction reacts with leech before taking its own turn action,
+				// keep subsequent action placement after this reaction row.
+				actionsAddedThisTurn[factionName] = true
 			} else if actionsAddedThisTurn[factionName] && !strings.HasPrefix(conciseAction, "PASS") {
 				// Merge follow-up non-leech actions in the same turn with faction's main action.
-				if rowIdx, ok := lastMainActionRow[factionName]; ok &&
+				if rowIdx, ok := turnMainActionRow[factionName]; ok &&
 					rowIdx >= 0 && rowIdx < len(currentRound.Rows) &&
 					currentRound.Rows[rowIdx][factionName] != "" {
 					currentRound.Rows[rowIdx][factionName] += "." + conciseAction
@@ -482,6 +538,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 				} else {
 					rowIdx := placeRoundAction(currentRound, factionName, conciseAction, len(currentRound.Rows))
 					lastMainActionRow[factionName] = rowIdx
+					turnMainActionRow[factionName] = rowIdx
 					if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
 						lastLeechSourceRow[factionName] = rowIdx
 					}
@@ -514,6 +571,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 				}
 				rowIdx := placeMainAction(currentRound, factionName, conciseAction, startRow, rowLockedForMain, roundColumns(currentRound, factions))
 				lastMainActionRow[factionName] = rowIdx
+				turnMainActionRow[factionName] = rowIdx
 				if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
 					lastLeechSourceRow[factionName] = rowIdx
 				}
@@ -619,17 +677,9 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		if len(round.TurnOrder) > 0 {
 			columns = round.TurnOrder
 		}
-		if err := enforceLeechSourceOrder(round, columns, roundLeechAnchors[round]); err != nil {
-			return "", err
-		}
-		if err := stabilizeLeechBindings(round, columns, roundLeechAnchors[round]); err != nil {
-			return "", err
-		}
-		resolveDuplicateLeechBindings(round, columns, roundLeechAnchors[round])
-		resolveAnchoredDuplicateSources(round, columns, roundLeechAnchors[round])
-		forceLeechesOffNonTriggers(round, columns, roundLeechAnchors[round])
-		breakRemainingDuplicateLeeches(round, columns, roundLeechAnchors[round])
-		compactCrossRowBlankRuns(round, columns)
+		// Keep parser output in direct chronological placement. Additional leech
+		// reshuffling heuristics can reorder legal reaction timing in source logs.
+		promoteLeechesBeforeSameFactionMain(round, columns)
 
 		result = append(result, strings.Repeat("-", 60))
 		result = append(result, formatFactionHeader(columns))
@@ -742,6 +792,40 @@ func stripEmptyRows(rows []map[string]string, columns []string) []map[string]str
 	return out
 }
 
+// promoteLeechesBeforeSameFactionMain fixes a common inversion pattern where a
+// leech marker appears one row below the same player's main action while the
+// source action sits on the leech row.
+func promoteLeechesBeforeSameFactionMain(round *snellmanRoundData, columns []string) {
+	if round == nil || len(columns) == 0 || len(round.Rows) < 2 {
+		return
+	}
+	for r := 1; r < len(round.Rows); r++ {
+		for c, faction := range columns {
+			downTok := strings.TrimSpace(round.Rows[r][faction])
+			if !isLeechOrDeclineToken(downTok) {
+				continue
+			}
+			upTok := strings.TrimSpace(round.Rows[r-1][faction])
+			if upTok == "" || isLeechOrDeclineToken(upTok) {
+				continue
+			}
+			hasSourceOnLeechRow := false
+			for sc := 0; sc < c; sc++ {
+				srcTok := strings.TrimSpace(round.Rows[r][columns[sc]])
+				if srcTok != "" && !isLeechOrDeclineToken(srcTok) && actionMayTriggerLeech(srcTok) {
+					hasSourceOnLeechRow = true
+					break
+				}
+			}
+			if !hasSourceOnLeechRow {
+				continue
+			}
+			round.Rows[r-1][faction] = downTok
+			round.Rows[r][faction] = upTok
+		}
+	}
+}
+
 type anchoredEvent struct {
 	col           int
 	faction       string
@@ -760,7 +844,7 @@ func enforceLeechSourceOrder(round *snellmanRoundData, columns []string, anchors
 	lastReqByReactor := make(map[string]int)
 	for i := 0; i < len(events); i++ {
 		ev := events[i]
-		if ev.token != "L" && ev.token != "DL" {
+		if !isLeechOrDeclineToken(ev.token) {
 			continue
 		}
 		if ev.sourceFaction == "" {
@@ -768,7 +852,7 @@ func enforceLeechSourceOrder(round *snellmanRoundData, columns []string, anchors
 		}
 		req := -1
 		for j := i - 1; j >= 0; j-- {
-			if events[j].token == "L" || events[j].token == "DL" {
+			if isLeechOrDeclineToken(events[j].token) {
 				continue
 			}
 			if normalizeFactionNameForMatching(events[j].faction) == normalizeFactionNameForMatching(ev.sourceFaction) && actionMayTriggerLeech(events[j].token) {
@@ -780,7 +864,7 @@ func enforceLeechSourceOrder(round *snellmanRoundData, columns []string, anchors
 		// allow binding to the next eligible source action by the same faction.
 		if req < 0 {
 			for j := i + 1; j < len(events); j++ {
-				if events[j].token == "L" || events[j].token == "DL" {
+				if isLeechOrDeclineToken(events[j].token) {
 					continue
 				}
 				if normalizeFactionNameForMatching(events[j].faction) == normalizeFactionNameForMatching(ev.sourceFaction) && actionMayTriggerLeech(events[j].token) {
@@ -796,7 +880,7 @@ func enforceLeechSourceOrder(round *snellmanRoundData, columns []string, anchors
 		// force binding to the next eligible action by the same source faction.
 		if prevReq, ok := lastReqByReactor[ev.faction]; ok && prevReq == req {
 			for j := req + 1; j < len(events); j++ {
-				if events[j].token == "L" || events[j].token == "DL" {
+				if isLeechOrDeclineToken(events[j].token) {
 					continue
 				}
 				if normalizeFactionNameForMatching(events[j].faction) == normalizeFactionNameForMatching(ev.sourceFaction) && actionMayTriggerLeech(events[j].token) {
@@ -807,7 +891,7 @@ func enforceLeechSourceOrder(round *snellmanRoundData, columns []string, anchors
 		}
 		prev := -1
 		for j := i - 1; j >= 0; j-- {
-			if events[j].token != "L" && events[j].token != "DL" {
+			if !isLeechOrDeclineToken(events[j].token) {
 				prev = j
 				break
 			}
@@ -839,7 +923,7 @@ func flattenAnchoredEvents(round *snellmanRoundData, columns []string, anchors m
 				continue
 			}
 			source := ""
-			if tok == "L" || tok == "DL" {
+			if isLeechOrDeclineToken(tok) {
 				if m, ok := anchors[r]; ok {
 					source = m[faction]
 				}
@@ -888,7 +972,7 @@ func rebuildFromAnchoredEvents(round *snellmanRoundData, columns []string, event
 	}
 	for _, p := range placedEvents {
 		rows[p.row][p.ev.faction] = p.ev.token
-		if (p.ev.token == "L" || p.ev.token == "DL") && p.ev.sourceFaction != "" {
+		if isLeechOrDeclineToken(p.ev.token) && p.ev.sourceFaction != "" {
 			if _, ok := anchors[p.row]; !ok {
 				anchors[p.row] = make(map[string]string)
 			}
@@ -913,7 +997,7 @@ func stabilizeLeechBindings(round *snellmanRoundData, columns []string, anchors 
 		for r := 0; r < len(round.Rows); r++ {
 			for c, reactorFaction := range columns {
 				tok := strings.TrimSpace(round.Rows[r][reactorFaction])
-				if tok != "L" && tok != "DL" {
+				if !isLeechOrDeclineToken(tok) {
 					continue
 				}
 				pRow, pCol, pTok, ok := findPreviousNonLeech(round, columns, r, c)
@@ -1132,7 +1216,7 @@ func findPreviousNonLeech(round *snellmanRoundData, columns []string, row, col i
 		}
 		for c := startCol; c >= 0; c-- {
 			tok := strings.TrimSpace(round.Rows[r][columns[c]])
-			if tok == "" || tok == "L" || tok == "DL" {
+			if tok == "" || isLeechOrDeclineToken(tok) {
 				continue
 			}
 			return r, c, tok, true
@@ -1168,7 +1252,7 @@ func findPreviousNonLeechAtPosition(round *snellmanRoundData, columns []string, 
 		}
 		for c := startCol; c >= 0; c-- {
 			tok := strings.TrimSpace(round.Rows[r][columns[c]])
-			if tok == "" || tok == "L" || tok == "DL" {
+			if tok == "" || isLeechOrDeclineToken(tok) {
 				continue
 			}
 			return r, c, tok, true
@@ -1282,7 +1366,7 @@ func forceLeechesOffNonTriggers(round *snellmanRoundData, columns []string, anch
 		for r := 0; r < len(round.Rows); r++ {
 			for c, faction := range columns {
 				tok := strings.TrimSpace(round.Rows[r][faction])
-				if tok != "L" && tok != "DL" {
+				if !isLeechOrDeclineToken(tok) {
 					continue
 				}
 				_, _, pTok, ok := findPreviousNonLeech(round, columns, r, c)
@@ -1292,7 +1376,7 @@ func forceLeechesOffNonTriggers(round *snellmanRoundData, columns []string, anch
 				lastLeechPrevRow, lastLeechPrevCol := -1, -1
 				for pr := r - 1; pr >= 0; pr-- {
 					pt := strings.TrimSpace(round.Rows[pr][faction])
-					if pt != "L" && pt != "DL" {
+					if !isLeechOrDeclineToken(pt) {
 						continue
 					}
 					lr, lc, _, lok := findPreviousNonLeech(round, columns, pr, c)
@@ -1341,7 +1425,7 @@ func alignLeechesToAnchoredSource(round *snellmanRoundData, columns []string, an
 		for r := 0; r < len(round.Rows); r++ {
 			for c, reactorFaction := range columns {
 				tok := strings.TrimSpace(round.Rows[r][reactorFaction])
-				if tok != "L" && tok != "DL" {
+				if !isLeechOrDeclineToken(tok) {
 					continue
 				}
 				sourceFaction := ""
@@ -1389,14 +1473,12 @@ func findSourceBindingTargetRow(
 	columns []string,
 	reactorFaction string,
 	sourceFaction string,
-	currentRow int,
+	_ int,
 	col int,
 ) int {
 	if round == nil || len(columns) == 0 || col < 0 || col >= len(columns) {
 		return -1
 	}
-	best := -1
-	bestDist := 1 << 30
 	for cand := 0; cand <= len(round.Rows); cand++ {
 		if cand != len(round.Rows) && strings.TrimSpace(round.Rows[cand][reactorFaction]) != "" {
 			continue
@@ -1408,16 +1490,10 @@ func findSourceBindingTargetRow(
 		if normalizeFactionNameForMatching(columns[pCol]) != sourceFaction {
 			continue
 		}
-		dist := cand - currentRow
-		if dist < 0 {
-			dist = -dist
-		}
-		if dist < bestDist {
-			bestDist = dist
-			best = cand
-		}
+		// Prefer earliest valid binding row to preserve chronological ordering.
+		return cand
 	}
-	return best
+	return -1
 }
 
 func resolveDuplicateLeechBindings(round *snellmanRoundData, columns []string, anchors map[int]map[string]string) {
@@ -1433,7 +1509,7 @@ func resolveDuplicateLeechBindings(round *snellmanRoundData, columns []string, a
 			lastLeechSource := ""
 			for r := 0; r < len(round.Rows); r++ {
 				tok := strings.TrimSpace(round.Rows[r][reactorFaction])
-				if tok != "L" && tok != "DL" {
+				if !isLeechOrDeclineToken(tok) {
 					continue
 				}
 				source := ""
@@ -1481,14 +1557,15 @@ func resolveDuplicateLeechBindings(round *snellmanRoundData, columns []string, a
 						break
 					}
 					// Contradictory duplicate decisions for the same source action in the same
-					// reactor column can appear in noisy logs (e.g. DL followed by L). Keep the
-					// latest decision and drop the earlier one.
+					// reactor column can appear in noisy logs (e.g. explicit leech row plus
+					// "[opponent accepted power]"). Keep the earliest decision to preserve
+					// chronological ordering and drop the later duplicate.
 					if lastLeechRow >= 0 && source != "" && source == lastLeechSource {
-						delete(round.Rows[lastLeechRow], reactorFaction)
-						if m, ok := anchors[lastLeechRow]; ok {
+						delete(round.Rows[r], reactorFaction)
+						if m, ok := anchors[r]; ok {
 							delete(m, reactorFaction)
 							if len(m) == 0 {
-								delete(anchors, lastLeechRow)
+								delete(anchors, r)
 							}
 						}
 						moved = true
@@ -1550,7 +1627,7 @@ func resolveAnchoredDuplicateSources(round *snellmanRoundData, columns []string,
 			lastSource := ""
 			for r := 0; r < len(round.Rows); r++ {
 				tok := strings.TrimSpace(round.Rows[r][reactorFaction])
-				if tok != "L" && tok != "DL" {
+				if !isLeechOrDeclineToken(tok) {
 					continue
 				}
 				source := ""
@@ -1604,7 +1681,7 @@ func breakRemainingDuplicateLeeches(round *snellmanRoundData, columns []string, 
 			lastPrevRow, lastPrevCol := -1, -1
 			for r := 0; r < len(round.Rows); r++ {
 				tok := strings.TrimSpace(round.Rows[r][reactorFaction])
-				if tok != "L" && tok != "DL" {
+				if !isLeechOrDeclineToken(tok) {
 					continue
 				}
 				pRow, pCol, pTok, ok := findPreviousNonLeech(round, columns, r, c)
@@ -1652,7 +1729,7 @@ func previousNonLeechIsSource(round *snellmanRoundData, columns []string, row, c
 		}
 		for c := cStart; c >= 0; c-- {
 			tok := strings.TrimSpace(round.Rows[r][columns[c]])
-			if tok == "" || tok == "L" || tok == "DL" {
+			if tok == "" || isLeechOrDeclineToken(tok) {
 				continue
 			}
 			return r == sourceRow && c == sourceCol
@@ -1812,7 +1889,7 @@ func rowCanAcceptMainAction(row map[string]string, faction string, columns []str
 		return true
 	}
 	for existingFaction, tok := range row {
-		if tok != "L" && tok != "DL" {
+		if !isLeechOrDeclineToken(tok) {
 			continue
 		}
 		existingCol := factionColumnIndex(columns, existingFaction)
@@ -1926,7 +2003,7 @@ func relocateInterferingActionsForLeech(
 			continue
 		}
 		a := strings.TrimSpace(round.Rows[sourceRow][f])
-		if a == "" || a == "L" || a == "DL" {
+		if a == "" || isLeechOrDeclineToken(a) {
 			continue
 		}
 		moveSourceActionAndAnchoredLeeches(
@@ -1961,6 +2038,18 @@ func extractLeechSourceFaction(action string) string {
 		return source
 	}
 	return ""
+}
+
+func isLeechOrDeclineToken(token string) bool {
+	t := strings.ToUpper(strings.TrimSpace(token))
+	if t == "DL" || t == "L" {
+		return true
+	}
+	if strings.HasPrefix(t, "L") {
+		_, err := strconv.Atoi(strings.TrimPrefix(t, "L"))
+		return err == nil
+	}
+	return false
 }
 
 func factionColumnIndex(factions []string, faction string) int {
@@ -2055,7 +2144,7 @@ func findLatestEligibleLeechSourceRow(round *snellmanRoundData, sourceFaction st
 	}
 	for row := beforeRow; row >= 0; row-- {
 		tok := strings.TrimSpace(round.Rows[row][sourceFaction])
-		if tok == "" || tok == "L" || tok == "DL" {
+		if tok == "" || isLeechOrDeclineToken(tok) {
 			continue
 		}
 		if actionMayTriggerLeech(tok) {
@@ -2155,6 +2244,9 @@ func convertActionToConcise(action, faction string, isSetup bool, cultDelta int)
 
 	// Upgrade: "upgrade E5 to TP" -> "UP-TH-E5" (note: TP -> TH for Trading House)
 	if strings.HasPrefix(lowerAction, "upgrade ") {
+		if strings.Contains(action, ".") {
+			return convertCompoundActionToConcise(action, faction, cultDelta)
+		}
 		re := regexp.MustCompile(`(?i)upgrade (\w+) to (\w+)`)
 		if m := re.FindStringSubmatch(action); len(m) > 2 {
 			coord := strings.ToUpper(m[1])
@@ -2187,8 +2279,15 @@ func convertActionToConcise(action, faction string, isSetup bool, cultDelta int)
 		return fmt.Sprintf("PASS-%s", bonusCode)
 	}
 
-	// Leech: "Leech 1 from engineers" -> "L"
+	// Leech: "Leech 1 from engineers" -> "L1"
 	if strings.HasPrefix(lowerAction, "leech ") {
+		re := regexp.MustCompile(`(?i)^leech\s+(\d+)\s+from\s+`)
+		if m := re.FindStringSubmatch(action); len(m) > 1 {
+			if m[1] == "1" {
+				return "L"
+			}
+			return "L" + m[1]
+		}
 		return "L"
 	}
 
@@ -2440,7 +2539,12 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 						re := regexp.MustCompile(`(?i)transform (\w+) to (\w+)`)
 						if m := re.FindStringSubmatch(nextPart); len(m) > 2 {
 							coord := strings.ToUpper(m[1])
-							resultParts = append(resultParts, fmt.Sprintf("ACTS-%s", coord))
+							terrain := snellmanColorToShort(m[2])
+							if strings.EqualFold(terrain, factionHomeColorShort(faction)) {
+								resultParts = append(resultParts, fmt.Sprintf("ACTS-%s", coord))
+							} else {
+								resultParts = append(resultParts, fmt.Sprintf("ACTS-%s-%s", coord, terrain))
+							}
 							parts[j] = "" // consume transform part
 							merged = true
 							break
@@ -2463,6 +2567,27 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 				resultParts = append(resultParts, fmt.Sprintf("ACT-BON-%s", cultTrack))
 			} else {
 				resultParts = append(resultParts, actType)
+			}
+		}
+
+		// Bridge placement paired with ACT1:
+		// "action ACT1. bridge C2:D4" -> "ACT1-C2-D4"
+		if strings.HasPrefix(partLower, "bridge ") {
+			bridgeRe := regexp.MustCompile(`(?i)^bridge\s+([A-I]\d{1,2})\s*:\s*([A-I]\d{1,2})$`)
+			if m := bridgeRe.FindStringSubmatch(strings.TrimSpace(part)); len(m) > 2 {
+				c1 := strings.ToUpper(strings.TrimSpace(m[1]))
+				c2 := strings.ToUpper(strings.TrimSpace(m[2]))
+				updated := false
+				for j := len(resultParts) - 1; j >= 0; j-- {
+					if resultParts[j] == "ACT1" {
+						resultParts[j] = fmt.Sprintf("ACT1-%s-%s", c1, c2)
+						updated = true
+						break
+					}
+				}
+				if !updated {
+					resultParts = append(resultParts, fmt.Sprintf("ACT1-%s-%s", c1, c2))
+				}
 			}
 		}
 
@@ -2579,7 +2704,59 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 		}
 	}
 
+	resultParts = normalizeUpgradeFavorTownOrder(resultParts)
 	return strings.Join(resultParts, ".")
+}
+
+func normalizeUpgradeFavorTownOrder(parts []string) []string {
+	if len(parts) < 3 {
+		return parts
+	}
+	upgradeIdx := -1
+	for i, p := range parts {
+		if strings.HasPrefix(p, "UP-TE-") || strings.HasPrefix(p, "UP-SA-") {
+			upgradeIdx = i
+			break
+		}
+	}
+	if upgradeIdx < 0 || upgradeIdx+1 >= len(parts) {
+		return parts
+	}
+
+	hasFav := false
+	hasTown := false
+	for i := upgradeIdx + 1; i < len(parts); i++ {
+		if strings.HasPrefix(parts[i], "FAV-") {
+			hasFav = true
+		}
+		if regexp.MustCompile(`^TW\d+VP$`).MatchString(parts[i]) {
+			hasTown = true
+		}
+	}
+	if !hasFav || !hasTown {
+		return parts
+	}
+
+	head := append([]string{}, parts[:upgradeIdx+1]...)
+	favs := make([]string, 0, 2)
+	towns := make([]string, 0, 2)
+	rest := make([]string, 0, len(parts)-upgradeIdx-1)
+	for i := upgradeIdx + 1; i < len(parts); i++ {
+		p := parts[i]
+		switch {
+		case strings.HasPrefix(p, "FAV-"):
+			favs = append(favs, p)
+		case regexp.MustCompile(`^TW\d+VP$`).MatchString(p):
+			towns = append(towns, p)
+		default:
+			rest = append(rest, p)
+		}
+	}
+
+	out := append(head, favs...)
+	out = append(out, towns...)
+	out = append(out, rest...)
+	return out
 }
 
 func extractCultDelta(parts []string) int {
@@ -2605,6 +2782,33 @@ func extractCultDelta(parts []string) int {
 			delta = -delta
 		}
 		return delta
+	}
+	return 0
+}
+
+func extractPowerDelta(parts []string) int {
+	powerPattern := regexp.MustCompile(`^\d+/\d+/\d+\s*PW$`)
+	deltaPattern := regexp.MustCompile(`^[+-]\d+$`)
+	for i, part := range parts {
+		p := strings.ToUpper(strings.TrimSpace(part))
+		if !powerPattern.MatchString(p) {
+			continue
+		}
+		if i == 0 {
+			return 0
+		}
+		prev := strings.TrimSpace(parts[i-1])
+		if !deltaPattern.MatchString(prev) {
+			return 0
+		}
+		var delta int
+		if _, err := fmt.Sscanf(prev, "%d", &delta); err != nil {
+			return 0
+		}
+		if delta > 0 {
+			return delta
+		}
+		return 0
 	}
 	return 0
 }
@@ -2759,6 +2963,15 @@ func isNumericWithDelta(s string) bool {
 	return true
 }
 
+func isSnellmanIncomeMetaAction(action string) bool {
+	switch action {
+	case "other_income_for_faction", "cult_income_for_faction":
+		return true
+	default:
+		return false
+	}
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -2839,13 +3052,13 @@ func snellmanFavToConscise(num string) string {
 func snellmanTownToConcise(num string) string {
 	mapping := map[string]string{
 		"1": "TW5VP",
-		"2": "TW6VP",
-		"3": "TW7VP",
-		"4": "TW8VP",
-		"5": "TW9VP",
-		"6": "TW11VP",
-		"7": "TW2VP",
-		"8": "TW4VP",
+		"2": "TW7VP",
+		"3": "TW9VP",
+		"4": "TW6VP",
+		"5": "TW8VP",
+		"6": "TW2VP",
+		"7": "TW4VP",
+		"8": "TW11VP",
 	}
 	if result, ok := mapping[num]; ok {
 		return result

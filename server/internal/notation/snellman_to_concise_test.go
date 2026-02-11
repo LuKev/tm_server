@@ -193,11 +193,11 @@ func TestConvertSnellmanToConcise_FavorActionTownAndAurenStrongholdCodes(t *test
 	if !strings.Contains(got, "ACT-SH-F") {
 		t.Fatalf("expected Auren stronghold action to map to ACT-SH-F:\n%s", got)
 	}
-	if !strings.Contains(got, "F2.TW8VP") {
-		t.Fatalf("expected +TW4 to map to TW8VP:\n%s", got)
+	if !strings.Contains(got, "F2.TW6VP") {
+		t.Fatalf("expected +TW4 to map to TW6VP:\n%s", got)
 	}
-	if !strings.Contains(got, "C1PW:1C.G2.TW4VP") {
-		t.Fatalf("expected lowercase +tw8 to map to TW4VP:\n%s", got)
+	if !strings.Contains(got, "C1PW:1C.G2.TW11VP") {
+		t.Fatalf("expected lowercase +tw8 to map to TW11VP:\n%s", got)
 	}
 	if strings.Contains(got, "+3.+") || strings.Contains(got, "for network") {
 		t.Fatalf("expected scoring deltas to be ignored, got:\n%s", got)
@@ -480,7 +480,7 @@ func TestConvertSnellmanToConcise_LeechFromLeftColumnsMovesToLaterRow(t *testing
 	if !strings.Contains(got, "| UP-TH-F6") {
 		t.Fatalf("expected source action row to remain present:\n%s", got)
 	}
-	if !strings.Contains(got, "L            | L            |              |") {
+	if !strings.Contains(got, "L            | L3           |              |") {
 		t.Fatalf("expected left-side leeches to move to later row:\n%s", got)
 	}
 }
@@ -515,8 +515,40 @@ func TestConvertSnellmanToConcise_CompactsEarlyRoundRows(t *testing.T) {
 	if !strings.Contains(got, "UP-TH-F4") {
 		t.Fatalf("expected auren action to be preserved:\n%s", got)
 	}
-	if !strings.Contains(got, "L            |              | L            |") {
+	if !strings.Contains(got, "L2           |              | L            |") {
 		t.Fatalf("expected left-side delayed leeches to remain after source actions:\n%s", got)
+	}
+}
+
+func TestConvertSnellmanToConcise_DoesNotDropActionsBetweenIncomeBlocks(t *testing.T) {
+	input := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"engineers\t\t20 VP\t\t10 C\t\t2 W\t\t0 P\t\t3/9/0 PW\t\t0/0/0/0\t\tsetup",
+		"darklings\t\t20 VP\t\t15 C\t\t1 W\t\t1 P\t\t5/7/0 PW\t\t0/1/1/0\t\tsetup",
+		"cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tsetup",
+		"witches\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t0/0/0/2\t\tsetup",
+		"Round 6 income\tshow history",
+		"witches\t\t70 VP\t\t10 C\t\t3 W\t\t1 P\t\t4/0/1 PW\t\t1/1/0/8\t\tcult_income_for_faction",
+		"cultists\t\t65 VP\t\t4 C\t\t3 W\t\t0 P\t\t1/4/0 PW\t\t7/8/7/9\t\tcult_income_for_faction",
+		"engineers\t\t91 VP\t\t3 C\t\t0 W\t\t0 P\t\t6/1/0 PW\t\t0/4/5/0\t\tcult_income_for_faction",
+		"darklings\t\t89 VP\t\t5 C\t\t0 W\t\t0 P\t\t3/0/1 PW\t\t3/10/10/2\t\tcult_income_for_faction",
+		"engineers\t\t91 VP\t\t3 C\t\t0 W\t\t0 P\t\t6/1/0 PW\t\t0/4/5/0\t\ttransform I10 to green",
+		"Round 6 income\tshow history",
+		"engineers\t\t91 VP\t+10\t13 C\t+4\t4 W\t+2\t2 P\t+12\t0/1/6 PW\t\t0/4/5/0\t\tother_income_for_faction",
+		"Round 6, turn 1\tshow history",
+		"engineers\t\t105 VP\t-1\t13 C\t-1\t2 W\t\t2 P\t\t3/1/3 PW\t\t2/4/5/0\t\taction BON1. transform I10 to gray. build I10",
+	}, "\n")
+
+	got, err := ConvertSnellmanToConcise(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
+	}
+
+	if !strings.Contains(got, "T-I10-G") {
+		t.Fatalf("expected transform between income blocks to be preserved:\n%s", got)
+	}
+	if !strings.Contains(got, "ACTS-I10.I10") {
+		t.Fatalf("expected BON1 transform/build to preserve transformed home terrain action:\n%s", got)
 	}
 }
 

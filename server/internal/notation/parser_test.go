@@ -55,6 +55,16 @@ func TestParseActionCode_RejectsStandaloneConversion(t *testing.T) {
 	}
 }
 
+func TestParseActionCode_DLParsesAsLogDecline(t *testing.T) {
+	action, err := parseActionCode("Cultists", "DL")
+	if err != nil {
+		t.Fatalf("parseActionCode(DL) error = %v", err)
+	}
+	if _, ok := action.(*LogDeclineLeechAction); !ok {
+		t.Fatalf("parseActionCode(DL) type = %T, want *LogDeclineLeechAction", action)
+	}
+}
+
 func TestParseActionCode_AllowsConversionInsideCompound(t *testing.T) {
 	action, err := parseActionCode("Witches", "BURN3.C5PW:1P.+SHIP")
 	if err != nil {

@@ -46,6 +46,7 @@ type LogAcceptLeechAction struct {
 	PlayerID    string
 	PowerAmount int
 	VPCost      int
+	Explicit    bool
 }
 
 // GetType returns the action type.
@@ -66,6 +67,10 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 
 	// Try to infer from pending offers
 	if offers, ok := gs.PendingLeechOffers[a.PlayerID]; ok && len(offers) > 0 {
+		if a.Explicit && a.PowerAmount > 0 {
+			offers[0].Amount = a.PowerAmount
+			offers[0].VPCost = a.VPCost
+		}
 		// Accept the first offer
 		// Use AcceptLeechOffer helper which handles VP cost and removal
 		if err := gs.AcceptLeechOffer(a.PlayerID, 0); err != nil {
@@ -81,6 +86,32 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 	return nil
 }
 
+// LogDeclineLeechAction is a log-only representation of declining leech.
+// Unlike the strict game decline action, this is tolerant when no offer is pending.
+type LogDeclineLeechAction struct {
+	PlayerID string
+}
+
+// GetType returns the action type.
+func (a *LogDeclineLeechAction) GetType() game.ActionType { return game.ActionDeclinePowerLeech }
+
+// GetPlayerID returns the player ID.
+func (a *LogDeclineLeechAction) GetPlayerID() string { return a.PlayerID }
+
+// Validate checks if the action is valid.
+func (a *LogDeclineLeechAction) Validate(gs *game.GameState) error { return nil }
+
+// Execute applies the action to the game state.
+func (a *LogDeclineLeechAction) Execute(gs *game.GameState) error {
+	offers := gs.PendingLeechOffers[a.PlayerID]
+	if len(offers) == 0 {
+		// Snellman logs can include delayed/defensive decline rows where
+		// our reconstructed offer state has already been resolved.
+		return nil
+	}
+	return game.NewDeclinePowerLeechAction(a.PlayerID, 0).Execute(gs)
+}
+
 // LogPowerAction is a log-only representation of a power action
 type LogPowerAction struct {
 	PlayerID   string
@@ -94,10 +125,7 @@ func (a *LogPowerAction) GetType() game.ActionType { return game.ActionPowerActi
 func (a *LogPowerAction) GetPlayerID() string { return a.PlayerID }
 
 // Validate checks if the action is valid.
-func (a *LogPowerAction) Validate(gs *game.GameState) error { return nil }
-
-// Execute applies the action to the game state.
-func (a *LogPowerAction) Execute(gs *game.GameState) error {
+func (a *LogPowerAction) Validate(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
@@ -108,18 +136,41 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 		return fmt.Errorf("unknown power action code: %s", a.ActionCode)
 	}
 
-	// Check availability
-	// if !gs.PowerActions.IsAvailable(actionType) {
-	// 	// For replay, we might want to warn but proceed?
-	// 	// Or assume the log is correct and maybe we missed a reset?
-	// 	// But strictly, it's an error.
-	// 	// fmt.Printf("Warning: Power action %v already used\n", actionType)
-	// }
+	if !gs.PowerActions.IsAvailable(actionType) {
+		return fmt.Errorf("power action %v has already been taken this round", actionType)
+	}
 
-	// Spend power (manual implementation to avoid validation errors if resources mismatch slightly)
 	powerCost := game.GetPowerCost(actionType)
-	player.Resources.Power.Bowl3 -= powerCost
-	player.Resources.Power.Bowl1 += powerCost
+	if player.Resources.Power.Bowl3 < powerCost {
+		neededFromBurn := powerCost - player.Resources.Power.Bowl3
+		if !player.Resources.Power.CanBurn(neededFromBurn) {
+			return fmt.Errorf("not enough power in Bowl III: need %d, have %d", powerCost, player.Resources.Power.Bowl3)
+		}
+	}
+
+	return nil
+}
+
+// Execute applies the action to the game state.
+func (a *LogPowerAction) Execute(gs *game.GameState) error {
+	if err := a.Validate(gs); err != nil {
+		return err
+	}
+
+	player := gs.GetPlayer(a.PlayerID)
+	actionType := ParsePowerActionCode(a.ActionCode)
+
+	// Spend power through canonical power system to prevent illegal negative bowls.
+	powerCost := game.GetPowerCost(actionType)
+	if player.Resources.Power.Bowl3 < powerCost {
+		neededFromBurn := powerCost - player.Resources.Power.Bowl3
+		if err := player.Resources.Power.BurnPower(neededFromBurn); err != nil {
+			return fmt.Errorf("failed to burn power for %s: %w", a.ActionCode, err)
+		}
+	}
+	if err := player.Resources.Power.SpendPower(powerCost); err != nil {
+		return fmt.Errorf("failed to spend power for %s: %w", a.ActionCode, err)
+	}
 
 	// Mark used
 	gs.PowerActions.MarkUsed(actionType)
@@ -148,10 +199,6 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 		}
 
 		// Increment bridge count (game logic handles limit check in Validate, but we are in Execute)
-		// Note: PowerAction.Execute increments this too, but we are bypassing PowerAction.Execute
-		// because we are implementing LogPowerAction.Execute directly.
-		// Wait, LogPowerAction.Execute does NOT call PowerAction.Execute.
-		// It implements the logic itself.
 		player.BridgesBuilt++
 
 	case game.PowerActionPriest:
@@ -191,31 +238,14 @@ func (a *LogBurnAction) Execute(gs *game.GameState) error {
 	}
 	// Burn power: move from Bowl 2 to Bowl 3
 	// Amount is 2 * power gained.
-	// Logic: Burn X/2 from Bowl 2 to remove from game, move X/2 from Bowl 2 to Bowl 3.
-	// Wait, standard burn is: Burn 1 from Bowl 2 to move 1 from Bowl 2 to Bowl 3.
-	// So cost is 1 burned per 1 gained.
-	// The log says "sacrificed X power ... to get Y power".
-	// So we remove X from Bowl 2, and move Y from Bowl 2 to Bowl 3.
-	// Actually, usually X = Y.
-	// Let's assume Amount is the amount BURNED (removed).
-	// And we gain the same amount in Bowl 3 (from Bowl 2).
-
-	// Check bga_parser.go regex:
-	// reBurn := regexp.MustCompile(`(.*) sacrificed (\d+) power in Bowl 2 to get (\d+) power from Bowl 2 to Bowl 3`)
-	// LogBurnAction has Amount. bga_parser sets Amount to matches[2] (sacrificed).
-
 	burned := a.Amount
 	gained := burned // usually 1:1
 
 	if player.Resources.Power.Bowl2 < burned+gained {
-		// This might happen if log is out of sync or we missed something.
-		// For replay, we might just force it.
-		_ = 0 // No-op to avoid empty block lint
+		return fmt.Errorf("insufficient power in bowl 2 to burn: %d available, %d required", player.Resources.Power.Bowl2, burned+gained)
 	}
 
 	player.Resources.Power.Bowl2 -= burned
-	// burned power is gone.
-
 	player.Resources.Power.Bowl2 -= gained
 	player.Resources.Power.Bowl3 += gained
 
@@ -542,6 +572,15 @@ func (a *LogConversionAction) Execute(gs *game.GameState) error {
 
 	// Spend cost
 	// We need to map models.ResourceType to factions.Cost
+	powerCost := a.Cost[models.ResourcePower]
+	if powerCost > 0 && player.Resources.Power.Bowl3 < powerCost {
+		neededFromBurn := powerCost - player.Resources.Power.Bowl3
+		if player.Resources.Power.CanBurn(neededFromBurn) {
+			if err := player.Resources.Power.BurnPower(neededFromBurn); err != nil {
+				return fmt.Errorf("failed to burn power for conversion: %w", err)
+			}
+		}
+	}
 	cost := factions.Cost{
 		Workers: a.Cost[models.ResourceWorker],
 		Priests: a.Cost[models.ResourcePriest],
@@ -550,7 +589,7 @@ func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	// Power cost in conversion usually means "Spend Power" (Bowl III -> Bowl I)
 	// But factions.Cost.Power usually means "Gain Power" or "Spend Power" depending on context.
 	// Player.Resources.Spend handles Power as "Spend from Bowl III".
-	cost.Power = a.Cost[models.ResourcePower]
+	cost.Power = powerCost
 
 	// VP cost? (Alchemists)
 	vpCost := a.Cost[models.ResourceVictoryPoint]
@@ -605,6 +644,7 @@ func isReplayAuxiliaryOnlyAction(action game.Action) bool {
 		*LogCultistAdvanceAction,
 		*LogHalflingsSpadeAction,
 		*LogAcceptLeechAction,
+		*LogDeclineLeechAction,
 		*LogBonusCardSelectionAction:
 		return true
 	}

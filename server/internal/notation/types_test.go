@@ -33,3 +33,13 @@ func TestLogCompoundAction_RejectsAuxiliaryOnlySequence(t *testing.T) {
 	}
 }
 
+func TestLogDeclineLeechAction_NoPendingOffers_NoError(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	gs.Players[playerID] = &game.Player{ID: playerID, Resources: game.NewResourcePool()}
+
+	action := &LogDeclineLeechAction{PlayerID: playerID}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogDeclineLeechAction.Execute(no pending) error = %v, want nil", err)
+	}
+}

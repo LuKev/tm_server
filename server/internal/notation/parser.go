@@ -259,13 +259,7 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		}
 	}
 	if upperCode == "DL" {
-		// Return standard action or Log action?
-		// Generator uses "DL" -> DeclinePowerLeechAction
-		// But standard action requires amount. Log doesn't have amount for DL (usually).
-		// Wait, BGAParser emits Decline with amount. Generator prints "DL".
-		// So we lose the amount in concise log for Decline.
-		// That's fine, usually amount doesn't matter for decline (except for stats).
-		return game.NewDeclinePowerLeechAction(playerID, 0), nil
+		return &LogDeclineLeechAction{PlayerID: playerID}, nil
 	}
 
 	// Burn: BURN<N>
@@ -346,6 +340,7 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 					PlayerID:    playerID,
 					PowerAmount: amount,
 					VPCost:      vpCost,
+					Explicit:    true,
 				}, nil
 			}
 		}
@@ -354,6 +349,7 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			PlayerID:    playerID,
 			PowerAmount: 1,
 			VPCost:      0,
+			Explicit:    false,
 		}, nil
 	}
 
