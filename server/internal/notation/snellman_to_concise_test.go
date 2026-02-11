@@ -103,6 +103,29 @@ func TestConvertSnellmanToConcise_CompoundSendPriestAndBon1SpadeTransform(t *tes
 			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
 		}
 	})
+
+	t.Run("Send priest then conversion stays compound", func(t *testing.T) {
+		input := "send p to AIR. convert 1PW to 1C"
+		got := convertActionToConcise(input, "cultists", false, 2)
+		want := "->A2.C1PW:1C"
+		if got != want {
+			t.Fatalf("convertActionToConcise() = %v, want %v", got, want)
+		}
+	})
+}
+
+func TestExtractSnellmanAction_PreservesLeadingSendPriestInCompound(t *testing.T) {
+	parts := []string{
+		"cultists",
+		"+1",
+		"49 VP",
+		"send p to AIR. convert 1PW to 1C",
+	}
+	got := extractSnellmanAction(parts)
+	want := "send p to AIR. convert 1PW to 1C"
+	if got != want {
+		t.Fatalf("extractSnellmanAction() = %q, want %q", got, want)
+	}
 }
 
 func TestConvertSnellmanToConcise_PlainPassParses(t *testing.T) {

@@ -2092,10 +2092,11 @@ func extractSnellmanAction(parts []string) string {
 			strings.Contains(lower, "transform") ||
 			strings.Contains(lower, "burn") ||
 			strings.Contains(lower, "dig") ||
+			strings.Contains(lower, "send p to") ||
 			strings.Contains(lower, "advance") {
 
 			// Clean up any preceding resources (e.g. "1/2/4/0 transform...")
-			re := regexp.MustCompile(`(?i)(action|pass|convert|build|upgrade|transform|burn|dig|advance).*`)
+			re := regexp.MustCompile(`(?i)(action|pass|convert|build|upgrade|transform|burn|dig|send p to|advance).*`)
 			if match := re.FindString(part); match != "" {
 				return match
 			}
@@ -2196,6 +2197,9 @@ func convertActionToConcise(action, faction string, isSetup bool, cultDelta int)
 
 	// Send priest: "send p to WATER" -> "->W"
 	if strings.HasPrefix(lowerAction, "send p to ") {
+		if strings.Contains(action, ".") {
+			return convertCompoundActionToConcise(action, faction, cultDelta)
+		}
 		return convertSendPriestToConcise(action, cultDelta)
 	}
 
