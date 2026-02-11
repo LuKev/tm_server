@@ -215,10 +215,17 @@ func shouldIgnoreMissingDeclineLeechAtFullPower(action game.Action, gs *game.Gam
 	if err == nil || action == nil || gs == nil {
 		return false
 	}
-	if _, ok := action.(*game.DeclinePowerLeechAction); !ok {
+	if !strings.Contains(err.Error(), "no pending leech offers") {
 		return false
 	}
-	if !strings.Contains(err.Error(), "no pending leech offers") {
+
+	// Replay logs may contain delayed DL rows after the underlying offer has
+	// already been resolved; treat log-decline as idempotent.
+	if _, ok := action.(*notation.LogDeclineLeechAction); ok {
+		return true
+	}
+
+	if _, ok := action.(*game.DeclinePowerLeechAction); !ok {
 		return false
 	}
 	player := gs.GetPlayer(action.GetPlayerID())
