@@ -86,6 +86,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 	scoringPattern := regexp.MustCompile(`(?i)^round\s+\d+\s+scoring\b`)
 	scoreCodePattern := regexp.MustCompile(`(?i)\b(SCORE\d+)\b`)
 	removedBonusPattern := regexp.MustCompile(`(?i)^removing\s+(?:tile|bonus\s+tile)\s+(BON\d+)\b`)
+	seenScoringTiles := make(map[string]bool)
 
 	var savedLine string
 
@@ -120,8 +121,15 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 
 		// Parse scoring tiles.
 		if scoringPattern.MatchString(line) {
-			if m := scoreCodePattern.FindStringSubmatch(line); len(m) > 1 {
-				scoringTiles = append(scoringTiles, strings.ToUpper(m[1]))
+			matches := scoreCodePattern.FindAllStringSubmatch(line, -1)
+			for _, m := range matches {
+				if len(m) > 1 {
+					code := strings.ToUpper(m[1])
+					if !seenScoringTiles[code] {
+						seenScoringTiles[code] = true
+						scoringTiles = append(scoringTiles, code)
+					}
+				}
 			}
 			continue
 		}
@@ -2528,6 +2536,15 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 				reward := parseSnellmanResources(m[2])
 				resultParts = append(resultParts, fmt.Sprintf("C%s:%s", cost, reward))
 			}
+		}
+
+		// Advance shipping / digging can appear inside compound rows:
+		// e.g. "burn 3. convert 5PW to 1P. advance ship"
+		if strings.HasPrefix(partLower, "advance ship") {
+			resultParts = append(resultParts, "+SHIP")
+		}
+		if strings.HasPrefix(partLower, "advance dig") {
+			resultParts = append(resultParts, "+DIG")
 		}
 
 		// Send priest in compound action

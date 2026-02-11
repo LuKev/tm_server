@@ -68,6 +68,24 @@ func TestConvertSnellmanToConcise_CompoundSendPriestAndBon1SpadeTransform(t *tes
 		}
 	})
 
+	t.Run("Compound advance ship is preserved", func(t *testing.T) {
+		input := "burn 3. convert 5PW to 1P. advance ship"
+		got := convertCompoundActionToConcise(input, "witches", 0)
+		want := "BURN3.C5PW:1P.+SHIP"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("Compound advance dig is preserved", func(t *testing.T) {
+		input := "burn 2. convert 3PW to 1W. advance dig"
+		got := convertCompoundActionToConcise(input, "halflings", 0)
+		want := "BURN2.C3PW:1W.+DIG"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
 	t.Run("BON1 transform is ACTS", func(t *testing.T) {
 		input := "action BON1. transform C5 to green"
 		got := convertCompoundActionToConcise(input, "auren", 0)
