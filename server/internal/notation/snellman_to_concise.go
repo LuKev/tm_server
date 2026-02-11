@@ -83,6 +83,9 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 	cultLeechPattern := regexp.MustCompile(`^\+(EARTH|WATER|FIRE|AIR)\.\s*Leech`)
 	cultPassPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.\s*(pass\s+.+)$`)
 	cultPrefixPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.?\s*(.*)$`)
+	scoringPattern := regexp.MustCompile(`(?i)^round\s+\d+\s+scoring:`)
+	scoreCodePattern := regexp.MustCompile(`(?i)\b(SCORE\d+)\b`)
+	removedBonusPattern := regexp.MustCompile(`(?i)^removing tile\s+(BON\d+)\b`)
 
 	var savedLine string
 
@@ -115,21 +118,17 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 			}
 		}
 
-		// Parse scoring tiles
-		if strings.HasPrefix(line, "Round ") && strings.Contains(line, "scoring:") {
-			re := regexp.MustCompile(`Round \d+ scoring: (SCORE\d+)`)
-			if m := re.FindStringSubmatch(line); len(m) > 1 {
-				scoringTiles = append(scoringTiles, m[1])
+		// Parse scoring tiles.
+		if scoringPattern.MatchString(line) {
+			if m := scoreCodePattern.FindStringSubmatch(line); len(m) > 1 {
+				scoringTiles = append(scoringTiles, strings.ToUpper(m[1]))
 			}
 			continue
 		}
 
-		// Parse removed bonus cards
-		if strings.HasPrefix(line, "Removing tile") {
-			re := regexp.MustCompile(`Removing tile (BON\d+)`)
-			if m := re.FindStringSubmatch(line); len(m) > 1 {
-				removedBonusCards = append(removedBonusCards, m[1])
-			}
+		// Parse removed bonus cards.
+		if m := removedBonusPattern.FindStringSubmatch(line); len(m) > 1 {
+			removedBonusCards = append(removedBonusCards, strings.ToUpper(m[1]))
 			continue
 		}
 
