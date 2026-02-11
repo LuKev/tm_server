@@ -596,8 +596,47 @@ func (a *LogCompoundAction) GetPlayerID() string {
 // Validate checks if the action is valid.
 func (a *LogCompoundAction) Validate(gs *game.GameState) error { return nil }
 
+func isReplayAuxiliaryOnlyAction(action game.Action) bool {
+	switch action.(type) {
+	case *LogConversionAction,
+		*LogBurnAction,
+		*LogFavorTileAction,
+		*LogTownAction,
+		*LogCultistAdvanceAction,
+		*LogHalflingsSpadeAction,
+		*LogAcceptLeechAction,
+		*LogBonusCardSelectionAction:
+		return true
+	}
+
+	// Decline leech is also a reaction/auxiliary action and not a turn main action.
+	if action.GetType() == game.ActionDeclinePowerLeech {
+		return true
+	}
+	return false
+}
+
+func compoundHasMainAction(actions []game.Action) bool {
+	for _, action := range actions {
+		if action == nil {
+			continue
+		}
+		if !isReplayAuxiliaryOnlyAction(action) {
+			return true
+		}
+	}
+	return false
+}
+
 // Execute applies the action to the game state.
 func (a *LogCompoundAction) Execute(gs *game.GameState) error {
+	if len(a.Actions) == 0 {
+		return fmt.Errorf("empty compound action")
+	}
+	if !compoundHasMainAction(a.Actions) {
+		return fmt.Errorf("compound action has no legal main action")
+	}
+
 	// Suppress turn advancement during sub-actions to prevent multiple advances
 	// (e.g. Transform calls NextTurn, then Build calls NextTurn)
 	gs.SuppressTurnAdvance = true

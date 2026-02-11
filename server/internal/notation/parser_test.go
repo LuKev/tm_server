@@ -46,6 +46,13 @@ func TestParseActionCode_ParsesCultShorthandInCompound(t *testing.T) {
 	}
 }
 
+func TestParseActionCode_RejectsStandaloneConversion(t *testing.T) {
+	_, err := parseActionCode("Cultists", "C5PW:1P")
+	if err == nil {
+		t.Fatalf("parseActionCode(standalone conversion) expected error, got nil")
+	}
+}
+
 func TestParseConciseLogStrict_ReturnsLocationForInvalidToken(t *testing.T) {
 	input := `Game: Base
 ScoringTiles: SCORE1, SCORE2, SCORE3, SCORE4, SCORE5, SCORE6

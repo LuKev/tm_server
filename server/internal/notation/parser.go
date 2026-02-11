@@ -356,13 +356,9 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 	if strings.HasPrefix(code, "C") && strings.Contains(code, ":") {
 		parts := strings.Split(strings.TrimPrefix(code, "C"), ":")
 		if len(parts) == 2 {
-			cost := parseResourceString(parts[0])
-			reward := parseResourceString(parts[1])
-			return &LogConversionAction{
-				PlayerID: playerID,
-				Cost:     cost,
-				Reward:   reward,
-			}, nil
+			// In strict replay notation, conversions must be chained with a main action
+			// (e.g. "C1PW:1C.PASS-..."), not represented as a standalone turn action.
+			return nil, fmt.Errorf("standalone conversion is not a legal main action; chain it with a main action in the same token")
 		}
 	}
 
