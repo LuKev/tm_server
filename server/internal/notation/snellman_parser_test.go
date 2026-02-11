@@ -136,3 +136,38 @@ func TestParseSnellmanHTML_NoLedger(t *testing.T) {
 		t.Error("Expected error when ledger table not found")
 	}
 }
+
+func TestParseSnellmanHTML_SetupHeadersWithShowHistory(t *testing.T) {
+	html := `<html>
+	<table id="ledger">
+		<tr>
+			<th colspan="14">Round 1 scoring: SCORE9, TE >> 4</th>
+			<th><a href="/game/test">show history</a></th>
+		</tr>
+		<tr>
+			<td colspan="14">Removing tile BON4</td>
+			<td><a href="/game/test">show history</a></td>
+		</tr>
+		<tr>
+			<td>cultists</td>
+			<td class="ledger-value">20 VP</td>
+			<td>setup</td>
+		</tr>
+	</table>
+	</html>`
+
+	result, err := ParseSnellmanHTML(html)
+	if err != nil {
+		t.Fatalf("ParseSnellmanHTML() error = %v", err)
+	}
+
+	if !strings.Contains(result, "Round 1 scoring: SCORE9, TE >> 4") {
+		t.Fatalf("expected round scoring line in output, got:\n%s", result)
+	}
+	if !strings.Contains(result, "Removing tile BON4") {
+		t.Fatalf("expected removed tile line in output, got:\n%s", result)
+	}
+	if strings.Contains(strings.ToLower(result), "show history") {
+		t.Fatalf("output should not contain 'show history', got:\n%s", result)
+	}
+}
