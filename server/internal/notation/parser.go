@@ -208,26 +208,27 @@ func parseActionCode(playerID, code string) (game.Action, error) {
 }
 
 func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Action, error) {
+	code = strings.TrimSpace(code)
 	upperCode := strings.ToUpper(code)
 
 	// Simple parser based on prefixes
-	if strings.HasPrefix(code, "PASS") {
+	if strings.HasPrefix(upperCode, "PASS") {
 		var bonusCard *game.BonusCardType
-		if strings.HasPrefix(code, "PASS-") {
-			cardCode := strings.TrimPrefix(code, "PASS-")
+		if strings.HasPrefix(upperCode, "PASS-") {
+			cardCode := strings.TrimPrefix(upperCode, "PASS-")
 			cardType := ParseBonusCardCode(cardCode)
 			bonusCard = &cardType
 		}
 		return game.NewPassAction(playerID, bonusCard), nil
 	}
-	if strings.HasPrefix(code, "BON") {
+	if strings.HasPrefix(upperCode, "BON") {
 		// BON1, BON2 etc.
 		return &LogBonusCardSelectionAction{
 			PlayerID:  playerID,
-			BonusCard: code,
+			BonusCard: upperCode,
 		}, nil
 	}
-	if code == "+SHIP" {
+	if upperCode == "+SHIP" {
 		return game.NewAdvanceShippingAction(playerID), nil
 	}
 	if len(upperCode) == 2 && strings.HasPrefix(upperCode, "+") {
@@ -238,7 +239,7 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			}, nil
 		}
 	}
-	if code == "DL" {
+	if upperCode == "DL" {
 		// Return standard action or Log action?
 		// Generator uses "DL" -> DeclinePowerLeechAction
 		// But standard action requires amount. Log doesn't have amount for DL (usually).
@@ -249,8 +250,8 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	}
 
 	// Burn: BURN<N>
-	if strings.HasPrefix(code, "BURN") {
-		amountStr := strings.TrimPrefix(code, "BURN")
+	if strings.HasPrefix(upperCode, "BURN") {
+		amountStr := strings.TrimPrefix(upperCode, "BURN")
 		amount, err := strconv.Atoi(amountStr)
 		if err == nil {
 			return &LogBurnAction{
@@ -261,18 +262,18 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	}
 
 	// Favor Tile: FAV-<Code>
-	if strings.HasPrefix(code, "FAV-") {
+	if strings.HasPrefix(upperCode, "FAV-") {
 		return &LogFavorTileAction{
 			PlayerID: playerID,
-			Tile:     code,
+			Tile:     upperCode,
 		}, nil
 	}
 
 	// Special Action: ACT-SH-D-<Coord> (Witches Ride)
-	if strings.HasPrefix(code, "ACT-SH-D-") {
+	if strings.HasPrefix(upperCode, "ACT-SH-D-") {
 		return &LogSpecialAction{
 			PlayerID:   playerID,
-			ActionCode: code,
+			ActionCode: upperCode,
 		}, nil
 	}
 
@@ -296,46 +297,46 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	}
 
 	// Auren Stronghold: ACT-SH-<Track>
-	if strings.HasPrefix(code, "ACT-SH-") {
+	if strings.HasPrefix(upperCode, "ACT-SH-") {
 		return &LogSpecialAction{
 			PlayerID:   playerID,
-			ActionCode: code,
+			ActionCode: upperCode,
 		}, nil
 	}
 
 	// Favor Tile Action: ACT-FAV-<Track>
-	if strings.HasPrefix(code, "ACT-FAV-") {
+	if strings.HasPrefix(upperCode, "ACT-FAV-") {
 		return &LogSpecialAction{
 			PlayerID:   playerID,
-			ActionCode: code,
+			ActionCode: upperCode,
 		}, nil
 	}
 
 	// Bonus Card cult action, Mermaids town action, Engineers bridge action
-	if strings.HasPrefix(code, "ACT-BON-") || strings.HasPrefix(code, "ACT-TOWN-") || strings.HasPrefix(code, "ACT-BR-") {
+	if strings.HasPrefix(upperCode, "ACT-BON-") || strings.HasPrefix(upperCode, "ACT-TOWN-") || strings.HasPrefix(upperCode, "ACT-BR-") {
 		return &LogSpecialAction{
 			PlayerID:   playerID,
-			ActionCode: code,
+			ActionCode: upperCode,
 		}, nil
 	}
 
 	// Bonus Card Spade: ACTS-<Coord>
-	if strings.HasPrefix(code, "ACTS-") {
+	if strings.HasPrefix(upperCode, "ACTS-") {
 		return &LogSpecialAction{
 			PlayerID:   playerID,
-			ActionCode: code,
+			ActionCode: upperCode,
 		}, nil
 	}
 
 	// Digging: +DIG
-	if code == "+DIG" {
+	if upperCode == "+DIG" {
 		return game.NewAdvanceDiggingAction(playerID), nil
 	}
 
 	// Leech: L<N> or just L
-	if strings.HasPrefix(code, "L") {
-		if len(code) > 1 && unicode.IsDigit(rune(code[1])) {
-			amount, err := strconv.Atoi(code[1:])
+	if strings.HasPrefix(upperCode, "L") {
+		if len(upperCode) > 1 && unicode.IsDigit(rune(upperCode[1])) {
+			amount, err := strconv.Atoi(upperCode[1:])
 			if err == nil {
 				vpCost := amount - 1
 				if vpCost < 0 {
@@ -357,8 +358,8 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	}
 
 	// Conversion: C<Cost>:<Reward>
-	if strings.HasPrefix(code, "C") && strings.Contains(code, ":") {
-		parts := strings.Split(strings.TrimPrefix(code, "C"), ":")
+	if strings.HasPrefix(upperCode, "C") && strings.Contains(upperCode, ":") {
+		parts := strings.Split(strings.TrimPrefix(upperCode, "C"), ":")
 		if len(parts) == 2 {
 			if !inCompound {
 				// In strict replay notation, conversions must be chained with a main action
@@ -373,20 +374,20 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		}
 	}
 
-	if strings.HasPrefix(code, "ACT") {
-		if ParsePowerActionCode(code) == game.PowerActionUnknown {
+	if strings.HasPrefix(upperCode, "ACT") {
+		if ParsePowerActionCode(upperCode) == game.PowerActionUnknown {
 			return nil, fmt.Errorf("unknown ACT code: %s", code)
 		}
 		// ACT1, ACT2...
 		return &LogPowerAction{
 			PlayerID:   playerID,
-			ActionCode: code,
+			ActionCode: upperCode,
 		}, nil
 	}
 
 	// Town: TW<VP>VP
-	if strings.HasPrefix(code, "TW") && strings.HasSuffix(code, "VP") {
-		vpStr := strings.TrimSuffix(strings.TrimPrefix(code, "TW"), "VP")
+	if strings.HasPrefix(upperCode, "TW") && strings.HasSuffix(upperCode, "VP") {
+		vpStr := strings.TrimSuffix(strings.TrimPrefix(upperCode, "TW"), "VP")
 		vp, err := strconv.Atoi(vpStr)
 		if err == nil {
 			return &LogTownAction{
@@ -404,13 +405,13 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		}
 
 		// First character is the track
-		trackCode := string(codeStr[0])
+		trackCode := string(strings.ToUpper(codeStr)[0])
 		track := parseCultShortCode(trackCode)
 
 		// Rest is spaces to climb (default 3)
 		spaces := 3
 		if len(codeStr) > 1 {
-			if s, err := strconv.Atoi(codeStr[1:]); err == nil {
+			if s, err := strconv.Atoi(strings.TrimSpace(codeStr[1:])); err == nil {
 				spaces = s
 			}
 		}
@@ -423,9 +424,9 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			SpacesToClimb: spaces,
 		}, nil
 	}
-	if strings.HasPrefix(code, "UP-") {
+	if strings.HasPrefix(upperCode, "UP-") {
 		// UP-TH-C4
-		parts := strings.Split(code, "-")
+		parts := strings.Split(upperCode, "-")
 		if len(parts) != 3 {
 			return nil, fmt.Errorf("invalid upgrade code")
 		}
@@ -433,18 +434,18 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		hex := parseHex(parts[2])
 		return game.NewUpgradeBuildingAction(playerID, hex, buildingType), nil
 	}
-	if strings.HasPrefix(code, "S-") {
+	if strings.HasPrefix(upperCode, "S-") {
 		// S-C4
-		coord := strings.TrimPrefix(code, "S-")
+		coord := strings.TrimPrefix(upperCode, "S-")
 		hex := parseHex(coord)
 		return game.NewSetupDwellingAction(playerID, hex), nil
 	}
 
 	// TB- prefix: Transform AND Build (merged from T-X + X pattern)
 	// This is an internal notation created by mergeTransformAndBuildTokens
-	if strings.HasPrefix(code, "TB-") {
+	if strings.HasPrefix(upperCode, "TB-") {
 		// TB-C4 or TB-C4-Y
-		parts := strings.Split(code, "-")
+		parts := strings.Split(upperCode, "-")
 		if len(parts) < 2 {
 			return nil, fmt.Errorf("invalid transform+build code: %s", code)
 		}
@@ -460,9 +461,9 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		return game.NewTransformAndBuildAction(playerID, hex, true, targetTerrain), nil
 	}
 
-	if strings.HasPrefix(code, "T-") {
+	if strings.HasPrefix(upperCode, "T-") {
 		// T-C4 or T-C4-Y
-		parts := strings.Split(code, "-")
+		parts := strings.Split(upperCode, "-")
 		if len(parts) < 2 {
 			return nil, fmt.Errorf("invalid transform code: %s", code)
 		}
@@ -478,8 +479,8 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	}
 
 	// Default: Build Dwelling (e.g. "C4")
-	if isCoord(code) {
-		hex := parseHex(code)
+	if isCoord(upperCode) {
+		hex := parseHex(upperCode)
 		return game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown), nil
 	}
 
@@ -509,6 +510,7 @@ func parseCultShortCodeOk(s string) (game.CultTrack, bool) {
 }
 
 func parseBuildingShortCode(s string) models.BuildingType {
+	s = strings.ToUpper(strings.TrimSpace(s))
 	switch s {
 	case "D":
 		return models.BuildingDwelling
@@ -525,16 +527,17 @@ func parseBuildingShortCode(s string) models.BuildingType {
 }
 
 func parseTerrainShortCode(s string) models.TerrainType {
+	s = strings.ToUpper(strings.TrimSpace(s))
 	switch s {
-	case "P", "Br":
+	case "P", "BR":
 		return models.TerrainPlains
-	case "S", "Bk":
+	case "S", "BK":
 		return models.TerrainSwamp
-	case "L", "Bl":
+	case "L", "BL":
 		return models.TerrainLake
 	case "F", "G":
 		return models.TerrainForest
-	case "M", "Gy":
+	case "M", "GY":
 		return models.TerrainMountain
 	case "W", "R":
 		return models.TerrainWasteland
@@ -576,6 +579,7 @@ func isCoord(s string) bool {
 }
 func parseResourceString(s string) map[models.ResourceType]int {
 	res := make(map[models.ResourceType]int)
+	s = strings.ToUpper(strings.TrimSpace(s))
 	// Regex to find "N unit" where unit is P, W, PW, VP, C
 	re := regexp.MustCompile(`(\d+)(PW|VP|P|W|C)`)
 	matches := re.FindAllStringSubmatch(s, -1)
@@ -608,11 +612,11 @@ func mergeTransformAndBuildTokens(tokens []string) []string {
 	// Key = coordinate, Value = index in tokens array
 	transformCoords := make(map[string]int)
 	for i, token := range tokens {
-		if strings.HasPrefix(token, "T-") {
+		if strings.HasPrefix(strings.ToUpper(token), "T-") {
 			// Extract coordinate (e.g., T-A7 -> A7, T-A7-Y -> A7)
 			parts := strings.Split(token, "-")
 			if len(parts) >= 2 {
-				coord := parts[1]
+				coord := strings.ToUpper(parts[1])
 				transformCoords[coord] = i
 			}
 		}
@@ -625,7 +629,8 @@ func mergeTransformAndBuildTokens(tokens []string) []string {
 	for i, token := range tokens {
 		// Check if this is a bare coordinate (e.g., "A7") that should be merged
 		if isCoord(token) {
-			if transformIdx, exists := transformCoords[token]; exists && transformIdx < i {
+			tokenCoord := strings.ToUpper(token)
+			if transformIdx, exists := transformCoords[tokenCoord]; exists && transformIdx < i {
 				// This build should be merged with the earlier transform
 				buildMerged[i] = true
 			}
@@ -640,14 +645,14 @@ func mergeTransformAndBuildTokens(tokens []string) []string {
 		}
 
 		// Check if this is a transform that needs to be upgraded to transform+build
-		if strings.HasPrefix(token, "T-") {
+		if strings.HasPrefix(strings.ToUpper(token), "T-") {
 			parts := strings.Split(token, "-")
 			if len(parts) >= 2 {
-				coord := parts[1]
+				coord := strings.ToUpper(parts[1])
 				// Check if there's a merged build for this coord
 				hasBuildMerge := false
 				for buildIdx := range buildMerged {
-					if buildMerged[buildIdx] && tokens[buildIdx] == coord {
+					if buildMerged[buildIdx] && strings.EqualFold(tokens[buildIdx], coord) {
 						hasBuildMerge = true
 						break
 					}
