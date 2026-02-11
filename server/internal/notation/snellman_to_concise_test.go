@@ -558,7 +558,7 @@ func TestConvertSnellmanToConcise_Round1TurnOrderIgnoresSetupPassOrder(t *testin
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
 
-	if !strings.Contains(got, "TurnOrder: cultists, darklings, engineers, auren") {
+	if !strings.Contains(got, "TurnOrder: Cultists, Darklings, Engineers, Auren") {
 		t.Fatalf("expected round 1 turn order to use setup faction order, not setup pass order:\n%s", got)
 	}
 }
@@ -585,7 +585,7 @@ func TestConvertSnellmanToConcise_MaintainPlayerOrderUsesCyclicRotation(t *testi
 	if err != nil {
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
-	if !strings.Contains(got, "Round 2\nTurnOrder: auren, cultists, darklings, engineers") {
+	if !strings.Contains(got, "Round 2\nTurnOrder: Auren, Cultists, Darklings, Engineers") {
 		t.Fatalf("expected cyclic turn order anchored to first passer under maintain-player-order:\n%s", got)
 	}
 }
@@ -612,7 +612,7 @@ func TestConvertSnellmanToConcise_VariableTurnOrderUsesPassOrder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
-	if !strings.Contains(got, "Round 2\nTurnOrder: auren, darklings, cultists, engineers") {
+	if !strings.Contains(got, "Round 2\nTurnOrder: Auren, Darklings, Cultists, Engineers") {
 		t.Fatalf("expected variable turn order to use full pass order:\n%s", got)
 	}
 }
@@ -639,7 +639,7 @@ func TestConvertSnellmanToConcise_VariableTurnOrderUsesPassOrderWithPlainPass(t 
 	if err != nil {
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
-	if !strings.Contains(got, "Round 2\nTurnOrder: engineers, cultists, auren, darklings") {
+	if !strings.Contains(got, "Round 2\nTurnOrder: Engineers, Cultists, Auren, Darklings") {
 		t.Fatalf("expected variable turn order to follow full plain-pass order:\n%s", got)
 	}
 }
@@ -667,7 +667,7 @@ func TestConvertSnellmanToConcise_VariableTurnOrderOverridesMaintainWhenBothPres
 	if err != nil {
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
-	if !strings.Contains(got, "Round 2\nTurnOrder: darklings, cultists, engineers, auren") {
+	if !strings.Contains(got, "Round 2\nTurnOrder: Darklings, Cultists, Engineers, Auren") {
 		t.Fatalf("expected variable-turn-order to override maintain-player-order:\n%s", got)
 	}
 }

@@ -83,9 +83,9 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 	cultLeechPattern := regexp.MustCompile(`^\+(EARTH|WATER|FIRE|AIR)\.\s*Leech`)
 	cultPassPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.\s*(pass\s+.+)$`)
 	cultPrefixPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.?\s*(.*)$`)
-	scoringPattern := regexp.MustCompile(`(?i)^round\s+\d+\s+scoring:`)
+	scoringPattern := regexp.MustCompile(`(?i)^round\s+\d+\s+scoring\b`)
 	scoreCodePattern := regexp.MustCompile(`(?i)\b(SCORE\d+)\b`)
-	removedBonusPattern := regexp.MustCompile(`(?i)^removing tile\s+(BON\d+)\b`)
+	removedBonusPattern := regexp.MustCompile(`(?i)^removing\s+(?:tile|bonus\s+tile)\s+(BON\d+)\b`)
 
 	var savedLine string
 
@@ -590,7 +590,9 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		result = append(result, fmt.Sprintf("Round %d", round.Number))
 
 		if len(round.TurnOrder) > 0 {
-			result = append(result, fmt.Sprintf("TurnOrder: %s", strings.Join(round.TurnOrder, ", ")))
+			// Keep round turn-order identifiers in the same canonical player-ID casing
+			// used by setup/header rows so replay action player IDs and turn order match.
+			result = append(result, fmt.Sprintf("TurnOrder: %s", formatFactionList(round.TurnOrder)))
 		}
 
 		columns := factions

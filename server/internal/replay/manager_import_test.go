@@ -112,6 +112,39 @@ func TestParseReplayLogContent_SnellmanExtractsSetupScoringAndBonuses(t *testing
 	}
 }
 
+func TestParseReplayLogContent_SnellmanExtractsSetupVariantHeaderPhrases(t *testing.T) {
+	manager := NewReplayManager(t.TempDir())
+	snellman := strings.Join([]string{
+		"Randomize setup\tshow history",
+		"Round 1 scoring tile: SCORE9, TE >> 4\tshow history",
+		"Round 2 scoring tile: SCORE3, D >> 2\tshow history",
+		"Round 3 scoring tile: SCORE8, TP >> 3\tshow history",
+		"Round 4 scoring tile: SCORE5, D >> 2\tshow history",
+		"Round 5 scoring tile: SCORE6, TP >> 3\tshow history",
+		"Round 6 scoring tile: SCORE4, SA/SH >> 5\tshow history",
+		"Removing bonus tile BON4\tshow history",
+		"Removing bonus tile BON5\tshow history",
+		"Removing bonus tile BON7\tshow history",
+		"cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tsetup",
+		"engineers\t\t20 VP\t\t10 C\t\t2 W\t\t0 P\t\t3/9/0 PW\t\t0/0/0/0\t\tsetup",
+		"Round 1 income\tshow history",
+		"Round 1, turn 1\tshow history",
+		"cultists\t\t20 VP\t-3\t12 C\t-1\t2 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tupgrade E6 to TP",
+	}, "\n")
+
+	_, canonical, err := manager.parseReplayLogContent(snellman, ReplayLogFormatSnellman)
+	if err != nil {
+		t.Fatalf("parseReplayLogContent(snellman variant headers) error = %v", err)
+	}
+
+	if !strings.Contains(canonical, "ScoringTiles: SCORE9, SCORE3, SCORE8, SCORE5, SCORE6, SCORE4") {
+		t.Fatalf("expected scoring tiles in canonical output, got:\n%s", canonical)
+	}
+	if !strings.Contains(canonical, "BonusCards:") {
+		t.Fatalf("expected bonus cards in canonical output, got:\n%s", canonical)
+	}
+}
+
 func TestParseReplayLogContent_ConciseStrictErrors(t *testing.T) {
 	manager := NewReplayManager(t.TempDir())
 	badConcise := `Game: Base

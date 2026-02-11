@@ -69,6 +69,9 @@ export const getCultPositions = (gameState: GameState | null): Map<CultType, Cul
     playerIds.forEach((playerId: string) => {
         if (!gameState) return;
         const player = gameState.players[playerId];
+        if (!player || !player.cults) {
+            return;
+        }
         Object.entries(player.cults).forEach(([cultKey, position]) => {
             const cult = Number(cultKey) as CultType;
             // Resolve faction ID
