@@ -43,6 +43,24 @@ export default {
 			});
 		}
 
+		// Route /chess_db/* to Chess DB frontend.
+		// Forward full path because Chess DB is built with basePath=/chess_db.
+		if (path.startsWith('/chess_db')) {
+			const targetUrl = `https://web-production-d3e49.up.railway.app${path}${url.search}`;
+
+			const response = await fetch(targetUrl, {
+				method: request.method,
+				headers: request.headers,
+				body: request.body,
+			});
+
+			return new Response(response.body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers: response.headers,
+			});
+		}
+
 		// Route /api/* to the TM server (backend)
 		if (path.startsWith('/api')) {
 			const targetUrl = `https://tm-server-production.up.railway.app${path}${url.search}`;
@@ -82,10 +100,11 @@ export default {
 </head>
 <body>
   <h1>kezilu.com - Worker Default</h1>
-  <p>Available apps:</p>
-  <ul>
+	<p>Available apps:</p>
+	<ul>
     <li><a href="/tm/replay">Terra Mystica Log Replayer</a></li>
     <li><a href="/foodle">Foodle</a></li>
+    <li><a href="/chess_db">Chess DB</a></li>
   </ul>
 </body>
 </html>`,
