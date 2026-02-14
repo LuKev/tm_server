@@ -45,11 +45,11 @@ type RoundStartItem struct {
 
 // LogAcceptLeechAction is a log-only representation of accepting leech
 type LogAcceptLeechAction struct {
-	PlayerID      string
-	FromPlayerID  string // optional: expected leech source
-	PowerAmount   int
-	VPCost        int
-	Explicit      bool
+	PlayerID     string
+	FromPlayerID string // optional: expected leech source
+	PowerAmount  int
+	VPCost       int
+	Explicit     bool
 }
 
 // GetType returns the action type.
@@ -313,8 +313,92 @@ func (a *LogDigTransformAction) Execute(gs *game.GameState) error {
 
 	home := player.Faction.GetHomeTerrain()
 	target := board.CalculateIntermediateTerrain(mapHex.Terrain, home, a.Spades)
-	action := game.NewTransformAndBuildAction(a.PlayerID, a.Target, false, target)
-	return action.Execute(gs)
+
+	// Apply ONLY the terraform step (no building). This must not call TransformAndBuildAction
+	// because that would charge/award full terraform logic again when the later build action
+	// runs in the same compound row, causing resource divergence.
+	needsTransform := mapHex.Terrain != target
+	if !needsTransform {
+		return nil
+	}
+
+	// Distance should match the spade count implied by the intermediate terrain, but compute
+	// it from the board state to keep this robust to odd terrain encodings.
+	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, target)
+	if distance <= 0 {
+		return nil
+	}
+
+	// Consume free spades (BON1) first. These count for VP.
+	vpEligibleFreeSpades := 0
+	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
+		if vpEligibleFreeSpades > distance {
+			vpEligibleFreeSpades = distance
+		}
+		gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
+		if gs.PendingSpades[a.PlayerID] == 0 {
+			delete(gs.PendingSpades, a.PlayerID)
+		}
+	}
+
+	// Consume cult-reward spades next. These do NOT count for VP.
+	remainingDistance := distance - vpEligibleFreeSpades
+	cultRewardSpades := 0
+	if remainingDistance > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+		cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
+		if cultRewardSpades > remainingDistance {
+			cultRewardSpades = remainingDistance
+		}
+		gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
+		if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
+			delete(gs.PendingCultRewardSpades, a.PlayerID)
+		}
+	}
+
+	totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
+	paidSpades := distance - totalFreeSpades
+
+	// Pay for remaining spades.
+	if paidSpades > 0 {
+		// Darklings pay priests for terraform (instead of workers).
+		if player.Faction.GetType() == models.FactionDarklings {
+			player.Resources.Priests -= paidSpades
+			// Darklings: +2 VP per PAID spade.
+			player.VictoryPoints += paidSpades * 2
+		} else {
+			player.Resources.Workers -= player.Faction.GetTerraformCost(paidSpades)
+		}
+	}
+
+	// Apply terrain change.
+	if err := gs.Map.TransformTerrain(a.Target, target); err != nil {
+		return fmt.Errorf("failed to transform terrain: %w", err)
+	}
+
+	// Award VP + faction bonuses for VP-eligible spades (paid + BON1 spades).
+	vpEligibleDistance := paidSpades + vpEligibleFreeSpades
+	if vpEligibleDistance > 0 {
+		spadesForVP := vpEligibleDistance
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesForVP = 2
+		}
+		for i := 0; i < spadesForVP; i++ {
+			gs.AwardActionVP(a.PlayerID, game.ScoringActionSpades)
+		}
+		game.AwardFactionSpadeBonuses(player, spadesForVP)
+	}
+
+	// Award faction bonuses for cult-reward spades too (no VP).
+	if cultRewardSpades > 0 {
+		spadesUsed := cultRewardSpades
+		if player.Faction.GetType() == models.FactionGiants {
+			spadesUsed = 2
+		}
+		game.AwardFactionSpadeBonuses(player, spadesUsed)
+	}
+
+	return nil
 }
 
 // LogFavorTileAction is a log-only representation of taking a favor tile

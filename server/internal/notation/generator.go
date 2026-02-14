@@ -278,6 +278,10 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 		return "+DIG"
 	case *LogBurnAction:
 		return fmt.Sprintf("BURN%d", a.Amount)
+	case *LogDigTransformAction:
+		// DIGn-<coord> is an internal token emitted by the Snellman converter to preserve
+		// intra-row ordering for "dig" steps (notably when conversions are interleaved).
+		return fmt.Sprintf("DIG%d-%s", a.Spades, HexToShortString(a.Target))
 	case *LogFavorTileAction:
 		return a.Tile
 	case *LogSpecialAction:

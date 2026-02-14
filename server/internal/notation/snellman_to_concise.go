@@ -3039,7 +3039,7 @@ func convertSendPriestToConcise(action string, cultDelta int) string {
 func factionHomeColorShort(faction string) string {
 	// Avoid manual faction->color mappings here; bugs in this mapping silently corrupt
 	// Snellman "transform X to <color>" conversions (e.g. Nomads desert vs plains).
-	ft := models.FactionTypeFromString(faction)
+	ft := models.FactionTypeFromString(factionDisplayName(faction))
 	f := factions.NewFaction(ft)
 	if f == nil {
 		return ""

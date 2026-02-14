@@ -2,7 +2,7 @@
 
 - Repo rule: use Bazel (`/Users/kevin/projects/tm_server/server` is the Bazel workspace). Avoid `go test`.
 
-- UI (client): Shipping/digging levels are displayed from `PlayerState.shipping` / `PlayerState.digging`. Temp shipping bonus is detected via `gameState.bonusCards.playerCards[playerId] === BonusCardType.Shipping` and rendered as `X (+1)`. Shipping is hidden for Fakirs/Dwarves; digging is hidden for Darklings. A top-of-screen summary bar mirrors player-board header info (VP, order, resources, shipping/digging) and highlights the current-turn player.
+- UI (client): `PlayerState.digging` is the digging *upgrade level* (0..2; Fakirs max 1). The UI displays digging as **workers per spade** (`3 - diggingLevel`, clamped 1..3). Temp shipping bonus is detected via `gameState.bonusCards.playerCards[playerId] === BonusCardType.Shipping` and rendered as `X (+1)`. Shipping is hidden for Fakirs/Dwarves; digging is hidden for Darklings. A top-of-screen summary bar mirrors player-board header info (VP, order, resources, shipping/digging) and highlights the current-turn player.
 
 - Replay ingestion (format-driven): `server/internal/replay/manager.go` routes by content format (`auto|concise|snellman|bga`) via `parseReplayLogContent`. Snellman imports are converted to canonical concise logs before replay execution.
 
@@ -23,6 +23,7 @@
   - `+TRACK` segments can appear with leading whitespace after split (trim parts before `+` checks).
   - Cultists faction ability can show as a leading `+EARTH/+AIR/...` segment on a later unrelated action line; that cult step must backtrack to the prior triggering action, not remain chained to the new action token.
   - Income blocks: only skip rows whose extracted action is `cult_income_for_faction` or `other_income_for_faction` (some logs include real actions between “Round X income” headers).
+  - `DIGn-<coord>` tokens: Snellman can interleave conversions between “dig” steps (notably Alchemists spade-trigger power gains). The converter emits `DIGn-<coord>` to preserve intra-row ordering. Execution is implemented by `notation.LogDigTransformAction` and MUST only apply the terraforming step (costs, terrain change, VP/faction spade bonuses) without building; the subsequent build action handles any remaining transform/build.
 
 ## Open Divergences (Ledger Resource Mismatches)
 

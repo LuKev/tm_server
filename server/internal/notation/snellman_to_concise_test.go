@@ -439,10 +439,10 @@ func TestConvertSnellmanToConcise_DistinctLeechSourcesDoNotShareMergedSourceRow(
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
 
-	if !strings.Contains(got, "BURN4.ACT5.E10 |              | L            |") {
+	if !strings.Contains(got, "BURN4.ACT5.E10 |              | L-Halflings  |") {
 		t.Fatalf("expected dwarves leech from halflings on halflings action row:\n%s", got)
 	}
-	if !strings.Contains(got, "             | UP-TH-G5     | L            |") {
+	if !strings.Contains(got, "             | UP-TH-G5     | L-Darklings  |") {
 		t.Fatalf("expected dwarves leech from darklings on darklings action row:\n%s", got)
 	}
 }
@@ -493,7 +493,7 @@ func TestConvertSnellmanToConcise_DelayedLeechAnchorsToSourceRow(t *testing.T) {
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
 
-	if !strings.Contains(got, "UP-TH-E6     |              | L            | L") {
+	if !strings.Contains(got, "UP-TH-E6     |              | L-Cultists   | L-Cultists") {
 		t.Fatalf("expected cultists row with delayed leeches from engineers+auren:\n%s", got)
 	}
 	if !strings.Contains(got, "             | UP-TH-G5     |              |") {
@@ -576,7 +576,7 @@ func TestConvertSnellmanToConcise_LeechFromLeftColumnsMovesToLaterRow(t *testing
 	if !strings.Contains(got, "| UP-TH-F6") {
 		t.Fatalf("expected source action row to remain present:\n%s", got)
 	}
-	if !strings.Contains(got, "L            | L3           |              |") {
+	if !strings.Contains(got, "L-Engineers  | L3-Engineers |              |") {
 		t.Fatalf("expected left-side leeches to move to later row:\n%s", got)
 	}
 }
@@ -605,13 +605,13 @@ func TestConvertSnellmanToConcise_CompactsEarlyRoundRows(t *testing.T) {
 		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
 	}
 
-	if !strings.Contains(got, "L            |              | UP-TH-F6     | L") {
+	if !strings.Contains(got, "L-Darklings  |              | UP-TH-F6     | L-Engineers") {
 		t.Fatalf("expected compact row containing cultists leech plus engineers action and right-side leech:\n%s", got)
 	}
 	if !strings.Contains(got, "UP-TH-F4") {
 		t.Fatalf("expected auren action to be preserved:\n%s", got)
 	}
-	if !strings.Contains(got, "L2           |              | L            |") {
+	if !strings.Contains(got, "L2-Auren     |              | L-Auren      |") {
 		t.Fatalf("expected left-side delayed leeches to remain after source actions:\n%s", got)
 	}
 }
@@ -939,7 +939,7 @@ func TestConvertSnellmanToConcise_DelayedDeclineAnchorsToLastLeechSourceAction(t
 	if !strings.Contains(got, "UP-TE-G7") {
 		t.Fatalf("expected source upgrade action:\n%s", got)
 	}
-	if !strings.Contains(got, "UP-TE-G7     | DL           | L") {
+	if !strings.Contains(got, "UP-TE-G7     | DL2-Darklings | L-Darklings") {
 		t.Fatalf("expected delayed decline to anchor to source upgrade row:\n%s", got)
 	}
 	if strings.Contains(got, "PASS-BON-DW  | DL") {

@@ -209,6 +209,10 @@ func TestSnellmanLedgerResourcesMatchReplay_S69_G2(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S69_D1L1_G2.txt")
 }
 
+func TestSnellmanLedgerResourcesMatchReplay_S69_G5(t *testing.T) {
+	runSnellmanLedgerResourcesMatch(t, "4pLeague_S69_D1L1_G5.txt")
+}
+
 func runSnellmanLedgerResourcesMatch(t *testing.T, fixtureFile string) {
 	t.Helper()
 
