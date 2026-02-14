@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"unicode"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
@@ -134,17 +133,21 @@ func parseConciseLog(content string, strict bool) ([]LogItem, error) {
 
 		// Check for grid header line
 		if strings.Contains(line, "|") {
-			// Check if this is a header row or data row
-			if strings.Contains(line, "Nomads") || strings.Contains(line, "Witches") ||
-				strings.Contains(line, "Halflings") || strings.Contains(line, "Darklings") ||
-				strings.Contains(line, "Fakirs") || strings.Contains(line, "Giants") ||
-				strings.Contains(line, "Chaos Magicians") || strings.Contains(line, "Swarmlings") ||
-				strings.Contains(line, "Engineers") || strings.Contains(line, "Dwarves") ||
-				strings.Contains(line, "Alchemists") || strings.Contains(line, "Mermaids") ||
-				strings.Contains(line, "Auren") || strings.Contains(line, "Cultists") {
-
-				// It's a header
-				parts := strings.Split(line, "|")
+			parts := strings.Split(line, "|")
+			nonEmpty := 0
+			matched := 0
+			for _, part := range parts {
+				playerID := strings.TrimSpace(part)
+				if playerID == "" {
+					continue
+				}
+				nonEmpty++
+				if isFactionHeaderName(playerID) {
+					matched++
+				}
+			}
+			// Header rows consist solely of faction display names.
+			if nonEmpty >= 2 && matched == nonEmpty {
 				colToPlayer = make(map[int]string) // Reset for new block
 				for i, part := range parts {
 					playerID := strings.TrimSpace(part)
@@ -203,12 +206,45 @@ func parseConciseLog(content string, strict bool) ([]LogItem, error) {
 	return items, nil
 }
 
+func isFactionHeaderName(playerID string) bool {
+	switch strings.ToLower(strings.TrimSpace(playerID)) {
+	case "nomads",
+		"fakirs",
+		"chaos magicians",
+		"giants",
+		"swarmlings",
+		"mermaids",
+		"witches",
+		"auren",
+		"halflings",
+		"cultists",
+		"alchemists",
+		"darklings",
+		"engineers",
+		"dwarves":
+		return true
+	default:
+		return false
+	}
+}
+
 func parseActionCode(playerID, code string) (game.Action, error) {
 	return parseActionCodeWithContext(playerID, code, false)
 }
 
 func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Action, error) {
 	code = strings.TrimSpace(code)
+	if strings.HasPrefix(code, "@") {
+		inner := strings.TrimSpace(strings.TrimPrefix(code, "@"))
+		if inner == "" {
+			return nil, fmt.Errorf("empty pre-income action")
+		}
+		action, err := parseActionCodeWithContext(playerID, inner, inCompound)
+		if err != nil {
+			return nil, err
+		}
+		return &LogPreIncomeAction{Action: action}, nil
+	}
 	upperCode := strings.ToUpper(code)
 
 	// Compound Action: Code.Code
@@ -258,8 +294,14 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			}, nil
 		}
 	}
-	if upperCode == "DL" {
-		return &LogDeclineLeechAction{PlayerID: playerID}, nil
+
+	// Decline leech: DL, DL2, DL-Witches, DL2-Witches
+	if m := regexp.MustCompile(`(?i)^DL(\d+)?(?:-(.+))?$`).FindStringSubmatch(code); len(m) > 0 {
+		from := ""
+		if len(m) > 2 {
+			from = strings.TrimSpace(m[2])
+		}
+		return &LogDeclineLeechAction{PlayerID: playerID, FromPlayerID: from}, nil
 	}
 
 	// Burn: BURN<N>
@@ -327,29 +369,30 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		return game.NewAdvanceDiggingAction(playerID), nil
 	}
 
-	// Leech: L<N> or just L
-	if strings.HasPrefix(upperCode, "L") {
-		if len(upperCode) > 1 && unicode.IsDigit(rune(upperCode[1])) {
-			amount, err := strconv.Atoi(upperCode[1:])
-			if err == nil {
-				vpCost := amount - 1
-				if vpCost < 0 {
-					vpCost = 0
-				}
-				return &LogAcceptLeechAction{
-					PlayerID:    playerID,
-					PowerAmount: amount,
-					VPCost:      vpCost,
-					Explicit:    true,
-				}, nil
+	// Accept leech: L, L2, L-Witches, L2-Witches
+	if m := regexp.MustCompile(`(?i)^L(\d+)?(?:-(.+))?$`).FindStringSubmatch(code); len(m) > 0 {
+		amount := 1
+		explicit := false
+		if m[1] != "" {
+			if n, err := strconv.Atoi(m[1]); err == nil {
+				amount = n
+				explicit = true
 			}
 		}
-		// Just "L" -> assume 1 for now (Cost 0)
+		from := ""
+		if len(m) > 2 {
+			from = strings.TrimSpace(m[2])
+		}
+		vpCost := amount - 1
+		if vpCost < 0 {
+			vpCost = 0
+		}
 		return &LogAcceptLeechAction{
-			PlayerID:    playerID,
-			PowerAmount: 1,
-			VPCost:      0,
-			Explicit:    false,
+			PlayerID:     playerID,
+			FromPlayerID: from,
+			PowerAmount:  amount,
+			VPCost:       vpCost,
+			Explicit:     explicit,
 		}, nil
 	}
 
@@ -435,6 +478,21 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		coord := strings.TrimPrefix(upperCode, "S-")
 		hex := parseHex(coord)
 		return game.NewSetupDwellingAction(playerID, hex), nil
+	}
+
+	// DIGn- prefix: Terraform by n spades on a specific hex (no building).
+	// Used to preserve Snellman intra-row ordering for interleaved "dig" + conversions.
+	if strings.HasPrefix(upperCode, "DIG") {
+		re := regexp.MustCompile(`^DIG(\d+)-([A-I]\d{1,2})$`)
+		if m := re.FindStringSubmatch(upperCode); len(m) > 2 {
+			n, err := strconv.Atoi(m[1])
+			if err != nil {
+				return nil, fmt.Errorf("invalid DIG spade count: %q", m[1])
+			}
+			hex := parseHex(m[2])
+			return &LogDigTransformAction{PlayerID: playerID, Spades: n, Target: hex}, nil
+		}
+		return nil, fmt.Errorf("invalid DIG code: %s", code)
 	}
 
 	// TB- prefix: Transform AND Build (merged from T-X + X pattern)

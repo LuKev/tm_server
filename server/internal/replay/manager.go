@@ -220,7 +220,7 @@ func (m *ReplayManager) parseReplayLogContent(content string, format ReplayLogFo
 		}
 		return items, trimmed, nil
 	case ReplayLogFormatSnellman:
-		concise, err := notation.ConvertSnellmanToConcise(trimmed)
+		concise, err := notation.ConvertSnellmanToConciseForReplay(trimmed)
 		if err != nil {
 			return nil, "", err
 		}
@@ -245,7 +245,7 @@ func (m *ReplayManager) parseReplayLogContent(content string, format ReplayLogFo
 			return items, trimmed, nil
 		}
 		if notation.IsSnellmanTextFormat(trimmed) {
-			concise, err := notation.ConvertSnellmanToConcise(trimmed)
+			concise, err := notation.ConvertSnellmanToConciseForReplay(trimmed)
 			if err != nil {
 				return nil, "", err
 			}

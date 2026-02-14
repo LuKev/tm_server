@@ -20,6 +20,7 @@ type GameSimulator struct {
 	Actions      []notation.LogItem
 	CurrentIndex int               // Index of the *next* action to execute
 	History      []*game.GameState // Snapshots for undo
+	incomePending bool             // RoundStart seen but income not yet granted
 }
 
 // NewGameSimulator creates a new simulator
@@ -40,6 +41,7 @@ func NewGameSimulator(initialState *game.GameState, actions []notation.LogItem) 
 		Actions:      actions,
 		CurrentIndex: 0,
 		History:      make([]*game.GameState, 0),
+		incomePending: false,
 	}
 
 	// Save initial state to history
@@ -86,6 +88,21 @@ func (s *GameSimulator) StepForward() error {
 	switch v := item.(type) {
 	case notation.ActionItem:
 		if v.Action != nil {
+			// Snellman logs can contain pre-income interlude actions before the round's normal income
+			// is applied (e.g., cult reward spade transforms). We tag those as LogPreIncomeAction
+			// and delay GrantIncome until the first non-pre-income action.
+			if s.incomePending {
+				if _, ok := v.Action.(*notation.LogPreIncomeAction); !ok {
+					// Any unused cult reward spades must be spent during the income interlude;
+					// they are not available during the action phase.
+					if s.CurrentState.PendingCultRewardSpades != nil && len(s.CurrentState.PendingCultRewardSpades) > 0 {
+						s.CurrentState.PendingCultRewardSpades = make(map[string]int)
+					}
+					s.CurrentState.GrantIncome()
+					s.CurrentState.StartActionPhase()
+					s.incomePending = false
+				}
+			}
 			// Check for missing bonus card in PassAction
 			if pass, ok := v.Action.(*game.PassAction); ok {
 				// Round 6 pass does not need bonus card
@@ -101,7 +118,12 @@ func (s *GameSimulator) StepForward() error {
 				}
 			}
 
-			fmt.Printf("Executing action %d: %T\n", s.CurrentIndex, v.Action)
+			if pi, ok := v.Action.(*notation.LogPreIncomeAction); ok && pi != nil && pi.Action != nil {
+				// Debug-only: pre-income actions are sensitive to player attribution and pending spades.
+				fmt.Printf("Executing action %d: %T (player=%s inner=%T)\n", s.CurrentIndex, v.Action, v.Action.GetPlayerID(), pi.Action)
+			} else {
+				fmt.Printf("Executing action %d: %T\n", s.CurrentIndex, v.Action)
+			}
 			// Execute the action against the current state
 			if err := v.Action.Execute(s.CurrentState); err != nil {
 				if shouldIgnoreMissingDeclineLeechAtFullPower(v.Action, s.CurrentState, err) {
@@ -111,14 +133,16 @@ func (s *GameSimulator) StepForward() error {
 				return fmt.Errorf("action execution failed at index %d (%T %#v): %w", s.CurrentIndex, v.Action, v.Action, err)
 			}
 		}
-
-		// Check if all players have passed and we haven't run cleanup yet
-		// (Phase check ensures we don't run it multiple times if actions happen during cleanup)
+	case notation.RoundStartItem:
+		// If the previous round has ended (all players passed), execute cleanup now.
+		// Snellman/BGA logs can contain late reactions after the final PASS of the round
+		// (leeches, Cultists +TRACK bonuses, etc.). Triggering cleanup immediately on
+		// "all players passed" can run scoring/bonus-card coin placement too early.
 		if s.CurrentState.Phase == game.PhaseAction && s.CurrentState.AllPlayersPassed() {
-			fmt.Println("DEBUG: All players passed, executing Cleanup Phase")
+			fmt.Println("DEBUG: Round boundary reached, executing Cleanup Phase")
 			s.CurrentState.ExecuteCleanupPhase()
 		}
-	case notation.RoundStartItem:
+
 		// Start a new round
 		s.CurrentState.StartNewRound()
 
@@ -128,13 +152,17 @@ func (s *GameSimulator) StepForward() error {
 			s.CurrentState.TurnOrder = v.TurnOrder
 		}
 
+		// Apply the cult-track reward associated with the *previous* round's scoring tile.
+		// Snellman logs these as "cult_income_for_faction" at the start of the next round.
+		if v.Round > 1 {
+			s.CurrentState.AwardCultRewardsForRound(v.Round - 1)
+			fmt.Printf("DEBUG: PendingCultRewardSpades after cult income (round=%d): %#v\n", v.Round, s.CurrentState.PendingCultRewardSpades)
+		}
+
 		fmt.Printf("DEBUG: Processing RoundStartItem for Round %d. TurnOrder: %v\n", v.Round, s.CurrentState.TurnOrder)
-
-		// Grant income for all rounds (including Round 1, as per BGA log)
-		s.CurrentState.GrantIncome()
-
-		// Transition to action phase immediately (income is automatic)
-		s.CurrentState.StartActionPhase()
+		// Delay income until we reach the first non-pre-income action for this round.
+		// This allows replay to match Snellman interludes between income blocks.
+		s.incomePending = true
 	case notation.GameSettingsItem:
 		// Initialize players from settings
 		settings := v.Settings
@@ -257,6 +285,14 @@ func (s *GameSimulator) JumpTo(targetIndex int) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	// If we jumped to the end of the log, ensure the final cleanup/endgame scoring runs.
+	// Some logs end immediately after the last PASS, with no following RoundStartItem
+	// to trigger cleanup.
+	if targetIndex >= len(s.Actions) && s.CurrentState.Phase == game.PhaseAction && s.CurrentState.AllPlayersPassed() {
+		fmt.Println("DEBUG: End of log reached, executing Cleanup Phase")
+		s.CurrentState.ExecuteCleanupPhase()
 	}
 	return nil
 }

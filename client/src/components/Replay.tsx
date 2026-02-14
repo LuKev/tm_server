@@ -6,6 +6,7 @@ import { TownTiles } from './GameBoard/TownTiles'
 import { FavorTiles } from './GameBoard/FavorTiles'
 import { PassingTiles } from './GameBoard/PassingTiles'
 import { PlayerBoards } from './GameBoard/PlayerBoards'
+import { PlayerSummaryBar } from './GameBoard/PlayerSummaryBar'
 import { CultTracks } from './CultTracks/CultTracks'
 import { useGameStore } from '../stores/gameStore'
 import { CultType, GamePhase, type GameState } from '../types/game.types'
@@ -361,6 +362,12 @@ export const Replay = (): React.ReactElement => {
                         </button>
                     </div>
                 </div>
+
+                {gameState?.players && (
+                    <div className="mb-3">
+                        <PlayerSummaryBar gameState={gameState} />
+                    </div>
+                )}
 
                 <MissingInfoModal
                     isOpen={showMissingInfoModal}

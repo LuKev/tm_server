@@ -230,6 +230,54 @@ func TestConvertSnellmanToConcise_FavorActionTownAndAurenStrongholdCodes(t *test
 	}
 }
 
+func TestConvertSnellmanToConcise_MermaidsConnectMultipleTownsPreservesOrder(t *testing.T) {
+	// Regression test for a subtle ordering bug:
+	// In a compound Snellman row like:
+	//   upgrade ... +FAV.. +TW2 convert ... +TW4 convert ...
+	// the conversions must remain between the town selections, otherwise the power
+	// bowls diverge from the Snellman ledger (because spending power returns it to bowl 1).
+	input := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"Round 6, turn 2\tshow history",
+		"mermaids\t+23\t93 VP\t-3\t9 C\t\t8 W\t\t2 P\t+6\t1/0/5 PW\t+2\t7/5/1/0\t2\tupgrade C1 to TE. +FAV5. connect r1. +TW2. connect r10. convert 1PW to 1C. +TW4. convert 1PW to 1C",
+	}, "\n")
+
+	got, err := ConvertSnellmanToConcise(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
+	}
+
+	// Expect the concise token sequence to preserve:
+	//   UP-TE-C1, FAV-F2, TW7VP, C1PW:1C, TW6VP, C1PW:1C
+	// (Favor tile 5 is Fire+2 => FAV-F2; TW2 => TW7VP; TW4 => TW6VP.)
+	want := "UP-TE-C1.FAV-F2.TW7VP.C1PW:1C.TW6VP.C1PW:1C"
+	if !strings.Contains(got, want) {
+		t.Fatalf("expected Mermaids connect/town/conversion order to be preserved, missing %q in:\n%s", want, got)
+	}
+}
+
+func TestConvertSnellmanToConcise_UpgradeSanctuaryFavorThenTown(t *testing.T) {
+	// Sanctuary/Temple upgrades create a pending favor selection first.
+	// Town formation is checked only after the favor selection is completed,
+	// so concise logs must select FAV before selecting the TW* token.
+	input := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"Round 5, turn 1\tshow history",
+		"cultists\t+10\t75 VP\t\t13 C\t-4\t7 W\t\t2 P\t-1\t0/1/4 PW\t+1\t7/8/7/10\t3 4 2\tconvert 2PW to 2C. upgrade E6 to SA. +TW1. +FAV12",
+	}, "\n")
+
+	got, err := ConvertSnellmanToConcise(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
+	}
+
+	// TW1 -> TW5VP; FAV12 -> FAV-A1. We need FAV ahead of TW.
+	want := "C2PW:2C.UP-SA-E6.FAV-A1.TW5VP"
+	if !strings.Contains(got, want) {
+		t.Fatalf("expected upgrade->favor->town ordering, missing %q in:\n%s", want, got)
+	}
+}
+
 func TestConvertSnellmanToConcise_CompactsAdjacentNonLeechRows(t *testing.T) {
 	input := strings.Join([]string{
 		"option strict-leech\tshow history",
@@ -296,6 +344,28 @@ func TestConvertSnellmanToConcise_ParsesMixedCaseConvertUpgradeFav(t *testing.T)
 	}
 	if !strings.Contains(got, "C1PW:1C.UP-SH-C3.FAV-F1") {
 		t.Fatalf("expected mixed-case compound parsing with favor tile:\n%s", got)
+	}
+}
+
+func TestConvertSnellmanToConcise_PreservesAdvanceShipWithTrailingConvert(t *testing.T) {
+	input := "engineers\t+2\t70 VP\t-4\t10 C\t-1\t3 W\t\t2 P\t-1\t3/4/1 PW\t\t0/2/1/4\t\tadvance ship. convert 1PW to 1C"
+	got, err := ConvertSnellmanToConcise(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
+	}
+	if !strings.Contains(got, "+SHIP.C1PW:1C") {
+		t.Fatalf("expected advance ship compound to keep conversion:\n%s", got)
+	}
+}
+
+func TestConvertSnellmanToConcise_ParsesGreyTerrainSpelling(t *testing.T) {
+	input := "chaosmagicians\t+4\t28 VP\t-2\t11 C\t-1\t4 W\t\t1 P\t-12\t6/0/2 PW\t\t6/0/6/2\t\taction ACT6. transform I6 to grey. build G1"
+	got, err := ConvertSnellmanToConcise(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConcise() error = %v", err)
+	}
+	if !strings.Contains(got, "ACT6.T-I6-Gy.G1") {
+		t.Fatalf("expected grey to map to Gy:\n%s", got)
 	}
 }
 

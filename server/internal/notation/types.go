@@ -2,6 +2,8 @@ package notation
 
 import (
 	"fmt"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
@@ -43,10 +45,11 @@ type RoundStartItem struct {
 
 // LogAcceptLeechAction is a log-only representation of accepting leech
 type LogAcceptLeechAction struct {
-	PlayerID    string
-	PowerAmount int
-	VPCost      int
-	Explicit    bool
+	PlayerID      string
+	FromPlayerID  string // optional: expected leech source
+	PowerAmount   int
+	VPCost        int
+	Explicit      bool
 }
 
 // GetType returns the action type.
@@ -65,31 +68,47 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	// Try to infer from pending offers
-	if offers, ok := gs.PendingLeechOffers[a.PlayerID]; ok && len(offers) > 0 {
-		if a.Explicit && a.PowerAmount > 0 {
-			offers[0].Amount = a.PowerAmount
-			offers[0].VPCost = a.VPCost
-		}
-		// Accept the first offer
-		// Use AcceptLeechOffer helper which handles VP cost and removal
-		if err := gs.AcceptLeechOffer(a.PlayerID, 0); err != nil {
-			return fmt.Errorf("failed to accept pending leech offer: %w", err)
-		}
-		return nil
+	offers := gs.PendingLeechOffers[a.PlayerID]
+	if len(offers) == 0 {
+		return fmt.Errorf("no pending leech offers for %q", a.PlayerID)
 	}
 
-	// Fallback: use explicit amount (or default 1)
-	// This handles cases where pending offers might be missing (e.g. partial replay or bug)
-	player.Resources.Power.GainPower(a.PowerAmount)
-	player.VictoryPoints -= a.VPCost
+	idx := 0
+	if a.FromPlayerID != "" {
+		foundIdx := -1
+		for i, offer := range offers {
+			if offer == nil || !strings.EqualFold(offer.FromPlayerID, a.FromPlayerID) {
+				continue
+			}
+			// If amount is explicit, prefer an exact amount match when available.
+			if a.Explicit && a.PowerAmount > 0 && offer.Amount != a.PowerAmount {
+				continue
+			}
+			foundIdx = i
+			break
+		}
+		if foundIdx < 0 {
+			return fmt.Errorf("no pending leech offer from %q for %q", a.FromPlayerID, a.PlayerID)
+		}
+		idx = foundIdx
+	}
+
+	if a.Explicit && a.PowerAmount > 0 && offers[idx] != nil {
+		offers[idx].Amount = a.PowerAmount
+		offers[idx].VPCost = a.VPCost
+	}
+	// Use the strict game action so Cultists leech bonuses resolve consistently.
+	if err := game.NewAcceptPowerLeechAction(a.PlayerID, idx).Execute(gs); err != nil {
+		return fmt.Errorf("failed to accept pending leech offer: %w", err)
+	}
 	return nil
 }
 
 // LogDeclineLeechAction is a log-only representation of declining leech.
 // Unlike the strict game decline action, this is tolerant when no offer is pending.
 type LogDeclineLeechAction struct {
-	PlayerID string
+	PlayerID     string
+	FromPlayerID string // optional: expected leech source
 }
 
 // GetType returns the action type.
@@ -109,7 +128,21 @@ func (a *LogDeclineLeechAction) Execute(gs *game.GameState) error {
 		// our reconstructed offer state has already been resolved.
 		return nil
 	}
-	return game.NewDeclinePowerLeechAction(a.PlayerID, 0).Execute(gs)
+	idx := 0
+	if a.FromPlayerID != "" {
+		found := false
+		for i, offer := range offers {
+			if offer != nil && strings.EqualFold(offer.FromPlayerID, a.FromPlayerID) {
+				idx = i
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("no pending leech offer from %q for %q", a.FromPlayerID, a.PlayerID)
+		}
+	}
+	return game.NewDeclinePowerLeechAction(a.PlayerID, idx).Execute(gs)
 }
 
 // LogPowerAction is a log-only representation of a power action
@@ -243,6 +276,47 @@ func (a *LogBurnAction) Execute(gs *game.GameState) error {
 	return nil
 }
 
+// LogDigTransformAction represents a Snellman "dig N" step (terraform by N spades)
+// against a specific hex. This is used to preserve intra-row ordering for cases like
+// Alchemists stronghold (gain power per spade), where conversions can be interleaved
+// with dig steps in the ledger.
+type LogDigTransformAction struct {
+	PlayerID string
+	Spades   int
+	Target   board.Hex
+}
+
+func (a *LogDigTransformAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
+func (a *LogDigTransformAction) GetPlayerID() string      { return a.PlayerID }
+func (a *LogDigTransformAction) Validate(gs *game.GameState) error {
+	if a == nil {
+		return fmt.Errorf("nil dig action")
+	}
+	if a.Spades <= 0 {
+		return fmt.Errorf("invalid dig spades: %d", a.Spades)
+	}
+	return nil
+}
+
+func (a *LogDigTransformAction) Execute(gs *game.GameState) error {
+	if err := a.Validate(gs); err != nil {
+		return err
+	}
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+	mapHex := gs.Map.GetHex(a.Target)
+	if mapHex == nil {
+		return fmt.Errorf("hex does not exist: %v", a.Target)
+	}
+
+	home := player.Faction.GetHomeTerrain()
+	target := board.CalculateIntermediateTerrain(mapHex.Terrain, home, a.Spades)
+	action := game.NewTransformAndBuildAction(a.PlayerID, a.Target, false, target)
+	return action.Execute(gs)
+}
+
 // LogFavorTileAction is a log-only representation of taking a favor tile
 type LogFavorTileAction struct {
 	PlayerID string
@@ -369,6 +443,14 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			if len(parts) < 4 {
 				return fmt.Errorf("invalid engineers bridge action code")
 			}
+			if player.Faction.GetType() != models.FactionEngineers {
+				return fmt.Errorf("engineers bridge action only valid for engineers")
+			}
+			// Engineers stronghold bridge costs 2 workers (no coins).
+			if player.Resources.Workers < 2 {
+				return fmt.Errorf("not enough workers for engineers bridge: need 2, have %d", player.Resources.Workers)
+			}
+			player.Resources.Workers -= 2
 			hex1, err := ConvertLogCoordToAxial(parts[2])
 			if err != nil {
 				return err
@@ -385,12 +467,8 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			// Check for town formation after building bridge
 			gs.CheckAllTownFormations(a.PlayerID)
 
-			// Engineers get 3 VP per bridge if Stronghold is built
+			// Track bridge usage (used for the 3-bridge limit).
 			player.BridgesBuilt++
-			if player.HasStrongholdAbility && player.Faction.GetType() == models.FactionEngineers {
-				player.VictoryPoints += 3
-			}
-
 			return nil
 		}
 	case "ACTS":
@@ -618,8 +696,52 @@ func (a *LogCompoundAction) GetPlayerID() string {
 // Validate checks if the action is valid.
 func (a *LogCompoundAction) Validate(gs *game.GameState) error { return nil }
 
+// LogPreIncomeAction marks an action that occurs before the round's normal income is granted
+// (e.g. Snellman interlude actions between two "Round X income" blocks). These actions must
+// not advance turn order.
+type LogPreIncomeAction struct {
+	Action game.Action
+}
+
+func (a *LogPreIncomeAction) GetType() game.ActionType {
+	if a == nil || a.Action == nil {
+		return game.ActionSpecialAction
+	}
+	return a.Action.GetType()
+}
+
+func (a *LogPreIncomeAction) GetPlayerID() string {
+	if a == nil || a.Action == nil {
+		return ""
+	}
+	return a.Action.GetPlayerID()
+}
+
+func (a *LogPreIncomeAction) Validate(gs *game.GameState) error {
+	if a == nil || a.Action == nil {
+		return fmt.Errorf("nil pre-income action")
+	}
+	return a.Action.Validate(gs)
+}
+
+func (a *LogPreIncomeAction) Execute(gs *game.GameState) error {
+	if a == nil || a.Action == nil {
+		return fmt.Errorf("nil pre-income action")
+	}
+	// Pre-income actions occur outside normal turn order; suppress any implicit NextTurn.
+	prev := gs.SuppressTurnAdvance
+	gs.SuppressTurnAdvance = true
+	defer func() { gs.SuppressTurnAdvance = prev }()
+	return a.Action.Execute(gs)
+}
+
 func isReplayAuxiliaryOnlyAction(action game.Action) bool {
 	switch action.(type) {
+	case *LogPreIncomeAction:
+		if v, ok := action.(*LogPreIncomeAction); ok && v != nil {
+			return isReplayAuxiliaryOnlyAction(v.Action)
+		}
+		return true
 	case *LogConversionAction,
 		*LogBurnAction,
 		*LogFavorTileAction,
@@ -657,14 +779,107 @@ func isReplayAffordabilityError(err error) bool {
 	}
 	msg := strings.ToLower(err.Error())
 	return strings.Contains(msg, "not enough resources") ||
+		strings.Contains(msg, "insufficient resources") ||
 		strings.Contains(msg, "not enough workers") ||
 		strings.Contains(msg, "cannot afford")
 }
 
 func isReplayPreExecutableAction(action game.Action) bool {
+	// Deprecated: use isReplayPreExecutableActionForError for selective retry.
 	switch action.(type) {
-	case *LogConversionAction, *LogBurnAction:
+	case *LogBurnAction:
 		return true
+	default:
+		return false
+	}
+}
+
+type replayInsufficientResources struct {
+	needCoins, needWorkers, needPriests, needPower int
+	haveCoins, haveWorkers, havePriests, havePower int
+}
+
+func parseReplayInsufficientResources(err error) (replayInsufficientResources, bool) {
+	if err == nil {
+		return replayInsufficientResources{}, false
+	}
+	var r replayInsufficientResources
+	n, _ := fmt.Sscanf(
+		strings.ToLower(err.Error()),
+		"insufficient resources: need (coins:%d, workers:%d, priests:%d, power:%d), have (coins:%d, workers:%d, priests:%d, power:%d)",
+		&r.needCoins, &r.needWorkers, &r.needPriests, &r.needPower,
+		&r.haveCoins, &r.haveWorkers, &r.havePriests, &r.havePower,
+	)
+	return r, n == 8
+}
+
+func parseReplayNotEnoughResources(err error) (replayInsufficientResources, bool) {
+	if err == nil {
+		return replayInsufficientResources{}, false
+	}
+	// Example:
+	// "not enough resources for dwelling: need {2 1 0 0}, have &{0 2 0 0xc000...}"
+	re := regexp.MustCompile(`not enough resources for [^:]+: need \{(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\}, have &\{(\d+)\s+(\d+)\s+(\d+)\s+`)
+	m := re.FindStringSubmatch(strings.ToLower(err.Error()))
+	if len(m) != 8 {
+		return replayInsufficientResources{}, false
+	}
+	toInt := func(s string) int {
+		n, _ := strconv.Atoi(s)
+		return n
+	}
+	return replayInsufficientResources{
+		needCoins:   toInt(m[1]),
+		needWorkers: toInt(m[2]),
+		needPriests: toInt(m[3]),
+		needPower:   toInt(m[4]),
+		haveCoins:   toInt(m[5]),
+		haveWorkers: toInt(m[6]),
+		havePriests: toInt(m[7]),
+		havePower:   0, // not present (pointer in output)
+	}, true
+}
+
+func isReplayPreExecutableActionForError(action game.Action, err error) bool {
+	if action == nil || err == nil {
+		return false
+	}
+
+	need, ok := parseReplayInsufficientResources(err)
+	if !ok {
+		need, ok = parseReplayNotEnoughResources(err)
+		if !ok {
+			// Unknown affordability error shape: only allow burns (they can only help power availability).
+			_, isBurn := action.(*LogBurnAction)
+			return isBurn
+		}
+	}
+
+	defCoins := need.needCoins - need.haveCoins
+	defWorkers := need.needWorkers - need.haveWorkers
+	defPriests := need.needPriests - need.havePriests
+	defPower := need.needPower - need.havePower
+
+	switch v := action.(type) {
+	case *LogBurnAction:
+		// Burns are free actions and can only increase spendable power (Bowl III).
+		// Snellman sometimes logs them late in the row even when they fund earlier steps.
+		return true
+	case *LogConversionAction:
+		// Only pre-execute conversions that produce a resource we are short on.
+		if defCoins > 0 && v.Reward[models.ResourceCoin] > 0 {
+			return true
+		}
+		if defWorkers > 0 && v.Reward[models.ResourceWorker] > 0 {
+			return true
+		}
+		if defPriests > 0 && v.Reward[models.ResourcePriest] > 0 {
+			return true
+		}
+		if defPower > 0 && v.Reward[models.ResourcePower] > 0 {
+			return true
+		}
+		return false
 	default:
 		return false
 	}
@@ -675,17 +890,19 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 	if len(a.Actions) == 0 {
 		return fmt.Errorf("empty compound action")
 	}
-	if !compoundHasMainAction(a.Actions) {
-		return fmt.Errorf("compound action has no legal main action")
-	}
+	hasMain := compoundHasMainAction(a.Actions)
 
 	// Suppress turn advancement during sub-actions to prevent multiple advances
 	// (e.g. Transform calls NextTurn, then Build calls NextTurn)
+	prevSuppress := gs.SuppressTurnAdvance
 	gs.SuppressTurnAdvance = true
 	defer func() {
-		gs.SuppressTurnAdvance = false
-		// Advance turn once at the end of the compound action
-		gs.NextTurn()
+		gs.SuppressTurnAdvance = prevSuppress
+		// Advance turn once at the end of the compound action if it contains a legal main action.
+		// Reaction-only compound rows (e.g. "+AIR. Leech 2 from witches") must not advance turn.
+		if hasMain && !prevSuppress {
+			gs.NextTurn()
+		}
 	}()
 
 	preExecuted := make(map[int]bool, len(a.Actions))
@@ -705,7 +922,7 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 
 			replayed := false
 			for j := i + 1; j < len(a.Actions); j++ {
-				if preExecuted[j] || !isReplayPreExecutableAction(a.Actions[j]) {
+				if preExecuted[j] || !isReplayPreExecutableActionForError(a.Actions[j], err) {
 					continue
 				}
 				if execErr := a.Actions[j].Execute(gs); execErr != nil {

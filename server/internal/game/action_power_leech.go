@@ -87,6 +87,16 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 	offers := gs.PendingLeechOffers[playerID]
 	offer := offers[offerIndex]
 
+	// Cultists leech bonus depends on whether the leeching player could actually gain
+	// any power from this offer at the time they respond. Snellman logs include
+	// "Decline N" rows even when the player has 0 capacity (no tokens in bowl 1/2),
+	// and those forced "declines" should not trigger Cultists' bonus.
+	potentialGain := 0
+	if offer != nil && player != nil && player.Resources != nil && player.Resources.Power != nil {
+		clone := player.Resources.Power.Clone()
+		potentialGain = clone.GainPower(offer.Amount)
+	}
+
 	if accepted {
 		vpCost := player.Resources.AcceptPowerLeech(offer)
 		player.VictoryPoints -= vpCost
@@ -96,10 +106,13 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 
 	// Track for Cultists ability (if the building player is Cultists)
 	if bonus, exists := gs.PendingCultistsLeech[offer.FromPlayerID]; exists {
-		if accepted {
-			bonus.AcceptedCount++
-		} else {
-			bonus.DeclinedCount++
+		bonus.ResolvedCount++
+		if potentialGain > 0 {
+			if accepted {
+				bonus.AcceptedCount++
+			} else {
+				bonus.DeclinedCount++
+			}
 		}
 	}
 
@@ -121,8 +134,7 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	}
 
 	// Check if all offers have been resolved
-	totalResolved := bonus.AcceptedCount + bonus.DeclinedCount
-	if totalResolved < bonus.OffersCreated {
+	if bonus.ResolvedCount < bonus.OffersCreated {
 		// Not all offers resolved yet
 		return
 	}
@@ -135,6 +147,13 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	}
 
 	if player.Faction.GetType() != models.FactionCultists {
+		delete(gs.PendingCultistsLeech, cultistsPlayerID)
+		return
+	}
+
+	// If nobody could actually gain any power from the leeches, Snellman still logs
+	// "Decline N" rows but Cultists do not receive a bonus.
+	if bonus.AcceptedCount == 0 && bonus.DeclinedCount == 0 {
 		delete(gs.PendingCultistsLeech, cultistsPlayerID)
 		return
 	}

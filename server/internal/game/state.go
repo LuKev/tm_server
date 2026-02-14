@@ -56,6 +56,7 @@ type PendingTownFormation struct {
 type CultistsLeechBonus struct {
 	PlayerID      string
 	OffersCreated int // Number of offers created
+	ResolvedCount int // Number of offers resolved (accepted or declined), including 0-power offers
 	AcceptedCount int // Number of offers accepted
 	DeclinedCount int // Number of offers declined
 }

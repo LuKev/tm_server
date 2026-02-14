@@ -3,9 +3,14 @@ package game
 // Cleanup Phase
 // Executes at the end of each round (rounds 1-5, not round 6)
 // Order of operations:
-// 1. Award cult track rewards (based on scoring tile)
-// 2. Add coins to leftover bonus cards (players keep their cards across rounds)
-// 3. Reset round-specific state
+// 1. Add coins to leftover bonus cards (players keep their cards across rounds)
+// 2. Reset round-specific state
+//
+// NOTE: The cult-track rewards printed on the round scoring tiles are applied during
+// the *income* phase of the following round (Snellman logs label these as
+// "cult_income_for_faction"). The reward source is the just-finished round's scoring
+// tile, but the resources/spades are granted at the next round start (before any
+// income-interlude transforms, and before normal "other_income_for_faction").
 
 // ExecuteCleanupPhase performs all cleanup tasks at the end of a round
 // This should be called after all players have passed
@@ -29,17 +34,14 @@ func (gs *GameState) ExecuteCleanupPhase() bool {
 
 	gs.Phase = PhaseCleanup
 
-	// 1. Award cult track rewards based on the current round's scoring tile
-	gs.AwardCultRewards()
-
-	// 2. Add 1 coin to each available (unselected) bonus card
+	// 1. Add 1 coin to each available (unselected) bonus card
 	// NOTE: Players keep their bonus cards across rounds - cards are only returned when
 	// players pass and select a new card. Coins accumulate on cards in the Available pool.
 	if gs.BonusCards != nil {
 		gs.BonusCards.AddCoinsToLeftoverCards()
 	}
 
-	// 3. Reset round-specific state
+	// 2. Reset round-specific state
 	gs.ResetRoundState()
 
 	// Game continues to next round

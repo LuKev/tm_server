@@ -282,11 +282,18 @@ func (gs *GameState) AwardActionVP(playerID string, actionType ScoringActionType
 
 // AwardCultRewards awards cult rewards at the end of the round
 func (gs *GameState) AwardCultRewards() {
+	gs.AwardCultRewardsForRound(gs.Round)
+}
+
+// AwardCultRewardsForRound awards cult rewards for a specific scoring tile round.
+// Snellman logs apply these during the next round's income phase ("cult_income_for_faction"),
+// but the rewards are derived from the previous round's scoring tile.
+func (gs *GameState) AwardCultRewardsForRound(round int) {
 	if gs.ScoringTiles == nil {
 		return
 	}
 
-	tile := gs.ScoringTiles.GetTileForRound(gs.Round)
+	tile := gs.ScoringTiles.GetTileForRound(round)
 	if tile == nil {
 		return
 	}
@@ -330,15 +337,15 @@ func (gs *GameState) awardRegularCultRewards(tile *ScoringTile) {
 			totalReward := rewardCount * tile.CultRewardAmount
 			fmt.Printf("DEBUG: Awarding %d (x%d) to %s\n", totalReward, tile.CultRewardType, playerID)
 
-			gs.grantCultReward(player, tile.CultRewardType, totalReward)
+			gs.grantCultReward(playerID, player, tile.CultRewardType, totalReward)
 		}
 	}
 }
 
-func (gs *GameState) grantCultReward(player *Player, rewardType CultRewardType, amount int) {
+func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType CultRewardType, amount int) {
 	switch rewardType {
 	case CultRewardPriest:
-		gs.GainPriests(player.ID, amount)
+		gs.GainPriests(playerID, amount)
 	case CultRewardPower:
 		player.Resources.Power.GainPower(amount)
 	case CultRewardSpade:
@@ -348,7 +355,7 @@ func (gs *GameState) grantCultReward(player *Player, rewardType CultRewardType, 
 		if gs.PendingCultRewardSpades == nil {
 			gs.PendingCultRewardSpades = make(map[string]int)
 		}
-		gs.PendingCultRewardSpades[player.ID] += amount
+		gs.PendingCultRewardSpades[playerID] += amount
 	case CultRewardWorker:
 		player.Resources.Workers += amount
 	case CultRewardCoin:

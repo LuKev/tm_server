@@ -1,12 +1,13 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, type PlayerState } from '../../types/game.types';
+import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import { TownTileId } from '../../types/game.types';
+import { ShippingDiggingDisplay } from '../shared/ShippingDiggingDisplay';
 import './PlayerBoards.css';
 import './FavorTiles.css';
 import './TownTiles.css';
@@ -192,6 +193,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
     const strongholdActionType = getStrongholdActionType(factionType);
     const isStrongholdActionUsed = strongholdActionType !== null && player.specialActionsUsed?.[strongholdActionType];
 
+    const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
+    const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
+    const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
 
     return (
         <div className="pb-resize-container">
@@ -222,6 +226,14 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                             <div className="pb-power-bowl">
                                 <span>{player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}</span>
                             </div>
+                        </div>
+                        <div className="resource-item">
+                            <ShippingDiggingDisplay
+                                factionType={factionType}
+                                shipping={shippingLevel}
+                                digging={diggingLevel}
+                                hasTempShippingBonus={hasTempShippingBonus}
+                            />
                         </div>
                         <div className="resource-item" style={{ marginLeft: 'auto' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontWeight: 'bold' }}>

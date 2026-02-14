@@ -6,6 +6,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 type snellmanRoundData struct {
@@ -51,8 +54,21 @@ func IsSnellmanTextFormat(content string) bool {
 	return hasSnellmanHeaders || hasFactionLines
 }
 
-// ConvertSnellmanToConcise converts Snellman's tab-delimited ledger format to Concise Notation format
+// ConvertSnellmanToConcise converts Snellman's tab-delimited ledger format to Concise Notation format.
+// This is primarily a display-oriented conversion and may apply layout heuristics.
 func ConvertSnellmanToConcise(content string) (string, error) {
+	return convertSnellmanToConcise(content, false)
+}
+
+// ConvertSnellmanToConciseForReplay converts Snellman's tab-delimited ledger format to Concise
+// Notation format using a conservative, line-preserving ordering. Each Snellman ledger action
+// row becomes (at most) one concise token placed on its own grid row, so replay execution order
+// matches the Snellman ledger.
+func ConvertSnellmanToConciseForReplay(content string) (string, error) {
+	return convertSnellmanToConcise(content, true)
+}
+
+func convertSnellmanToConcise(content string, linear bool) (string, error) {
 	var result []string
 	scanner := bufio.NewScanner(strings.NewReader(content))
 
@@ -70,7 +86,12 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 	roundLeechAnchors := make(map[*snellmanRoundData]map[int]map[string]string)
 
 	inSetupPhase := true
-	setupActions := make(map[string][]string) // faction -> setup dwelling placements
+	// Snellman sometimes inserts real action rows between two "Round X income" blocks.
+	// Those actions happen before the round's normal income is applied, so we tag them
+	// for replay to execute pre-income without advancing turn order.
+	inIncomeInterlude := false
+	setupActions := make(map[string][]string) // faction -> setup dwelling placements (display-oriented)
+	setupRows := make([]map[string]string, 0) // linear/replay mode: each ledger row becomes its own setup row
 	setupPassOrder := []string{}              // Track setup phase pass order for Round 1
 	actionsAddedThisTurn := make(map[string]bool)
 	turnMainActionRow := make(map[string]int)
@@ -84,7 +105,6 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 	turnBaseRow := 0
 	cultLeechPattern := regexp.MustCompile(`^\+(EARTH|WATER|FIRE|AIR)\.\s*Leech`)
 	cultPassPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.\s*(pass\s+.+)$`)
-	cultPrefixPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.?\s*(.*)$`)
 	scoringPattern := regexp.MustCompile(`(?i)^round\s+\d+\s+scoring\b`)
 	scoreCodePattern := regexp.MustCompile(`(?i)\b(SCORE\d+)\b`)
 	removedBonusPattern := regexp.MustCompile(`(?i)^removing\s+(?:tile|bonus\s+tile)\s+(BON\d+)\b`)
@@ -145,6 +165,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		// Round detection (Income)
 		if strings.HasPrefix(line, "Round ") && strings.Contains(line, "income") {
 			inSetupPhase = false
+			inIncomeInterlude = false
 			re := regexp.MustCompile(`Round (\d+)`)
 			if m := re.FindStringSubmatch(line); len(m) > 1 {
 				roundNum, _ := parseRound(m[1])
@@ -193,6 +214,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 				if len(parts) >= 2 && isKnownFaction(strings.TrimSpace(strings.ToLower(parts[0]))) {
 					action := strings.ToLower(strings.TrimSpace(extractSnellmanAction(parts)))
 					if !isSnellmanIncomeMetaAction(action) {
+						inIncomeInterlude = true
 						savedLine = incomeLine
 						break
 					}
@@ -203,6 +225,7 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		}
 
 		if strings.HasPrefix(line, "Round ") && strings.Contains(line, "turn") {
+			inIncomeInterlude = false
 			re := regexp.MustCompile(`Round (\d+)`)
 			if m := re.FindStringSubmatch(line); len(m) > 1 {
 				roundNum, _ := parseRound(m[1])
@@ -298,51 +321,69 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 			}
 		}
 
-		// SPECIAL: Handle cult bonus + leech pattern (e.g., "+EARTH. Leech 1 from engineers")
-		// This is Cultists' faction power - the cult advance should be merged with their last main action,
-		// while the leech should be a separate row
-		if m := cultPrefixPattern.FindStringSubmatch(action); len(m) > 2 && currentRound != nil && !inSetupPhase && factionName == "cultists" {
-			cultBonus := "+" + trackToShort(m[1])
-			appendCultBonus(cultBonus)
-			remainder := strings.TrimSpace(m[2])
-			if remainder == "" {
-				continue
+		if !linear {
+			// Cultists faction ability: when opponents accept power, Cultists gain +1 step on a
+			// cult track. Snellman sometimes logs this as a leading "+EARTH" segment on the same
+			// line as a later unrelated action (e.g. "+EARTH. build F3") or as a standalone row.
+			// For display, attach the cult step to the prior triggering action.
+			//
+			// NOTE: In replay mode, the Snellman ledger row order is authoritative, so we must
+			// not backtrack/relocate these steps.
+			if factionName == "cultists" && currentRound != nil && !inSetupPhase {
+				leadingCult := regexp.MustCompile("(?i)^\\+(EARTH|WATER|FIRE|AIR)(?:\\.|\\b)\\s*(.*)$")
+				if m := leadingCult.FindStringSubmatch(strings.TrimSpace(action)); len(m) > 2 {
+					cultBonus := "+" + trackToShort(strings.ToUpper(m[1]))
+					appendCultBonus(cultBonus)
+					action = strings.TrimSpace(m[2])
+					if action == "" {
+						continue
+					}
+				}
 			}
-			action = remainder
 		}
-		if m := cultLeechPattern.FindStringSubmatch(action); len(m) > 1 && currentRound != nil && !inSetupPhase {
-			cultBonus := "+" + trackToShort(m[1])
 
-			// Backtrack to the faction's latest main action row and add the cult bonus there.
-			appendCultBonus(cultBonus)
+		if !linear {
+			// NOTE: Cultists bonus cult advances can appear as standalone "+EARTH" rows, or
+			// as compounds like "+EARTH. dig 1. build A1", or paired with leech/pass.
+			// We only backtrack/merge cult advances for the leech/pass cases below; all other
+			// +TRACK segments should remain in the same compound token to preserve sequencing.
+			if m := cultLeechPattern.FindStringSubmatch(action); len(m) > 1 && currentRound != nil && !inSetupPhase {
+				cultBonus := "+" + trackToShort(m[1])
 
-			// Preserve the source faction for row placement by keeping only the leech part.
-			action = extractTrailingLeechAction(action)
-		}
-		// SPECIAL: Handle delayed cult bonus + pass pattern (e.g., "+EARTH. pass BON9")
-		// The cult step belongs to Cultists' prior triggering action, not to the pass itself.
-		if m := cultPassPattern.FindStringSubmatch(action); len(m) > 2 && currentRound != nil && !inSetupPhase {
-			cultBonus := "+" + trackToShort(m[1])
-			appendCultBonus(cultBonus)
-			action = m[2]
+				// Backtrack to the faction's latest main action row and add the cult bonus there.
+				appendCultBonus(cultBonus)
+
+				// Preserve the source faction for row placement by keeping only the leech part.
+				action = extractTrailingLeechAction(action)
+			}
+			// SPECIAL: Handle delayed cult bonus + pass pattern (e.g., "+EARTH. pass BON9")
+			// The cult step belongs to Cultists' prior triggering action, not to the pass itself.
+			if m := cultPassPattern.FindStringSubmatch(action); len(m) > 2 && currentRound != nil && !inSetupPhase {
+				cultBonus := "+" + trackToShort(m[1])
+				appendCultBonus(cultBonus)
+				action = m[2]
+			}
 		}
 
 		// Convert action
 		cultDelta := extractCultDelta(parts)
-		if strings.HasPrefix(strings.ToLower(strings.TrimSpace(action)), "leech ") {
-			if leechGain := extractPowerDelta(parts); leechGain > 0 {
-				re := regexp.MustCompile(`(?i)^leech\s+\d+`)
-				action = re.ReplaceAllString(action, fmt.Sprintf("Leech %d", leechGain))
-			}
-		}
 		conciseAction := convertActionToConcise(action, factionName, inSetupPhase, cultDelta)
 		if conciseAction == "" {
 			continue
 		}
+		if inIncomeInterlude && !inSetupPhase {
+			conciseAction = "@" + conciseAction
+		}
 
 		// Store action
 		if inSetupPhase {
-			setupActions[factionName] = append(setupActions[factionName], conciseAction)
+			if linear {
+				rowIdx := len(setupRows)
+				setupRows = append(setupRows, make(map[string]string))
+				setupRows[rowIdx][factionName] = conciseAction
+			} else {
+				setupActions[factionName] = append(setupActions[factionName], conciseAction)
+			}
 			// Track setup pass order (BON-* during setup = passes)
 			if strings.HasPrefix(conciseAction, "BON-") {
 				alreadyPassed := false
@@ -357,36 +398,34 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 				}
 			}
 		} else if currentRound != nil {
-			// Emit actions in strict source order to preserve legality-sensitive
-			// resource timing (leech/convert/power sequencing).
-			isLeech := isLeechOrDeclineToken(conciseAction)
-			rowIdx := placeRoundAction(currentRound, factionName, conciseAction, len(currentRound.Rows))
-			if isLeech {
-				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
-			} else {
+			if linear {
+				// Line-preserving placement: each Snellman ledger row becomes its own grid row.
+				rowIdx := len(currentRound.Rows)
+				currentRound.Rows = append(currentRound.Rows, make(map[string]string))
+				currentRound.Rows[rowIdx][factionName] = conciseAction
+
 				lastMainActionRow[factionName] = rowIdx
-				turnMainActionRow[factionName] = rowIdx
-				if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
+				if actionMayTriggerLeech(conciseAction) {
 					lastLeechSourceRow[factionName] = rowIdx
 				}
 				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
 				actionsAddedThisTurn[factionName] = true
-				turnActionRow = rowIdx
-				turnActionCol = factionColumnIndex(roundColumns(currentRound, factions), factionName)
-			}
-			if conciseAction == "PASS" || strings.Contains(conciseAction, "PASS-") {
-				alreadyPassed := false
-				for _, p := range currentRound.PassOrder {
-					if p == factionName {
-						alreadyPassed = true
-						break
+
+				// Track pass order: when a faction passes, add to PassOrder (if not already).
+				if conciseAction == "PASS" || strings.Contains(conciseAction, "PASS-") {
+					alreadyPassed := false
+					for _, p := range currentRound.PassOrder {
+						if p == factionName {
+							alreadyPassed = true
+							break
+						}
+					}
+					if !alreadyPassed {
+						currentRound.PassOrder = append(currentRound.PassOrder, factionName)
 					}
 				}
-				if !alreadyPassed {
-					currentRound.PassOrder = append(currentRound.PassOrder, factionName)
-				}
+				continue
 			}
-			continue
 
 			// Check if this is a leech action - leeches should be their own row, not merged
 			isLeechAction := isLeechOrDeclineToken(conciseAction)
@@ -642,23 +681,33 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		result = append(result, formatFactionHeader(factions))
 		result = append(result, strings.Repeat("-", 60))
 
-		maxSetupRows := 0
-		for _, f := range factions {
-			if len(setupActions[f]) > maxSetupRows {
-				maxSetupRows = len(setupActions[f])
+		if linear {
+			for _, r := range setupRows {
+				var row []string
+				for _, f := range factions {
+					row = append(row, r[f])
+				}
+				result = append(result, formatTableRow(row))
 			}
-		}
-
-		for i := 0; i < maxSetupRows; i++ {
-			var row []string
+		} else {
+			maxSetupRows := 0
 			for _, f := range factions {
-				if i < len(setupActions[f]) {
-					row = append(row, setupActions[f][i])
-				} else {
-					row = append(row, "")
+				if len(setupActions[f]) > maxSetupRows {
+					maxSetupRows = len(setupActions[f])
 				}
 			}
-			result = append(result, formatTableRow(row))
+
+			for i := 0; i < maxSetupRows; i++ {
+				var row []string
+				for _, f := range factions {
+					if i < len(setupActions[f]) {
+						row = append(row, setupActions[f][i])
+					} else {
+						row = append(row, "")
+					}
+				}
+				result = append(result, formatTableRow(row))
+			}
 		}
 	}
 
@@ -677,9 +726,17 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 		if len(round.TurnOrder) > 0 {
 			columns = round.TurnOrder
 		}
-		// Keep parser output in direct chronological placement. Additional leech
-		// reshuffling heuristics can reorder legal reaction timing in source logs.
-		promoteLeechesBeforeSameFactionMain(round, columns)
+		if !linear {
+			anchors := roundLeechAnchors[round]
+			if anchors == nil {
+				anchors = make(map[int]map[string]string)
+				roundLeechAnchors[round] = anchors
+			}
+			// Ensure leech/decline tokens remain bound to their true source action in the
+			// rendered grid, then compact the grid while preserving row-major chronology.
+			_ = stabilizeLeechBindings(round, columns, anchors)
+			rebuildFromAnchoredEvents(round, columns, flattenAnchoredEvents(round, columns, anchors), anchors)
+		}
 
 		result = append(result, strings.Repeat("-", 60))
 		result = append(result, formatFactionHeader(columns))
@@ -724,52 +781,6 @@ func placeRoundAction(round *snellmanRoundData, faction, action string, startRow
 			return row
 		}
 	}
-}
-
-func compactCrossRowBlankRuns(round *snellmanRoundData, columns []string) {
-	if round == nil || len(columns) == 0 || len(round.Rows) == 0 {
-		return
-	}
-	round.Rows = stripEmptyRows(round.Rows, columns)
-	if len(round.Rows) == 0 {
-		return
-	}
-	width := len(columns)
-	flat := make([]string, 0, len(round.Rows)*width)
-	for _, row := range round.Rows {
-		for _, c := range columns {
-			flat = append(flat, strings.TrimSpace(row[c]))
-		}
-	}
-	compacted := make([]string, 0, len(flat))
-	for i := 0; i < len(flat); {
-		if flat[i] != "" {
-			compacted = append(compacted, flat[i])
-			i++
-			continue
-		}
-		j := i
-		for j < len(flat) && flat[j] == "" {
-			j++
-		}
-		keep := (j - i) % width
-		for k := 0; k < keep; k++ {
-			compacted = append(compacted, "")
-		}
-		i = j
-	}
-	newRows := make([]map[string]string, 0, (len(compacted)+width-1)/width)
-	for idx, tok := range compacted {
-		if idx%width == 0 {
-			newRows = append(newRows, make(map[string]string))
-		}
-		if tok != "" {
-			row := idx / width
-			col := idx % width
-			newRows[row][columns[col]] = tok
-		}
-	}
-	round.Rows = stripEmptyRows(newRows, columns)
 }
 
 func stripEmptyRows(rows []map[string]string, columns []string) []map[string]string {
@@ -2045,8 +2056,28 @@ func isLeechOrDeclineToken(token string) bool {
 	if t == "DL" || t == "L" {
 		return true
 	}
+	// DL, DL2, DL-WITCHES, DL2-WITCHES
+	if strings.HasPrefix(t, "DL") {
+		rest := strings.TrimPrefix(t, "DL")
+		if rest == "" || strings.HasPrefix(rest, "-") {
+			return true
+		}
+		if i := strings.Index(rest, "-"); i >= 0 {
+			rest = rest[:i]
+		}
+		_, err := strconv.Atoi(rest)
+		return err == nil
+	}
+	// L, L2, L-WITCHES, L2-WITCHES
 	if strings.HasPrefix(t, "L") {
-		_, err := strconv.Atoi(strings.TrimPrefix(t, "L"))
+		rest := strings.TrimPrefix(t, "L")
+		if rest == "" || strings.HasPrefix(rest, "-") {
+			return true
+		}
+		if i := strings.Index(rest, "-"); i >= 0 {
+			rest = rest[:i]
+		}
+		_, err := strconv.Atoi(rest)
 		return err == nil
 	}
 	return false
@@ -2194,10 +2225,11 @@ func extractSnellmanAction(parts []string) string {
 			strings.Contains(lower, "burn") ||
 			strings.Contains(lower, "dig") ||
 			strings.Contains(lower, "send p to") ||
-			strings.Contains(lower, "advance") {
+			strings.Contains(lower, "advance") ||
+			strings.Contains(lower, "connect") {
 
 			// Clean up any preceding resources (e.g. "1/2/4/0 transform...")
-			re := regexp.MustCompile(`(?i)(action|pass|convert|build|upgrade|transform|burn|dig|send p to|advance).*`)
+			re := regexp.MustCompile(`(?i)(action|pass|convert|build|upgrade|transform|burn|dig|send p to|advance|connect).*`)
 			if match := re.FindString(part); match != "" {
 				return match
 			}
@@ -2281,18 +2313,37 @@ func convertActionToConcise(action, faction string, isSetup bool, cultDelta int)
 
 	// Leech: "Leech 1 from engineers" -> "L1"
 	if strings.HasPrefix(lowerAction, "leech ") {
-		re := regexp.MustCompile(`(?i)^leech\s+(\d+)\s+from\s+`)
-		if m := re.FindStringSubmatch(action); len(m) > 1 {
-			if m[1] == "1" {
-				return "L"
+		re := regexp.MustCompile(`(?i)^leech\s+(\d+)\s+from\s+(.+)$`)
+		if m := re.FindStringSubmatch(action); len(m) > 2 {
+			amt := strings.TrimSpace(m[1])
+			src := factionDisplayName(m[2])
+			tok := "L"
+			if amt != "" && amt != "1" {
+				tok = "L" + amt
 			}
-			return "L" + m[1]
+			if strings.TrimSpace(src) != "" {
+				tok = tok + "-" + src
+			}
+			return tok
 		}
 		return "L"
 	}
 
 	// Decline: "Decline X from Y" -> "DL"
 	if strings.HasPrefix(lowerAction, "decline ") {
+		re := regexp.MustCompile(`(?i)^decline\s+(\d+)\s+from\s+(.+)$`)
+		if m := re.FindStringSubmatch(action); len(m) > 2 {
+			amt := strings.TrimSpace(m[1])
+			src := factionDisplayName(m[2])
+			tok := "DL"
+			if amt != "" && amt != "1" {
+				tok = "DL" + amt
+			}
+			if strings.TrimSpace(src) != "" {
+				tok = tok + "-" + src
+			}
+			return tok
+		}
 		return "DL"
 	}
 
@@ -2334,16 +2385,28 @@ func convertActionToConcise(action, faction string, isSetup bool, cultDelta int)
 
 	// Advance shipping: "advance ship" -> "+SHIP"
 	if strings.HasPrefix(lowerAction, "advance ship") {
+		if strings.Contains(action, ".") {
+			return convertCompoundActionToConcise(action, faction, cultDelta)
+		}
 		return "+SHIP"
 	}
 
 	// Advance digging: "advance dig" -> "+DIG"
 	if strings.HasPrefix(lowerAction, "advance dig") {
+		if strings.Contains(action, ".") {
+			return convertCompoundActionToConcise(action, faction, cultDelta)
+		}
 		return "+DIG"
 	}
 
 	// Convert: "convert 1PW to 1C"
 	if strings.HasPrefix(lowerAction, "convert ") {
+		return convertCompoundActionToConcise(action, faction, cultDelta)
+	}
+
+	// Mermaids river-town claim helper in Snellman: "connect r33. +TW4. ..."
+	// Treat this as a compound action so we preserve the following +TW / conversions.
+	if strings.HasPrefix(lowerAction, "connect ") {
 		return convertCompoundActionToConcise(action, faction, cultDelta)
 	}
 
@@ -2387,6 +2450,37 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 	for i, part := range parts {
 		part = strings.TrimSpace(part)
 		partLower := strings.ToLower(part)
+
+		// Dig step: "dig 2" / "dig 1" within a compound row.
+		// Snellman can interleave free-action conversions between dig steps (notably Alchemists
+		// stronghold: +2 power per spade). Preserve that ordering by emitting an explicit DIGn-COORD
+		// token tied to the eventual build/transform target in the same row.
+		if strings.HasPrefix(partLower, "dig ") {
+			re := regexp.MustCompile(`(?i)^dig\s+(\d+)`)
+			if m := re.FindStringSubmatch(part); len(m) > 1 {
+				n := strings.TrimSpace(m[1])
+				targetCoord := ""
+				for j := i + 1; j < len(parts); j++ {
+					next := strings.TrimSpace(parts[j])
+					nextLower := strings.ToLower(next)
+					if strings.HasPrefix(nextLower, "build ") {
+						targetCoord = strings.ToUpper(strings.TrimSpace(next[len("build "):]))
+						break
+					}
+					if strings.HasPrefix(nextLower, "transform ") {
+						tr := regexp.MustCompile(`(?i)^transform\s+([A-I]\d{1,2})\s+to\s+`)
+						if tm := tr.FindStringSubmatch(next); len(tm) > 1 {
+							targetCoord = strings.ToUpper(strings.TrimSpace(tm[1]))
+							break
+						}
+					}
+				}
+				if targetCoord != "" {
+					resultParts = append(resultParts, fmt.Sprintf("DIG%s-%s", n, targetCoord))
+				}
+			}
+			continue
+		}
 
 		// Burn
 		if strings.HasPrefix(partLower, "burn ") {
@@ -2646,14 +2740,27 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 		}
 
 		// Cult track advance (e.g. +WATER)
-		if strings.HasPrefix(part, "+") {
+		partTrim := strings.TrimSpace(part)
+		if strings.HasPrefix(partTrim, "+") {
 			// Skip if it was merged into BON2
-			if hasBon2 && cultTrack != "" && !strings.HasPrefix(strings.ToUpper(part), "+SHIP") && !strings.HasPrefix(strings.ToUpper(part), "+FAV") {
+			if hasBon2 && cultTrack != "" && !strings.HasPrefix(strings.ToUpper(partTrim), "+SHIP") && !strings.HasPrefix(strings.ToUpper(partTrim), "+FAV") {
 				continue
 			}
 
-			track := strings.TrimPrefix(part, "+")
+			track := strings.TrimPrefix(partTrim, "+")
 			upperTrack := strings.ToUpper(strings.TrimSpace(track))
+			// Town tile selections can be logged as "+TW3" or "+2TW3" (multiple
+			// simultaneous town claims of the same tile type).
+			if m := regexp.MustCompile(`^(\d+)TW(\d+)$`).FindStringSubmatch(upperTrack); len(m) > 2 {
+				n, _ := strconv.Atoi(m[1])
+				if n < 1 {
+					n = 1
+				}
+				for k := 0; k < n; k++ {
+					resultParts = append(resultParts, snellmanTownToConcise(m[2]))
+				}
+				continue
+			}
 			if regexp.MustCompile(`^\d`).MatchString(upperTrack) {
 				// VP/resource delta strings like +15vp... are not concise actions.
 				continue
@@ -2747,6 +2854,13 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 			resultParts = append(resultParts, convertSendPriestToConcise(part, cultDelta))
 		}
 
+		// Mermaids delayed river-town claim: "connect r33" is informational only (the pending
+		// town formation is already tracked by the engine); keep it as a no-op so subsequent
+		// "+TWx" tokens remain in this compound action.
+		if strings.HasPrefix(partLower, "connect r") {
+			continue
+		}
+
 		// Pass
 		if strings.EqualFold(part, "pass") {
 			resultParts = append(resultParts, "PASS")
@@ -2756,6 +2870,42 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 			bonusCode := snellmanBonToConscise(strings.ToUpper(bonusCard))
 			resultParts = append(resultParts, fmt.Sprintf("PASS-%s", bonusCode))
 		}
+
+		// Leech/decline can appear inside compound ledger rows (e.g. "+AIR. Leech 2 from witches").
+		if strings.HasPrefix(partLower, "leech ") {
+			re := regexp.MustCompile(`(?i)^leech\s+(\d+)\s+from\s+(.+)$`)
+			if m := re.FindStringSubmatch(part); len(m) > 2 {
+				amt := strings.TrimSpace(m[1])
+				src := factionDisplayName(m[2])
+				tok := "L"
+				if amt != "" && amt != "1" {
+					tok = "L" + amt
+				}
+				if strings.TrimSpace(src) != "" {
+					tok = tok + "-" + src
+				}
+				resultParts = append(resultParts, tok)
+			} else {
+				resultParts = append(resultParts, "L")
+			}
+		}
+		if strings.HasPrefix(partLower, "decline ") {
+			re := regexp.MustCompile(`(?i)^decline\s+(\d+)\s+from\s+(.+)$`)
+			if m := re.FindStringSubmatch(part); len(m) > 2 {
+				amt := strings.TrimSpace(m[1])
+				src := factionDisplayName(m[2])
+				tok := "DL"
+				if amt != "" && amt != "1" {
+					tok = "DL" + amt
+				}
+				if strings.TrimSpace(src) != "" {
+					tok = tok + "-" + src
+				}
+				resultParts = append(resultParts, tok)
+			} else {
+				resultParts = append(resultParts, "DL")
+			}
+		}
 	}
 
 	resultParts = normalizeUpgradeFavorTownOrder(resultParts)
@@ -2763,6 +2913,12 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 }
 
 func normalizeUpgradeFavorTownOrder(parts []string) []string {
+	// In Snellman ledger rows, the intra-row order can matter for resources (notably priests):
+	// e.g. "... convert 2P to 2W. +2TW3" must spend priests BEFORE gaining priests from town tiles.
+	//
+	// We only enforce one ordering constraint here: favor tile selections must happen immediately
+	// after the upgrade that triggers them. Everything else (conversions, towns, etc.) must retain
+	// original relative ordering.
 	if len(parts) < 3 {
 		return parts
 	}
@@ -2783,32 +2939,31 @@ func normalizeUpgradeFavorTownOrder(parts []string) []string {
 		if strings.HasPrefix(parts[i], "FAV-") {
 			hasFav = true
 		}
+		// Town tokens are emitted as concise VP-coded strings like TW5VP/TW11VP/etc.
+		// NOTE: this is a raw string literal; use \d (not \\d) for digit matching.
 		if regexp.MustCompile(`^TW\d+VP$`).MatchString(parts[i]) {
 			hasTown = true
 		}
 	}
+	// Only reorder in the tricky case where an upgrade triggers BOTH a favor selection
+	// and one-or-more town tile selections; otherwise keep Snellman's relative ordering.
 	if !hasFav || !hasTown {
 		return parts
 	}
 
 	head := append([]string{}, parts[:upgradeIdx+1]...)
 	favs := make([]string, 0, 2)
-	towns := make([]string, 0, 2)
 	rest := make([]string, 0, len(parts)-upgradeIdx-1)
 	for i := upgradeIdx + 1; i < len(parts); i++ {
 		p := parts[i]
-		switch {
-		case strings.HasPrefix(p, "FAV-"):
+		if strings.HasPrefix(p, "FAV-") {
 			favs = append(favs, p)
-		case regexp.MustCompile(`^TW\d+VP$`).MatchString(p):
-			towns = append(towns, p)
-		default:
-			rest = append(rest, p)
+			continue
 		}
+		rest = append(rest, p)
 	}
 
 	out := append(head, favs...)
-	out = append(out, towns...)
 	out = append(out, rest...)
 	return out
 }
@@ -2882,21 +3037,28 @@ func convertSendPriestToConcise(action string, cultDelta int) string {
 }
 
 func factionHomeColorShort(faction string) string {
-	switch strings.ToLower(faction) {
-	case "engineers", "dwarves":
-		return "Gy"
-	case "darklings", "alchemists":
-		return "Bk"
-	case "cultists", "halflings", "nomads":
+	// Avoid manual faction->color mappings here; bugs in this mapping silently corrupt
+	// Snellman "transform X to <color>" conversions (e.g. Nomads desert vs plains).
+	ft := models.FactionTypeFromString(faction)
+	f := factions.NewFaction(ft)
+	if f == nil {
+		return ""
+	}
+	switch f.GetHomeTerrain() {
+	case models.TerrainPlains:
 		return "Br"
-	case "auren", "witches":
-		return "G"
-	case "chaos magicians", "giants":
-		return "R"
-	case "fakirs":
-		return "Y"
-	case "mermaids", "swarmlings":
+	case models.TerrainSwamp:
+		return "Bk"
+	case models.TerrainLake:
 		return "Bl"
+	case models.TerrainForest:
+		return "G"
+	case models.TerrainMountain:
+		return "Gy"
+	case models.TerrainWasteland:
+		return "R"
+	case models.TerrainDesert:
+		return "Y"
 	default:
 		return ""
 	}
@@ -3145,7 +3307,7 @@ func snellmanColorToShort(color string) string {
 		return "Bl"
 	case "green":
 		return "G"
-	case "gray":
+	case "gray", "grey":
 		return "Gy"
 	case "red":
 		return "R"

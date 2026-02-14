@@ -178,33 +178,18 @@ type PowerLeechOffer struct {
 
 // NewPowerLeechOffer creates a power leech offer based on building value and player's power capacity
 // Building values: Dwelling=1, Trading House=2, Temple=2, Sanctuary=3, Stronghold=3
-// The offer is limited by how much power the player can actually gain
-// Example: If building value is 5 but player can only gain 3 power, offer is 3 power for 2 VP
 func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *PowerSystem) *PowerLeechOffer {
 	if buildingValue <= 0 {
 		return nil
 	}
-
-	// Calculate maximum power that can be gained
-	// When gaining power: Bowl1→Bowl2, then if more needed: Bowl2→Bowl3
-	// The tokens from Bowl1 that move to Bowl2 can then move to Bowl3 in the same gain
-	// So max gain = Bowl1 (which can move to Bowl2 and then to Bowl3) + Bowl2 (which can move to Bowl3)
-	// Therefore: maxGain = Bowl1 + (Bowl2 + Bowl1 after first move) but that's just 2*Bowl1 + Bowl2
-	maxGain := 2*targetPower.Bowl1 + targetPower.Bowl2
-
-	// Offer is limited by the smaller of building value or max gain
-	actualAmount := buildingValue
-	if maxGain < buildingValue {
-		actualAmount = maxGain
-	}
-
-	if actualAmount <= 0 {
-		return nil
-	}
+	_ = targetPower // Snellman logs allow leech rows even when the target cannot gain power right now.
 
 	return &PowerLeechOffer{
-		Amount:       actualAmount,
-		VPCost:       actualAmount - 1,
+		Amount:       buildingValue,
+		// Snellman leech VP cost model: actualTaken - 1 (minimum 0).
+		// Note: this value is informational; actual VP cost is derived from the
+		// power actually gained at acceptance time (capacity can change).
+		VPCost:       maxInt(0, buildingValue-1),
 		FromPlayerID: fromPlayerID,
 	}
 }
@@ -221,10 +206,19 @@ func (rp *ResourcePool) AcceptPowerLeech(offer *PowerLeechOffer) int {
 	// original snapshot. This matters when multiple pending leeches resolve
 	// sequentially and the player no longer has capacity for the full amount.
 	actualGained := rp.GainPower(offer.Amount)
+	// VP cost is based on power actually gained (capacity can change as offers resolve).
+	// Snellman cost curve: actualTaken - 1 (minimum 0).
 	if actualGained <= 1 {
 		return 0
 	}
 	return actualGained - 1
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // DeclinePowerLeech declines a power leech offer (no effect)

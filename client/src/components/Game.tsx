@@ -6,6 +6,7 @@ import { TownTiles } from './GameBoard/TownTiles'
 import { FavorTiles } from './GameBoard/FavorTiles'
 import { PassingTiles } from './GameBoard/PassingTiles'
 import { PlayerBoards } from './GameBoard/PlayerBoards'
+import { PlayerSummaryBar } from './GameBoard/PlayerSummaryBar'
 import { CultTracks } from './CultTracks/CultTracks'
 import { FactionSelector } from './FactionSelector'
 import { FACTIONS } from '../data/factions'
@@ -153,6 +154,12 @@ export const Game = () => {
           </div>
         </div>
 
+        {gameState?.players && (
+          <div className="mb-3">
+            <PlayerSummaryBar gameState={gameState} />
+          </div>
+        )}
+
         {/* Faction Selector - shown above game board during faction selection phase */}
         {gameState?.phase === GamePhase.FactionSelection && (
           <FactionSelector
@@ -267,4 +274,3 @@ export const Game = () => {
     </div>
   )
 }
-
