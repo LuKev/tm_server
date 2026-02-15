@@ -40,8 +40,16 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
   // Height is controlled by the surrounding grid item (we render full height).
   return (
     <div
-      className="w-full h-full grid gap-2"
-      style={{ gridTemplateColumns: `repeat(${String(Math.max(1, playerCount))}, minmax(0, 1fr))` }}
+      className="w-full h-full gap-2"
+      // Tailwind utilities aren't reliably present in production right now, so keep the
+      // layout-critical bits as inline styles.
+      style={{
+        display: 'grid',
+        gap: '0.5rem',
+        gridTemplateColumns: `repeat(${String(Math.max(1, playerCount))}, minmax(0, 1fr))`,
+        width: '100%',
+        height: '100%',
+      }}
     >
       {playerIds.map((pid, idx) => {
         const player = gameState.players[pid];
@@ -62,48 +70,68 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
         return (
           <div
             key={pid}
-            className={`h-full px-2 flex flex-col justify-center rounded-md border border-gray-200 shadow-sm bg-white min-w-0 ${isCurrent ? 'bg-yellow-50 ring-2 ring-yellow-400' : ''}`}
+            className="min-w-0"
+            style={{
+              height: '100%',
+              paddingLeft: '0.5rem',
+              paddingRight: '0.5rem',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              border: '2px solid #000',
+              borderRadius: '0.375rem',
+              backgroundColor: isCurrent ? '#FEFCE8' : '#FFFFFF', // yellow-50
+              boxSizing: 'border-box',
+              outline: isCurrent ? '2px solid #FACC15' : undefined, // yellow-400
+              outlineOffset: isCurrent ? '0px' : undefined,
+            }}
           >
-            <div className="flex items-center justify-between" style={{ fontSize: '0.8rem', lineHeight: 1 }}>
-              <div className="flex items-center gap-2 min-w-0">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', lineHeight: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                 <div
-                  className="w-2 h-2 rounded-full border border-gray-300 flex-shrink-0"
-                  style={{ backgroundColor: factionColor }}
+                  style={{
+                    width: '0.5rem',
+                    height: '0.5rem',
+                    borderRadius: '9999px',
+                    border: '1px solid #d1d5db',
+                    backgroundColor: factionColor,
+                    flexShrink: 0,
+                  }}
                   title={FactionType[factionType]}
                 />
-                <div className="flex items-center gap-1 text-gray-700 font-semibold">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#374151', fontWeight: 600 }}>
                   <span>#{turnOrderNumber}</span>
-                  <span className="text-gray-400">|</span>
-                  <span className="font-bold">{vp} VP</span>
+                  <span style={{ color: '#9ca3af' }}>|</span>
+                  <span style={{ fontWeight: 700 }}>{vp} VP</span>
                 </div>
               </div>
               {isCurrent && (
-                <div className="text-xs font-bold text-gray-800" style={{ lineHeight: 1 }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1f2937', lineHeight: 1 }}>
                   TURN
                 </div>
               )}
             </div>
 
-            <div className="flex items-center gap-3 mt-1 flex-nowrap min-w-0" style={{ fontSize: '0.75rem', lineHeight: 1 }}>
-              <div className="flex items-center gap-1">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', minWidth: 0, fontSize: '0.75rem', lineHeight: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <CoinIcon style={{ width: '1.15em', height: '1.15em', fontSize: '0.9em' }} />
-                <span className="font-semibold text-gray-700">{player.resources.coins}</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.coins}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <WorkerIcon style={{ width: '1.15em', height: '1.15em', fontSize: '0.9em' }} />
-                <span className="font-semibold text-gray-700">{player.resources.workers}</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.workers}</span>
               </div>
-              <div className="flex items-center gap-1">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 <PriestIcon style={{ width: '1.15em', height: '1.15em' }} />
-                <span className="font-semibold text-gray-700">{player.resources.priests}</span>
+                <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.priests}</span>
               </div>
-              <div className="flex items-center gap-1 text-gray-700 font-semibold">
-                <span className="text-gray-500">PW</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#374151', fontWeight: 600 }}>
+                <span style={{ color: '#6b7280' }}>PW</span>
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}
                 </span>
               </div>
-              <div className="ml-auto flex items-center flex-shrink-0">
+              <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                 <ShippingDiggingDisplay
                   factionType={factionType}
                   shipping={shippingLevel}
