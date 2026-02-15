@@ -32,7 +32,8 @@ type GameState struct {
 	PendingTownFormations            map[string][]*PendingTownFormation `json:"pendingTownFormations"`
 	PendingSpades                    map[string]int                     `json:"pendingSpades"`
 	PendingCultRewardSpades          map[string]int                     `json:"pendingCultRewardSpades"`
-	PendingCultistsLeech             map[string]*CultistsLeechBonus     `json:"pendingCultistsLeech"`
+	PendingCultistsLeech             map[int]*CultistsLeechBonus        `json:"pendingCultistsLeech"`
+	NextLeechEventID                 int                                `json:"-"`
 	SkipAbilityUsedThisAction        map[string][]board.Hex             `json:"skipAbilityUsedThisAction"`
 	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
 	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
@@ -380,6 +381,8 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 
 	// Track if any offers were created (for Cultists ability)
 	offersCreated := 0
+	gs.NextLeechEventID++
+	eventID := gs.NextLeechEventID
 
 	// Create ONE power leech offer per adjacent player based on their total adjacent power
 	for neighborPlayerID, totalPower := range adjacentPlayerPower {
@@ -391,6 +394,7 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 		// Create offer based on TOTAL power from all adjacent buildings
 		offer := NewPowerLeechOffer(totalPower, buildingPlayerID, neighborPlayer.Resources.Power)
 		if offer != nil {
+			offer.EventID = eventID
 			// Store offer for player to accept/decline
 			if gs.PendingLeechOffers[neighborPlayerID] == nil {
 				gs.PendingLeechOffers[neighborPlayerID] = []*PowerLeechOffer{}
@@ -409,9 +413,9 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 				// Store that this building triggered Cultists ability
 				// We'll resolve it when all leech offers are processed
 				if gs.PendingCultistsLeech == nil {
-					gs.PendingCultistsLeech = make(map[string]*CultistsLeechBonus)
+					gs.PendingCultistsLeech = make(map[int]*CultistsLeechBonus)
 				}
-				gs.PendingCultistsLeech[buildingPlayerID] = &CultistsLeechBonus{
+				gs.PendingCultistsLeech[eventID] = &CultistsLeechBonus{
 					PlayerID:      buildingPlayerID,
 					OffersCreated: offersCreated,
 				}

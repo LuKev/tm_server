@@ -70,6 +70,14 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 
 	offers := gs.PendingLeechOffers[a.PlayerID]
 	if len(offers) == 0 {
+		// If the player has no capacity to gain power (Bowl I+II empty), Snellman can still
+		// include a "Leech ..." row. Treat it as an automatic decline/no-op.
+		if player.Resources != nil && player.Resources.Power != nil {
+			capacity := player.Resources.Power.Bowl2 + 2*player.Resources.Power.Bowl1
+			if capacity <= 0 {
+				return nil
+			}
+		}
 		return fmt.Errorf("no pending leech offers for %q", a.PlayerID)
 	}
 
@@ -88,7 +96,22 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 			break
 		}
 		if foundIdx < 0 {
-			return fmt.Errorf("no pending leech offer from %q for %q", a.FromPlayerID, a.PlayerID)
+			// Capacity 0: treat as auto-decline/no-op even if Snellman row claims an accept.
+			if player.Resources != nil && player.Resources.Power != nil {
+				capacity := player.Resources.Power.Bowl2 + 2*player.Resources.Power.Bowl1
+				if capacity <= 0 {
+					return nil
+				}
+			}
+			// Include current offers to help diagnose mis-bindings in imported logs.
+			summary := make([]string, 0, len(offers))
+			for _, o := range offers {
+				if o == nil {
+					continue
+				}
+				summary = append(summary, fmt.Sprintf("%s:%d", o.FromPlayerID, o.Amount))
+			}
+			return fmt.Errorf("no pending leech offer from %q for %q (pending=%v)", a.FromPlayerID, a.PlayerID, summary)
 		}
 		idx = foundIdx
 	}
@@ -819,10 +842,54 @@ func (a *LogPreIncomeAction) Execute(gs *game.GameState) error {
 	return a.Action.Execute(gs)
 }
 
+// LogPostIncomeAction marks an action that occurs during the round's income phase
+// after normal income has been granted but before the action phase begins.
+// These actions must not advance turn order.
+type LogPostIncomeAction struct {
+	Action game.Action
+}
+
+func (a *LogPostIncomeAction) GetType() game.ActionType {
+	if a == nil || a.Action == nil {
+		return game.ActionSpecialAction
+	}
+	return a.Action.GetType()
+}
+
+func (a *LogPostIncomeAction) GetPlayerID() string {
+	if a == nil || a.Action == nil {
+		return ""
+	}
+	return a.Action.GetPlayerID()
+}
+
+func (a *LogPostIncomeAction) Validate(gs *game.GameState) error {
+	if a == nil || a.Action == nil {
+		return fmt.Errorf("nil post-income action")
+	}
+	return a.Action.Validate(gs)
+}
+
+func (a *LogPostIncomeAction) Execute(gs *game.GameState) error {
+	if a == nil || a.Action == nil {
+		return fmt.Errorf("nil post-income action")
+	}
+	// Post-income actions occur outside normal turn order; suppress any implicit NextTurn.
+	prev := gs.SuppressTurnAdvance
+	gs.SuppressTurnAdvance = true
+	defer func() { gs.SuppressTurnAdvance = prev }()
+	return a.Action.Execute(gs)
+}
+
 func isReplayAuxiliaryOnlyAction(action game.Action) bool {
 	switch action.(type) {
 	case *LogPreIncomeAction:
 		if v, ok := action.(*LogPreIncomeAction); ok && v != nil {
+			return isReplayAuxiliaryOnlyAction(v.Action)
+		}
+		return true
+	case *LogPostIncomeAction:
+		if v, ok := action.(*LogPostIncomeAction); ok && v != nil {
 			return isReplayAuxiliaryOnlyAction(v.Action)
 		}
 		return true

@@ -45,7 +45,6 @@ go_test(
         "simulator_leech_tolerance_test.go",
     ],
     data = [
-        "testdata/s69_full_game_concise.txt",
     ] + glob([
         "testdata/snellman_batch/*.txt",
         "testdata/snellman_batch/manifest.json",

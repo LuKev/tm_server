@@ -21,7 +21,7 @@ func TestNewPowerLeechOffer_CapacityCalculation(t *testing.T) {
 			bowl3:         0,
 			buildingValue: 2,
 			expectedOffer: 2,
-			description:   "Player with 5/7/0 should be able to receive 2 power",
+			description:   "Offer amount is the (uncapped) leech amount; capacity limits apply at acceptance time",
 		},
 		{
 			name:          "Auren bug case - Bowl1=1, Bowl2=0",
@@ -30,7 +30,7 @@ func TestNewPowerLeechOffer_CapacityCalculation(t *testing.T) {
 			bowl3:         4,
 			buildingValue: 2,
 			expectedOffer: 2,
-			description:   "Player with 1/0/4 should be able to receive 2 power (1 from Bowl1→Bowl2, then 1 from Bowl2→Bowl3)",
+			description:   "Offer is still created when there is at least some charging capacity",
 		},
 		{
 			name:          "Only Bowl2 available",
@@ -39,7 +39,7 @@ func TestNewPowerLeechOffer_CapacityCalculation(t *testing.T) {
 			bowl3:         2,
 			buildingValue: 2,
 			expectedOffer: 2,
-			description:   "Player with 0/3/2 should be able to receive 2 power from Bowl2→Bowl3",
+			description:   "Offer amount is not capped by remaining capacity",
 		},
 		{
 			name:          "Limited by Bowl1+Bowl2",
@@ -47,8 +47,8 @@ func TestNewPowerLeechOffer_CapacityCalculation(t *testing.T) {
 			bowl2:         1,
 			bowl3:         0,
 			buildingValue: 5,
-			expectedOffer: 3,
-			description:   "Player with 1/1/0 can receive max 3 (1*2 + 1)",
+			expectedOffer: 5,
+			description:   "Offer is not capped; actual power gained is limited by current bowls when accepting",
 		},
 		{
 			name:          "No capacity",
@@ -65,8 +65,8 @@ func TestNewPowerLeechOffer_CapacityCalculation(t *testing.T) {
 			bowl2:         1,
 			bowl3:         4,
 			buildingValue: 2,
-			expectedOffer: 1,
-			description:   "Player with 0/1/4 can only receive 1 power",
+			expectedOffer: 2,
+			description:   "Offer amount is not capped; acceptance will only gain up to 1 power here",
 		},
 	}
 

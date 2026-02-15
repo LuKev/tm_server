@@ -21,6 +21,7 @@ type GameSimulator struct {
 	CurrentIndex int               // Index of the *next* action to execute
 	History      []*game.GameState // Snapshots for undo
 	incomePending bool             // RoundStart seen but income not yet granted
+	incomeGranted bool             // Income granted for current round, but action phase may not have started yet
 }
 
 // NewGameSimulator creates a new simulator
@@ -42,6 +43,7 @@ func NewGameSimulator(initialState *game.GameState, actions []notation.LogItem) 
 		CurrentIndex: 0,
 		History:      make([]*game.GameState, 0),
 		incomePending: false,
+		incomeGranted: false,
 	}
 
 	// Save initial state to history
@@ -88,19 +90,37 @@ func (s *GameSimulator) StepForward() error {
 	switch v := item.(type) {
 	case notation.ActionItem:
 		if v.Action != nil {
-			// Snellman logs can contain pre-income interlude actions before the round's normal income
-			// is applied (e.g., cult reward spade transforms). We tag those as LogPreIncomeAction
-			// and delay GrantIncome until the first non-pre-income action.
+			// Income-phase handling:
+			// - LogPreIncomeAction: executes before income is granted.
+			// - LogPostIncomeAction: executes after income is granted but before action phase begins.
+			// - Any other action: triggers transition into action phase.
 			if s.incomePending {
-				if _, ok := v.Action.(*notation.LogPreIncomeAction); !ok {
-					// Any unused cult reward spades must be spent during the income interlude;
-					// they are not available during the action phase.
+				switch v.Action.(type) {
+				case *notation.LogPreIncomeAction:
+					// Keep waiting; income is granted when we hit the first non-pre-income action.
+				case *notation.LogPostIncomeAction:
+					s.CurrentState.GrantIncome()
+					s.incomePending = false
+					s.incomeGranted = true
+				default:
+					s.CurrentState.GrantIncome()
+					s.incomePending = false
+					s.incomeGranted = true
+					// Any unused cult reward spades must be spent during income; they are not available
+					// during the action phase.
 					if s.CurrentState.PendingCultRewardSpades != nil && len(s.CurrentState.PendingCultRewardSpades) > 0 {
 						s.CurrentState.PendingCultRewardSpades = make(map[string]int)
 					}
-					s.CurrentState.GrantIncome()
 					s.CurrentState.StartActionPhase()
-					s.incomePending = false
+				}
+			} else if s.incomeGranted && s.CurrentState.Phase == game.PhaseIncome {
+				// Income was granted, but we haven't entered action phase yet (post-income actions).
+				if _, ok := v.Action.(*notation.LogPostIncomeAction); !ok {
+					// Leaving income phase now.
+					if s.CurrentState.PendingCultRewardSpades != nil && len(s.CurrentState.PendingCultRewardSpades) > 0 {
+						s.CurrentState.PendingCultRewardSpades = make(map[string]int)
+					}
+					s.CurrentState.StartActionPhase()
 				}
 			}
 			// Check for missing bonus card in PassAction
@@ -119,7 +139,9 @@ func (s *GameSimulator) StepForward() error {
 			}
 
 			if pi, ok := v.Action.(*notation.LogPreIncomeAction); ok && pi != nil && pi.Action != nil {
-				// Debug-only: pre-income actions are sensitive to player attribution and pending spades.
+				// Debug-only: income interlude actions are sensitive to attribution and pending spades.
+				fmt.Printf("Executing action %d: %T (player=%s inner=%T)\n", s.CurrentIndex, v.Action, v.Action.GetPlayerID(), pi.Action)
+			} else if pi, ok := v.Action.(*notation.LogPostIncomeAction); ok && pi != nil && pi.Action != nil {
 				fmt.Printf("Executing action %d: %T (player=%s inner=%T)\n", s.CurrentIndex, v.Action, v.Action.GetPlayerID(), pi.Action)
 			} else {
 				fmt.Printf("Executing action %d: %T\n", s.CurrentIndex, v.Action)
@@ -163,6 +185,7 @@ func (s *GameSimulator) StepForward() error {
 		// Delay income until we reach the first non-pre-income action for this round.
 		// This allows replay to match Snellman interludes between income blocks.
 		s.incomePending = true
+		s.incomeGranted = false
 	case notation.GameSettingsItem:
 		// Initialize players from settings
 		settings := v.Settings

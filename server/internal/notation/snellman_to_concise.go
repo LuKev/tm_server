@@ -90,6 +90,9 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 	// Those actions happen before the round's normal income is applied, so we tag them
 	// for replay to execute pre-income without advancing turn order.
 	inIncomeInterlude := false
+	// Snellman can also embed real actions within an income row (e.g. "... other_income_for_faction").
+	// Those happen after income is granted but before the action phase begins.
+	inIncomeEmbeddedAction := false
 	setupActions := make(map[string][]string) // faction -> setup dwelling placements (display-oriented)
 	setupRows := make([]map[string]string, 0) // linear/replay mode: each ledger row becomes its own setup row
 	setupPassOrder := []string{}              // Track setup phase pass order for Round 1
@@ -166,6 +169,7 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 		if strings.HasPrefix(line, "Round ") && strings.Contains(line, "income") {
 			inSetupPhase = false
 			inIncomeInterlude = false
+			inIncomeEmbeddedAction = false
 			re := regexp.MustCompile(`Round (\d+)`)
 			if m := re.FindStringSubmatch(line); len(m) > 1 {
 				roundNum, _ := parseRound(m[1])
@@ -208,13 +212,21 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 					break
 				}
 
-				// Snellman can include non-income setup/transform rows between two
-				// "Round X income" headers. Stop skipping as soon as we hit an action row.
+				// Snellman can include real transform/build/setup rows inside an income block.
+				// Those actions are executed during the income phase (after the normal income
+				// resources have been granted), so we stop skipping as soon as we hit one and
+				// resume normal conversion on that line.
+				//
+				// Additionally, Snellman can include real action rows between two "Round X income"
+				// headers. Those must execute before normal income, so we tag them as pre-income
+				// (see inIncomeInterlude).
 				parts := strings.Split(incomeLine, "\t")
 				if len(parts) >= 2 && isKnownFaction(strings.TrimSpace(strings.ToLower(parts[0]))) {
 					action := strings.ToLower(strings.TrimSpace(extractSnellmanAction(parts)))
 					if !isSnellmanIncomeMetaAction(action) {
-						inIncomeInterlude = true
+						embedded := strings.Contains(action, "other_income_for_faction") || strings.Contains(action, "cult_income_for_faction")
+						inIncomeInterlude = !embedded
+						inIncomeEmbeddedAction = embedded
 						savedLine = incomeLine
 						break
 					}
@@ -371,7 +383,10 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 		if conciseAction == "" {
 			continue
 		}
-		if inIncomeInterlude && !inSetupPhase {
+		if inIncomeEmbeddedAction && !inSetupPhase {
+			conciseAction = "^" + conciseAction
+			inIncomeEmbeddedAction = false
+		} else if inIncomeInterlude && !inSetupPhase {
 			conciseAction = "@" + conciseAction
 		}
 
@@ -2916,9 +2931,13 @@ func normalizeUpgradeFavorTownOrder(parts []string) []string {
 	// In Snellman ledger rows, the intra-row order can matter for resources (notably priests):
 	// e.g. "... convert 2P to 2W. +2TW3" must spend priests BEFORE gaining priests from town tiles.
 	//
-	// We only enforce one ordering constraint here: favor tile selections must happen immediately
-	// after the upgrade that triggers them. Everything else (conversions, towns, etc.) must retain
-	// original relative ordering.
+	// We only enforce one ordering constraint here:
+	// if an upgrade triggers BOTH a favor selection and a town tile selection in the same ledger
+	// row, ensure the favor selection occurs *before* any town tile selection.
+	//
+	// Important: do NOT reorder conversions relative to favor selection. Snellman rows can legally
+	// spend resources (e.g. "convert 1PW to 1C") before claiming the favor/town, and moving favor
+	// earlier can change power-bowl sequencing and priest limits.
 	if len(parts) < 3 {
 		return parts
 	}
@@ -2933,27 +2952,39 @@ func normalizeUpgradeFavorTownOrder(parts []string) []string {
 		return parts
 	}
 
-	hasFav := false
-	hasTown := false
+	favIdxs := make([]int, 0, 2)
+	firstTownIdx := -1
 	for i := upgradeIdx + 1; i < len(parts); i++ {
 		if strings.HasPrefix(parts[i], "FAV-") {
-			hasFav = true
+			favIdxs = append(favIdxs, i)
+			continue
 		}
 		// Town tokens are emitted as concise VP-coded strings like TW5VP/TW11VP/etc.
 		// NOTE: this is a raw string literal; use \d (not \\d) for digit matching.
-		if regexp.MustCompile(`^TW\d+VP$`).MatchString(parts[i]) {
-			hasTown = true
+		if firstTownIdx < 0 && regexp.MustCompile(`^TW\d+VP$`).MatchString(parts[i]) {
+			firstTownIdx = i
 		}
 	}
-	// Only reorder in the tricky case where an upgrade triggers BOTH a favor selection
-	// and one-or-more town tile selections; otherwise keep Snellman's relative ordering.
-	if !hasFav || !hasTown {
+	if len(favIdxs) == 0 || firstTownIdx < 0 {
+		return parts
+	}
+
+	// If all favors already occur before the first town tile, keep the original ordering.
+	needReorder := false
+	for _, idx := range favIdxs {
+		if idx > firstTownIdx {
+			needReorder = true
+			break
+		}
+	}
+	if !needReorder {
 		return parts
 	}
 
 	head := append([]string{}, parts[:upgradeIdx+1]...)
-	favs := make([]string, 0, 2)
+	favs := make([]string, 0, len(favIdxs))
 	rest := make([]string, 0, len(parts)-upgradeIdx-1)
+
 	for i := upgradeIdx + 1; i < len(parts); i++ {
 		p := parts[i]
 		if strings.HasPrefix(p, "FAV-") {
@@ -2963,8 +2994,17 @@ func normalizeUpgradeFavorTownOrder(parts []string) []string {
 		rest = append(rest, p)
 	}
 
-	out := append(head, favs...)
-	out = append(out, rest...)
+	// Insert favors right before the first town tile in the remaining sequence.
+	insertAt := len(rest)
+	for i, p := range rest {
+		if regexp.MustCompile(`^TW\d+VP$`).MatchString(p) {
+			insertAt = i
+			break
+		}
+	}
+	out := append(head, rest[:insertAt]...)
+	out = append(out, favs...)
+	out = append(out, rest[insertAt:]...)
 	return out
 }
 
@@ -3189,6 +3229,10 @@ func isNumericWithDelta(s string) bool {
 }
 
 func isSnellmanIncomeMetaAction(action string) bool {
+	// Income rows are informational only (the simulator calculates income). Snellman sometimes
+	// embeds real pre-income actions inside the income block (e.g. "transform X to Y. other_income_for_faction").
+	// Those embedded actions must NOT be treated as pure-income meta rows, so this helper only
+	// matches the standalone meta markers.
 	switch action {
 	case "other_income_for_faction", "cult_income_for_faction":
 		return true

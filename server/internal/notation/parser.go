@@ -245,6 +245,17 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		}
 		return &LogPreIncomeAction{Action: action}, nil
 	}
+	if strings.HasPrefix(code, "^") {
+		inner := strings.TrimSpace(strings.TrimPrefix(code, "^"))
+		if inner == "" {
+			return nil, fmt.Errorf("empty post-income action")
+		}
+		action, err := parseActionCodeWithContext(playerID, inner, inCompound)
+		if err != nil {
+			return nil, err
+		}
+		return &LogPostIncomeAction{Action: action}, nil
+	}
 	upperCode := strings.ToUpper(code)
 
 	// Compound Action: Code.Code

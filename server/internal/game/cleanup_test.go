@@ -737,12 +737,22 @@ func TestFullCleanupFlow(t *testing.T) {
 		t.Error("game should continue after round 3")
 	}
 
-	// Verify cult rewards awarded (6/2=3 workers, 4/2=2 workers)
+	// Cult rewards on scoring tiles are applied during the next round's income phase
+	// (Snellman labels these as "cult_income_for_faction"), not during cleanup.
+	if player1.Resources.Workers != initialWorkers1 {
+		t.Errorf("player1: expected no workers during cleanup, got %d", player1.Resources.Workers-initialWorkers1)
+	}
+	if player2.Resources.Workers != initialWorkers2 {
+		t.Errorf("player2: expected no workers during cleanup, got %d", player2.Resources.Workers-initialWorkers2)
+	}
+
+	// Simulate next-round start: award round-3 cult rewards.
+	gs.AwardCultRewardsForRound(3)
 	if player1.Resources.Workers != initialWorkers1+3 {
-		t.Errorf("player1: expected 3 workers, got %d", player1.Resources.Workers-initialWorkers1)
+		t.Errorf("player1: expected 3 workers after round-start cult rewards, got %d", player1.Resources.Workers-initialWorkers1)
 	}
 	if player2.Resources.Workers != initialWorkers2+2 {
-		t.Errorf("player2: expected 2 workers, got %d", player2.Resources.Workers-initialWorkers2)
+		t.Errorf("player2: expected 2 workers after round-start cult rewards, got %d", player2.Resources.Workers-initialWorkers2)
 	}
 
 	// Verify bonus card coins added to available cards

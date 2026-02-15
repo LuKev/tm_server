@@ -104,6 +104,9 @@ func parseSnellmanExpectedStates(content string) ([]snellmanExpectedState, error
 			// Meta rows like "[opponent accepted power]" are not replayed as actions.
 			continue
 		}
+		// Income rows are informational only (the simulator calculates income).
+		// If Snellman embeds a real action in the income cell (e.g. "transform ... . other_income_for_faction"),
+		// we treat it as an action row and validate against the totals Snellman provides.
 		if actionLower == "cult_income_for_faction" || actionLower == "other_income_for_faction" {
 			continue
 		}
@@ -193,6 +196,10 @@ func TestSnellmanLedgerResourcesMatchReplay_S67_G5(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S67_D1L1_G5.txt")
 }
 
+func TestSnellmanLedgerResourcesMatchReplay_S67_G6(t *testing.T) {
+	runSnellmanLedgerResourcesMatch(t, "4pLeague_S67_D1L1_G6.txt")
+}
+
 func TestSnellmanLedgerResourcesMatchReplay_S68_G2(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S68_D1L1_G2.txt")
 }
@@ -211,6 +218,10 @@ func TestSnellmanLedgerResourcesMatchReplay_S69_G2(t *testing.T) {
 
 func TestSnellmanLedgerResourcesMatchReplay_S69_G5(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S69_D1L1_G5.txt")
+}
+
+func TestSnellmanLedgerResourcesMatchReplay_S69_G6(t *testing.T) {
+	runSnellmanLedgerResourcesMatch(t, "4pLeague_S69_D1L1_G6.txt")
 }
 
 func runSnellmanLedgerResourcesMatch(t *testing.T, fixtureFile string) {

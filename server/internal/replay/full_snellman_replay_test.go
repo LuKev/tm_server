@@ -4,44 +4,58 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/notation"
 )
 
-func TestFullSnellmanS69Replay_Completes(t *testing.T) {
-	fixturePath := filepath.Join("testdata", "s69_full_game_concise.txt")
+func loadSnellmanBatchFixture(t *testing.T, filename string) []notation.LogItem {
+	t.Helper()
+
+	fixturePath := filepath.Join("testdata", "snellman_batch", filename)
 	content, err := os.ReadFile(fixturePath)
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
 
-	items, err := notation.ParseConciseLogStrict(string(content))
+	concise, err := notation.ConvertSnellmanToConciseForReplay(string(content))
 	if err != nil {
-		t.Fatalf("parse concise fixture: %v", err)
+		t.Fatalf("ConvertSnellmanToConciseForReplay: %v", err)
 	}
+
+	items, err := notation.ParseConciseLogStrict(concise)
+	if err != nil {
+		t.Fatalf("parse concise: %v", err)
+	}
+	return items
+}
+
+func TestFullSnellmanS69Replay_Completes(t *testing.T) {
+	items := loadSnellmanBatchFixture(t, "4pLeague_S69_D1L1_G3.txt")
+	logStrings, logLocations := notation.GenerateConciseLog(items)
 
 	initialState := createInitialState(items)
 	sim := NewGameSimulator(initialState, items)
 
 	for sim.CurrentIndex < len(items) {
 		if err := sim.StepForward(); err != nil {
-			t.Fatalf("step %d/%d failed: %v", sim.CurrentIndex, len(items), err)
+			token := "<unknown>"
+			if sim.CurrentIndex >= 0 && sim.CurrentIndex < len(logLocations) {
+				loc := logLocations[sim.CurrentIndex]
+				if loc.LineIndex >= 0 && loc.LineIndex < len(logStrings) && loc.ColumnIndex >= 0 {
+					cols := strings.Split(logStrings[loc.LineIndex], "|")
+					if loc.ColumnIndex < len(cols) {
+						token = strings.TrimSpace(cols[loc.ColumnIndex])
+					}
+				}
+			}
+			t.Fatalf("step %d/%d failed at token %q: %v", sim.CurrentIndex, len(items), token, err)
 		}
 	}
 }
 
 func TestFullSnellmanS69Replay_FinalScoresMatchSnellman(t *testing.T) {
-	fixturePath := filepath.Join("testdata", "s69_full_game_concise.txt")
-	content, err := os.ReadFile(fixturePath)
-	if err != nil {
-		t.Fatalf("read fixture: %v", err)
-	}
-
-	items, err := notation.ParseConciseLogStrict(string(content))
-	if err != nil {
-		t.Fatalf("parse concise fixture: %v", err)
-	}
-
+	items := loadSnellmanBatchFixture(t, "4pLeague_S69_D1L1_G3.txt")
 	initialState := createInitialState(items)
 	sim := NewGameSimulator(initialState, items)
 	for sim.CurrentIndex < len(items) {

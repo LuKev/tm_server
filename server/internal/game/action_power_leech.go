@@ -105,7 +105,8 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 	}
 
 	// Track for Cultists ability (if the building player is Cultists)
-	if bonus, exists := gs.PendingCultistsLeech[offer.FromPlayerID]; exists {
+	if offer != nil {
+		if bonus, exists := gs.PendingCultistsLeech[offer.EventID]; exists && bonus != nil && bonus.PlayerID == offer.FromPlayerID {
 		bonus.ResolvedCount++
 		if potentialGain > 0 {
 			if accepted {
@@ -114,21 +115,24 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 				bonus.DeclinedCount++
 			}
 		}
+		}
 	}
 
 	// Remove the offer
 	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
 
 	// Check if all offers for this building are resolved
-	gs.ResolveCultistsLeechBonus(offer.FromPlayerID)
+	if offer != nil {
+		gs.ResolveCultistsLeechBonus(offer.EventID)
+	}
 
 	return nil
 }
 
 // ResolveCultistsLeechBonus checks if all leech offers for a Cultists player are resolved
 // and applies the appropriate bonus (cult advance or power)
-func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
-	bonus, exists := gs.PendingCultistsLeech[cultistsPlayerID]
+func (gs *GameState) ResolveCultistsLeechBonus(eventID int) {
+	bonus, exists := gs.PendingCultistsLeech[eventID]
 	if !exists {
 		return
 	}
@@ -140,21 +144,22 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	}
 
 	// All offers resolved - apply Cultists bonus
+	cultistsPlayerID := bonus.PlayerID
 	player := gs.GetPlayer(cultistsPlayerID)
 	if player == nil {
-		delete(gs.PendingCultistsLeech, cultistsPlayerID)
+		delete(gs.PendingCultistsLeech, eventID)
 		return
 	}
 
 	if player.Faction.GetType() != models.FactionCultists {
-		delete(gs.PendingCultistsLeech, cultistsPlayerID)
+		delete(gs.PendingCultistsLeech, eventID)
 		return
 	}
 
 	// If nobody could actually gain any power from the leeches, Snellman still logs
 	// "Decline N" rows but Cultists do not receive a bonus.
 	if bonus.AcceptedCount == 0 && bonus.DeclinedCount == 0 {
-		delete(gs.PendingCultistsLeech, cultistsPlayerID)
+		delete(gs.PendingCultistsLeech, eventID)
 		return
 	}
 
@@ -173,5 +178,5 @@ func (gs *GameState) ResolveCultistsLeechBonus(cultistsPlayerID string) {
 	}
 
 	// Clean up
-	delete(gs.PendingCultistsLeech, cultistsPlayerID)
+	delete(gs.PendingCultistsLeech, eventID)
 }

@@ -171,9 +171,13 @@ func (rp *ResourcePool) ToResources() factions.Resources {
 
 // PowerLeechOffer represents an offer to gain power from a neighbor's building
 type PowerLeechOffer struct {
-	Amount       int // Amount of power offered (may be less than building value if bowls are limited)
+	// Amount of power offered by the source event. This is not capped by the
+	// receiver's current power-cycle capacity; the receiver may only gain as
+	// much power as they can charge when accepting.
+	Amount       int
 	VPCost       int // VP cost to accept (usually Amount - 1)
 	FromPlayerID string
+	EventID      int `json:"eventId"`
 }
 
 // NewPowerLeechOffer creates a power leech offer based on building value and player's power capacity
@@ -182,7 +186,18 @@ func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *Pow
 	if buildingValue <= 0 {
 		return nil
 	}
-	_ = targetPower // Snellman logs allow leech rows even when the target cannot gain power right now.
+	if targetPower == nil {
+		return nil
+	}
+
+	// Capacity to gain power depends on the power cycle:
+	// - Each token in Bowl I can contribute up to 2 gained power (I->II then II->III).
+	// - Each token in Bowl II can contribute up to 1 gained power (II->III).
+	// Bowl III is already active and does not provide capacity to gain.
+	capacity := targetPower.Bowl2 + 2*targetPower.Bowl1
+	if capacity <= 0 {
+		return nil
+	}
 
 	return &PowerLeechOffer{
 		Amount:       buildingValue,

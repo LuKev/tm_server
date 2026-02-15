@@ -731,7 +731,7 @@ func TestCultists_PowerWhenAllDecline(t *testing.T) {
 	}
 
 	// Verify the pending bonus was resolved
-	if gs.PendingCultistsLeech["cultists"] != nil {
+	if len(gs.PendingCultistsLeech) != 0 {
 		t.Error("Cultists leech bonus should be resolved")
 	}
 }
@@ -796,7 +796,7 @@ func TestCultists_CultAdvanceWhenOneAccepts(t *testing.T) {
 	}
 
 	// Verify the pending bonus was resolved
-	if gs.PendingCultistsLeech["cultists"] != nil {
+	if len(gs.PendingCultistsLeech) != 0 {
 		t.Error("Cultists leech bonus should be resolved")
 	}
 
@@ -886,7 +886,7 @@ func TestCultists_MultipleOpponents_MixedResponses(t *testing.T) {
 	}
 
 	// Verify the pending bonus was resolved
-	if gs.PendingCultistsLeech["cultists"] != nil {
+	if len(gs.PendingCultistsLeech) != 0 {
 		t.Error("Cultists leech bonus should be resolved")
 	}
 }
@@ -944,7 +944,7 @@ func TestCultists_OnlyCultistsGetBonus(t *testing.T) {
 	}
 
 	// Verify no pending bonus was created
-	if gs.PendingCultistsLeech["halflings"] != nil {
+	if len(gs.PendingCultistsLeech) != 0 {
 		t.Error("non-Cultists should not have pending leech bonus")
 	}
 }
