@@ -363,12 +363,6 @@ export const Replay = (): React.ReactElement => {
                     </div>
                 </div>
 
-                {gameState?.players && (
-                    <div className="mb-3">
-                        <PlayerSummaryBar gameState={gameState} />
-                    </div>
-                )}
-
                 <MissingInfoModal
                     isOpen={showMissingInfoModal}
                     missingInfo={missingInfo}
@@ -391,6 +385,16 @@ export const Replay = (): React.ReactElement => {
                     resizeHandles={['e']}
                     draggableHandle=".drag-handle"
                 >
+                    {/* Summary Bar (resizable grid item) */}
+                    <div key="summary" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                        <div className="drag-handle">
+                            <div className="drag-handle-pill" />
+                        </div>
+                        <div className="flex-1 overflow-hidden p-1">
+                            {gameState && <PlayerSummaryBar gameState={gameState} />}
+                        </div>
+                    </div>
+
                     {/* Log Viewer */}
                     <div key="log" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
                         <div className="drag-handle">

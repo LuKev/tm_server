@@ -154,12 +154,6 @@ export const Game = () => {
           </div>
         </div>
 
-        {gameState?.players && (
-          <div className="mb-3">
-            <PlayerSummaryBar gameState={gameState} />
-          </div>
-        )}
-
         {/* Faction Selector - shown above game board during faction selection phase */}
         {gameState?.phase === GamePhase.FactionSelection && (
           <FactionSelector
@@ -184,6 +178,16 @@ export const Game = () => {
           resizeHandles={['e']}
           draggableHandle=".drag-handle"
         >
+          {/* Summary Bar (resizable grid item) */}
+          <div key="summary" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+            <div className="drag-handle">
+              <div className="drag-handle-pill" />
+            </div>
+            <div className="flex-1 overflow-hidden p-1">
+              {gameState && <PlayerSummaryBar gameState={gameState} />}
+            </div>
+          </div>
+
           {/* Scoring Tiles */}
           <div key="scoring" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
             <div className="drag-handle">

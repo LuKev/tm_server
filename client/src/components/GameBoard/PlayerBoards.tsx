@@ -231,7 +231,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                             <ShippingDiggingDisplay
                                 factionType={factionType}
                                 shipping={shippingLevel}
-                                digging={diggingLevel}
+                                diggingLevel={diggingLevel}
                                 hasTempShippingBonus={hasTempShippingBonus}
                             />
                         </div>

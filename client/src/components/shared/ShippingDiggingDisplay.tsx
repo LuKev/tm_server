@@ -5,7 +5,7 @@ import { ShippingIcon, SpadeIcon } from './Icons';
 export type ShippingDiggingDisplayProps = {
   factionType: FactionType;
   shipping: number;
-  digging: number;
+  diggingLevel: number;
   hasTempShippingBonus?: boolean;
   compact?: boolean;
 };
@@ -23,7 +23,7 @@ const canShowDiggingForFaction = (factionType: FactionType): boolean => {
 export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
   factionType,
   shipping,
-  digging,
+  diggingLevel,
   hasTempShippingBonus,
   compact,
 }) => {
@@ -34,6 +34,10 @@ export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
 
   const iconSize = compact ? '1em' : '1.15em';
   const textSize = compact ? '0.9em' : '1em';
+
+  // Digging is stored as digging upgrade level (0..2 for most factions, 0..1 for Fakirs).
+  // Display as the number of workers required per spade: 3 -> 2 -> 1.
+  const workersPerSpade = Math.max(1, Math.min(3, 3 - diggingLevel));
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: compact ? '0.5em' : '0.75em' }}>
@@ -51,10 +55,9 @@ export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
           <span style={{ width: iconSize, height: iconSize, display: 'inline-flex' }}>
             <SpadeIcon />
           </span>
-          <span>{digging}</span>
+          <span>{workersPerSpade}</span>
         </div>
       )}
     </div>
   );
 };
-

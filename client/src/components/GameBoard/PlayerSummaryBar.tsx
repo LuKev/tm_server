@@ -36,9 +36,9 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
 
   const currentPlayerId = gameState.turnOrder?.[gameState.currentTurn];
 
-  // Fixed 3 "units" tall (Tailwind h-12 = 3rem).
+  // Height is controlled by the surrounding grid item (we render full height).
   return (
-    <div className="w-full h-12 bg-white rounded-lg shadow-sm overflow-hidden flex border border-gray-200">
+    <div className="w-full h-full flex gap-2">
       {playerIds.map((pid, idx) => {
         const player = gameState.players[pid];
         if (!player) return null;
@@ -58,8 +58,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
         return (
           <div
             key={pid}
-            className={`flex-1 h-full px-2 flex flex-col justify-center ${idx !== 0 ? 'border-l border-gray-200' : ''} ${isCurrent ? 'bg-yellow-50' : ''}`}
-            style={{ boxShadow: isCurrent ? 'inset 0 0 0 2px #FACC15' : undefined }}
+            className={`flex-1 h-full px-2 flex flex-col justify-center rounded-md border border-gray-200 shadow-sm bg-white ${isCurrent ? 'bg-yellow-50 ring-2 ring-yellow-400' : ''}`}
           >
             <div className="flex items-center justify-between" style={{ fontSize: '0.8rem', lineHeight: 1 }}>
               <div className="flex items-center gap-2 min-w-0">
@@ -104,7 +103,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
                 <ShippingDiggingDisplay
                   factionType={factionType}
                   shipping={shippingLevel}
-                  digging={diggingLevel}
+                  diggingLevel={diggingLevel}
                   hasTempShippingBonus={hasTempShippingBonus}
                   compact={true}
                 />
