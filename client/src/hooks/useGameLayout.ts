@@ -22,27 +22,27 @@ export const useGameLayout = (
             return {
                 lg: [
                     { i: 'controls', x: 0, y: 0, w: 24, h: 2, static: true },
-                    { i: 'summary', x: 0, y: 0, w: 24, h: 1, minW: 8, minH: 1 },
-                    { i: 'log', x: 0, y: 3, w: 6, h: 10, minW: 3, minH: 6 },
-                    { i: 'scoring', x: 6, y: 3, w: 4, h: 8, minW: 4, minH: 6 },
-                    { i: 'board', x: 10, y: 3, w: 10, h: 12, minW: 10, minH: 8 },
-                    { i: 'cult', x: 20, y: 3, w: 4, h: 9, minW: 4, minH: 6 },
+                    { i: 'summary', x: 0, y: 0, w: 24, h: 2, minW: 8, minH: 2 },
+                    { i: 'log', x: 0, y: 2, w: 6, h: 10, minW: 3, minH: 6 },
+                    { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
+                    { i: 'board', x: 10, y: 2, w: 10, h: 12, minW: 10, minH: 8 },
+                    { i: 'cult', x: 20, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
                     { i: 'towns', x: 20, y: 20, w: 4, h: 3, minW: 4, minH: 2 },
                     { i: 'favor', x: 20, y: 18, w: 4, h: 4, minW: 4, minH: 2 },
                     { i: 'playerBoards', x: 0, y: 19, w: 20, h: 6, minW: 8, minH: 4 },
-                    { i: 'passing', x: 24 - numCards, y: 14, w: numCards, h: 4, minW: 4, minH: 2 }
+                    { i: 'passing', x: 24 - numCards, y: 13, w: numCards, h: 4, minW: 4, minH: 2 }
                 ],
                 md: [
                     { i: 'controls', x: 0, y: 0, w: 20, h: 2, static: true },
-                    { i: 'summary', x: 0, y: 0, w: 20, h: 1, minW: 8, minH: 1 },
-                    { i: 'log', x: 0, y: 3, w: 6, h: 14, minW: 3, minH: 6 },
-                    { i: 'scoring', x: 6, y: 3, w: 4, h: 8, minW: 4, minH: 6 },
-                    { i: 'board', x: 10, y: 3, w: 10, h: 8, minW: 6, minH: 6 },
-                    { i: 'cult', x: 0, y: 17, w: 4, h: 9, minW: 4, minH: 6 },
+                    { i: 'summary', x: 0, y: 0, w: 20, h: 2, minW: 8, minH: 2 },
+                    { i: 'log', x: 0, y: 2, w: 6, h: 14, minW: 3, minH: 6 },
+                    { i: 'scoring', x: 6, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
+                    { i: 'board', x: 10, y: 2, w: 10, h: 8, minW: 6, minH: 6 },
+                    { i: 'cult', x: 0, y: 16, w: 4, h: 9, minW: 4, minH: 6 },
                     { i: 'towns', x: 16, y: 20, w: 4, h: 3, minW: 4, minH: 2 },
                     { i: 'favor', x: 16, y: 18, w: 4, h: 4, minW: 4, minH: 2 },
                     { i: 'playerBoards', x: 0, y: 16, w: 16, h: 6, minW: 8, minH: 4 },
-                    { i: 'passing', x: 20 - numCards, y: 14, w: numCards, h: 4, minW: 4, minH: 2 }
+                    { i: 'passing', x: 20 - numCards, y: 13, w: numCards, h: 4, minW: 4, minH: 2 }
                 ]
             };
         }
@@ -50,20 +50,20 @@ export const useGameLayout = (
         // Game mode
         return {
             lg: [
-                { i: 'summary', x: 0, y: 0, w: 24, h: 1, minW: 8, minH: 1 },
-                { i: 'scoring', x: 0, y: 3, w: 4, h: 8, minW: 4, minH: 6 },
-                { i: 'board', x: 4, y: 3, w: 16, h: 16, minW: 12, minH: 10 },
-                { i: 'cult', x: 20, y: 3, w: 4, h: 9, minW: 4, minH: 6 },
+                { i: 'summary', x: 0, y: 0, w: 24, h: 2, minW: 8, minH: 2 },
+                { i: 'scoring', x: 0, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
+                { i: 'board', x: 4, y: 2, w: 16, h: 16, minW: 12, minH: 10 },
+                { i: 'cult', x: 20, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
                 { i: 'towns', x: 0, y: 11, w: 4, h: 3, minW: 4, minH: 2 },
                 { i: 'favor', x: 20, y: 12, w: 4, h: 4, minW: 4, minH: 2 },
                 { i: 'playerBoards', x: 0, y: 19, w: 20, h: 6, minW: 8, minH: 4 },
                 { i: 'passing', x: 24 - numCards, y: 16, w: numCards, h: 4, minW: 4, minH: 2 }
             ],
             md: [
-                { i: 'summary', x: 0, y: 0, w: 20, h: 1, minW: 8, minH: 1 },
-                { i: 'scoring', x: 0, y: 3, w: 4, h: 8, minW: 4, minH: 6 },
-                { i: 'board', x: 4, y: 3, w: 12, h: 12, minW: 8, minH: 8 },
-                { i: 'cult', x: 16, y: 3, w: 4, h: 9, minW: 4, minH: 6 },
+                { i: 'summary', x: 0, y: 0, w: 20, h: 2, minW: 8, minH: 2 },
+                { i: 'scoring', x: 0, y: 2, w: 4, h: 8, minW: 4, minH: 6 },
+                { i: 'board', x: 4, y: 2, w: 12, h: 12, minW: 8, minH: 8 },
+                { i: 'cult', x: 16, y: 2, w: 4, h: 9, minW: 4, minH: 6 },
                 { i: 'towns', x: 0, y: 11, w: 4, h: 3, minW: 4, minH: 2 },
                 { i: 'favor', x: 16, y: 12, w: 4, h: 4, minW: 4, minH: 2 },
                 { i: 'playerBoards', x: 0, y: 15, w: 16, h: 6, minW: 8, minH: 4 },
@@ -153,8 +153,9 @@ export const useGameLayout = (
                 if (item.i === 'scoring') {
                     newH = item.w * 2;
                 } else if (item.i === 'summary') {
-                    // Keep summary bar thin; it's a 1-row strip across the top.
-                    newH = 1;
+                    // Default to a thin bar, but allow users to resize taller if they want.
+                    // Also migrate any legacy layout that might have set this too short.
+                    newH = Math.max(item.h, 2);
                 } else if (item.i === 'cult') {
                     newH = Math.ceil(item.w * 2.25);
                 } else if (item.i === 'board') {

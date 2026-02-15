@@ -386,11 +386,30 @@ export const Replay = (): React.ReactElement => {
                     draggableHandle=".drag-handle"
                 >
                     {/* Summary Bar (resizable grid item) */}
-                    <div key="summary" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <div
+                        key="summary"
+                        style={{
+                            backgroundColor: '#ffffff',
+                            borderRadius: '0.5rem',
+                            boxShadow: '0 0.25rem 0.75rem rgba(0,0,0,0.08)',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            minHeight: 0,
+                        }}
+                    >
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
-                        <div className="flex-1 overflow-hidden p-1">
+                        <div
+                            style={{
+                                flex: '1 1 auto',
+                                minHeight: 0,
+                                overflow: 'hidden',
+                                padding: '0.25rem',
+                                display: 'flex',
+                            }}
+                        >
                             {gameState && <PlayerSummaryBar gameState={gameState} />}
                         </div>
                     </div>

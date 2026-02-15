@@ -3,7 +3,7 @@ import { useGameStore } from '../../stores/gameStore';
 import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
-import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon } from '../shared/Icons';
+import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import { TownTileId } from '../../types/game.types';
@@ -224,6 +224,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                         <div className="resource-item"><PriestIcon style={{ width: '1.5em', height: '1.5em' }} /> {player.resources.priests}</div>
                         <div className="resource-item">
                             <div className="pb-power-bowl">
+                                <PowerCircleIcon style={{ width: '1.15em', height: '1.15em' }} />
                                 <span>{player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}</span>
                             </div>
                         </div>

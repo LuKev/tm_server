@@ -2,7 +2,7 @@ import React from 'react';
 import { BonusCardType, FactionType, type GameState, type PlayerState } from '../../types/game.types';
 import { FACTIONS } from '../../data/factions';
 import { FACTION_COLORS } from '../../utils/colors';
-import { CoinIcon, WorkerIcon, PriestIcon } from '../shared/Icons';
+import { CoinIcon, WorkerIcon, PriestIcon, PowerCircleIcon } from '../shared/Icons';
 import { ShippingDiggingDisplay } from '../shared/ShippingDiggingDisplay';
 
 const resolveFactionType = (player: PlayerState): FactionType | null => {
@@ -46,6 +46,9 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
         display: 'grid',
         gap: '0.5rem',
         gridTemplateColumns: `repeat(${String(Math.max(1, playerCount))}, minmax(0, 1fr))`,
+        // Single-row grid: force the row to fill the available height so cards can stretch vertically.
+        gridTemplateRows: '1fr',
+        alignItems: 'stretch',
         width: '100%',
         height: '100%',
       }}
@@ -124,7 +127,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
                 <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.priests}</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#374151', fontWeight: 600 }}>
-                <span style={{ color: '#6b7280' }}>PW</span>
+                <PowerCircleIcon style={{ width: '1.05em', height: '1.05em' }} />
                 <span style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}
                 </span>

@@ -79,6 +79,24 @@ export const PowerIcon = ({ amount, className, style }: { amount: number, classN
     </div>
 );
 
+// Purple power circle (used as a label/icon without a number).
+export const PowerCircleIcon = ({ className, style }: { className?: string, style?: React.CSSProperties }): React.ReactElement => (
+    <div
+        className={className}
+        style={{
+            width: '1.15em',
+            height: '1.15em',
+            borderRadius: '50%',
+            backgroundColor: '#7C3AED',
+            border: '0.1em solid #5C4033',
+            boxShadow: '0 0.05em 0.1em rgba(0,0,0,0.1)',
+            flexShrink: 0,
+            boxSizing: 'border-box',
+            ...style
+        }}
+    />
+);
+
 export const CultIcon = ({ className }: { className?: string }): React.ReactElement => (
     <div className={className} style={{ borderRadius: '50%', backgroundColor: '#E5E7EB', border: '0.15em solid #5C4033', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', aspectRatio: '1 / 1', color: '#5C4033' }}>
         C
