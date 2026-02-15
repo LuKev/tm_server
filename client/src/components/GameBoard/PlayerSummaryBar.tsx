@@ -35,10 +35,14 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
       : Object.keys(gameState.players).sort();
 
   const currentPlayerId = gameState.turnOrder?.[gameState.currentTurn];
+  const playerCount = playerIds.length;
 
   // Height is controlled by the surrounding grid item (we render full height).
   return (
-    <div className="w-full h-full flex gap-2">
+    <div
+      className="w-full h-full grid gap-2"
+      style={{ gridTemplateColumns: `repeat(${String(Math.max(1, playerCount))}, minmax(0, 1fr))` }}
+    >
       {playerIds.map((pid, idx) => {
         const player = gameState.players[pid];
         if (!player) return null;
@@ -58,7 +62,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
         return (
           <div
             key={pid}
-            className={`flex-1 h-full px-2 flex flex-col justify-center rounded-md border border-gray-200 shadow-sm bg-white ${isCurrent ? 'bg-yellow-50 ring-2 ring-yellow-400' : ''}`}
+            className={`h-full px-2 flex flex-col justify-center rounded-md border border-gray-200 shadow-sm bg-white min-w-0 ${isCurrent ? 'bg-yellow-50 ring-2 ring-yellow-400' : ''}`}
           >
             <div className="flex items-center justify-between" style={{ fontSize: '0.8rem', lineHeight: 1 }}>
               <div className="flex items-center gap-2 min-w-0">
@@ -80,7 +84,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
               )}
             </div>
 
-            <div className="flex items-center gap-3 mt-1" style={{ fontSize: '0.75rem', lineHeight: 1 }}>
+            <div className="flex items-center gap-3 mt-1 flex-nowrap min-w-0" style={{ fontSize: '0.75rem', lineHeight: 1 }}>
               <div className="flex items-center gap-1">
                 <CoinIcon style={{ width: '1.15em', height: '1.15em', fontSize: '0.9em' }} />
                 <span className="font-semibold text-gray-700">{player.resources.coins}</span>
@@ -99,7 +103,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
                   {player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}
                 </span>
               </div>
-              <div className="ml-auto flex items-center">
+              <div className="ml-auto flex items-center flex-shrink-0">
                 <ShippingDiggingDisplay
                   factionType={factionType}
                   shipping={shippingLevel}
