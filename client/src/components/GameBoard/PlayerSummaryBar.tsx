@@ -38,11 +38,10 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
   const playerCount = playerIds.length;
 
   // Height is controlled by the surrounding grid item (we render full height).
+  // Do not rely on Tailwind utilities here; production may ship without them.
   return (
     <div
-      className="w-full h-full gap-2"
-      // Tailwind utilities aren't reliably present in production right now, so keep the
-      // layout-critical bits as inline styles.
+      data-testid="player-summary-bar"
       style={{
         display: 'grid',
         gap: '0.5rem',
@@ -70,7 +69,6 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
         return (
           <div
             key={pid}
-            className="min-w-0"
             style={{
               height: '100%',
               paddingLeft: '0.5rem',
