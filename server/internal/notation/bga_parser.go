@@ -1848,7 +1848,6 @@ func (p *BGAParser) handleEngineersBridge(playerID, coordStr string) {
 	// Format: C5-D6
 	parts := strings.Split(coordStr, "-")
 	if len(parts) != 2 {
-		fmt.Printf("Warning: Invalid bridge coordinates for Engineers: %s\n", coordStr)
 		return
 	}
 
