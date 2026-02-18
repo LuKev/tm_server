@@ -10,6 +10,20 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+type logTableCell struct {
+	token         string
+	itemIndices   []int
+	sourceFaction string
+}
+
+type logTableRow []logTableCell
+
+type logTableEvent struct {
+	col     int
+	faction string
+	cell    logTableCell
+}
+
 // GenerateConciseLog generates a concise log string from a list of LogItems
 // Returns the log as a list of strings (lines) and a mapping from item index to LogLocation
 func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
@@ -49,8 +63,7 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 		return []string{}, []LogLocation{}
 	}
 
-	// Helper to write row
-	writeRow := func(row []string, currentFactions []string) {
+	writeStringRow := func(row []string) {
 		var sb strings.Builder
 		for i, cell := range row {
 			// Pad cell to column width (e.g. 15 chars)
@@ -62,14 +75,9 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 		lines = append(lines, sb.String())
 	}
 
-	// Process items
-	currentRow := make([]string, numCols)
+	currentRows := make([]logTableRow, 0)
+	currentRow := newEmptyLogRow(numCols)
 	headerPrinted := false
-	// Helper to flush current row
-	flush := func() {
-		writeRow(currentRow, factionNames)
-		currentRow = make([]string, numCols)
-	}
 
 	var lastAction game.Action
 	var lastPlayerID string
@@ -77,9 +85,51 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 
 	// Helper to write header
 	writeHeader := func(currentFactions []string) {
-		writeRow(currentFactions, currentFactions)
+		writeStringRow(currentFactions)
 		sep := strings.Repeat("-", 15*numCols+3*(numCols-1))
 		lines = append(lines, sep)
+	}
+
+	finalizeRows := func() {
+		if !isLogTableRowEmpty(currentRow) {
+			currentRows = append(currentRows, cloneLogTableRow(currentRow))
+			currentRow = newEmptyLogRow(numCols)
+		}
+		if len(currentRows) == 0 {
+			return
+		}
+
+		events := flattenLogTableEvents(currentRows, factionNames)
+		hasAnchoredLeech := false
+		for _, ev := range events {
+			if isLeechOrDeclineToken(strings.TrimSpace(ev.cell.token)) && strings.TrimSpace(ev.cell.sourceFaction) != "" {
+				hasAnchoredLeech = true
+				break
+			}
+		}
+		if hasAnchoredLeech {
+			events = enforceLeechSourceOrderForEvents(events)
+			currentRows = rebuildLogRowsFromEvents(events, factionNames)
+		}
+
+		for _, row := range currentRows {
+			display := make([]string, len(row))
+			for i := range row {
+				display[i] = row[i].token
+			}
+			writeStringRow(display)
+			lineIndex := len(lines) - 1
+			for col := range row {
+				for _, itemIdx := range row[col].itemIndices {
+					if itemIdx >= 0 && itemIdx < len(itemLocations) {
+						itemLocations[itemIdx] = LogLocation{LineIndex: lineIndex, ColumnIndex: col}
+					}
+				}
+			}
+		}
+
+		currentRows = make([]logTableRow, 0)
+		currentRow = newEmptyLogRow(numCols)
 	}
 
 	for k, item := range items {
@@ -88,6 +138,7 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 
 		switch v := item.(type) {
 		case GameSettingsItem:
+			finalizeRows()
 			// Print settings
 			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: 0}
 			for key, val := range v.Settings {
@@ -112,10 +163,7 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 			lines = append(lines, "") // Empty line
 
 		case RoundStartItem:
-			// Flush any pending row from previous round
-			if !isRowEmpty(currentRow) {
-				flush()
-			}
+			finalizeRows()
 
 			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: 0}
 
@@ -127,7 +175,8 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 				colMap[f] = i
 			}
 			numCols = len(factionNames)
-			currentRow = make([]string, numCols)
+			currentRows = make([]logTableRow, 0)
+			currentRow = newEmptyLogRow(numCols)
 
 			lines = append(lines, fmt.Sprintf("Round %d", v.Round))
 			lines = append(lines, fmt.Sprintf("TurnOrder: %s", strings.Join(v.TurnOrder, ", ")))
@@ -164,15 +213,17 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 			}
 
 			code := generateActionCode(action, homeTerrain)
+			leechSource := extractLeechSourceFromAction(action)
 
 			// Check if we should chain with previous action (same player)
 			if pID == lastPlayerID && lastAction != nil && shouldChain(lastAction, action) {
 				// Append to current cell
-				if currentRow[col] == "" {
-					currentRow[col] = code
+				if currentRow[col].token == "" {
+					currentRow[col].token = code
 				} else {
-					currentRow[col] += "." + code
+					currentRow[col].token += "." + code
 				}
+				currentRow[col].itemIndices = append(currentRow[col].itemIndices, k)
 			} else {
 				// New cell logic
 				// Flush if:
@@ -180,23 +231,24 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 				// 2. OR we are backtracking (col <= lastCol)
 
 				mustFlush := false
-				if currentRow[col] != "" {
+				if currentRow[col].token != "" {
 					mustFlush = true
 				} else if col <= lastCol {
 					mustFlush = true
 				}
 
 				if mustFlush {
-					flush()
+					currentRows = append(currentRows, cloneLogTableRow(currentRow))
+					currentRow = newEmptyLogRow(numCols)
 					lastCol = -1 // Reset lastCol on flush
 				}
 
-				currentRow[col] = code
+				currentRow[col] = logTableCell{
+					token:         code,
+					itemIndices:   []int{k},
+					sourceFaction: leechSource,
+				}
 			}
-
-			// Record location
-			// The action is in currentRow, which will be written at len(lines)
-			itemLocations[k] = LogLocation{LineIndex: len(lines), ColumnIndex: col}
 
 			lastPlayerID = pID
 			lastCol = col
@@ -204,21 +256,187 @@ func GenerateConciseLog(items []LogItem) ([]string, []LogLocation) {
 		}
 	}
 
-	// Flush final row
-	if !isRowEmpty(currentRow) {
-		writeRow(currentRow, factionNames)
-	}
+	finalizeRows()
 
 	return lines, itemLocations
 }
 
-func isRowEmpty(row []string) bool {
-	for _, s := range row {
-		if s != "" {
+func newEmptyLogRow(numCols int) logTableRow {
+	row := make(logTableRow, numCols)
+	for i := range row {
+		row[i] = logTableCell{}
+	}
+	return row
+}
+
+func cloneLogTableRow(row logTableRow) logTableRow {
+	out := make(logTableRow, len(row))
+	for i := range row {
+		out[i].token = row[i].token
+		out[i].sourceFaction = row[i].sourceFaction
+		if len(row[i].itemIndices) > 0 {
+			out[i].itemIndices = append([]int(nil), row[i].itemIndices...)
+		}
+	}
+	return out
+}
+
+func isLogTableRowEmpty(row logTableRow) bool {
+	for _, cell := range row {
+		if strings.TrimSpace(cell.token) != "" {
 			return false
 		}
 	}
 	return true
+}
+
+func extractLeechSourceFromAction(action game.Action) string {
+	switch a := action.(type) {
+	case *LogAcceptLeechAction:
+		return strings.TrimSpace(a.FromPlayerID)
+	case *LogDeclineLeechAction:
+		return strings.TrimSpace(a.FromPlayerID)
+	default:
+		return ""
+	}
+}
+
+func flattenLogTableEvents(rows []logTableRow, factions []string) []logTableEvent {
+	events := make([]logTableEvent, 0)
+	for r := 0; r < len(rows); r++ {
+		for c := 0; c < len(factions) && c < len(rows[r]); c++ {
+			tok := strings.TrimSpace(rows[r][c].token)
+			if tok == "" {
+				continue
+			}
+			events = append(events, logTableEvent{
+				col:     c,
+				faction: factions[c],
+				cell:    rows[r][c],
+			})
+		}
+	}
+	return events
+}
+
+func enforceLeechSourceOrderForEvents(events []logTableEvent) []logTableEvent {
+	if len(events) == 0 {
+		return events
+	}
+	maxIters := len(events)*4 + 16
+	for iter := 0; iter < maxIters; iter++ {
+		changed := false
+		lastReqByReactor := make(map[string]int)
+		for i := 0; i < len(events); i++ {
+			ev := events[i]
+			if !isLeechOrDeclineToken(strings.TrimSpace(ev.cell.token)) {
+				continue
+			}
+			sourceFaction := normalizeFactionNameForMatching(ev.cell.sourceFaction)
+			if sourceFaction == "" {
+				continue
+			}
+
+			req := -1
+			for j := i - 1; j >= 0; j-- {
+				tok := strings.TrimSpace(events[j].cell.token)
+				if tok == "" || isLeechOrDeclineToken(tok) {
+					continue
+				}
+				if normalizeFactionNameForMatching(events[j].faction) == sourceFaction && actionMayTriggerLeech(tok) {
+					req = j
+					break
+				}
+			}
+			if req < 0 {
+				for j := i + 1; j < len(events); j++ {
+					tok := strings.TrimSpace(events[j].cell.token)
+					if tok == "" || isLeechOrDeclineToken(tok) {
+						continue
+					}
+					if normalizeFactionNameForMatching(events[j].faction) == sourceFaction && actionMayTriggerLeech(tok) {
+						req = j
+						break
+					}
+				}
+			}
+			if req < 0 {
+				continue
+			}
+			if prevReq, ok := lastReqByReactor[ev.faction]; ok && prevReq == req {
+				for j := req + 1; j < len(events); j++ {
+					tok := strings.TrimSpace(events[j].cell.token)
+					if tok == "" || isLeechOrDeclineToken(tok) {
+						continue
+					}
+					if normalizeFactionNameForMatching(events[j].faction) == sourceFaction && actionMayTriggerLeech(tok) {
+						req = j
+						break
+					}
+				}
+			}
+
+			prev := -1
+			for j := i - 1; j >= 0; j-- {
+				tok := strings.TrimSpace(events[j].cell.token)
+				if tok == "" || isLeechOrDeclineToken(tok) {
+					continue
+				}
+				prev = j
+				break
+			}
+			if prev == req {
+				lastReqByReactor[ev.faction] = req
+				continue
+			}
+
+			moved := ev
+			events = append(events[:i], events[i+1:]...)
+			insertAt := req + 1
+			if i < insertAt {
+				insertAt--
+			}
+			events = append(events, logTableEvent{})
+			copy(events[insertAt+1:], events[insertAt:])
+			events[insertAt] = moved
+			lastReqByReactor[ev.faction] = req
+			changed = true
+			break
+		}
+		if !changed {
+			return events
+		}
+	}
+	return events
+}
+
+func rebuildLogRowsFromEvents(events []logTableEvent, factions []string) []logTableRow {
+	if len(events) == 0 {
+		return nil
+	}
+	width := len(factions)
+	pos := -1
+	rows := make([]logTableRow, 0, len(events))
+	for _, ev := range events {
+		for {
+			pos++
+			if pos%width == ev.col {
+				break
+			}
+		}
+		rowIdx := pos / width
+		for len(rows) <= rowIdx {
+			rows = append(rows, newEmptyLogRow(width))
+		}
+		rows[rowIdx][ev.col] = ev.cell
+	}
+	compacted := make([]logTableRow, 0, len(rows))
+	for _, row := range rows {
+		if !isLogTableRowEmpty(row) {
+			compacted = append(compacted, row)
+		}
+	}
+	return compacted
 }
 
 func padRight(s string, width int) string {

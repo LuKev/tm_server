@@ -221,8 +221,6 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
                                             for (let k = 0; k < logLocations.length; k++) {
                                                 if (logLocations[k].lineIndex === globalIndex) {
                                                     maxActionIndex = k;
-                                                } else if (logLocations[k].lineIndex > globalIndex) {
-                                                    break;
                                                 }
                                             }
                                             if (maxActionIndex !== -1) {
@@ -251,8 +249,6 @@ export const ReplayLog: React.FC<ReplayLogProps> = ({ logStrings, logLocations, 
                                                             const loc = logLocations[k];
                                                             if (loc.lineIndex === globalIndex && loc.columnIndex === i) {
                                                                 maxActionIndex = k;
-                                                            } else if (loc.lineIndex > globalIndex) {
-                                                                break;
                                                             }
                                                         }
 

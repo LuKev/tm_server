@@ -4,8 +4,10 @@
 
 - Fixture corpus (certification):
   - Snellman ledger fixtures: `server/internal/replay/testdata/snellman_batch/` (S67-S69, G1-G7 = 21 games).
+  - Additional batch: `server/internal/replay/testdata/snellman_batch_s64_66/` (S64-S66, G1-G7 = 21 games).
   - Expected totals oracle: `server/internal/replay/testdata/snellman_batch/manifest.json`.
   - Batch test: `server/internal/replay/snellman_batch_replay_test.go` runs `ImportText(...,"snellman") -> StartReplay -> JumpTo(end)` and asserts `state.FinalScoring[*].TotalVP`.
+  - Fetcher: `scripts/fetch_snellman_batch.py --output-dir ... --seasons 64,65,66` writes fixture `.txt` and `manifest.json`.
 
 - Cleanup timing (critical): Snellman logs can contain late reactions after the final `PASS` of a round (leeches, Cultists `+TRACK`, etc.). Cleanup runs at the round boundary (processing the next `RoundStartItem`), not immediately at `AllPlayersPassed()`. See `server/internal/replay/simulator.go`.
 
@@ -30,3 +32,19 @@
   - Preserve intra-row ordering around conversions vs favor/town tokens (some rows rely on “convert before towns” or “convert before/after favor” to avoid priest-cap divergence).
 
 - Status: `bazel test //internal/replay:replay_test` is green, including the 21-game batch final-score check.
+
+- UI gotcha (prod): Tailwind utilities may not apply in production (CSS shipped with unexpanded `@tailwind ...` directives), so layout-critical UI (e.g. the top Player Summary Bar) should use plain CSS/inline styles rather than Tailwind classes for `display:flex/grid`, sizing, and borders.
+
+- Replay "Log" viewer (client):
+  - `client/src/components/ReplayLog.tsx` renders `logStrings` as an HTML `<table>` by splitting each line on `|`. It does not display the literal pipes or fixed-width spacing from the concise text format.
+  - Cells are fixed width (`6rem`) with `overflow:hidden` + `textOverflow:ellipsis`, so long tokens can be visually truncated even though the underlying `logStrings` line is intact.
+  - `ReplayLog` row/cell click lookup now scans all `logLocations` (no early break on `lineIndex`) because server-side leech re-anchoring can produce non-monotonic `lineIndex` ordering by action index.
+
+- Concise log generation:
+  - `server/internal/notation/GenerateConciseLog` now keeps `L`/`DL` display tokens but reorders leech cells using `FromPlayerID` anchors so each leech’s previous non-leech token matches its true source action.
+  - Regression test added: `server/internal/notation/generator_leech_placement_test.go` (distinct source leeches by same reacting player).
+
+- Player Summary Bar (client):
+  - Rendered via `client/src/components/GameBoard/PlayerSummaryBar.tsx` and placed as a `react-grid-layout` tile `i: "summary"` with default `h=2`.
+  - To make player cards fill the tile height, the summary bar uses a single-row CSS grid with `gridTemplateRows: "1fr"` and game/replay wrappers avoid Tailwind `flex-1` sizing and use inline flex styles instead.
+  - Power bowls use `PowerCircleIcon` (purple circle) instead of the string label `PW`.
