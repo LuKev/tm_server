@@ -152,3 +152,30 @@ func describeAction(a game.Action) string {
 		return fmt.Sprintf("%T", a)
 	}
 }
+
+func describeFailingContext(session *ReplaySession, idx int, radius int) string {
+	if session == nil || idx < 0 || idx >= len(session.LogLocations) || radius < 0 {
+		return "<unknown>"
+	}
+	loc := session.LogLocations[idx]
+	if loc.LineIndex < 0 || loc.LineIndex >= len(session.LogStrings) {
+		return "<unknown>"
+	}
+	start := loc.LineIndex - radius
+	if start < 0 {
+		start = 0
+	}
+	end := loc.LineIndex + radius
+	if end >= len(session.LogStrings) {
+		end = len(session.LogStrings) - 1
+	}
+	var b strings.Builder
+	for i := start; i <= end; i++ {
+		marker := "  "
+		if i == loc.LineIndex {
+			marker = "->"
+		}
+		fmt.Fprintf(&b, "%s L%03d: %s\n", marker, i+1, session.LogStrings[i])
+	}
+	return strings.TrimRight(b.String(), "\n")
+}

@@ -32,21 +32,17 @@ func (h *ReplayHandler) RegisterRoutes(router *mux.Router) {
 }
 
 func (h *ReplayHandler) handleStart(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("handleStart called")
 	var req struct {
 		GameID  string `json:"gameId"`
 		Restart bool   `json:"restart"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		fmt.Printf("handleStart decode error: %v\n", err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("handleStart for game %s (restart=%v)\n", req.GameID, req.Restart)
 
 	session, err := h.manager.StartReplay(req.GameID, req.Restart)
 	if err != nil {
-		fmt.Printf("StartReplay error: %v\n", err)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]string{
@@ -73,11 +69,7 @@ func (h *ReplayHandler) handleStart(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		fmt.Printf("handleStart encode error: %v\n", err)
-	} else {
-		fmt.Println("handleStart success")
-	}
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
@@ -96,8 +88,6 @@ func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := session.Simulator.StepForward(); err != nil {
-		fmt.Printf("StepForward failed for game %s: %v\n", req.GameID, err)
-
 		// Check if it's a MissingInfoError - return structured JSON
 		if missingErr, ok := err.(*game.MissingInfoError); ok {
 			w.Header().Set("Content-Type", "application/json")
@@ -125,7 +115,6 @@ func (h *ReplayHandler) handleNext(w http.ResponseWriter, r *http.Request) {
 
 func (h *ReplayHandler) handleState(w http.ResponseWriter, r *http.Request) {
 	gameID := r.URL.Query().Get("gameId")
-	fmt.Printf("handleState called for game %s\n", gameID)
 	if gameID == "" {
 		http.Error(w, "missing gameId", http.StatusBadRequest)
 		return
@@ -133,29 +122,19 @@ func (h *ReplayHandler) handleState(w http.ResponseWriter, r *http.Request) {
 
 	session := h.manager.GetSession(gameID)
 	if session == nil {
-		fmt.Printf("handleState: session not found for %s\n", gameID)
 		http.Error(w, "session not found", http.StatusNotFound)
 		return
 	}
 
 	state := session.Simulator.GetState()
 	if state == nil {
-		fmt.Printf("handleState: state is nil for %s\n", gameID)
 		http.Error(w, "state is nil", http.StatusInternalServerError)
 		return
-	}
-	fmt.Printf("handleState: returning state for %s. Players: %d\n", gameID, len(state.Players))
-	for pid := range state.Players {
-		fmt.Printf(" - Player: %s\n", pid)
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	serialized := game.SerializeState(state, gameID)
-	if err := json.NewEncoder(w).Encode(serialized); err != nil {
-		fmt.Printf("handleState encode error: %v\n", err)
-	} else {
-		fmt.Println("handleState success")
-	}
+	_ = json.NewEncoder(w).Encode(serialized)
 }
 
 func (h *ReplayHandler) handleProvideInfo(w http.ResponseWriter, r *http.Request) {
@@ -168,8 +147,6 @@ func (h *ReplayHandler) handleProvideInfo(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	fmt.Printf("handleProvideInfo called for game %s\n", req.GameID)
-
 	session := h.manager.GetSession(req.GameID)
 	if session == nil {
 		http.Error(w, "session not found", http.StatusNotFound)
@@ -177,7 +154,6 @@ func (h *ReplayHandler) handleProvideInfo(w http.ResponseWriter, r *http.Request
 	}
 
 	if err := h.manager.ProvideInfo(req.GameID, req.Info); err != nil {
-		fmt.Printf("ProvideInfo failed: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -196,7 +172,6 @@ func (h *ReplayHandler) handleJump(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.manager.JumpTo(req.GameID, req.Index); err != nil {
-		fmt.Printf("JumpTo failed: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -257,10 +232,7 @@ func (h *ReplayHandler) handleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Printf("handleImport called for game %s\n", req.GameID)
-
 	if err := h.manager.ImportLog(req.GameID, req.HTML); err != nil {
-		fmt.Printf("ImportLog failed: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -286,10 +258,7 @@ func (h *ReplayHandler) handleImportForm(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	fmt.Printf("handleImportForm called for game %s\n", gameID)
-
 	if err := h.manager.ImportLog(gameID, htmlContent); err != nil {
-		fmt.Printf("ImportLog failed: %v\n", err)
 		http.Error(w, "Import failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -317,7 +286,6 @@ func (h *ReplayHandler) handleImportText(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := h.manager.ImportText(req.GameID, req.LogText, req.Format); err != nil {
-		fmt.Printf("ImportText failed: %v\n", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

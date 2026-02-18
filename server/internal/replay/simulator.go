@@ -138,14 +138,6 @@ func (s *GameSimulator) StepForward() error {
 				}
 			}
 
-			if pi, ok := v.Action.(*notation.LogPreIncomeAction); ok && pi != nil && pi.Action != nil {
-				// Debug-only: income interlude actions are sensitive to attribution and pending spades.
-				fmt.Printf("Executing action %d: %T (player=%s inner=%T)\n", s.CurrentIndex, v.Action, v.Action.GetPlayerID(), pi.Action)
-			} else if pi, ok := v.Action.(*notation.LogPostIncomeAction); ok && pi != nil && pi.Action != nil {
-				fmt.Printf("Executing action %d: %T (player=%s inner=%T)\n", s.CurrentIndex, v.Action, v.Action.GetPlayerID(), pi.Action)
-			} else {
-				fmt.Printf("Executing action %d: %T\n", s.CurrentIndex, v.Action)
-			}
 			// Execute the action against the current state
 			if err := v.Action.Execute(s.CurrentState); err != nil {
 				if shouldIgnoreMissingDeclineLeechAtFullPower(v.Action, s.CurrentState, err) {
@@ -161,7 +153,6 @@ func (s *GameSimulator) StepForward() error {
 		// (leeches, Cultists +TRACK bonuses, etc.). Triggering cleanup immediately on
 		// "all players passed" can run scoring/bonus-card coin placement too early.
 		if s.CurrentState.Phase == game.PhaseAction && s.CurrentState.AllPlayersPassed() {
-			fmt.Println("DEBUG: Round boundary reached, executing Cleanup Phase")
 			s.CurrentState.ExecuteCleanupPhase()
 		}
 
@@ -178,10 +169,8 @@ func (s *GameSimulator) StepForward() error {
 		// Snellman logs these as "cult_income_for_faction" at the start of the next round.
 		if v.Round > 1 {
 			s.CurrentState.AwardCultRewardsForRound(v.Round - 1)
-			fmt.Printf("DEBUG: PendingCultRewardSpades after cult income (round=%d): %#v\n", v.Round, s.CurrentState.PendingCultRewardSpades)
 		}
 
-		fmt.Printf("DEBUG: Processing RoundStartItem for Round %d. TurnOrder: %v\n", v.Round, s.CurrentState.TurnOrder)
 		// Delay income until we reach the first non-pre-income action for this round.
 		// This allows replay to match Snellman interludes between income blocks.
 		s.incomePending = true
@@ -202,16 +191,13 @@ func (s *GameSimulator) StepForward() error {
 					if err := s.CurrentState.AddPlayer(factionName, faction); err != nil {
 						return fmt.Errorf("failed to add player %s: %w", factionName, err)
 					}
-					fmt.Printf("DEBUG: Simulator added player from settings: %s\n", factionName)
 				} else {
-					fmt.Printf("DEBUG: Simulator skipped existing player: %s\n", factionName)
 				}
 
 				// Set starting VPs if specified (always update, even if player exists)
 				if vpStr, ok := settings["StartingVP:"+factionName]; ok {
 					if vp, err := strconv.Atoi(vpStr); err == nil {
 						s.CurrentState.Players[factionName].VictoryPoints = vp
-						fmt.Printf("DEBUG: Set starting VP for %s to %d\n", factionName, vp)
 					}
 				}
 			} else if k == "BonusCards" {
@@ -246,7 +232,6 @@ func (s *GameSimulator) StepForward() error {
 					code := parts[0]
 					tile, err := parseScoringTile(code)
 					if err != nil {
-						fmt.Printf("Warning: failed to parse scoring tile %s: %v\n", code, err)
 						continue
 					}
 					// Ensure we don't add more than 6
@@ -310,12 +295,14 @@ func (s *GameSimulator) JumpTo(targetIndex int) error {
 		}
 	}
 
-	// If we jumped to the end of the log, ensure the final cleanup/endgame scoring runs.
+	// If we jumped to the end of the log, ensure final cleanup/endgame scoring runs.
 	// Some logs end immediately after the last PASS, with no following RoundStartItem
-	// to trigger cleanup.
-	if targetIndex >= len(s.Actions) && s.CurrentState.Phase == game.PhaseAction && s.CurrentState.AllPlayersPassed() {
-		fmt.Println("DEBUG: End of log reached, executing Cleanup Phase")
-		s.CurrentState.ExecuteCleanupPhase()
+	// to trigger cleanup. Snellman logs can also contain dropped players in round 6,
+	// which means not every faction will emit an explicit PASS.
+	if targetIndex >= len(s.Actions) && s.CurrentState.Phase == game.PhaseAction {
+		if s.CurrentState.AllPlayersPassed() || s.CurrentState.Round >= 6 {
+			s.CurrentState.ExecuteCleanupPhase()
+		}
 	}
 	return nil
 }

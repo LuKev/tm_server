@@ -95,7 +95,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reFinalScoring := regexp.MustCompile(`~ Final scoring ~`)
 
 	settings := make(map[string]string)
-	auctionOver := false
 	scoringTiles := make(map[int]string)
 	removedBonuses := make([]string, 0)
 
@@ -123,13 +122,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		}
 
 		if strings.Contains(line, "The Factions auction is over") {
-			auctionOver = true
-			fmt.Println("Found auction over line")
 			break
 		}
 		// Fallback: if we see "Every player has chosen a Faction", stop here (auction might be skipped or log different)
 		if strings.Contains(line, "Every player has chosen a Faction") {
-			fmt.Println("Found faction setup over line (in header scan)")
 			p.currentLine--
 			break
 		}
@@ -143,10 +139,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		}
 	}
 
-	if !auctionOver {
-		fmt.Println("Warning: Did not find auction over line")
-	}
-
 	// Parse player factions from setup summary
 	var setupOrder []string
 	for p.currentLine < len(p.lines) {
@@ -156,7 +148,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		if strings.Contains(line, "Every player has chosen a Faction") {
 			break
 		}
-		fmt.Printf("Setup Line: %s\n", line) // Debug logging
 		if matches := reFactionSelection.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := strings.TrimSpace(matches[1])
 			factionName := strings.TrimSpace(matches[2])
@@ -257,7 +248,6 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 		// Stop at Final Scoring
 		if reFinalScoring.MatchString(line) {
-			fmt.Println("Found Final Scoring, stopping parse.")
 			break
 		}
 

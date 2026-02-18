@@ -291,19 +291,22 @@ func (bcs *BonusCardState) GetCoinsOnCard(cardType BonusCardType) int {
 // TakeBonusCard assigns a bonus card to a player when they pass
 // Returns the number of coins that were on the card
 func (bcs *BonusCardState) TakeBonusCard(playerID string, cardType BonusCardType) (int, error) {
-	// Check if available
-	if !bcs.IsAvailable(cardType) {
-		return 0, fmt.Errorf("bonus card %v is not available", cardType)
-	}
-
 	// Check if player already has a card this round
 	if bcs.PlayerHasCard[playerID] {
 		return 0, fmt.Errorf("player already has a bonus card this round")
 	}
 
+	// If player has a card from a previous round, allow them to re-take the same card
+	// when passing (they return it and may select it again). Snellman logs can record
+	// this as "pass BONx" even though the card wasn't in the available pool until returned.
+	oldCard, hasOldCard := bcs.PlayerCards[playerID]
+	if !bcs.IsAvailable(cardType) && !(hasOldCard && oldCard == cardType) {
+		return 0, fmt.Errorf("bonus card %v is not available", cardType)
+	}
+
 	// If player has a card from a previous round, return it first
 	// This happens when passing in Round N+1 after having selected a card in Round N
-	if oldCard, hasOldCard := bcs.PlayerCards[playerID]; hasOldCard {
+	if hasOldCard {
 		bcs.Available[oldCard] = 0
 		delete(bcs.PlayerCards, playerID)
 	}

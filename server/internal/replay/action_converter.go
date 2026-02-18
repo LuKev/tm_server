@@ -32,9 +32,6 @@ func ConvertLogEntryToAction(entry *LogEntry, gs *game.GameState) (game.Action, 
 		return convertBuildAction(playerID, params, isSetup, entry, gs)
 
 	case ActionUpgrade:
-		if strings.Contains(entry.Action, "+FAV") && strings.Contains(entry.Action, "+TW") {
-			fmt.Printf("DEBUG action_converter: ActionUpgrade with +FAV and +TW for %s\n", playerID)
-		}
 		return convertUpgradeAction(playerID, params, entry, gs)
 
 	case ActionTransform:
@@ -558,22 +555,11 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 					Hexes:    []board.Hex{hex}, // Use the upgraded hex as placeholder
 				},
 			}
-			fmt.Printf("DEBUG: Created pending town formation for replay mode\n")
 		}
 
 		// Select the town tile (this will form the town and apply benefits)
-		debugPlayer := gs.GetPlayer(playerID)
-		if debugPlayer != nil {
-			fmt.Printf("DEBUG: Before SelectTownTile - %s power bowls: %d/%d/%d\n",
-				playerID, debugPlayer.Resources.Power.Bowl1, debugPlayer.Resources.Power.Bowl2, debugPlayer.Resources.Power.Bowl3)
-		}
 		if err := gs.SelectTownTile(playerID, townTileType); err != nil {
 			return nil, fmt.Errorf("town tile selection failed: %w", err)
-		}
-		debugPlayer = gs.GetPlayer(playerID)
-		if debugPlayer != nil {
-			fmt.Printf("DEBUG: After SelectTownTile - %s power bowls: %d/%d/%d\n",
-				playerID, debugPlayer.Resources.Power.Bowl1, debugPlayer.Resources.Power.Bowl2, debugPlayer.Resources.Power.Bowl3)
 		}
 
 		// Both actions executed, return nil to skip normal execution

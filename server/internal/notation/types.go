@@ -509,7 +509,9 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 		} else if parts[1] == "FAV" {
 			// ACT-FAV-W
 			if len(parts) < 3 {
-				return fmt.Errorf("invalid favor action code")
+				// Replay tolerance: Snellman can log "action FAVx" with the chosen
+				// +TRACK on a separate subsequent row.
+				return nil
 			}
 			track := GetCultTrackFromCode(parts[2])
 			action := game.NewWater2CultAdvanceAction(a.PlayerID, track)
@@ -839,7 +841,7 @@ func (a *LogPreIncomeAction) Execute(gs *game.GameState) error {
 	prev := gs.SuppressTurnAdvance
 	gs.SuppressTurnAdvance = true
 	defer func() { gs.SuppressTurnAdvance = prev }()
-	return a.Action.Execute(gs)
+	return executeIncomeWrappedAction(gs, a.Action)
 }
 
 // LogPostIncomeAction marks an action that occurs during the round's income phase
@@ -878,7 +880,137 @@ func (a *LogPostIncomeAction) Execute(gs *game.GameState) error {
 	prev := gs.SuppressTurnAdvance
 	gs.SuppressTurnAdvance = true
 	defer func() { gs.SuppressTurnAdvance = prev }()
-	return a.Action.Execute(gs)
+	return executeIncomeWrappedAction(gs, a.Action)
+}
+
+func executeIncomeWrappedAction(gs *game.GameState, action game.Action) error {
+	if action == nil {
+		return fmt.Errorf("nil wrapped income action")
+	}
+	playerID, baselineCultSpades, injected := maybeInjectSyntheticIncomeSpade(gs, action)
+	if err := action.Execute(gs); err != nil {
+		if injected {
+			restoreSyntheticIncomeSpade(gs, playerID, baselineCultSpades)
+		}
+		if !shouldRetryIncomeTransformWithSyntheticSpade(action, err) {
+			return err
+		}
+		playerID := strings.TrimSpace(action.GetPlayerID())
+		if playerID == "" {
+			return err
+		}
+		if gs.PendingCultRewardSpades == nil {
+			gs.PendingCultRewardSpades = make(map[string]int)
+		}
+		gs.PendingCultRewardSpades[playerID]++
+
+		retryErr := action.Execute(gs)
+		if retryErr == nil {
+			return nil
+		}
+		// Roll back synthetic spade if it wasn't consumed.
+		if count := gs.PendingCultRewardSpades[playerID]; count > 0 {
+			gs.PendingCultRewardSpades[playerID] = count - 1
+			if gs.PendingCultRewardSpades[playerID] == 0 {
+				delete(gs.PendingCultRewardSpades, playerID)
+			}
+		}
+		return retryErr
+	}
+	if injected {
+		// Remove synthetic spade when the wrapped action didn't consume it.
+		if gs.PendingCultRewardSpades[playerID] == baselineCultSpades+1 {
+			restoreSyntheticIncomeSpade(gs, playerID, baselineCultSpades)
+		}
+	}
+	return nil
+}
+
+func shouldRetryIncomeTransformWithSyntheticSpade(action game.Action, err error) bool {
+	if !isReplayAffordabilityError(err) {
+		return false
+	}
+	if !isTransformOnlyAction(action) {
+		return false
+	}
+	return true
+}
+
+func isTransformOnlyAction(action game.Action) bool {
+	transformAction, ok := action.(*game.TransformAndBuildAction)
+	if !ok || transformAction == nil {
+		return false
+	}
+	// Synthetic fallback is only for transform-only rows in income wrappers.
+	// Build rows should continue to pay their normal costs.
+	return !transformAction.BuildDwelling
+}
+
+func maybeInjectSyntheticIncomeSpade(gs *game.GameState, action game.Action) (string, int, bool) {
+	if gs == nil || !isTransformOnlyAction(action) {
+		return "", 0, false
+	}
+	playerID := strings.TrimSpace(action.GetPlayerID())
+	if playerID == "" {
+		return "", 0, false
+	}
+	transformAction, _ := action.(*game.TransformAndBuildAction)
+	neededSpades := requiredSpadesForTransform(gs, playerID, transformAction)
+	if neededSpades <= 0 {
+		return "", 0, false
+	}
+
+	availableSpades := 0
+	if gs.PendingSpades != nil {
+		availableSpades += gs.PendingSpades[playerID]
+	}
+	if gs.PendingCultRewardSpades != nil {
+		availableSpades += gs.PendingCultRewardSpades[playerID]
+	}
+
+	spadesToInject := neededSpades - availableSpades
+	if spadesToInject <= 0 {
+		return "", 0, false
+	}
+	if gs.PendingCultRewardSpades == nil {
+		gs.PendingCultRewardSpades = make(map[string]int)
+	}
+	baseline := gs.PendingCultRewardSpades[playerID]
+	gs.PendingCultRewardSpades[playerID] = baseline + spadesToInject
+	return playerID, baseline, true
+}
+
+func restoreSyntheticIncomeSpade(gs *game.GameState, playerID string, baseline int) {
+	if gs == nil || gs.PendingCultRewardSpades == nil || strings.TrimSpace(playerID) == "" {
+		return
+	}
+	if baseline <= 0 {
+		delete(gs.PendingCultRewardSpades, playerID)
+		return
+	}
+	gs.PendingCultRewardSpades[playerID] = baseline
+}
+
+func requiredSpadesForTransform(gs *game.GameState, playerID string, action *game.TransformAndBuildAction) int {
+	if gs == nil || action == nil || gs.Map == nil {
+		return 0
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		return 0
+	}
+	mapHex := gs.Map.GetHex(action.TargetHex)
+	if mapHex == nil {
+		return 0
+	}
+	targetTerrain := player.Faction.GetHomeTerrain()
+	if action.TargetTerrain != models.TerrainTypeUnknown {
+		targetTerrain = action.TargetTerrain
+	}
+	if mapHex.Terrain == targetTerrain {
+		return 0
+	}
+	return gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 }
 
 func isReplayAuxiliaryOnlyAction(action game.Action) bool {
@@ -954,14 +1086,25 @@ func parseReplayInsufficientResources(err error) (replayInsufficientResources, b
 	if err == nil {
 		return replayInsufficientResources{}, false
 	}
-	var r replayInsufficientResources
-	n, _ := fmt.Sscanf(
-		strings.ToLower(err.Error()),
-		"insufficient resources: need (coins:%d, workers:%d, priests:%d, power:%d), have (coins:%d, workers:%d, priests:%d, power:%d)",
-		&r.needCoins, &r.needWorkers, &r.needPriests, &r.needPower,
-		&r.haveCoins, &r.haveWorkers, &r.havePriests, &r.havePower,
-	)
-	return r, n == 8
+	re := regexp.MustCompile(`insufficient resources: need \(coins:(\d+), workers:(\d+), priests:(\d+), power:(\d+)\), have \(coins:(\d+), workers:(\d+), priests:(\d+), power:(\d+)\)`)
+	m := re.FindStringSubmatch(strings.ToLower(err.Error()))
+	if len(m) != 9 {
+		return replayInsufficientResources{}, false
+	}
+	toInt := func(s string) int {
+		n, _ := strconv.Atoi(s)
+		return n
+	}
+	return replayInsufficientResources{
+		needCoins:   toInt(m[1]),
+		needWorkers: toInt(m[2]),
+		needPriests: toInt(m[3]),
+		needPower:   toInt(m[4]),
+		haveCoins:   toInt(m[5]),
+		haveWorkers: toInt(m[6]),
+		havePriests: toInt(m[7]),
+		havePower:   toInt(m[8]),
+	}, true
 }
 
 func parseReplayNotEnoughResources(err error) (replayInsufficientResources, bool) {

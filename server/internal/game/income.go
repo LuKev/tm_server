@@ -1,10 +1,6 @@
 package game
 
-import (
-	"fmt"
-
-	"github.com/lukev/tm_server/internal/models"
-)
+import "github.com/lukev/tm_server/internal/models"
 
 // Income Phase Implementation
 //
@@ -35,19 +31,8 @@ func (gs *GameState) GrantIncome() {
 	// Example: A player reaches position 7 on a cult track at end of round 5,
 	// gets 1 spade reward, and can use it in round 6
 
-	fmt.Printf("DEBUG: GrantIncome called for Round %d\n", gs.Round)
-
 	for _, player := range gs.Players {
 		income := calculatePlayerIncome(gs, player)
-
-		// Log income details
-		bonusCard, hasCard := gs.BonusCards.GetPlayerCard(player.ID)
-		bonusCardStr := "None"
-		if hasCard {
-			bonusCardStr = fmt.Sprintf("%v", bonusCard)
-		}
-		fmt.Printf("DEBUG: Income for %s: Coins=%d, Workers=%d, Priests=%d, Power=%d (BonusCard: %s)\n",
-			player.ID, income.Coins, income.Workers, income.Priests, income.Power, bonusCardStr)
 
 		applyIncome(gs, player, income)
 	}

@@ -13,6 +13,7 @@ func TestParseActionCode_RecognizesSpecialACTCodes(t *testing.T) {
 		code string
 	}{
 		{name: "bonus card cult action", code: "ACT-BON-E"},
+		{name: "favor action placeholder", code: "ACT-FAV"},
 		{name: "mermaids town action", code: "ACT-TOWN-2_-3"},
 		{name: "engineers bridge action", code: "ACT-BR-C2-D4"},
 	}
@@ -131,6 +132,75 @@ func TestParseActionCode_ParsesPassWithTrailingCultBonusAsCompound(t *testing.T)
 	}
 	if _, ok := compound.Actions[1].(*LogCultistAdvanceAction); !ok {
 		t.Fatalf("compound second action type = %T, want *LogCultistAdvanceAction", compound.Actions[1])
+	}
+}
+
+func TestParseActionCode_KeepsBonusSpadeBuildCombined(t *testing.T) {
+	action, err := parseActionCode("Dwarves", "ACTS-G2.G2")
+	if err != nil {
+		t.Fatalf("parseActionCode(ACTS-G2.G2) error = %v", err)
+	}
+	if _, ok := action.(*LogSpecialAction); !ok {
+		t.Fatalf("parseActionCode(ACTS-G2.G2) type = %T, want *LogSpecialAction", action)
+	}
+}
+
+func TestParseActionCode_KeepsNomadsSandstormBuildCombined(t *testing.T) {
+	action, err := parseActionCode("Nomads", "ACT-SH-T-F4.F4")
+	if err != nil {
+		t.Fatalf("parseActionCode(ACT-SH-T-F4.F4) error = %v", err)
+	}
+	if _, ok := action.(*LogSpecialAction); !ok {
+		t.Fatalf("parseActionCode(ACT-SH-T-F4.F4) type = %T, want *LogSpecialAction", action)
+	}
+}
+
+func TestParseActionCode_ParsesCombinedSpecialThenConversion(t *testing.T) {
+	action, err := parseActionCode("Cultists", "ACTS-B5.B5.C1PW:1C")
+	if err != nil {
+		t.Fatalf("parseActionCode(ACTS-B5.B5.C1PW:1C) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(ACTS-B5.B5.C1PW:1C) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 2 {
+		t.Fatalf("compound action count = %d, want 2", len(compound.Actions))
+	}
+	if _, ok := compound.Actions[0].(*LogSpecialAction); !ok {
+		t.Fatalf("compound first action type = %T, want *LogSpecialAction", compound.Actions[0])
+	}
+	if _, ok := compound.Actions[1].(*LogConversionAction); !ok {
+		t.Fatalf("compound second action type = %T, want *LogConversionAction", compound.Actions[1])
+	}
+}
+
+func TestParseActionCode_DoesNotMergeSpecialAcrossConversionToken(t *testing.T) {
+	action, err := parseActionCode("Nomads", "ACTS-E3.C2PW:2C.E3")
+	if err != nil {
+		t.Fatalf("parseActionCode(ACTS-E3.C2PW:2C.E3) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(ACTS-E3.C2PW:2C.E3) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 3 {
+		t.Fatalf("compound action count = %d, want 3", len(compound.Actions))
+	}
+	if _, ok := compound.Actions[0].(*LogSpecialAction); !ok {
+		t.Fatalf("compound first action type = %T, want *LogSpecialAction", compound.Actions[0])
+	}
+	if _, ok := compound.Actions[1].(*LogConversionAction); !ok {
+		t.Fatalf("compound second action type = %T, want *LogConversionAction", compound.Actions[1])
+	}
+	if gotType := fmt.Sprintf("%T", compound.Actions[2]); !strings.HasSuffix(gotType, ".TransformAndBuildAction") {
+		t.Fatalf("compound third action type = %s, want *game.TransformAndBuildAction", gotType)
+	}
+}
+
+func TestIsCoord_RejectsConversionLikeTokens(t *testing.T) {
+	if isCoord("C2PW:2C") {
+		t.Fatalf("isCoord(C2PW:2C) = true, want false")
 	}
 }
 

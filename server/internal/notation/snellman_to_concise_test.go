@@ -32,6 +32,11 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 			expected: "ACT-SH-T-H5.H5",
 		},
 		{
+			name:     "Nomads Stronghold ACTN build keeps interleaved conversion order",
+			input:    "action ACTN. convert 2w to 2c. build g3",
+			expected: "ACT-SH-T-G3.C2W:2C.G3",
+		},
+		{
 			name:     "Upgrade internal part of compound",
 			input:    "convert 2PW to 2C. upgrade E9 to SH",
 			expected: "C2PW:2C.UP-SH-E9",
@@ -51,11 +56,30 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 			input:    "+FIRE. pass BON10",
 			expected: "+F.PASS-BON-SHIP-VP",
 		},
+		{
+			name:     "Favor action without inline track remains action token",
+			input:    "action FAV6. convert 1pw to 1c",
+			expected: "ACT-FAV.C1PW:1C",
+		},
+		{
+			name:     "Dig plus immediate transform emits only transform",
+			input:    "dig 1. transform I11 to gray",
+			expected: "T-I11",
+		},
+		{
+			name:     "Dig with interleaved conversion keeps DIG token",
+			input:    "dig 1. convert 1PW to 1C. transform I11 to gray",
+			expected: "DIG1-I11.C1PW:1C.T-I11",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := convertCompoundActionToConcise(tt.input, "cultists", 0)
+			faction := "cultists"
+			if strings.Contains(tt.name, "Dig ") {
+				faction = "dwarves"
+			}
+			got := convertCompoundActionToConcise(tt.input, faction, 0)
 			if got != tt.expected {
 				t.Errorf("convertCompoundActionToConcise() = %v, want %v", got, tt.expected)
 			}
@@ -333,6 +357,14 @@ func TestExtractSnellmanAction_CombinesSplitBon2TrackParts(t *testing.T) {
 	want := "action BON2. +AIR"
 	if got != want {
 		t.Fatalf("extractSnellmanAction() = %q, want %q", got, want)
+	}
+}
+
+func TestConvertCompoundActionToConcise_BON2ConsumesOneMatchingTrack(t *testing.T) {
+	got := convertCompoundActionToConcise("+WATER. action BON2. +WATER", "cultists", 0)
+	want := "ACT-BON-W.+W"
+	if got != want {
+		t.Fatalf("convertCompoundActionToConcise() = %q, want %q", got, want)
 	}
 }
 

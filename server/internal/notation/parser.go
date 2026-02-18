@@ -186,7 +186,6 @@ func parseConciseLog(content string, strict bool) ([]LogItem, error) {
 							Cause:    err,
 						}
 					}
-					fmt.Printf("Error parsing action '%s': %v\n", part, err)
 					continue
 				}
 				// Create action item
@@ -261,20 +260,26 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	// Compound Action: Code.Code
 	if strings.Contains(code, ".") {
 		parts := strings.Split(code, ".")
-		var actions []game.Action
+		parts = mergeEmbeddedSpecialBuildTokens(parts)
+		if len(parts) > 1 {
+			var actions []game.Action
 
-		// Pre-process to merge T-X + X patterns into single TransformAndBuild
-		// Example: T-A7.A7 becomes single action with buildDwelling=true
-		mergedParts := mergeTransformAndBuildTokens(parts)
+			// Pre-process to merge T-X + X patterns into single TransformAndBuild
+			// Example: T-A7.A7 becomes single action with buildDwelling=true
+			mergedParts := mergeTransformAndBuildTokens(parts)
 
-		for _, part := range mergedParts {
-			action, err := parseActionCodeWithContext(playerID, part, true)
-			if err != nil {
-				return nil, err
+			for _, part := range mergedParts {
+				action, err := parseActionCodeWithContext(playerID, part, true)
+				if err != nil {
+					return nil, err
+				}
+				actions = append(actions, action)
 			}
-			actions = append(actions, action)
+			return &LogCompoundAction{Actions: actions}, nil
 		}
-		return &LogCompoundAction{Actions: actions}, nil
+		// Embedded-build special token collapsed to a single token (e.g. ACTS-G2.G2).
+		code = strings.TrimSpace(parts[0])
+		upperCode = strings.ToUpper(code)
 	}
 
 	// Simple parser based on prefixes
@@ -352,7 +357,7 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	}
 
 	// Favor Tile Action: ACT-FAV-<Track>
-	if strings.HasPrefix(upperCode, "ACT-FAV-") {
+	if strings.HasPrefix(upperCode, "ACT-FAV-") || upperCode == "ACT-FAV" {
 		return &LogSpecialAction{
 			PlayerID:   playerID,
 			ActionCode: upperCode,
@@ -627,19 +632,24 @@ func parseHex(s string) board.Hex {
 	// Try parsing as Log Coord (e.g. F3)
 	h, err := ConvertLogCoordToAxial(s)
 	if err != nil {
-		fmt.Printf("Error parsing hex %s: %v\n", s, err)
 		return board.Hex{}
 	}
 	return h
 }
 
 func isCoord(s string) bool {
+	s = strings.TrimSpace(s)
 	// Check for (Q,R) format
 	if strings.HasPrefix(s, "(") && strings.HasSuffix(s, ")") {
 		return true
 	}
-	// Check for Log format (e.g. F3)
-	_, err := ConvertLogCoordToAxial(s)
+	// Check for strict Log format (e.g. F3). Avoid prefix matches like
+	// "C2PW:2C" that fmt.Sscanf would otherwise parse as "C2".
+	upper := strings.ToUpper(s)
+	if !regexp.MustCompile(`^[A-I][0-9]{1,2}$`).MatchString(upper) {
+		return false
+	}
+	_, err := ConvertLogCoordToAxial(upper)
 	return err == nil
 }
 func parseResourceString(s string) map[models.ResourceType]int {
@@ -665,6 +675,29 @@ func parseResourceString(s string) map[models.ResourceType]int {
 		}
 	}
 	return res
+}
+
+// mergeEmbeddedSpecialBuildTokens keeps special-action tokens that encode an optional
+// build as a single token, e.g. ACTS-G2.G2 and ACT-SH-T-F4.F4.
+func mergeEmbeddedSpecialBuildTokens(tokens []string) []string {
+	if len(tokens) < 2 {
+		return tokens
+	}
+	result := make([]string, 0, len(tokens))
+	for i := 0; i < len(tokens); i++ {
+		token := strings.TrimSpace(tokens[i])
+		if i+1 < len(tokens) {
+			next := strings.TrimSpace(tokens[i+1])
+			upper := strings.ToUpper(token)
+			if isCoord(next) && (strings.HasPrefix(upper, "ACTS-") || strings.HasPrefix(upper, "ACT-SH-T-")) {
+				result = append(result, token+"."+next)
+				i++
+				continue
+			}
+		}
+		result = append(result, token)
+	}
+	return result
 }
 
 // mergeTransformAndBuildTokens merges T-X + X patterns into single tokens

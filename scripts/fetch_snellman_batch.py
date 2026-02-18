@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fetch Snellman S67-S69 (G1-G7) logs and expected final scores for replay fixtures."""
+"""Fetch Snellman ledger logs and expected final scores for replay fixtures."""
 
 from __future__ import annotations
 
@@ -12,8 +12,16 @@ import urllib.request
 from typing import Any
 
 SNELLMAN_VIEW_GAME_URL = "https://terra.snellman.net/app/view-game/"
-SEASONS = (67, 68, 69)
-GAMES = range(1, 8)
+
+
+def parse_int_list(csv: str) -> list[int]:
+    out: list[int] = []
+    for part in (csv or "").split(","):
+        part = part.strip()
+        if not part:
+            continue
+        out.append(int(part))
+    return out
 
 
 def fetch_game_state(game_id: str) -> dict[str, Any]:
@@ -73,15 +81,37 @@ def main() -> None:
         default="server/internal/replay/testdata/snellman_batch",
         help="Directory where fixture files and manifest are written",
     )
+    parser.add_argument(
+        "--seasons",
+        default="67,68,69",
+        help="Comma-separated season numbers (default: 67,68,69)",
+    )
+    parser.add_argument(
+        "--game-start",
+        type=int,
+        default=1,
+        help="First game number (inclusive, default: 1)",
+    )
+    parser.add_argument(
+        "--game-end",
+        type=int,
+        default=7,
+        help="Last game number (inclusive, default: 7)",
+    )
     args = parser.parse_args()
+
+    seasons = tuple(parse_int_list(args.seasons))
+    if not seasons:
+        raise SystemExit("--seasons must include at least one season")
+    games = range(args.game_start, args.game_end + 1)
 
     output_dir = pathlib.Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     games_manifest: list[dict[str, Any]] = []
 
-    for season in SEASONS:
-        for game_num in GAMES:
+    for season in seasons:
+        for game_num in games:
             game_id = f"4pLeague_S{season}_D1L1_G{game_num}"
             state = fetch_game_state(game_id)
             ledger = state.get("ledger", [])
@@ -105,7 +135,7 @@ def main() -> None:
 
     manifest = {
         "source": "https://terra.snellman.net/app/view-game/",
-        "seasons": list(SEASONS),
+        "seasons": list(seasons),
         "games": games_manifest,
     }
     (output_dir / "manifest.json").write_text(

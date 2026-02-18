@@ -410,10 +410,10 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 
 		// Let's track current round in the loop
 		currentRound := 0 // Round 0 is setup, then 1-5
-		for i, item := range session.Simulator.Actions {
-			if rs, ok := item.(notation.RoundStartItem); ok {
-				currentRound = rs.Round
-			}
+			for _, item := range session.Simulator.Actions {
+				if rs, ok := item.(notation.RoundStartItem); ok {
+					currentRound = rs.Round
+				}
 
 			if actionItem, ok := item.(notation.ActionItem); ok {
 				if pass, ok := actionItem.Action.(*game.PassAction); ok {
@@ -434,7 +434,6 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 								// The underlying *PassAction is a pointer.
 								// So modifying 'pass' modifies the underlying struct.
 								pass.BonusCard = &cardType
-								fmt.Printf("Updated PassAction for %s with card %s at index %d (Round %d)\n", pass.PlayerID, cardCode, i, currentRound)
 							}
 						}
 					}
@@ -466,7 +465,6 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 		if err := session.Simulator.StepForward(); err != nil {
 			// If we hit an error during fast-forward, stop there.
 			// This is expected if we hit another missing info.
-			fmt.Printf("Fast-forward stopped at %d: %v\n", session.Simulator.CurrentIndex, err)
 			break
 		}
 	}
@@ -493,7 +491,6 @@ func (m *ReplayManager) JumpTo(gameID string, targetIndex int) error {
 
 	// If jumping backwards, we need to reset the simulator
 	if targetIndex < session.Simulator.CurrentIndex {
-		fmt.Printf("JumpTo: Backwards jump detected (%d -> %d). Resetting simulator.\n", session.Simulator.CurrentIndex, targetIndex)
 		initialState := createInitialState(session.Simulator.Actions)
 		session.Simulator = NewGameSimulator(initialState, session.Simulator.Actions)
 	}
@@ -561,7 +558,6 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 						code := parts[0]
 						tile, err := parseScoringTile(code)
 						if err != nil {
-							fmt.Printf("Warning: failed to parse scoring tile %s: %v\n", code, err)
 							continue
 						}
 						// Ensure we don't add more than 6
@@ -574,11 +570,6 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 			break // Only need the first settings item
 		}
 	}
-	// Debug logging
-	fmt.Printf("DEBUG: createInitialState - BonusCards Available: %d\n", len(initialState.BonusCards.Available))
-	for k, v := range initialState.BonusCards.Available {
-		fmt.Printf("  Card: %v, Coins: %d\n", k, v)
-	}
 
 	return initialState
 }
@@ -589,8 +580,6 @@ func detectMissingInfo(items []notation.LogItem) *MissingGameInfo {
 		PlayerFactions:      make(map[string]bool),
 	}
 	hasMissingInfo := false
-
-	fmt.Println("DEBUG: Starting detectMissingInfo")
 
 	// 1. Check Game Settings
 	settingsFound := false
@@ -628,11 +617,8 @@ func detectMissingInfo(items []notation.LogItem) *MissingGameInfo {
 	// We do not block start on this anymore.
 
 	if !hasMissingInfo {
-		fmt.Println("DEBUG: No global missing info detected")
 		return nil
 	}
 
-	fmt.Printf("DEBUG: Global Missing Info Detected: GlobalBonusCards=%v, GlobalScoringTiles=%v\n",
-		missing.GlobalBonusCards, missing.GlobalScoringTiles)
 	return missing
 }

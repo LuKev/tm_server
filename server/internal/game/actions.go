@@ -460,8 +460,6 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	cost := getUpgradeCost(gs, player, mapHex, a.NewBuildingType)
 
 	if !player.Resources.CanAfford(cost) {
-		fmt.Printf("UpgradeBuildingAction failed: Player %s cannot afford upgrade to %v. Cost: %v, Have: %v\n",
-			a.PlayerID, a.NewBuildingType, cost, player.Resources)
 		return fmt.Errorf("cannot afford upgrade to %v", a.NewBuildingType)
 	}
 
@@ -892,6 +890,10 @@ func (a *PassAction) Validate(gs *GameState) error {
 	}
 
 	if a.BonusCard != nil && !gs.BonusCards.IsAvailable(*a.BonusCard) {
+		// When passing, a player returns their current bonus card and may select it again.
+		if old, hasOld := gs.BonusCards.GetPlayerCard(a.PlayerID); hasOld && old == *a.BonusCard {
+			return nil
+		}
 		availableCards := []BonusCardType{}
 		for cardType := range gs.BonusCards.Available {
 			availableCards = append(availableCards, cardType)

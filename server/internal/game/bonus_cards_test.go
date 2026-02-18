@@ -118,3 +118,26 @@ func TestBonusCards_ReturnedWhenSelectingNew(t *testing.T) {
 		t.Error("player should have new bonus card")
 	}
 }
+
+func TestBonusCards_AllowsRetakingSameCardWhenPassing(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("player1", factions.NewWitches())
+
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
+		BonusCard6Coins,
+		BonusCardPriest,
+	})
+
+	// Player holds Priest from previous round (not in Available).
+	if _, err := gs.BonusCards.TakeBonusCard("player1", BonusCardPriest); err != nil {
+		t.Fatalf("failed to take priest bonus card: %v", err)
+	}
+
+	// New round: allow selecting again.
+	gs.BonusCards.PlayerHasCard["player1"] = false
+
+	// Passing and selecting the same card should be legal.
+	if _, err := gs.BonusCards.TakeBonusCard("player1", BonusCardPriest); err != nil {
+		t.Fatalf("retaking same bonus card should be allowed, got error: %v", err)
+	}
+}

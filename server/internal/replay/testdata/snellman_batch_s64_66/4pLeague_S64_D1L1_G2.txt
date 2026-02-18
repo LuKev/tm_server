@@ -1,0 +1,417 @@
+ Default game options
+option strict-leech
+option strict-darkling-sh
+option strict-chaosmagician-sh
+option errata-cultist-power
+option mini-expansion-1
+option shipping-bonus
+option temple-scoring-tile
+option email-notify
+option maintain-player-order
+option variable-turn-order
+ Randomize setup
+Round 1 scoring: SCORE5, D >> 2
+Round 2 scoring: SCORE1, SPADE >> 2
+Round 3 scoring: SCORE4, SA/SH >> 5
+Round 4 scoring: SCORE9, TE >> 4
+Round 5 scoring: SCORE7, SA/SH >> 5
+Round 6 scoring: SCORE2, TOWN >> 5
+Removing tile BON2
+Removing tile BON6
+Removing tile BON3
+Player 1: RazorPop
+Player 2: Gewalf
+Player 3: RA
+Player 4: GeorgeShortwell
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		setup
+alchemists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/1/0/0		setup
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		setup
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		setup
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build E6
+alchemists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/1/0/0		build E5
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build F4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build F3
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build D3
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build E9
+alchemists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/1/0/0		build G5
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build F7
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build B4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		Pass BON1
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		Pass BON4
+alchemists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/1/0/0		Pass BON8
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		Pass BON5
+Round 1 income
+cultists		20 VP		15 C	+4	7 W		0 P	+3	2/10/0 PW		1/0/1/0		other_income_for_faction
+alchemists		20 VP		15 C	+3	6 W	+1	1 P		5/7/0 PW		1/1/0/0		other_income_for_faction
+witches		20 VP		15 C	+3	6 W		0 P	+3	2/10/0 PW		0/0/0/2		other_income_for_faction
+nomads		20 VP	+2	17 C	+4	6 W		0 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+Round 1, turn 1
+cultists		20 VP	-3	12 C	-2	5 W		0 P		2/10/0 PW		1/0/1/0	1 1 1	upgrade E6 to TP
+cultists		20 VP		12 C		5 W		0 P		2/10/0 PW	+1	1/0/1/0		[opponent accepted power]
+nomads		20 VP		17 C		6 W		0 P	+1	4/8/0 PW		1/0/1/0		Leech 1 from cultists
+alchemists		20 VP		15 C		6 W		1 P	+1	4/8/0 PW		1/1/0/0		Leech 1 from cultists
+alchemists		20 VP	-3	12 C	-2	4 W		1 P		4/8/0 PW		1/1/0/0	2 1	upgrade E5 to TP
+nomads		20 VP		17 C		6 W		0 P	+1	3/9/0 PW		1/0/1/0		Leech 1 from alchemists
+cultists	-1	19 VP		12 C		5 W		0 P	+2	0/12/0 PW		2/0/1/0		+FIRE. Leech 2 from alchemists
+witches		20 VP		15 C		6 W		0 P	+1	1/11/0 PW		0/0/0/2		Leech 1 from cultists
+witches	+2	22 VP	-2	13 C	-1	5 W		0 P	-8	5/3/0 PW		0/0/0/2		burn 4. action ACT5. build C5
+nomads		20 VP		17 C		6 W	+1	1 P	-6	6/3/0 PW		1/0/1/0		burn 3. action ACT2
+Round 1, turn 2
+cultists		19 VP	-5	7 C	-2	3 W		0 P		0/12/0 PW	+1	2/0/2/0	2 1 1	upgrade E6 to TE. +FAV11
+cultists		19 VP		7 C		3 W		0 P		0/12/0 PW	+1	2/0/2/0		[opponent accepted power]
+alchemists	-1	19 VP		12 C		4 W		1 P	+2	2/10/0 PW		1/1/0/0		Leech 2 from cultists
+alchemists		19 VP	-5	7 C	-2	2 W		1 P		2/10/0 PW	+1	1/1/1/0	2 1	upgrade E5 to TE. +FAV11
+witches		22 VP		13 C		5 W		0 P	+1	4/4/0 PW		0/0/0/2		Leech 1 from cultists
+witches	+2	24 VP	-2	11 C	-1	4 W		0 P		4/4/0 PW		0/0/0/2	1	build C4
+nomads		20 VP		17 C		6 W		1 P	+1	5/4/0 PW		1/0/1/0		Leech 1 from cultists
+nomads		20 VP		17 C		6 W		1 P	+1	4/5/0 PW		1/0/1/0		Leech 1 from alchemists
+nomads		20 VP		17 C		6 W		1 P	+1	3/6/0 PW		1/0/1/0		Leech 1 from witches
+nomads	+2	22 VP	-4	13 C		6 W	-1	0 P		3/6/0 PW		1/0/1/0		advance ship
+cultists	-1	18 VP		7 C		3 W		0 P	+3	0/9/3 PW		3/0/2/0		+FIRE. Leech 2 from alchemists
+Round 1, turn 3
+cultists	+4	22 VP	-2	5 C	-1	2 W		0 P	-12	6/3/0 PW		3/0/2/0	1	burn 3. action ACT6. transform G7 to brown. build E10
+alchemists	+2	21 VP	-4	3 C		2 W	-1	0 P		2/10/0 PW		1/1/1/0		advance ship
+cultists		22 VP		5 C		2 W		0 P		6/3/0 PW	+1	3/0/2/0		[opponent accepted power]
+witches		24 VP		11 C		4 W		0 P	+1	3/5/0 PW		0/0/0/2		Leech 1 from cultists
+witches	+2	26 VP	-2	9 C	-1	3 W		0 P		3/5/0 PW		0/0/0/2		build C3
+cultists		22 VP		5 C		2 W		0 P		6/3/0 PW		4/0/2/0		+FIRE
+nomads	+2	24 VP	-2	11 C	-1	5 W		0 P		3/6/0 PW		1/0/1/0		action BON1. build B2
+Round 1, turn 4
+cultists	+4	26 VP	-2	3 C	-1	1 W		0 P		6/3/0 PW		4/0/2/0		build G7
+alchemists	+2	23 VP	-3	0 C		2 W		0 P	-10	7/0/0 PW		1/1/1/0		burn 5. convert 5PW to 1P. convert 1VP to 1C. advance ship
+witches	+2	28 VP	-2	7 C	-1	2 W		0 P		3/5/0 PW		0/0/0/2		build A10
+nomads	+2	26 VP	-2	9 C	-1	4 W		0 P		3/6/0 PW		1/0/1/0		build A5
+Round 1, turn 5
+cultists	+4	30 VP	-2	1 C	-1	0 W		0 P		6/3/0 PW		4/0/2/0		build D8
+alchemists	+2	25 VP		0 C	-1	1 W		0 P		7/0/0 PW		1/1/1/0	1	convert 2VP to 2C. build C1
+nomads		26 VP		9 C		4 W		0 P	+1	2/7/0 PW		1/0/1/0		Leech 1 from alchemists
+witches		28 VP	+1	8 C		2 W		0 P		3/5/0 PW		0/0/0/2		Pass bon9
+nomads		26 VP	-3	6 C	-2	2 W		0 P		2/7/0 PW		1/0/1/0	1	upgrade D3 to TP
+Round 1, turn 6
+cultists		30 VP	+1	2 C		0 W		0 P		6/3/0 PW		4/0/2/0		pass BON10
+alchemists		25 VP		0 C		1 W		0 P	+1	6/1/0 PW		1/1/1/0		Leech 1 from nomads
+alchemists	+2	27 VP		0 C	-1	0 W		0 P		6/1/0 PW		1/1/1/0	2	convert 2VP to 2C. build B3
+nomads	-1	25 VP		6 C		2 W		0 P	+2	0/9/0 PW		1/0/1/0		Leech 2 from alchemists
+nomads		25 VP	-5	1 C	-2	0 W		0 P		0/9/0 PW	+1	2/0/1/0	1	upgrade D3 to TE. +FAV9
+alchemists		27 VP		0 C		0 W		0 P	+1	5/2/0 PW		1/1/1/0		Leech 1 from nomads
+Round 1, turn 7
+alchemists		27 VP		0 C		0 W		0 P		5/2/0 PW		1/1/1/0		pass BON5
+nomads		25 VP		1 C		0 W		0 P		0/9/0 PW		2/0/1/0		pass BON4
+Round 2 income
+witches		28 VP		8 C		2 W		0 P		3/5/0 PW		0/0/0/2		cult_income_for_faction
+cultists		30 VP		2 C		0 W		0 P	+4	2/7/0 PW		4/0/2/0		cult_income_for_faction
+alchemists		27 VP		0 C		0 W		0 P		5/2/0 PW		1/1/1/0		cult_income_for_faction
+nomads		25 VP		1 C		0 W		0 P		0/9/0 PW		2/0/1/0		cult_income_for_faction
+Round 2 income
+witches		28 VP	+2	10 C	+7	9 W		0 P		3/5/0 PW		0/0/0/2		other_income_for_faction
+cultists		30 VP		2 C	+5	5 W	+1	1 P	+3	0/8/1 PW		4/0/2/0		other_income_for_faction
+alchemists		27 VP		0 C	+5	5 W	+1	1 P	+3	2/5/0 PW		1/1/1/0		other_income_for_faction
+nomads		25 VP	+3	4 C	+5	5 W	+1	1 P	+3	0/6/3 PW		2/0/1/0		other_income_for_faction
+Round 2, turn 1
+witches	+2	30 VP	-2	8 C	-4	5 W		0 P		3/5/0 PW		0/0/0/2		Dig 1. Build d5
+cultists		30 VP		2 C		5 W	-1	0 P	+3	0/5/4 PW	+3	4/0/5/0		send p to Earth
+alchemists		27 VP		0 C		5 W	-1	0 P	+1	1/6/0 PW	+3	4/1/1/0		send p to Fire
+nomads		25 VP	+7	11 C		5 W		1 P	-8	4/4/0 PW		2/0/1/0		burn 1. action ACT4
+Round 2, turn 2
+witches	+2	32 VP	-2	6 C	-4	1 W		0 P		3/5/0 PW		0/0/0/2	2	Dig 1. Build e7
+cultists	-1	29 VP		2 C		5 W		0 P	+2	0/3/6 PW		4/0/5/0		Leech 2 from witches
+cultists	+6	35 VP	-2	0 C	-1	4 W		0 P	-12	6/3/0 PW		4/0/5/0	2	action ACT6. build D7
+cultists		35 VP		0 C		4 W		0 P		6/3/0 PW	+1	4/0/5/0		[opponent accepted power]
+witches	-1	31 VP		6 C		1 W		0 P	+2	1/7/0 PW		0/0/0/2		Leech 2 from cultists
+cultists		35 VP		0 C		4 W		0 P		6/3/0 PW		4/0/6/0		+EARTH
+alchemists	+2	29 VP		0 C	-4	1 W		0 P		1/6/0 PW		4/1/1/0	1	convert 2VP to 2C. dig 1. build F5
+nomads		25 VP		11 C		5 W	-1	0 P	+1	3/5/0 PW	+2	2/0/3/0		send p to EARTH
+witches		31 VP		6 C		1 W		0 P	+1	0/8/0 PW		0/0/0/2		Leech 1 from alchemists
+Round 2, turn 3
+witches	+8	39 VP	+2	8 C		1 W		0 P		0/8/0 PW		0/0/0/2		Pass bon7
+cultists		35 VP		0 C		4 W		0 P		6/3/0 PW		4/0/6/0		pass BON9
+alchemists		29 VP		0 C	-1	0 W		0 P		1/6/0 PW		4/1/1/0		convert 2VP to 2C. build H5
+nomads		25 VP	-2	9 C	-1	4 W		0 P		3/5/0 PW		2/0/3/0	2	build E8
+Round 2, turn 4
+alchemists		29 VP		0 C		0 W		0 P		1/6/0 PW		4/1/1/0		pass BON10
+nomads	+2	27 VP	-2	7 C	-4	0 W		0 P		3/5/0 PW		2/0/3/0	1	dig 1. build G2
+nomads		27 VP	+1	8 C		0 W		0 P		3/5/0 PW		2/0/3/0		pass BON1
+witches	-1	38 VP		8 C		1 W		0 P	+2	0/6/2 PW		0/0/0/2		Leech 2 from nomads
+witches		38 VP		8 C		1 W		0 P	+1	0/5/3 PW		0/0/0/2		Leech 1 from nomads
+Round 3 income
+witches		38 VP		8 C		1 W		0 P		0/5/3 PW		0/0/0/2		cult_income_for_faction
+cultists		35 VP	+6	6 C		4 W		0 P		6/3/0 PW		4/0/6/0		cult_income_for_faction
+alchemists		29 VP	+1	1 C		0 W		0 P		1/6/0 PW		4/1/1/0		cult_income_for_faction
+nomads		27 VP	+3	11 C		0 W		0 P		3/5/0 PW		2/0/3/0		cult_income_for_faction
+Round 3 income
+witches		38 VP		8 C	+9	10 W		0 P		0/5/3 PW		0/0/0/2		other_income_for_faction
+cultists		35 VP	+2	8 C	+6	10 W	+1	1 P		6/3/0 PW		4/0/6/0		other_income_for_faction
+alchemists		29 VP		1 C	+6	6 W	+1	1 P	+3	0/5/2 PW		4/1/1/0		other_income_for_faction
+nomads		27 VP	+5	16 C	+7	7 W	+1	1 P		3/5/0 PW		2/0/3/0		other_income_for_faction
+Round 3, turn 1
+witches		38 VP	+7	15 C		10 W		0 P	-8	4/3/0 PW		0/0/0/2		burn 1. action ACT4
+cultists		35 VP		8 C		10 W	-1	0 P	+1	5/4/0 PW	+3	4/0/6/3		send p to Air
+alchemists	-2	27 VP	-1	0 C	-2	4 W		1 P		0/5/2 PW		4/1/1/0	1	convert 2VP to 2C. upgrade F5 to TP
+witches		38 VP		15 C		10 W		0 P	+1	3/4/0 PW		0/0/0/2		Leech 1 from alchemists
+nomads	+5	32 VP	-6	10 C	-4	3 W		1 P		3/5/0 PW	+1	2/1/3/0	1	upgrade D3 to SA. +FAV10
+alchemists		27 VP		0 C		4 W		1 P	+1	0/4/3 PW		4/1/1/0		Leech 1 from nomads
+Round 3, turn 2
+witches		38 VP	-3	12 C	-2	8 W		0 P		3/4/0 PW		0/0/0/2	2 2	upgrade F4 to TP
+cultists	-1	34 VP		8 C		10 W		0 P	+2	3/6/0 PW		4/0/6/3		Leech 2 from witches
+cultists	+5	39 VP	-8	0 C	-4	6 W		0 P		3/6/0 PW	+1	4/1/6/3	2 3 1	upgrade E6 to SA. +FAV10
+nomads	-1	31 VP		10 C		3 W		1 P	+2	1/7/0 PW		2/1/3/0		Leech 2 from witches
+nomads		31 VP		10 C		3 W		1 P		1/7/0 PW		2/1/3/0		wait
+cultists		39 VP		0 C		6 W		0 P		3/6/0 PW	+1	4/1/6/3		[opponent accepted power]
+witches	-2	36 VP		12 C		8 W		0 P	+3	0/7/0 PW		0/0/0/2		Leech 3 from cultists
+cultists		39 VP		0 C		6 W		0 P	+2	1/8/0 PW		5/1/6/3		+FIRE
+alchemists	-1	26 VP		0 C		4 W		1 P	+2	0/2/5 PW		4/1/1/0		Leech 2 from cultists
+alchemists		26 VP		0 C	+2	6 W		1 P	-8	4/2/1 PW		4/1/1/0		action ACT3
+nomads		31 VP		10 C		3 W		1 P	+1	0/8/0 PW		2/1/3/0		Leech 1 from cultists
+nomads		31 VP	-2	8 C	-1	2 W		1 P		0/8/0 PW		2/1/3/0		action BON1. build E3
+Round 3, turn 3
+witches		36 VP	-3	9 C	-2	6 W		0 P		0/7/0 PW		0/0/0/2	2 2	upgrade E9 to TP
+cultists	-1	38 VP		0 C		6 W		0 P	+2	0/8/1 PW		5/1/6/3		Leech 2 from witches
+cultists	+5	43 VP	+1	1 C		6 W		0 P		0/8/1 PW		5/1/6/3		pass BON4
+alchemists		26 VP		0 C		6 W		1 P		4/2/1 PW		4/1/1/0		Decline 2 from witches
+alchemists		26 VP	+1	1 C	-4	2 W		1 P	+8	1/0/6 PW		4/1/1/0	2	convert 1PW to 1C. convert 5VP to 5C. upgrade F5 to SH. convert 1PW to 1C
+nomads		31 VP		8 C		2 W	-1	0 P	+1	0/7/1 PW	+3	2/4/3/0		send p to WATER
+witches	-1	35 VP		9 C		6 W		0 P	+2	0/5/2 PW		0/0/0/2		Leech 2 from alchemists
+Round 3, turn 4
+witches		35 VP	-3	6 C	-2	4 W		0 P		0/5/2 PW		0/0/0/2	3 1	upgrade E7 to TP
+nomads		31 VP		8 C		2 W		0 P	+1	0/6/2 PW		2/4/3/0		Leech 1 from witches
+cultists	-2	41 VP		1 C		6 W		0 P	+3	0/5/4 PW		5/1/6/3		Leech 3 from witches
+alchemists	+1	27 VP	-1	0 C	-1	1 W		1 P	-8	3/4/0 PW		4/1/1/0		action ACT6. transform H4 to black. transform H7 to black. convert 1VP to 1C. build H4
+nomads		31 VP		8 C		2 W		0 P		0/6/2 PW		2/4/3/0		pass BON9
+Round 3, turn 5
+witches	+12	47 VP	-6	0 C	-4	0 W		0 P	+1	0/4/3 PW	+8	2/2/2/4	3 1	upgrade E7 to SH. +TW6
+alchemists		27 VP		0 C	-1	0 W		1 P		3/4/0 PW		4/1/1/0		convert 2VP to 2C. build H7
+nomads		31 VP		8 C		2 W		0 P	+1	0/5/3 PW		2/4/3/0		Leech 1 from witches
+cultists		41 VP		1 C		6 W		0 P		0/5/4 PW		5/1/6/3		Decline 3 from witches
+Round 3, turn 6
+witches		47 VP		0 C		0 W		0 P		0/4/3 PW		2/2/2/4	2	action ACTW. build G3
+alchemists	-1	26 VP		0 C		0 W		1 P	+2	1/6/0 PW		4/1/1/0		Leech 2 from witches
+alchemists		26 VP		0 C		0 W	-1	0 P		1/6/0 PW		4/1/1/0		convert 4VP to 4C. advance ship
+Round 3, turn 7
+witches	+4	51 VP		0 C		0 W		0 P		0/4/3 PW		2/2/2/4		Pass bon1
+alchemists	+9	35 VP	+2	2 C		0 W		0 P		1/6/0 PW		4/1/1/0		pass BON8
+Round 4 income
+cultists		41 VP		1 C	+2	8 W		0 P		0/5/4 PW		5/1/6/3		cult_income_for_faction
+nomads		31 VP		8 C	+1	3 W		0 P		0/5/3 PW		2/4/3/0		cult_income_for_faction
+witches		51 VP		0 C	+1	1 W		0 P		0/4/3 PW		2/2/2/4		cult_income_for_faction
+alchemists		35 VP		2 C	+2	2 W		0 P		1/6/0 PW		4/1/1/0		cult_income_for_faction
+Round 4 income
+cultists		41 VP		1 C	+6	14 W	+1	1 P	+3	0/2/7 PW		5/1/6/3		other_income_for_faction
+nomads		31 VP	+5	13 C	+8	11 W	+1	1 P		0/5/3 PW		2/4/3/0		other_income_for_faction
+witches		51 VP	+6	6 C	+7	8 W		0 P	+4	0/0/7 PW		2/2/2/4		other_income_for_faction
+alchemists		35 VP	+6	8 C	+7	9 W	+2	2 P		1/6/0 PW		4/1/1/0		other_income_for_faction
+Round 4, turn 1
+cultists		41 VP	+7	8 C		14 W		1 P	-8	4/2/3 PW		5/1/6/3		action ACT4
+nomads	+3	34 VP	-3	10 C	-2	9 W		1 P		0/5/3 PW		2/4/3/0	1	upgrade B2 to TP
+witches		51 VP	-1	5 C	-1	7 W		0 P	-2	1/0/6 PW		2/2/2/4	4 2	convert pw to c. action BON1. build F6
+alchemists		35 VP		8 C		9 W		2 P	+1	0/7/0 PW		4/1/1/0		Leech 1 from nomads
+alchemists		35 VP		8 C		9 W		2 P		0/7/0 PW		4/1/1/0		Decline 4 from witches
+alchemists		35 VP	-3	5 C	-2	7 W		2 P		0/7/0 PW		4/1/1/0	1	upgrade H4 to TP
+witches		51 VP		5 C		7 W		0 P	+1	0/1/6 PW		2/2/2/4		Leech 1 from alchemists
+cultists	-1	40 VP		8 C		14 W		1 P	+2	2/4/3 PW		5/1/6/3		Leech 2 from witches
+Round 4, turn 2
+cultists		40 VP		8 C		14 W	-1	0 P	+2	0/6/3 PW	+2	5/1/6/5		send p to Air
+nomads	+4	38 VP	-5	5 C	-2	7 W		1 P		0/5/3 PW	+1	2/4/4/0	1	upgrade B2 to TE. +FAV11
+alchemists		35 VP		5 C		7 W		2 P	+1	0/6/1 PW		4/1/1/0		Leech 1 from nomads
+witches		51 VP	-2	3 C	-4	3 W		0 P		0/1/6 PW		2/2/2/4	2 2	Dig 1. Build g6
+cultists	-1	39 VP		8 C		14 W		0 P	+2	0/4/5 PW		5/1/6/5		Leech 2 from witches
+alchemists	-1	34 VP		5 C		7 W		2 P	+2	0/4/3 PW		4/1/1/0		Leech 2 from witches
+alchemists	+4	38 VP	-5	0 C	-2	5 W		2 P		0/4/3 PW	+1	4/2/1/0	1	upgrade H4 to TE. +FAV10
+witches		51 VP		3 C		3 W		0 P	+1	0/0/7 PW		2/2/2/4		Leech 1 from alchemists
+Round 4, turn 3
+cultists	+2	41 VP	-2	6 C	-4	10 W		0 P	-12	6/2/0 PW		5/1/6/5	1 2	burn 1. action ACT6. dig 1. build C2
+cultists		41 VP		6 C		10 W		0 P		6/2/0 PW	+1	5/1/6/5		[opponent accepted power]
+nomads	-1	37 VP		5 C		7 W		1 P	+2	0/3/5 PW		2/4/4/0		Leech 2 from cultists
+nomads	+2	39 VP	-2	3 C	-1	6 W		1 P		0/3/5 PW		2/4/4/0	2	build I7
+cultists		41 VP		6 C		10 W		0 P		6/2/0 PW		5/1/6/6		+AIR
+witches		51 VP	-2	1 C	-2	1 W		0 P	-2	1/0/6 PW		2/2/2/4	1	Convert pw to c. Upgrade c5 to tp
+cultists		41 VP		6 C		10 W		0 P	+1	5/3/0 PW		5/1/6/6		Leech 1 from witches
+alchemists		38 VP		0 C		5 W		2 P	+1	0/3/4 PW		4/2/1/0		Leech 1 from cultists
+alchemists	-1	37 VP		0 C		5 W		2 P	+2	0/1/6 PW		4/2/1/0		Leech 2 from nomads
+alchemists		37 VP		0 C		5 W	-1	1 P		0/1/6 PW	+2	4/2/1/2		send p to Air
+Round 4, turn 4
+cultists	+2	43 VP	-2	4 C	-7	3 W		0 P		5/3/0 PW		5/1/6/6	5	dig 2. build D4
+nomads		39 VP		3 C		6 W		1 P	-8	4/3/1 PW		2/4/4/0		action ACT5. transform I6 to gray
+cultists		43 VP		4 C		3 W		0 P		5/3/0 PW	+1	5/1/6/6		[opponent accepted power]
+witches	-1	50 VP		1 C		1 W		0 P	+2	0/0/7 PW		2/2/2/4		Leech 5 from cultists
+witches	+4	54 VP	-1	0 C	-1	0 W		0 P	-12	5/2/0 PW	+1	2/2/2/5	3 2	Convert 3pw to w. Convert 3pw to 3c. Convert pw to c. Upgrade e9 to te. +fav12
+cultists	-1	42 VP		4 C		3 W		0 P	+4	1/7/0 PW		5/1/6/7		+AIR. Leech 2 from witches
+alchemists		37 VP		0 C		5 W		1 P	+1	0/0/7 PW		4/2/1/2		Leech 3 from witches
+alchemists		37 VP	+1	1 C		5 W	-1	0 P	-1	0/1/6 PW	+2	4/2/1/4		convert 1PW to 1C. send p to AIR
+Round 4, turn 5
+cultists	+3	45 VP	-3	1 C	-2	1 W		0 P		1/7/0 PW		5/1/6/7	1 2	upgrade C2 to TP
+cultists		45 VP		1 C		1 W		0 P		1/7/0 PW	+1	5/1/6/7		[opponent accepted power]
+nomads	-1	38 VP		3 C		6 W		1 P	+2	2/5/1 PW		2/4/4/0		Leech 2 from cultists
+nomads		38 VP		3 C		6 W	-1	0 P	+2	0/7/1 PW	+2	2/6/4/0		send p to WATER
+witches	+3	57 VP	+1	1 C		0 W		0 P		5/2/0 PW		2/2/2/5		Pass bon7
+cultists		45 VP		1 C		1 W		0 P		1/7/0 PW		5/1/6/8		+AIR
+alchemists		37 VP		1 C		5 W		0 P	+1	0/0/7 PW		4/2/1/4		Leech 1 from cultists
+alchemists		37 VP	+3	4 C		5 W		0 P	-4	2/0/5 PW		4/2/1/4		convert 2PW to 2C. pass BON10
+Round 4, turn 6
+cultists		45 VP	+2	3 C		1 W		0 P		1/7/0 PW		5/1/6/8		pass BON5
+nomads	+3	41 VP	-1	2 C	-2	4 W		0 P	-4	2/5/0 PW		2/6/4/0	2	upgrade I7 to TP. burn 1. convert 2PW to 2C
+Round 4, turn 7
+nomads	+2	43 VP	-2	0 C	-4	0 W		0 P		2/5/0 PW		2/6/4/0	1	dig 1. build A6
+nomads	+7	50 VP		0 C		0 W		0 P		2/5/0 PW		2/6/4/0		pass BON1
+alchemists		37 VP		4 C		5 W		0 P		2/0/5 PW		4/2/1/4		Decline 2 from nomads
+alchemists		37 VP		4 C		5 W		0 P	+1	1/1/5 PW		4/2/1/4		Leech 1 from nomads
+Round 5 income
+witches		57 VP		1 C		0 W		0 P		5/2/0 PW		2/2/2/5		cult_income_for_faction
+alchemists		37 VP	+6	10 C		5 W		0 P		1/1/5 PW		4/2/1/4		cult_income_for_faction
+cultists		45 VP	+6	9 C		1 W		0 P		1/7/0 PW		5/1/6/8		cult_income_for_faction
+nomads		50 VP	+6	6 C		0 W		0 P		2/5/0 PW		2/6/4/0		cult_income_for_faction
+Round 5 income
+witches		57 VP	+4	5 C	+9	9 W	+1	1 P	+4	1/6/0 PW		2/2/2/5		other_income_for_faction
+alchemists		37 VP	+6	16 C	+6	11 W	+2	2 P	+3	0/0/7 PW		4/2/1/4		other_income_for_faction
+cultists		45 VP	+2	11 C	+8	9 W	+1	1 P	+4	0/5/3 PW		5/1/6/8		other_income_for_faction
+nomads		50 VP	+7	13 C	+8	8 W	+2	2 P	+1	1/6/0 PW		2/6/4/0		other_income_for_faction
+Round 5, turn 1
+witches		57 VP		5 C	-6	3 W		1 P		1/6/0 PW		2/2/2/5		Dig 2. Transform b5 to green
+alchemists	+6	43 VP	-4	12 C	-2	9 W	-1	1 P	-2	1/0/6 PW		4/2/1/4		convert 1PW to 1C. advance dig
+cultists		45 VP	+7	18 C		9 W		1 P	-8	4/3/0 PW		5/1/6/8		burn 1. action ACT4
+nomads	+2	52 VP	-2	11 C	-1	7 W		2 P		1/6/0 PW		2/6/4/0		action BON1. build A7
+Round 5, turn 2
+witches		57 VP		5 C		3 W		1 P		1/6/0 PW		2/2/2/5	1	action ACTW. build B5
+nomads		52 VP		11 C		7 W		2 P	+1	0/7/0 PW		2/6/4/0		Leech 1 from witches
+alchemists	+6	49 VP	-5	7 C	-2	7 W	-1	0 P		1/0/6 PW		4/2/1/4		advance dig
+cultists	+12	57 VP	-8	10 C	-4	5 W		1 P		4/3/0 PW		5/1/6/8	1 2	upgrade C2 to SH
+cultists		57 VP		10 C		5 W		1 P		4/3/0 PW	+1	5/1/6/8		[opponent accepted power]
+nomads	-1	51 VP		11 C		7 W		2 P	+2	0/5/2 PW		2/6/4/0		Leech 2 from cultists
+nomads		51 VP		11 C		7 W		2 P	-6	3/3/0 PW		2/6/4/0		burn 1. action ACT1. Bridge G2:I6
+alchemists		49 VP		7 C		7 W		0 P	+1	0/1/6 PW		4/2/1/4		Leech 1 from cultists
+cultists		57 VP		10 C		5 W		1 P	+2	2/5/0 PW		5/1/7/8		+EARTH
+Round 5, turn 3
+witches		57 VP	-3	2 C	-2	1 W		1 P		1/6/0 PW		2/2/2/5	1	upgrade C4 to TP
+alchemists	+2	51 VP	-1	6 C	-2	5 W		0 P		0/1/6 PW		4/2/1/4	2	convert 1PW to 1C. dig 1. build I8
+nomads		51 VP		11 C		7 W		2 P	+1	2/4/0 PW		2/6/4/0		Leech 1 from witches
+nomads	-1	50 VP		11 C		7 W		2 P	+2	0/6/0 PW		2/6/4/0		Leech 2 from alchemists
+cultists		57 VP	+1	11 C		5 W		1 P		2/5/0 PW		5/1/7/8		pass BON9
+nomads	+3	53 VP	-3	8 C	-2	5 W		2 P		0/6/0 PW		2/6/4/0	1	upgrade A6 to TP
+alchemists		51 VP		6 C		5 W		0 P	+1	0/0/7 PW		4/2/1/4		Leech 1 from nomads
+Round 5, turn 4
+witches		57 VP	-2	0 C	-1	0 W	-1	0 P	-2	2/4/0 PW		2/2/2/5	1	Burn 1. Convert pw to c. Convert p to w. Upgrade b5 to tp
+alchemists	+5	56 VP	-4	2 C	-4	1 W		0 P	-2	0/2/5 PW	+2	6/2/1/4	1 2	convert 2PW to 2C. upgrade H4 to SA. +FAV5
+witches		57 VP		0 C		0 W		0 P	+1	1/5/0 PW		2/2/2/5		Leech 1 from alchemists
+nomads		53 VP		8 C		5 W		2 P	+1	0/5/1 PW		2/6/4/0		Leech 1 from witches
+nomads	-1	52 VP		8 C		5 W		2 P	+2	0/3/3 PW		2/6/4/0		Leech 2 from alchemists
+nomads	+5	57 VP	-8	0 C	-4	1 W		2 P		0/3/3 PW		2/6/4/0	4	upgrade I7 to SH
+Round 5, turn 5
+witches	+12	69 VP	+1	1 C		0 W		0 P		1/5/0 PW		2/2/2/5		Pass bon8
+alchemists		56 VP		2 C		1 W		0 P		0/2/5 PW		6/2/1/4		Decline 4 from nomads
+alchemists	+9	65 VP		2 C		1 W		0 P		0/2/5 PW		6/2/1/4		pass BON7
+nomads		57 VP	+1	1 C		1 W	-1	1 P		1/1/4 PW	+2	2/8/4/0		send p to WATER. convert 1PW to 1C
+Round 5, turn 6
+nomads		57 VP	+1	2 C		1 W	-1	0 P		1/1/4 PW	+2	2/8/6/0		send p to EARTH. convert 1PW to 1C
+Round 5, turn 7
+nomads	+2	59 VP		2 C	-1	0 W		0 P	-4	3/1/2 PW		2/8/6/0		action ACTN. build I6. convert 2PW to 2C
+nomads		59 VP		2 C		0 W		0 P		3/1/2 PW		2/8/6/0		pass BON10
+Round 6 income
+cultists		57 VP		11 C	+4	9 W		1 P		2/5/0 PW		5/1/7/8		cult_income_for_faction
+witches		69 VP		1 C	+2	2 W		0 P		1/5/0 PW		2/2/2/5		cult_income_for_faction
+alchemists		65 VP		2 C	+2	3 W		0 P		0/2/5 PW		6/2/1/4		cult_income_for_faction
+nomads		59 VP		2 C		0 W		0 P		3/1/2 PW		2/8/6/0		cult_income_for_faction
+Round 6 income
+cultists		57 VP	+2	13 C	+7	16 W	+1	2 P	+2	0/7/0 PW		5/1/7/8		other_income_for_faction
+witches		69 VP	+8	9 C	+7	9 W	+2	2 P	+7	0/0/6 PW		2/2/2/5		other_income_for_faction
+alchemists		65 VP	+6	8 C	+8	11 W	+2	2 P		0/2/5 PW		6/2/1/4		other_income_for_faction
+nomads		59 VP	+5	7 C	+8	8 W	+2	2 P	+6	0/1/5 PW		2/8/6/0		other_income_for_faction
+Round 6, turn 1
+cultists	+13	70 VP		13 C		16 W		2 P	-6	3/1/0 PW	+4	6/2/8/9		burn 3. action ACT1. Bridge C2:D4. +TW5
+witches		69 VP	-2	7 C	-1	8 W		2 P	-12	6/0/0 PW		2/2/2/5	1 1	action ACT6. transform A11 to green. build H8
+alchemists		65 VP		8 C		11 W		2 P	+1	0/1/6 PW		6/2/1/4		Leech 1 from witches
+alchemists		65 VP	+7	15 C		11 W		2 P	-8	4/1/2 PW		6/2/1/4		action ACT4
+nomads	+22	81 VP	+2	9 C		8 W		2 P	-1	1/0/5 PW	+2	4/8/6/0	1	upgrade A6 to TE. +FAV5. +TW2. +TW1. convert 1PW to 1C
+alchemists		65 VP		15 C		11 W		2 P	+1	3/2/2 PW		6/2/1/4		Leech 1 from nomads
+cultists		70 VP		13 C		16 W		2 P	+1	2/2/0 PW		6/2/8/9		Leech 1 from witches
+Round 6, turn 2
+cultists	+3	73 VP	-3	10 C	-2	14 W		2 P		2/2/0 PW		6/2/8/9	2	upgrade G7 to TP
+cultists		73 VP		10 C		14 W		2 P		2/2/0 PW	+1	6/2/8/9		[opponent accepted power]
+witches	-1	68 VP		7 C		8 W		2 P	+2	4/2/0 PW		2/2/2/5		Leech 2 from cultists
+witches		68 VP	-5	2 C	-2	6 W		2 P	+1	3/3/0 PW	+2	4/2/2/5	1	upgrade c5 to te. +fav5
+alchemists	+14	79 VP	-2	13 C		11 W		2 P	+2	1/4/2 PW		6/2/1/4		dig 1. build I10. +TW2
+nomads	+3	84 VP	-3	6 C	-2	6 W		2 P		1/0/5 PW		4/8/6/0	1	upgrade A5 to TP
+alchemists		79 VP		13 C		11 W		2 P	+1	0/5/2 PW		6/2/1/4		Leech 1 from nomads
+cultists		73 VP		10 C		14 W		2 P	+3	0/3/1 PW		7/2/8/9		+FIRE. Leech 1 from witches
+Round 6, turn 3
+cultists	+16	89 VP	-2	8 C	-2	12 W		2 P	+2	0/1/3 PW	+4	8/3/9/10	2	convert 1PW to 1C. upgrade F7 to TP. +TW5
+cultists		89 VP		8 C		12 W		2 P		0/1/3 PW	+1	8/3/9/10		[opponent accepted power]
+witches	-1	67 VP		2 C		6 W		2 P	+2	1/5/0 PW		4/2/2/5		Leech 2 from cultists
+witches	+21	88 VP		2 C		6 W		2 P		1/5/0 PW		4/2/2/5	2	action actw. build i11. +tw8
+alchemists	-1	78 VP		13 C		11 W		2 P	+2	0/3/4 PW		6/2/1/4		Leech 2 from witches
+alchemists	+2	80 VP	-2	11 C	-2	9 W		2 P	+2	0/1/6 PW		6/2/1/4	4	dig 1. build D2
+nomads		84 VP		6 C		6 W		2 P		1/0/5 PW		4/8/6/0		wait
+cultists		89 VP		8 C		12 W		2 P		0/1/3 PW		8/4/9/10		+WATER
+nomads		84 VP		6 C		6 W		2 P		1/0/5 PW		4/8/6/0		Decline 4 from alchemists
+nomads	+3	87 VP	-3	3 C	-2	4 W		2 P		1/0/5 PW		4/8/6/0	1	upgrade E3 to TP
+Round 6, turn 4
+cultists		89 VP		8 C		12 W	+1	3 P	-6	3/1/0 PW		8/4/9/10		action ACT2
+alchemists		80 VP		11 C		9 W		2 P	+1	0/0/7 PW		6/2/1/4		Leech 1 from nomads
+witches		88 VP	-2	0 C	-2	4 W		2 P	-2	2/3/0 PW		4/2/2/5	2	burn 1. convert pw to c. upgrade i11 to tp
+alchemists		80 VP		11 C		9 W		2 P		0/0/7 PW		6/2/1/4		Leech 2 from witches
+alchemists	+17	97 VP	-2	9 C	-2	7 W	+1	3 P	-2	1/0/6 PW		6/2/1/4	1	upgrade H5 to TP. +TW3. convert 1PW to 1C
+witches		88 VP		0 C		4 W		2 P	+1	1/4/0 PW		4/2/2/5		Leech 1 from alchemists
+nomads		87 VP	+1	4 C		4 W	-1	1 P	+1	0/1/5 PW	+2	4/10/6/0		convert 1PW to 1C. send p to WATER
+Round 6, turn 5
+cultists	+6	95 VP	-5	3 C	-2	10 W	-1	2 P		3/1/0 PW		8/4/9/10		advance dig
+witches	+19	107 VP		0 C	-3	1 W	+1	3 P		1/4/0 PW		4/2/2/5		Convert 2w to 2c. Build a11. +tw3
+alchemists	+2	99 VP	-1	8 C	-2	5 W		3 P		1/0/6 PW		6/2/1/4	2	dig 1. build E2. convert 1PW to 1C
+nomads		87 VP		4 C		4 W		1 P	+1	0/0/6 PW		4/10/6/0		Leech 2 from alchemists
+nomads		87 VP		4 C	+2	6 W		1 P	-8	4/0/2 PW		4/10/6/0		action ACT3
+Round 6, turn 6
+cultists	+6	101 VP	-3	0 C	-4	6 W	-1	1 P		3/1/0 PW		8/4/9/10		convert 2W to 2C. advance dig
+witches		107 VP		0 C		1 W	-1	2 P	+2	0/4/1 PW	+2	6/2/2/5		send p to fire
+alchemists	+3	102 VP	-3	5 C	-2	3 W		3 P		1/0/6 PW		6/2/1/4	5	upgrade D2 to TP
+nomads		87 VP		4 C		6 W		1 P		4/0/2 PW		4/10/6/0		Decline 5 from alchemists
+nomads	+12	99 VP	+4	8 C	-1	5 W		1 P		4/0/2 PW		4/10/6/0	1	action ACTN. build F2. +TW1
+Round 6, turn 7
+cultists		101 VP		0 C		6 W	-1	0 P	+3	0/4/0 PW	+2	10/4/9/10		send p to Fire
+witches		107 VP		0 C		1 W	-1	1 P	+2	0/2/3 PW	+2	8/2/2/5		Send p to fire
+alchemists		102 VP		5 C		3 W		3 P	+1	0/1/6 PW		6/2/1/4		Leech 1 from nomads
+alchemists	+3	105 VP	-3	2 C	-2	1 W		3 P		0/1/6 PW		6/2/1/4	3	upgrade C1 to TP
+nomads		99 VP		8 C		5 W		1 P		4/0/2 PW		4/10/6/0		Decline 3 from alchemists
+nomads	+3	102 VP	-4	4 C		5 W	-1	0 P		4/0/2 PW		4/10/6/0		advance ship
+Round 6, turn 8
+cultists	+2	103 VP		0 C	-3	3 W		0 P	-4	2/0/0 PW		10/4/9/10		burn 2. convert 2PW to 2C. dig 1. dig 1. build E11
+witches	+2	109 VP		0 C		1 W	-1	0 P	-8	4/0/0 PW		8/2/2/5		Burn 1. Convert 4pw to 4c. Advance ship
+alchemists	+13	118 VP	-2	0 C	+1	2 W		3 P	-4	0/5/2 PW		6/2/1/4		convert 6PW to 2W. build E1. +TW4
+nomads	+2	104 VP	-2	2 C	-1	4 W		0 P		4/0/2 PW		4/10/6/0		build B1
+Round 6, turn 9
+cultists	+5	108 VP		0 C		3 W		0 P		2/0/0 PW		10/4/9/10		pass
+witches	+4	113 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		pass
+alchemists	+2	120 VP		0 C	-2	0 W		3 P	-2	0/7/0 PW		6/2/1/4		convert 2PW to 2C. dig 1. build H3
+nomads	+3	107 VP	-2	0 C	-2	2 W		0 P	-2	5/0/1 PW		4/10/6/0	4	convert 1PW to 1C. upgrade E8 to TP
+witches		113 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		Decline 4 from nomads
+Round 6, turn 10
+alchemists	+3	123 VP		0 C		0 W	-2	1 P	-6	3/1/0 PW		6/2/1/4	3	convert 2P to 2W. burn 3. convert 3PW to 3C. upgrade E2 to TP
+nomads		107 VP		0 C		2 W		0 P		5/0/1 PW		4/10/6/0		Decline 3 from alchemists
+nomads	+2	109 VP		0 C	-2	0 W		0 P	-2	6/0/0 PW		4/10/6/0		convert 1PW to 1C. convert 1W to 1C. build H1
+Round 6, turn 11
+alchemists		123 VP		0 C		0 W	-1	0 P		3/1/0 PW		6/2/1/4	2	convert 2VP to 2C. convert 1P to 1W. build A8
+nomads		109 VP		0 C		0 W		0 P		6/0/0 PW		4/10/6/0		Decline 2 from alchemists
+nomads	+6	115 VP		0 C		0 W		0 P		6/0/0 PW		4/10/6/0		pass
+alchemists	+8	131 VP		0 C		0 W		0 P		3/1/0 PW		6/2/1/4		pass
+Scoring FIRE cult
+cultists	+8	116 VP		0 C		3 W		0 P		2/0/0 PW		10/4/9/10		+8vp for FIRE
+witches	+4	117 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		+4vp for FIRE
+alchemists	+2	133 VP		0 C		0 W		0 P		3/1/0 PW		6/2/1/4		+2vp for FIRE
+Scoring WATER cult
+cultists	+4	120 VP		0 C		3 W		0 P		2/0/0 PW		10/4/9/10		+4vp for WATER
+witches	+1	118 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		+1vp for WATER
+nomads	+8	123 VP		0 C		0 W		0 P		6/0/0 PW		4/10/6/0		+8vp for WATER
+alchemists	+1	134 VP		0 C		0 W		0 P		3/1/0 PW		6/2/1/4		+1vp for WATER
+Scoring EARTH cult
+cultists	+8	128 VP		0 C		3 W		0 P		2/0/0 PW		10/4/9/10		+8vp for EARTH
+witches	+2	120 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		+2vp for EARTH
+nomads	+4	127 VP		0 C		0 W		0 P		6/0/0 PW		4/10/6/0		+4vp for EARTH
+Scoring AIR cult
+cultists	+8	136 VP		0 C		3 W		0 P		2/0/0 PW		10/4/9/10		+8vp for AIR
+witches	+4	124 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		+4vp for AIR
+alchemists	+2	136 VP		0 C		0 W		0 P		3/1/0 PW		6/2/1/4		+2vp for AIR
+Scoring network
+witches	+12	136 VP		0 C		1 W		0 P		4/0/0 PW		8/2/2/5		+12vp for network
+nomads	+12	139 VP		0 C		0 W		0 P		6/0/0 PW		4/10/6/0		+12vp for network
+alchemists	+12	148 VP		0 C		0 W		0 P		3/1/0 PW		6/2/1/4		+12vp for network
+Converting resources to VPs
+cultists	+1	137 VP		0 C	-3	0 W		0 P		2/0/0 PW		10/4/9/10		score_resources
+witches		136 VP	+1	1 C	-1	0 W		0 P		4/0/0 PW		8/2/2/5		score_resources
+nomads		139 VP		0 C		0 W		0 P		6/0/0 PW		4/10/6/0		score_resources
+alchemists		148 VP		0 C		0 W		0 P		3/1/0 PW		6/2/1/4		score_resources

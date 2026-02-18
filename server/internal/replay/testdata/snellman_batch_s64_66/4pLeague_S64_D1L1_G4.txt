@@ -1,0 +1,369 @@
+ Default game options
+option strict-leech
+option strict-darkling-sh
+option strict-chaosmagician-sh
+option errata-cultist-power
+option mini-expansion-1
+option shipping-bonus
+option temple-scoring-tile
+option email-notify
+option maintain-player-order
+option variable-turn-order
+ Randomize setup
+Round 1 scoring: SCORE3, D >> 2
+Round 2 scoring: SCORE4, SA/SH >> 5
+Round 3 scoring: SCORE2, TOWN >> 5
+Round 4 scoring: SCORE9, TE >> 4
+Round 5 scoring: SCORE7, SA/SH >> 5
+Round 6 scoring: SCORE6, TP >> 3
+Removing tile BON4
+Removing tile BON5
+Removing tile BON6
+Player 1: tom8918
+Player 2: RA
+Player 3: qlip21
+Player 4: Gewalf
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		setup
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		setup
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build G5
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build E6
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		build E7
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build F3
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build D3
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		build F6
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build F7
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build E10
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		build G4
+nomads		20 VP		15 C		2 W		0 P		5/7/0 PW		1/0/1/0		Pass BON1
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		Pass BON8
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		Pass BON2
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON3
+Round 1 income
+darklings		20 VP	+6	21 C	+3	4 W		1 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+cultists		20 VP	+4	19 C	+3	6 W		0 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+engineers		20 VP		10 C	+2	4 W	+1	1 P		3/9/0 PW		0/0/0/0		other_income_for_faction
+nomads		20 VP	+2	17 C	+4	6 W		0 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+Round 1, turn 1
+darklings		20 VP	-3	18 C	-2	2 W		1 P		5/7/0 PW		0/1/1/0	1 1	upgrade E10 to TP
+engineers		20 VP		10 C		4 W		1 P	+1	2/10/0 PW		0/0/0/0		Leech 1 from darklings
+cultists		20 VP		19 C		6 W		0 P	+1	4/8/0 PW		1/0/1/0		Leech 1 from darklings
+cultists		20 VP	-3	16 C	-2	4 W		0 P		4/8/0 PW		1/0/1/0	2 1	upgrade F7 to TP
+cultists		20 VP		16 C		4 W		0 P		4/8/0 PW	+1	1/0/1/0		[opponent accepted power]
+darklings	-1	19 VP		18 C		2 W		1 P	+2	3/9/0 PW		0/1/1/0		Leech 2 from cultists
+engineers		20 VP		10 C		4 W		1 P	+1	1/11/0 PW		0/0/0/0		Leech 1 from cultists
+engineers		20 VP	-2	8 C	-1	3 W		1 P		1/11/0 PW		0/0/0/0	3 2	Upgrade f6 to tp
+darklings	-2	17 VP		18 C		2 W		1 P	+3	0/12/0 PW		0/1/1/0		Leech 3 from engineers
+nomads	+2	22 VP	-2	15 C	-1	5 W		0 P		5/7/0 PW		1/0/1/0	1 2	action BON1. build F5
+darklings		17 VP		18 C		2 W		1 P	+1	0/11/1 PW		0/1/1/0		Leech 1 from nomads
+Round 1, turn 2
+darklings		17 VP		18 C	+2	4 W		1 P	-8	4/5/0 PW		0/1/1/0		burn 3. action ACT3
+engineers	-1	19 VP		8 C		3 W		1 P	+2	0/11/1 PW		0/0/0/0		Leech 2 from nomads
+cultists	-1	19 VP		16 C		4 W		0 P	+2	2/10/0 PW		1/1/1/0		+WATER. Leech 2 from engineers
+cultists	+2	21 VP	-2	14 C	-1	3 W		0 P	-8	6/2/0 PW		1/1/1/0	1	burn 4. action ACT5. build E5
+engineers	+2	21 VP	-1	7 C	-1	2 W		1 P	-12	6/1/0 PW		0/0/0/0	2 1	Burn 5. Action act6. transform D4 to gray. build E9
+darklings	-1	16 VP		18 C		4 W		1 P	+2	2/7/0 PW		0/1/1/0		Leech 2 from engineers
+cultists		21 VP		14 C		3 W		0 P	+1	5/3/0 PW		1/1/1/0		[all opponents declined power]
+nomads		22 VP		15 C		5 W		0 P		5/7/0 PW		1/0/1/0		Decline 1 from cultists
+nomads		22 VP		15 C		5 W		0 P	+1	4/8/0 PW		1/0/1/0		Leech 1 from engineers
+nomads		22 VP	-3	12 C	-2	3 W		0 P		4/8/0 PW		1/0/1/0	1	upgrade G4 to TP
+darklings		16 VP		18 C		4 W		1 P	+1	1/8/0 PW		0/1/1/0		Leech 1 from nomads
+Round 1, turn 3
+darklings		16 VP	-5	13 C	-2	2 W		1 P		1/8/0 PW	+1	0/1/2/0	2 3	upgrade E10 to TE. +FAV11
+engineers	-2	19 VP		7 C		2 W		1 P	+3	3/4/0 PW		0/0/0/0		Leech 3 from darklings
+cultists	-1	20 VP		14 C		3 W		0 P	+2	3/5/0 PW		1/1/1/0		Leech 2 from darklings
+cultists		20 VP	-5	9 C	-2	1 W		0 P		3/5/0 PW	+2	1/1/1/2	2 2	upgrade F7 to TE. +FAV8
+cultists		20 VP		9 C		1 W		0 P		3/5/0 PW	+1	1/1/1/2		[opponent accepted power]
+engineers	-1	18 VP		7 C		2 W		1 P	+2	1/6/0 PW		0/0/0/0		Leech 2 from cultists
+engineers		18 VP		7 C		2 W	-1	0 P	+1	0/7/0 PW	+3	0/0/3/0		Send p to earth
+darklings	-1	15 VP		13 C		2 W		1 P	+2	0/8/1 PW		0/1/2/0		Leech 2 from cultists
+nomads		22 VP	-5	7 C	-2	1 W		0 P		4/8/0 PW	+1	2/0/1/0	1	upgrade G4 to TE. +FAV9
+darklings		15 VP		13 C		2 W		1 P	+1	0/7/2 PW		0/1/2/0		Leech 1 from nomads
+Round 1, turn 4
+darklings		15 VP		13 C		2 W	+1	2 P	-6	3/5/0 PW		0/1/2/0		burn 1. action ACT2
+cultists		20 VP		9 C		1 W		0 P	+1	2/6/0 PW	+1	3/1/1/2		+FIRE. action BON2. +FIRE
+engineers		18 VP	-4	3 C	-1	1 W		0 P		0/7/0 PW	+1	0/0/4/0	3 2 1	Upgrade f6 to te. +FAV11
+cultists	-1	19 VP		9 C		1 W		0 P	+2	0/8/0 PW		3/1/1/2		Leech 2 from engineers
+darklings	-2	13 VP		13 C		2 W		2 P	+3	0/8/0 PW		0/1/2/0		Leech 3 from engineers
+nomads		22 VP		7 C		1 W		0 P	+1	3/9/0 PW		2/0/1/0		Leech 1 from engineers
+nomads		22 VP	+1	8 C		1 W		0 P		3/9/0 PW		2/0/1/0		pass BON9
+Round 1, turn 5
+darklings		13 VP	+7	20 C		2 W		2 P	-8	4/0/0 PW		0/1/2/0		burn 4. action ACT4
+cultists		19 VP		9 C		1 W		0 P		0/8/0 PW		3/1/1/2		pass bon1
+engineers	+4	22 VP	-1	2 C	-1	0 W		0 P		0/7/0 PW		0/0/4/0	1	Build d4
+cultists		19 VP		9 C		1 W		0 P	+1	0/7/1 PW		3/1/1/2		Leech 1 from engineers
+Round 1, turn 6
+darklings	+6	19 VP	-2	18 C	-1	1 W	-1	1 P		4/0/0 PW		0/1/2/0	2	dig 1. build E11
+cultists	-1	18 VP		9 C		1 W		0 P	+2	0/5/3 PW		3/1/1/2		Leech 2 from darklings
+engineers		22 VP		2 C		0 W		0 P		0/7/0 PW		0/0/4/0		Pass bon2
+Round 1, turn 7
+darklings	+6	25 VP	-2	16 C	-1	0 W	-1	0 P		4/0/0 PW		0/1/2/0		dig 1. build H7
+darklings		25 VP	+1	17 C		0 W		0 P		4/0/0 PW		0/1/2/0		pass BON7
+Round 2 income
+nomads		22 VP		8 C		1 W		0 P		3/9/0 PW		2/0/1/0		cult_income_for_faction
+cultists		18 VP		9 C		1 W		0 P		0/5/3 PW		3/1/1/2		cult_income_for_faction
+engineers		22 VP		2 C		0 W		0 P		0/7/0 PW		0/0/4/0		cult_income_for_faction
+darklings		25 VP		17 C		0 W		0 P		4/0/0 PW		0/1/2/0		cult_income_for_faction
+Round 2 income
+nomads		22 VP	+5	13 C	+4	5 W	+1	1 P		3/9/0 PW		2/0/1/0		other_income_for_faction
+cultists		18 VP	+2	11 C	+3	4 W	+1	1 P	+4	0/1/7 PW		3/1/1/2		other_income_for_faction
+engineers		22 VP	+4	6 C	+2	2 W	+1	1 P		0/7/0 PW		0/0/4/0		other_income_for_faction
+darklings		25 VP		17 C	+5	5 W	+1	1 P		4/0/0 PW		0/1/2/0		other_income_for_faction
+Round 2, turn 1
+nomads		22 VP		13 C		5 W	-1	0 P	+3	0/12/0 PW	+3	5/0/1/0		send p to Fire
+cultists		18 VP	+7	18 C		4 W		1 P	-8	4/1/3 PW		3/1/1/2		action ACT4
+engineers		22 VP		6 C		2 W		1 P	+2	0/5/2 PW	+1	0/0/5/0		Action bon2. +EARTH
+darklings	+5	30 VP	-10	7 C	-4	1 W		1 P		4/0/0 PW	+1	1/1/2/0	2 3	upgrade E10 to SA. +FAV9
+Round 2, turn 2
+nomads		22 VP	-2	11 C	-1	4 W		0 P	-12	6/0/0 PW		5/0/1/0	2	burn 6. action ACT6. build H6
+darklings	-1	29 VP		7 C		1 W		1 P	+2	2/2/0 PW		1/1/2/0		Leech 2 from nomads
+engineers	-2	20 VP		6 C		2 W		1 P	+3	0/2/5 PW		0/0/5/0		Leech 3 from darklings
+cultists	-1	17 VP		18 C		4 W		1 P	+2	2/3/3 PW		3/1/1/2		Leech 2 from darklings
+cultists		17 VP		18 C		4 W	+1	2 P	-6	5/3/0 PW		3/1/1/2		action ACT2
+engineers		20 VP		6 C		2 W	-1	0 P	+1	0/1/6 PW	+3	0/0/5/3		Send p to air
+darklings	+4	33 VP	-2	5 C	-1	0 W	-1	0 P		2/2/0 PW		1/1/2/0		dig 1. build D8
+Round 2, turn 3
+nomads	+5	27 VP	-6	5 C	-4	0 W		0 P		6/0/0 PW	+1	5/0/2/0	1	upgrade G4 to SA. +FAV11
+darklings		33 VP		5 C		0 W		0 P	+1	1/3/0 PW		1/1/2/0		Leech 1 from nomads
+cultists	+2	19 VP	-4	14 C		4 W	-1	1 P		5/3/0 PW		3/1/1/2		Advance ship
+engineers	+2	22 VP	-1	5 C	-1	1 W		0 P	-8	4/1/2 PW		0/0/5/3	4	Action act5. build D7
+darklings	-3	30 VP		5 C		0 W		0 P	+4	0/1/3 PW		1/1/2/0		Leech 4 from engineers
+darklings		30 VP	+3	8 C		0 W		0 P	-2	1/1/2 PW		1/1/2/0		convert 1PW to 1C. pass BON10
+Round 2, turn 4
+nomads	+4	31 VP	+1	6 C		0 W		0 P		6/0/0 PW		5/0/2/0		pass BON3
+cultists	+3	22 VP	-4	10 C		4 W	-1	0 P		5/3/0 PW		3/1/1/2		Advance ship
+engineers	+2	24 VP	-1	4 C	-1	0 W		0 P		4/1/2 PW		0/0/5/3		Build c5
+Round 2, turn 5
+cultists		22 VP	-2	8 C	-1	3 W		0 P		5/3/0 PW		3/1/1/2		build B2
+engineers		24 VP		4 C		0 W		0 P		4/1/2 PW		0/0/5/3		Pass bon7
+Round 2, turn 6
+cultists		22 VP	-2	6 C	-1	2 W		0 P		5/3/0 PW		3/1/1/2		action BON1. build B3
+Round 2, turn 7
+cultists		22 VP	-2	4 C	-1	1 W		0 P		5/3/0 PW		3/1/1/2		build A7
+cultists		22 VP		4 C		1 W		0 P		5/3/0 PW		3/1/1/2		Pass bon9
+Round 3 income
+darklings		30 VP		8 C		0 W		0 P		1/1/2 PW		1/1/2/0		cult_income_for_faction
+nomads		31 VP		6 C	+2	2 W		0 P		6/0/0 PW		5/0/2/0		cult_income_for_faction
+engineers		24 VP		4 C		0 W		0 P		4/1/2 PW		0/0/5/3		cult_income_for_faction
+cultists		22 VP		4 C	+1	2 W		0 P		5/3/0 PW		3/1/1/2		cult_income_for_faction
+Round 3 income
+darklings		30 VP	+3	11 C	+5	5 W	+2	2 P	+3	0/0/4 PW		1/1/2/0		other_income_for_faction
+nomads		31 VP	+9	15 C	+5	7 W	+1	1 P		6/0/0 PW		5/0/2/0		other_income_for_faction
+engineers		24 VP		4 C	+5	5 W	+1	1 P		4/1/2 PW		0/0/5/3		other_income_for_faction
+cultists		22 VP	+2	6 C	+6	8 W	+1	1 P	+4	1/7/0 PW		3/1/1/2		other_income_for_faction
+Round 3, turn 1
+darklings		30 VP	+7	18 C		5 W		2 P	-8	4/0/0 PW		1/1/2/0		action ACT4
+nomads		31 VP	-3	12 C	-2	5 W		1 P		6/0/0 PW		5/0/2/0	1 3	upgrade F5 to TP
+darklings		30 VP		18 C		5 W		2 P	+1	3/1/0 PW		1/1/2/0		Leech 1 from nomads
+engineers	-2	22 VP		4 C		5 W		1 P	+3	1/4/2 PW		0/0/5/3		Leech 3 from nomads
+engineers		22 VP	-2	2 C	-1	4 W		1 P		1/4/2 PW		0/0/5/3	4	Upgrade d7 to tp
+darklings	-3	27 VP		18 C		5 W		2 P	+4	0/3/1 PW		1/1/2/0		Leech 4 from engineers
+cultists		22 VP		6 C		8 W	-1	0 P	+1	0/8/0 PW	+3	3/4/1/2		Send p to water
+Round 3, turn 2
+darklings		27 VP	-3	15 C	-2	3 W		2 P		0/3/1 PW		1/1/2/0	2	upgrade D8 to TP
+engineers	-1	21 VP		2 C		4 W		1 P	+2	0/4/3 PW		0/0/5/3		Leech 2 from darklings
+nomads	+7	38 VP	-3	9 C	-2	3 W		1 P	+3	3/3/0 PW	+8	7/2/4/2	2	upgrade H6 to TP. +TW6
+darklings	-1	26 VP		15 C		3 W		2 P	+2	0/1/3 PW		1/1/2/0		Leech 2 from nomads
+engineers	+11	32 VP	-2	0 C	-1	3 W		1 P		0/4/3 PW		0/0/5/3	3 2	Upgrade e9 to tp. +TW7
+darklings		26 VP		15 C		3 W		2 P	+1	0/0/4 PW		1/1/2/0		Leech 3 from engineers
+nomads	-1	37 VP		9 C		3 W		1 P	+2	1/5/0 PW		7/2/4/2		Leech 2 from engineers
+cultists		22 VP	-2	4 C	-4	4 W		0 P		0/8/0 PW		3/4/1/2		Dig 1. Build b4
+Round 3, turn 3
+darklings		26 VP		15 C	+2	5 W		2 P	-8	4/0/0 PW		1/1/2/0		action ACT3
+nomads	+2	39 VP	-4	5 C		3 W	-1	0 P		1/5/0 PW		7/2/4/2		advance ship
+engineers		32 VP		0 C	-1	2 W		1 P	-4	2/4/1 PW		0/0/5/3	1	Convert 2pw to 2c. Upgrade e7 to tp
+cultists dropped from the game
+darklings	+11	37 VP	-3	12 C	-2	3 W		2 P		4/0/0 PW		1/1/2/0	2	upgrade E11 to TP. +TW7
+nomads		39 VP		5 C		3 W		0 P		1/5/0 PW		7/2/4/2		pass BON9
+engineers	+6	38 VP	+1	1 C		2 W		1 P		2/4/1 PW		0/0/5/3		Pass bon1
+Round 3, turn 5
+darklings	+3	40 VP	-4	8 C		3 W	-1	1 P		4/0/0 PW		1/1/2/0		advance ship
+Round 3, turn 6
+darklings	+4	44 VP	-2	6 C	-1	2 W	-1	0 P		4/0/0 PW		1/1/2/0		dig 1. build A11
+Round 3, turn 7
+darklings	+2	46 VP	-2	4 C	-1	1 W		0 P		4/0/0 PW		1/1/2/0	1	build B5
+darklings	+6	52 VP	+2	6 C		1 W		0 P		4/0/0 PW		1/1/2/0		pass BON8
+Round 4 income
+nomads		39 VP		5 C		3 W		0 P		1/5/0 PW		7/2/4/2		cult_income_for_faction
+engineers		38 VP		1 C		2 W		1 P		2/4/1 PW		0/0/5/3		cult_income_for_faction
+darklings		52 VP		6 C		1 W		0 P		4/0/0 PW		1/1/2/0		cult_income_for_faction
+cultists		22 VP		4 C		4 W		0 P		0/8/0 PW		3/4/1/2		
+nomads		39 VP		5 C		3 W		0 P		1/5/0 PW		7/2/4/2		transform G2 to yellow
+engineers		38 VP		1 C		2 W		1 P		2/4/1 PW		0/0/5/3		transform F4 to gray
+Round 4 income
+nomads		39 VP	+9	14 C	+3	6 W	+1	1 P	+2	0/5/1 PW		7/2/4/2		other_income_for_faction
+engineers		38 VP	+8	9 C	+2	4 W	+1	2 P	+4	0/4/3 PW		0/0/5/3		other_income_for_faction
+darklings		52 VP	+7	13 C	+5	6 W	+3	3 P	+2	2/2/0 PW		1/1/2/0		other_income_for_faction
+cultists		22 VP		4 C	+7	11 W	+1	1 P	+4	0/4/4 PW		3/4/1/2		
+Round 4, turn 1
+nomads	+2	41 VP	-2	12 C	-1	5 W		1 P		0/5/1 PW		7/2/4/2		build G2
+engineers		38 VP		9 C		4 W	-1	1 P	+2	0/2/5 PW	+2	0/0/5/5		Send p to air
+darklings	+4	56 VP	-2	11 C	-1	5 W	-1	2 P		2/2/0 PW		1/1/2/0	2	dig 1. build I10
+nomads	-1	40 VP		12 C		5 W		1 P	+2	0/3/3 PW		7/2/4/2		Leech 2 from darklings
+Round 4, turn 2
+nomads	+2	42 VP	-2	10 C	-1	4 W		1 P		0/3/3 PW		7/2/4/2		build I7
+engineers		38 VP		9 C	+2	6 W		1 P	-8	4/2/1 PW		0/0/5/5		Action act3
+darklings	+2	58 VP	-2	9 C	-1	4 W		2 P		2/2/0 PW		1/1/2/0		build H5
+Round 4, turn 3
+nomads	+4	46 VP	-5	5 C	-2	2 W		1 P	+1	0/2/4 PW	+1	7/3/4/2	1 4	upgrade F5 to TE. +FAV10
+engineers	-3	35 VP		9 C		6 W		1 P	+4	0/6/1 PW		0/0/5/5		Leech 4 from nomads
+engineers	+2	37 VP	-1	8 C	-1	5 W		1 P		0/6/1 PW		0/0/5/5		Action bon1. build D6
+darklings		58 VP		9 C		4 W		2 P	+1	1/3/0 PW		1/1/2/0		Leech 1 from nomads
+darklings	+6	64 VP	-2	7 C	-1	3 W	-2	0 P		1/3/0 PW		1/1/2/0	2	dig 2. build E8
+engineers	-1	36 VP		8 C		5 W		1 P	+2	0/4/3 PW		0/0/5/5		Leech 2 from darklings
+Round 4, turn 4
+nomads		46 VP		5 C		2 W	+1	2 P	-6	3/2/1 PW		7/3/4/2		action ACT2
+engineers		36 VP		8 C		5 W	-1	0 P	+2	0/2/5 PW	+2	0/0/5/7		Send p to air
+darklings	+4	68 VP	-5	2 C	-2	1 W		0 P		1/3/0 PW	+1	1/2/2/0	2	upgrade E11 to TE. +FAV10
+Round 4, turn 5
+nomads		46 VP		5 C		2 W	-1	1 P	+1	2/3/1 PW	+2	7/3/4/4		send p to AIR
+engineers	+2	38 VP	-1	7 C	-1	4 W		0 P		0/2/5 PW		0/0/5/7	2	Build c2
+darklings		68 VP	+1	3 C		1 W		0 P		1/3/0 PW		1/2/2/0		pass BON10
+Round 4, turn 6
+nomads		46 VP		5 C		2 W	-1	0 P	+2	0/5/1 PW	+2	7/3/6/4		send p to EARTH
+engineers	+4	42 VP	-4	3 C	-1	3 W		0 P		0/2/5 PW	+1	0/0/5/8	1 1	Upgrade e7 to te. +FAV12
+darklings		68 VP		3 C		1 W		0 P	+1	0/4/0 PW		1/2/2/0		Leech 1 from engineers
+Round 4, turn 7
+nomads	+4	50 VP	+2	7 C		2 W		0 P		0/5/1 PW		7/3/6/4		pass BON2
+engineers		42 VP	+7	10 C		3 W		0 P	-8	4/2/1 PW		0/0/5/8		Action act4
+Round 4, turn 8
+engineers	+2	44 VP	-1	9 C	-1	2 W		0 P		4/2/1 PW		0/0/5/8	1 2	Build f4
+Round 4, turn 9
+engineers	+4	48 VP	-4	5 C	-1	1 W		0 P	+2	2/4/1 PW	+3	0/0/8/8	5	Upgrade d7 to te. +FAV3
+engineers	+2	50 VP		5 C		1 W		0 P		2/4/1 PW		0/0/8/8		Pass bon9
+nomads	-1	49 VP		7 C		2 W		0 P	+2	0/3/3 PW		7/3/6/4		Leech 2 from engineers
+darklings		68 VP		3 C		1 W		0 P		0/4/0 PW		1/2/2/0		Decline 5 from engineers
+Round 5 income
+darklings		68 VP		3 C		1 W		0 P		0/4/0 PW		1/2/2/0		cult_income_for_faction
+nomads		49 VP	+6	13 C		2 W		0 P		0/3/3 PW		7/3/6/4		cult_income_for_faction
+engineers		50 VP	+8	13 C		1 W		0 P		2/4/1 PW		0/0/8/8		cult_income_for_faction
+cultists		22 VP	+2	6 C		11 W		1 P		0/4/4 PW		3/4/1/2		
+Round 5 income
+darklings		68 VP	+5	8 C	+8	9 W	+3	3 P	+4	0/0/4 PW		1/2/2/0		other_income_for_faction
+nomads		49 VP	+9	22 C	+5	7 W	+2	2 P	+1	0/2/4 PW		7/3/6/4		other_income_for_faction
+engineers		50 VP	+4	17 C	+4	5 W	+2	2 P	+6	0/2/5 PW		0/0/8/8		other_income_for_faction
+cultists		22 VP		6 C	+7	18 W	+1	2 P	+4	0/0/8 PW		3/4/1/2		
+Round 5, turn 1
+darklings		68 VP	+7	15 C		9 W		3 P	-8	4/0/0 PW		1/2/2/0		action ACT4
+nomads	+3	52 VP	-3	19 C	-2	5 W		2 P		0/2/4 PW		7/3/6/4	2 1	upgrade F3 to TP
+engineers		50 VP		17 C		5 W		2 P	+1	0/1/6 PW		0/0/8/8		Leech 1 from nomads
+engineers	+3	53 VP	-4	13 C		5 W	-1	1 P		0/1/6 PW		0/0/8/8		Advance shipping
+Round 5, turn 2
+darklings	+6	74 VP	-2	13 C	-1	8 W	-2	1 P		4/0/0 PW		1/2/2/0	1 1	dig 2. build C4
+nomads	+5	57 VP	-8	11 C	-4	1 W		2 P		0/2/4 PW		7/3/6/4	2 1	upgrade F3 to SH
+engineers		53 VP		13 C		5 W		1 P	+1	0/0/7 PW		0/0/8/8		Leech 1 from darklings
+engineers		53 VP		13 C		5 W		1 P		0/0/7 PW		0/0/8/8		Decline 1 from nomads
+engineers	+2	55 VP	-1	12 C	-1	4 W		1 P	-12	6/0/1 PW		0/0/8/8	1 1	Action act6. build E4
+Round 5, turn 3
+darklings	+3	77 VP	-3	10 C	-2	6 W		1 P		4/0/0 PW		1/2/2/0	1	upgrade B5 to TP
+nomads		57 VP		11 C		1 W		2 P	+1	0/1/5 PW		7/3/6/4		Leech 1 from engineers
+nomads	+2	59 VP	-2	9 C	-1	0 W		2 P		0/1/5 PW		7/3/6/4	1	action ACTN. build H4
+engineers	+2	57 VP	-1	11 C	-1	3 W		1 P		6/0/1 PW		0/0/8/8		Build g1
+darklings		77 VP		10 C		6 W		1 P	+1	3/1/0 PW		1/2/2/0		Leech 1 from nomads
+Round 5, turn 4
+darklings	+4	81 VP	-4	6 C		6 W	-1	0 P		3/1/0 PW		1/2/2/0		advance ship
+nomads		59 VP		9 C		0 W		2 P	-6	3/1/2 PW		7/3/6/4		action ACT1. Bridge G2:H4
+engineers	+5	62 VP	-6	5 C	-3	0 W		1 P		6/0/1 PW	+1	0/1/8/8	1 1	Upgrade e7 to sa. +FAV10
+darklings		81 VP		6 C		6 W		0 P	+1	2/2/0 PW		1/2/2/0		Leech 1 from engineers
+Round 5, turn 5
+darklings	+9	90 VP	+2	8 C		6 W		0 P		2/2/0 PW		1/2/2/0		pass BON7
+nomads		59 VP		9 C		0 W	-1	1 P	+2	1/3/2 PW	+2	7/3/8/4		send p to Earth
+engineers		62 VP		5 C		0 W	-1	0 P	+3	3/3/1 PW	+2	0/1/10/8		Send p to earth
+Round 5, turn 6
+nomads		59 VP	+1	10 C		0 W		1 P	-2	2/3/1 PW		7/3/8/4		convert 1PW to 1C. pass BON10
+engineers	+9	71 VP	+2	7 C		0 W		0 P		3/3/1 PW		0/1/10/8		Pass bon3
+Round 6 income
+darklings		90 VP		8 C		6 W		0 P		2/2/0 PW		1/2/2/0		cult_income_for_faction
+nomads		59 VP		10 C	+2	2 W		1 P		2/3/1 PW		7/3/8/4		cult_income_for_faction
+engineers		71 VP		7 C	+4	4 W		0 P		3/3/1 PW		0/1/10/8		cult_income_for_faction
+cultists		22 VP		6 C	+1	19 W		2 P		0/0/8 PW		3/4/1/2		
+Round 6 income
+darklings		90 VP	+7	15 C	+9	15 W	+3	3 P	+2	0/4/0 PW		1/2/2/0		other_income_for_faction
+nomads		59 VP	+5	15 C	+5	7 W	+2	3 P	+6	0/1/5 PW		7/3/8/4		other_income_for_faction
+engineers		71 VP	+8	15 C	+5	9 W	+2	2 P	+6	0/3/4 PW		0/1/10/8		other_income_for_faction
+cultists		22 VP		6 C	+7	26 W	+1	3 P		0/0/8 PW		3/4/1/2		
+Round 6, turn 1
+darklings	+6	96 VP	-2	13 C	-1	14 W	-2	1 P		0/4/0 PW		1/2/2/0		dig 2. build A10
+nomads		59 VP	+7	22 C		7 W		3 P	-8	4/1/1 PW		7/3/8/4		action ACT4
+engineers		71 VP		15 C		9 W	-1	1 P	+1	0/2/5 PW	+2	0/3/10/8		Send p to water
+Round 6, turn 2
+darklings		96 VP	-5	8 C	-2	12 W		1 P	+1	0/3/1 PW	+2	3/2/2/0	1	upgrade B5 to TE. +FAV5
+nomads		59 VP		22 C		7 W	-1	2 P	+2	2/3/1 PW	+2	7/5/8/4		send p to WATER
+engineers	+2	73 VP	-1	14 C	-1	8 W		1 P	-12	6/0/0 PW		0/3/10/8	1	Burn 1. Action act6. transform F2 to gray. build E3
+Round 6, turn 3
+darklings	+15	111 VP	-3	5 C	-2	10 W	+1	2 P		0/3/1 PW		3/2/2/0	1 1	upgrade C4 to TP. +TW3
+engineers		73 VP		14 C		8 W		1 P	+1	5/1/0 PW		0/3/10/8		Leech 1 from darklings
+nomads		59 VP		22 C		7 W		2 P	+1	1/4/1 PW		7/5/8/4		Leech 1 from engineers
+nomads	+9	68 VP	-2	20 C	+1	8 W		2 P		1/4/1 PW		7/5/8/4	1	action ACTN. build G3. +TW2
+engineers	+6	79 VP	-2	12 C	-1	7 W		1 P		5/1/0 PW		0/3/10/8	1	Upgrade d4 to tp
+darklings		111 VP		5 C		10 W		2 P	+1	0/2/2 PW		3/2/2/0		Leech 1 from nomads
+Round 6, turn 4
+darklings	+4	115 VP	-2	3 C	-1	9 W	-1	1 P		0/2/2 PW		3/2/2/0	2 2	dig 1. build G6
+engineers	-1	78 VP		12 C		7 W		1 P	+2	3/3/0 PW		0/3/10/8		Leech 2 from darklings
+nomads	+6	74 VP	-3	17 C	-2	6 W		2 P		1/4/1 PW		7/5/8/4	1	upgrade G3 to TP
+engineers	+6	84 VP	-2	10 C	-1	6 W		1 P		3/3/0 PW		0/3/10/8	1	Upgrade e3 to tp
+darklings		115 VP		3 C		9 W		1 P	+1	0/1/3 PW		3/2/2/0		Leech 1 from nomads
+Round 6, turn 5
+darklings	+6	121 VP	-3	0 C	-2	7 W		1 P		0/1/3 PW		3/2/2/0	2	upgrade I10 to TP
+nomads		74 VP		17 C		6 W		2 P	+1	0/5/1 PW		7/5/8/4		Leech 1 from engineers
+nomads	-1	73 VP		17 C		6 W		2 P	+2	0/3/3 PW		7/5/8/4		Leech 2 from darklings
+nomads	+6	79 VP	-3	14 C	-2	4 W		2 P		0/3/3 PW		7/5/8/4	1	upgrade H4 to TP
+darklings		121 VP		0 C		7 W		1 P	+1	0/0/4 PW		3/2/2/0		Leech 1 from nomads
+engineers	+2	86 VP	-1	9 C	-1	5 W		1 P		3/3/0 PW		0/3/10/8		Build f2
+Round 6, turn 6
+darklings	+15	136 VP		0 C	-2	5 W	+1	2 P	-6	3/0/1 PW		3/2/2/0	2	convert 3PW to 3C. upgrade H7 to TP. +TW3
+nomads	-1	78 VP		14 C		4 W		2 P	+2	0/1/5 PW		7/5/8/4		Leech 2 from darklings
+nomads		78 VP	+1	15 C		4 W	-1	1 P		0/1/5 PW	+2	7/7/8/4		convert 1PW to 1C. send p to WATER
+engineers	+2	88 VP	-1	8 C	-1	4 W		1 P		3/3/0 PW		0/3/10/8		Build f1
+Round 6, turn 7
+darklings	+2	138 VP		0 C	-2	3 W		2 P	-2	4/0/0 PW		3/2/2/0	2	convert 1W to 1C. convert 1PW to 1C. build A8
+nomads	+6	84 VP	-3	12 C	-2	2 W		1 P		0/1/5 PW		7/7/8/4	1	upgrade G2 to TP
+engineers		88 VP		8 C		4 W		1 P	+1	2/4/0 PW		0/3/10/8		Leech 1 from nomads
+engineers	+6	94 VP	-2	6 C	-1	3 W		1 P		2/4/0 PW		0/3/10/8	1 1	Upgrade e4 to tp
+nomads		84 VP		12 C		2 W		1 P	+1	0/0/6 PW		7/7/8/4		Leech 1 from engineers
+Round 6, turn 8
+darklings	+6	144 VP		0 C	-3	0 W	-2	0 P		4/0/0 PW		3/2/2/0		convert 2W to 2C. dig 2. build B6
+nomads		84 VP		12 C	+2	4 W		1 P	-8	4/0/2 PW		7/7/8/4		action ACT3
+engineers	+16	110 VP	-4	2 C	-1	2 W		1 P	+6	0/2/4 PW	+8	4/5/10/10	1	Upgrade d4 to te. +FAV5. +2TW5
+Round 6, turn 9
+darklings	+8	152 VP		0 C		0 W		0 P		4/0/0 PW		3/2/2/0		pass
+nomads	+3	87 VP	-4	8 C		4 W	-1	0 P		4/0/2 PW		7/7/8/4		advance ship
+engineers	+4	114 VP	-2	0 C		2 W	-1	0 P	-4	2/2/2 PW		4/5/10/10		Convert 2pw to 2c. Advance shipping
+Round 6, turn 10
+nomads		87 VP	-5	3 C	-2	2 W		0 P	+2	2/2/2 PW	+1	7/7/8/5	1	upgrade G2 to TE. +FAV12
+engineers		114 VP		0 C		2 W		0 P	+1	1/3/2 PW		4/5/10/10		Leech 1 from nomads
+engineers	+2	116 VP		0 C	-1	1 W		0 P	-2	2/3/1 PW		4/5/10/10		Convert 1pw to 1c. Build a2
+Round 6, turn 11
+nomads	+6	93 VP	-3	0 C	-2	0 W		0 P		2/2/2 PW		7/7/8/5	4	upgrade D3 to TP
+engineers		116 VP		0 C		1 W		0 P		2/3/1 PW		4/5/10/10		Decline 4 from nomads
+engineers	+6	122 VP		0 C	-1	0 W		0 P	-4	4/1/0 PW		4/5/10/10	2	Burn 1. Convert 2pw to 2c. Upgrade c2 to tp
+Round 6, turn 12
+nomads	+10	103 VP		0 C		0 W		0 P		2/2/2 PW		7/7/8/5		pass
+engineers	+4	126 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		Pass
+Scoring FIRE cult
+cultists	+1	23 VP		6 C		26 W		3 P		0/0/8 PW		3/4/1/2		
+darklings	+1	153 VP		0 C		0 W		0 P		4/0/0 PW		3/2/2/0		+1vp for FIRE
+nomads	+8	111 VP		0 C		0 W		0 P		2/2/2 PW		7/7/8/5		+8vp for FIRE
+engineers	+4	130 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		+4vp for FIRE
+Scoring WATER cult
+cultists	+2	25 VP		6 C		26 W		3 P		0/0/8 PW		3/4/1/2		
+nomads	+8	119 VP		0 C		0 W		0 P		2/2/2 PW		7/7/8/5		+8vp for WATER
+engineers	+4	134 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		+4vp for WATER
+Scoring EARTH cult
+darklings	+2	155 VP		0 C		0 W		0 P		4/0/0 PW		3/2/2/0		+2vp for EARTH
+nomads	+4	123 VP		0 C		0 W		0 P		2/2/2 PW		7/7/8/5		+4vp for EARTH
+engineers	+8	142 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		+8vp for EARTH
+Scoring AIR cult
+cultists	+2	27 VP		6 C		26 W		3 P		0/0/8 PW		3/4/1/2		
+nomads	+4	127 VP		0 C		0 W		0 P		2/2/2 PW		7/7/8/5		+4vp for AIR
+engineers	+8	150 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		+8vp for AIR
+Scoring network
+darklings	+15	170 VP		0 C		0 W		0 P		4/0/0 PW		3/2/2/0		+15vp for network
+nomads	+6	133 VP		0 C		0 W		0 P		2/2/2 PW		7/7/8/5		+6vp for network
+engineers	+15	165 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		+15vp for network
+Converting resources to VPs
+cultists	+14	41 VP	-5	1 C	-26	0 W	-3	0 P	-16	8/0/0 PW		3/4/1/2		
+darklings		170 VP		0 C		0 W		0 P		4/0/0 PW		3/2/2/0		score_resources
+nomads	+1	134 VP		0 C		0 W		0 P	-6	5/0/0 PW		7/7/8/5		score_resources
+engineers		165 VP		0 C		0 W		0 P		4/1/0 PW		4/5/10/10		score_resources

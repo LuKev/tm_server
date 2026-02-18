@@ -2448,6 +2448,7 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 	// Check for Bonus Card Cult Action (BON2 + Track)
 	var hasBon2 bool
 	var cultTrack string
+	bon2TrackConsumed := false
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		partLower := strings.ToLower(part)
@@ -2475,23 +2476,38 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 			if m := re.FindStringSubmatch(part); len(m) > 1 {
 				n := strings.TrimSpace(m[1])
 				targetCoord := ""
+				targetIdx := -1
 				for j := i + 1; j < len(parts); j++ {
 					next := strings.TrimSpace(parts[j])
 					nextLower := strings.ToLower(next)
 					if strings.HasPrefix(nextLower, "build ") {
 						targetCoord = strings.ToUpper(strings.TrimSpace(next[len("build "):]))
+						targetIdx = j
 						break
 					}
 					if strings.HasPrefix(nextLower, "transform ") {
 						tr := regexp.MustCompile(`(?i)^transform\s+([A-I]\d{1,2})\s+to\s+`)
 						if tm := tr.FindStringSubmatch(next); len(tm) > 1 {
 							targetCoord = strings.ToUpper(strings.TrimSpace(tm[1]))
+							targetIdx = j
 							break
 						}
 					}
 				}
 				if targetCoord != "" {
-					resultParts = append(resultParts, fmt.Sprintf("DIG%s-%s", n, targetCoord))
+					// Emit explicit DIG only when a conversion is interleaved before the target
+					// transform/build; otherwise the later transform/build token can model the row.
+					hasInterleavedConversion := false
+					for k := i + 1; k < targetIdx; k++ {
+						mid := strings.TrimSpace(parts[k])
+						if strings.HasPrefix(strings.ToLower(mid), "convert ") {
+							hasInterleavedConversion = true
+							break
+						}
+					}
+					if hasInterleavedConversion {
+						resultParts = append(resultParts, fmt.Sprintf("DIG%s-%s", n, targetCoord))
+					}
 				}
 			}
 			continue
@@ -2592,9 +2608,9 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 					}
 				}
 				if !merged {
-					if m := favActionRe.FindStringSubmatch(actType); len(m) > 1 {
-						resultParts = append(resultParts, snellmanFavToConscise(m[1]))
-					}
+					// Snellman can log "action FAVx" and emit the chosen +TRACK on a later row.
+					// This is a special-action use, not a favor-tile selection.
+					resultParts = append(resultParts, "ACT-FAV")
 				}
 				continue
 			}
@@ -2654,26 +2670,48 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 						re := regexp.MustCompile(`(?i)transform (\w+) to (\w+)`)
 						if m := re.FindStringSubmatch(nextPart); len(m) > 2 {
 							coord := strings.ToUpper(m[1])
-							resultParts = append(resultParts, fmt.Sprintf("ACT-SH-T-%s", coord))
+							token := fmt.Sprintf("ACT-SH-T-%s", coord)
 							parts[j] = "" // consume transform
 							// If a build follows on the same coord, fold it into the same token.
+							seenConversion := false
 							for k := j + 1; k < len(parts); k++ {
 								buildPart := strings.TrimSpace(parts[k])
+								if strings.HasPrefix(strings.ToLower(buildPart), "convert ") {
+									seenConversion = true
+									continue
+								}
 								if strings.HasPrefix(strings.ToLower(buildPart), "build ") {
 									buildCoord := strings.ToUpper(strings.TrimSpace(buildPart[len("build "):]))
-									resultParts[len(resultParts)-1] = resultParts[len(resultParts)-1] + "." + buildCoord
-									parts[k] = "" // consume build
+									if !seenConversion {
+										token += "." + buildCoord
+										parts[k] = "" // consume build
+									}
 									break
 								}
 							}
+							resultParts = append(resultParts, token)
 							mergeFound = true
 							break
 						}
 					}
 					if strings.HasPrefix(strings.ToLower(nextPart), "build ") {
 						coord := strings.ToUpper(strings.TrimSpace(nextPart[len("build "):]))
-						resultParts = append(resultParts, fmt.Sprintf("ACT-SH-T-%s.%s", coord, coord))
-						parts[j] = "" // consume build
+						seenConversion := false
+						for k := i + 1; k < j; k++ {
+							mid := strings.TrimSpace(parts[k])
+							if strings.HasPrefix(strings.ToLower(mid), "convert ") {
+								seenConversion = true
+								break
+							}
+						}
+						if seenConversion {
+							// Keep build separate when conversion is interleaved so execution order
+							// remains ACTN -> conversion -> build.
+							resultParts = append(resultParts, fmt.Sprintf("ACT-SH-T-%s", coord))
+						} else {
+							resultParts = append(resultParts, fmt.Sprintf("ACT-SH-T-%s.%s", coord, coord))
+							parts[j] = "" // consume build
+						}
 						mergeFound = true
 						break
 					}
@@ -2757,11 +2795,6 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 		// Cult track advance (e.g. +WATER)
 		partTrim := strings.TrimSpace(part)
 		if strings.HasPrefix(partTrim, "+") {
-			// Skip if it was merged into BON2
-			if hasBon2 && cultTrack != "" && !strings.HasPrefix(strings.ToUpper(partTrim), "+SHIP") && !strings.HasPrefix(strings.ToUpper(partTrim), "+FAV") {
-				continue
-			}
-
 			track := strings.TrimPrefix(partTrim, "+")
 			upperTrack := strings.ToUpper(strings.TrimSpace(track))
 			// Town tile selections can be logged as "+TW3" or "+2TW3" (multiple
@@ -2796,8 +2829,14 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 					resultParts = append(resultParts, favCode)
 				}
 			} else {
-				// Keep explicit +TRACK actions (e.g. +EARTH from leech)
 				shortTrack := trackToShort(track)
+				// BON2 consumes exactly one matching +TRACK from the same compound row.
+				// Preserve any additional +TRACK entries (e.g. Cultists leech bonus + BON2).
+				if hasBon2 && cultTrack != "" && shortTrack != "" && shortTrack == cultTrack && !bon2TrackConsumed {
+					bon2TrackConsumed = true
+					continue
+				}
+				// Keep explicit +TRACK actions (e.g. +EARTH from leech)
 				if shortTrack != "" {
 					resultParts = append(resultParts, fmt.Sprintf("+%s", shortTrack))
 				}
