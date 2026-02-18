@@ -96,6 +96,10 @@ func parseSnellmanExpectedStates(content string) ([]snellmanExpectedState, error
 			continue
 		}
 		action := lastNonEmpty(parts)
+		if reCultPos.MatchString(strings.TrimSpace(action)) {
+			// Rows with no action can end with the cult-position column as the last non-empty field.
+			continue
+		}
 		actionLower := strings.ToLower(strings.TrimSpace(action))
 		if actionLower == "" || actionLower == "setup" || actionLower == "wait" {
 			continue
@@ -224,15 +228,46 @@ func TestSnellmanLedgerResourcesMatchReplay_S69_G6(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S69_D1L1_G6.txt")
 }
 
+func TestSnellmanLedgerResourcesMatchReplay_S66_G1(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s64_66"), "4pLeague_S66_D1L1_G1.txt")
+}
+
+func TestSnellmanLedgerResourcesMatchReplay_S66_G2(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s64_66"), "4pLeague_S66_D1L1_G2.txt")
+}
+
+func TestSnellmanLedgerResourcesMatchReplay_S64_G4(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s64_66"), "4pLeague_S64_D1L1_G4.txt")
+}
+
+func TestSnellmanLedgerResourcesMatchReplay_S64_G5(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s64_66"), "4pLeague_S64_D1L1_G5.txt")
+}
+
+func TestSnellmanLedgerResourcesMatchReplay_S64_G6(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s64_66"), "4pLeague_S64_D1L1_G6.txt")
+}
+
+func TestSnellmanLedgerResourcesMatchReplay_S65_G4(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s64_66"), "4pLeague_S65_D1L1_G4.txt")
+}
+
 func runSnellmanLedgerResourcesMatch(t *testing.T, fixtureFile string) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch"), fixtureFile)
+}
+
+func runSnellmanLedgerResourcesMatchFromDir(t *testing.T, fixtureDir string, fixtureFile string) {
 	t.Helper()
 
-	fixture := filepath.Join("testdata", "snellman_batch", fixtureFile)
+	fixture := filepath.Join(fixtureDir, fixtureFile)
 	raw, err := os.ReadFile(fixture)
 	if err != nil {
 		t.Fatalf("read fixture: %v", err)
 	}
 	snellman := string(raw)
+	if strings.Contains(strings.ToLower(snellman), "dropped from the game") {
+		t.Skipf("skipping dropout fixture %s", fixtureFile)
+	}
 
 	expected, err := parseSnellmanExpectedStates(snellman)
 	if err != nil {

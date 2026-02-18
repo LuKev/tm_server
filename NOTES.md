@@ -7,9 +7,11 @@
   - Additional batch: `server/internal/replay/testdata/snellman_batch_s64_66/` (S64-S66, G1-G7 = 21 games).
   - Expected totals oracle: `server/internal/replay/testdata/snellman_batch/manifest.json`.
   - Batch test: `server/internal/replay/snellman_batch_replay_test.go` runs `ImportText(...,"snellman") -> StartReplay -> JumpTo(end)` and asserts `state.FinalScoring[*].TotalVP`.
+  - Dropout policy: fixtures containing `dropped from the game` are skipped in batch/final-score and ledger resource-matching tests (`snellman_batch_s64_66_replay_test.go`, `snellman_ledger_resources_test.go`).
   - Fetcher: `scripts/fetch_snellman_batch.py --output-dir ... --seasons 64,65,66` writes fixture `.txt` and `manifest.json`.
 
 - Cleanup timing (critical): Snellman logs can contain late reactions after the final `PASS` of a round (leeches, Cultists `+TRACK`, etc.). Cleanup runs at the round boundary (processing the next `RoundStartItem`), not immediately at `AllPlayersPassed()`. See `server/internal/replay/simulator.go`.
+  - End-of-log replay fallback: when `JumpTo(end)` lands in `PhaseAction` on round 6, force cleanup/final scoring even if `AllPlayersPassed()` is false (dropped-player logs can omit explicit final `PASS` for the dropped faction).
 
 - Snellman ledger interpretation:
   - Each action row includes the player’s post-action totals (VP/resources/power bowls/cults).
