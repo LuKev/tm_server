@@ -27,6 +27,7 @@ func main() {
 		scriptDir = "./scripts"
 	}
 	replayMgr := replay.NewReplayManager(scriptDir)
+	replayMgr.SetSourceAnchoredLeechOrdering(true)
 	replayHandler := api.NewReplayHandler(replayMgr)
 
 	deps := websocket.ServerDeps{

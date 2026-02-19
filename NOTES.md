@@ -49,6 +49,7 @@
 - Concise log generation:
   - `server/internal/notation/GenerateConciseLog` now keeps `L`/`DL` display tokens but reorders leech cells using `FromPlayerID` anchors so each leech’s previous non-leech token matches its true source action.
   - Regression test added: `server/internal/notation/generator_leech_placement_test.go` (distinct source leeches by same reacting player).
+  - Replay import has an opt-in execution reorder for Snellman logs: `ReplayManager.SetSourceAnchoredLeechOrdering(true)` moves source-tagged `L`/`DL` actions directly after their triggering source action during parsing (`server/internal/replay/manager.go`). This is enabled in `server/cmd/server/main.go` for viewer sequencing, but defaults to `false` for strict ledger-parity/test flows.
 
 - Player Summary Bar (client):
   - Rendered via `client/src/components/GameBoard/PlayerSummaryBar.tsx` and placed as a `react-grid-layout` tile `i: "summary"` with default `h=2`.

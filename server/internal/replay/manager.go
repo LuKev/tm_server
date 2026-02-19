@@ -17,9 +17,10 @@ import (
 
 // ReplayManager handles the lifecycle of replay sessions
 type ReplayManager struct {
-	mu        sync.RWMutex
-	sessions  map[string]*ReplaySession
-	scriptDir string
+	mu                          sync.RWMutex
+	sessions                    map[string]*ReplaySession
+	scriptDir                   string
+	sourceAnchoredLeechOrdering bool
 }
 
 type ReplayLogFormat string
@@ -34,9 +35,16 @@ const (
 // NewReplayManager creates a new ReplayManager
 func NewReplayManager(scriptDir string) *ReplayManager {
 	return &ReplayManager{
-		sessions:  make(map[string]*ReplaySession),
-		scriptDir: scriptDir,
+		sessions:                    make(map[string]*ReplaySession),
+		scriptDir:                   scriptDir,
+		sourceAnchoredLeechOrdering: false,
 	}
+}
+
+// SetSourceAnchoredLeechOrdering enables replay-only reanchoring of source-tagged
+// leech reactions directly after the triggering source action.
+func (m *ReplayManager) SetSourceAnchoredLeechOrdering(enabled bool) {
+	m.sourceAnchoredLeechOrdering = enabled
 }
 
 // ReplaySession represents an active replay session
@@ -228,6 +236,9 @@ func (m *ReplayManager) parseReplayLogContent(content string, format ReplayLogFo
 		if err != nil {
 			return nil, "", err
 		}
+		if m.sourceAnchoredLeechOrdering {
+			items = reorderSourceAnchoredLeechActions(items)
+		}
 		return items, concise, nil
 	case ReplayLogFormatBGA:
 		parser := notation.NewBGAParser(trimmed)
@@ -253,6 +264,9 @@ func (m *ReplayManager) parseReplayLogContent(content string, format ReplayLogFo
 			if err != nil {
 				return nil, "", err
 			}
+			if m.sourceAnchoredLeechOrdering {
+				items = reorderSourceAnchoredLeechActions(items)
+			}
 			return items, concise, nil
 		}
 		parser := notation.NewBGAParser(trimmed)
@@ -274,6 +288,127 @@ func looksLikeConciseLog(content string) bool {
 		return true
 	}
 	return false
+}
+
+// reorderSourceAnchoredLeechActions moves source-annotated leech reactions directly
+// behind the triggering source action so replay stepping matches concise log semantics.
+func reorderSourceAnchoredLeechActions(items []notation.LogItem) []notation.LogItem {
+	if len(items) < 2 {
+		return items
+	}
+
+	reordered := append([]notation.LogItem(nil), items...)
+	for i := 0; i < len(reordered); i++ {
+		actionItem, ok := reordered[i].(notation.ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+
+		sourceNorm := normalizeFactionIDForReplay(leechSourceFaction(actionItem.Action))
+		if sourceNorm == "" {
+			continue
+		}
+
+		sourceIndex := findLatestLeechSourceActionIndex(reordered, i, sourceNorm)
+		if sourceIndex < 0 {
+			continue
+		}
+
+		insertAt := sourceIndex + 1
+		for insertAt < i {
+			nextActionItem, ok := reordered[insertAt].(notation.ActionItem)
+			if !ok || nextActionItem.Action == nil {
+				break
+			}
+			if normalizeFactionIDForReplay(leechSourceFaction(nextActionItem.Action)) != sourceNorm {
+				break
+			}
+			insertAt++
+		}
+
+		if insertAt >= i {
+			continue
+		}
+
+		moved := reordered[i]
+		copy(reordered[insertAt+1:i+1], reordered[insertAt:i])
+		reordered[insertAt] = moved
+	}
+
+	return reordered
+}
+
+func findLatestLeechSourceActionIndex(items []notation.LogItem, leechIndex int, sourceNorm string) int {
+	for i := leechIndex - 1; i >= 0; i-- {
+		switch v := items[i].(type) {
+		case notation.RoundStartItem:
+			return -1
+		case notation.ActionItem:
+			if v.Action == nil {
+				continue
+			}
+			if normalizeFactionIDForReplay(v.Action.GetPlayerID()) != sourceNorm {
+				continue
+			}
+			if actionMayTriggerLeechForReplay(v.Action) {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func actionMayTriggerLeechForReplay(action game.Action) bool {
+	switch v := action.(type) {
+	case *notation.LogPreIncomeAction:
+		if v == nil {
+			return false
+		}
+		return actionMayTriggerLeechForReplay(v.Action)
+	case *notation.LogPostIncomeAction:
+		if v == nil {
+			return false
+		}
+		return actionMayTriggerLeechForReplay(v.Action)
+	case *notation.LogCompoundAction:
+		for _, sub := range v.Actions {
+			if actionMayTriggerLeechForReplay(sub) {
+				return true
+			}
+		}
+		return false
+	case *game.UpgradeBuildingAction:
+		return true
+	case *game.TransformAndBuildAction:
+		return v.BuildDwelling
+	default:
+		return false
+	}
+}
+
+func leechSourceFaction(action game.Action) string {
+	switch v := action.(type) {
+	case *notation.LogPreIncomeAction:
+		if v == nil {
+			return ""
+		}
+		return leechSourceFaction(v.Action)
+	case *notation.LogPostIncomeAction:
+		if v == nil {
+			return ""
+		}
+		return leechSourceFaction(v.Action)
+	case *notation.LogAcceptLeechAction:
+		return strings.TrimSpace(v.FromPlayerID)
+	case *notation.LogDeclineLeechAction:
+		return strings.TrimSpace(v.FromPlayerID)
+	default:
+		return ""
+	}
+}
+
+func normalizeFactionIDForReplay(faction string) string {
+	return strings.ToLower(strings.Join(strings.Fields(strings.TrimSpace(faction)), " "))
 }
 
 func (m *ReplayManager) storeImportedLog(gameID string, content string) error {
@@ -410,10 +545,10 @@ func (m *ReplayManager) ProvideInfo(gameID string, info *ProvidedGameInfo) error
 
 		// Let's track current round in the loop
 		currentRound := 0 // Round 0 is setup, then 1-5
-			for _, item := range session.Simulator.Actions {
-				if rs, ok := item.(notation.RoundStartItem); ok {
-					currentRound = rs.Round
-				}
+		for _, item := range session.Simulator.Actions {
+			if rs, ok := item.(notation.RoundStartItem); ok {
+				currentRound = rs.Round
+			}
 
 			if actionItem, ok := item.(notation.ActionItem); ok {
 				if pass, ok := actionItem.Action.(*game.PassAction); ok {
