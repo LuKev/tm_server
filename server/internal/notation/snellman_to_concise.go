@@ -383,50 +383,283 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 		if conciseAction == "" {
 			continue
 		}
+		phasePrefix := ""
 		if inIncomeEmbeddedAction && !inSetupPhase {
-			conciseAction = "^" + conciseAction
+			phasePrefix = "^"
 			inIncomeEmbeddedAction = false
 		} else if inIncomeInterlude && !inSetupPhase {
-			conciseAction = "@" + conciseAction
+			phasePrefix = "@"
+		}
+		conciseActions := []string{conciseAction}
+		if !inSetupPhase {
+			conciseActions = splitConciseActionIntoStandaloneReactions(conciseAction, factionName, appendCultBonus)
+		}
+		if len(conciseActions) == 0 {
+			continue
+		}
+		if phasePrefix != "" {
+			for i := range conciseActions {
+				conciseActions[i] = phasePrefix + conciseActions[i]
+			}
 		}
 
 		// Store action
 		if inSetupPhase {
-			if linear {
-				rowIdx := len(setupRows)
-				setupRows = append(setupRows, make(map[string]string))
-				setupRows[rowIdx][factionName] = conciseAction
-			} else {
-				setupActions[factionName] = append(setupActions[factionName], conciseAction)
-			}
-			// Track setup pass order (BON-* during setup = passes)
-			if strings.HasPrefix(conciseAction, "BON-") {
-				alreadyPassed := false
-				for _, p := range setupPassOrder {
-					if p == factionName {
-						alreadyPassed = true
-						break
-					}
+			for _, conciseAction := range conciseActions {
+				if linear {
+					rowIdx := len(setupRows)
+					setupRows = append(setupRows, make(map[string]string))
+					setupRows[rowIdx][factionName] = conciseAction
+				} else {
+					setupActions[factionName] = append(setupActions[factionName], conciseAction)
 				}
-				if !alreadyPassed {
-					setupPassOrder = append(setupPassOrder, factionName)
+				// Track setup pass order (BON-* during setup = passes)
+				if strings.HasPrefix(conciseAction, "BON-") {
+					alreadyPassed := false
+					for _, p := range setupPassOrder {
+						if p == factionName {
+							alreadyPassed = true
+							break
+						}
+					}
+					if !alreadyPassed {
+						setupPassOrder = append(setupPassOrder, factionName)
+					}
 				}
 			}
 		} else if currentRound != nil {
-			if linear {
-				// Line-preserving placement: each Snellman ledger row becomes its own grid row.
-				rowIdx := len(currentRound.Rows)
-				currentRound.Rows = append(currentRound.Rows, make(map[string]string))
-				currentRound.Rows[rowIdx][factionName] = conciseAction
+			for _, conciseAction := range conciseActions {
+				if linear {
+					// Line-preserving placement: each concise action becomes its own grid row.
+					rowIdx := len(currentRound.Rows)
+					currentRound.Rows = append(currentRound.Rows, make(map[string]string))
+					currentRound.Rows[rowIdx][factionName] = conciseAction
 
-				lastMainActionRow[factionName] = rowIdx
-				if actionMayTriggerLeech(conciseAction) {
-					lastLeechSourceRow[factionName] = rowIdx
+					if !isLeechOrDeclineToken(conciseAction) {
+						lastMainActionRow[factionName] = rowIdx
+						if actionMayTriggerLeech(conciseAction) {
+							lastLeechSourceRow[factionName] = rowIdx
+						}
+					}
+					lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+					actionsAddedThisTurn[factionName] = true
+
+					// Track pass order: when a faction passes, add to PassOrder (if not already).
+					if conciseAction == "PASS" || strings.Contains(conciseAction, "PASS-") {
+						alreadyPassed := false
+						for _, p := range currentRound.PassOrder {
+							if p == factionName {
+								alreadyPassed = true
+								break
+							}
+						}
+						if !alreadyPassed {
+							currentRound.PassOrder = append(currentRound.PassOrder, factionName)
+						}
+					}
+					continue
 				}
-				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
-				actionsAddedThisTurn[factionName] = true
+
+				// Check if this is a leech action - leeches should be their own row, not merged
+				isLeechAction := isLeechOrDeclineToken(conciseAction)
+
+				if isLeechAction {
+					targetRow := len(currentRound.Rows)
+					sourceFaction := extractLeechSourceFromConciseToken(conciseAction)
+					if sourceFaction == "" {
+						sourceFaction = extractLeechSourceFaction(action)
+					}
+					if sourceFaction == "" {
+						return "", fmt.Errorf("unable to parse leech source faction from action %q token %q", action, conciseAction)
+					}
+					sourceRow := findLatestEligibleLeechSourceRow(currentRound, sourceFaction, len(currentRound.Rows)-1)
+					if sourceRow < 0 {
+						return "", fmt.Errorf("unable to resolve leech source row for faction %q from action %q token %q", sourceFaction, action, conciseAction)
+					}
+					targetRow = sourceRow
+					cols := roundColumns(currentRound, factions)
+					sourceCol := factionColumnIndex(cols, sourceFaction)
+					reactorCol := factionColumnIndex(cols, factionName)
+					// Preserve left-to-right chronology within a row:
+					// a reaction shown left of the source action would look like it happened first.
+					// In that case, force the reaction to a later row.
+					if sourceCol >= 0 && reactorCol >= 0 && reactorCol < sourceCol {
+						targetRow = sourceRow + 1
+					}
+					// If compaction placed unrelated main actions between source and leech, move them out
+					// so the leech remains semantically tied to the correct source action.
+					relocateInterferingActionsForLeech(
+						currentRound,
+						sourceRow,
+						sourceFaction,
+						factionName,
+						rowLockedForMain,
+						lastMainActionRow,
+						lastLeechSourceRow,
+						leechAnchorSource,
+						factions,
+					)
+					if newSourceRow, ok := lastLeechSourceRow[sourceFaction]; ok {
+						sourceRow = newSourceRow
+						targetRow = sourceRow
+						sourceCol = factionColumnIndex(cols, sourceFaction)
+						reactorCol = factionColumnIndex(cols, factionName)
+						if sourceCol >= 0 && reactorCol >= 0 && reactorCol < sourceCol {
+							targetRow = sourceRow + 1
+						}
+					}
+					// Ensure the rendered previous non-leech token for this leech is exactly its source action.
+					// If not, insert a row directly after source to restore correspondence semantics.
+					if sourceCol >= 0 && reactorCol >= 0 && !previousNonLeechIsSource(currentRound, cols, targetRow, reactorCol, sourceRow, sourceCol) {
+						insertRoundRowAt(
+							currentRound,
+							sourceRow+1,
+							lastMainActionRow,
+							lastLeechSourceRow,
+							lastEventRow,
+							rowLockedForMain,
+							leechAnchorSource,
+						)
+						targetRow = sourceRow + 1
+					}
+					if targetRow >= 0 && targetRow < len(currentRound.Rows) && currentRound.Rows[targetRow][factionName] != "" {
+						existing := currentRound.Rows[targetRow][factionName]
+						existingSource := ""
+						if anchors, ok := leechAnchorSource[targetRow]; ok {
+							existingSource = anchors[factionName]
+						}
+						// If two different source factions collide on the same reactor cell,
+						// split the current source action into its own row to preserve attribution.
+						if sourceRow >= 0 &&
+							(isLeechOrDeclineToken(existing)) &&
+							existingSource != "" && sourceFaction != "" && existingSource != sourceFaction {
+							// Only move the source action if the collision is on the exact inline source row.
+							// For delayed rows (sourceRow+1 etc), just place leech on the next row.
+							if targetRow == sourceRow {
+								movedSourceRow := moveSourceActionAndAnchoredLeeches(
+									currentRound,
+									sourceFaction,
+									sourceRow,
+									targetRow+1,
+									rowLockedForMain,
+									lastMainActionRow,
+									lastLeechSourceRow,
+									leechAnchorSource,
+								)
+								targetRow = movedSourceRow
+								cols := roundColumns(currentRound, factions)
+								sourceCol := factionColumnIndex(cols, sourceFaction)
+								reactorCol := factionColumnIndex(cols, factionName)
+								if sourceCol >= 0 && reactorCol >= 0 && reactorCol < sourceCol {
+									targetRow = movedSourceRow + 1
+								}
+							} else {
+								targetRow++
+							}
+						} else {
+							targetRow++
+						}
+					}
+					rowIdx := placeRoundAction(currentRound, factionName, conciseAction, targetRow)
+					if sourceFaction != "" {
+						if _, ok := leechAnchorSource[rowIdx]; !ok {
+							leechAnchorSource[rowIdx] = make(map[string]string)
+						}
+						leechAnchorSource[rowIdx][factionName] = sourceFaction
+					}
+					// Final guard: ensure row-major correspondence semantics hold in rendered output.
+					// If the previous non-leech token is not the resolved source action, re-home leech
+					// directly after source action.
+					if sourceCol >= 0 && reactorCol >= 0 && !previousNonLeechIsSource(currentRound, cols, rowIdx, reactorCol, sourceRow, sourceCol) {
+						currentRound.Rows[rowIdx][factionName] = ""
+						if anchors, ok := leechAnchorSource[rowIdx]; ok {
+							delete(anchors, factionName)
+							if len(anchors) == 0 {
+								delete(leechAnchorSource, rowIdx)
+							}
+						}
+						insertRoundRowAt(
+							currentRound,
+							sourceRow+1,
+							lastMainActionRow,
+							lastLeechSourceRow,
+							lastEventRow,
+							rowLockedForMain,
+							leechAnchorSource,
+						)
+						rowIdx = sourceRow + 1
+						currentRound.Rows[rowIdx][factionName] = conciseAction
+						if _, ok := leechAnchorSource[rowIdx]; !ok {
+							leechAnchorSource[rowIdx] = make(map[string]string)
+						}
+						leechAnchorSource[rowIdx][factionName] = sourceFaction
+					}
+					lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+					// If a faction reacts with leech before taking its own turn action,
+					// keep subsequent action placement after this reaction row.
+					actionsAddedThisTurn[factionName] = true
+				} else if actionsAddedThisTurn[factionName] && !strings.HasPrefix(conciseAction, "PASS") {
+					// Merge follow-up non-leech actions in the same turn with faction's main action.
+					if rowIdx, ok := turnMainActionRow[factionName]; ok &&
+						rowIdx >= 0 && rowIdx < len(currentRound.Rows) &&
+						currentRound.Rows[rowIdx][factionName] != "" {
+						currentRound.Rows[rowIdx][factionName] += "." + conciseAction
+						lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+						turnActionRow = rowIdx
+						turnActionCol = factionColumnIndex(roundColumns(currentRound, factions), factionName)
+						if factionLikelyDelayedLeechSource(factionName, currentRound.Rows[rowIdx][factionName]) {
+							rowLockedForMain[rowIdx] = true
+						}
+					} else {
+						rowIdx := placeRoundAction(currentRound, factionName, conciseAction, len(currentRound.Rows))
+						lastMainActionRow[factionName] = rowIdx
+						turnMainActionRow[factionName] = rowIdx
+						if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
+							lastLeechSourceRow[factionName] = rowIdx
+						}
+						lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+						turnActionRow = rowIdx
+						turnActionCol = factionColumnIndex(roundColumns(currentRound, factions), factionName)
+						if factionLikelyDelayedLeechSource(factionName, currentRound.Rows[rowIdx][factionName]) {
+							rowLockedForMain[rowIdx] = true
+						}
+					}
+				} else {
+					startRow := turnBaseRow
+					if prevRow, ok := lastEventRow[factionName]; ok {
+						candidate := prevRow + 1
+						if candidate > startRow {
+							startRow = candidate
+						}
+					}
+					if startRow < turnBaseRow {
+						startRow = turnBaseRow
+					}
+					colIdx := factionColumnIndex(roundColumns(currentRound, factions), factionName)
+					if turnActionRow >= 0 {
+						if startRow < turnActionRow {
+							startRow = turnActionRow
+						}
+						if startRow == turnActionRow && turnActionCol >= 0 && colIdx >= 0 && colIdx < turnActionCol {
+							startRow = turnActionRow + 1
+						}
+					}
+					rowIdx := placeMainAction(currentRound, factionName, conciseAction, startRow, rowLockedForMain, roundColumns(currentRound, factions))
+					lastMainActionRow[factionName] = rowIdx
+					turnMainActionRow[factionName] = rowIdx
+					if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
+						lastLeechSourceRow[factionName] = rowIdx
+					}
+					lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
+					turnActionRow = rowIdx
+					turnActionCol = colIdx
+					if factionLikelyDelayedLeechSource(factionName, currentRound.Rows[rowIdx][factionName]) {
+						rowLockedForMain[rowIdx] = true
+					}
+				}
 
 				// Track pass order: when a faction passes, add to PassOrder (if not already).
+				// Snellman logs can use either "pass BONx" -> PASS-BON-* or plain "pass" -> PASS.
 				if conciseAction == "PASS" || strings.Contains(conciseAction, "PASS-") {
 					alreadyPassed := false
 					for _, p := range currentRound.PassOrder {
@@ -438,218 +671,6 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 					if !alreadyPassed {
 						currentRound.PassOrder = append(currentRound.PassOrder, factionName)
 					}
-				}
-				continue
-			}
-
-			// Check if this is a leech action - leeches should be their own row, not merged
-			isLeechAction := isLeechOrDeclineToken(conciseAction)
-
-			if isLeechAction {
-				targetRow := len(currentRound.Rows)
-				sourceFaction := extractLeechSourceFaction(action)
-				if sourceFaction == "" {
-					return "", fmt.Errorf("unable to parse leech source faction from action %q", action)
-				}
-				sourceRow := findLatestEligibleLeechSourceRow(currentRound, sourceFaction, len(currentRound.Rows)-1)
-				if sourceRow < 0 {
-					return "", fmt.Errorf("unable to resolve leech source row for faction %q from action %q", sourceFaction, action)
-				}
-				targetRow = sourceRow
-				cols := roundColumns(currentRound, factions)
-				sourceCol := factionColumnIndex(cols, sourceFaction)
-				reactorCol := factionColumnIndex(cols, factionName)
-				// Preserve left-to-right chronology within a row:
-				// a reaction shown left of the source action would look like it happened first.
-				// In that case, force the reaction to a later row.
-				if sourceCol >= 0 && reactorCol >= 0 && reactorCol < sourceCol {
-					targetRow = sourceRow + 1
-				}
-				// If compaction placed unrelated main actions between source and leech, move them out
-				// so the leech remains semantically tied to the correct source action.
-				relocateInterferingActionsForLeech(
-					currentRound,
-					sourceRow,
-					sourceFaction,
-					factionName,
-					rowLockedForMain,
-					lastMainActionRow,
-					lastLeechSourceRow,
-					leechAnchorSource,
-					factions,
-				)
-				if newSourceRow, ok := lastLeechSourceRow[sourceFaction]; ok {
-					sourceRow = newSourceRow
-					targetRow = sourceRow
-					sourceCol = factionColumnIndex(cols, sourceFaction)
-					reactorCol = factionColumnIndex(cols, factionName)
-					if sourceCol >= 0 && reactorCol >= 0 && reactorCol < sourceCol {
-						targetRow = sourceRow + 1
-					}
-				}
-				// Ensure the rendered previous non-leech token for this leech is exactly its source action.
-				// If not, insert a row directly after source to restore correspondence semantics.
-				if sourceCol >= 0 && reactorCol >= 0 && !previousNonLeechIsSource(currentRound, cols, targetRow, reactorCol, sourceRow, sourceCol) {
-					insertRoundRowAt(
-						currentRound,
-						sourceRow+1,
-						lastMainActionRow,
-						lastLeechSourceRow,
-						lastEventRow,
-						rowLockedForMain,
-						leechAnchorSource,
-					)
-					targetRow = sourceRow + 1
-				}
-				if targetRow >= 0 && targetRow < len(currentRound.Rows) && currentRound.Rows[targetRow][factionName] != "" {
-					existing := currentRound.Rows[targetRow][factionName]
-					existingSource := ""
-					if anchors, ok := leechAnchorSource[targetRow]; ok {
-						existingSource = anchors[factionName]
-					}
-					// If two different source factions collide on the same reactor cell,
-					// split the current source action into its own row to preserve attribution.
-					if sourceRow >= 0 &&
-						(isLeechOrDeclineToken(existing)) &&
-						existingSource != "" && sourceFaction != "" && existingSource != sourceFaction {
-						// Only move the source action if the collision is on the exact inline source row.
-						// For delayed rows (sourceRow+1 etc), just place leech on the next row.
-						if targetRow == sourceRow {
-							movedSourceRow := moveSourceActionAndAnchoredLeeches(
-								currentRound,
-								sourceFaction,
-								sourceRow,
-								targetRow+1,
-								rowLockedForMain,
-								lastMainActionRow,
-								lastLeechSourceRow,
-								leechAnchorSource,
-							)
-							targetRow = movedSourceRow
-							cols := roundColumns(currentRound, factions)
-							sourceCol := factionColumnIndex(cols, sourceFaction)
-							reactorCol := factionColumnIndex(cols, factionName)
-							if sourceCol >= 0 && reactorCol >= 0 && reactorCol < sourceCol {
-								targetRow = movedSourceRow + 1
-							}
-						} else {
-							targetRow++
-						}
-					} else {
-						targetRow++
-					}
-				}
-				rowIdx := placeRoundAction(currentRound, factionName, conciseAction, targetRow)
-				if sourceFaction != "" {
-					if _, ok := leechAnchorSource[rowIdx]; !ok {
-						leechAnchorSource[rowIdx] = make(map[string]string)
-					}
-					leechAnchorSource[rowIdx][factionName] = sourceFaction
-				}
-				// Final guard: ensure row-major correspondence semantics hold in rendered output.
-				// If the previous non-leech token is not the resolved source action, re-home leech
-				// directly after source action.
-				if sourceCol >= 0 && reactorCol >= 0 && !previousNonLeechIsSource(currentRound, cols, rowIdx, reactorCol, sourceRow, sourceCol) {
-					currentRound.Rows[rowIdx][factionName] = ""
-					if anchors, ok := leechAnchorSource[rowIdx]; ok {
-						delete(anchors, factionName)
-						if len(anchors) == 0 {
-							delete(leechAnchorSource, rowIdx)
-						}
-					}
-					insertRoundRowAt(
-						currentRound,
-						sourceRow+1,
-						lastMainActionRow,
-						lastLeechSourceRow,
-						lastEventRow,
-						rowLockedForMain,
-						leechAnchorSource,
-					)
-					rowIdx = sourceRow + 1
-					currentRound.Rows[rowIdx][factionName] = conciseAction
-					if _, ok := leechAnchorSource[rowIdx]; !ok {
-						leechAnchorSource[rowIdx] = make(map[string]string)
-					}
-					leechAnchorSource[rowIdx][factionName] = sourceFaction
-				}
-				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
-				// If a faction reacts with leech before taking its own turn action,
-				// keep subsequent action placement after this reaction row.
-				actionsAddedThisTurn[factionName] = true
-			} else if actionsAddedThisTurn[factionName] && !strings.HasPrefix(conciseAction, "PASS") {
-				// Merge follow-up non-leech actions in the same turn with faction's main action.
-				if rowIdx, ok := turnMainActionRow[factionName]; ok &&
-					rowIdx >= 0 && rowIdx < len(currentRound.Rows) &&
-					currentRound.Rows[rowIdx][factionName] != "" {
-					currentRound.Rows[rowIdx][factionName] += "." + conciseAction
-					lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
-					turnActionRow = rowIdx
-					turnActionCol = factionColumnIndex(roundColumns(currentRound, factions), factionName)
-					if factionLikelyDelayedLeechSource(factionName, currentRound.Rows[rowIdx][factionName]) {
-						rowLockedForMain[rowIdx] = true
-					}
-				} else {
-					rowIdx := placeRoundAction(currentRound, factionName, conciseAction, len(currentRound.Rows))
-					lastMainActionRow[factionName] = rowIdx
-					turnMainActionRow[factionName] = rowIdx
-					if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
-						lastLeechSourceRow[factionName] = rowIdx
-					}
-					lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
-					turnActionRow = rowIdx
-					turnActionCol = factionColumnIndex(roundColumns(currentRound, factions), factionName)
-					if factionLikelyDelayedLeechSource(factionName, currentRound.Rows[rowIdx][factionName]) {
-						rowLockedForMain[rowIdx] = true
-					}
-				}
-			} else {
-				startRow := turnBaseRow
-				if prevRow, ok := lastEventRow[factionName]; ok {
-					candidate := prevRow + 1
-					if candidate > startRow {
-						startRow = candidate
-					}
-				}
-				if startRow < turnBaseRow {
-					startRow = turnBaseRow
-				}
-				colIdx := factionColumnIndex(roundColumns(currentRound, factions), factionName)
-				if turnActionRow >= 0 {
-					if startRow < turnActionRow {
-						startRow = turnActionRow
-					}
-					if startRow == turnActionRow && turnActionCol >= 0 && colIdx >= 0 && colIdx < turnActionCol {
-						startRow = turnActionRow + 1
-					}
-				}
-				rowIdx := placeMainAction(currentRound, factionName, conciseAction, startRow, rowLockedForMain, roundColumns(currentRound, factions))
-				lastMainActionRow[factionName] = rowIdx
-				turnMainActionRow[factionName] = rowIdx
-				if actionMayTriggerLeech(currentRound.Rows[rowIdx][factionName]) {
-					lastLeechSourceRow[factionName] = rowIdx
-				}
-				lastEventRow[factionName] = maxInt(lastEventRow[factionName], rowIdx)
-				actionsAddedThisTurn[factionName] = true
-				turnActionRow = rowIdx
-				turnActionCol = colIdx
-				if factionLikelyDelayedLeechSource(factionName, currentRound.Rows[rowIdx][factionName]) {
-					rowLockedForMain[rowIdx] = true
-				}
-			}
-
-			// Track pass order: when a faction passes, add to PassOrder (if not already).
-			// Snellman logs can use either "pass BONx" -> PASS-BON-* or plain "pass" -> PASS.
-			if conciseAction == "PASS" || strings.Contains(conciseAction, "PASS-") {
-				alreadyPassed := false
-				for _, p := range currentRound.PassOrder {
-					if p == factionName {
-						alreadyPassed = true
-						break
-					}
-				}
-				if !alreadyPassed {
-					currentRound.PassOrder = append(currentRound.PassOrder, factionName)
 				}
 			}
 		}
@@ -2064,6 +2085,89 @@ func extractLeechSourceFaction(action string) string {
 		return source
 	}
 	return ""
+}
+
+func extractLeechSourceFromConciseToken(token string) string {
+	t := strings.TrimSpace(token)
+	if strings.HasPrefix(t, "@") || strings.HasPrefix(t, "^") {
+		t = strings.TrimSpace(t[1:])
+	}
+	re := regexp.MustCompile(`(?i)^(?:DL|L)\d*(?:-(.+))?$`)
+	m := re.FindStringSubmatch(t)
+	if len(m) < 2 {
+		return ""
+	}
+	source := normalizeFactionNameForMatching(strings.TrimSpace(m[1]))
+	if source == "" {
+		return ""
+	}
+	if isKnownFaction(source) {
+		return source
+	}
+	return ""
+}
+
+func normalizeCultTrackBumpToken(token string) string {
+	switch strings.ToUpper(strings.TrimSpace(token)) {
+	case "+E", "+EARTH":
+		return "+E"
+	case "+W", "+WATER":
+		return "+W"
+	case "+F", "+FIRE":
+		return "+F"
+	case "+A", "+AIR":
+		return "+A"
+	default:
+		return ""
+	}
+}
+
+func splitConciseActionIntoStandaloneReactions(
+	conciseAction string,
+	faction string,
+	backtrackCultBonus func(string),
+) []string {
+	token := strings.TrimSpace(conciseAction)
+	if token == "" {
+		return nil
+	}
+
+	parts := strings.Split(token, ".")
+	out := make([]string, 0, len(parts))
+	chain := make([]string, 0, len(parts))
+	flushChain := func() {
+		if len(chain) == 0 {
+			return
+		}
+		out = append(out, strings.Join(chain, "."))
+		chain = chain[:0]
+	}
+
+	isCultists := normalizeFactionNameForMatching(faction) == "cultists"
+	seenMain := false
+	for _, raw := range parts {
+		part := strings.TrimSpace(raw)
+		if part == "" {
+			continue
+		}
+		if isCultists {
+			if bump := normalizeCultTrackBumpToken(part); bump != "" && !seenMain {
+				if backtrackCultBonus != nil {
+					backtrackCultBonus(bump)
+				}
+				continue
+			}
+		}
+		if isLeechOrDeclineToken(part) {
+			flushChain()
+			out = append(out, part)
+			continue
+		}
+		chain = append(chain, part)
+		seenMain = true
+	}
+	flushChain()
+	return out
 }
 
 func isLeechOrDeclineToken(token string) bool {

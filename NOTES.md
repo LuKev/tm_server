@@ -32,6 +32,10 @@
   - Trim whitespace before `+TRACK` parsing.
   - Preserve `connect rNN` prefixes so `+TW*` segments are not dropped.
   - Preserve intra-row ordering around conversions vs favor/town tokens (some rows rely on “convert before towns” or “convert before/after favor” to avoid priest-cap divergence).
+  - Replay conversion now normalizes compound tokens so `L`/`DL` are always standalone actions (never chained with other actions), and leading Cultists `+TRACK` bumps are backtracked/chained to the prior triggering Cultists main action.
+  - Batch validation on Snellman fixtures `S64-S69` (`server/internal/replay/testdata/snellman_batch*`) currently reports:
+    - no chained leech tokens (`.L`, `.DL`, `L.`, `DL.`)
+    - no standalone Cultists bump tokens (`+E/+W/+F/+A`) in Cultists column
 
 - Status: `bazel test //internal/replay:replay_test` is green, including the 21-game batch final-score check.
 

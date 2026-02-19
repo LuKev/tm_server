@@ -351,6 +351,60 @@ func TestConvertSnellmanToConcise_CultistsLeadingCultStepBacktracksToPriorAction
 	}
 }
 
+func TestConvertSnellmanToConciseForReplay_CultistsBumpsBacktrackAndLeechesStayStandalone(t *testing.T) {
+	input := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tsetup",
+		"witches\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t0/0/0/2\t\tsetup",
+		"darklings\t\t20 VP\t\t15 C\t\t1 W\t\t1 P\t\t5/7/0 PW\t\t0/1/1/0\t\tsetup",
+		"mermaids\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t0/2/0/0\t\tsetup",
+		"Round 1 income\tshow history",
+		"Round 1, turn 1\tshow history",
+		"cultists\t\t20 VP\t-3\t16 C\t-2\t4 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t1\tupgrade F7 to TP",
+		"witches\t\t20 VP\t-2\t13 C\t-1\t5 W\t\t0 P\t-8\t6/2/0 PW\t\t0/0/0/2\t\tburn 4. action ACT5. build C5",
+		"darklings\t\t20 VP\t-3\t12 C\t-2\t2 W\t\t2 P\t\t5/7/0 PW\t\t0/1/1/0\t1\tupgrade G5 to TP",
+		"mermaids\t\t20 VP\t\t17 C\t\t6 W\t\t0 P\t+1\t2/10/0 PW\t\t0/2/0/0\t\t[opponent accepted power]",
+		"mermaids\t\t20 VP\t\t17 C\t\t6 W\t\t0 P\t+1\t1/11/0 PW\t\t0/2/0/0\t\tLeech 1 from cultists",
+		"mermaids\t\t20 VP\t-3\t14 C\t-2\t4 W\t\t0 P\t\t1/11/0 PW\t\t0/2/0/0\t\tLeech 1 from darklings",
+		"darklings\t-1\t19 VP\t\t12 C\t\t2 W\t\t2 P\t+2\t3/9/0 PW\t\t0/1/1/0\t2 2\tupgrade G6 to TP",
+		"cultists\t\t20 VP\t\t16 C\t\t4 W\t\t0 P\t\t5/7/0 PW\t+1\t1/0/1/0\t\t+EARTH. Leech 2 from darklings. upgrade F7 to TE. +FAV9",
+		"mermaids\t-1\t19 VP\t\t14 C\t\t4 W\t\t0 P\t+2\t3/9/0 PW\t\t0/2/0/0\t\tLeech 2 from darklings",
+		"cultists\t\t20 VP\t\t16 C\t\t4 W\t\t0 P\t\t5/7/0 PW\t\t1/0/2/0\t\t+EARTH",
+	}, "\n")
+
+	got, err := ConvertSnellmanToConciseForReplay(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConciseForReplay() error = %v", err)
+	}
+
+	if !strings.Contains(got, "UP-TH-F7.+E") {
+		t.Fatalf("expected first cultists trigger action to contain chained +E:\n%s", got)
+	}
+	if !strings.Contains(got, "UP-TE-F7.FAV-F1.+E") {
+		t.Fatalf("expected second cultists trigger action to contain chained +E:\n%s", got)
+	}
+
+	lines := strings.Split(got, "\n")
+	for _, line := range lines {
+		if !strings.Contains(line, "|") {
+			continue
+		}
+		cells := strings.Split(line, "|")
+		for _, cell := range cells {
+			tok := strings.TrimSpace(cell)
+			if tok == "" {
+				continue
+			}
+			if strings.Contains(tok, ".L") || strings.Contains(tok, ".DL") || strings.HasPrefix(tok, "L.") || strings.HasPrefix(tok, "DL.") {
+				t.Fatalf("leech action must be standalone, found chained token %q in:\n%s", tok, got)
+			}
+			if tok == "+E" || tok == "+W" || tok == "+F" || tok == "+A" {
+				t.Fatalf("standalone cult bump token is illegal in replay concise output, found %q in:\n%s", tok, got)
+			}
+		}
+	}
+}
+
 func TestExtractSnellmanAction_CombinesSplitBon2TrackParts(t *testing.T) {
 	parts := []string{"engineers", "foo", "action BON2", "+AIR"}
 	got := extractSnellmanAction(parts)
