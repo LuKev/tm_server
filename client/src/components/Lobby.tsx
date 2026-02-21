@@ -25,6 +25,7 @@ export function Lobby(): React.ReactElement {
   const [games, setGames] = useState<GameInfo[]>([])
   const [newGameName, setNewGameName] = useState('')
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
+  const [randomizeTurnOrder, setRandomizeTurnOrder] = useState(true)
 
   useEffect(() => {
     if (lastMessage === null) return
@@ -168,6 +169,15 @@ export function Lobby(): React.ReactElement {
                   Refresh
                 </button>
               </div>
+              <label className="mt-3 inline-flex items-center gap-2 text-sm text-gray-200">
+                <input
+                  type="checkbox"
+                  checked={randomizeTurnOrder}
+                  onChange={(e) => { setRandomizeTurnOrder(e.target.checked); }}
+                  className="rounded border-white/30 bg-white/10"
+                />
+                Randomize turn order on start
+              </label>
             </div>
 
             {/* Test WebSocket Section */}
@@ -242,7 +252,15 @@ export function Lobby(): React.ReactElement {
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium"
                           >Join</button>
                           <button
-                            onClick={() => { sendMessage({ type: 'start_game', payload: { gameID: g.id } }); }}
+                            onClick={() => {
+                              sendMessage({
+                                type: 'start_game',
+                                payload: {
+                                  gameID: g.id,
+                                  randomizeTurnOrder,
+                                },
+                              })
+                            }}
                             disabled={!isConnected || !isFull}
                             className={`px-4 py-2 ${isFull
                               ? 'bg-green-600 hover:bg-green-700'

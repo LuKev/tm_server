@@ -124,6 +124,8 @@ export interface PlayerState {
   id: string
   name: string
   faction: FactionType
+  hasPassed?: boolean
+  hasStrongholdAbility?: boolean
   resources: Resources
   shipping: number
   digging: number
@@ -149,6 +151,7 @@ export enum SpecialActionType {
   Water2CultAdvance = 7,
   BonusCardSpade = 8,
   BonusCardCultAdvance = 9,
+  MermaidsRiverTown = 10,
 }
 
 export interface CultTrackState {
@@ -217,7 +220,13 @@ export interface TownTileState {
 
 export interface GameState {
   id: string
+  revision?: number
   phase: GamePhase
+  setupSubphase?: string
+  setupDwellingOrder?: string[]
+  setupDwellingIndex?: number
+  setupBonusOrder?: string[]
+  setupBonusIndex?: number
   players: Record<string, PlayerState>
   turnOrder: string[]
   passOrder?: string[]
@@ -233,6 +242,17 @@ export interface GameState {
   finalScoring?: Record<string, PlayerFinalScore>
   powerActions?: PowerActionState
   cultTracks?: CultTrackState
+  pendingLeechOffers?: Record<string, unknown[]>
+  pendingTownFormations?: Record<string, unknown[]>
+  pendingSpades?: Record<string, number>
+  pendingSpadeBuildAllowed?: Record<string, boolean>
+  pendingCultRewardSpades?: Record<string, number>
+  pendingFavorTileSelection?: unknown
+  pendingHalflingsSpades?: unknown
+  pendingDarklingsPriestOrdination?: unknown
+  pendingCultistsCultSelection?: unknown
+  pendingTownCultTopChoice?: unknown
+  pendingDecision?: Record<string, unknown> | null
 }
 
 export interface PowerActionState {

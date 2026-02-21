@@ -863,6 +863,16 @@ func TestTownCultBonus_8Points_OnlyOneTrackCanTopWithOneKey(t *testing.T) {
 
 	// TW8 grants one key and +1 all cults.
 	gs.applyTownTileSpecifics(player, models.TownTile8Points, false)
+	if gs.PendingTownCultTopChoice == nil {
+		t.Fatalf("expected pending town cult-top choice")
+	}
+	resolve := &SelectTownCultTopAction{
+		BaseAction: BaseAction{Type: ActionSelectTownCultTop, PlayerID: player.ID},
+		Tracks:     []CultTrack{CultFire},
+	}
+	if err := resolve.Execute(gs); err != nil {
+		t.Fatalf("failed to resolve town cult-top choice: %v", err)
+	}
 
 	if got := gs.CultTracks.GetPosition(player.ID, CultFire); got != 10 {
 		t.Fatalf("expected fire position 10, got %d", got)

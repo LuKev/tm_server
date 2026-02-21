@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "websocket",
@@ -12,6 +12,21 @@ go_library(
     deps = [
         "//internal/game",
         "//internal/game/board",
+        "//internal/lobby",
+        "//internal/models:models",
+        "@com_github_gorilla_websocket//:websocket",
+    ],
+)
+
+go_test(
+    name = "websocket_test",
+    srcs = [
+        "e2e_integration_test.go",
+        "hub_test.go",
+    ],
+    embed = [":websocket"],
+    deps = [
+        "//internal/game",
         "//internal/lobby",
         "//internal/models:models",
         "@com_github_gorilla_websocket//:websocket",

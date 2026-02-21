@@ -1,5 +1,5 @@
 // Canvas-based hex grid renderer - based on terra-mystica/stc/game.js
-import React, { useEffect, useRef, useCallback } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import type { MapHexData } from '../../data/baseGameMap';
 import { hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
@@ -12,6 +12,8 @@ interface HexGridCanvasProps {
   bridges?: Bridge[];
   highlightedHexes?: Set<string>;
   onHexClick?: (q: number, r: number) => void;
+  onBridgeEdgeClick?: (from: { q: number; r: number }, to: { q: number; r: number }) => void;
+  bridgeEdgeSelectionEnabled?: boolean;
   onHexHover?: (q: number, r: number) => void;
   showCoords?: boolean;
   disableHover?: boolean;
@@ -23,6 +25,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   bridges = [],
   highlightedHexes = new Set(),
   onHexClick,
+  onBridgeEdgeClick,
+  bridgeEdgeSelectionEnabled = false,
   onHexHover,
   showCoords = true,
   disableHover: _disableHover = false,
@@ -54,6 +58,79 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   };
 
   const dims = getDimensions();
+
+  const rotate60 = (coord: { q: number; r: number }, turns: number): { q: number; r: number } => {
+    let x = coord.q;
+    let z = coord.r;
+    let y = -x - z;
+    for (let i = 0; i < turns % 6; i++) {
+      [x, y, z] = [-z, -x, -y];
+    }
+    return { q: x, r: z };
+  };
+
+  const bridgeCandidates = useMemo(() => {
+    const byKey = new Map<string, MapHexData>();
+    hexes.forEach((hex) => {
+      byKey.set(`${String(hex.coord.q)},${String(hex.coord.r)}`, hex);
+    });
+
+    const candidates: Array<{
+      from: { q: number; r: number };
+      to: { q: number; r: number };
+      start: { x: number; y: number };
+      end: { x: number; y: number };
+    }> = [];
+    const seen = new Set<string>();
+    const baseTarget = { q: 1, r: -2 };
+    const baseMidA = { q: 0, r: -1 };
+    const baseMidB = { q: 1, r: -1 };
+
+    hexes.forEach((source) => {
+      if (source.isRiver) return;
+
+      for (let rot = 0; rot < 6; rot++) {
+        const targetDelta = rotate60(baseTarget, rot);
+        const midADelta = rotate60(baseMidA, rot);
+        const midBDelta = rotate60(baseMidB, rot);
+
+        const target = { q: source.coord.q + targetDelta.q, r: source.coord.r + targetDelta.r };
+        const midA = { q: source.coord.q + midADelta.q, r: source.coord.r + midADelta.r };
+        const midB = { q: source.coord.q + midBDelta.q, r: source.coord.r + midBDelta.r };
+
+        const targetHex = byKey.get(`${String(target.q)},${String(target.r)}`);
+        const midAHex = byKey.get(`${String(midA.q)},${String(midA.r)}`);
+        const midBHex = byKey.get(`${String(midB.q)},${String(midB.r)}`);
+        if (!targetHex || targetHex.isRiver) continue;
+        if (!midAHex?.isRiver || !midBHex?.isRiver) continue;
+
+        const keyParts = [
+          `${String(source.coord.q)},${String(source.coord.r)}`,
+          `${String(target.q)},${String(target.r)}`,
+        ].sort();
+        const key = keyParts.join('|');
+        if (seen.has(key)) continue;
+        seen.add(key);
+
+        const fromCenter = hexCenter(source.coord.r, source.coord.q);
+        const toCenter = hexCenter(target.r, target.q);
+        const midX = (fromCenter.x + toCenter.x) / 2;
+        const midY = (fromCenter.y + toCenter.y) / 2;
+        const dx = toCenter.x - fromCenter.x;
+        const dy = toCenter.y - fromCenter.y;
+        const scale = 0.3;
+
+        candidates.push({
+          from: { q: source.coord.q, r: source.coord.r },
+          to: target,
+          start: { x: midX - dx * scale, y: midY - dy * scale },
+          end: { x: midX + dx * scale, y: midY + dy * scale },
+        });
+      }
+    });
+
+    return candidates;
+  }, [hexes]);
 
   // Draw a hex path (from terra-mystica/stc/game.js makeHexPath)
   const makeHexPath = (ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
@@ -343,6 +420,32 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.restore();
   }, [hexes, buildings, bridges, highlightedHexes, dims.offsetX, dims.offsetY, drawHex, drawBridge, drawBuilding, drawHighlight]);
 
+  const pointToSegmentDistance = (
+    px: number,
+    py: number,
+    ax: number,
+    ay: number,
+    bx: number,
+    by: number,
+  ): number => {
+    const abx = bx - ax;
+    const aby = by - ay;
+    const apx = px - ax;
+    const apy = py - ay;
+    const abLenSq = abx * abx + aby * aby;
+    if (abLenSq === 0) {
+      const dx = px - ax;
+      const dy = py - ay;
+      return Math.sqrt(dx * dx + dy * dy);
+    }
+    const t = Math.max(0, Math.min(1, (apx * abx + apy * aby) / abLenSq));
+    const closestX = ax + t * abx;
+    const closestY = ay + t * aby;
+    const dx = px - closestX;
+    const dy = py - closestY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
   // Handle mouse events
   const handleMouseEvent = (e: React.MouseEvent<HTMLCanvasElement>, isClick: boolean): void => {
     const canvas = canvasRef.current;
@@ -357,6 +460,31 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     // Apply scaling to mouse coordinates
     const x = (e.clientX - rect.left) * scaleX - dims.offsetX;
     const y = (e.clientY - rect.top) * scaleY - dims.offsetY;
+
+    if (isClick && bridgeEdgeSelectionEnabled && onBridgeEdgeClick) {
+      let bestFrom: { q: number; r: number } | null = null;
+      let bestTo: { q: number; r: number } | null = null;
+      let bestDist = Infinity;
+      bridgeCandidates.forEach((candidate) => {
+        const dist = pointToSegmentDistance(
+          x,
+          y,
+          candidate.start.x,
+          candidate.start.y,
+          candidate.end.x,
+          candidate.end.y,
+        );
+        if (dist < bestDist) {
+          bestDist = dist;
+          bestFrom = candidate.from;
+          bestTo = candidate.to;
+        }
+      });
+      if (bestFrom !== null && bestTo !== null && bestDist <= 12) {
+        onBridgeEdgeClick(bestFrom, bestTo);
+        return;
+      }
+    }
 
     // Find which hex was clicked (simple distance check)
     let closestHex: MapHexData | null = null;

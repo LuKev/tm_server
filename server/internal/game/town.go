@@ -299,8 +299,7 @@ func (gs *GameState) applyTownTileSpecifics(player *Player, tileType models.Town
 	case models.TownTile8Points:
 		player.VictoryPoints += 8
 		player.Keys++
-		// Advance 1 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(player.ID, models.TownTile8Points, player, gs)
+		gs.applyTownCultBonusWithPotentialTopChoice(player, 1)
 
 	case models.TownTile9Points:
 		player.VictoryPoints += 9
@@ -316,9 +315,32 @@ func (gs *GameState) applyTownTileSpecifics(player *Player, tileType models.Town
 	case models.TownTile2Points:
 		player.VictoryPoints += 2
 		player.Keys += 2
-		// Advance 2 on all cult tracks
-		gs.CultTracks.ApplyTownCultBonus(player.ID, models.TownTile2Points, player, gs)
+		gs.applyTownCultBonusWithPotentialTopChoice(player, 2)
 	}
+}
+
+func (gs *GameState) applyTownCultBonusWithPotentialTopChoice(player *Player, advanceAmount int) {
+	if player == nil || gs.CultTracks == nil {
+		return
+	}
+
+	candidates := gs.CultTracks.GetTownCultTopCandidates(player.ID, advanceAmount, player, gs)
+	maxSelections := player.Keys
+	if maxSelections < 0 {
+		maxSelections = 0
+	}
+
+	if len(candidates) > maxSelections {
+		gs.PendingTownCultTopChoice = &PendingTownCultTopChoice{
+			PlayerID:        player.ID,
+			AdvanceAmount:   advanceAmount,
+			CandidateTracks: candidates,
+			MaxSelections:   maxSelections,
+		}
+		return
+	}
+
+	gs.CultTracks.ApplyTownCultBonusWithTopChoice(player.ID, advanceAmount, player, gs, nil)
 }
 
 // ApplyFactionTownBonus applies faction-specific bonuses when forming a town

@@ -283,15 +283,60 @@ func (a *PowerAction) Execute(gs *GameState) error {
 			freeSpadesFromAction = 2
 		}
 
+		requiredSpades, err := a.requiredSpadesForTransform(gs, player)
+		if err != nil {
+			return err
+		}
+
 		// Execute the transform with free spades
-		err := a.executeTransformWithFreeSpades(gs, player, freeSpadesFromAction)
+		err = a.executeTransformWithFreeSpades(gs, player, freeSpadesFromAction)
 		if err != nil {
 			return fmt.Errorf("failed to execute transform: %w", err)
+		}
+
+		usedFreeSpades := freeSpadesFromAction
+		if usedFreeSpades > requiredSpades {
+			usedFreeSpades = requiredSpades
+		}
+		remainingFreeSpades := freeSpadesFromAction - usedFreeSpades
+		if remainingFreeSpades > 0 {
+			if gs.PendingSpades == nil {
+				gs.PendingSpades = make(map[string]int)
+			}
+			if gs.PendingSpadeBuildAllowed == nil {
+				gs.PendingSpadeBuildAllowed = make(map[string]bool)
+			}
+			gs.PendingSpades[a.PlayerID] += remainingFreeSpades
+			canBuildDwelling := !a.BuildDwelling
+			if prior, ok := gs.PendingSpadeBuildAllowed[a.PlayerID]; ok {
+				canBuildDwelling = prior && canBuildDwelling
+			}
+			gs.PendingSpadeBuildAllowed[a.PlayerID] = canBuildDwelling
 		}
 	}
 
 	gs.NextTurn()
 	return nil
+}
+
+func (a *PowerAction) requiredSpadesForTransform(gs *GameState, player *Player) (int, error) {
+	if a.TargetHex == nil {
+		return 0, fmt.Errorf("spade action requires target hex")
+	}
+
+	mapHex := gs.Map.GetHex(*a.TargetHex)
+	if mapHex == nil {
+		return 0, fmt.Errorf("hex does not exist: %v", *a.TargetHex)
+	}
+
+	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
+	if distance == 0 {
+		return 0, fmt.Errorf("hex is already home terrain")
+	}
+	if player.Faction.GetType() == models.FactionGiants {
+		return 2, nil
+	}
+	return distance, nil
 }
 
 // executeTransformWithFreeSpades handles the transform part of spade power actions

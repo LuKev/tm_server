@@ -22,6 +22,8 @@ interface PassingTilesProps {
     bonusCardOwners?: Record<string, string>; // Map of BonusCardType -> PlayerID
     players?: Record<string, PlayerState>; // Map of PlayerID -> Player
     passedPlayers?: Set<string>; // Set of PlayerIDs who have passed
+    onCardClick?: (cardType: BonusCardType) => void;
+    isCardClickable?: (cardType: BonusCardType) => boolean;
 }
 
 const isSplitCard = (type: BonusCardType): boolean => {
@@ -242,7 +244,9 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
     bonusCardCoins,
     bonusCardOwners,
     players,
-    passedPlayers
+    passedPlayers,
+    onCardClick,
+    isCardClickable
 }) => {
     if (!availableCards || availableCards.length === 0) return null;
 
@@ -283,14 +287,28 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
                 }
 
                 return (
-                    <BonusCardContent
+                    <button
                         key={cardType}
-                        type={cardType}
-                        isUsed={isUsed}
-                        playerColor={playerColor}
-                        coins={coins}
-                        isPassed={isPassed}
-                    />
+                        type="button"
+                        onClick={() => { onCardClick?.(cardType); }}
+                        disabled={isCardClickable ? !isCardClickable(cardType) : false}
+                        style={{
+                            cursor: onCardClick ? ((isCardClickable && !isCardClickable(cardType)) ? 'not-allowed' : 'pointer') : 'default',
+                            opacity: (isCardClickable && !isCardClickable(cardType)) ? 0.55 : 1,
+                            background: 'transparent',
+                            border: 'none',
+                            padding: 0,
+                            margin: 0,
+                        }}
+                    >
+                        <BonusCardContent
+                            type={cardType}
+                            isUsed={isUsed}
+                            playerColor={playerColor}
+                            coins={coins}
+                            isPassed={isPassed}
+                        />
+                    </button>
                 );
             })}
         </div>

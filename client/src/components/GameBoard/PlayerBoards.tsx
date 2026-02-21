@@ -49,8 +49,25 @@ const getTownTileConfig = (tileId: TownTileId): { vp: number; rewards: React.Rea
     }
 };
 
-const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
-    <div style={{ position: 'relative', width: '2.4rem', height: '2.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+const StrongholdOctagon: React.FC<{ isUsed?: boolean; onClick?: () => void; disabled?: boolean }> = ({ isUsed, onClick, disabled }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        style={{
+            position: 'relative',
+            width: '2.4rem',
+            height: '2.4rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'transparent',
+            border: 'none',
+            padding: 0,
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.6 : 1,
+        }}
+    >
         <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}>
             <path
                 d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z"
@@ -67,7 +84,34 @@ const StrongholdOctagon: React.FC<{ isUsed?: boolean }> = ({ isUsed }) => (
                 </svg>
             </div>
         )}
-    </div>
+    </button>
+);
+
+const StrongholdSquare: React.FC<{ onClick?: () => void; disabled?: boolean; label?: string }> = ({ onClick, disabled, label }) => (
+    <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled}
+        title={label}
+        style={{
+            width: '2.4rem',
+            height: '2.4rem',
+            borderRadius: '0.3rem',
+            border: '2px solid #c2410c',
+            background: '#f97316',
+            color: '#111827',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            opacity: disabled ? 0.6 : 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
+        }}
+    >
+        {label ?? 'ACT'}
+    </button>
 );
 
 const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
@@ -131,10 +175,32 @@ interface PlayerBoardProps {
     turnOrder: number | string;
     isCurrentPlayer?: boolean;
     isReplayMode?: boolean;
+    onConversion?: (playerId: string, conversionType: string) => void;
+    onBurnPower?: (playerId: string, amount: number) => void;
+    onAdvanceShipping?: (playerId: string) => void;
+    onAdvanceDigging?: (playerId: string) => void;
+    onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
+    onEngineersBridgeAction?: (playerId: string) => void;
+    onMermaidsConnectAction?: (playerId: string) => void;
+    onWater2Action?: (playerId: string) => void;
 }
 
-const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurrentPlayer, isReplayMode }) => {
+const PlayerBoard: React.FC<PlayerBoardProps> = ({
+    playerId,
+    turnOrder,
+    isCurrentPlayer,
+    isReplayMode,
+    onConversion,
+    onBurnPower,
+    onAdvanceShipping,
+    onAdvanceDigging,
+    onStrongholdAction,
+    onEngineersBridgeAction,
+    onMermaidsConnectAction,
+    onWater2Action
+}) => {
     const gameState = useGameStore(s => s.gameState);
+    const localPlayerId = useGameStore(s => s.localPlayerId);
     const player: PlayerState | undefined = gameState?.players[playerId];
 
     if (!player || (!player.Faction && !player.faction)) return null;
@@ -192,6 +258,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
 
     const strongholdActionType = getStrongholdActionType(factionType);
     const isStrongholdActionUsed = strongholdActionType !== null && player.specialActionsUsed?.[strongholdActionType];
+    const isLocalPlayer = localPlayerId === playerId;
+    const isEngineersSquareAction = factionType === FactionType.Engineers && !!player.hasStrongholdAbility;
+    const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
 
     const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
@@ -235,6 +304,26 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                                 diggingLevel={diggingLevel}
                                 hasTempShippingBonus={hasTempShippingBonus}
                             />
+                            {!isReplayMode && isLocalPlayer && (
+                                <div style={{ display: 'flex', gap: '0.25em', marginLeft: '0.5em' }}>
+                                    <button
+                                        type="button"
+                                        className="conversion-btn"
+                                        style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                        onClick={() => { onAdvanceShipping?.(playerId); }}
+                                    >
+                                        +Ship
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="conversion-btn"
+                                        style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                        onClick={() => { onAdvanceDigging?.(playerId); }}
+                                    >
+                                        +Dig
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div className="resource-item" style={{ marginLeft: 'auto' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontWeight: 'bold' }}>
@@ -268,7 +357,29 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                                         {/* Stronghold Action Octagon */}
                                         {strongholdActionType !== null && (
                                             <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
-                                                <StrongholdOctagon isUsed={isStrongholdActionUsed} />
+                                                <StrongholdOctagon
+                                                    isUsed={isStrongholdActionUsed}
+                                                    onClick={() => { if (strongholdActionType !== null) onStrongholdAction?.(playerId, strongholdActionType); }}
+                                                    disabled={!isLocalPlayer || !!isStrongholdActionUsed}
+                                                />
+                                            </div>
+                                        )}
+                                        {isEngineersSquareAction && (
+                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
+                                                <StrongholdSquare
+                                                    label="BR"
+                                                    onClick={() => { onEngineersBridgeAction?.(playerId); }}
+                                                    disabled={!isLocalPlayer}
+                                                />
+                                            </div>
+                                        )}
+                                        {isMermaidsSquareAction && (
+                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
+                                                <StrongholdSquare
+                                                    label="CT"
+                                                    onClick={() => { onMermaidsConnectAction?.(playerId); }}
+                                                    disabled={!isLocalPlayer}
+                                                />
                                             </div>
                                         )}
                                     </div>
@@ -403,13 +514,14 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                             <>
                                 <div className="pb-section-title">Conversions</div>
                                 <div className="conversion-area">
-                                    <button className="conversion-btn">1 Priest → 1 Worker</button>
-                                    <button className="conversion-btn">1 Worker → 1 Coin</button>
-                                    <button className="conversion-btn">5 PW → 1 Priest</button>
-                                    <button className="conversion-btn">3 PW → 1 Worker</button>
-                                    <button className="conversion-btn">1 PW → 1 Coin</button>
+                                    <button className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer}>1 Priest → 1 Worker</button>
+                                    <button className="conversion-btn" onClick={() => { onConversion?.(playerId, 'worker_to_coin'); }} disabled={!isLocalPlayer}>1 Worker → 1 Coin</button>
+                                    <button className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer}>5 PW → 1 Priest</button>
+                                    <button className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer}>3 PW → 1 Worker</button>
+                                    <button className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer}>1 PW → 1 Coin</button>
+                                    <button className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer}>Burn 2PW → +1 Bowl III</button>
                                     {factionType === FactionType.Alchemists && (
-                                        <button className="conversion-btn special">1 VP → 1 Coin</button>
+                                        <button className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer}>1 VP → 1 Coin</button>
                                     )}
                                 </div>
                             </>
@@ -475,6 +587,19 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
                                                             </div>
                                                         )}
                                                     </div>
+                                                    {tileType === FavorTileType.Water2 && !isUsed && isLocalPlayer && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => { onWater2Action?.(playerId); }}
+                                                            style={{
+                                                                position: 'absolute',
+                                                                inset: 0,
+                                                                background: 'transparent',
+                                                                border: 'none',
+                                                                cursor: 'pointer',
+                                                            }}
+                                                        />
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -493,9 +618,27 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({ playerId, turnOrder, isCurren
 
 interface PlayerBoardsProps {
     isReplayMode?: boolean;
+    onConversion?: (playerId: string, conversionType: string) => void;
+    onBurnPower?: (playerId: string, amount: number) => void;
+    onAdvanceShipping?: (playerId: string) => void;
+    onAdvanceDigging?: (playerId: string) => void;
+    onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
+    onEngineersBridgeAction?: (playerId: string) => void;
+    onMermaidsConnectAction?: (playerId: string) => void;
+    onWater2Action?: (playerId: string) => void;
 }
 
-export const PlayerBoards: React.FC<PlayerBoardsProps> = ({ isReplayMode }) => {
+export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
+    isReplayMode,
+    onConversion,
+    onBurnPower,
+    onAdvanceShipping,
+    onAdvanceDigging,
+    onStrongholdAction,
+    onEngineersBridgeAction,
+    onMermaidsConnectAction,
+    onWater2Action
+}) => {
     const gameState = useGameStore(s => s.gameState);
 
     // JS-based scaling to ensure reliability
@@ -558,6 +701,14 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({ isReplayMode }) => {
                             turnOrder={turnOrder}
                             isCurrentPlayer={isCurrentPlayer}
                             isReplayMode={isReplayMode}
+                            onConversion={onConversion}
+                            onBurnPower={onBurnPower}
+                            onAdvanceShipping={onAdvanceShipping}
+                            onAdvanceDigging={onAdvanceDigging}
+                            onStrongholdAction={onStrongholdAction}
+                            onEngineersBridgeAction={onEngineersBridgeAction}
+                            onMermaidsConnectAction={onMermaidsConnectAction}
+                            onWater2Action={onWater2Action}
                         />
                     );
                 })}

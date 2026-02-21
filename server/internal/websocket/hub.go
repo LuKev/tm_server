@@ -5,35 +5,40 @@ import (
 	"sync"
 )
 
-// Hub maintains the set of active clients and broadcasts messages to the clients.
-type Hub struct {
-	// Registered clients.
-	clients map[*Client]bool
-
-	// Inbound messages from the clients.
-	broadcast chan []byte
-
-	// Register requests from the clients.
-	register chan *Client
-
-	// Unregister requests from clients.
-	unregister chan *Client
-
-	// Mutex for thread-safe operations
-	mu sync.RWMutex
+type gameBroadcastMessage struct {
+	GameID  string
+	Message []byte
 }
 
-// NewHub creates a new Hub instance
+// Hub maintains connected websocket clients and room subscriptions.
+type Hub struct {
+	clients map[*Client]bool
+
+	broadcast     chan []byte
+	gameBroadcast chan gameBroadcastMessage
+	register      chan *Client
+	unregister    chan *Client
+
+	mu sync.RWMutex
+
+	gameSubscribers map[string]map[*Client]bool
+	clientGames     map[*Client]map[string]bool
+}
+
+// NewHub creates a new Hub instance.
 func NewHub() *Hub {
 	return &Hub{
-		broadcast:  make(chan []byte),
-		register:   make(chan *Client),
-		unregister: make(chan *Client),
-		clients:    make(map[*Client]bool),
+		broadcast:       make(chan []byte),
+		gameBroadcast:   make(chan gameBroadcastMessage),
+		register:        make(chan *Client),
+		unregister:      make(chan *Client),
+		clients:         make(map[*Client]bool),
+		gameSubscribers: make(map[string]map[*Client]bool),
+		clientGames:     make(map[*Client]map[string]bool),
 	}
 }
 
-// Run starts the hub's main loop
+// Run starts the hub loop.
 func (h *Hub) Run() {
 	for {
 		select {
@@ -45,34 +50,119 @@ func (h *Hub) Run() {
 
 		case client := <-h.unregister:
 			h.mu.Lock()
-			if _, ok := h.clients[client]; ok {
-				delete(h.clients, client)
-				close(client.send)
-				log.Printf("Client disconnected. Total clients: %d", len(h.clients))
-			}
+			h.unregisterClientLocked(client)
 			h.mu.Unlock()
 
 		case message := <-h.broadcast:
 			h.mu.RLock()
 			for client := range h.clients {
-				select {
-				case client.send <- message:
-				default:
-					close(client.send)
-					delete(h.clients, client)
-				}
+				h.sendToClientLocked(client, message)
+			}
+			h.mu.RUnlock()
+
+		case msg := <-h.gameBroadcast:
+			h.mu.RLock()
+			for client := range h.gameSubscribers[msg.GameID] {
+				h.sendToClientLocked(client, msg.Message)
 			}
 			h.mu.RUnlock()
 		}
 	}
 }
 
-// BroadcastMessage sends a message to all connected clients
+func (h *Hub) unregisterClientLocked(client *Client) {
+	if _, ok := h.clients[client]; !ok {
+		return
+	}
+
+	delete(h.clients, client)
+	if games := h.clientGames[client]; games != nil {
+		for gameID := range games {
+			if subscribers := h.gameSubscribers[gameID]; subscribers != nil {
+				delete(subscribers, client)
+				if len(subscribers) == 0 {
+					delete(h.gameSubscribers, gameID)
+				}
+			}
+		}
+		delete(h.clientGames, client)
+	}
+
+	close(client.send)
+	log.Printf("Client disconnected. Total clients: %d", len(h.clients))
+}
+
+func (h *Hub) sendToClientLocked(client *Client, message []byte) {
+	select {
+	case client.send <- message:
+	default:
+		close(client.send)
+		delete(h.clients, client)
+		if games := h.clientGames[client]; games != nil {
+			for gameID := range games {
+				if subscribers := h.gameSubscribers[gameID]; subscribers != nil {
+					delete(subscribers, client)
+					if len(subscribers) == 0 {
+						delete(h.gameSubscribers, gameID)
+					}
+				}
+			}
+			delete(h.clientGames, client)
+		}
+	}
+}
+
+// BroadcastMessage sends a message to all connected clients.
 func (h *Hub) BroadcastMessage(message []byte) {
 	h.broadcast <- message
 }
 
-// GetClientCount returns the number of connected clients
+// BroadcastToGame sends a message to subscribers of a single game room.
+func (h *Hub) BroadcastToGame(gameID string, message []byte) {
+	h.gameBroadcast <- gameBroadcastMessage{GameID: gameID, Message: message}
+}
+
+// JoinGame subscribes a client to a game room.
+func (h *Hub) JoinGame(client *Client, gameID string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if _, exists := h.clients[client]; !exists {
+		return
+	}
+
+	if h.gameSubscribers[gameID] == nil {
+		h.gameSubscribers[gameID] = make(map[*Client]bool)
+	}
+	h.gameSubscribers[gameID][client] = true
+
+	if h.clientGames[client] == nil {
+		h.clientGames[client] = make(map[string]bool)
+	}
+	h.clientGames[client][gameID] = true
+}
+
+// LeaveGame unsubscribes a client from a game room.
+func (h *Hub) LeaveGame(client *Client, gameID string) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if subscribers := h.gameSubscribers[gameID]; subscribers != nil {
+		delete(subscribers, client)
+		if len(subscribers) == 0 {
+			delete(h.gameSubscribers, gameID)
+		}
+	}
+
+	if games := h.clientGames[client]; games != nil {
+		delete(games, gameID)
+		if len(games) == 0 {
+			delete(h.clientGames, client)
+		}
+	}
+}
+
+// GetClientCount returns connected clients.
 func (h *Hub) GetClientCount() int {
 	h.mu.RLock()
 	defer h.mu.RUnlock()

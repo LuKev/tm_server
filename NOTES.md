@@ -112,3 +112,187 @@
     - delayed pending town does not allow topping,
     - immediate pending town can borrow one key (temporary `Keys=-1` debt until town key gain),
     - `TW8` with one available key tops only one track.
+
+- 2026-02-21 multiplayer planning notes:
+  - User requested a first-pass, detailed spec to build a live multiplayer Terra Mystica mode (2-5 players) by reusing replay infrastructure, with Snellman-style faction selection (no auction) and 20 VP starts.
+  - Required interaction surface includes: setup dwelling/bonus selection, priest spot clicks, leech accept/decline modal, transform/build modal flows, upgrade branch modal, conversions, favor/town selection, power/special actions (including split spades and bridges), pass confirmations, cultists track selection, and cult spades (post-confirm undo removed by later clarification lock).
+  - Current repo gap identified: websocket action routing is currently limited to `select_faction` + `setup_dwelling`; client action service and many UI controls are not yet wired for live actions.
+  - Detailed implementation spec added at repository root: `MULTIPLAYER_TM_SPEC.md`.
+- 2026-02-21 clarification lock for multiplayer spec:
+  - no-auction v1 confirmed; 20 VP starts.
+  - setup order default random but host-configurable; setup implementation must follow strict base rules, with strict reverse bonus-card pick order.
+  - base map only for v1; `shipping-bonus` + `temple-scoring-tile` on by default.
+  - resign/drop handling deferred.
+  - Engineers bridge special rendered as square in SH-action location and counts as main action; Mermaids connect does not consume main action; both reusable whenever legal.
+  - conversions only on active player's own turn.
+  - spade followups must resolve sequentially.
+  - no post-confirm undo in v1.
+  - reconnect should auto-restore seat by token/session identity.
+  - spectators and timers deferred to roadmap doc: `MULTIPLAYER_TODO_LATER.md`.
+
+- 2026-02-21 multiplayer implementation update (backend milestone pass):
+  - Bazel workspace root is `/Users/kevin/projects/tm_server/server` (not repo root). Use Bazel commands from there.
+  - Implemented room-scoped websocket broadcasting and client game-room subscriptions in `server/internal/websocket/hub.go`.
+  - Added seat binding per websocket connection/game in `server/internal/websocket/client.go`; `perform_action` now requires an in-game seat and uses seat identity instead of trusting payload `playerID`.
+  - Added revision/idempotency execution path in `server/internal/game/manager.go`:
+    - per-game `revision`,
+    - `ExecuteActionWithMeta` with `expectedRevision` check,
+    - `actionId` de-duplication,
+    - `RevisionMismatchError` for stale actions.
+  - Expanded websocket action routing to most engine actions (`select_faction`, setup actions, transform/build, upgrades, shipping/digging, priest send, power/special actions, pass, leech, favor/town, halflings, darklings, cultists, conversions, burn).
+  - Added strict setup sequencing in `server/internal/game/state.go`:
+    - dwelling queue with Chaos/Nomads rules,
+    - reverse bonus-card setup picks,
+    - setup completion transition to round-1 income then action phase.
+  - Added new game actions:
+    - `SetupBonusCardAction` (`action_setup_bonus_card.go`),
+    - `SelectTownTileAction` (`action_select_town_tile.go`),
+    - free `ConversionAction` + `BurnPowerAction` (`action_conversion.go`).
+  - Pending decision serialization now includes pending state objects and normalized `pendingDecision` in `SerializeStateWithRevision`.
+  - Leech flow update: `HasPendingActions` now blocks turn advancement while leech offers exist; when leech queue resolves, turn advances from leech action handler.
+  - Random bonus-card setup selection now truly shuffles (`math/rand` seeded) in `server/internal/game/bonus_cards.go`.
+  - Client updates:
+    - `client/src/services/actionService.ts` now sends `actionId` + `expectedRevision` and canonical `params` payload.
+    - `client/src/types/game.types.ts` includes `revision` and pending fields.
+    - `client/src/components/Lobby.tsx` includes `randomizeTurnOrder` start option and sends it in `start_game` payload.
+    - `client/src/components/Game.tsx` includes `playerID` in `get_game_state` payload for seat rebind on reconnect.
+  - Validation run:
+    - `bazel test //internal/game:game_test` (from `server/`) passed.
+    - `bazel build //cmd/server:server` (from `server/`) passed.
+    - `npm run type-check` (from `client/`) passed.
+  - Follow-up gap after this pass:
+    - frontend still needs UI flow wiring for composing nested `firstAction`/`secondAction` payloads for Chaos Magicians double-turn (`special_action_use` supports it server-side now).
+
+- 2026-02-21 external data collection note (BGA Terra Mystica stats):
+  - Public BGA pages accessible without auth:
+    - `/playerstat?id=93627000&game=1118` (summary shell + premium-masked profile stats),
+    - `/table?table=<id>` and `/12/terramystica?table=<id>` (open-graph style rank/score snippets).
+  - All useful structured history/result endpoints tested require authenticated session (`code=806 Invalid session information`), including:
+    - `/gamestats?...`,
+    - `/message/board`,
+    - `/table/table/tableinfos.html`,
+    - `/table/table/tableratingsupdate.html`,
+    - `/archive/archive/logs.html`.
+  - Practical implication: automated collection of per-game arena/faction outcomes must run from an authenticated browser session (or with exported authenticated HTML/API payloads).
+
+- 2026-02-21 external data collection correction (BGA Terra Mystica):
+  - Public visitor sessions can call some AJAX endpoints if both are provided from a page bootstrap:
+    - `PHPSESSID` cookie
+    - `X-Request-Token` from page JS (`bgaConfig.requestToken`, single-quoted in current HTML).
+  - Working endpoints with visitor token+cookie:
+    - `POST /gamestats/gamestats/getGames.html` (paginated TM game rows, including `arena_win` marker),
+    - `POST /table/table/tableinfos.html` (table result payload).
+  - Gamestats pagination behavior observed:
+    - initial load: `updateStats=1`,
+    - “see more”: `updateStats=0&page=N`,
+    - `page=1` duplicates initial page; next page starts at `page=2`.
+  - Limitation still blocking faction extraction in visitor mode:
+    - `tableinfos.result.stats.player.player_faction.values[*]` returns `*masked*` when `pma=false` (non-premium visitor), so per-player faction picks cannot be recovered anonymously.
+  - Browser-side helper script for logged-in collection is now in:
+    - `scripts/bga_tm_arena_faction_stats_browser.js`
+    - Supports configurable date range via `startDateStr` / `endDateStr` (UTC, YYYY-MM-DD), default start `2026-01-13`, no default end.
+
+- 2026-02-21 multiplayer implementation update (frontend+engineers bridge pass):
+  - Added Engineers reusable stronghold bridge main action to engine:
+    - `server/internal/game/action_engineers_bridge.go`
+    - websocket route: `perform_action.type = "engineers_bridge"` in `server/internal/websocket/client.go`
+    - tests: `server/internal/game/action_engineers_bridge_test.go`
+  - Added client enum support for Mermaids connect action (`SpecialActionType.MermaidsRiverTown = 10`) in `client/src/types/game.types.ts`.
+  - `client/src/components/Game.tsx` now wires:
+    - setup-dwelling click flow during setup dwellings subphase,
+    - pending free spades and pending cult-reward spades hex-action flows,
+    - burn/ship/dig action confirmations,
+    - Engineers bridge action mode + Mermaids connect target mode,
+    - pass warning when optional specials/spades are still available.
+  - `client/src/components/GameBoard/PlayerBoards.tsx` now includes:
+    - conversion/burn buttons,
+    - +Ship/+Dig controls,
+    - Engineers and Mermaids square special-action controls in SH-action slot area.
+  - `client/src/components/GameBoard/HexGridCanvas.tsx` now supports bridge edge hit-testing and emits bridge endpoint pairs through `onBridgeEdgeClick`.
+  - `client/src/components/Game.tsx` now includes a Chaos Magicians double-turn authoring modal that submits nested `firstAction`/`secondAction` payloads.
+  - Current known v1 gap after this pass:
+    - strict sequential split-resolution controls for double-spade/halflings multi-spade “throw away remaining spade” UX are still incomplete,
+    - town cult-top disambiguation (`town_cult_top_choice`) serialization/UI path is not yet implemented.
+  - Validation after this pass:
+    - `npm run type-check` (client) passed.
+    - `bazel test //internal/game:game_test //internal/websocket:websocket_test` (server) passed.
+    - `bazel build //cmd/server:server` (server) passed.
+
+- 2026-02-21 multiplayer implementation update (town-cult + E2E + split spade follow-up):
+  - Added key-limited town-cult-top follow-up end-to-end:
+    - backend action `ActionSelectTownCultTop` and pending state in `server/internal/game/*`
+    - websocket route `perform_action.type = "select_town_cult_top"`
+    - frontend modal flow in `client/src/components/Game.tsx`
+  - Added websocket integration E2E test covering setup->action progression and turn-authority rejection:
+    - `server/internal/websocket/e2e_integration_test.go`
+  - Fixed setup bonus-card availability handling:
+    - backend manager validation no longer incorrectly rejects `setup_bonus_card`
+    - frontend now treats bonus-card availability by key presence (not coin count > 0), so 0-coin legal cards remain selectable.
+  - Added strict split-spade follow-up for ACT6:
+    - leftover free spade is now persisted as pending follow-up (`PendingSpades`)
+    - `PendingSpadeBuildAllowed` enforces “at most one dwelling across ACT6 split transforms”
+    - new action `discard_pending_spade` (backend + websocket parser + client button) to support legal throwaway of remaining spade
+    - manager turn/pending validation now blocks unrelated actions while pending spade/cult-reward-spade follow-ups exist.
+  - Replay compatibility preserved while keeping strict multiplayer setup:
+    - `SetupDwellingAction` now supports strict setup queue when initialized, and replay-compatible legacy setup execution when turn order is not yet known.
+  - Deferred roadmap updated per user request:
+    - `MULTIPLAYER_TODO_LATER.md` includes “Implement both regular auction and fast auction setup variants.”
+  - Validation after this pass:
+    - `bazel test //internal/game:game_test //internal/websocket:websocket_test //internal/replay:replay_test` passed.
+    - `bazel test //...` passed.
+    - `npm run type-check && npm run build` passed.
+
+- 2026-02-21 multiplayer implementation finalization (Milestone G complete):
+  - Hardened websocket E2E integration tests in `server/internal/websocket/e2e_integration_test.go`:
+    - setup helper now drains creator `lobby_state` right after `game_created` to avoid create/join broadcast race in tests.
+    - reconnect path now waits via `readUntilStateRevisionAtLeast(...)` to avoid stale `game_state_update` reads.
+    - soak loop now refreshes state when current player is already passed and exits early when all players are passed.
+    - soak assertions are now deterministic for base rules: require reconnect churn plus at least one full-table pass cycle.
+    - added helper utilities `asBool(...)` and `allPlayersPassed(...)` for state guards.
+  - Added websocket contract/soak coverage:
+    - `TestWebsocketContract_SpadeFollowupAndDiscard`
+    - `TestWebsocketSoak_FivePlayers_ReconnectChurn`
+  - Frontend UX polish completed in `client/src/components/Game.tsx`:
+    - Chaos double-turn parameter templates + JSON validation states for both action params.
+    - clear pending spade/cult-spade banner copy for follow-up-required turns.
+  - Spec/doc status:
+    - `MULTIPLAYER_TM_SPEC.md` Milestone G moved to Completed and completion/validation section updated.
+    - Deferred roadmap still in `MULTIPLAYER_TODO_LATER.md`, including requested future item: regular and fast auction setup variants.
+  - Final validation matrix:
+    - `bazel test //internal/websocket:websocket_test //internal/game:game_test //internal/replay:replay_test` (from `server/`) passed.
+    - `bazel test //...` (from `server/`) passed.
+    - `npm run type-check && npm run build` (from `client/`) passed.
+
+- 2026-02-21 multiplayer E2E planning target (Snellman full-game):
+  - Target game: `https://terra.snellman.net/faction/4pLeague_S69_D1L1_G2` (also present as fixture `server/internal/replay/testdata/snellman_batch/4pLeague_S69_D1L1_G2.txt`).
+  - Confirmed expected final totals from Snellman view-game API and local manifest:
+    - Nomads (RA): 166
+    - Darklings (tom8918): 137
+    - Mermaids (Gewalf): 130
+    - Witches (Fujiwara): 124
+  - Suggested full validation architecture:
+    - use replay parser/simulator as oracle for step-by-step expected state,
+    - drive multiplayer websocket/UI actions from the same action stream,
+    - compare normalized state after each action and assert final scores at game end.
+  - Practical coverage note: this single game covers many core interactions (setup, leech accept/decline, conversions, power actions, cult spades, upgrades, favors/towns, pass), but not all faction-specific branches (e.g. Engineers bridge, Halflings split-spade, Cultists selection).
+
+- 2026-02-21 docs/roadmap update request:
+  - User requested commit of all realtime multiplayer work completed so far, with spec expanded to include detailed golden end-to-end validation design for Snellman `4pLeague_S69_D1L1_G2`.
+  - Added deferred roadmap items in `MULTIPLAYER_TODO_LATER.md`:
+    - create login/auth system,
+    - add more golden full-game fixtures for stronger coverage.
+
+- 2026-02-21 BGA browser stats script update (`scripts/bga_tm_arena_faction_stats_browser.js`):
+  - Replaced older single-player script with batch collector using hardcoded Terra Mystica season IDs (from Hall of Fame DOM).
+  - Supports date-range config (`startDateStr`, optional `endDateStr`), arena-only filtering, and cross-player game dedupe by `table_id`.
+  - Added conservative request throttling controls (`requestDelayMs`, `parallelism`) to reduce request burst rate.
+  - Added per-faction aggregates for tracked players: frequency, placement counts, average rank, average starting VP, average total VP awarded, average total VP gained, average total points scored.
+  - Added per-faction population standard deviation for total points scored (`stddevTotalPointsScored`).
+  - CSV helpers now include robust download behavior plus an on-page fallback link if the browser blocks automatic download:
+    - `downloadTmBatchFactionSummaryCsv()`
+    - `downloadTmBatchFactionRecordsCsv()`
+- 2026-02-21 BGA batch browser stats robustness + tie handling:
+  - `scripts/bga_tm_arena_faction_stats_browser.js` now parses `tableinfos` player/stat payloads defensively across object-keyed and array-indexed shapes (including alternate player id fields like `player_id`/`userid`).
+  - Added score/rank normalization fallback behavior so batch extraction aligns with single-game validation output.
+  - `avgPlacement` now uses mid-rank tie handling by score (examples: tie for 1st => 1.5 each; tie for 2nd => 2.5 each; three-way tie for 1st/2nd/3rd => 2.0 each).
+  - Rank buckets (`first`/`second`/`third`/`fourth`) continue using raw rank values, and records now include both `rank_raw` and `rank_for_average` in CSV exports.

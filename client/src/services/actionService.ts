@@ -1,65 +1,61 @@
-// Action submission service
 import { useWebSocket } from './WebSocketContext'
+import { useGameStore } from '../stores/gameStore'
 
-export interface SelectFactionActionPayload {
-    type: 'select_faction'
-    playerID: string
-    faction: string
-    gameID: string
+export interface PerformActionPayload {
+  type: string
+  gameID: string
+  actionId: string
+  expectedRevision: number
+  params?: Record<string, unknown>
 }
-
-export interface SetupDwellingActionPayload {
-    type: 'setup_dwelling'
-    playerID: string
-    hex: {
-        q: number
-        r: number
-    }
-    gameID: string
-}
-
-export type ActionPayload = SelectFactionActionPayload | SetupDwellingActionPayload
 
 export interface ActionMessage {
-    type: 'perform_action'
-    payload: ActionPayload
+  type: 'perform_action'
+  payload: PerformActionPayload
 }
 
-export function useActionService(): { submitSetupDwelling: (playerID: string, q: number, r: number, gameID?: string) => void; submitSelectFaction: (playerID: string, faction: string, gameID: string) => void } {
-    const { sendMessage } = useWebSocket()
+const makeActionID = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `action-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
 
-    const submitSetupDwelling = (playerID: string, q: number, r: number, gameID = "2"): void => {
-        const action: ActionMessage = {
-            type: 'perform_action',
-            payload: {
-                type: 'setup_dwelling',
-                playerID,
-                hex: { q, r },
-                gameID
-            }
-        }
+export function useActionService(): {
+  submitAction: (gameID: string, type: string, params?: Record<string, unknown>) => void
+  submitSetupDwelling: (playerID: string, q: number, r: number, gameID?: string) => void
+  submitSelectFaction: (playerID: string, faction: string, gameID: string) => void
+} {
+  const { sendMessage } = useWebSocket()
 
-        // console.log('Submitting setup dwelling action:', action)
-        sendMessage(action)
+  const submitAction = (gameID: string, type: string, params: Record<string, unknown> = {}): void => {
+    const expectedRevision = useGameStore.getState().gameState?.revision ?? 0
+
+    const message: ActionMessage = {
+      type: 'perform_action',
+      payload: {
+        type,
+        gameID,
+        actionId: makeActionID(),
+        expectedRevision,
+        params,
+      },
     }
 
-    const submitSelectFaction = (playerID: string, faction: string, gameID: string): void => {
-        const action: ActionMessage = {
-            type: 'perform_action',
-            payload: {
-                type: 'select_faction',
-                playerID,
-                faction,
-                gameID
-            }
-        }
+    sendMessage(message)
+  }
 
-        // console.log('Submitting select faction action:', action)
-        sendMessage(action)
-    }
+  const submitSetupDwelling = (_playerID: string, q: number, r: number, gameID = '2'): void => {
+    submitAction(gameID, 'setup_dwelling', { hex: { q, r } })
+  }
 
-    return {
-        submitSetupDwelling,
-        submitSelectFaction
-    }
+  const submitSelectFaction = (_playerID: string, faction: string, gameID: string): void => {
+    submitAction(gameID, 'select_faction', { faction })
+  }
+
+  return {
+    submitAction,
+    submitSetupDwelling,
+    submitSelectFaction,
+  }
 }

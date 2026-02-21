@@ -107,14 +107,14 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 	// Track for Cultists ability (if the building player is Cultists)
 	if offer != nil {
 		if bonus, exists := gs.PendingCultistsLeech[offer.EventID]; exists && bonus != nil && bonus.PlayerID == offer.FromPlayerID {
-		bonus.ResolvedCount++
-		if potentialGain > 0 {
-			if accepted {
-				bonus.AcceptedCount++
-			} else {
-				bonus.DeclinedCount++
+			bonus.ResolvedCount++
+			if potentialGain > 0 {
+				if accepted {
+					bonus.AcceptedCount++
+				} else {
+					bonus.DeclinedCount++
+				}
 			}
-		}
 		}
 	}
 
@@ -124,6 +124,11 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 	// Check if all offers for this building are resolved
 	if offer != nil {
 		gs.ResolveCultistsLeechBonus(offer.EventID)
+	}
+
+	// Continue turn flow after the full leech queue resolves.
+	if !gs.HasPendingLeechOffers() && gs.PendingCultistsCultSelection == nil {
+		gs.NextTurn()
 	}
 
 	return nil

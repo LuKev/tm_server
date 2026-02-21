@@ -69,13 +69,7 @@ func (a *SelectFactionAction) Execute(gs *GameState) error {
 
 	// Move to next player or start setup phase
 	if allPlayersHaveFactions(gs) {
-		gs.Phase = PhaseSetup
-		// Reset turn order for setup (usually reverse order for second dwelling, but standard for now)
-		// Standard rules:
-		// 1. Faction selection: Player 1 -> Player N
-		// 2. Dwelling placement: Player 1 -> Player N, then Player N -> Player 1
-		// For now, we just switch phase.
-		gs.CurrentPlayerIndex = 0
+		gs.InitializeSetupSequence()
 	} else {
 		gs.CurrentPlayerIndex++
 		if gs.CurrentPlayerIndex >= len(gs.TurnOrder) {

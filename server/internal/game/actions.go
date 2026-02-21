@@ -32,6 +32,13 @@ const (
 	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
 	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
 	ActionSelectFaction                // Select faction at start of game
+	ActionSetupBonusCard               // Select bonus card during setup
+	ActionSelectTownTile               // Select town tile from pending town formation
+	ActionSelectTownCultTop            // Resolve key-limited town cult top choice
+	ActionDiscardPendingSpade          // Discard one pending free spade from a follow-up chain
+	ActionConversion                   // Free conversion action (does not consume main action)
+	ActionBurnPower                    // Free burn action (does not consume main action)
+	ActionEngineersBridge              // Engineers SH special action: build bridge for workers
 )
 
 // Action represents a player action
@@ -110,6 +117,25 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	}
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building: %v", a.TargetHex)
+	}
+
+	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		targetTerrain := player.Faction.GetHomeTerrain()
+		if a.TargetTerrain != models.TerrainTypeUnknown {
+			targetTerrain = a.TargetTerrain
+		}
+		requiredSpades := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
+		if player.Faction.GetType() == models.FactionGiants {
+			requiredSpades = 2
+		}
+		if requiredSpades <= 0 {
+			return fmt.Errorf("pending spade follow-up must transform terrain")
+		}
+		if a.BuildDwelling {
+			if allowed, ok := gs.PendingSpadeBuildAllowed[a.PlayerID]; ok && !allowed {
+				return fmt.Errorf("cannot build dwelling on remaining pending spade follow-up")
+			}
+		}
 	}
 
 	if err := a.validateAdjacency(gs, player); err != nil {
@@ -355,6 +381,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 				gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
 				if gs.PendingSpades[a.PlayerID] == 0 {
 					delete(gs.PendingSpades, a.PlayerID)
+					delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
 				}
 				remainingToConsume -= vpEligibleFreeSpades
 			}
@@ -379,6 +406,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
 			if gs.PendingSpades[a.PlayerID] == 0 {
 				delete(gs.PendingSpades, a.PlayerID)
+				delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
 			}
 		}
 

@@ -80,5 +80,9 @@ func (a *SelectCultistsCultTrackAction) Execute(gs *GameState) error {
 	// Clear the pending state
 	gs.PendingCultistsCultSelection = nil
 
+	if !gs.HasPendingLeechOffers() {
+		gs.NextTurn()
+	}
+
 	return nil
 }

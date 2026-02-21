@@ -352,9 +352,6 @@ func (cts *CultTrackState) CalculateEndGameScoring() map[string]int {
 // Returns the total power gained from milestone bonuses
 // gs: GameState is optional - passed to AdvancePlayer for position 10 validation
 func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType models.TownTileType, player *Player, gs *GameState) int {
-	totalPowerGained := 0
-	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
-
 	var advanceAmount int
 	switch townTileType {
 	case models.TownTile8Points:
@@ -365,17 +362,58 @@ func (cts *CultTrackState) ApplyTownCultBonus(playerID string, townTileType mode
 		return 0
 	}
 
-	// Advance on all 4 cult tracks
-	for _, track := range tracks {
-		advanced, _ := cts.AdvancePlayer(playerID, track, advanceAmount, player, gs)
+	return cts.ApplyTownCultBonusWithTopChoice(playerID, advanceAmount, player, gs, nil)
+}
 
-		// Track power gained (AdvancePlayer handles milestone bonuses internally)
-		// We need to calculate how much power was actually gained
-		// This is a bit tricky since AdvancePlayer modifies the player's power directly
-		// For now, we'll just track that advancement occurred
+// GetTownCultTopCandidates returns cult tracks that would top (reach 10) from a town cult bonus.
+func (cts *CultTrackState) GetTownCultTopCandidates(playerID string, advanceAmount int, _ *Player, _ *GameState) []CultTrack {
+	if advanceAmount <= 0 {
+		return nil
+	}
+	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
+	candidates := make([]CultTrack, 0, len(tracks))
+	for _, track := range tracks {
+		currentPos := cts.GetPosition(playerID, track)
+		if currentPos >= 10 {
+			continue
+		}
+		if currentPos+advanceAmount < 10 {
+			continue
+		}
+		if occupier, occupied := cts.Position10Occupied[track]; occupied && occupier != playerID {
+			continue
+		}
+		candidates = append(candidates, track)
+	}
+	return candidates
+}
+
+// ApplyTownCultBonusWithTopChoice applies a town cult bonus with optional forced top choices.
+// If topChoices is nil, topping is allowed on any legal track.
+func (cts *CultTrackState) ApplyTownCultBonusWithTopChoice(playerID string, advanceAmount int, player *Player, gs *GameState, topChoices map[CultTrack]bool) int {
+	totalPowerGained := 0
+	if advanceAmount <= 0 {
+		return totalPowerGained
+	}
+
+	tracks := []CultTrack{CultFire, CultWater, CultEarth, CultAir}
+	for _, track := range tracks {
+		currentPos := cts.GetPosition(playerID, track)
+		targetPos := currentPos + advanceAmount
+		if targetPos > 10 {
+			targetPos = 10
+		}
+		if targetPos == 10 && currentPos < 10 && topChoices != nil && !topChoices[track] {
+			targetPos = 9
+		}
+
+		spaces := targetPos - currentPos
+		if spaces <= 0 {
+			continue
+		}
+		advanced, _ := cts.AdvancePlayer(playerID, track, spaces, player, gs)
 		if advanced > 0 {
-			// Power is already granted by AdvancePlayer through milestone bonuses
-			totalPowerGained += advanced // This is just for tracking, actual power already applied
+			totalPowerGained += advanced
 		}
 	}
 

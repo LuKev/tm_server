@@ -2,8 +2,14 @@ import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import './FavorTiles.css';
+import { type FavorTileType } from '../../types/game.types';
 
-export const FavorTiles: React.FC = () => {
+interface FavorTilesProps {
+    onTileClick?: (tileType: FavorTileType) => void;
+    isTileClickable?: (tileType: FavorTileType, availableCount: number) => boolean;
+}
+
+export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClickable }) => {
     const gameState = useGameStore(state => state.gameState);
     const available = gameState?.favorTiles?.available || {};
 
@@ -19,7 +25,20 @@ export const FavorTiles: React.FC = () => {
                 }
 
                 return (
-                    <div key={tile.id} className="favor-tile">
+                    <button
+                        type="button"
+                        key={tile.id}
+                        className="favor-tile"
+                        onClick={() => { onTileClick?.(tile.type); }}
+                        disabled={isTileClickable ? !isTileClickable(tile.type, count) : false}
+                        style={{
+                            cursor: onTileClick ? ((isTileClickable && !isTileClickable(tile.type, count)) ? 'not-allowed' : 'pointer') : 'default',
+                            opacity: (isTileClickable && !isTileClickable(tile.type, count)) ? 0.55 : 1,
+                            background: 'transparent',
+                            border: 'none',
+                            padding: 0,
+                        }}
+                    >
                         {/* Render underlying stack layers (if any) */}
                         {Array.from({ length: stackHeight - 1 }).map((_, index) => {
                             const offset = (stackHeight - 1 - index) * 3;
@@ -82,7 +101,7 @@ export const FavorTiles: React.FC = () => {
                             )}
 
                         </div>
-                    </div>
+                    </button>
                 );
             })}
         </div>

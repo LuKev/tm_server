@@ -419,19 +419,37 @@ func TestPowerAction_Spade2TwoHexes(t *testing.T) {
 		t.Errorf("expected dwelling on first hex, got %v", mapHex1.Building.Type)
 	}
 
-	// Second hex should still be Swamp (not transformed)
-	mapHex2 := gs.Map.GetHex(targetHex2)
-	if mapHex2.Terrain != models.TerrainSwamp {
-		t.Errorf("expected second hex to remain Swamp, got %v", mapHex2.Terrain)
+	if gs.PendingSpades["player1"] != 1 {
+		t.Fatalf("expected one pending follow-up spade, got %d", gs.PendingSpades["player1"])
 	}
-	if mapHex2.Building != nil {
-		t.Error("expected no building on second hex")
+	if gs.PendingSpadeBuildAllowed["player1"] {
+		t.Fatalf("expected follow-up build to be disallowed after first build")
 	}
 
-	// Note: According to the rulebook, if you have 2 free spades and only need 1 for the first hex,
-	// you MAY spend the second spade on another hex, but you may NOT place a dwelling on that other space.
-	// This test verifies that the current implementation only transforms and builds on ONE hex.
-	// A future enhancement could allow using the extra spade on a second hex for transform only.
+	// Second transform cannot include dwelling build because first transform already built.
+	illegalBuild := NewTransformAndBuildAction("player1", targetHex2, true, models.TerrainPlains)
+	if err := illegalBuild.Validate(gs); err == nil {
+		t.Fatalf("expected follow-up build to be rejected")
+	}
+
+	followup := NewTransformAndBuildAction("player1", targetHex2, false, models.TerrainPlains)
+	if err := followup.Execute(gs); err != nil {
+		t.Fatalf("expected second transform using pending spade to succeed: %v", err)
+	}
+
+	mapHex2 := gs.Map.GetHex(targetHex2)
+	if mapHex2.Terrain != models.TerrainPlains {
+		t.Errorf("expected second hex to be transformed to Plains, got %v", mapHex2.Terrain)
+	}
+	if mapHex2.Building != nil {
+		t.Error("expected no building on second hex follow-up")
+	}
+	if _, ok := gs.PendingSpades["player1"]; ok {
+		t.Fatalf("expected pending spade to be cleared after follow-up transform")
+	}
+	if _, ok := gs.PendingSpadeBuildAllowed["player1"]; ok {
+		t.Fatalf("expected pending spade build policy to be cleared after follow-up transform")
+	}
 }
 
 func TestPowerAction_OncePerRound(t *testing.T) {

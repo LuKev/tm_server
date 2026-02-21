@@ -10,10 +10,19 @@ import { type PowerActionType } from '../../types/game.types';
 
 interface GameBoardProps {
   onHexClick?: (q: number, r: number) => void;
+  onBridgeEdgeClick?: (from: { q: number; r: number }, to: { q: number; r: number }) => void;
+  bridgeEdgeSelectionEnabled?: boolean;
+  onPowerActionClick?: (action: PowerActionType) => void;
   isReplayMode?: boolean;
 }
 
-export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick, isReplayMode }): React.ReactElement => {
+export const GameBoard: React.FC<GameBoardProps> = ({
+  onHexClick,
+  onBridgeEdgeClick,
+  bridgeEdgeSelectionEnabled,
+  onPowerActionClick,
+  isReplayMode
+}): React.ReactElement => {
   const gameState = useGameStore(s => s.gameState);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
 
@@ -45,9 +54,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick, isReplayMode }
     highlightedHexes.add(hoveredHex);
   }
 
-  const handlePowerActionClick = (_action: PowerActionType): void => {
-    // console.log(`Power Action clicked: ${PowerActionType[action]}`);
-    // TODO: Implement power action submission
+  const handlePowerActionClick = (action: PowerActionType): void => {
+    onPowerActionClick?.(action);
   };
 
   // Merge dynamic terrain data from gameState
@@ -77,6 +85,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({ onHexClick, isReplayMode }
           bridges={gameState?.map?.bridges || []}
           highlightedHexes={highlightedHexes}
           onHexClick={handleHexClick}
+          onBridgeEdgeClick={onBridgeEdgeClick}
+          bridgeEdgeSelectionEnabled={bridgeEdgeSelectionEnabled}
           onHexHover={handleHexHover}
           showCoords={!isReplayMode}
           disableHover={isReplayMode}

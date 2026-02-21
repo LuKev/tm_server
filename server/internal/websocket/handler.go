@@ -37,11 +37,12 @@ func ServeWs(hub *Hub, deps ServerDeps, w http.ResponseWriter, r *http.Request) 
 	clientID := r.RemoteAddr
 
 	client := &Client{
-		hub:  hub,
-		conn: conn,
-		send: make(chan []byte, 256),
-		id:   clientID,
-		deps: deps,
+		hub:         hub,
+		conn:        conn,
+		send:        make(chan []byte, 256),
+		id:          clientID,
+		deps:        deps,
+		seatsByGame: make(map[string]string),
 	}
 	client.hub.register <- client
 

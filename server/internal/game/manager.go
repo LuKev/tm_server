@@ -2,35 +2,68 @@ package game
 
 import (
 	"fmt"
+	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/lukev/tm_server/internal/models"
 )
 
-// Manager owns and guards access to game state instances in-memory.
-// This will later be backed by persistent storage.
-
-// Manager handles multiple game instances
-type Manager struct {
-	mu    sync.RWMutex
-	games map[string]*GameState // Changed from models.GameState to game.GameState
+// CreateGameOptions controls game creation behavior.
+type CreateGameOptions struct {
+	RandomizeTurnOrder bool
 }
 
-// NewManager creates a new game manager
+// ActionMeta provides metadata for action execution.
+type ActionMeta struct {
+	ActionID         string
+	ExpectedRevision int
+	SeatID           string
+}
+
+// ActionResult reports action execution outcome.
+type ActionResult struct {
+	Revision  int
+	Duplicate bool
+}
+
+// RevisionMismatchError indicates stale optimistic concurrency data.
+type RevisionMismatchError struct {
+	Expected int
+	Current  int
+}
+
+func (e *RevisionMismatchError) Error() string {
+	return fmt.Sprintf("revision mismatch: expected %d, current %d", e.Expected, e.Current)
+}
+
+// Manager handles multiple in-memory game instances.
+type Manager struct {
+	mu              sync.RWMutex
+	games           map[string]*GameState
+	revisions       map[string]int
+	appliedActionID map[string]map[string]int
+}
+
+// NewManager creates a new game manager.
 func NewManager() *Manager {
 	return &Manager{
-		games: make(map[string]*GameState),
+		games:           make(map[string]*GameState),
+		revisions:       make(map[string]int),
+		appliedActionID: make(map[string]map[string]int),
 	}
 }
 
-// CreateGameWithState creates a game with an existing GameState
+// CreateGameWithState creates a game with an existing GameState.
 func (m *Manager) CreateGameWithState(id string, gs *GameState) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.games[id] = gs
+	m.revisions[id] = 0
+	m.appliedActionID[id] = make(map[string]int)
 }
 
-// GetGame retrieves a game by ID
+// GetGame retrieves a game by ID.
 func (m *Manager) GetGame(id string) (*GameState, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -38,7 +71,18 @@ func (m *Manager) GetGame(id string) (*GameState, bool) {
 	return g, ok
 }
 
-// ListGames returns all active games
+// GetRevision returns the current revision for a game.
+func (m *Manager) GetRevision(id string) (int, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, ok := m.games[id]
+	if !ok {
+		return 0, false
+	}
+	return m.revisions[id], true
+}
+
+// ListGames returns all active games.
 func (m *Manager) ListGames() []*GameState {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -49,32 +93,204 @@ func (m *Manager) ListGames() []*GameState {
 	return out
 }
 
-// ExecuteAction executes an action in the specified game
+// ExecuteAction executes an action in the specified game (legacy API).
 func (m *Manager) ExecuteAction(gameID string, action Action) error {
+	_, err := m.ExecuteActionWithMeta(gameID, action, ActionMeta{ExpectedRevision: -1})
+	return err
+}
+
+// ExecuteActionWithMeta executes an action with revision/idempotency checks.
+func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta ActionMeta) (*ActionResult, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	gs := m.games[gameID]
 	if gs == nil {
-		return fmt.Errorf("game %s not found", gameID)
+		return nil, fmt.Errorf("game %s not found", gameID)
 	}
 
-	// Validate the action
+	currentRevision := m.revisions[gameID]
+	if meta.ActionID != "" {
+		if _, exists := m.appliedActionID[gameID][meta.ActionID]; exists {
+			return &ActionResult{Revision: currentRevision, Duplicate: true}, nil
+		}
+	}
+
+	if meta.ExpectedRevision >= 0 && meta.ExpectedRevision != currentRevision {
+		return nil, &RevisionMismatchError{Expected: meta.ExpectedRevision, Current: currentRevision}
+	}
+
+	if err := validateActionTurnAndPendingState(gs, action); err != nil {
+		return nil, fmt.Errorf("action turn validation failed: %w", err)
+	}
+
 	if err := action.Validate(gs); err != nil {
-		return fmt.Errorf("action validation failed: %w", err)
+		return nil, fmt.Errorf("action validation failed: %w", err)
 	}
 
-	// Execute the action
 	if err := action.Execute(gs); err != nil {
-		return fmt.Errorf("action execution failed: %w", err)
+		return nil, fmt.Errorf("action execution failed: %w", err)
+	}
+
+	currentRevision++
+	m.revisions[gameID] = currentRevision
+	if meta.ActionID != "" {
+		if m.appliedActionID[gameID] == nil {
+			m.appliedActionID[gameID] = make(map[string]int)
+		}
+		m.appliedActionID[gameID][meta.ActionID] = currentRevision
+	}
+
+	return &ActionResult{Revision: currentRevision, Duplicate: false}, nil
+}
+
+func validateActionTurnAndPendingState(gs *GameState, action Action) error {
+	actionType := action.GetType()
+	playerID := action.GetPlayerID()
+
+	if gs.HasPendingLeechOffers() {
+		expected := gs.GetNextLeechResponder()
+		if actionType != ActionAcceptPowerLeech && actionType != ActionDeclinePowerLeech {
+			return fmt.Errorf("leech response pending for player %s", expected)
+		}
+		if expected != "" && expected != playerID {
+			return fmt.Errorf("leech response required from player %s", expected)
+		}
+		return nil
+	}
+
+	if gs.PendingCultistsCultSelection != nil {
+		if actionType != ActionSelectCultistsCultTrack {
+			return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
+		}
+		if playerID != gs.PendingCultistsCultSelection.PlayerID {
+			return fmt.Errorf("cultists cult selection required from player %s", gs.PendingCultistsCultSelection.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingFavorTileSelection != nil {
+		if actionType != ActionSelectFavorTile {
+			return fmt.Errorf("favor tile selection pending for player %s", gs.PendingFavorTileSelection.PlayerID)
+		}
+		if playerID != gs.PendingFavorTileSelection.PlayerID {
+			return fmt.Errorf("favor tile selection required from player %s", gs.PendingFavorTileSelection.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingDarklingsPriestOrdination != nil {
+		if actionType != ActionUseDarklingsPriestOrdination {
+			return fmt.Errorf("darklings priest ordination pending for player %s", gs.PendingDarklingsPriestOrdination.PlayerID)
+		}
+		if playerID != gs.PendingDarklingsPriestOrdination.PlayerID {
+			return fmt.Errorf("darklings priest ordination required from player %s", gs.PendingDarklingsPriestOrdination.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingHalflingsSpades != nil {
+		if playerID != gs.PendingHalflingsSpades.PlayerID {
+			return fmt.Errorf("halflings spade follow-up required from player %s", gs.PendingHalflingsSpades.PlayerID)
+		}
+		if actionType != ActionApplyHalflingsSpade && actionType != ActionBuildHalflingsDwelling && actionType != ActionSkipHalflingsDwelling {
+			return fmt.Errorf("halflings spade follow-up pending for player %s", gs.PendingHalflingsSpades.PlayerID)
+		}
+		return nil
+	}
+
+	if requiredPlayer, _ := gs.GetPendingSpadeFollowupPlayer(); requiredPlayer != "" {
+		if playerID != requiredPlayer {
+			return fmt.Errorf("spade follow-up required from player %s", requiredPlayer)
+		}
+		if actionType != ActionTransformAndBuild && actionType != ActionDiscardPendingSpade {
+			return fmt.Errorf("spade follow-up pending for player %s", requiredPlayer)
+		}
+		return nil
+	}
+
+	if requiredPlayer, _ := gs.GetPendingCultRewardSpadePlayer(); requiredPlayer != "" {
+		if playerID != requiredPlayer {
+			return fmt.Errorf("cult reward spade follow-up required from player %s", requiredPlayer)
+		}
+		if actionType != ActionUseCultSpade {
+			return fmt.Errorf("cult reward spade follow-up pending for player %s", requiredPlayer)
+		}
+		return nil
+	}
+
+	if gs.PendingTownCultTopChoice != nil {
+		if actionType != ActionSelectTownCultTop {
+			return fmt.Errorf("town cult-top choice pending for player %s", gs.PendingTownCultTopChoice.PlayerID)
+		}
+		if playerID != gs.PendingTownCultTopChoice.PlayerID {
+			return fmt.Errorf("town cult-top choice required from player %s", gs.PendingTownCultTopChoice.PlayerID)
+		}
+		return nil
+	}
+
+	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
+		if actionType != ActionSelectTownTile {
+			return fmt.Errorf("town tile selection pending for player %s", townPlayer)
+		}
+		if playerID != townPlayer {
+			return fmt.Errorf("town tile selection required from player %s", townPlayer)
+		}
+		return nil
+	}
+
+	if gs.Phase == PhaseSetup && gs.SetupSubphase == SetupSubphaseBonusCards && actionType != ActionSetupBonusCard {
+		return fmt.Errorf("setup bonus card selection is required")
+	}
+
+	if actionType == ActionAcceptPowerLeech || actionType == ActionDeclinePowerLeech {
+		return fmt.Errorf("no pending leech offer for player")
+	}
+
+	if actionType == ActionSelectTownTile || actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
+		return fmt.Errorf("no pending decision for requested action")
+	}
+
+	if actionRequiresTurnOwnership(actionType) {
+		current := gs.GetCurrentPlayer()
+		if current == nil {
+			return fmt.Errorf("no current player")
+		}
+		if current.ID != playerID {
+			return fmt.Errorf("not your turn")
+		}
 	}
 
 	return nil
 }
 
+func actionRequiresTurnOwnership(actionType ActionType) bool {
+	switch actionType {
+	case ActionAcceptPowerLeech,
+		ActionDeclinePowerLeech,
+		ActionSelectFavorTile,
+		ActionSelectTownTile,
+		ActionSelectTownCultTop,
+		ActionUseDarklingsPriestOrdination,
+		ActionApplyHalflingsSpade,
+		ActionBuildHalflingsDwelling,
+		ActionSkipHalflingsDwelling,
+		ActionSetupBonusCard,
+		ActionSelectCultistsCultTrack,
+		ActionDiscardPendingSpade:
+		return false
+	default:
+		return true
+	}
+}
+
 // CreateGame initializes a new game state with the given ID and players.
-// It assigns factions to players in a fixed order for now.
 func (m *Manager) CreateGame(id string, playerIDs []string) error {
+	return m.CreateGameWithOptions(id, playerIDs, CreateGameOptions{RandomizeTurnOrder: true})
+}
+
+// CreateGameWithOptions initializes a new game with explicit options.
+func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts CreateGameOptions) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -87,26 +303,34 @@ func (m *Manager) CreateGame(id string, playerIDs []string) error {
 		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
 	}
 
-	// Initialize bonus cards
 	gs.BonusCards.SelectRandomBonusCards(len(playerIDs))
 
-	// Add players without factions initially
-	for _, pid := range playerIDs {
-		gs.AddPlayer(pid, nil)
+	turnOrder := make([]string, len(playerIDs))
+	copy(turnOrder, playerIDs)
+	if opts.RandomizeTurnOrder {
+		rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+		rng.Shuffle(len(turnOrder), func(i, j int) {
+			turnOrder[i], turnOrder[j] = turnOrder[j], turnOrder[i]
+		})
+	}
+
+	for _, pid := range turnOrder {
+		if err := gs.AddPlayer(pid, nil); err != nil {
+			return fmt.Errorf("failed to add player %s: %w", pid, err)
+		}
 	}
 
 	gs.Phase = PhaseFactionSelection
-
-	// Set turn order
-	gs.TurnOrder = make([]string, len(playerIDs))
-	copy(gs.TurnOrder, playerIDs)
+	gs.TurnOrder = turnOrder
 	gs.CurrentPlayerIndex = 0
 
 	m.games[id] = gs
+	m.revisions[id] = 0
+	m.appliedActionID[id] = make(map[string]int)
 	return nil
 }
 
-// SerializeGameState converts GameState to a JSON-friendly format for the frontend
+// SerializeGameState converts GameState to a JSON-friendly format for the frontend.
 func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
@@ -115,16 +339,18 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 	if gs == nil {
 		return nil
 	}
-	return SerializeState(gs, gameID)
+	return SerializeStateWithRevision(gs, gameID, m.revisions[gameID])
 }
 
-// SerializeState converts the game state to a map for JSON response
-// This ensures consistent field naming (e.g. currentTurn vs CurrentPlayerIndex)
+// SerializeState converts the game state to a map for JSON response.
 func SerializeState(gs *GameState, gameID string) map[string]interface{} {
-	// Build players map
+	return SerializeStateWithRevision(gs, gameID, 0)
+}
+
+// SerializeStateWithRevision converts game state to JSON-friendly map including revision.
+func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[string]interface{} {
 	players := make(map[string]interface{})
 	for playerID, player := range gs.Players {
-
 		var factionType models.FactionType
 		if player.Faction != nil {
 			factionType = player.Faction.GetType()
@@ -132,7 +358,7 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 
 		players[playerID] = map[string]interface{}{
 			"id":      playerID,
-			"name":    playerID, // TODO: Get actual player name
+			"name":    playerID,
 			"faction": factionType,
 			"resources": map[string]interface{}{
 				"coins":   player.Resources.Coins,
@@ -144,23 +370,24 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 					"powerIII": player.Resources.Power.Bowl3,
 				},
 			},
-			"shipping":      player.ShippingLevel,
-			"digging":       player.DiggingLevel,
-			"victoryPoints": player.VictoryPoints,
-			"keys":          player.Keys,
-			"townsFormed":   player.TownsFormed,
-			"townTiles":     player.TownTiles,
+			"shipping":             player.ShippingLevel,
+			"digging":              player.DiggingLevel,
+			"hasPassed":            player.HasPassed,
+			"hasStrongholdAbility": player.HasStrongholdAbility,
+			"victoryPoints":        player.VictoryPoints,
+			"keys":                 player.Keys,
+			"townsFormed":          player.TownsFormed,
+			"townTiles":            player.TownTiles,
+			"specialActionsUsed":   player.SpecialActionsUsed,
 			"cults": map[string]interface{}{
 				"0": player.CultPositions[CultFire],
 				"1": player.CultPositions[CultWater],
 				"2": player.CultPositions[CultEarth],
 				"3": player.CultPositions[CultAir],
 			},
-			"specialActionsUsed": player.SpecialActionsUsed,
 		}
 	}
 
-	// Build map hexes
 	hexes := make(map[string]interface{})
 	for _, mapHex := range gs.Map.Hexes {
 		key := fmt.Sprintf("%d,%d", mapHex.Coord.Q, mapHex.Coord.R)
@@ -183,7 +410,6 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 		hexes[key] = hexData
 	}
 
-	// Build bridges
 	bridges := make([]map[string]interface{}, 0)
 	for bridgeKey, ownerID := range gs.Map.Bridges {
 		var factionType models.FactionType
@@ -206,10 +432,17 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 	}
 
 	return map[string]interface{}{
-		"id":          gameID,
-		"phase":       gs.Phase,
-		"currentTurn": gs.CurrentPlayerIndex,
-		"players":     players,
+		"id":                   gameID,
+		"revision":             revision,
+		"phase":                gs.Phase,
+		"setupSubphase":        gs.SetupSubphase,
+		"setupDwellingOrder":   gs.SetupDwellingOrder,
+		"setupDwellingIndex":   gs.SetupDwellingIndex,
+		"setupBonusOrder":      gs.SetupBonusOrder,
+		"setupBonusIndex":      gs.SetupBonusIndex,
+		"setupPlacedDwellings": gs.SetupPlacedDwellings,
+		"currentTurn":          gs.CurrentPlayerIndex,
+		"players":              players,
 		"map": map[string]interface{}{
 			"hexes":   hexes,
 			"bridges": bridges,
@@ -243,7 +476,6 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 			if gs.FavorTiles == nil {
 				return nil
 			}
-			// Return available tiles and player tiles
 			return map[string]interface{}{
 				"available":   gs.FavorTiles.Available,
 				"playerTiles": gs.FavorTiles.PlayerTiles,
@@ -261,6 +493,17 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 			}
 			return gs.CultTracks
 		}(),
+		"pendingLeechOffers":               gs.PendingLeechOffers,
+		"pendingTownFormations":            gs.PendingTownFormations,
+		"pendingSpades":                    gs.PendingSpades,
+		"pendingSpadeBuildAllowed":         gs.PendingSpadeBuildAllowed,
+		"pendingCultRewardSpades":          gs.PendingCultRewardSpades,
+		"pendingFavorTileSelection":        gs.PendingFavorTileSelection,
+		"pendingHalflingsSpades":           gs.PendingHalflingsSpades,
+		"pendingDarklingsPriestOrdination": gs.PendingDarklingsPriestOrdination,
+		"pendingCultistsCultSelection":     gs.PendingCultistsCultSelection,
+		"pendingTownCultTopChoice":         gs.PendingTownCultTopChoice,
+		"pendingDecision":                  serializePendingDecision(gs),
 		"finalScoring": func() interface{} {
 			if gs.FinalScoring == nil {
 				return nil
@@ -268,4 +511,100 @@ func SerializeState(gs *GameState, gameID string) map[string]interface{} {
 			return gs.FinalScoring
 		}(),
 	}
+}
+
+func serializePendingDecision(gs *GameState) interface{} {
+	if gs == nil {
+		return nil
+	}
+
+	if gs.Phase == PhaseSetup && gs.SetupSubphase == SetupSubphaseBonusCards {
+		if playerID := gs.currentSetupBonusPlayerID(); playerID != "" {
+			return map[string]interface{}{
+				"type":     "setup_bonus_card",
+				"playerId": playerID,
+			}
+		}
+	}
+
+	if gs.HasPendingLeechOffers() {
+		if playerID := gs.GetNextLeechResponder(); playerID != "" {
+			offers := gs.PendingLeechOffers[playerID]
+			return map[string]interface{}{
+				"type":     "leech_offer",
+				"playerId": playerID,
+				"offers":   offers,
+			}
+		}
+	}
+
+	if gs.PendingCultistsCultSelection != nil {
+		return map[string]interface{}{
+			"type":     "cultists_cult_choice",
+			"playerId": gs.PendingCultistsCultSelection.PlayerID,
+		}
+	}
+
+	if gs.PendingFavorTileSelection != nil {
+		return map[string]interface{}{
+			"type":     "favor_tile_selection",
+			"playerId": gs.PendingFavorTileSelection.PlayerID,
+			"count":    gs.PendingFavorTileSelection.Count,
+		}
+	}
+
+	if gs.PendingDarklingsPriestOrdination != nil {
+		return map[string]interface{}{
+			"type":     "darklings_ordination",
+			"playerId": gs.PendingDarklingsPriestOrdination.PlayerID,
+		}
+	}
+
+	if gs.PendingHalflingsSpades != nil {
+		return map[string]interface{}{
+			"type":            "halflings_spades",
+			"playerId":        gs.PendingHalflingsSpades.PlayerID,
+			"spadesRemaining": gs.PendingHalflingsSpades.SpadesRemaining,
+		}
+	}
+
+	if playerID, count := gs.GetPendingSpadeFollowupPlayer(); playerID != "" {
+		canBuildDwelling := true
+		if allowed, ok := gs.PendingSpadeBuildAllowed[playerID]; ok {
+			canBuildDwelling = allowed
+		}
+		return map[string]interface{}{
+			"type":             "spade_followup",
+			"playerId":         playerID,
+			"spadesRemaining":  count,
+			"canBuildDwelling": canBuildDwelling,
+		}
+	}
+
+	if playerID, count := gs.GetPendingCultRewardSpadePlayer(); playerID != "" {
+		return map[string]interface{}{
+			"type":            "cult_reward_spade",
+			"playerId":        playerID,
+			"spadesRemaining": count,
+		}
+	}
+
+	if gs.PendingTownCultTopChoice != nil {
+		return map[string]interface{}{
+			"type":            "town_cult_top_choice",
+			"playerId":        gs.PendingTownCultTopChoice.PlayerID,
+			"candidateTracks": gs.PendingTownCultTopChoice.CandidateTracks,
+			"maxSelections":   gs.PendingTownCultTopChoice.MaxSelections,
+			"advanceAmount":   gs.PendingTownCultTopChoice.AdvanceAmount,
+		}
+	}
+
+	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
+		return map[string]interface{}{
+			"type":     "town_tile_selection",
+			"playerId": townPlayer,
+		}
+	}
+
+	return nil
 }

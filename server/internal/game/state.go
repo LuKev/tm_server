@@ -19,6 +19,12 @@ type GameState struct {
 	Players                          map[string]*Player                 `json:"players"`
 	Round                            int                                `json:"round"`
 	Phase                            GamePhase                          `json:"phase"`
+	SetupSubphase                    SetupSubphase                      `json:"setupSubphase"`
+	SetupDwellingOrder               []string                           `json:"setupDwellingOrder"`
+	SetupDwellingIndex               int                                `json:"setupDwellingIndex"`
+	SetupBonusOrder                  []string                           `json:"setupBonusOrder"`
+	SetupBonusIndex                  int                                `json:"setupBonusIndex"`
+	SetupPlacedDwellings             map[string]int                     `json:"setupPlacedDwellings"`
 	TurnOrder                        []string                           `json:"turnOrder"`
 	CurrentPlayerIndex               int                                `json:"currentPlayerIndex"`
 	PassOrder                        []string                           `json:"passOrder"`
@@ -31,6 +37,7 @@ type GameState struct {
 	PendingLeechOffers               map[string][]*PowerLeechOffer      `json:"pendingLeechOffers"`
 	PendingTownFormations            map[string][]*PendingTownFormation `json:"pendingTownFormations"`
 	PendingSpades                    map[string]int                     `json:"pendingSpades"`
+	PendingSpadeBuildAllowed         map[string]bool                    `json:"pendingSpadeBuildAllowed"`
 	PendingCultRewardSpades          map[string]int                     `json:"pendingCultRewardSpades"`
 	PendingCultistsLeech             map[int]*CultistsLeechBonus        `json:"pendingCultistsLeech"`
 	NextLeechEventID                 int                                `json:"-"`
@@ -39,6 +46,7 @@ type GameState struct {
 	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
 	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
+	PendingTownCultTopChoice         *PendingTownCultTopChoice          `json:"pendingTownCultTopChoice"`
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
 	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
 	SuppressTurnAdvance              bool                               `json:"-"`
@@ -90,6 +98,15 @@ type PendingCultistsCultSelection struct {
 	PlayerID string
 }
 
+// PendingTownCultTopChoice represents a key-limited cult-top choice from town tile cult bonuses.
+// Triggered when TW8/TW2 would top multiple cult tracks but player lacks enough keys.
+type PendingTownCultTopChoice struct {
+	PlayerID        string
+	AdvanceAmount   int
+	CandidateTracks []CultTrack
+	MaxSelections   int
+}
+
 // GamePhase represents the current phase of the game
 type GamePhase int
 
@@ -100,6 +117,16 @@ const (
 	PhaseAction                            // Players take actions
 	PhaseCleanup                           // End-of-round maintenance and scoring
 	PhaseEnd                               // Game over (after round 6)
+)
+
+// SetupSubphase tracks detailed setup sequencing after faction selection.
+type SetupSubphase string
+
+const (
+	SetupSubphaseNone       SetupSubphase = "none"
+	SetupSubphaseDwellings  SetupSubphase = "dwellings"
+	SetupSubphaseBonusCards SetupSubphase = "bonus_cards"
+	SetupSubphaseComplete   SetupSubphase = "complete"
 )
 
 // CultTrack represents the four cult tracks
@@ -138,6 +165,7 @@ func NewGameState() *GameState {
 		Players:                   make(map[string]*Player),
 		Round:                     1,
 		Phase:                     PhaseSetup,
+		SetupSubphase:             SetupSubphaseNone,
 		PowerActions:              NewPowerActionState(),
 		CultTracks:                NewCultTrackState(),
 		FavorTiles:                NewFavorTileState(),
@@ -147,7 +175,9 @@ func NewGameState() *GameState {
 		PendingLeechOffers:        make(map[string][]*PowerLeechOffer),
 		PendingTownFormations:     make(map[string][]*PendingTownFormation),
 		PendingSpades:             make(map[string]int),
+		PendingSpadeBuildAllowed:  make(map[string]bool),
 		SkipAbilityUsedThisAction: make(map[string][]board.Hex),
+		SetupPlacedDwellings:      make(map[string]int),
 	}
 }
 
@@ -586,6 +616,127 @@ func (gs *GameState) GetCurrentPlayer() *Player {
 	return gs.GetPlayer(gs.TurnOrder[gs.CurrentPlayerIndex])
 }
 
+func (gs *GameState) setCurrentPlayerByID(playerID string) {
+	for i, id := range gs.TurnOrder {
+		if id == playerID {
+			gs.CurrentPlayerIndex = i
+			return
+		}
+	}
+}
+
+func (gs *GameState) currentSetupDwellingPlayerID() string {
+	if gs.SetupDwellingIndex < 0 || gs.SetupDwellingIndex >= len(gs.SetupDwellingOrder) {
+		return ""
+	}
+	return gs.SetupDwellingOrder[gs.SetupDwellingIndex]
+}
+
+func (gs *GameState) currentSetupBonusPlayerID() string {
+	if gs.SetupBonusIndex < 0 || gs.SetupBonusIndex >= len(gs.SetupBonusOrder) {
+		return ""
+	}
+	return gs.SetupBonusOrder[gs.SetupBonusIndex]
+}
+
+func (gs *GameState) InitializeSetupSequence() {
+	gs.Phase = PhaseSetup
+	gs.SetupSubphase = SetupSubphaseDwellings
+	gs.SetupDwellingOrder = []string{}
+	gs.SetupDwellingIndex = 0
+	gs.SetupBonusOrder = []string{}
+	gs.SetupBonusIndex = 0
+	gs.SetupPlacedDwellings = make(map[string]int)
+
+	for _, playerID := range gs.TurnOrder {
+		player := gs.GetPlayer(playerID)
+		if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionChaosMagicians {
+			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
+		}
+	}
+
+	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
+		playerID := gs.TurnOrder[i]
+		player := gs.GetPlayer(playerID)
+		if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionChaosMagicians {
+			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
+		}
+	}
+
+	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
+		playerID := gs.TurnOrder[i]
+		player := gs.GetPlayer(playerID)
+		if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionNomads {
+			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
+		}
+	}
+
+	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
+		playerID := gs.TurnOrder[i]
+		player := gs.GetPlayer(playerID)
+		if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionChaosMagicians {
+			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
+		}
+	}
+
+	if current := gs.currentSetupDwellingPlayerID(); current != "" {
+		gs.setCurrentPlayerByID(current)
+	}
+}
+
+func (gs *GameState) AdvanceSetupAfterDwelling() {
+	gs.SetupDwellingIndex++
+	if gs.SetupDwellingIndex < len(gs.SetupDwellingOrder) {
+		if current := gs.currentSetupDwellingPlayerID(); current != "" {
+			gs.setCurrentPlayerByID(current)
+		}
+		return
+	}
+
+	gs.SetupSubphase = SetupSubphaseBonusCards
+	gs.SetupBonusOrder = []string{}
+	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
+		gs.SetupBonusOrder = append(gs.SetupBonusOrder, gs.TurnOrder[i])
+	}
+	gs.SetupBonusIndex = 0
+	if current := gs.currentSetupBonusPlayerID(); current != "" {
+		gs.setCurrentPlayerByID(current)
+	}
+}
+
+func (gs *GameState) AdvanceSetupAfterBonusSelection() {
+	gs.SetupBonusIndex++
+	if gs.SetupBonusIndex < len(gs.SetupBonusOrder) {
+		if current := gs.currentSetupBonusPlayerID(); current != "" {
+			gs.setCurrentPlayerByID(current)
+		}
+		return
+	}
+
+	gs.SetupSubphase = SetupSubphaseComplete
+	gs.CompleteSetupAndStartRoundOne()
+}
+
+func (gs *GameState) CompleteSetupAndStartRoundOne() {
+	if gs.BonusCards != nil {
+		gs.BonusCards.AddCoinsToLeftoverCards()
+	}
+
+	gs.PassOrder = []string{}
+	gs.PowerActions.ResetForNewRound()
+	gs.BonusCards.PlayerHasCard = make(map[string]bool)
+	for _, player := range gs.Players {
+		player.HasPassed = false
+		player.SpecialActionsUsed = make(map[SpecialActionType]bool)
+	}
+
+	gs.Phase = PhaseIncome
+	gs.GrantIncome()
+	gs.Phase = PhaseAction
+	gs.CurrentPlayerIndex = 0
+	gs.SetupSubphase = SetupSubphaseComplete
+}
+
 // NextTurn advances to the next player's turn
 // Returns true if we've completed a full round of turns
 func (gs *GameState) NextTurn() bool {
@@ -991,6 +1142,9 @@ func (gs *GameState) AlchemistsConvertCoinsToVP(playerID string, coins int) erro
 
 // HasPendingActions checks if a player has any pending actions that block turn advancement
 func (gs *GameState) HasPendingActions(playerID string) bool {
+	if gs.HasPendingLeechOffers() {
+		return true
+	}
 	if gs.PendingFavorTileSelection != nil && gs.PendingFavorTileSelection.PlayerID == playerID {
 		return true
 	}
@@ -1005,9 +1159,84 @@ func (gs *GameState) HasPendingActions(playerID string) bool {
 	if gs.PendingCultistsCultSelection != nil && gs.PendingCultistsCultSelection.PlayerID == playerID {
 		return true
 	}
+	if gs.PendingTownCultTopChoice != nil && gs.PendingTownCultTopChoice.PlayerID == playerID {
+		return true
+	}
+	if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+		return true
+	}
 	// Check for pending spades (from power actions or cult track advancement)
 	if spades, ok := gs.PendingSpades[playerID]; ok && spades > 0 {
 		return true
 	}
+	if spades, ok := gs.PendingCultRewardSpades[playerID]; ok && spades > 0 {
+		return true
+	}
 	return false
+}
+
+func (gs *GameState) GetPendingTownSelectionPlayer() string {
+	for _, playerID := range gs.TurnOrder {
+		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+			return playerID
+		}
+	}
+	return ""
+}
+
+func (gs *GameState) GetPendingSpadeFollowupPlayer() (string, int) {
+	if len(gs.PendingSpades) == 0 {
+		return "", 0
+	}
+
+	for _, playerID := range gs.TurnOrder {
+		if count := gs.PendingSpades[playerID]; count > 0 {
+			return playerID, count
+		}
+	}
+	for playerID, count := range gs.PendingSpades {
+		if count > 0 {
+			return playerID, count
+		}
+	}
+	return "", 0
+}
+
+func (gs *GameState) GetPendingCultRewardSpadePlayer() (string, int) {
+	if len(gs.PendingCultRewardSpades) == 0 {
+		return "", 0
+	}
+
+	for _, playerID := range gs.TurnOrder {
+		if count := gs.PendingCultRewardSpades[playerID]; count > 0 {
+			return playerID, count
+		}
+	}
+	for playerID, count := range gs.PendingCultRewardSpades {
+		if count > 0 {
+			return playerID, count
+		}
+	}
+	return "", 0
+}
+
+func (gs *GameState) GetNextLeechResponder() string {
+	if !gs.HasPendingLeechOffers() || len(gs.TurnOrder) == 0 {
+		return ""
+	}
+
+	startIdx := 0
+	if gs.CurrentPlayerIndex >= 0 && gs.CurrentPlayerIndex < len(gs.TurnOrder) {
+		startIdx = (gs.CurrentPlayerIndex + 1) % len(gs.TurnOrder)
+	}
+
+	for i := 0; i < len(gs.TurnOrder); i++ {
+		idx := (startIdx + i) % len(gs.TurnOrder)
+		playerID := gs.TurnOrder[idx]
+		if offers := gs.PendingLeechOffers[playerID]; len(offers) > 0 {
+			return playerID
+		}
+	}
+
+	return ""
 }

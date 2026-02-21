@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+	"math/rand"
+	"time"
 
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -237,15 +239,11 @@ func (bcs *BonusCardState) SelectRandomBonusCards(playerCount int) []BonusCardTy
 		allCardTypes = append(allCardTypes, cardType)
 	}
 
-	// Randomly shuffle the cards (Fisher-Yates shuffle)
-	// Note: In production, use crypto/rand for better randomness
-	// For now, using a simple shuffle
-	for i := len(allCardTypes) - 1; i > 0; i-- {
-		// In a real implementation, use a proper random source
-		// For now, this is a placeholder that should be replaced with actual random selection
-		j := i // Placeholder - should be: rand.Intn(i + 1)
+	// Randomly shuffle the cards (Fisher-Yates shuffle).
+	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
+	rng.Shuffle(len(allCardTypes), func(i, j int) {
 		allCardTypes[i], allCardTypes[j] = allCardTypes[j], allCardTypes[i]
-	}
+	})
 
 	// Select the first (playerCount + 3) cards
 	numCards := playerCount + 3

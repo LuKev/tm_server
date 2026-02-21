@@ -61,9 +61,11 @@ const TOWN_TILE_CONFIGS: Record<TownTileId, TownTileConfig> = {
 
 interface TownTilesProps {
     availableTiles?: number[]; // List of available TownTileIds (can include duplicates)
+    onTileClick?: (tile: TownTileId) => void;
+    isTileClickable?: (tile: TownTileId, count: number) => boolean;
 }
 
-export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
+export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClick, isTileClickable }) => {
     // Default: 2 of tiles 0-5, 1 of tiles 6 and 7
     const defaultTiles = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7];
     const tiles = availableTiles && availableTiles.length > 0 ? availableTiles : defaultTiles;
@@ -87,8 +89,23 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
                     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     if (!config) return null;
 
+                    const clickable = isTileClickable ? isTileClickable(id as TownTileId, count) : true;
+
                     return (
-                        <div key={id} className="town-tile-slot">
+                        <button
+                            type="button"
+                            key={id}
+                            className="town-tile-slot"
+                            onClick={() => { onTileClick?.(id as TownTileId); }}
+                            disabled={isTileClickable ? !clickable : false}
+                            style={{
+                                cursor: onTileClick ? (clickable ? 'pointer' : 'not-allowed') : 'default',
+                                opacity: clickable ? 1 : 0.55,
+                                background: 'transparent',
+                                border: 'none',
+                                padding: 0,
+                            }}
+                        >
                             {/* Render stack */}
                             {Array.from({ length: Math.min(count, 3) }).map((_, index) => (
                                 <div
@@ -106,7 +123,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles }) => {
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </button>
                     );
                 })}
             </div>
