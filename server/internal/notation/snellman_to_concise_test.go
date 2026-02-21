@@ -10,6 +10,7 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 		name     string
 		input    string
 		expected string
+		faction  string
 	}{
 		{
 			name:     "Witches Ride ACTW",
@@ -57,6 +58,22 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 			expected: "+F.PASS-BON-SHIP-VP",
 		},
 		{
+			name:     "Town row with cult decrease is preserved",
+			input:    "-water. +TW5",
+			expected: "-W.TW8VP",
+		},
+		{
+			name:     "S63 town row keeps negative cult selector",
+			input:    "convert 3PW to 3C. upgrade G4 to TP. -water. +TW5",
+			expected: "C3PW:3C.UP-TH-G4.-W.TW8VP",
+		},
+		{
+			name:     "Non-cultists town row keeps up to three negative cult selectors",
+			input:    "upgrade E9 to SH. -fire. -water. -earth. +TW5",
+			expected: "UP-SH-E9.-F.-W.-E.TW8VP",
+			faction:  "witches",
+		},
+		{
 			name:     "Favor action without inline track remains action token",
 			input:    "action FAV6. convert 1pw to 1c",
 			expected: "ACT-FAV.C1PW:1C",
@@ -75,7 +92,10 @@ func TestConvertSnellmanToConcise_SpecialActions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			faction := "cultists"
+			faction := tt.faction
+			if faction == "" {
+				faction = "cultists"
+			}
 			if strings.Contains(tt.name, "Dig ") {
 				faction = "dwarves"
 			}
@@ -107,6 +127,14 @@ func TestConvertSnellmanToConcise_LegacySpecialActionMappings(t *testing.T) {
 	t.Run("Swarmlings ACTS with TP upgrade maps to ACT-SH-TP", func(t *testing.T) {
 		got := convertCompoundActionToConcise("action ACTS. upgrade C3 to TP", "swarmlings", 0)
 		want := "ACT-SH-TP-C3"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("Giants ACTG with build normalizes to ACT-SH-S and keeps build", func(t *testing.T) {
+		got := convertCompoundActionToConcise("action ACTG. build C5", "giants", 0)
+		want := "ACT-SH-S-C5.C5"
 		if got != want {
 			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
 		}
@@ -159,6 +187,24 @@ func TestConvertSnellmanToConcise_CompoundSendPriestAndBon1SpadeTransform(t *tes
 		}
 	})
 
+	t.Run("BON1 conversion before build preserves ordering", func(t *testing.T) {
+		input := "action BON1. convert 1PW to 1C. convert 1W to 1C. build E8"
+		got := convertCompoundActionToConcise(input, "cultists", 0)
+		want := "ACT-BON-SPD.C1PW:1C.C1W:1C.E8"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("BON1 dig+build preserves explicit dig semantics", func(t *testing.T) {
+		input := "action BON1. dig 2. build D6"
+		got := convertCompoundActionToConcise(input, "darklings", 0)
+		want := "ACT-BON-SPD.DIG2-D6.D6"
+		if got != want {
+			t.Fatalf("convertCompoundActionToConcise() = %v, want %v", got, want)
+		}
+	})
+
 	t.Run("Send priest then conversion stays compound", func(t *testing.T) {
 		input := "send p to AIR. convert 1PW to 1C"
 		got := convertActionToConcise(input, "cultists", false, 2)
@@ -167,6 +213,23 @@ func TestConvertSnellmanToConcise_CompoundSendPriestAndBon1SpadeTransform(t *tes
 			t.Fatalf("convertActionToConcise() = %v, want %v", got, want)
 		}
 	})
+}
+
+func TestSplitConciseActionIntoStandaloneReactions_CultistsLeadingBumpBacktracked(t *testing.T) {
+	var backtracked []string
+	got := splitConciseActionIntoStandaloneReactions("+A.L2-Witches", "cultists", func(bump string) {
+		backtracked = append(backtracked, bump)
+	})
+	want := []string{"L2-Witches"}
+	if len(got) != len(want) {
+		t.Fatalf("splitConciseActionIntoStandaloneReactions() len = %d, want %d (%v)", len(got), len(want), got)
+	}
+	if got[0] != want[0] {
+		t.Fatalf("splitConciseActionIntoStandaloneReactions()[0] = %q, want %q", got[0], want[0])
+	}
+	if len(backtracked) != 1 || backtracked[0] != "+A" {
+		t.Fatalf("backtracked bumps = %v, want [+A]", backtracked)
+	}
 }
 
 func TestExtractSnellmanAction_PreservesLeadingSendPriestInCompound(t *testing.T) {

@@ -1,0 +1,426 @@
+ Default game options
+option strict-leech
+option strict-darkling-sh
+option strict-chaosmagician-sh
+option errata-cultist-power
+option mini-expansion-1
+option shipping-bonus
+option temple-scoring-tile
+option email-notify
+option maintain-player-order
+option variable-turn-order
+ Randomize setup
+Round 1 scoring: SCORE7, SA/SH >> 5
+Round 2 scoring: SCORE5, D >> 2
+Round 3 scoring: SCORE3, D >> 2
+Round 4 scoring: SCORE4, SA/SH >> 5
+Round 5 scoring: SCORE2, TOWN >> 5
+Round 6 scoring: SCORE9, TE >> 4
+Removing tile BON4
+Removing tile BON3
+Removing tile BON7
+Player 1: RA
+Player 2: qlip21
+Player 3: canetts
+Player 4: jere
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		setup
+chaosmagicians		20 VP		15 C		4 W		0 P		5/7/0 PW		2/0/0/0		setup
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build F4
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build E10
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build E6
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build F5
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build B5
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build E9
+chaosmagicians		20 VP		15 C		4 W		0 P		5/7/0 PW		2/0/0/0		build D4
+chaosmagicians		20 VP		15 C		4 W		0 P		5/7/0 PW		2/0/0/0		Pass BON6
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		Pass BON1
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON8
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		Pass BON5
+Round 1 income
+witches		20 VP		15 C	+4	7 W		0 P	+3	2/10/0 PW		0/0/0/2		other_income_for_faction
+darklings		20 VP		15 C	+3	4 W	+1	2 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+cultists		20 VP	+2	17 C	+3	6 W		0 P		5/7/0 PW		1/0/1/0		other_income_for_faction
+chaosmagicians		20 VP		15 C	+4	8 W		0 P		5/7/0 PW		2/0/0/0		other_income_for_faction
+Round 1, turn 1
+witches		20 VP	-2	13 C	-1	6 W		0 P	-8	6/2/0 PW		0/0/0/2	1 1	burn 4. action act5. build e7
+cultists		20 VP		17 C		6 W		0 P	+1	4/8/0 PW		1/0/1/0		Leech 1 from witches
+darklings		20 VP	-3	12 C	-2	2 W		2 P		5/7/0 PW		0/1/1/0	1	Upgrade e10 to tp
+cultists		20 VP	-3	14 C	-2	4 W		0 P		4/8/0 PW		1/0/1/0	2 1	upgrade E6 to TP
+witches		20 VP		13 C		6 W		0 P	+1	5/3/0 PW		0/0/0/2		Leech 1 from darklings
+cultists		20 VP		14 C		4 W		0 P		4/8/0 PW	+1	1/0/1/0		[opponent accepted power]
+witches	-1	19 VP		13 C		6 W		0 P	+2	3/5/0 PW		0/0/0/2		Leech 2 from cultists
+cultists		20 VP		14 C		4 W		0 P		4/8/0 PW		1/0/1/1		+AIR
+chaosmagicians		20 VP		15 C		8 W		0 P	+1	4/8/0 PW		2/0/0/0		Leech 1 from witches
+chaosmagicians		20 VP		15 C		8 W		0 P	+1	3/9/0 PW		2/0/0/0		Leech 1 from cultists
+chaosmagicians		20 VP	-3	12 C	-2	6 W		0 P		3/9/0 PW		2/0/0/0	2 1	upgrade D4 to TP
+witches		19 VP		13 C		6 W		0 P	+1	2/6/0 PW		0/0/0/2		Leech 1 from chaosmagicians
+Round 1, turn 2
+witches		19 VP	-3	10 C	-2	4 W		0 P		2/6/0 PW		0/0/0/2	2 2	upgrade E7 to TP
+chaosmagicians	-1	19 VP		12 C		6 W		0 P	+2	1/11/0 PW		2/0/0/0		Leech 2 from witches
+darklings		20 VP		12 C		2 W	-1	1 P	+1	4/8/0 PW	+3	0/4/1/0		Send p to water
+cultists	-1	19 VP		14 C		4 W		0 P	+2	2/10/0 PW		1/0/1/1		Leech 2 from chaosmagicians
+cultists	-1	18 VP		14 C		4 W		0 P	+2	0/12/0 PW		1/0/1/1		Leech 2 from witches
+cultists		18 VP		14 C	+2	6 W		0 P	-8	4/4/0 PW		1/0/1/1		burn 4. action ACT3
+chaosmagicians		19 VP	-5	7 C	-2	4 W		0 P	+1	0/12/0 PW	+2	3/0/1/0	2 2	upgrade D4 to TE. +FAV11. +FAV9
+cultists	-1	17 VP		14 C		6 W		0 P	+2	2/6/0 PW		1/0/1/1		Leech 2 from chaosmagicians
+witches	-1	18 VP		10 C		4 W		0 P	+2	0/8/0 PW		0/0/0/2		Leech 2 from chaosmagicians
+Round 1, turn 3
+witches	+5	23 VP	-6	4 C	-4	0 W		0 P		0/8/0 PW		0/0/0/2	2 2	upgrade E7 to SH
+cultists	-1	16 VP		14 C		6 W		0 P	+2	0/8/0 PW		1/0/1/1		Leech 2 from witches
+chaosmagicians	-1	18 VP		7 C		4 W		0 P	+2	0/10/2 PW		3/0/1/0		Leech 2 from witches
+darklings		20 VP		12 C		2 W	+1	2 P	-6	7/2/0 PW		0/4/1/0		Burn 3. Action act2
+cultists		16 VP	-3	11 C	-2	4 W		0 P		0/8/0 PW		1/0/1/1	1	upgrade F5 to TP
+chaosmagicians		18 VP		7 C		4 W		0 P	-12	6/2/0 PW		3/0/1/0		burn 4. action ACT6. transform C3 to red
+cultists		16 VP		11 C		4 W		0 P		0/8/0 PW	+1	1/0/1/1		[opponent accepted power]
+witches		23 VP		4 C		0 W		0 P	+1	0/7/1 PW		0/0/0/2		Leech 1 from cultists
+Round 1, turn 4
+witches		23 VP		4 C		0 W		0 P		0/7/1 PW		0/0/0/2	1	action ACTW. build C4
+cultists		16 VP		11 C		4 W		0 P		0/8/0 PW		1/0/1/2		+AIR
+darklings		20 VP		12 C		2 W		2 P	+1	6/3/0 PW		0/4/1/0		Leech 1 from witches
+darklings		20 VP	-5	7 C	-2	0 W		2 P		6/3/0 PW	+2	0/4/1/2	1	Upgrade e10 to te. +FAV8
+witches		23 VP		4 C		0 W		0 P	+1	0/6/2 PW		0/0/0/2		Leech 1 from darklings
+cultists		16 VP	-5	6 C	-2	2 W		0 P		0/8/0 PW	+1	2/0/1/2	1	upgrade F5 to TE. +FAV9
+cultists		16 VP		6 C		2 W		0 P		0/8/0 PW	+1	2/0/1/2		[opponent accepted power]
+witches		23 VP		4 C		0 W		0 P	+1	0/5/3 PW		0/0/0/2		Leech 1 from cultists
+cultists		16 VP		6 C		2 W		0 P	+1	0/7/1 PW		2/0/1/3		+AIR
+chaosmagicians	+5	23 VP	-7	0 C	-4	0 W		0 P	-1	6/1/0 PW	+4	3/0/3/2	2 3	burn 1. convert 1PW to 1C. upgrade D4 to SA. +FAV7. +FAV8
+cultists	-1	15 VP		6 C		2 W		0 P	+2	0/5/3 PW		2/0/1/3		Leech 2 from chaosmagicians
+witches	-2	21 VP		4 C		0 W		0 P	+3	0/2/6 PW		0/0/0/2		Leech 3 from chaosmagicians
+Round 1, turn 5
+witches		21 VP	+7	11 C		0 W		0 P	-8	4/2/2 PW		0/0/0/2		action ACT4
+darklings		20 VP	+1	8 C		0 W		2 P		6/3/0 PW		0/4/1/2		Pass bon9
+cultists		15 VP	-5	1 C	-2	0 W		0 P		0/5/3 PW	+1	2/0/2/3	4 3	upgrade E6 to TE. +FAV11
+cultists		15 VP		1 C		0 W		0 P		0/5/3 PW	+1	2/0/2/3		[opponent accepted power]
+chaosmagicians	-2	21 VP		0 C		0 W		0 P	+3	3/4/0 PW		3/0/3/2		Leech 3 from cultists
+chaosmagicians	+4	25 VP	+1	1 C		0 W		0 P		3/4/0 PW		3/0/3/2		pass BON2
+cultists		15 VP		1 C		0 W		0 P		0/5/3 PW		2/0/2/4		+AIR
+witches	-3	18 VP		11 C		0 W		0 P	+4	0/6/2 PW		0/0/0/2		Leech 4 from cultists
+Round 1, turn 6
+witches		18 VP		11 C		0 W		0 P		0/6/2 PW		0/0/0/2		Pass bon6
+cultists		15 VP		1 C		0 W		0 P		0/5/3 PW		2/0/2/4		action BON1. transform G5 to brown
+cultists		15 VP		1 C		0 W		0 P		0/5/3 PW		2/0/2/4		pass BON5
+Round 2 income
+darklings		20 VP		8 C	+1	1 W		2 P		6/3/0 PW		0/4/1/2		cult_income_for_faction
+chaosmagicians		25 VP		1 C	+1	1 W		0 P		3/4/0 PW		3/0/3/2		cult_income_for_faction
+witches		18 VP		11 C	+1	1 W		0 P		0/6/2 PW		0/0/0/2		cult_income_for_faction
+cultists		15 VP		1 C	+2	2 W		0 P		0/5/3 PW		2/0/2/4		cult_income_for_faction
+Round 2 income
+darklings		20 VP	+2	10 C	+2	3 W	+1	3 P	+4	2/7/0 PW		0/4/1/2		other_income_for_faction
+chaosmagicians		25 VP	+7	8 C	+2	3 W	+1	1 P	+5	0/5/2 PW		3/0/3/2		other_income_for_faction
+witches		18 VP		11 C	+6	7 W		0 P	+2	0/4/4 PW		0/0/0/2		other_income_for_faction
+cultists		15 VP	+3	4 C	+2	4 W	+2	2 P	+3	0/2/6 PW		2/0/2/4		other_income_for_faction
+Round 2, turn 1
+darklings	+6	26 VP	-2	8 C	-1	2 W	-2	1 P		2/7/0 PW		0/4/1/2	1	Dig 2. Build b4
+chaosmagicians		25 VP	+7	15 C		3 W		1 P	-8	4/1/0 PW		3/0/3/2		burn 2. action ACT4
+witches		18 VP		11 C		7 W		0 P	+1	0/3/5 PW		0/0/0/2		Leech 1 from darklings
+witches		18 VP		11 C		7 W		0 P	-12	6/1/0 PW		0/0/0/2		burn 1. action ACT6. transform D5 to green. transform F6 to green
+cultists		15 VP	+2	6 C		4 W	-1	1 P	-1	1/1/6 PW	+3	5/0/2/4		convert 1PW to 1C. send p to FIRE. convert 1PW to 1C
+Round 2, turn 2
+darklings	+2	28 VP	-2	6 C	-1	1 W		1 P		2/7/0 PW		0/4/1/2		Build a8
+chaosmagicians	+4	29 VP	-2	13 C	-1	2 W		1 P		4/1/0 PW		3/0/3/2		build C3
+witches		18 VP	-3	8 C	-2	5 W		0 P		6/1/0 PW		0/0/0/2	2	upgrade F4 to TP
+cultists	-1	14 VP		6 C		4 W		1 P	+2	0/1/7 PW		5/0/2/4		Leech 2 from witches
+cultists		14 VP	+2	8 C		4 W	-1	0 P	-1	1/0/7 PW	+3	5/0/5/4		convert 1PW to 1C. send p to EARTH. convert 1PW to 1C
+Round 2, turn 3
+darklings	+4	32 VP	-2	4 C	-1	0 W	-1	0 P		2/7/0 PW		0/4/1/2		Dig 1. Build a7
+chaosmagicians	+2	31 VP	-4	9 C		2 W	-1	0 P		4/1/0 PW		3/0/3/2		advance ship
+witches		18 VP	-5	3 C	-2	3 W		0 P		6/1/0 PW	+1	0/0/1/2	2	upgrade F4 to TE. +FAV11
+cultists	-1	13 VP		8 C		4 W		0 P	+2	0/0/8 PW		5/0/5/4		Leech 2 from witches
+cultists		13 VP		8 C		4 W		0 P	-8	4/0/4 PW		5/0/5/4		action ACT5. transform F3 to brown
+Round 2, turn 4
+darklings	+4	36 VP	+1	5 C		0 W		0 P		2/7/0 PW		0/4/1/2		Pass bon1
+chaosmagicians	+4	35 VP	-2	7 C	-1	1 W		0 P		4/1/0 PW		3/0/3/2	1	build A6
+witches	+4	22 VP	-2	1 C	-1	2 W		0 P		6/1/0 PW		0/0/1/2	4	build D5
+darklings		36 VP		5 C		0 W		0 P	+1	1/8/0 PW		0/4/1/2		Leech 1 from chaosmagicians
+cultists	+4	17 VP	-2	6 C	-1	3 W		0 P		4/0/4 PW		5/0/5/4	2	build F3
+cultists		17 VP		6 C		3 W		0 P		4/0/4 PW	+1	5/0/5/4		[opponent accepted power]
+witches	-1	21 VP		1 C		2 W		0 P	+2	4/3/0 PW		0/0/1/2		Leech 2 from cultists
+cultists		17 VP		6 C		3 W		0 P		4/0/4 PW		5/1/5/4		+WATER
+chaosmagicians		35 VP		7 C		1 W		0 P		4/1/0 PW		3/0/3/2		Decline 4 from witches
+Round 2, turn 5
+chaosmagicians		35 VP		7 C		1 W		0 P		4/1/0 PW	+1	4/0/3/2		action BON2. +FIRE
+witches	+4	25 VP	-1	0 C	-1	1 W		0 P	-2	5/1/0 PW		0/0/1/2	2 2	Burn 1. Convert pw to c. build F6
+cultists	-1	16 VP		6 C		3 W		0 P	+2	2/2/4 PW		5/1/5/4		Leech 2 from witches
+cultists		16 VP		6 C		3 W		0 P		2/2/4 PW		5/1/5/4		wait
+darklings	-1	35 VP		5 C		0 W		0 P	+2	0/8/1 PW		0/4/1/2		Leech 2 from witches
+cultists	+4	20 VP	-2	4 C	-1	2 W		0 P		2/2/4 PW		5/1/5/4	1	build G5
+Round 2, turn 6
+chaosmagicians		35 VP		7 C		1 W		0 P		4/1/0 PW		4/0/3/2		pass BON9
+cultists		20 VP		4 C		2 W		0 P		2/2/4 PW	+1	5/1/5/4		[opponent accepted power]
+witches		25 VP		0 C		1 W		0 P	+1	4/2/0 PW		0/0/1/2		Leech 1 from cultists
+witches	+4	29 VP		0 C		1 W		0 P		4/2/0 PW		0/0/1/2		action ACTW. build I11
+cultists	+4	24 VP	-2	2 C	-1	1 W		0 P		2/2/4 PW		5/2/5/4	1	+WATER. build H7
+cultists		24 VP		2 C		1 W		0 P		2/2/4 PW	+1	5/2/5/4		[opponent accepted power]
+witches		29 VP		0 C		1 W		0 P	+1	3/3/0 PW		0/0/1/2		Leech 1 from cultists
+witches		29 VP		0 C		1 W		0 P		3/3/0 PW		0/0/1/2		wait
+cultists		24 VP		2 C		1 W		0 P	+1	1/3/4 PW		5/3/5/4		+WATER
+Round 2, turn 7
+witches	+4	33 VP		0 C		1 W		0 P		3/3/0 PW		0/0/1/2		Pass bon2
+cultists		24 VP		2 C		1 W	+1	1 P	-6	4/3/1 PW		5/3/5/4		action ACT2
+Round 2, turn 8
+cultists		24 VP	+1	3 C		1 W	-1	0 P	+2	1/7/0 PW	+3	5/3/5/7		send p to AIR. convert 1PW to 1C
+cultists		24 VP	+2	5 C		1 W		0 P		1/7/0 PW		5/3/5/7		pass BON10
+Round 3 income
+darklings		35 VP		5 C		0 W		0 P		0/8/1 PW		0/4/1/2		cult_income_for_faction
+chaosmagicians		35 VP		7 C		1 W		0 P	+4	0/5/0 PW		4/0/3/2		cult_income_for_faction
+witches		33 VP		0 C		1 W		0 P		3/3/0 PW		0/0/1/2		cult_income_for_faction
+cultists		24 VP		5 C		1 W		0 P	+4	0/5/3 PW		5/3/5/7		cult_income_for_faction
+Round 3 income
+darklings		35 VP	+2	7 C	+5	5 W	+1	1 P	+4	0/4/5 PW		0/4/1/2		other_income_for_faction
+chaosmagicians		35 VP	+5	12 C	+4	5 W	+1	1 P	+5	0/0/5 PW		4/0/3/2		other_income_for_faction
+witches		33 VP	+4	4 C	+6	7 W	+1	1 P	+2	1/5/0 PW		0/0/1/2		other_income_for_faction
+cultists		24 VP	+3	8 C	+4	5 W	+2	2 P	+3	0/2/6 PW		5/3/5/7		other_income_for_faction
+Round 3, turn 1
+darklings		35 VP	+7	14 C		5 W		1 P	-8	4/4/1 PW		0/4/1/2		Action act4
+chaosmagicians	+3	38 VP	-4	8 C		5 W	-1	0 P		0/0/5 PW		4/0/3/2		advance ship
+witches	+4	37 VP	-2	2 C	-7	0 W		1 P		1/5/0 PW		0/0/1/2		Dig 2. Build d6
+cultists		24 VP	+1	9 C		5 W	-1	1 P		1/0/7 PW	+2	5/5/5/7		send p to WATER. convert 1PW to 1C
+Round 3, turn 2
+darklings	+2	37 VP	-4	10 C		5 W	-1	0 P		4/4/1 PW		0/4/1/2		Advance shipping
+chaosmagicians	+4	42 VP	-2	6 C	-1	4 W		0 P	-8	4/0/1 PW		4/0/3/2		action ACT5. build D3
+witches	+4	41 VP		2 C		0 W		1 P		1/5/0 PW		0/0/1/2		action ACTW. build G3
+cultists	+4	28 VP	-2	7 C	-1	4 W		1 P	-12	7/0/1 PW		5/5/5/7		action ACT6. transform G4 to brown. transform E5 to brown. build E5
+Round 3, turn 3
+darklings	+2	39 VP	-2	8 C	-1	4 W		0 P		4/4/1 PW		0/4/1/2	1	Build b3
+chaosmagicians		42 VP		6 C		4 W		0 P	+1	3/1/1 PW		4/0/3/2		Leech 1 from darklings
+chaosmagicians	+3	45 VP	+1	7 C		4 W		0 P		3/1/1 PW		4/0/3/2		pass BON6
+witches		41 VP		2 C		0 W		1 P		1/5/0 PW		0/0/1/2		Pass bon9
+cultists	+4	32 VP	-2	5 C	-1	3 W		1 P		7/0/1 PW		5/5/5/7		build G4
+Round 3, turn 4
+darklings	+2	41 VP	-2	6 C	-1	3 W		0 P		4/4/1 PW		0/4/1/2		Action bon1. build B2
+cultists	+2	34 VP	-4	1 C		3 W	-1	0 P		7/0/1 PW		5/5/5/7		advance ship
+Round 3, turn 5
+darklings	+2	43 VP	-2	4 C	-1	2 W		0 P		4/4/1 PW		0/4/1/2	1	Build c1
+cultists	+3	37 VP		1 C		3 W		0 P		7/0/1 PW		5/5/5/7		pass BON2
+darklings		43 VP	+2	6 C		2 W		0 P		4/4/1 PW		0/4/1/2		Pass bon8
+chaosmagicians		45 VP		7 C		4 W		0 P	+1	2/2/1 PW		4/0/3/2		Leech 1 from darklings
+Round 4 income
+chaosmagicians		45 VP		7 C		4 W		0 P		2/2/1 PW		4/0/3/2		cult_income_for_faction
+witches		41 VP		2 C		0 W		1 P		1/5/0 PW		0/0/1/2		cult_income_for_faction
+cultists		37 VP		1 C		3 W	+1	1 P		7/0/1 PW		5/5/5/7		cult_income_for_faction
+darklings		43 VP		6 C		2 W	+1	1 P		4/4/1 PW		0/4/1/2		cult_income_for_faction
+Round 4 income
+chaosmagicians		45 VP	+3	10 C	+7	11 W	+1	1 P	+5	0/1/4 PW		4/0/3/2		other_income_for_faction
+witches		41 VP	+2	4 C	+8	8 W	+1	2 P	+2	0/5/1 PW		0/0/1/2		other_income_for_faction
+cultists		37 VP	+7	8 C	+6	9 W	+2	3 P		7/0/1 PW		5/5/5/7		other_income_for_faction
+darklings		43 VP		6 C	+8	10 W	+2	3 P	+4	0/8/1 PW		0/4/1/2		other_income_for_faction
+Round 4, turn 1
+chaosmagicians		45 VP	+7	17 C		11 W		1 P	-8	4/1/0 PW		4/0/3/2		action ACT4
+witches		41 VP		4 C		8 W	-1	1 P	+1	0/4/2 PW	+2	0/0/3/2		Send p to earth
+cultists	+5	42 VP	-8	0 C	-4	5 W		3 P		7/0/1 PW	+1	5/6/5/7	5 3	upgrade E6 to SA. +FAV10
+witches		41 VP		4 C		8 W		1 P		0/4/2 PW		0/0/3/2		wait
+darklings	+5	48 VP	-6	0 C	-4	6 W		3 P	-6	2/4/0 PW	+1	0/5/1/2	2	Burn 3. Convert 4pw to 4c. Upgrade e10 to sa. +FAV10
+chaosmagicians		45 VP		17 C		11 W		1 P		4/1/0 PW		4/0/3/2		Decline 3 from cultists
+Round 4, turn 2
+chaosmagicians		45 VP	-3	14 C	-2	9 W		1 P		4/1/0 PW		4/0/3/2	1	upgrade C3 to TP
+cultists		42 VP		0 C		5 W		3 P	+1	6/1/1 PW		5/6/5/7		[all opponents declined power]
+witches		41 VP		4 C		8 W		1 P		0/4/2 PW		0/0/3/2		Decline 5 from cultists
+witches	-1	40 VP		4 C		8 W		1 P	+2	0/2/4 PW		0/0/3/2		Leech 2 from darklings
+witches		40 VP		4 C		8 W		1 P	+1	0/1/5 PW		0/0/3/2		Leech 1 from chaosmagicians
+witches	+12	52 VP	-3	1 C	-4	4 W		1 P	-2	1/1/4 PW	+9	2/3/5/4	4	Convert 2pw to 2c. Upgrade f4 to sa. +fav10. +tw6. convert pw to c
+cultists	-3	39 VP		0 C		5 W		3 P	+4	2/5/1 PW		5/6/5/7		Leech 4 from witches
+cultists		39 VP		0 C		5 W		3 P		2/5/1 PW	+1	6/6/5/7		action BON2. +FIRE
+darklings		48 VP	+1	1 C		6 W		3 P		2/4/0 PW		0/5/1/2		Pass bon1
+Round 4, turn 3
+chaosmagicians	+5	50 VP	-4	10 C	-4	5 W		1 P		4/1/0 PW		4/0/3/2	1	upgrade C3 to SH
+witches		52 VP		1 C		4 W		1 P	+1	0/2/4 PW		2/3/5/4		Leech 1 from chaosmagicians
+witches		52 VP		1 C		4 W	-1	0 P	+2	0/0/6 PW	+2	2/3/7/4		Send p to earth
+cultists		39 VP		0 C		5 W	-1	2 P	+2	0/7/1 PW	+2	6/6/7/7		send p to EARTH
+Round 4, turn 4
+chaosmagicians	+2	52 VP	-2	8 C	-1	4 W		1 P		4/1/0 PW		4/0/3/2		build E3
+witches	+2	54 VP		1 C		4 W		0 P		0/0/6 PW		2/3/7/4		action ACTW. build I6
+cultists	+2	41 VP		0 C	-5	0 W	-2	0 P	-4	2/5/0 PW		6/6/7/7	3	convert 2P to 2W. burn 1. convert 2PW to 2C. dig 2. build G2
+witches		54 VP		1 C		4 W		0 P		0/0/6 PW		2/3/7/4		Decline 3 from cultists
+Round 4, turn 5
+chaosmagicians	+10	62 VP	-1	7 C	-4	0 W		1 P		4/1/0 PW		4/0/3/2	2	action ACTC. dig 1. build C2. pass BON10
+witches		54 VP		1 C		4 W		0 P	-6	3/0/3 PW		2/3/7/4		action ACT1. Bridge D6:E9
+darklings	-1	47 VP		1 C		6 W		3 P	+2	0/6/0 PW		0/5/1/2		Leech 2 from chaosmagicians
+cultists		41 VP		0 C		0 W		0 P		2/5/0 PW		6/6/7/7		pass BON6
+Round 4, turn 6
+witches	+3	57 VP	-1	0 C	-2	2 W		0 P	-4	5/0/1 PW		2/3/7/4	3 3	Convert 2pw to 2c. Upgrade f6 to tp. wait
+cultists	-2	39 VP		0 C		0 W		0 P	+3	0/6/1 PW		6/6/7/7		Leech 3 from witches
+darklings	-2	45 VP		1 C		6 W		3 P	+3	0/3/3 PW		0/5/1/2		Leech 3 from witches
+witches	+7	64 VP		0 C		2 W		0 P		5/0/1 PW		2/3/7/4		Pass bon2
+Round 5 income
+darklings		45 VP		1 C		6 W		3 P		0/3/3 PW		0/5/1/2		cult_income_for_faction
+chaosmagicians		62 VP		7 C	+2	2 W		1 P		4/1/0 PW		4/0/3/2		cult_income_for_faction
+cultists		39 VP		0 C	+3	3 W		0 P		0/6/1 PW		6/6/7/7		cult_income_for_faction
+witches		64 VP		0 C	+1	3 W		0 P		5/0/1 PW		2/3/7/4		cult_income_for_faction
+Round 5 income
+darklings		45 VP	+2	3 C	+8	14 W	+2	5 P	+3	0/0/6 PW		0/5/1/2		other_income_for_faction
+chaosmagicians		62 VP	+3	10 C	+8	10 W	+1	2 P	+8	0/1/4 PW		4/0/3/2		other_income_for_faction
+cultists		39 VP	+3	3 C	+9	12 W	+2	2 P		0/6/1 PW		6/6/7/7		other_income_for_faction
+witches		64 VP	+6	6 C	+8	11 W	+1	1 P	+3	2/3/1 PW		2/3/7/4		other_income_for_faction
+Round 5, turn 1
+darklings		45 VP	+7	10 C		14 W		5 P	-8	4/0/2 PW		0/5/1/2		Action act4
+chaosmagicians	+13	75 VP		10 C		10 W		2 P	-3	0/4/1 PW	+4	5/1/4/3		action ACT1. Bridge D4:C2. +TW5
+cultists	+16	55 VP	-3	0 C	-2	10 W		2 P	+4	0/2/5 PW	+4	7/7/8/8	3	upgrade F3 to TP. +TW5
+cultists		55 VP		0 C		10 W		2 P	+1	0/1/6 PW		7/7/8/8		[all opponents declined power]
+witches		64 VP		6 C		11 W		1 P		2/3/1 PW		2/3/7/4		Decline 3 from cultists
+witches		64 VP		6 C	-3	8 W		1 P		2/3/1 PW		2/3/7/4		Dig 1. Transform i10 to green
+Round 5, turn 2
+darklings	+3	48 VP	-3	7 C	-2	12 W		5 P		4/0/2 PW		0/5/1/2	1	Upgrade b5 to tp
+witches		64 VP		6 C		8 W		1 P	+1	1/4/1 PW		2/3/7/4		Leech 1 from darklings
+chaosmagicians	+4	79 VP	-4	6 C		10 W	-1	1 P		0/4/1 PW		5/1/4/3		advance ship
+cultists	+3	58 VP		0 C	-2	8 W		2 P	-6	3/1/3 PW		7/7/8/8	2	convert 3PW to 3C. upgrade G5 to TP
+cultists		58 VP		0 C		8 W		2 P	+1	2/2/3 PW		7/7/8/8		[all opponents declined power]
+witches		64 VP		6 C		8 W		1 P		1/4/1 PW		2/3/7/4		Decline 2 from cultists
+witches	+2	66 VP		6 C		8 W		1 P		1/4/1 PW		2/3/7/4	1	action actw. build i10
+cultists		58 VP		0 C		8 W		2 P	+1	1/3/3 PW		7/7/8/8		Leech 1 from witches
+Round 5, turn 3
+darklings	+3	51 VP	-3	4 C	-2	10 W		5 P		4/0/2 PW		0/5/1/2	1	Upgrade b4 to tp
+witches		66 VP		6 C		8 W		1 P	+1	0/5/1 PW		2/3/7/4		Leech 1 from darklings
+chaosmagicians	+4	83 VP	-4	2 C	-8	2 W		1 P		0/4/1 PW		5/1/4/3	5	action ACTC. dig 1. build E8. dig 1. build I7
+cultists		58 VP		0 C		8 W		2 P		1/3/3 PW		7/7/8/8		wait
+witches	-3	63 VP		6 C		8 W		1 P	+4	0/1/5 PW		2/3/7/4		Leech 4 from chaosmagicians
+witches		63 VP		6 C		8 W		1 P	+1	0/0/6 PW		2/3/7/4		Leech 1 from chaosmagicians
+cultists	+2	60 VP		0 C	-7	1 W		2 P	-4	3/3/1 PW		7/7/8/8	1 1	convert 2PW to 2C. dig 2. build H4
+witches		63 VP		6 C		8 W		1 P		0/0/6 PW		2/3/7/4		Decline 1 from cultists
+witches	+3	66 VP	-2	4 C	-2	6 W		1 P	-2	1/0/5 PW		2/3/7/4	4	Upgrade c4 to tp. Convert pw to c
+darklings	-3	48 VP		4 C		10 W		5 P	+4	0/4/2 PW		0/5/1/2		leech 4 from witches
+Round 5, turn 4
+darklings	+10	58 VP	+2	6 C	-2	8 W		5 P	-2	1/4/1 PW	+2	2/5/1/2	2	Convert 1pw to 1c. Upgrade b4 to te. +FAV5. +TW1
+witches		66 VP		4 C		6 W		1 P		1/0/5 PW		2/3/7/4		wait
+cultists		60 VP		0 C		1 W		2 P	+1	2/4/1 PW		7/7/8/8		[all opponents declined power]
+chaosmagicians		83 VP		2 C		2 W		1 P		0/4/1 PW		5/1/4/3		Decline 1 from cultists
+chaosmagicians		83 VP	-2	0 C	-2	0 W		1 P	-2	1/4/0 PW		5/1/4/3	1	convert 1PW to 1C. upgrade D3 to TP
+witches	-1	65 VP		4 C		6 W		1 P	+2	0/0/6 PW		2/3/7/4		Leech 2 from darklings
+darklings		58 VP		6 C		8 W		5 P	+1	0/5/1 PW		2/5/1/2		Leech 1 from chaosmagicians
+cultists	+15	75 VP		0 C	+1	2 W	-1	1 P	-6	5/0/0 PW		7/7/8/8	2	burn 2. convert 3PW to 3C. convert 1P to 1W. upgrade H7 to TP. +TW2
+witches		65 VP		4 C		6 W		1 P		0/0/6 PW		2/3/7/4		Decline 2 from cultists
+witches	+18	83 VP	+3	7 C	-2	4 W		1 P		0/0/6 PW		2/3/7/4	3 2	upgrade E9 to TP. +TW1
+cultists		75 VP		0 C		2 W		1 P		5/0/0 PW		7/7/8/8		wait
+darklings	-2	56 VP		6 C		8 W		5 P	+3	0/2/4 PW		2/5/1/2		Leech 3 from witches
+Round 5, turn 5
+darklings		56 VP	-2	4 C	-1	7 W		5 P		0/2/4 PW		2/5/1/2		Action bon1. build D8
+cultists	-1	74 VP		0 C		2 W		1 P	+2	3/2/0 PW		7/7/8/8		Leech 2 from witches
+chaosmagicians	+9	92 VP	+1	1 C		0 W		1 P		1/4/0 PW		5/1/4/3		pass BON9
+cultists	+4	78 VP		0 C	+1	3 W	-1	0 P		3/2/0 PW		7/7/8/8		convert 1P to 1W. pass BON10
+witches		83 VP		7 C		4 W		1 P		0/0/6 PW	+1	2/3/8/4		action BON2. +EARTH
+Round 5, turn 6
+darklings	+2	58 VP	-2	2 C	-1	6 W	-1	4 P		0/2/4 PW		2/5/1/2	2	Dig 1. Build f7
+witches		83 VP		7 C		4 W		1 P		0/0/6 PW		2/3/8/4		Decline 2 from darklings
+witches	+2	85 VP	-2	5 C	-1	3 W		1 P	-12	6/0/0 PW		2/3/8/4	5	action ACT6. transform H6 to green. transform I12 to gray. build H6
+Round 5, turn 7
+darklings	+2	60 VP	-2	0 C	-1	5 W	-1	3 P		0/2/4 PW		2/5/1/2		Dig 1. Build a4
+witches		85 VP		5 C		3 W		1 P		6/0/0 PW		2/3/8/4		Pass bon6
+cultists		78 VP		0 C		3 W		0 P		3/2/0 PW		7/7/8/8		Decline 5 from witches
+Round 5, turn 8
+darklings	+14	74 VP	+3	3 C	-2	3 W		3 P	-4	3/0/3 PW		2/5/1/2	2	Convert 3pw to 3c. Upgrade f7 to tp. +TW4. Convert 3pw to 3c
+Round 5, turn 9
+darklings	+3	77 VP	-1	2 C	-2	1 W		3 P	-4	5/0/1 PW		2/5/1/2	1	Upgrade b2 to tp. Convert 2pw to 2c
+Round 5, turn 10
+darklings	+4	81 VP	-1	1 C	-1	0 W	-2	1 P	-2	6/0/0 PW		2/5/1/2	1	Dig 2. Build a5. Convert 1pw to 1c
+darklings		81 VP	+3	4 C		0 W		1 P		6/0/0 PW		2/5/1/2		Pass bon5
+witches	-1	84 VP		5 C		3 W		1 P	+2	4/2/0 PW		2/3/8/4		Leech 2 from darklings
+chaosmagicians		92 VP		1 C		0 W		1 P	+1	0/5/0 PW		5/1/4/3		Leech 1 from darklings
+chaosmagicians		92 VP		1 C		0 W		1 P	+1	0/4/1 PW		5/1/4/3		Leech 1 from darklings
+Round 6 income
+chaosmagicians		92 VP		1 C		0 W		1 P		0/4/1 PW		5/1/4/3		cult_income_for_faction
+cultists		78 VP		0 C		3 W		0 P		3/2/0 PW		7/7/8/8		cult_income_for_faction
+witches		84 VP		5 C		3 W		1 P		4/2/0 PW		2/3/8/4		cult_income_for_faction
+darklings		81 VP		4 C		0 W		1 P		6/0/0 PW		2/5/1/2		cult_income_for_faction
+chaosmagicians		92 VP		1 C		0 W		1 P		0/4/1 PW		5/1/4/3		transform H1 to red
+cultists		78 VP		0 C		3 W		0 P		3/2/0 PW		7/7/8/8		transform H5 to brown. transform I5 to yellow
+witches		84 VP		5 C		3 W		1 P		4/2/0 PW		2/3/8/4		transform H8 to green. transform I12 to green
+Round 6 income
+chaosmagicians		92 VP	+7	8 C	+9	9 W	+1	2 P	+4	0/0/5 PW		5/1/4/3		other_income_for_faction
+cultists		78 VP	+9	9 C	+5	8 W	+2	2 P	+7	0/1/4 PW		7/7/8/8		other_income_for_faction
+witches		84 VP	+6	11 C	+10	13 W	+1	2 P	+6	0/4/2 PW		2/3/8/4		other_income_for_faction
+darklings		81 VP	+6	10 C	+9	9 W	+3	4 P	+11	0/1/5 PW		2/5/1/2		other_income_for_faction
+Round 6, turn 1
+chaosmagicians	+2	94 VP	+5	13 C	-1	8 W		2 P	-8	4/0/1 PW		5/1/4/3	4 2	action ACTC. action ACT4. build D7
+cultists		78 VP		9 C		8 W		2 P		0/1/4 PW		7/7/8/8		wait
+darklings		81 VP		10 C		9 W		4 P	+1	0/0/6 PW		2/5/1/2		Leech 4 from chaosmagicians
+witches	-1	83 VP		11 C		13 W		2 P	+2	0/2/4 PW		2/3/8/4		Leech 2 from chaosmagicians
+cultists	+2	80 VP	-1	8 C	-1	7 W		2 P	-2	1/1/3 PW		7/7/8/8	1	build H5. convert 1PW to 1C
+cultists		80 VP		8 C		7 W		2 P		1/1/3 PW	+1	7/7/8/8		[opponent accepted power]
+witches		83 VP		11 C		13 W		2 P	+1	0/1/5 PW		2/3/8/4		Leech 1 from cultists
+witches		83 VP		11 C		13 W		2 P		0/1/5 PW		2/3/8/4		wait
+cultists		80 VP		8 C		7 W		2 P		1/1/3 PW		7/7/8/9		+AIR
+witches	+4	87 VP	-4	7 C	-2	11 W		2 P	+1	0/0/6 PW	+2	2/3/10/4	5 4	upgrade F6 to TE. Convert pw to c. +FAV7
+cultists		80 VP		8 C		7 W		2 P		1/1/3 PW		7/7/8/9		wait
+darklings		81 VP		10 C		9 W		4 P		0/0/6 PW		2/5/1/2		Decline 5 from witches
+darklings	+4	85 VP	-3	7 C	-2	7 W		4 P	-2	0/2/4 PW	+3	2/8/1/2	2	Convert 2pw to 2c. Upgrade b5 to te. +FAV2
+witches		87 VP		7 C		11 W		2 P		0/0/6 PW		2/3/10/4		Decline 2 from darklings
+cultists		80 VP		8 C		7 W		2 P		1/1/3 PW		7/7/8/9		Decline 4 from witches
+Round 6, turn 2
+chaosmagicians	+4	98 VP	-5	8 C	-2	6 W		2 P	+4	0/4/1 PW	+6	8/1/4/6	1	upgrade D3 to TE. +FAV1. +FAV4
+cultists	+2	82 VP	-2	6 C	-1	6 W		2 P		1/1/3 PW		7/7/8/9	1	build I8
+cultists		82 VP		6 C		6 W		2 P	+1	0/2/3 PW		7/7/8/9		[all opponents declined power]
+chaosmagicians		98 VP		8 C		6 W		2 P		0/4/1 PW		8/1/4/6		Decline 1 from cultists
+witches	+2	89 VP	-1	6 C	-1	10 W		2 P	-2	1/0/5 PW		2/3/10/4	2	build H8. Convert pw to c
+cultists		82 VP		6 C		6 W		2 P		0/2/3 PW		7/7/8/9		wait
+darklings		85 VP		7 C		7 W		4 P	+1	0/1/5 PW		2/8/1/2		Leech 1 from chaosmagicians
+darklings		85 VP	+2	9 C		7 W	-1	3 P	-1	0/2/4 PW	+2	2/10/1/2		Convert 2pw to 2c. Send p to water
+Round 6, turn 3
+chaosmagicians		98 VP		8 C		6 W	-1	1 P	+3	0/1/4 PW	+2	10/1/4/6		send p to Fire
+cultists	-1	81 VP		6 C		6 W		2 P	+2	0/0/5 PW		7/7/8/9		Leech 2 from witches
+cultists	+4	85 VP	-3	3 C	-2	4 W		2 P	-1	0/1/4 PW	+1	7/7/8/10	3	convert 2PW to 2C. upgrade G5 to TE. +FAV12
+cultists		85 VP		3 C		4 W		2 P		0/1/4 PW	+1	7/7/8/10		[opponent accepted power]
+witches	-1	88 VP		6 C		10 W		2 P	+2	0/0/6 PW		2/3/10/4		Leech 3 from cultists
+witches	+3	91 VP	-2	4 C	-2	8 W		2 P	-2	1/0/5 PW		2/3/10/4	2	Convert pw to c. upgrade H8 to TP
+cultists		85 VP		3 C		4 W		2 P	+1	0/0/5 PW		7/7/9/10		+EARTH. Leech 2 from witches
+darklings	+2	87 VP	-2	7 C	-1	6 W	-1	2 P		0/2/4 PW		2/10/1/2		Dig 1. Build a11
+Round 6, turn 4
+chaosmagicians	+2	100 VP	-2	6 C	-1	5 W		1 P		0/1/4 PW		10/1/4/6	1	build A12
+cultists	+3	88 VP	-3	0 C		4 W	-1	1 P	-2	1/0/4 PW		7/7/9/10		convert 1PW to 1C. advance ship
+witches	+3	94 VP	-3	1 C	-2	6 W		2 P		1/0/5 PW		2/3/10/4	2	upgrade I10 to TP
+darklings		87 VP		7 C		6 W		2 P	+1	0/1/5 PW		2/10/1/2		Leech 1 from chaosmagicians
+darklings	+12	99 VP	-3	4 C	-2	4 W	+1	3 P		0/1/5 PW		2/10/1/2	1	Upgrade a5 to tp. +TW3
+cultists		88 VP		0 C		4 W		1 P		1/0/4 PW		7/7/9/10		Decline 2 from witches
+chaosmagicians		100 VP		6 C		5 W		1 P	+1	0/0/5 PW		10/1/4/6		Leech 1 from darklings
+Round 6, turn 5
+chaosmagicians		100 VP		6 C		5 W		1 P	-8	4/0/1 PW		10/1/4/6		action ACT5. transform H3 to yellow
+cultists	+4	92 VP		0 C		4 W	-1	0 P	-8	5/0/0 PW		7/7/9/10		convert 4PW to 4C. advance ship
+witches	+2	96 VP		1 C		6 W		2 P		1/0/5 PW		2/3/10/4	3	action ACTW. build A10
+darklings		99 VP		4 C		4 W		3 P	+1	0/0/6 PW		2/10/1/2		Leech 3 from witches
+darklings		99 VP		4 C		4 W	+1	4 P	-6	3/0/3 PW		2/10/1/2		Action act2
+Round 6, turn 6
+chaosmagicians	+2	102 VP	-2	4 C	-1	4 W		1 P		4/0/1 PW		10/1/4/6		build H1
+cultists	+12	104 VP		0 C		4 W		0 P		5/0/0 PW		7/7/9/10		pass
+witches	+18	114 VP	-1	0 C	-2	4 W		2 P		1/0/5 PW		2/3/10/4		Convert w to c. Build i12. +tw8
+darklings	+4	103 VP	-2	2 C	-1	3 W	-2	2 P		3/0/3 PW		2/10/1/2	1	Dig 2. Build b6
+chaosmagicians		102 VP		4 C		4 W		1 P	+1	3/1/1 PW		10/1/4/6		Leech 1 from darklings
+Round 6, turn 7
+chaosmagicians	+6	108 VP	-4	0 C	-2	2 W	-1	0 P	-2	4/1/0 PW		10/1/4/6		convert 1PW to 1C. advance dig
+witches	+2	116 VP		0 C		4 W	-1	1 P	-8	5/0/1 PW		2/3/10/4		convert 4pw to 4c. advance ship
+darklings	+4	107 VP	-2	0 C	-2	1 W		2 P	-5	5/1/0 PW	+1	2/10/1/3	2	Convert 3pw to 3c. Upgrade f7 to te. +FAV12
+witches		116 VP		0 C		4 W		1 P		5/0/1 PW		2/3/10/4		Decline 2 from darklings
+Round 6, turn 8
+chaosmagicians	+8	116 VP		0 C		2 W		0 P		4/1/0 PW		10/1/4/6		pass
+witches	+3	119 VP		0 C	-3	1 W	-1	0 P	-2	6/0/0 PW		2/3/10/4		Convert pw to c. Convert 3w to 3c. Advance ship
+darklings		107 VP		0 C		1 W	-1	1 P	+2	3/3/0 PW	+2	2/10/1/5		Send p to air
+Round 6, turn 9
+witches	+8	127 VP		0 C		1 W		0 P		6/0/0 PW		2/3/10/4		pass
+darklings		107 VP		0 C		1 W	-1	0 P	+2	1/5/0 PW	+2	2/10/1/7		Send p to air
+darklings	+3	110 VP		0 C		1 W		0 P		1/5/0 PW		2/10/1/7		Pass
+Scoring FIRE cult
+cultists	+4	108 VP		0 C		4 W		0 P		5/0/0 PW		7/7/9/10		+4vp for FIRE
+chaosmagicians	+8	124 VP		0 C		2 W		0 P		4/1/0 PW		10/1/4/6		+8vp for FIRE
+witches	+1	128 VP		0 C		1 W		0 P		6/0/0 PW		2/3/10/4		+1vp for FIRE
+darklings	+1	111 VP		0 C		1 W		0 P		1/5/0 PW		2/10/1/7		+1vp for FIRE
+Scoring WATER cult
+cultists	+4	112 VP		0 C		4 W		0 P		5/0/0 PW		7/7/9/10		+4vp for WATER
+witches	+2	130 VP		0 C		1 W		0 P		6/0/0 PW		2/3/10/4		+2vp for WATER
+darklings	+8	119 VP		0 C		1 W		0 P		1/5/0 PW		2/10/1/7		+8vp for WATER
+Scoring EARTH cult
+cultists	+4	116 VP		0 C		4 W		0 P		5/0/0 PW		7/7/9/10		+4vp for EARTH
+chaosmagicians	+2	126 VP		0 C		2 W		0 P		4/1/0 PW		10/1/4/6		+2vp for EARTH
+witches	+8	138 VP		0 C		1 W		0 P		6/0/0 PW		2/3/10/4		+8vp for EARTH
+Scoring AIR cult
+cultists	+8	124 VP		0 C		4 W		0 P		5/0/0 PW		7/7/9/10		+8vp for AIR
+chaosmagicians	+2	128 VP		0 C		2 W		0 P		4/1/0 PW		10/1/4/6		+2vp for AIR
+darklings	+4	123 VP		0 C		1 W		0 P		1/5/0 PW		2/10/1/7		+4vp for AIR
+Scoring network
+cultists	+3	127 VP		0 C		4 W		0 P		5/0/0 PW		7/7/9/10		+3vp for network
+chaosmagicians	+3	131 VP		0 C		2 W		0 P		4/1/0 PW		10/1/4/6		+3vp for network
+witches	+18	156 VP		0 C		1 W		0 P		6/0/0 PW		2/3/10/4		+18vp for network
+darklings	+12	135 VP		0 C		1 W		0 P		1/5/0 PW		2/10/1/7		+12vp for network
+Converting resources to VPs
+cultists	+1	128 VP	+1	1 C	-4	0 W		0 P		5/0/0 PW		7/7/9/10		score_resources
+chaosmagicians		131 VP	+2	2 C	-2	0 W		0 P		4/1/0 PW		10/1/4/6		score_resources
+witches		156 VP	+1	1 C	-1	0 W		0 P		6/0/0 PW		2/3/10/4		score_resources
+darklings	+1	136 VP		0 C	-1	0 W		0 P	-4	3/1/0 PW		2/10/1/7		score_resources

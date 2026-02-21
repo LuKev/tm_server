@@ -178,6 +178,11 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 		if distance == 0 {
 			return 0, 0, fmt.Errorf("terrain distance calculation failed")
 		}
+		requiredSpades := distance
+		if player.Faction.GetType() == models.FactionGiants {
+			// Giants always require exactly 2 spades for a terrain transform.
+			requiredSpades = 2
+		}
 
 		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
 		freeSpades := 0
@@ -187,19 +192,27 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 		if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
 			freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
 		}
-
-		if freeSpades > distance {
-			freeSpades = distance // Only use what we need
+		if player.Faction.GetType() == models.FactionGiants {
+			// Giants cannot use a single free spade; only a full pair is usable.
+			if freeSpades >= 2 {
+				freeSpades = 2
+			} else {
+				freeSpades = 0
+			}
+		} else if freeSpades > requiredSpades {
+			freeSpades = requiredSpades // Only use what we need
 		}
 
-		remainingSpades := distance - freeSpades
+		remainingSpades := requiredSpades - freeSpades
 
 		// Darklings pay priests for terraform (1 priest per spade)
-		if player.Faction.GetType() == models.FactionDarklings {
-			totalPriestsNeeded = remainingSpades
-		} else {
-			// Other factions pay workers
-			totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
+		if remainingSpades > 0 {
+			if player.Faction.GetType() == models.FactionDarklings {
+				totalPriestsNeeded = remainingSpades
+			} else {
+				// Other factions pay workers
+				totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
+			}
 		}
 	}
 
@@ -264,12 +277,16 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 			gs.SkipAbilityUsedThisAction = make(map[string][]board.Hex)
 		}
 
-		usedHexes := gs.SkipAbilityUsedThisAction[player.ID]
 		alreadyPaid := false
-		for _, h := range usedHexes {
-			if h == a.TargetHex {
-				alreadyPaid = true
-				break
+		usedHexes := gs.SkipAbilityUsedThisAction[player.ID]
+		// De-duplicate skip payment only while turn advancement is suppressed
+		// (i.e. within a single compound/synthetic action execution).
+		if gs.SuppressTurnAdvance {
+			for _, h := range usedHexes {
+				if h == a.TargetHex {
+					alreadyPaid = true
+					break
+				}
 			}
 		}
 
@@ -309,38 +326,78 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 	}
 
 	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
+	requiredSpades := distance
+	if player.Faction.GetType() == models.FactionGiants {
+		// Giants always require exactly 2 spades for a terrain transform.
+		requiredSpades = 2
+	}
 
 	// Check for free spades from BON1 (count for VP when used)
 	vpEligibleFreeSpades := 0
-	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-		vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
-		if vpEligibleFreeSpades > distance {
-			vpEligibleFreeSpades = distance // Only use what we need
-		}
-		// Consume VP-eligible free spades
-		gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
-		if gs.PendingSpades[a.PlayerID] == 0 {
-			delete(gs.PendingSpades, a.PlayerID)
-		}
-	}
-
 	// Check for cult reward spades (don't count for VP)
-	remainingDistance := distance - vpEligibleFreeSpades
 	cultRewardSpades := 0
-	if remainingDistance > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
-		cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
-		if cultRewardSpades > remainingDistance {
-			cultRewardSpades = remainingDistance // Only use what we need
+	if player.Faction.GetType() == models.FactionGiants {
+		pending := 0
+		if gs.PendingSpades != nil {
+			pending = gs.PendingSpades[a.PlayerID]
 		}
-		// Consume cult reward spades
-		gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
-		if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
-			delete(gs.PendingCultRewardSpades, a.PlayerID)
+		cultPending := 0
+		if gs.PendingCultRewardSpades != nil {
+			cultPending = gs.PendingCultRewardSpades[a.PlayerID]
+		}
+		if pending+cultPending >= 2 {
+			remainingToConsume := 2
+			if pending > 0 {
+				vpEligibleFreeSpades = pending
+				if vpEligibleFreeSpades > remainingToConsume {
+					vpEligibleFreeSpades = remainingToConsume
+				}
+				gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
+				if gs.PendingSpades[a.PlayerID] == 0 {
+					delete(gs.PendingSpades, a.PlayerID)
+				}
+				remainingToConsume -= vpEligibleFreeSpades
+			}
+			if remainingToConsume > 0 && cultPending > 0 {
+				cultRewardSpades = cultPending
+				if cultRewardSpades > remainingToConsume {
+					cultRewardSpades = remainingToConsume
+				}
+				gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
+				if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
+					delete(gs.PendingCultRewardSpades, a.PlayerID)
+				}
+			}
+		}
+	} else {
+		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+			vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
+			if vpEligibleFreeSpades > requiredSpades {
+				vpEligibleFreeSpades = requiredSpades // Only use what we need
+			}
+			// Consume VP-eligible free spades
+			gs.PendingSpades[a.PlayerID] -= vpEligibleFreeSpades
+			if gs.PendingSpades[a.PlayerID] == 0 {
+				delete(gs.PendingSpades, a.PlayerID)
+			}
+		}
+
+		remainingRequired := requiredSpades - vpEligibleFreeSpades
+		if remainingRequired > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+			cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
+			if cultRewardSpades > remainingRequired {
+				cultRewardSpades = remainingRequired // Only use what we need
+			}
+			// Consume cult reward spades
+			gs.PendingCultRewardSpades[a.PlayerID] -= cultRewardSpades
+			if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
+				delete(gs.PendingCultRewardSpades, a.PlayerID)
+			}
 		}
 	}
 
 	totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
-	remainingSpades := distance - totalFreeSpades
+	remainingSpades := requiredSpades - totalFreeSpades
 
 	// Pay for remaining spades only
 	if remainingSpades > 0 {

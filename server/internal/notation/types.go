@@ -517,6 +517,19 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			action := game.NewWater2CultAdvanceAction(a.PlayerID, track)
 			return action.Execute(gs)
 		} else if parts[1] == "BON" {
+			// ACT-BON-SPD (Bonus Card spade setup marker, BON1 in compound rows)
+			if len(parts) > 2 && strings.EqualFold(parts[2], "SPD") {
+				// Mark bonus-spade special action as used and queue one free spade.
+				// The subsequent DIG/transform action in the same compound row will
+				// consume this pending spade with correct paid-spade semantics.
+				player.SpecialActionsUsed[game.SpecialActionBonusCardSpade] = true
+				if gs.PendingSpades == nil {
+					gs.PendingSpades = make(map[string]int)
+				}
+				gs.PendingSpades[a.PlayerID]++
+				return nil
+			}
+
 			// ACT-BON-W (Bonus Card cult advance, BON2)
 			if len(parts) < 3 {
 				return fmt.Errorf("invalid bonus card cult action code")
@@ -1030,6 +1043,7 @@ func isReplayAuxiliaryOnlyAction(action game.Action) bool {
 		*LogFavorTileAction,
 		*LogTownAction,
 		*LogCultistAdvanceAction,
+		*LogCultTrackDecreaseAction,
 		*LogHalflingsSpadeAction,
 		*LogAcceptLeechAction,
 		*LogDeclineLeechAction,
@@ -1445,5 +1459,46 @@ func (a *LogCultistAdvanceAction) Execute(gs *game.GameState) error {
 
 	// Note: In the real game, this consumes a pending permission/state.
 	// For log replay, we just apply the effect.
+	return nil
+}
+
+// LogCultTrackDecreaseAction represents a log-only cult track decrease (e.g. "-W").
+// Some Snellman rows include town-tile selections that first reduce one cult track.
+type LogCultTrackDecreaseAction struct {
+	PlayerID string
+	Track    game.CultTrack
+}
+
+func (a *LogCultTrackDecreaseAction) GetType() game.ActionType { return game.ActionSpecialAction }
+func (a *LogCultTrackDecreaseAction) GetPlayerID() string      { return a.PlayerID }
+func (a *LogCultTrackDecreaseAction) Validate(gs *game.GameState) error {
+	if gs.GetPlayer(a.PlayerID) == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+	return nil
+}
+func (a *LogCultTrackDecreaseAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+	if player.CultPositions[a.Track] <= 0 {
+		return nil
+	}
+	player.CultPositions[a.Track]--
+
+	// Keep CultTrackState in sync (including freeing occupied position 10 if vacated).
+	if gs.CultTracks != nil {
+		if gs.CultTracks.PlayerPositions != nil {
+			if _, ok := gs.CultTracks.PlayerPositions[player.ID]; ok {
+				gs.CultTracks.PlayerPositions[player.ID][a.Track] = player.CultPositions[a.Track]
+			}
+		}
+		if gs.CultTracks.Position10Occupied != nil &&
+			gs.CultTracks.Position10Occupied[a.Track] == player.ID &&
+			player.CultPositions[a.Track] < 10 {
+			delete(gs.CultTracks.Position10Occupied, a.Track)
+		}
+	}
 	return nil
 }

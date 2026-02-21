@@ -310,6 +310,14 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			}, nil
 		}
 	}
+	if len(upperCode) == 2 && strings.HasPrefix(upperCode, "-") {
+		if track, ok := parseCultShortCodeOk(string(upperCode[1])); ok {
+			return &LogCultTrackDecreaseAction{
+				PlayerID: playerID,
+				Track:    track,
+			}, nil
+		}
+	}
 
 	// Decline leech: DL, DL2, DL-Witches, DL2-Witches
 	if m := regexp.MustCompile(`(?i)^DL(\d+)?(?:-(.+))?$`).FindStringSubmatch(code); len(m) > 0 {

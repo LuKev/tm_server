@@ -318,6 +318,7 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 				targetRows = append(targetRows, rowIdx)
 			}
 
+			fallbackRow := -1
 			for _, rowIdx := range targetRows {
 				if rowIdx < 0 || rowIdx >= len(currentRound.Rows) {
 					continue
@@ -326,10 +327,20 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 				if existing == "" || isLeechOrDeclineToken(existing) {
 					continue
 				}
-				if !strings.Contains(existing, "."+cultBonus) {
-					currentRound.Rows[rowIdx][factionName] = existing + "." + cultBonus
+				if actionHasCultBumpToken(existing, cultBonus) {
+					if fallbackRow < 0 {
+						fallbackRow = rowIdx
+					}
+					continue
 				}
+				currentRound.Rows[rowIdx][factionName] = existing + "." + cultBonus
 				return
+			}
+			if fallbackRow >= 0 && fallbackRow < len(currentRound.Rows) {
+				existing := strings.TrimSpace(currentRound.Rows[fallbackRow][factionName])
+				if existing != "" && !isLeechOrDeclineToken(existing) {
+					currentRound.Rows[fallbackRow][factionName] = existing + "." + cultBonus
+				}
 			}
 		}
 
@@ -338,9 +349,6 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 			// cult track. Snellman sometimes logs this as a leading "+EARTH" segment on the same
 			// line as a later unrelated action (e.g. "+EARTH. build F3") or as a standalone row.
 			// For display, attach the cult step to the prior triggering action.
-			//
-			// NOTE: In replay mode, the Snellman ledger row order is authoritative, so we must
-			// not backtrack/relocate these steps.
 			if factionName == "cultists" && currentRound != nil && !inSetupPhase {
 				leadingCult := regexp.MustCompile("(?i)^\\+(EARTH|WATER|FIRE|AIR)(?:\\.|\\b)\\s*(.*)$")
 				if m := leadingCult.FindStringSubmatch(strings.TrimSpace(action)); len(m) > 2 {
@@ -2122,6 +2130,20 @@ func normalizeCultTrackBumpToken(token string) string {
 	}
 }
 
+func actionHasCultBumpToken(action string, bump string) bool {
+	bump = normalizeCultTrackBumpToken(bump)
+	if bump == "" {
+		return false
+	}
+	parts := strings.Split(strings.TrimSpace(action), ".")
+	for _, part := range parts {
+		if normalizeCultTrackBumpToken(part) == bump {
+			return true
+		}
+	}
+	return false
+}
+
 func splitConciseActionIntoStandaloneReactions(
 	conciseAction string,
 	faction string,
@@ -2533,6 +2555,10 @@ func convertActionToConcise(action, faction string, isSetup bool, cultDelta int)
 	if strings.HasPrefix(action, "+") {
 		return convertCompoundActionToConcise(action, faction, cultDelta)
 	}
+	// Cult decrease: "-WATER" / "-WATER. +TW5" (seen in some town-tile rows)
+	if strings.HasPrefix(action, "-") {
+		return convertCompoundActionToConcise(action, faction, cultDelta)
+	}
 
 	return ""
 }
@@ -2745,7 +2771,8 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 				mergeFound := false
 				for j := i + 1; j < len(parts); j++ {
 					nextPart := strings.TrimSpace(parts[j])
-					if strings.HasPrefix(strings.ToLower(nextPart), "transform ") {
+					nextLower := strings.ToLower(nextPart)
+					if strings.HasPrefix(nextLower, "transform ") {
 						// transform X to Y
 						re := regexp.MustCompile(`(?i)transform (\w+) to (\w+)`)
 						if m := re.FindStringSubmatch(nextPart); len(m) > 2 {
@@ -2755,6 +2782,15 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 							mergeFound = true
 							break
 						}
+					}
+					if strings.HasPrefix(nextLower, "build ") {
+						// Some Snellman rows log Giants SH as ACTG + build without
+						// an explicit transform token. Normalize ACTG anyway and leave
+						// build token in place so replay executes both actions.
+						coord := strings.ToUpper(strings.TrimSpace(nextPart[len("build "):]))
+						resultParts = append(resultParts, fmt.Sprintf("ACT-SH-S-%s", coord))
+						mergeFound = true
+						break
 					}
 				}
 				if !mergeFound {
@@ -2828,6 +2864,47 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 			}
 
 			if actType == "BON1" {
+				// BON1 with explicit dig/build needs to preserve paid dig steps (notably
+				// Darklings priest digs and +2 VP per paid spade). Emit a dedicated
+				// bonus-spade marker plus explicit DIGn-target and keep the later build/
+				// transform token so replay executes in-order:
+				//   ACT-BON-SPD.DIG2-D6.D6
+				// This avoids collapsing the entire row into ACTS-<coord>.<coord>, which
+				// loses paid-dig semantics.
+				digCount := ""
+				digIdx := -1
+				targetCoord := ""
+				for j := i + 1; j < len(parts); j++ {
+					nextPart := strings.TrimSpace(parts[j])
+					nextLower := strings.ToLower(nextPart)
+
+					if digIdx < 0 {
+						if m := regexp.MustCompile(`(?i)^dig\s+(\d+)`).FindStringSubmatch(nextPart); len(m) > 1 {
+							digCount = strings.TrimSpace(m[1])
+							digIdx = j
+						}
+					}
+
+					if strings.HasPrefix(nextLower, "build ") {
+						targetCoord = strings.ToUpper(strings.TrimSpace(nextPart[len("build "):]))
+						break
+					}
+					if strings.HasPrefix(nextLower, "transform ") {
+						if m := regexp.MustCompile(`(?i)^transform\s+([A-I]\d{1,2})\s+to\s+`).FindStringSubmatch(nextPart); len(m) > 1 {
+							targetCoord = strings.ToUpper(strings.TrimSpace(m[1]))
+							break
+						}
+					}
+				}
+				if digCount != "" && targetCoord != "" {
+					resultParts = append(resultParts, "ACT-BON-SPD")
+					resultParts = append(resultParts, fmt.Sprintf("DIG%s-%s", digCount, targetCoord))
+					if digIdx >= 0 {
+						parts[digIdx] = "" // consume explicit dig; target token remains for build/transform handling
+					}
+					continue
+				}
+
 				// Bonus spade action can be represented directly as ACTS-<coord>
 				// when followed by a transform/build target in the same compound action.
 				// If BON1 directly leads to a build, include the build token as well:
@@ -2853,9 +2930,23 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 					if strings.HasPrefix(strings.ToLower(nextPart), "build ") {
 						coord := strings.TrimSpace(nextPart[len("build "):])
 						coord = strings.ToUpper(strings.TrimSpace(coord))
-						resultParts = append(resultParts, fmt.Sprintf("ACTS-%s", coord))
-						resultParts = append(resultParts, coord)
-						parts[j] = "" // consume build part
+						seenConversion := false
+						for k := i + 1; k < j; k++ {
+							mid := strings.TrimSpace(parts[k])
+							if strings.HasPrefix(strings.ToLower(mid), "convert ") {
+								seenConversion = true
+								break
+							}
+						}
+						if seenConversion {
+							// Preserve BON1 -> conversion -> build ordering so compound replay
+							// does not retry a partially-consumed ACTS special action.
+							resultParts = append(resultParts, "ACT-BON-SPD")
+						} else {
+							resultParts = append(resultParts, fmt.Sprintf("ACTS-%s", coord))
+							resultParts = append(resultParts, coord)
+							parts[j] = "" // consume build part
+						}
 						merged = true
 						break
 					}
@@ -2944,6 +3035,13 @@ func convertCompoundActionToConcise(action, faction string, cultDelta int) strin
 				if shortTrack != "" {
 					resultParts = append(resultParts, fmt.Sprintf("+%s", shortTrack))
 				}
+			}
+		}
+		if strings.HasPrefix(partTrim, "-") {
+			track := strings.TrimPrefix(partTrim, "-")
+			shortTrack := trackToShort(track)
+			if shortTrack != "" {
+				resultParts = append(resultParts, fmt.Sprintf("-%s", shortTrack))
 			}
 		}
 
@@ -3262,6 +3360,10 @@ func parseSnellmanResources(s string) string {
 }
 
 func trackToShort(track string) string {
+	track = strings.TrimSpace(track)
+	if track == "" {
+		return ""
+	}
 	switch strings.ToUpper(track) {
 	case "FIRE":
 		return "F"

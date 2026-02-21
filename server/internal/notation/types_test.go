@@ -48,6 +48,270 @@ func TestLogDeclineLeechAction_NoPendingOffers_NoError(t *testing.T) {
 	}
 }
 
+func TestLogCultTrackDecreaseAction_DecrementsCultTrack(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	if err := gs.AddPlayer(playerID, factions.NewCultists()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		t.Fatalf("player %q missing", playerID)
+	}
+	player.CultPositions[game.CultWater] = 2
+	gs.CultTracks.PlayerPositions[playerID][game.CultWater] = 2
+
+	action := &LogCultTrackDecreaseAction{PlayerID: playerID, Track: game.CultWater}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogCultTrackDecreaseAction.Execute() error = %v", err)
+	}
+	if got := player.CultPositions[game.CultWater]; got != 1 {
+		t.Fatalf("player cult water = %d, want 1", got)
+	}
+	if got := gs.CultTracks.GetPosition(playerID, game.CultWater); got != 1 {
+		t.Fatalf("cult track water = %d, want 1", got)
+	}
+}
+
+func TestLogCompoundAction_CultTownSelectionWithDecreaseToken(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	if err := gs.AddPlayer(playerID, factions.NewWitches()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		t.Fatalf("player %q missing", playerID)
+	}
+
+	// Mirror the S63_G2 shape: two cults near 10, one track intentionally reduced
+	// before applying a +1-all town tile.
+	player.CultPositions[game.CultFire] = 6
+	player.CultPositions[game.CultWater] = 9
+	player.CultPositions[game.CultEarth] = 4
+	player.CultPositions[game.CultAir] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultFire] = 6
+	gs.CultTracks.PlayerPositions[playerID][game.CultWater] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultEarth] = 4
+	gs.CultTracks.PlayerPositions[playerID][game.CultAir] = 9
+
+	// Allow bonus power gain visibility (+3 when topping exactly one cult).
+	player.Resources.Power.Bowl1 = 0
+	player.Resources.Power.Bowl2 = 3
+	player.Resources.Power.Bowl3 = 3
+
+	// LogTownAction requires a pending town formation entry.
+	gs.PendingTownFormations[playerID] = []game.PendingTownFormation{
+		{PlayerID: playerID, Hexes: []board.Hex{}},
+	}
+
+	action, err := parseActionCode(playerID, "-W.TW8VP")
+	if err != nil {
+		t.Fatalf("parseActionCode(-W.TW8VP) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parsed action type = %T, want *LogCompoundAction", action)
+	}
+	if err := compound.Execute(gs); err != nil {
+		t.Fatalf("compound.Execute() error = %v", err)
+	}
+
+	if got := player.CultPositions[game.CultFire]; got != 7 {
+		t.Fatalf("fire cult = %d, want 7", got)
+	}
+	if got := player.CultPositions[game.CultWater]; got != 9 {
+		t.Fatalf("water cult = %d, want 9", got)
+	}
+	if got := player.CultPositions[game.CultEarth]; got != 5 {
+		t.Fatalf("earth cult = %d, want 5", got)
+	}
+	if got := player.CultPositions[game.CultAir]; got != 10 {
+		t.Fatalf("air cult = %d, want 10", got)
+	}
+	if got := player.Resources.Power.Bowl1; got != 0 {
+		t.Fatalf("power bowl1 = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 0 {
+		t.Fatalf("power bowl2 = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 6 {
+		t.Fatalf("power bowl3 = %d, want 6", got)
+	}
+}
+
+func TestLogCompoundAction_MultipleCultTownDecreaseTokens(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	if err := gs.AddPlayer(playerID, factions.NewEngineers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		t.Fatalf("player %q missing", playerID)
+	}
+
+	player.CultPositions[game.CultFire] = 0
+	player.CultPositions[game.CultWater] = 0
+	player.CultPositions[game.CultEarth] = 0
+	player.CultPositions[game.CultAir] = 0
+	gs.CultTracks.PlayerPositions[playerID][game.CultFire] = 0
+	gs.CultTracks.PlayerPositions[playerID][game.CultWater] = 0
+	gs.CultTracks.PlayerPositions[playerID][game.CultEarth] = 0
+	gs.CultTracks.PlayerPositions[playerID][game.CultAir] = 0
+
+	player.Resources.Power.Bowl1 = 12
+	player.Resources.Power.Bowl2 = 0
+	player.Resources.Power.Bowl3 = 0
+	gs.PendingTownFormations[playerID] = []game.PendingTownFormation{
+		{PlayerID: playerID, Hexes: []board.Hex{}},
+	}
+
+	action, err := parseActionCode(playerID, "-F.-W.-E.TW2VP")
+	if err != nil {
+		t.Fatalf("parseActionCode(-F.-W.-E.TW2VP) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parsed action type = %T, want *LogCompoundAction", action)
+	}
+	if err := compound.Execute(gs); err != nil {
+		t.Fatalf("compound.Execute() error = %v", err)
+	}
+
+	if got := player.CultPositions[game.CultFire]; got != 1 {
+		t.Fatalf("fire cult = %d, want 1", got)
+	}
+	if got := player.CultPositions[game.CultWater]; got != 1 {
+		t.Fatalf("water cult = %d, want 1", got)
+	}
+	if got := player.CultPositions[game.CultEarth]; got != 1 {
+		t.Fatalf("earth cult = %d, want 1", got)
+	}
+	if got := player.CultPositions[game.CultAir]; got != 2 {
+		t.Fatalf("air cult = %d, want 2", got)
+	}
+	// No milestone crossings in this setup; power should remain unchanged.
+	if got := player.Resources.Power.Bowl1; got != 12 {
+		t.Fatalf("power bowl1 = %d, want 12", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 0 {
+		t.Fatalf("power bowl2 = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 0 {
+		t.Fatalf("power bowl3 = %d, want 0", got)
+	}
+}
+
+func TestLogCompoundAction_CultTownSelectorsLimitTopToSingleTrackWithOneKey(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	if err := gs.AddPlayer(playerID, factions.NewEngineers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		t.Fatalf("player %q missing", playerID)
+	}
+
+	// Start with no keys; TW8 grants exactly one key before cult advancement,
+	// so only one track can top to 10.
+	player.Keys = 0
+	player.CultPositions[game.CultFire] = 9
+	player.CultPositions[game.CultWater] = 9
+	player.CultPositions[game.CultEarth] = 9
+	player.CultPositions[game.CultAir] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultFire] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultWater] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultEarth] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultAir] = 9
+
+	player.Resources.Power.Bowl1 = 0
+	player.Resources.Power.Bowl2 = 3
+	player.Resources.Power.Bowl3 = 3
+
+	gs.PendingTownFormations[playerID] = []game.PendingTownFormation{
+		{PlayerID: playerID, Hexes: []board.Hex{}},
+	}
+
+	action, err := parseActionCode(playerID, "-F.-W.-E.TW8VP")
+	if err != nil {
+		t.Fatalf("parseActionCode(-F.-W.-E.TW8VP) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parsed action type = %T, want *LogCompoundAction", action)
+	}
+	if err := compound.Execute(gs); err != nil {
+		t.Fatalf("compound.Execute() error = %v", err)
+	}
+
+	if got := player.CultPositions[game.CultFire]; got != 9 {
+		t.Fatalf("fire cult = %d, want 9", got)
+	}
+	if got := player.CultPositions[game.CultWater]; got != 9 {
+		t.Fatalf("water cult = %d, want 9", got)
+	}
+	if got := player.CultPositions[game.CultEarth]; got != 9 {
+		t.Fatalf("earth cult = %d, want 9", got)
+	}
+	if got := player.CultPositions[game.CultAir]; got != 10 {
+		t.Fatalf("air cult = %d, want 10", got)
+	}
+	if got := gs.CultTracks.Position10Occupied[game.CultAir]; got != playerID {
+		t.Fatalf("air position 10 occupier = %q, want %q", got, playerID)
+	}
+	if got := player.Keys; got != 1 {
+		t.Fatalf("keys = %d, want 1", got)
+	}
+	if _, occupied := gs.CultTracks.Position10Occupied[game.CultFire]; occupied {
+		t.Fatalf("fire position 10 should not be occupied")
+	}
+	if _, occupied := gs.CultTracks.Position10Occupied[game.CultWater]; occupied {
+		t.Fatalf("water position 10 should not be occupied")
+	}
+	if _, occupied := gs.CultTracks.Position10Occupied[game.CultEarth]; occupied {
+		t.Fatalf("earth position 10 should not be occupied")
+	}
+
+	// Only one 10-step crossing happened (air), so exactly +3 power is gained.
+	if got := player.Resources.Power.Bowl1; got != 0 {
+		t.Fatalf("power bowl1 = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 0 {
+		t.Fatalf("power bowl2 = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 6 {
+		t.Fatalf("power bowl3 = %d, want 6", got)
+	}
+}
+
+func TestLogCompoundAction_CultTownSelectorsRequirePendingTownFormation(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	if err := gs.AddPlayer(playerID, factions.NewWitches()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		t.Fatalf("player %q missing", playerID)
+	}
+	player.CultPositions[game.CultWater] = 9
+	gs.CultTracks.PlayerPositions[playerID][game.CultWater] = 9
+
+	action, err := parseActionCode(playerID, "-W.TW8VP")
+	if err != nil {
+		t.Fatalf("parseActionCode(-W.TW8VP) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parsed action type = %T, want *LogCompoundAction", action)
+	}
+	if err := compound.Execute(gs); err == nil {
+		t.Fatalf("compound.Execute() expected error when no pending town exists")
+	}
+}
+
 func TestParseReplayInsufficientResources_WrappedPrefix(t *testing.T) {
 	err := fmt.Errorf("failed to pay for dwelling: insufficient resources: need (coins:2, workers:1, priests:0, power:0), have (coins:0, workers:5, priests:0, power:0)")
 	got, ok := parseReplayInsufficientResources(err)

@@ -601,6 +601,11 @@ func (gs *GameState) NextTurn() bool {
 }
 
 func (gs *GameState) advanceToNextPlayer() bool {
+	// Skip-ability payments (Fakirs/Dwarves) are scoped to a single executed action.
+	// Clear this tracker when moving to the next turn so repeated tunneling/carpet
+	// flight on later turns still pays cost and awards VP.
+	gs.SkipAbilityUsedThisAction = make(map[string][]board.Hex)
+
 	// Skip players who have passed
 	for {
 		gs.CurrentPlayerIndex++

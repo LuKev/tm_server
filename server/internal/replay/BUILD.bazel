@@ -40,6 +40,7 @@ go_test(
         "manager_test.go",
         "parser_test.go",
         "snellman_batch_replay_test.go",
+        "snellman_batch_s60_63_replay_test.go",
         "snellman_batch_s64_66_replay_test.go",
         "snellman_ledger_resources_test.go",
         "snapshot_test.go",
@@ -49,6 +50,8 @@ go_test(
     ] + glob([
         "testdata/snellman_batch/*.txt",
         "testdata/snellman_batch/manifest.json",
+        "testdata/snellman_batch_s60_63/*.txt",
+        "testdata/snellman_batch_s60_63/manifest.json",
         "testdata/snellman_batch_s64_66/*.txt",
         "testdata/snellman_batch_s64_66/manifest.json",
     ]),

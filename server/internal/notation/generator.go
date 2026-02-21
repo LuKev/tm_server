@@ -554,6 +554,17 @@ func generateActionCode(action game.Action, homeTerrain models.TerrainType) stri
 			trackCode = "A"
 		}
 		return fmt.Sprintf("CULT-%s", trackCode)
+	case *LogCultTrackDecreaseAction:
+		trackCode := "F"
+		switch a.Track {
+		case game.CultWater:
+			trackCode = "W"
+		case game.CultEarth:
+			trackCode = "E"
+		case game.CultAir:
+			trackCode = "A"
+		}
+		return "-" + trackCode
 	default:
 		return fmt.Sprintf("UNKNOWN(%T)", action)
 	}

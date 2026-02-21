@@ -49,6 +49,42 @@ func TestParseActionCode_ParsesCultShorthandInCompound(t *testing.T) {
 	}
 }
 
+func TestParseActionCode_ParsesCultDecreaseShorthand(t *testing.T) {
+	action, err := parseActionCode("Cultists", "-W")
+	if err != nil {
+		t.Fatalf("parseActionCode(-W) error = %v", err)
+	}
+	if _, ok := action.(*LogCultTrackDecreaseAction); !ok {
+		t.Fatalf("parseActionCode(-W) type = %T, want *LogCultTrackDecreaseAction", action)
+	}
+}
+
+func TestParseActionCode_ParsesMultipleCultDecreaseSelectorsWithTown(t *testing.T) {
+	action, err := parseActionCode("Witches", "-F.-W.-E.TW8VP")
+	if err != nil {
+		t.Fatalf("parseActionCode(-F.-W.-E.TW8VP) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(-F.-W.-E.TW8VP) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 4 {
+		t.Fatalf("compound action count = %d, want 4", len(compound.Actions))
+	}
+	if _, ok := compound.Actions[0].(*LogCultTrackDecreaseAction); !ok {
+		t.Fatalf("compound first action type = %T, want *LogCultTrackDecreaseAction", compound.Actions[0])
+	}
+	if _, ok := compound.Actions[1].(*LogCultTrackDecreaseAction); !ok {
+		t.Fatalf("compound second action type = %T, want *LogCultTrackDecreaseAction", compound.Actions[1])
+	}
+	if _, ok := compound.Actions[2].(*LogCultTrackDecreaseAction); !ok {
+		t.Fatalf("compound third action type = %T, want *LogCultTrackDecreaseAction", compound.Actions[2])
+	}
+	if _, ok := compound.Actions[3].(*LogTownAction); !ok {
+		t.Fatalf("compound fourth action type = %T, want *LogTownAction", compound.Actions[3])
+	}
+}
+
 func TestParseActionCode_RejectsStandaloneConversion(t *testing.T) {
 	_, err := parseActionCode("Cultists", "C5PW:1P")
 	if err == nil {

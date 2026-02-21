@@ -1,0 +1,455 @@
+ Default game options
+option strict-leech
+option strict-darkling-sh
+option strict-chaosmagician-sh
+option errata-cultist-power
+option mini-expansion-1
+option shipping-bonus
+option temple-scoring-tile
+option email-notify
+option maintain-player-order
+option variable-turn-order
+ Randomize setup
+Round 1 scoring: SCORE3, D >> 2
+Round 2 scoring: SCORE5, D >> 2
+Round 3 scoring: SCORE8, TP >> 3
+Round 4 scoring: SCORE6, TP >> 3
+Round 5 scoring: SCORE2, TOWN >> 5
+Round 6 scoring: SCORE9, TE >> 4
+Removing tile BON7
+Removing tile BON2
+Removing tile BON4
+Player 1: AnthonyV
+Player 2: RazorPop
+Player 3: RA
+Player 4: canetts
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		setup
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		setup
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		setup
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		setup
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build B5
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build E6
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build F4
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		build E7
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		build H6
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		build C3
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		build F5
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		build G5
+engineers		20 VP		10 C		2 W		0 P		3/9/0 PW		0/0/0/0		Pass BON1
+witches		20 VP		15 C		3 W		0 P		5/7/0 PW		0/0/0/2		Pass BON6
+cultists		20 VP		15 C		3 W		0 P		5/7/0 PW		1/0/1/0		Pass BON5
+darklings		20 VP		15 C		1 W		1 P		5/7/0 PW		0/1/1/0		Pass BON8
+Round 1 income
+darklings		20 VP		15 C	+3	4 W	+1	2 P		5/7/0 PW		0/1/1/0		other_income_for_faction
+cultists		20 VP		15 C	+4	7 W		0 P	+3	2/10/0 PW		1/0/1/0		other_income_for_faction
+witches		20 VP		15 C	+5	8 W		0 P		5/7/0 PW		0/0/0/2		other_income_for_faction
+engineers		20 VP	+2	12 C	+2	4 W		0 P		3/9/0 PW		0/0/0/0		other_income_for_faction
+Round 1, turn 1
+darklings		20 VP	-3	12 C	-2	2 W		2 P		5/7/0 PW		0/1/1/0	1 1	upgrade G5 to TP
+cultists		20 VP		15 C		7 W		0 P	+1	1/11/0 PW		1/0/1/0		Leech 1 from darklings
+cultists		20 VP	-3	12 C	-2	5 W		0 P		1/11/0 PW		1/0/1/0	1 1	upgrade E6 to TP
+cultists		20 VP		12 C		5 W		0 P		1/11/0 PW	+1	1/0/1/0		[opponent accepted power]
+witches		20 VP		15 C		8 W		0 P	+1	4/8/0 PW		0/0/0/2		Leech 1 from cultists
+witches		20 VP	-3	12 C	-2	6 W		0 P		4/8/0 PW		0/0/0/2	2 1	upgrade F4 to TP
+cultists	-1	19 VP		12 C		5 W		0 P	+2	0/11/1 PW		1/1/1/0		+WATER. Leech 2 from witches
+engineers		20 VP		12 C		4 W		0 P	+1	2/10/0 PW		0/0/0/0		Leech 1 from darklings
+engineers		20 VP		12 C		4 W		0 P	+1	1/11/0 PW		0/0/0/0		Leech 1 from cultists
+engineers		20 VP		12 C		4 W		0 P	+1	0/12/0 PW		0/0/0/0		Leech 1 from witches
+engineers		20 VP	-2	10 C	-1	3 W		0 P		0/12/0 PW		0/0/0/0	2 2	upgrade E7 to TP
+witches	-1	19 VP		12 C		6 W		0 P	+2	2/10/0 PW		0/0/0/2		Leech 2 from engineers
+Round 1, turn 2
+darklings		20 VP	-5	7 C	-2	0 W		2 P		5/7/0 PW	+1	0/1/2/0	1 1	upgrade G5 to TE. +FAV11
+cultists	-1	18 VP		12 C		5 W		0 P	+2	0/9/3 PW		1/1/1/0		Leech 2 from engineers
+cultists		18 VP		12 C		5 W		0 P	+1	0/8/4 PW		1/1/1/0		Leech 1 from darklings
+cultists	+2	20 VP	-2	10 C	-1	4 W		0 P	-12	6/4/0 PW		1/1/1/0	2 1	burn 2. action ACT6. transform F3 to brown. build G4
+cultists		20 VP		10 C		4 W		0 P		6/4/0 PW	+1	1/1/1/0		[opponent accepted power]
+darklings	-1	19 VP		7 C		0 W		2 P	+2	3/9/0 PW		0/1/2/0		Leech 2 from cultists
+cultists		20 VP		10 C		4 W		0 P		6/4/0 PW		1/2/1/0		+WATER
+witches		19 VP		12 C		6 W		0 P		2/10/0 PW		0/0/0/2		wait
+engineers		20 VP		10 C		3 W		0 P	+1	0/11/1 PW		0/0/0/0		Leech 1 from darklings
+engineers		20 VP		10 C		3 W		0 P	+1	0/10/2 PW		0/0/0/0		Leech 1 from cultists
+witches		19 VP	-6	6 C	-4	2 W		0 P		2/10/0 PW		0/0/0/2	2 2	upgrade F4 to SH
+cultists	-1	19 VP		10 C		4 W		0 P	+2	4/6/0 PW		1/2/1/0		Leech 2 from witches
+engineers	-1	19 VP		10 C		3 W		0 P	+2	0/8/4 PW		0/0/0/0		Leech 2 from witches
+engineers		19 VP		10 C	+2	5 W		0 P	-8	4/8/0 PW		0/0/0/0		action ACT3
+Round 1, turn 3
+darklings		19 VP		7 C		0 W	-1	1 P	+1	2/10/0 PW	+3	0/4/2/0		send p to WATER
+cultists		19 VP	-5	5 C	-2	2 W		0 P		4/6/0 PW	+1	1/2/2/0	2 3	upgrade E6 to TE. +FAV11
+engineers		19 VP		10 C		5 W		0 P		4/8/0 PW		0/0/0/0		wait
+cultists		19 VP		5 C		2 W		0 P		4/6/0 PW	+1	1/2/2/0		[opponent accepted power]
+witches	-2	17 VP		6 C		2 W		0 P	+3	0/11/1 PW		0/0/0/2		Leech 3 from cultists
+witches		17 VP		6 C		2 W	+1	1 P	-6	3/7/0 PW		0/0/0/2		burn 2. action ACT2
+cultists		19 VP		5 C		2 W		0 P	+1	3/7/0 PW		1/3/2/0		+WATER
+engineers	-1	18 VP		10 C		5 W		0 P	+2	2/10/0 PW		0/0/0/0		Leech 2 from cultists
+engineers		18 VP	+7	17 C		5 W		0 P	-8	6/2/0 PW		0/0/0/0		burn 4. action ACT4
+Round 1, turn 4
+darklings		19 VP	+1	8 C		0 W		1 P		2/10/0 PW		0/4/2/0		pass BON3
+cultists	+4	23 VP	-2	3 C	-1	1 W		0 P		3/7/0 PW		1/3/2/0	3	build F3
+cultists		23 VP		3 C		1 W		0 P		3/7/0 PW	+1	1/3/2/0		[opponent accepted power]
+witches	-2	15 VP		6 C		2 W		1 P	+3	0/10/0 PW		0/0/0/2		Leech 3 from cultists
+witches		15 VP		6 C		2 W		1 P		0/10/0 PW		0/0/0/2		wait
+cultists		23 VP		3 C		1 W		0 P		3/7/0 PW		1/4/2/0		+WATER
+witches	+2	17 VP	-4	2 C		2 W	-1	0 P		0/10/0 PW		0/0/0/2		Advance ship
+engineers		18 VP	-2	15 C	-1	4 W		0 P		6/2/0 PW		0/0/0/0	2 1	upgrade H6 to TP
+darklings	-1	18 VP		8 C		0 W		1 P	+2	0/12/0 PW		0/4/2/0		Leech 2 from engineers
+cultists		23 VP		3 C		1 W		0 P	+1	2/8/0 PW		1/4/2/0		Leech 1 from engineers
+Round 1, turn 5
+cultists		23 VP		3 C		1 W		0 P	-6	5/2/0 PW		1/4/2/0		burn 3. action ACT1. Bridge G4:H5
+witches	+2	19 VP	-2	0 C	-1	1 W		0 P		0/10/0 PW		0/0/0/2	1	build C4
+engineers		18 VP	-4	11 C	-1	3 W		0 P		6/2/0 PW	+1	0/0/1/0	2 1	upgrade H6 to TE. +FAV11
+cultists		23 VP		3 C		1 W		0 P	+1	4/3/0 PW		1/4/2/0		Leech 1 from engineers
+Round 1, turn 6
+cultists		23 VP	+1	4 C		1 W		0 P		4/3/0 PW		1/4/2/0		pass BON9
+darklings		18 VP		8 C		0 W		1 P	+1	0/11/1 PW		0/4/2/0		Leech 1 from witches
+darklings	-1	17 VP		8 C		0 W		1 P	+2	0/9/3 PW		0/4/2/0		Leech 2 from engineers
+witches	+2	21 VP		0 C		1 W		0 P		0/10/0 PW		0/0/0/2	1	action ACTW. build E9
+engineers		18 VP	-4	7 C	-1	2 W		0 P	+1	5/3/0 PW	+2	0/0/3/0	2 3	upgrade E7 to TE. +FAV7
+cultists		23 VP		4 C		1 W		0 P	+1	3/4/0 PW		1/4/2/0		Leech 1 from witches
+cultists	-1	22 VP		4 C		1 W		0 P	+2	1/6/0 PW		1/4/2/0		Leech 2 from engineers
+witches	-2	19 VP		0 C		1 W		0 P	+3	0/7/3 PW		0/0/0/2		Leech 3 from engineers
+Round 1, turn 7
+witches	+2	21 VP		0 C	-1	0 W		0 P	-4	2/7/1 PW		0/0/0/2		convert 2pw to 2c. build g3
+engineers	+4	22 VP	-1	6 C	-1	1 W		0 P		5/3/0 PW		0/0/3/0	2 1	action BON1. build D4
+cultists	-1	21 VP		4 C		1 W		0 P	+2	0/6/1 PW		1/4/2/0		Leech 2 from engineers
+witches		21 VP		0 C		0 W		0 P	+1	1/8/1 PW		0/0/0/2		Leech 1 from engineers
+Round 1, turn 8
+witches	+4	25 VP	+1	1 C		0 W		0 P		1/8/1 PW		0/0/0/2		Pass bon10
+engineers		22 VP		6 C		1 W		0 P		5/3/0 PW		0/0/3/0		pass BON5
+Round 2 income
+darklings		17 VP		8 C		0 W	+1	2 P		0/9/3 PW		0/4/2/0		cult_income_for_faction
+cultists		21 VP		4 C		1 W	+1	1 P		0/6/1 PW		1/4/2/0		cult_income_for_faction
+witches		25 VP		1 C		0 W		0 P		1/8/1 PW		0/0/0/2		cult_income_for_faction
+engineers		22 VP		6 C		1 W		0 P		5/3/0 PW		0/0/3/0		cult_income_for_faction
+Round 2 income
+darklings		17 VP	+6	14 C	+2	2 W	+1	3 P		0/9/3 PW		0/4/2/0		other_income_for_faction
+cultists		21 VP	+2	6 C	+4	5 W	+1	2 P		0/6/1 PW		1/4/2/0		other_income_for_faction
+witches		25 VP		1 C	+5	5 W		0 P	+5	0/5/5 PW		0/0/0/2		other_income_for_faction
+engineers		22 VP		6 C	+3	4 W	+1	1 P	+9	0/4/4 PW		0/0/3/0		other_income_for_faction
+Round 2, turn 1
+darklings		17 VP		14 C	+2	4 W		3 P	-8	4/7/0 PW		0/4/2/0		burn 1. action ACT3
+cultists	+4	25 VP	-2	4 C	-4	1 W		2 P		0/6/1 PW		1/4/2/0	1	dig 1. build H5
+cultists		25 VP		4 C		1 W		2 P		0/6/1 PW	+1	1/4/2/0		[opponent accepted power]
+witches		25 VP		1 C		5 W		0 P	+1	0/4/6 PW		0/0/0/2		Leech 1 from cultists
+witches		25 VP		1 C		5 W		0 P		0/4/6 PW		0/0/0/2		wait
+cultists		25 VP		4 C		1 W		2 P		0/6/1 PW		2/4/2/0		+FIRE
+witches		25 VP	+7	8 C		5 W		0 P	-8	4/4/2 PW		0/0/0/2		action ACT4
+engineers	+2	24 VP	-4	2 C		4 W	-1	0 P		0/4/4 PW		0/0/3/0		advance ship
+Round 2, turn 2
+darklings		17 VP		14 C		4 W	+1	4 P	-6	7/1/0 PW		0/4/2/0		burn 3. action ACT2
+cultists		25 VP		4 C		1 W	-1	1 P	+3	0/3/4 PW	+3	5/4/2/0		send p to Fire
+witches	+2	27 VP	-2	6 C	-4	1 W		0 P		4/4/2 PW		0/0/0/2		Dig 1. Build c2
+engineers	+4	28 VP	-1	1 C	-1	3 W		0 P	-12	6/0/0 PW		0/0/3/0		burn 2. action ACT6. build E8
+Round 2, turn 3
+darklings	+8	25 VP	-2	12 C	-1	3 W	-2	2 P		7/1/0 PW		0/4/2/0	1	dig 2. build B4
+cultists		25 VP		4 C		1 W	-1	0 P	+1	0/2/5 PW	+3	5/4/2/3		send p to Air
+witches		27 VP		6 C		1 W		0 P	+1	3/5/2 PW		0/0/0/2		Leech 1 from darklings
+witches	+2	29 VP		6 C		1 W		0 P		3/5/2 PW		0/0/0/2		action ACTW. build F2
+engineers	+4	32 VP	-1	0 C	-1	2 W		0 P		6/0/0 PW		0/0/3/0	1	build I9
+cultists		25 VP		4 C		1 W		0 P	+1	0/1/6 PW		5/4/2/3		Leech 1 from engineers
+Round 2, turn 4
+darklings	+6	31 VP	-2	10 C	-1	2 W	-1	1 P		7/1/0 PW		0/4/2/0		dig 1. build G6
+cultists	+4	29 VP	-1	3 C	-1	0 W		0 P	-2	1/1/5 PW		5/4/2/3	1	convert 1PW to 1C. build I8
+cultists		29 VP		3 C		0 W		0 P		1/1/5 PW	+1	5/4/2/3		[opponent accepted power]
+engineers		32 VP		0 C		2 W		0 P	+1	5/1/0 PW		0/0/3/0		Leech 1 from cultists
+cultists		29 VP		3 C		0 W		0 P		1/1/5 PW		5/4/2/4		+AIR
+witches	+3	32 VP	+1	7 C		1 W		0 P		3/5/2 PW		0/0/0/2		Pass bon6
+engineers		32 VP	+1	1 C		2 W		0 P		5/1/0 PW		0/0/3/0		pass BON1
+Round 2, turn 5
+darklings	+2	33 VP		10 C		2 W	-1	0 P		7/1/0 PW		0/4/2/0		dig 1. transform F7 to black
+cultists	+5	34 VP	+2	5 C		0 W		0 P	-4	3/1/3 PW		5/4/2/4		convert 2PW to 2C. pass BON5
+Round 2, turn 6
+darklings	+4	37 VP	-2	8 C	-1	1 W		0 P		7/1/0 PW		0/4/2/0		build F7
+Round 2, turn 7
+darklings	+4	41 VP	-2	6 C	-1	0 W		0 P		7/1/0 PW		0/4/2/0	1	build E10
+darklings		41 VP		6 C		0 W		0 P		7/1/0 PW		0/4/2/0		pass BON9
+witches		32 VP		7 C		1 W		0 P	+1	2/6/2 PW		0/0/0/2		Leech 1 from darklings
+Round 3 income
+witches		32 VP		7 C		1 W		0 P		2/6/2 PW		0/0/0/2		cult_income_for_faction
+engineers		32 VP		1 C		2 W		0 P		5/1/0 PW		0/0/3/0		cult_income_for_faction
+cultists		34 VP		5 C		0 W		0 P	+4	0/3/4 PW		5/4/2/4		cult_income_for_faction
+darklings		41 VP		6 C		0 W		0 P		7/1/0 PW		0/4/2/0		cult_income_for_faction
+Round 3 income
+witches		32 VP		7 C	+9	10 W		0 P	+2	0/8/2 PW		0/0/0/2		other_income_for_faction
+engineers		32 VP	+2	3 C	+3	5 W	+1	1 P	+6	0/5/1 PW		0/0/3/0		other_income_for_faction
+cultists		34 VP		5 C	+7	7 W	+1	1 P	+3	0/0/7 PW		5/4/2/4		other_income_for_faction
+darklings		41 VP	+2	8 C	+6	6 W	+1	1 P		7/1/0 PW		0/4/2/0		other_income_for_faction
+Round 3, turn 1
+witches		32 VP	+7	14 C		10 W		0 P	-8	4/4/0 PW		0/0/0/2		burn 2. action ACT4
+engineers		32 VP		3 C		5 W	-1	0 P	+2	0/3/3 PW	+3	0/0/6/0		send p to EARTH
+cultists	+3	37 VP	-1	4 C	-2	5 W		1 P	-4	2/0/5 PW		5/4/2/4	2 1	convert 2PW to 2C. upgrade F5 to TP
+witches		32 VP		14 C		10 W		0 P		4/4/0 PW		0/0/0/2		wait
+cultists		37 VP		4 C		5 W		1 P		2/0/5 PW	+1	5/4/2/4		[opponent accepted power]
+darklings	-1	40 VP		8 C		6 W		1 P	+2	5/3/0 PW		0/4/2/0		Leech 2 from cultists
+darklings	+2	42 VP	-2	6 C	-1	5 W		1 P		5/3/0 PW		0/4/2/0		build A8
+cultists		37 VP		4 C		5 W		1 P	+2	0/2/5 PW		5/4/2/5		+AIR
+witches		32 VP		14 C		10 W		0 P	+1	3/5/0 PW		0/0/0/2		Leech 1 from cultists
+Round 3, turn 2
+witches	+3	35 VP	-3	11 C	-2	8 W		0 P		3/5/0 PW		0/0/0/2	1	upgrade g3 to tp
+cultists		37 VP		4 C		5 W		1 P	+1	0/1/6 PW		5/4/2/5		Leech 1 from witches
+engineers	+2	34 VP	-1	2 C	-1	4 W		0 P		0/3/3 PW		0/0/6/0	1	action BON1. build D6
+witches		35 VP		11 C		8 W		0 P	+1	2/6/0 PW		0/0/0/2		Leech 1 from engineers
+cultists	+3	40 VP	-3	1 C	-2	3 W		1 P		0/1/6 PW		5/4/2/5	1 2	upgrade H5 to TP
+darklings	+3	45 VP	-3	3 C	-2	3 W		1 P		5/3/0 PW		0/4/2/0	1	upgrade B5 to TP
+cultists		40 VP		1 C		3 W		1 P		0/1/6 PW	+1	5/4/2/5		[opponent accepted power]
+witches	-1	34 VP		11 C		8 W		0 P	+2	0/8/0 PW		0/0/0/2		Leech 2 from cultists
+witches		34 VP		11 C		8 W		0 P	+1	0/7/1 PW		0/0/0/2		Leech 1 from darklings
+Round 3, turn 3
+witches		34 VP	-5	6 C	-2	6 W		0 P		0/7/1 PW	+1	0/1/0/2	2	upgrade G3 to TE. +FAV10
+cultists		40 VP		1 C		3 W		1 P	+1	0/0/7 PW		5/4/2/6		+AIR. Leech 2 from witches
+engineers		34 VP		2 C		4 W		0 P	+1	0/2/4 PW		0/0/6/0		Leech 1 from cultists
+engineers	+3	37 VP	-2	0 C	-1	3 W		0 P		0/2/4 PW		0/0/6/0	2 1	upgrade D4 to TP
+witches		34 VP		6 C		6 W		0 P	+1	0/6/2 PW		0/1/0/2		Leech 1 from engineers
+cultists		40 VP		1 C		3 W		1 P		0/0/7 PW		5/4/2/6		Leech 2 from engineers
+cultists	+4	44 VP	-1	0 C	-1	2 W		1 P	-7	0/7/0 PW	+8	7/6/4/8		convert 1PW to 1C. action ACT6. transform E5 to brown. build I7. +TW6
+darklings	+5	50 VP	+1	4 C		3 W		1 P		5/3/0 PW		0/4/2/0		pass BON3
+Round 3, turn 4
+witches	+6	40 VP	-3	3 C	-2	4 W		0 P		0/6/2 PW		0/1/0/2	1 2	upgrade E9 to TP
+cultists	-1	43 VP		0 C		2 W		1 P	+2	0/5/2 PW		7/6/4/8		Leech 2 from witches
+darklings		50 VP		4 C		3 W		1 P	+1	4/4/0 PW		0/4/2/0		Leech 1 from witches
+engineers	+2	39 VP		0 C	-1	2 W		0 P	-2	1/2/3 PW		0/0/6/0		convert 1PW to 1C. build C5
+cultists		43 VP		0 C		2 W	-1	0 P	+2	0/3/4 PW	+2	7/8/4/8		send p to Water
+Round 3, turn 5
+witches		40 VP		3 C		4 W		0 P		0/6/2 PW		0/1/0/2		action ACTW. build D1
+engineers		39 VP	+4	4 C		2 W		0 P	-6	4/2/0 PW		0/0/6/0		convert 3PW to 3C. pass BON10
+cultists	+2	45 VP		0 C	-1	1 W		0 P	-4	2/3/2 PW		7/8/4/8		convert 2PW to 2C. build E5
+Round 3, turn 6
+witches	+6	46 VP	-3	0 C	-2	2 W		0 P		0/6/2 PW		0/1/0/2	3 1	upgrade C4 to TP
+engineers		39 VP		4 C		2 W		0 P	+1	3/3/0 PW		0/0/6/0		Leech 1 from witches
+cultists		45 VP		0 C		1 W		0 P		2/3/2 PW		7/8/4/8		pass BON1
+darklings	-2	48 VP		4 C		3 W		1 P	+3	1/7/0 PW		0/4/2/0		Leech 3 from witches
+Round 3, turn 7
+witches	+6	52 VP		0 C	-2	0 W		0 P	-6	3/4/0 PW		0/1/0/2	2	burn 1. convert 3pw to 3c. upgrade c3 to tp. wait
+engineers		39 VP		4 C		2 W		0 P		3/3/0 PW		0/0/6/0		Decline 2 from witches
+witches	+4	56 VP		0 C		0 W		0 P		3/4/0 PW		0/1/0/2		pass bon9
+Round 4 income
+darklings		48 VP		4 C		3 W		1 P		1/7/0 PW		0/4/2/0		cult_income_for_faction
+engineers		39 VP		4 C		2 W		0 P		3/3/0 PW		0/0/6/0		cult_income_for_faction
+cultists		45 VP		0 C		1 W		0 P		2/3/2 PW		7/8/4/8		cult_income_for_faction
+witches		56 VP		0 C		0 W		0 P		3/4/0 PW		0/1/0/2		cult_income_for_faction
+cultists		45 VP		0 C		1 W		0 P		2/3/2 PW		7/8/4/8		transform G2 to brown
+Round 4 income
+darklings		48 VP	+8	12 C	+6	9 W	+1	2 P	+1	0/8/0 PW		0/4/2/0		other_income_for_faction
+engineers		39 VP	+2	6 C	+4	6 W	+1	1 P	+9	0/0/6 PW		0/0/6/0		other_income_for_faction
+cultists		45 VP	+6	6 C	+6	7 W	+1	1 P	+2	0/5/2 PW		7/8/4/8		other_income_for_faction
+witches		56 VP	+8	8 C	+4	4 W	+1	1 P	+6	0/4/3 PW		0/1/0/2		other_income_for_faction
+Round 4, turn 1
+darklings		48 VP	-5	7 C	-2	7 W		2 P	+2	0/6/2 PW	+1	0/5/2/0	2	upgrade B5 to TE. +FAV10
+witches	-1	55 VP		8 C		4 W		1 P	+2	0/2/5 PW		0/1/0/2		Leech 2 from darklings
+engineers		39 VP	+7	13 C		6 W		1 P	-8	4/0/2 PW		0/0/6/0		action ACT4
+cultists	+2	47 VP	-4	2 C		7 W	-1	0 P		0/5/2 PW		7/8/4/8		advance ship
+witches		55 VP	-2	6 C	-1	3 W		1 P	-12	6/0/0 PW		0/1/0/2	4	burn 1. action ACT6. transform E4 to green. build H4
+Round 4, turn 2
+darklings	+4	52 VP	-2	5 C	-1	6 W	-1	1 P		0/6/2 PW		0/5/2/0		dig 1. build A7
+cultists	-3	44 VP		2 C		7 W		0 P	+4	0/1/6 PW		7/8/4/8		Leech 4 from witches
+engineers		39 VP	-4	9 C	-1	5 W		1 P		4/0/2 PW	+1	0/1/6/0	2 2	upgrade D4 to TE. +FAV10
+witches	-1	54 VP		6 C		3 W		1 P	+2	4/2/0 PW		0/1/0/2		Leech 2 from engineers
+cultists		44 VP		2 C		7 W		0 P	+1	0/0/7 PW		7/8/4/8		Leech 2 from engineers
+cultists	+2	46 VP	-1	1 C	-1	6 W		0 P	-2	1/0/6 PW		7/8/4/8		convert 1PW to 1C. action BON1. build D3
+witches		54 VP		6 C		3 W		1 P		4/2/0 PW		0/1/0/2	2	action ACTW. build E4
+Round 4, turn 3
+darklings	+6	58 VP	-3	2 C	-2	4 W		1 P		0/6/2 PW		0/5/2/0	2	upgrade E10 to TP
+engineers	+6	45 VP	-2	7 C	-1	4 W		1 P		4/0/2 PW		0/1/6/0	2	upgrade D6 to TP
+witches	-1	53 VP		6 C		3 W		1 P	+2	2/4/0 PW		0/1/0/2		Leech 2 from darklings
+witches	-1	52 VP		6 C		3 W		1 P	+2	0/6/0 PW		0/1/0/2		Leech 2 from engineers
+cultists	-1	45 VP		1 C		6 W		0 P	+2	0/0/7 PW		7/8/4/8		Leech 2 from witches
+cultists	+2	47 VP	-1	0 C	-1	5 W		0 P	-2	1/0/6 PW		7/8/4/8	1	convert 1PW to 1C. build B2
+cultists		47 VP		0 C		5 W		0 P		1/0/6 PW	+1	7/8/4/8		[opponent accepted power]
+witches		52 VP		6 C		3 W		1 P	+1	0/5/1 PW		0/1/0/2		Leech 1 from cultists
+witches	+6	58 VP	-3	3 C	-2	1 W		1 P		0/5/1 PW		0/1/0/2	2	upgrade E4 to TP
+Round 4, turn 4
+darklings	+6	64 VP	-2	0 C	-2	2 W		1 P	-2	1/6/1 PW		0/5/2/0	2	convert 1PW to 1C. upgrade B4 to TP
+witches	-1	57 VP		3 C		1 W		1 P	+2	0/3/3 PW		0/1/0/2		Leech 2 from darklings
+engineers	+3	48 VP	-4	3 C		4 W	-1	0 P		4/0/2 PW		0/1/6/0		advance ship
+cultists	-1	46 VP		0 C		5 W		0 P	+2	0/0/7 PW		8/8/4/8		+FIRE. Leech 2 from witches
+cultists	+3	49 VP		0 C	-2	3 W		0 P	-6	3/0/4 PW		8/8/4/8	2	convert 2PW to 2C. convert 1PW to 1C. upgrade E5 to TP
+cultists		49 VP		0 C		3 W		0 P		3/0/4 PW	+1	8/8/4/8		[opponent accepted power]
+witches	-1	56 VP		3 C		1 W		1 P	+2	0/1/5 PW		0/1/0/2		Leech 2 from cultists
+witches		56 VP		3 C		1 W		1 P	-6	3/1/2 PW		0/1/0/2		action ACT1. Bridge F4:G3
+cultists		49 VP		0 C		3 W		0 P	+2	1/2/4 PW		8/8/5/8		+EARTH
+Round 4, turn 5
+darklings		64 VP	+1	1 C		2 W		1 P		1/6/1 PW		0/5/2/0		pass BON6
+engineers	+6	54 VP	-2	1 C	-1	3 W		0 P		4/0/2 PW		0/1/6/0	3	upgrade I9 to TP
+cultists		49 VP		0 C		3 W		0 P		1/2/4 PW		8/8/5/8		Decline 3 from engineers
+cultists	+3	52 VP		0 C	-2	1 W		0 P	-6	4/2/1 PW		8/8/5/8	2	convert 3PW to 3C. upgrade D3 to TP
+cultists		52 VP		0 C		1 W		0 P	+1	3/3/1 PW		8/8/5/8		[all opponents declined power]
+witches		56 VP		3 C		1 W		1 P		3/1/2 PW		0/1/0/2		Decline 2 from cultists
+witches	+4	60 VP	+1	4 C		1 W		1 P	-2	4/1/1 PW		0/1/0/2		convert pw to c. pass bon3
+Round 4, turn 6
+engineers		54 VP		1 C	-2	1 W		0 P		4/0/2 PW		0/1/6/0		action ACTE. Bridge I9:H6
+cultists	+2	54 VP		0 C	-1	0 W		0 P	-4	5/1/0 PW		8/8/5/8	3	burn 1. convert 2PW to 2C. build G2
+cultists		54 VP		0 C		0 W		0 P	+1	4/2/0 PW		8/8/5/8		[all opponents declined power]
+witches		60 VP		4 C		1 W		1 P		4/1/1 PW		0/1/0/2		Decline 3 from cultists
+Round 4, turn 7
+engineers	+6	60 VP		1 C		1 W		0 P		4/0/2 PW		0/1/6/0		pass BON9
+cultists		54 VP		0 C		0 W		0 P		4/2/0 PW		8/8/5/8		pass BON10
+Round 5 income
+darklings		64 VP		1 C		2 W		1 P		1/6/1 PW		0/5/2/0		cult_income_for_faction
+witches		60 VP		4 C		1 W		1 P		4/1/1 PW		0/1/0/2		cult_income_for_faction
+engineers		60 VP		1 C		1 W		0 P		4/0/2 PW		0/1/6/0		cult_income_for_faction
+cultists		54 VP		0 C		0 W		0 P		4/2/0 PW		8/8/5/8		cult_income_for_faction
+darklings		64 VP		1 C		2 W		1 P		1/6/1 PW		0/5/2/0		transform D8 to black
+cultists		54 VP		0 C		0 W		0 P		4/2/0 PW		8/8/5/8		transform E3 to brown
+Round 5 income
+darklings		64 VP	+4	5 C	+7	9 W	+2	3 P	+2	0/6/2 PW		0/5/2/0		other_income_for_faction
+witches		60 VP	+14	18 C	+5	6 W	+1	2 P	+8	0/1/5 PW		0/1/0/2		other_income_for_faction
+engineers		60 VP	+6	7 C	+3	4 W	+2	2 P	+8	0/0/6 PW		0/1/6/0		other_income_for_faction
+cultists		54 VP	+8	8 C	+7	7 W	+1	1 P	+9	0/1/5 PW		8/8/5/8		other_income_for_faction
+Round 5, turn 1
+darklings		64 VP	+7	12 C		9 W		3 P	-8	4/2/0 PW		0/5/2/0		burn 2. action ACT4
+witches	+17	77 VP	-5	13 C	-2	4 W		2 P	-1	1/0/5 PW	+1	0/1/0/3	2	upgrade G3 to SA. +FAV12. +TW2. Convert pw to c
+cultists		54 VP		8 C		7 W		1 P	+1	0/0/6 PW		8/8/5/8		Leech 2 from witches
+engineers		60 VP		7 C		4 W		2 P	-12	6/0/0 PW		0/1/6/0		action ACT6. transform I10 to gray
+cultists	+2	56 VP	-1	7 C	-1	6 W		1 P	-2	1/0/5 PW		8/8/5/8	3	convert 1PW to 1C. build E3
+cultists		56 VP		7 C		6 W		1 P		1/0/5 PW	+1	8/8/5/8		[opponent accepted power]
+witches	-1	76 VP		13 C		4 W		2 P	+2	0/0/6 PW		0/1/0/3		Leech 3 from cultists
+cultists		56 VP		7 C		6 W		1 P		1/0/5 PW		8/8/6/8		+EARTH
+Round 5, turn 2
+darklings	+10	74 VP	-4	8 C	-4	5 W		3 P		4/2/0 PW	+1	0/5/2/1	2	upgrade B5 to SA. +FAV12. +TW1
+witches		76 VP		13 C		4 W		2 P		0/0/6 PW		0/1/0/3		Decline 2 from darklings
+witches		76 VP	-2	11 C	-4	0 W		2 P	-8	4/0/2 PW		0/1/0/3		action ACT5. Dig 1. Build e1
+engineers	+12	72 VP		7 C		4 W		2 P		6/0/0 PW		0/1/6/0		action ACTE. Bridge E8:D6. +TW2
+cultists	+2	58 VP	-1	6 C	-1	5 W		1 P	-2	2/0/4 PW		8/8/6/8	3	convert 1PW to 1C. build E2
+Round 5, turn 3
+darklings	+13	87 VP	-2	6 C	-1	4 W		3 P		4/2/0 PW		0/5/2/1		build D8. +TW7
+cultists		58 VP		6 C		5 W		1 P		2/0/4 PW	+1	8/8/6/8		[opponent accepted power]
+witches	-2	74 VP		11 C		0 W		2 P	+3	1/3/2 PW		0/1/0/3		Leech 3 from cultists
+witches		74 VP		11 C		0 W		2 P		1/3/2 PW		0/1/0/3	3	action ACTW. build A10
+darklings		87 VP		6 C		4 W		3 P		4/2/0 PW		0/5/2/1		Decline 3 from witches
+cultists		58 VP		6 C		5 W		1 P	+2	0/2/4 PW		8/8/7/8		+EARTH
+engineers		72 VP		7 C		4 W	-1	1 P	+2	4/2/0 PW	+2	0/1/8/0		send p to EARTH
+cultists		58 VP		6 C		5 W	+1	2 P	-6	3/2/1 PW		8/8/7/8		action ACT2
+Round 5, turn 4
+darklings	+2	89 VP	-2	4 C	-1	3 W		3 P		4/2/0 PW		0/5/2/1	1 1	build B3
+cultists		58 VP		6 C		5 W		2 P	+1	2/3/1 PW		8/8/7/8		Leech 1 from darklings
+witches		74 VP		11 C		0 W		2 P	+1	0/4/2 PW		0/1/0/3		Leech 1 from darklings
+witches		74 VP		11 C		0 W	-1	1 P	+1	0/3/3 PW	+2	0/3/0/3		send p to water
+engineers		72 VP		7 C		4 W	-1	0 P	+3	1/5/0 PW	+2	0/1/10/0		send p to EARTH
+cultists		58 VP		6 C		5 W	-1	1 P	+3	0/4/2 PW	+2	8/10/7/8		send p to Water
+Round 5, turn 5
+darklings	+2	91 VP		4 C		3 W	-1	2 P		4/2/0 PW		0/5/2/1		dig 1. transform A11 to black
+witches		74 VP		11 C		0 W	-1	0 P		0/3/3 PW	+2	2/3/0/3		Send p to fire
+engineers	+2	74 VP	-1	6 C	-1	3 W		0 P		1/5/0 PW		0/1/10/0		build I10
+cultists		58 VP		6 C		5 W	-1	0 P	+3	0/1/5 PW	+2	10/10/7/8		send p to Fire
+Round 5, turn 6
+darklings	+2	93 VP	-2	2 C	-1	2 W		2 P		4/2/0 PW		0/5/2/1	1	build A11
+witches		74 VP		11 C		0 W		0 P	+1	0/2/4 PW		2/3/0/3		Leech 1 from darklings
+witches		74 VP		11 C	+2	2 W		0 P	-8	4/2/0 PW		2/3/0/3		action ACT3
+engineers		74 VP	-6	0 C	-3	0 W		0 P		1/5/0 PW		0/1/10/0	3	upgrade I9 to SH
+cultists		58 VP		6 C		5 W		0 P	+1	0/0/6 PW		10/10/7/8		Leech 3 from engineers
+cultists	+21	79 VP	-6	0 C	-4	1 W	+1	1 P	-4	2/0/4 PW		10/10/7/8	2	convert 2PW to 2C. upgrade E5 to SH. +TW3
+Round 5, turn 7
+darklings	+3	96 VP	-2	0 C	-2	0 W		2 P	-2	5/0/0 PW		0/5/2/1	1	burn 1. convert 1PW to 1C. upgrade A11 to TP
+cultists		79 VP		0 C		1 W		1 P	+1	1/1/4 PW		10/10/7/8		[all opponents declined power]
+witches		74 VP		11 C		2 W		0 P		4/2/0 PW		2/3/0/3		Decline 2 from cultists
+witches		74 VP		11 C		2 W		0 P	+1	3/3/0 PW		2/3/0/3		Leech 1 from darklings
+witches		74 VP	-2	9 C	-1	1 W		0 P		3/3/0 PW		2/3/0/3	1	build I6
+cultists		79 VP		0 C		1 W		1 P	+1	0/2/4 PW		10/10/7/8		Leech 1 from witches
+engineers	+9	83 VP	+4	4 C		0 W		0 P		1/5/0 PW		0/1/10/0		pass BON8
+cultists	+3	82 VP	+3	3 C		1 W		1 P	-6	3/2/1 PW		10/10/7/8		convert 3PW to 3C. pass BON9
+Round 5, turn 8
+darklings	+7	103 VP		0 C		0 W		2 P		5/0/0 PW		0/5/2/1		pass BON10
+witches	+4	78 VP		9 C		1 W		0 P		3/3/0 PW		2/3/0/3		Pass bon6
+Round 6 income
+engineers		83 VP		4 C		0 W		0 P		1/5/0 PW		0/1/10/0		cult_income_for_faction
+cultists		82 VP		3 C		1 W		1 P		3/2/1 PW		10/10/7/8		cult_income_for_faction
+darklings		103 VP		0 C		0 W		2 P		5/0/0 PW		0/5/2/1		cult_income_for_faction
+witches		78 VP		9 C		1 W		0 P		3/3/0 PW		2/3/0/3		cult_income_for_faction
+engineers		83 VP		4 C		0 W		0 P		1/5/0 PW		0/1/10/0		transform I11 to gray. transform A12 to gray
+cultists		82 VP		3 C		1 W		1 P		3/2/1 PW		10/10/7/8		transform C1 to brown
+Round 6 income
+engineers		83 VP	+2	6 C	+3	3 W	+3	3 P	+7	0/0/6 PW		0/1/10/0		other_income_for_faction
+cultists		82 VP	+8	11 C	+8	9 W	+1	2 P	+6	0/2/4 PW		10/10/7/8		other_income_for_faction
+darklings		103 VP	+6	6 C	+7	7 W	+3	5 P	+7	0/3/2 PW		0/5/2/1		other_income_for_faction
+witches		78 VP	+8	17 C	+10	11 W	+1	1 P	+8	0/1/5 PW		2/3/0/3		other_income_for_faction
+Round 6, turn 1
+engineers		83 VP	+7	13 C		3 W		3 P	-8	4/0/2 PW		0/1/10/0		action ACT4
+cultists	+4	86 VP	-4	7 C	-2	7 W		2 P	-2	1/2/3 PW	+1	10/10/7/9	2	convert 1PW to 1C. upgrade D3 to TE. +FAV12
+darklings	+4	107 VP	-2	4 C	-1	6 W	-1	4 P		0/3/2 PW		0/5/2/1	3	dig 1. build H7
+engineers	-2	81 VP		13 C		3 W		3 P	+3	1/3/2 PW		0/1/10/0		Leech 3 from darklings
+cultists		86 VP		7 C		7 W		2 P		1/2/3 PW	+1	10/10/7/9		[opponent accepted power]
+witches		78 VP		17 C		11 W		1 P	+1	0/0/6 PW		2/3/0/3		Leech 2 from cultists
+witches		78 VP	-2	15 C	-1	10 W		1 P	-12	6/0/0 PW		2/3/0/3	1	action ACT6. transform G1 to green. build F1
+Round 6, turn 2
+engineers	+11	92 VP	-1	12 C	-1	2 W	+1	4 P		1/3/2 PW		0/1/10/0	1	build I11. +TW3
+darklings		107 VP		4 C		6 W		4 P	+1	0/2/3 PW		0/5/2/1		Leech 1 from engineers
+cultists		86 VP		7 C		7 W		2 P	+4	0/0/6 PW		10/10/7/10		+AIR. Leech 1 from witches
+cultists		86 VP	-2	5 C	-2	5 W		2 P	-2	1/0/5 PW		10/10/7/10	3	convert 1PW to 1C. upgrade E3 to TP
+darklings	+3	110 VP	-4	0 C		6 W	-1	3 P		0/2/3 PW		0/5/2/1		advance ship
+cultists		86 VP		5 C		5 W		2 P	+1	0/1/5 PW		10/10/7/10		[all opponents declined power]
+witches		78 VP		15 C		10 W		1 P		6/0/0 PW		2/3/0/3		Decline 3 from cultists
+witches	+4	82 VP	-5	10 C	-2	8 W		1 P	+1	5/1/0 PW	+2	4/3/0/3	2	upgrade C3 to TE. +FAV5
+engineers	-1	91 VP		12 C		2 W		4 P	+2	0/3/3 PW		0/1/10/0		Leech 2 from witches
+Round 6, turn 3
+engineers	+2	93 VP	-1	11 C	-1	1 W		4 P		0/3/3 PW		0/1/10/0	2	build H8
+darklings	-1	109 VP		0 C		6 W		3 P	+2	0/0/5 PW		0/5/2/1		Leech 2 from engineers
+cultists	+2	88 VP	-2	3 C	-1	4 W		2 P		0/1/5 PW		10/10/7/10		build C1
+darklings	+4	113 VP		0 C		6 W	-1	2 P	-8	4/0/1 PW		0/5/2/1		convert 4PW to 4C. advance ship
+witches	+3	85 VP	-3	7 C	-2	6 W		1 P		5/1/0 PW		4/3/0/3	1	upgrade D1 to TP
+cultists		88 VP		3 C		4 W		2 P	+1	0/0/6 PW		10/10/7/10		Leech 1 from witches
+Round 6, turn 4
+engineers	+2	95 VP	-1	10 C	-1	0 W		4 P		0/3/3 PW		0/1/10/0	2	build A12
+cultists	+11	99 VP	-2	1 C	-2	2 W		2 P	-2	1/0/5 PW		10/10/7/10	5	convert 1PW to 1C. upgrade E2 to TP. +TW8
+cultists		99 VP		1 C		2 W		2 P	+1	0/1/5 PW		10/10/7/10		[all opponents declined power]
+witches		85 VP		7 C		6 W		1 P		5/1/0 PW		4/3/0/3		Decline 5 from cultists
+darklings	-1	112 VP		0 C		6 W		2 P	+2	2/2/1 PW		0/5/2/1		Leech 2 from engineers
+darklings	+2	114 VP		0 C		6 W	-1	1 P		2/2/1 PW		0/5/2/1		dig 1. transform B6 to brown
+witches		85 VP		7 C		6 W		1 P		5/1/0 PW		4/3/0/3		action ACTW. build G1
+Round 6, turn 5
+engineers		95 VP		10 C		0 W		4 P	-6	3/3/0 PW		0/1/10/0		action ACT1. Bridge D6:C5
+cultists	+3	102 VP	-1	0 C		2 W	-1	1 P	-6	3/1/2 PW		10/10/7/10		convert 3PW to 3C. advance ship
+darklings	+2	116 VP		0 C		6 W	-1	0 P		2/2/1 PW		0/5/2/1		dig 1. transform B6 to black
+witches	+4	89 VP	-5	2 C	-2	4 W		1 P	+2	3/3/0 PW	+2	4/5/0/3	5 2	upgrade C4 to TE. +FAV6
+engineers		95 VP		10 C		0 W		4 P		3/3/0 PW		0/1/10/0		Decline 2 from witches
+Round 6, turn 6
+engineers	+4	99 VP	-4	6 C		0 W	-1	3 P		3/3/0 PW		0/1/10/0		advance ship
+cultists	+2	104 VP		0 C	-1	1 W		1 P	-4	5/1/0 PW		10/10/7/10	1	convert 2PW to 2C. build H3
+cultists		104 VP		0 C		1 W		1 P		5/1/0 PW	+1	10/10/7/10		[opponent accepted power]
+witches		89 VP		2 C		4 W		1 P	+1	2/4/0 PW		4/5/0/3		Leech 1 from cultists
+cultists		104 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		+EARTH
+darklings		116 VP		0 C		6 W		0 P		2/2/1 PW		0/5/2/1		Decline 5 from witches
+darklings	+2	118 VP		0 C	-1	5 W		0 P	-4	4/0/0 PW		0/5/2/1	1	burn 1. convert 2PW to 2C. build B6
+witches	+16	105 VP	-2	0 C	-2	2 W		1 P		1/4/0 PW	+4	5/6/1/4	4	burn 1. convert pw to c. upgrade f2 to tp. +TW5
+engineers		99 VP		6 C		0 W		3 P	+1	2/4/0 PW		0/1/10/0		Leech 1 from darklings
+Round 6, turn 7
+engineers	+3	102 VP	-2	4 C		0 W	-1	2 P		2/4/0 PW		0/1/10/0	1	convert 1P to 1W. upgrade I10 to TP
+darklings		118 VP		0 C		5 W		0 P	+1	3/1/0 PW		0/5/2/1		Leech 1 from engineers
+cultists		104 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		Decline 4 from witches
+cultists	+12	116 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		pass
+darklings	+3	121 VP		0 C	-5	0 W		0 P		3/1/0 PW		0/5/2/1	1	convert 3W to 3C. upgrade B6 to TP
+witches	+3	108 VP		0 C	-2	0 W	-1	0 P	-4	3/0/0 PW		5/6/1/4		burn 2. convert 2pw to 2c. convert 2w to 2c. advance ship
+engineers		102 VP		4 C		0 W		2 P	+1	1/5/0 PW		0/1/10/0		Leech 1 from darklings
+Round 6, turn 8
+engineers	+3	105 VP	-2	2 C		0 W	-1	1 P		1/5/0 PW		0/1/10/0	1	convert 1P to 1W. upgrade I11 to TP
+darklings		121 VP		0 C		0 W		0 P	+1	2/2/0 PW		0/5/2/1		Leech 1 from engineers
+darklings	+13	134 VP		0 C		0 W		0 P		2/2/0 PW		0/5/2/1		pass
+witches		108 VP		0 C		0 W		0 P		3/0/0 PW	+1	5/6/2/4		action FAV6. +EARTH
+Round 6, turn 9
+engineers	+3	108 VP	-2	0 C		0 W	-1	0 P		1/5/0 PW		0/1/10/0	2	convert 1P to 1W. upgrade H8 to TP
+witches	+12	120 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		pass
+engineers	+9	117 VP		0 C		0 W		0 P		1/5/0 PW		0/1/10/0		pass
+darklings		134 VP		0 C		0 W		0 P		2/2/0 PW		0/5/2/1		Decline 2 from engineers
+Scoring FIRE cult
+cultists	+8	124 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		+8vp for FIRE
+witches	+4	124 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		+4vp for FIRE
+Scoring WATER cult
+cultists	+8	132 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		+8vp for WATER
+darklings	+2	136 VP		0 C		0 W		0 P		2/2/0 PW		0/5/2/1		+2vp for WATER
+witches	+4	128 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		+4vp for WATER
+Scoring EARTH cult
+cultists	+4	136 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		+4vp for EARTH
+darklings	+1	137 VP		0 C		0 W		0 P		2/2/0 PW		0/5/2/1		+1vp for EARTH
+witches	+1	129 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		+1vp for EARTH
+engineers	+8	125 VP		0 C		0 W		0 P		1/5/0 PW		0/1/10/0		+8vp for EARTH
+Scoring AIR cult
+cultists	+8	144 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		+8vp for AIR
+darklings	+2	139 VP		0 C		0 W		0 P		2/2/0 PW		0/5/2/1		+2vp for AIR
+witches	+4	133 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		+4vp for AIR
+Scoring network
+cultists	+15	159 VP		0 C		1 W		1 P		5/1/0 PW		10/10/8/10		+15vp for network
+darklings	+6	145 VP		0 C		0 W		0 P		2/2/0 PW		0/5/2/1		+6vp for network
+witches	+15	148 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		+15vp for network
+Converting resources to VPs
+cultists		159 VP	+2	2 C	-1	0 W	-1	0 P		5/1/0 PW		10/10/8/10		score_resources
+darklings		145 VP	+1	1 C		0 W		0 P	-2	3/0/0 PW		0/5/2/1		score_resources
+witches		148 VP		0 C		0 W		0 P		3/0/0 PW		5/6/2/4		score_resources
+engineers		125 VP	+2	2 C		0 W		0 P	-4	3/1/0 PW		0/1/10/0		score_resources
