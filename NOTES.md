@@ -296,3 +296,22 @@
   - Added score/rank normalization fallback behavior so batch extraction aligns with single-game validation output.
   - `avgPlacement` now uses mid-rank tie handling by score (examples: tie for 1st => 1.5 each; tie for 2nd => 2.5 each; three-way tie for 1st/2nd/3rd => 2.0 each).
   - Rank buckets (`first`/`second`/`third`/`fourth`) continue using raw rank values, and records now include both `rank_raw` and `rank_for_average` in CSV exports.
+- 2026-02-21 BGA batch aggregation scope change:
+  - Game discovery still uses the hardcoded 70-player seed list, but aggregation now defaults to all players present in matched games (`includeAllPlayersFromMatchedGames: true`) so faction placement stats are global for those tables rather than only from tracked-player perspective.
+  - Table rank extraction now also falls back to `tableinfos.result.player[*].rank` when gamestats rank list is missing/incomplete.
+  - Records include `isTrackedPlayer` to allow optional filtering back to seed-list participants in downstream analysis.
+- 2026-02-21 BGA CSV download reliability fix:
+  - In-page fallback links were being intercepted by BGA navigation handlers, so CSV downloads could appear to do nothing.
+  - `triggerCsvDownload` now prefers `showSaveFilePicker` (when available) and otherwise opens a blob URL in a new tab plus a secondary `download` attempt.
+  - Added globals for manual recovery if popups/downloads are blocked: `tmLastCsvBlobUrl` and `tmOpenLastCsvBlobUrl()`.
+- 2026-02-21 BGA abandoned-game filter:
+  - Added batch filter to drop entire tables where every player's final score is exactly 0 or 1 (`excludeAllZeroOrOneFinalScoreGames: true`).
+  - Exposed filter diagnostics in result payload:
+    - `discoveredUniqueGames`
+    - `filteredOutAllZeroOrOneGames`
+    - `uniqueGames` (post-filter)
+    - `filteredAllZeroOrOneGameIds`
+- 2026-02-21 BGA summary-column simplification:
+  - Removed redundant summary outputs `averageRank` and `stddevTotalPointsScored` from `scripts/bga_tm_arena_faction_stats_browser.js`.
+  - Removed corresponding CSV columns `average_rank` and `stddev_total_points_scored` from `downloadTmBatchFactionSummaryCsv()`.
+  - Cleaned unused stddev accumulator/computation code path.
