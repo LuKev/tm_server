@@ -115,6 +115,9 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 	if gs.CultTracks.GetPosition("player1", CultWater) != 10 {
 		t.Errorf("expected position 10 (max), got %d", gs.CultTracks.GetPosition("player1", CultWater))
 	}
+	if player.Keys != 0 {
+		t.Errorf("expected key to be consumed at position 10, got %d", player.Keys)
+	}
 
 	// Try to advance further (should return 0)
 	advanced, err = gs.CultTracks.AdvancePlayer("player1", CultWater, 3, player, gs)
@@ -123,6 +126,78 @@ func TestCultTrackState_AdvancePlayer_MaxPosition(t *testing.T) {
 	}
 	if advanced != 0 {
 		t.Errorf("expected to advance 0 spaces (already at max), got %d", advanced)
+	}
+}
+
+func TestCultTrackState_AdvancePlayer_Position10DelayedPendingTownDoesNotProvideKeyCredit(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 9, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 9
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
+	// No available keys.
+	player.Keys = 0
+
+	// Delayed pending towns (Mermaids) do not provide key credit.
+	gs.PendingTownFormations[player.ID] = []*PendingTownFormation{
+		{PlayerID: player.ID, CanBeDelayed: true},
+	}
+
+	advanced, err := gs.CultTracks.AdvancePlayer(player.ID, CultFire, 1, player, gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if advanced != 0 {
+		t.Fatalf("expected 0 advancement (blocked at 9 without key), got %d", advanced)
+	}
+	if got := gs.CultTracks.GetPosition(player.ID, CultFire); got != 9 {
+		t.Fatalf("expected fire position 9, got %d", got)
+	}
+	if player.Keys != 0 {
+		t.Fatalf("expected keys to remain 0, got %d", player.Keys)
+	}
+}
+
+func TestCultTrackState_AdvancePlayer_Position10ImmediatePendingTownCanBorrowKey(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 9, CultWater: 0, CultEarth: 0, CultAir: 0,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 9
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 0
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 0
+
+	player.Keys = 0
+	gs.PendingTownFormations[player.ID] = []*PendingTownFormation{
+		{PlayerID: player.ID, CanBeDelayed: false},
+	}
+
+	advanced, err := gs.CultTracks.AdvancePlayer(player.ID, CultFire, 1, player, gs)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if advanced != 1 {
+		t.Fatalf("expected advancement of 1 using pending-town key credit, got %d", advanced)
+	}
+	if got := gs.CultTracks.GetPosition(player.ID, CultFire); got != 10 {
+		t.Fatalf("expected fire position 10, got %d", got)
+	}
+	// Borrowed key is represented as debt until town selection grants key(s).
+	if player.Keys != -1 {
+		t.Fatalf("expected key debt -1 after borrowing, got %d", player.Keys)
 	}
 }
 
@@ -768,6 +843,41 @@ func TestTownCultBonus_WithMilestones(t *testing.T) {
 	// Verify power gained: 4 tracks × 1 bonus power at position 3 = 4 total
 	if player.Resources.Power.Bowl2 != 4 {
 		t.Errorf("expected 4 power in Bowl2 (4 milestones), got %d", player.Resources.Power.Bowl2)
+	}
+}
+
+func TestTownCultBonus_8Points_OnlyOneTrackCanTopWithOneKey(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	player := gs.GetPlayer("player1")
+
+	player.CultPositions = map[CultTrack]int{
+		CultFire: 9, CultWater: 9, CultEarth: 9, CultAir: 9,
+	}
+	gs.CultTracks.PlayerPositions[player.ID][CultFire] = 9
+	gs.CultTracks.PlayerPositions[player.ID][CultWater] = 9
+	gs.CultTracks.PlayerPositions[player.ID][CultEarth] = 9
+	gs.CultTracks.PlayerPositions[player.ID][CultAir] = 9
+	player.Keys = 0
+
+	// TW8 grants one key and +1 all cults.
+	gs.applyTownTileSpecifics(player, models.TownTile8Points, false)
+
+	if got := gs.CultTracks.GetPosition(player.ID, CultFire); got != 10 {
+		t.Fatalf("expected fire position 10, got %d", got)
+	}
+	if got := gs.CultTracks.GetPosition(player.ID, CultWater); got != 9 {
+		t.Fatalf("expected water position 9, got %d", got)
+	}
+	if got := gs.CultTracks.GetPosition(player.ID, CultEarth); got != 9 {
+		t.Fatalf("expected earth position 9, got %d", got)
+	}
+	if got := gs.CultTracks.GetPosition(player.ID, CultAir); got != 9 {
+		t.Fatalf("expected air position 9, got %d", got)
+	}
+	if player.Keys != 0 {
+		t.Fatalf("expected granted key to be consumed, got keys=%d", player.Keys)
 	}
 }
 

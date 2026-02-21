@@ -102,3 +102,13 @@
   - Verification after these changes:
     - `bazel --batch test //internal/replay:replay_test --test_output=errors` passed.
     - `bazel --batch test //internal/game:game_test --test_output=errors` passed.
+
+- 2026-02-20 cult position-10 key semantics update:
+  - `server/internal/game/cult.go` now consumes one key whenever a player newly reaches cult position `10`.
+  - Position-10 checks now require key availability (`player.Keys`) with bounded key credit only from unclaimed, non-delayed pending towns (`CanBeDelayed=false`), so delayed Mermaids pending towns do not grant credit.
+  - `server/internal/game/state.go` `SelectTownTile` now removes the pending town before `FormTown` benefits are applied, preventing the same town from being counted as both pending key credit and granted key during `+TW` resolution.
+  - Added coverage in `server/internal/game/cult_test.go`:
+    - reaching 10 consumes key,
+    - delayed pending town does not allow topping,
+    - immediate pending town can borrow one key (temporary `Keys=-1` debt until town key gain),
+    - `TW8` with one available key tops only one track.

@@ -130,10 +130,10 @@ func (cts *CultTrackState) GetTotalPriestsOnCultTracks(playerID string) int {
 	return total
 }
 
-// AdvancePlayer advances a player on a cult track
-// Returns the number of spaces actually advanced (may be less if at max or blocked)
-// Also grants power for each space advanced AND bonus power at positions 3/5/7/10
-// gs: GameState is optional - if provided, checks for pending town formations when validating position 10
+// AdvancePlayer advances a player on a cult track.
+// Returns the number of spaces actually advanced (may be less if at max or blocked).
+// Reaching position 10 consumes one key.
+// gs is accepted for API compatibility with callers.
 func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, spaces int, player *Player, gs *GameState) (int, error) {
 	if spaces < 0 {
 		return 0, fmt.Errorf("cannot advance negative spaces")
@@ -151,6 +151,11 @@ func (cts *CultTrackState) AdvancePlayer(playerID string, track CultTrack, space
 	actualAdvancement := targetPos - currentPos
 	if actualAdvancement == 0 {
 		return 0, nil // Already at max or blocked
+	}
+
+	// Consume a key when entering position 10.
+	if player != nil && currentPos < 10 && targetPos == 10 {
+		player.Keys--
 	}
 
 	// Update position in cult track state
@@ -187,23 +192,38 @@ func (cts *CultTrackState) validatePosition10(track CultTrack, playerID string, 
 		targetPos = 10
 	}
 
-	// Check if advancing to position 10 requires a key
+	// Check if advancing to position 10 requires an available key.
+	// Unclaimed non-delayed pending towns provide one borrowable key each.
 	if targetPos == 10 && currentPos < 10 && player != nil {
-		// Check if player currently has a key OR will get one from pending town formation
-		hasOrWillHaveKey := player.Keys >= 1
-
-		// Check for pending town formation (which will grant a key)
-		if !hasOrWillHaveKey && gs != nil {
-			if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
-				hasOrWillHaveKey = true
-			}
+		availableKeys := player.Keys
+		if gs != nil {
+			availableKeys += countBorrowablePendingTownKeys(gs, playerID)
 		}
-
-		if !hasOrWillHaveKey {
+		if availableKeys < 1 {
 			return 9
 		}
 	}
 	return targetPos
+}
+
+func countBorrowablePendingTownKeys(gs *GameState, playerID string) int {
+	if gs == nil {
+		return 0
+	}
+	pending, ok := gs.PendingTownFormations[playerID]
+	if !ok || len(pending) == 0 {
+		return 0
+	}
+
+	borrowable := 0
+	for _, formation := range pending {
+		// Delayed Mermaids towns are not immediately claimable and should not
+		// be used as key credit for reaching cult position 10.
+		if formation != nil && !formation.CanBeDelayed {
+			borrowable++
+		}
+	}
+	return borrowable
 }
 
 func (cts *CultTrackState) grantMilestoneBonuses(playerID string, track CultTrack, currentPos, targetPos int, player *Player) {

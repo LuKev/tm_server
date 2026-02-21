@@ -287,17 +287,20 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
 
-	// Form the town with the selected tile (and skipped river hex for Mermaids)
-	if err := gs.FormTown(playerID, pending.Hexes, tileType, pending.SkippedRiverHex); err != nil {
-		return err
+	// Remove the first pending town formation before applying town benefits so
+	// cult position-10 key checks don't treat the current town as unclaimed credit.
+	remaining := pendingTowns[1:]
+	if len(remaining) == 0 {
+		delete(gs.PendingTownFormations, playerID)
+	} else {
+		gs.PendingTownFormations[playerID] = remaining
 	}
 
-	// Remove the first pending town formation from the slice
-	gs.PendingTownFormations[playerID] = pendingTowns[1:]
-
-	// If no more pending towns, delete the map entry
-	if len(gs.PendingTownFormations[playerID]) == 0 {
-		delete(gs.PendingTownFormations, playerID)
+	// Form the town with the selected tile (and skipped river hex for Mermaids)
+	if err := gs.FormTown(playerID, pending.Hexes, tileType, pending.SkippedRiverHex); err != nil {
+		// Restore pending state on failure.
+		gs.PendingTownFormations[playerID] = pendingTowns
+		return err
 	}
 
 	return nil
