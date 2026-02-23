@@ -103,5 +103,15 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 
 	// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
 	AwardFactionSpadeBonuses(player, spadesUsed)
+
+	// During round-start income interlude, once all pending cult-reward spades
+	// are resolved, proceed with normal income and then start the action phase.
+	if gs.Phase == PhaseIncome {
+		if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
+			gs.GrantIncome()
+			gs.StartActionPhase()
+		}
+	}
+
 	return nil
 }

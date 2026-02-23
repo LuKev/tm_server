@@ -42,13 +42,9 @@ This file tracks agreed out-of-scope items for multiplayer v1 and concrete follo
 - Action timeline export for dispute/debug.
 
 ## P3 (Future Expansion)
-1. Alternate setup modes
-- Auction/bidding mode parity with BGA-like starts.
-- Implement both regular auction and fast auction setup variants.
-
-2. Expanded faction/map support
+1. Expanded faction/map support
 - Fire & Ice factions.
 - Landscape expansion.
 
-3. Competitive features
+2. Competitive features
 - Ranked matchmaking and rating updates.

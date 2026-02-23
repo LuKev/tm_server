@@ -60,6 +60,7 @@ type joinGamePayload struct {
 type startGamePayload struct {
 	GameID             string `json:"gameID"`
 	RandomizeTurnOrder *bool  `json:"randomizeTurnOrder,omitempty"`
+	SetupMode          string `json:"setupMode,omitempty"`
 }
 
 type lobbyStateMsg struct {
@@ -245,8 +246,23 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 	if p.RandomizeTurnOrder != nil {
 		randomize = *p.RandomizeTurnOrder
 	}
+	setupMode := game.SetupModeSnellman
+	switch strings.ToLower(strings.TrimSpace(p.SetupMode)) {
+	case "", "snellman":
+		setupMode = game.SetupModeSnellman
+	case "auction":
+		setupMode = game.SetupModeAuction
+	case "fast_auction", "fast-auction", "fast auction":
+		setupMode = game.SetupModeFastAuction
+	default:
+		c.sendActionRejected("", "invalid_setup_mode", fmt.Sprintf("unsupported setup mode: %s", p.SetupMode))
+		return
+	}
 
-	err := c.deps.Games.CreateGameWithOptions(p.GameID, meta.Players, game.CreateGameOptions{RandomizeTurnOrder: randomize})
+	err := c.deps.Games.CreateGameWithOptions(p.GameID, meta.Players, game.CreateGameOptions{
+		RandomizeTurnOrder: randomize,
+		SetupMode:          setupMode,
+	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
 		log.Printf("error creating game: %v", err)
 		c.sendError("create_game_failed")
@@ -492,7 +508,56 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return s, nil
 	}
 
+	parseBridgeEndpoints := func() (board.Hex, board.Hex, error) {
+		hex1, err := parseHexParam("bridgeHex1", "fromHex")
+		if err != nil {
+			return board.Hex{}, board.Hex{}, err
+		}
+		hex2, err := parseHexParam("bridgeHex2", "toHex")
+		if err != nil {
+			return board.Hex{}, board.Hex{}, err
+		}
+		return hex1, hex2, nil
+	}
+
 	switch req.Type {
+	case "auction_nominate":
+		factionName, err := parseStringParam("faction")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewAuctionNominateFactionAction(seatID, models.FactionTypeFromString(factionName)), nil
+
+	case "auction_bid":
+		factionName, err := parseStringParam("faction")
+		if err != nil {
+			return nil, err
+		}
+		vpReduction, err := parseIntParam("vpReduction")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewAuctionPlaceBidAction(seatID, models.FactionTypeFromString(factionName), vpReduction), nil
+
+	case "fast_auction_submit_bids":
+		rawBids, ok := getParam("bids")
+		if !ok {
+			return nil, fmt.Errorf("missing fast auction bids")
+		}
+		var bidByFaction map[string]int
+		if err := json.Unmarshal(rawBids, &bidByFaction); err != nil {
+			return nil, fmt.Errorf("invalid fast auction bids payload: %w", err)
+		}
+		converted := make(map[models.FactionType]int, len(bidByFaction))
+		for factionName, bid := range bidByFaction {
+			faction := models.FactionTypeFromString(strings.TrimSpace(factionName))
+			if faction == models.FactionUnknown {
+				return nil, fmt.Errorf("invalid fast auction faction: %s", factionName)
+			}
+			converted[faction] = bid
+		}
+		return game.NewFastAuctionSubmitBidsAction(seatID, converted), nil
+
 	case "select_faction":
 		factionName := req.Faction
 		if factionName == "" {
@@ -516,7 +581,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return game.NewSetupDwellingAction(seatID, hex), nil
 
 	case "setup_bonus_card":
-		bonusCard, err := parseBonusCardType(req, getParam)
+		bonusCard, err := parseBonusCardType(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -557,7 +622,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
-		newType, err := parseBuildingType(req, getParam)
+		newType, err := parseBuildingType(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -570,7 +635,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return game.NewAdvanceDiggingAction(seatID), nil
 
 	case "send_priest":
-		track, err := parseCultTrack(req, getParam)
+		track, err := parseCultTrack(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -585,16 +650,12 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}, nil
 
 	case "power_action_claim":
-		actionType, err := parsePowerActionType(req, getParam)
+		actionType, err := parsePowerActionType(getParam)
 		if err != nil {
 			return nil, err
 		}
 		if actionType == game.PowerActionBridge {
-			hex1, err := parseHexParam("bridgeHex1", "fromHex")
-			if err != nil {
-				return nil, err
-			}
-			hex2, err := parseHexParam("bridgeHex2", "toHex")
+			hex1, hex2, err := parseBridgeEndpoints()
 			if err != nil {
 				return nil, err
 			}
@@ -620,36 +681,28 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return game.NewPowerAction(seatID, actionType), nil
 
 	case "power_bridge_place":
-		hex1, err := parseHexParam("bridgeHex1", "fromHex")
-		if err != nil {
-			return nil, err
-		}
-		hex2, err := parseHexParam("bridgeHex2", "toHex")
+		hex1, hex2, err := parseBridgeEndpoints()
 		if err != nil {
 			return nil, err
 		}
 		return game.NewPowerActionWithBridge(seatID, hex1, hex2), nil
 
 	case "engineers_bridge":
-		hex1, err := parseHexParam("bridgeHex1", "fromHex")
-		if err != nil {
-			return nil, err
-		}
-		hex2, err := parseHexParam("bridgeHex2", "toHex")
+		hex1, hex2, err := parseBridgeEndpoints()
 		if err != nil {
 			return nil, err
 		}
 		return game.NewEngineersBridgeAction(seatID, hex1, hex2), nil
 
 	case "special_action_use":
-		specialType, err := parseSpecialActionType(req, getParam)
+		specialType, err := parseSpecialActionType(getParam)
 		if err != nil {
 			return nil, err
 		}
 		return buildSpecialAction(seatID, specialType, parseHexParam, parseBoolParam, parseCultTrackFromParams(getParam), getParam)
 
 	case "pass":
-		bonusCard, err := parseOptionalBonusCardType(req, getParam)
+		bonusCard, err := parseOptionalBonusCardType(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -670,7 +723,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return game.NewDeclinePowerLeechAction(seatID, offerIndex), nil
 
 	case "select_favor_tile":
-		tile, err := parseFavorTileType(req, getParam)
+		tile, err := parseFavorTileType(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -680,7 +733,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}, nil
 
 	case "select_town_tile":
-		tileType, err := parseTownTileType(req, getParam)
+		tileType, err := parseTownTileType(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -690,7 +743,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}, nil
 
 	case "select_town_cult_top":
-		tracks, err := parseCultTrackList(req, getParam)
+		tracks, err := parseCultTrackList(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -707,7 +760,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return game.NewUseCultSpadeAction(seatID, hex), nil
 
 	case "select_cultists_track":
-		track, err := parseCultTrack(req, getParam)
+		track, err := parseCultTrack(getParam)
 		if err != nil {
 			return nil, err
 		}
@@ -796,7 +849,7 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 	}
 }
 
-func parsePowerActionType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (game.PowerActionType, error) {
+func parsePowerActionType(getParam func(...string) (json.RawMessage, bool)) (game.PowerActionType, error) {
 	if raw, ok := getParam("actionType", "powerActionType"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return game.PowerActionType(v), nil
@@ -811,7 +864,7 @@ func parsePowerActionType(req performActionPayload, getParam func(...string) (js
 	return game.PowerActionUnknown, fmt.Errorf("missing or invalid power action type")
 }
 
-func parseSpecialActionType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (game.SpecialActionType, error) {
+func parseSpecialActionType(getParam func(...string) (json.RawMessage, bool)) (game.SpecialActionType, error) {
 	if raw, ok := getParam("specialActionType", "actionType"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return game.SpecialActionType(v), nil
@@ -820,7 +873,7 @@ func parseSpecialActionType(req performActionPayload, getParam func(...string) (
 	return 0, fmt.Errorf("missing or invalid special action type")
 }
 
-func parseBuildingType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (models.BuildingType, error) {
+func parseBuildingType(getParam func(...string) (json.RawMessage, bool)) (models.BuildingType, error) {
 	if raw, ok := getParam("newBuildingType", "buildingType", "to"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return models.BuildingType(v), nil
@@ -844,7 +897,7 @@ func parseBuildingType(req performActionPayload, getParam func(...string) (json.
 	return models.BuildingTypeUnknown, fmt.Errorf("missing or invalid building type")
 }
 
-func parseCultTrack(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (game.CultTrack, error) {
+func parseCultTrack(getParam func(...string) (json.RawMessage, bool)) (game.CultTrack, error) {
 	if raw, ok := getParam("track", "cultTrack"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return game.CultTrack(v), nil
@@ -859,7 +912,7 @@ func parseCultTrack(req performActionPayload, getParam func(...string) (json.Raw
 	return game.CultUnknown, fmt.Errorf("missing or invalid cult track")
 }
 
-func parseCultTrackList(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) ([]game.CultTrack, error) {
+func parseCultTrackList(getParam func(...string) (json.RawMessage, bool)) ([]game.CultTrack, error) {
 	raw, ok := getParam("tracks", "cultTracks")
 	if !ok {
 		return nil, fmt.Errorf("missing cult track list")
@@ -915,6 +968,18 @@ func buildSpecialAction(
 	parseCultTrack func() (game.CultTrack, error),
 	getParam func(...string) (json.RawMessage, bool),
 ) (game.Action, error) {
+	parseTransformHexAndBuild := func() (board.Hex, bool, error) {
+		hex, err := parseHexParam("hex", "targetHex")
+		if err != nil {
+			return board.Hex{}, false, err
+		}
+		build, err := parseBoolParam(false, "buildDwelling")
+		if err != nil {
+			return board.Hex{}, false, err
+		}
+		return hex, build, nil
+	}
+
 	switch specialType {
 	case game.SpecialActionAurenCultAdvance, game.SpecialActionWater2CultAdvance, game.SpecialActionBonusCardCultAdvance:
 		track, err := parseCultTrack()
@@ -945,33 +1010,21 @@ func buildSpecialAction(
 		return game.NewSwarmlingsUpgradeAction(seatID, hex), nil
 
 	case game.SpecialActionGiantsTransform:
-		hex, err := parseHexParam("hex", "targetHex")
-		if err != nil {
-			return nil, err
-		}
-		build, err := parseBoolParam(false, "buildDwelling")
+		hex, build, err := parseTransformHexAndBuild()
 		if err != nil {
 			return nil, err
 		}
 		return game.NewGiantsTransformAction(seatID, hex, build), nil
 
 	case game.SpecialActionNomadsSandstorm:
-		hex, err := parseHexParam("hex", "targetHex")
-		if err != nil {
-			return nil, err
-		}
-		build, err := parseBoolParam(false, "buildDwelling")
+		hex, build, err := parseTransformHexAndBuild()
 		if err != nil {
 			return nil, err
 		}
 		return game.NewNomadsSandstormAction(seatID, hex, build), nil
 
 	case game.SpecialActionBonusCardSpade:
-		hex, err := parseHexParam("hex", "targetHex")
-		if err != nil {
-			return nil, err
-		}
-		build, err := parseBoolParam(false, "buildDwelling")
+		hex, build, err := parseTransformHexAndBuild()
 		if err != nil {
 			return nil, err
 		}
@@ -1037,7 +1090,7 @@ func buildSpecialAction(
 	}
 }
 
-func parseBonusCardType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (game.BonusCardType, error) {
+func parseBonusCardType(getParam func(...string) (json.RawMessage, bool)) (game.BonusCardType, error) {
 	if raw, ok := getParam("bonusCard", "bonusCardType"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return game.BonusCardType(v), nil
@@ -1052,7 +1105,7 @@ func parseBonusCardType(req performActionPayload, getParam func(...string) (json
 	return game.BonusCardUnknown, fmt.Errorf("missing or invalid bonus card")
 }
 
-func parseOptionalBonusCardType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (*game.BonusCardType, error) {
+func parseOptionalBonusCardType(getParam func(...string) (json.RawMessage, bool)) (*game.BonusCardType, error) {
 	raw, ok := getParam("bonusCard", "bonusCardType")
 	if !ok {
 		return nil, nil
@@ -1060,14 +1113,14 @@ func parseOptionalBonusCardType(req performActionPayload, getParam func(...strin
 	if string(raw) == "null" {
 		return nil, nil
 	}
-	card, err := parseBonusCardType(req, getParam)
+	card, err := parseBonusCardType(getParam)
 	if err != nil {
 		return nil, err
 	}
 	return &card, nil
 }
 
-func parseFavorTileType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (game.FavorTileType, error) {
+func parseFavorTileType(getParam func(...string) (json.RawMessage, bool)) (game.FavorTileType, error) {
 	if raw, ok := getParam("tileType", "favorTile", "favorTileType"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return game.FavorTileType(v), nil
@@ -1082,7 +1135,7 @@ func parseFavorTileType(req performActionPayload, getParam func(...string) (json
 	return game.FavorTileUnknown, fmt.Errorf("missing or invalid favor tile")
 }
 
-func parseTownTileType(req performActionPayload, getParam func(...string) (json.RawMessage, bool)) (models.TownTileType, error) {
+func parseTownTileType(getParam func(...string) (json.RawMessage, bool)) (models.TownTileType, error) {
 	if raw, ok := getParam("tileType", "townTile", "townTileType"); ok {
 		if v, err := parseIntRaw(raw); err == nil {
 			return models.TownTileType(v), nil

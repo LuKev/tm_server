@@ -81,7 +81,9 @@ func (a *SelectCultistsCultTrackAction) Execute(gs *GameState) error {
 	gs.PendingCultistsCultSelection = nil
 
 	if !gs.HasPendingLeechOffers() {
-		gs.NextTurn()
+		if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID {
+			gs.NextTurn()
+		}
 	}
 
 	return nil

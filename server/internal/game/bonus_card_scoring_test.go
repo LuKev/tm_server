@@ -380,10 +380,10 @@ func TestBonusCard_CoinAccumulation(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	// Verify player received the accumulated coins
-	expectedCoins := initialCoins + 3
+	// Taking BON7 should grant both the card's base 6 coins and the 3 accumulated coins.
+	expectedCoins := initialCoins + 9
 	if player.Resources.Coins != expectedCoins {
-		t.Errorf("expected %d coins (3 accumulated), got %d", expectedCoins, player.Resources.Coins)
+		t.Errorf("expected %d coins (6 base + 3 accumulated), got %d", expectedCoins, player.Resources.Coins)
 	}
 }
 

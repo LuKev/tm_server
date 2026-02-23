@@ -32,6 +32,9 @@ const (
 	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
 	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
 	ActionSelectFaction                // Select faction at start of game
+	ActionAuctionNominateFaction       // Nominate faction in regular/fast auction setup modes
+	ActionAuctionPlaceBid              // Place bid in regular auction mode
+	ActionFastAuctionSubmitBids        // Submit sealed bid vector in fast auction mode
 	ActionSetupBonusCard               // Select bonus card during setup
 	ActionSelectTownTile               // Select town tile from pending town formation
 	ActionSelectTownCultTop            // Resolve key-limited town cult top choice
@@ -1042,7 +1045,21 @@ func (a *PassAction) Execute(gs *GameState) error {
 		player.VictoryPoints += bridgeVP
 	}
 
-	gs.NextTurn()
+	// Replay simulator applies cleanup/round transitions at explicit RoundStart log items.
+	// Suppress immediate round transition here when running in replay mode to avoid
+	// double-processing round boundaries.
+	isReplaySimulation := gs.ReplayMode != nil && gs.ReplayMode["__replay__"]
+	if roundComplete := gs.NextTurn(); roundComplete && !isReplaySimulation {
+		justCompletedRound := gs.Round
+		if gs.ExecuteCleanupPhase() {
+			gs.StartNewRound()
+			gs.AwardCultRewardsForRound(justCompletedRound)
+			if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
+				gs.GrantIncome()
+				gs.StartActionPhase()
+			}
+		}
+	}
 	return nil
 }
 

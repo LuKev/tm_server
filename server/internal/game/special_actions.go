@@ -590,30 +590,52 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 
 	switch a.ActionType {
 	case SpecialActionAurenCultAdvance:
-		return a.executeAurenCultAdvance(gs, player)
+		if err := a.executeAurenCultAdvance(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionWitchesRide:
-		return a.executeWitchesRide(gs)
+		if err := a.executeWitchesRide(gs); err != nil {
+			return err
+		}
 	case SpecialActionSwarmlingsUpgrade:
-		return a.executeSwarmlingsUpgrade(gs, player)
+		if err := a.executeSwarmlingsUpgrade(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionChaosMagiciansDoubleTurn:
 		return a.executeChaosMagiciansDoubleTurn(gs)
 	case SpecialActionGiantsTransform:
-		return a.executeGiantsTransform(gs, player)
+		if err := a.executeGiantsTransform(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionNomadsSandstorm:
-		return a.executeNomadsSandstorm(gs, player)
+		if err := a.executeNomadsSandstorm(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionWater2CultAdvance:
-		return a.executeWater2CultAdvance(gs, player)
+		if err := a.executeWater2CultAdvance(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionBonusCardSpade:
-		return a.executeBonusCardSpade(gs, player)
+		if err := a.executeBonusCardSpade(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionBonusCardCultAdvance:
-		return a.executeBonusCardCultAdvance(gs)
+		if err := a.executeBonusCardCultAdvance(gs); err != nil {
+			return err
+		}
 	case SpecialActionMermaidsRiverTown:
-		return a.executeMermaidsRiverTown(gs, player)
+		if err := a.executeMermaidsRiverTown(gs, player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
-	// Advance turn (unless pending actions exist or suppressed)
 
+	if a.ActionType != SpecialActionMermaidsRiverTown {
+		gs.NextTurn()
+	}
+
+	return nil
 }
 
 func (a *SpecialAction) executeAurenCultAdvance(gs *GameState, player *Player) error {
@@ -849,17 +871,23 @@ func (a *SpecialAction) validateMermaidsRiverTown(gs *GameState, player *Player)
 }
 
 func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) error {
-	// Mermaids river town: Mark that we're forming a town using this river hex
-	// This is a passive ability - the actual town selection will happen in the following TW action
-	// The river hex is already specified in TargetHex
-
-	// For now, the town system should automatically include adjacent buildings
-	// across the river when checking town formation for Mermaids
-	// This action just triggers the town check to include the river hex
-
-	// Mark that Mermaids is forming a river town at this hex
-	// The actual town tile selection will be done by the subsequent LogTownAction
+	// Record the requested river hex and immediately re-check connected components
+	// for a new town formation. Mermaids connect is only legal if it creates a town.
 	gs.RiverTownHex = a.TargetHex
+
+	before := len(gs.PendingTownFormations[a.PlayerID])
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != a.PlayerID {
+			continue
+		}
+		gs.CheckForTownFormation(a.PlayerID, mapHex.Coord)
+		if len(gs.PendingTownFormations[a.PlayerID]) > before {
+			break
+		}
+	}
+	if len(gs.PendingTownFormations[a.PlayerID]) <= before {
+		return fmt.Errorf("no valid town formation found for river connection")
+	}
 
 	return nil
 }

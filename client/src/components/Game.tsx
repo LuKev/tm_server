@@ -165,6 +165,8 @@ export const Game = () => {
   const [chaosFirstParams, setChaosFirstParams] = useState<string>('{}')
   const [chaosSecondParams, setChaosSecondParams] = useState<string>('{}')
   const [selectedTownCultTracks, setSelectedTownCultTracks] = useState<CultType[]>([])
+  const [auctionBidInputs, setAuctionBidInputs] = useState<Record<string, number>>({})
+  const [fastAuctionBidInputs, setFastAuctionBidInputs] = useState<Record<string, number>>({})
   const [cultChoiceContext, setCultChoiceContext] = useState<
     | 'cultists'
     | 'water2'
@@ -266,6 +268,17 @@ export const Game = () => {
 
   const currentPlayerId = gameState?.turnOrder?.[gameState.currentTurn]
   const isMyTurn = !!localPlayerId && currentPlayerId === localPlayerId
+  const setupMode = (gameState?.setupMode ?? 'snellman') as 'snellman' | 'auction' | 'fast_auction'
+  const auctionState = (gameState?.auctionState ?? null) as
+    | {
+      nominationOrder?: string[]
+      currentBids?: Record<string, number>
+      factionHolders?: Record<string, string>
+      currentBidder?: string
+      fastSubmitted?: Record<string, boolean>
+      fastBids?: Record<string, Record<string, number>>
+    }
+    | null
 
   const localPlayer = useMemo(() => {
     if (!localPlayerId || !gameState?.players) return null
@@ -295,6 +308,12 @@ export const Game = () => {
   const pendingDecision = (gameState?.pendingDecision ?? null) as Record<string, unknown> | null
   const pendingDecisionType = (pendingDecision?.type as string | undefined) ?? null
   const pendingDecisionPlayerId = (pendingDecision?.playerId as string | undefined) ?? null
+  const pendingAuctionFactions = useMemo(() => {
+    const raw = (pendingDecision?.nominatedFactions as unknown[]) ?? []
+    return raw
+      .map((value) => (typeof value === 'string' ? value : ''))
+      .filter((value) => value.length > 0)
+  }, [pendingDecision])
   const hasPendingDecisionForMe = !!localPlayerId && pendingDecisionPlayerId === localPlayerId
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]
@@ -317,6 +336,34 @@ export const Game = () => {
       current.filter((track) => pendingTownCultTopCandidates.includes(track)),
     )
   }, [hasPendingDecisionForMe, pendingDecisionType, pendingTownCultTopCandidates])
+
+  useEffect(() => {
+    if (pendingDecisionType !== 'auction_bid') return
+    if (pendingAuctionFactions.length === 0) return
+    setAuctionBidInputs((current) => {
+      const next = { ...current }
+      pendingAuctionFactions.forEach((faction) => {
+        if (next[faction] === undefined) {
+          next[faction] = Number(auctionState?.currentBids?.[faction] ?? 0)
+        }
+      })
+      return next
+    })
+  }, [auctionState?.currentBids, pendingAuctionFactions, pendingDecisionType])
+
+  useEffect(() => {
+    if (pendingDecisionType !== 'fast_auction_bid_matrix') return
+    if (pendingAuctionFactions.length === 0) return
+    setFastAuctionBidInputs((current) => {
+      const next = { ...current }
+      pendingAuctionFactions.forEach((faction) => {
+        if (next[faction] === undefined) {
+          next[faction] = 0
+        }
+      })
+      return next
+    })
+  }, [pendingAuctionFactions, pendingDecisionType])
 
   const setupDwellingPlayerId = useMemo(() => {
     if (!gameState?.setupDwellingOrder) return null
@@ -435,6 +482,20 @@ export const Game = () => {
 
     return map
   }, [gameState])
+
+  const availableAuctionNominationFactions = useMemo(() => {
+    if (setupMode === 'snellman') return [] as string[]
+    const nominated = new Set((auctionState?.nominationOrder ?? []).map((value) => String(value)))
+    const nominatedColors = new Set(
+      (auctionState?.nominationOrder ?? [])
+        .map((factionType) => FACTIONS.find((f) => f.type === factionType)?.color)
+        .filter((value): value is string => !!value),
+    )
+
+    return FACTIONS
+      .filter((faction) => !nominated.has(faction.type) && !nominatedColors.has(faction.color))
+      .map((faction) => faction.type)
+  }, [auctionState?.nominationOrder, setupMode])
 
   const currentPlayerPosition = useMemo(() => {
     if (!gameState?.turnOrder || !localPlayerId) return 1
@@ -635,6 +696,32 @@ export const Game = () => {
     if (!localPlayerId || !gameId) return
     queueConfirm('Confirm Faction', `Choose ${factionType} as your faction?`, () => {
       submitSelectFaction(localPlayerId, factionType, gameId)
+      setConfirmDialog(null)
+    })
+  }
+
+  const handleAuctionNominate = (factionType: string): void => {
+    queueConfirm('Confirm Nomination', `Nominate ${factionType} for auction?`, () => {
+      performAction('auction_nominate', { faction: factionType })
+      setConfirmDialog(null)
+    })
+  }
+
+  const handleAuctionBid = (factionType: string): void => {
+    const vpReduction = Math.max(0, Math.min(40, Math.trunc(Number(auctionBidInputs[factionType] ?? 0))))
+    queueConfirm('Confirm Auction Bid', `Bid ${String(vpReduction)} VP reduction on ${factionType}?`, () => {
+      performAction('auction_bid', { faction: factionType, vpReduction })
+      setConfirmDialog(null)
+    })
+  }
+
+  const handleFastAuctionSubmit = (): void => {
+    const bids: Record<string, number> = {}
+    pendingAuctionFactions.forEach((faction) => {
+      bids[faction] = Math.max(0, Math.min(40, Math.trunc(Number(fastAuctionBidInputs[faction] ?? 0))))
+    })
+    queueConfirm('Confirm Fast Auction Bids', 'Submit your fast auction bid matrix?', () => {
+      performAction('fast_auction_submit_bids', { bids })
       setConfirmDialog(null)
     })
   }
@@ -1122,13 +1209,117 @@ export const Game = () => {
         )}
 
         {/* Faction Selector */}
-        {gameState?.phase === GamePhase.FactionSelection && (
+        {gameState?.phase === GamePhase.FactionSelection && setupMode === 'snellman' && (
           <FactionSelector
             selectedFactions={selectedFactionsMap}
             onSelect={handleFactionSelect}
             isMyTurn={isMyTurn}
             currentPlayerPosition={currentPlayerPosition}
           />
+        )}
+
+        {gameState?.phase === GamePhase.FactionSelection && setupMode !== 'snellman' && (
+          <div className="mb-4 rounded border border-slate-300 bg-white p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-slate-900">
+                {setupMode === 'auction' ? 'Auction Setup' : 'Fast Auction Setup'}
+              </h2>
+              <span className="text-sm text-slate-600">
+                Current: {(pendingDecisionPlayerId ?? auctionState?.currentBidder ?? '').toString() || 'n/a'}
+              </span>
+            </div>
+
+            <div className="mb-3 text-sm text-slate-700">
+              Nominated factions: {(auctionState?.nominationOrder ?? []).length > 0
+                ? (auctionState?.nominationOrder ?? []).join(', ')
+                : 'none yet'}
+            </div>
+
+            {(auctionState?.nominationOrder ?? []).length > 0 && (
+              <div className="mb-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                {(auctionState?.nominationOrder ?? []).map((faction) => (
+                  <div key={faction} className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                    <div className="font-medium">{faction}</div>
+                    <div>Bid: {String(auctionState?.currentBids?.[faction] ?? 0)}</div>
+                    <div>Holder: {(auctionState?.factionHolders?.[faction] ?? 'none').toString()}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(hasPendingDecisionForMe && pendingDecisionType === 'auction_nomination') && (
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700">Choose one faction to nominate:</p>
+                <div className="flex flex-wrap gap-2">
+                  {availableAuctionNominationFactions.map((factionType) => (
+                    <button
+                      key={factionType}
+                      onClick={() => { handleAuctionNominate(factionType) }}
+                      className="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                    >
+                      {factionType}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {(hasPendingDecisionForMe && pendingDecisionType === 'auction_bid') && (
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700">Submit one bid on a nominated faction:</p>
+                {pendingAuctionFactions.map((faction) => (
+                  <div key={faction} className="flex items-center gap-2">
+                    <span className="w-32 text-sm text-slate-800">{faction}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={40}
+                      value={auctionBidInputs[faction] ?? 0}
+                      onChange={(e) => {
+                        const value = Number(e.target.value)
+                        setAuctionBidInputs((current) => ({ ...current, [faction]: Number.isFinite(value) ? value : 0 }))
+                      }}
+                      className="w-24 rounded border border-slate-300 px-2 py-1 text-sm"
+                    />
+                    <button
+                      onClick={() => { handleAuctionBid(faction) }}
+                      className="rounded bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700"
+                    >
+                      Bid
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {(hasPendingDecisionForMe && pendingDecisionType === 'fast_auction_bid_matrix') && (
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700">Set VP-reduction bids for all nominated factions:</p>
+                {pendingAuctionFactions.map((faction) => (
+                  <div key={faction} className="flex items-center gap-2">
+                    <span className="w-32 text-sm text-slate-800">{faction}</span>
+                    <input
+                      type="number"
+                      min={0}
+                      max={40}
+                      value={fastAuctionBidInputs[faction] ?? 0}
+                      onChange={(e) => {
+                        const value = Number(e.target.value)
+                        setFastAuctionBidInputs((current) => ({ ...current, [faction]: Number.isFinite(value) ? value : 0 }))
+                      }}
+                      className="w-24 rounded border border-slate-300 px-2 py-1 text-sm"
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={handleFastAuctionSubmit}
+                  className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                >
+                  Submit Fast Bids
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         <ResponsiveGridLayout

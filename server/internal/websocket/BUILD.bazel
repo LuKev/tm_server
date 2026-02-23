@@ -20,15 +20,26 @@ go_library(
 
 go_test(
     name = "websocket_test",
+    embedsrcs = [
+        "testdata/4pLeague_S1_D1L1_G3.txt",
+        "testdata/4pLeague_S60_D1L1_G4.txt",
+        "testdata/4pLeague_S61_D1L1_G3.txt",
+        "testdata/4pLeague_S69_D1L1_G2.txt",
+        "testdata/4pLeague_S69_D1L1_G4.txt",
+        "testdata/4pLeague_S69_D1L1_G7.txt",
+    ],
     srcs = [
         "e2e_integration_test.go",
+        "golden_snellman_e2e_test.go",
         "hub_test.go",
     ],
     embed = [":websocket"],
     deps = [
         "//internal/game",
+        "//internal/game/board",
         "//internal/lobby",
         "//internal/models:models",
+        "//internal/notation",
         "@com_github_gorilla_websocket//:websocket",
     ],
 )

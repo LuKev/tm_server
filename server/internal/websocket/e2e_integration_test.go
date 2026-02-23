@@ -218,11 +218,174 @@ func TestWebsocketSoak_FivePlayers_ReconnectChurn(t *testing.T) {
 	}
 }
 
+func TestWebsocketE2E_RegularAuctionSetupFlow(t *testing.T) {
+	_, server, gameID, clients, state := setupWebsocketGameToFactionSelection(t, []string{"p1", "p2", "p3"}, false, "auction")
+	defer server.Close()
+	defer closeConnections(clients)
+
+	if asString(state["setupMode"]) != "auction" {
+		t.Fatalf("expected setup mode auction, got %v", state["setupMode"])
+	}
+	pending := asMap(state["pendingDecision"])
+	if asString(pending["type"]) != "auction_nomination" {
+		t.Fatalf("expected auction_nomination pending decision, got %v", pending)
+	}
+
+	state = performActionAndReadState(t, clients["p1"], gameID, "auction_nominate", map[string]any{
+		"faction": "Nomads",
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p2"], gameID, "auction_nominate", map[string]any{
+		"faction": "Witches",
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p3"], gameID, "auction_nominate", map[string]any{
+		"faction": "Engineers",
+	}, asInt(state["revision"]))
+
+	pending = asMap(state["pendingDecision"])
+	if asString(pending["type"]) != "auction_bid" {
+		t.Fatalf("expected auction_bid pending decision after nominations, got %v", pending)
+	}
+
+	state = performActionAndReadState(t, clients["p1"], gameID, "auction_bid", map[string]any{
+		"faction":     "Nomads",
+		"vpReduction": 0,
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p2"], gameID, "auction_bid", map[string]any{
+		"faction":     "Witches",
+		"vpReduction": 1,
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p3"], gameID, "auction_bid", map[string]any{
+		"faction":     "Engineers",
+		"vpReduction": 2,
+	}, asInt(state["revision"]))
+
+	if asInt(state["phase"]) != int(game.PhaseSetup) {
+		t.Fatalf("expected setup phase after auction resolution, got %v", state["phase"])
+	}
+	if asString(state["setupSubphase"]) != "dwellings" {
+		t.Fatalf("expected setup dwellings subphase after auction resolution, got %v", state["setupSubphase"])
+	}
+
+	players := asMap(state["players"])
+	if asInt(asMap(players["p1"])["victoryPoints"]) != 40 {
+		t.Fatalf("expected p1 to start with 40 VP, got %v", asMap(players["p1"])["victoryPoints"])
+	}
+	if asInt(asMap(players["p2"])["victoryPoints"]) != 39 {
+		t.Fatalf("expected p2 to start with 39 VP, got %v", asMap(players["p2"])["victoryPoints"])
+	}
+	if asInt(asMap(players["p3"])["victoryPoints"]) != 38 {
+		t.Fatalf("expected p3 to start with 38 VP, got %v", asMap(players["p3"])["victoryPoints"])
+	}
+}
+
+func TestWebsocketE2E_FastAuctionSetupFlow(t *testing.T) {
+	_, server, gameID, clients, state := setupWebsocketGameToFactionSelection(t, []string{"p1", "p2", "p3"}, false, "fast_auction")
+	defer server.Close()
+	defer closeConnections(clients)
+
+	if asString(state["setupMode"]) != "fast_auction" {
+		t.Fatalf("expected setup mode fast_auction, got %v", state["setupMode"])
+	}
+	pending := asMap(state["pendingDecision"])
+	if asString(pending["type"]) != "auction_nomination" {
+		t.Fatalf("expected auction_nomination pending decision, got %v", pending)
+	}
+
+	state = performActionAndReadState(t, clients["p1"], gameID, "auction_nominate", map[string]any{
+		"faction": "Nomads",
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p2"], gameID, "auction_nominate", map[string]any{
+		"faction": "Witches",
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p3"], gameID, "auction_nominate", map[string]any{
+		"faction": "Engineers",
+	}, asInt(state["revision"]))
+
+	pending = asMap(state["pendingDecision"])
+	if asString(pending["type"]) != "fast_auction_bid_matrix" {
+		t.Fatalf("expected fast_auction_bid_matrix pending decision after nominations, got %v", pending)
+	}
+
+	state = performActionAndReadState(t, clients["p1"], gameID, "fast_auction_submit_bids", map[string]any{
+		"bids": map[string]any{
+			"Nomads":    2,
+			"Witches":   4,
+			"Engineers": 1,
+		},
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p2"], gameID, "fast_auction_submit_bids", map[string]any{
+		"bids": map[string]any{
+			"Nomads":    0,
+			"Witches":   3,
+			"Engineers": 5,
+		},
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p3"], gameID, "fast_auction_submit_bids", map[string]any{
+		"bids": map[string]any{
+			"Nomads":    1,
+			"Witches":   2,
+			"Engineers": 4,
+		},
+	}, asInt(state["revision"]))
+
+	if asInt(state["phase"]) != int(game.PhaseSetup) {
+		t.Fatalf("expected setup phase after fast auction resolution, got %v", state["phase"])
+	}
+	if asString(state["setupSubphase"]) != "dwellings" {
+		t.Fatalf("expected setup dwellings subphase after fast auction resolution, got %v", state["setupSubphase"])
+	}
+}
+
 func setupWebsocketGameToAction(
 	t *testing.T,
 	playerIDs []string,
 	factions map[string]string,
 	randomizeTurnOrder bool,
+) (ServerDeps, *httptest.Server, string, map[string]*gws.Conn, map[string]any) {
+	t.Helper()
+	deps, server, gameID, clients, state := setupWebsocketGameToFactionSelection(t, playerIDs, randomizeTurnOrder, "snellman")
+	for phase := asInt(state["phase"]); phase != int(game.PhaseAction); phase = asInt(state["phase"]) {
+		switch phase {
+		case int(game.PhaseFactionSelection):
+			currentPlayerID := currentTurnPlayerID(state)
+			faction := factions[currentPlayerID]
+			if faction == "" {
+				t.Fatalf("missing faction mapping for %s", currentPlayerID)
+			}
+			state = performActionAndReadState(t, clients[currentPlayerID], gameID, "select_faction", map[string]any{
+				"faction": faction,
+			}, asInt(state["revision"]))
+		case int(game.PhaseSetup):
+			if asString(state["setupSubphase"]) == "bonus_cards" {
+				playerID := currentSetupBonusPlayerID(state)
+				card := firstAvailableBonusCard(state)
+				if card < 0 {
+					t.Fatalf("no available bonus card found during setup")
+				}
+				state = performActionAndReadState(t, clients[playerID], gameID, "setup_bonus_card", map[string]any{
+					"bonusCard": card,
+				}, asInt(state["revision"]))
+				continue
+			}
+
+			playerID := currentSetupDwellingPlayerID(state)
+			q, r := firstSetupDwellingHex(t, state, playerID)
+			state = performActionAndReadState(t, clients[playerID], gameID, "setup_dwelling", map[string]any{
+				"hex": map[string]any{"q": q, "r": r},
+			}, asInt(state["revision"]))
+		default:
+			t.Fatalf("unexpected phase while progressing setup: %v", state["phase"])
+		}
+	}
+
+	return deps, server, gameID, clients, state
+}
+
+func setupWebsocketGameToFactionSelection(
+	t *testing.T,
+	playerIDs []string,
+	randomizeTurnOrder bool,
+	setupMode string,
 ) (ServerDeps, *httptest.Server, string, map[string]*gws.Conn, map[string]any) {
 	t.Helper()
 
@@ -262,7 +425,6 @@ func setupWebsocketGameToAction(
 	if gameID == "" {
 		t.Fatalf("missing game id in game_created payload")
 	}
-	// Drain lobby broadcast emitted as part of create_game before issuing joins.
 	_ = readUntilType(t, clients[creatorID], "lobby_state", 4*time.Second)
 
 	for _, playerID := range playerIDs[1:] {
@@ -281,44 +443,11 @@ func setupWebsocketGameToAction(
 		"payload": map[string]any{
 			"gameID":             gameID,
 			"randomizeTurnOrder": randomizeTurnOrder,
+			"setupMode":          setupMode,
 		},
 	})
 
 	state := asMap(readUntilType(t, clients[creatorID], "game_state_update", 4*time.Second)["payload"])
-	for phase := asInt(state["phase"]); phase != int(game.PhaseAction); phase = asInt(state["phase"]) {
-		switch phase {
-		case int(game.PhaseFactionSelection):
-			currentPlayerID := currentTurnPlayerID(state)
-			faction := factions[currentPlayerID]
-			if faction == "" {
-				t.Fatalf("missing faction mapping for %s", currentPlayerID)
-			}
-			state = performActionAndReadState(t, clients[currentPlayerID], gameID, "select_faction", map[string]any{
-				"faction": faction,
-			}, asInt(state["revision"]))
-		case int(game.PhaseSetup):
-			if asString(state["setupSubphase"]) == "bonus_cards" {
-				playerID := currentSetupBonusPlayerID(state)
-				card := firstAvailableBonusCard(state)
-				if card < 0 {
-					t.Fatalf("no available bonus card found during setup")
-				}
-				state = performActionAndReadState(t, clients[playerID], gameID, "setup_bonus_card", map[string]any{
-					"bonusCard": card,
-				}, asInt(state["revision"]))
-				continue
-			}
-
-			playerID := currentSetupDwellingPlayerID(state)
-			q, r := firstSetupDwellingHex(t, state, playerID)
-			state = performActionAndReadState(t, clients[playerID], gameID, "setup_dwelling", map[string]any{
-				"hex": map[string]any{"q": q, "r": r},
-			}, asInt(state["revision"]))
-		default:
-			t.Fatalf("unexpected phase while progressing setup: %v", state["phase"])
-		}
-	}
-
 	return deps, server, gameID, clients, state
 }
 
@@ -362,6 +491,19 @@ func configureSpadeFollowupScenario(t *testing.T, gs *game.GameState, playerID s
 			}
 			neighborHex := gs.Map.GetHex(neighbor)
 			if neighborHex == nil || neighborHex.Building != nil || neighborHex.Terrain == models.TerrainRiver {
+				continue
+			}
+			// Avoid creating leech offers in this scenario test; we want to assert
+			// spade-followup behavior without reaction-queue interference.
+			hasOpponentAdjacent := false
+			for _, direct := range gs.Map.GetDirectNeighbors(neighbor) {
+				directHex := gs.Map.GetHex(direct)
+				if directHex != nil && directHex.Building != nil && directHex.Building.PlayerID != playerID {
+					hasOpponentAdjacent = true
+					break
+				}
+			}
+			if hasOpponentAdjacent {
 				continue
 			}
 			seen[neighbor] = true

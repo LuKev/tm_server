@@ -636,6 +636,7 @@ func (m *ReplayManager) JumpTo(gameID string, targetIndex int) error {
 
 func createInitialState(items []notation.LogItem) *game.GameState {
 	initialState := game.NewGameState()
+	initialState.ReplayMode = map[string]bool{"__replay__": true}
 
 	// Pre-populate players and settings from GameSettingsItem if present
 	for _, item := range items {

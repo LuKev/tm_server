@@ -315,3 +315,97 @@
   - Removed redundant summary outputs `averageRank` and `stddevTotalPointsScored` from `scripts/bga_tm_arena_faction_stats_browser.js`.
   - Removed corresponding CSV columns `average_rank` and `stddev_total_points_scored` from `downloadTmBatchFactionSummaryCsv()`.
   - Cleaned unused stddev accumulator/computation code path.
+- 2026-02-21 golden Snellman multiplayer websocket E2E completion:
+  - Added full-game golden websocket test for `4pLeague_S69_D1L1_G2`:
+    - `server/internal/websocket/golden_snellman_e2e_test.go`
+    - embedded fixture `server/internal/websocket/testdata/4pLeague_S69_D1L1_G2.txt`
+    - final hard assertions:
+      - Nomads 166
+      - Darklings 137
+      - Mermaids 130
+      - Witches 124
+  - Key runner fixes required for parity:
+    - compound-row free-action reordering for Snellman rows that place burn/conversion after a turn-ending main action.
+    - sequential consumption of upcoming town tokens while resolving pending decisions (prevents reusing one token multiple times).
+    - Mermaids shorthand handling (`ACT4.TW*` without explicit connect in concise): claim town token after power action and support pending formation synthesis fallback only when needed.
+  - Core rules fixes required for correctness:
+    - dedupe duplicate pending town formations by connected component (`server/internal/game/town.go`), especially after `CheckAllTownFormations` (e.g. Fire+2 favor selection).
+    - delayed Mermaids town formations (`CanBeDelayed`) no longer block turn progression:
+      - `GetPendingTownSelectionPlayer` and `HasPendingActions` now only treat non-delayed town formations as mandatory pending.
+      - `ValidateActionTurn` now permits `ActionSelectTownTile` whenever the acting player has any pending town formation, even if it is delayed/optional.
+    - `select_town_tile` and `select_town_cult_top` now call `NextTurn()` only when it is still that player's turn, avoiding double turn-advance when these decisions are resolved after a turn-ending action.
+  - Validation run notes:
+    - `bazel test //internal/websocket:websocket_test --test_filter=TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores` passed.
+    - `bazel test //internal/websocket:websocket_test` passed.
+    - `bazel test //internal/game:game_test --test_filter='TestSelectTownTile|TestSelectTownCultTop|TestSelectFavorTile_Fire2EnablesTownFormation|TestManager'` passed.
+    - `bazel test //internal/game:game_test` currently has pre-existing failures in pass/bonus-card legacy expectations unrelated to this golden path (`TestBonusCard_CoinAccumulation`, `TestTurnOrder_PassOrderDeterminesNextRound`, `TestTurnOrder_AllPlayersPassed`).
+
+- 2026-02-21 multiplayer setup-mode expansion (auction + fast auction):
+  - Backend now supports host-selectable setup modes on game creation:
+    - `snellman` (default)
+    - `auction`
+    - `fast_auction`
+  - New actions and websocket routes:
+    - `auction_nominate`
+    - `auction_bid`
+    - `fast_auction_submit_bids`
+  - `select_faction` is now explicitly restricted to `snellman` mode.
+  - Auction finalization now assigns faction/resources/cult starts, applies bid-adjusted starting VP (`40 - VP reduction`), and sets turn order from faction nomination order before setup dwellings.
+  - Fast auction uses deterministic assignment resolution over submitted bid matrices and tie-breaks by seat-order lexicographic bid vector then nomination-order faction index.
+  - Added coverage:
+    - `server/internal/game/auction_flow_test.go`
+    - websocket E2E setup flow tests in `server/internal/websocket/e2e_integration_test.go`.
+  - Current verification snapshot:
+    - `bazel test //internal/game:game_test --test_filter='TestAuctionSetupFlow_.*'` passed.
+    - `bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketE2E_(RegularAuctionSetupFlow|FastAuctionSetupFlow|SetupToActionAndTurnAuthority)'` passed.
+    - full unfiltered `//internal/game:game_test` still has pre-existing non-auction failures listed above.
+
+- 2026-02-21 Snellman golden fixture expansion for targeted mechanics:
+  - Added websocket-embedded candidate fixtures:
+    - `server/internal/websocket/testdata/4pLeague_S1_D1L1_G3.txt` (Fakirs + Dwarves)
+    - `server/internal/websocket/testdata/4pLeague_S60_D1L1_G4.txt` (Dwarves + Cultists)
+    - `server/internal/websocket/testdata/4pLeague_S61_D1L1_G3.txt` (Engineers + Cultists, includes `ACTE` bridge actions)
+  - Existing candidates retained:
+    - `4pLeague_S69_D1L1_G4`
+    - `4pLeague_S69_D1L1_G7`
+  - Candidate inventory assertions are in:
+    - `server/internal/websocket/golden_snellman_e2e_test.go` (`TestWebsocketGoldenCandidateFixtures_TargetedCoverageInventory`)
+  - Validation:
+    - `bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketGolden_.*|TestWebsocketGoldenCandidateFixtures_.*'` passed.
+
+- 2026-02-22 full Bazel stabilization follow-up:
+  - `//internal/game:game_test` failures were a mix of outdated expectations and replay-transition drift.
+  - Test expectation corrections:
+    - `TestBonusCard_CoinAccumulation` now expects BON7 base coin income plus accumulated coins (`+6 + accumulated`), not accumulated-only.
+    - turn-order tests were updated to reflect current semantics where final `PassAction` auto-completes round cleanup/start (in non-replay mode).
+  - Replay logic fix (critical):
+    - root cause: `PassAction.Execute` was auto-running cleanup/start-new-round while replay simulator also applies round transitions at `RoundStartItem`, causing double boundary processing and resource/power drift (manifesting as invalid burn-power failures and final VP mismatches).
+    - fix: suppress pass-triggered immediate round transition when running in replay simulation mode.
+      - replay mode sentinel set at replay initial state creation:
+        - `server/internal/replay/manager.go` (`ReplayMode["__replay__"]=true`)
+      - pass action now skips auto cleanup/start in replay mode:
+        - `server/internal/game/actions.go`
+    - result: replay batch/ledger suites realigned.
+  - Verification after fixes:
+    - `bazel test //internal/game:game_test --test_output=errors` passed.
+    - `bazel test //internal/replay:replay_test --test_output=errors` passed.
+    - `bazel test //... --test_output=errors` passed.
+
+- 2026-02-22 general cleanup pass:
+  - Removed dead artifact file:
+    - `client/src/components/ImportGame.tsx.bak`.
+  - Reduced duplication/noise in websocket action parsing:
+    - `server/internal/websocket/client.go`
+    - extracted shared bridge-endpoint parsing helper,
+    - extracted shared special-action transform-target parsing helper,
+    - removed several unused parser function parameters and simplified call sites.
+  - Minor dead/duplicate comment cleanup:
+    - removed duplicate `AddPlayer` comment line in `server/internal/game/state.go`.
+  - Fixed websocket test stability issue discovered during full suite cleanup validation:
+    - `configureSpadeFollowupScenario` now chooses targets without adjacent opponent buildings to avoid unrelated leech-queue interference in `TestWebsocketContract_SpadeFollowupAndDiscard`.
+  - Fixed lobby metadata data race surfaced by websocket golden tests:
+    - `server/internal/lobby/lobby.go` now returns cloned immutable snapshots from `CreateGame`, `GetGame`, and `ListGames` instead of exposing shared pointers/slices to concurrent readers.
+  - Validation after cleanup/race fix:
+    - `bazel test //... --test_output=errors` passed.
+    - `npm run type-check` passed.
+    - `npm run build` passed.

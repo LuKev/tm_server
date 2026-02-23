@@ -12,6 +12,7 @@ import (
 // CreateGameOptions controls game creation behavior.
 type CreateGameOptions struct {
 	RandomizeTurnOrder bool
+	SetupMode          SetupMode
 }
 
 // ActionMeta provides metadata for action execution.
@@ -239,6 +240,44 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
+	if actionType == ActionSelectTownTile {
+		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+			return nil
+		}
+		return fmt.Errorf("no pending town formation for player %s", playerID)
+	}
+
+	if gs.Phase == PhaseFactionSelection {
+		switch gs.SetupMode {
+		case SetupModeAuction:
+			if gs.AuctionState == nil || !gs.AuctionState.Active {
+				return fmt.Errorf("regular auction setup is not active")
+			}
+			if gs.AuctionState.NominationPhase {
+				if actionType != ActionAuctionNominateFaction {
+					return fmt.Errorf("auction nomination is required")
+				}
+			} else if actionType != ActionAuctionPlaceBid {
+				return fmt.Errorf("regular auction bid is required")
+			}
+		case SetupModeFastAuction:
+			if gs.AuctionState == nil || !gs.AuctionState.Active {
+				return fmt.Errorf("fast auction setup is not active")
+			}
+			if gs.AuctionState.NominationPhase {
+				if actionType != ActionAuctionNominateFaction {
+					return fmt.Errorf("auction nomination is required")
+				}
+			} else if actionType != ActionFastAuctionSubmitBids {
+				return fmt.Errorf("fast auction bid submission is required")
+			}
+		default:
+			if actionType != ActionSelectFaction {
+				return fmt.Errorf("faction selection is required")
+			}
+		}
+	}
+
 	if gs.Phase == PhaseSetup && gs.SetupSubphase == SetupSubphaseBonusCards && actionType != ActionSetupBonusCard {
 		return fmt.Errorf("setup bonus card selection is required")
 	}
@@ -247,7 +286,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownTile || actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -286,7 +325,7 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 
 // CreateGame initializes a new game state with the given ID and players.
 func (m *Manager) CreateGame(id string, playerIDs []string) error {
-	return m.CreateGameWithOptions(id, playerIDs, CreateGameOptions{RandomizeTurnOrder: true})
+	return m.CreateGameWithOptions(id, playerIDs, CreateGameOptions{RandomizeTurnOrder: true, SetupMode: SetupModeSnellman})
 }
 
 // CreateGameWithOptions initializes a new game with explicit options.
@@ -299,6 +338,17 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	}
 
 	gs := NewGameState()
+	setupMode := opts.SetupMode
+	if setupMode == "" {
+		setupMode = SetupModeSnellman
+	}
+	switch setupMode {
+	case SetupModeSnellman, SetupModeAuction, SetupModeFastAuction:
+	default:
+		return fmt.Errorf("invalid setup mode: %s", setupMode)
+	}
+	gs.SetupMode = setupMode
+
 	if err := gs.ScoringTiles.InitializeForGame(); err != nil {
 		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
 	}
@@ -323,6 +373,9 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	gs.Phase = PhaseFactionSelection
 	gs.TurnOrder = turnOrder
 	gs.CurrentPlayerIndex = 0
+	if setupMode == SetupModeAuction || setupMode == SetupModeFastAuction {
+		gs.AuctionState = NewAuctionStateWithMode(turnOrder, setupMode)
+	}
 
 	m.games[id] = gs
 	m.revisions[id] = 0
@@ -435,6 +488,7 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 		"id":                   gameID,
 		"revision":             revision,
 		"phase":                gs.Phase,
+		"setupMode":            gs.SetupMode,
 		"setupSubphase":        gs.SetupSubphase,
 		"setupDwellingOrder":   gs.SetupDwellingOrder,
 		"setupDwellingIndex":   gs.SetupDwellingIndex,
@@ -504,6 +558,7 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 		"pendingCultistsCultSelection":     gs.PendingCultistsCultSelection,
 		"pendingTownCultTopChoice":         gs.PendingTownCultTopChoice,
 		"pendingDecision":                  serializePendingDecision(gs),
+		"auctionState":                     serializeAuctionState(gs.AuctionState),
 		"finalScoring": func() interface{} {
 			if gs.FinalScoring == nil {
 				return nil
@@ -516,6 +571,38 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 func serializePendingDecision(gs *GameState) interface{} {
 	if gs == nil {
 		return nil
+	}
+
+	if gs.Phase == PhaseFactionSelection && gs.AuctionState != nil && gs.AuctionState.Active {
+		factions := make([]string, 0, len(gs.AuctionState.NominationOrder))
+		for _, faction := range gs.AuctionState.NominationOrder {
+			factions = append(factions, faction.String())
+		}
+
+		if gs.AuctionState.NominationPhase {
+			return map[string]interface{}{
+				"type":              "auction_nomination",
+				"playerId":          gs.AuctionState.GetCurrentBidder(),
+				"setupMode":         gs.SetupMode,
+				"nominatedFactions": factions,
+			}
+		}
+
+		if gs.SetupMode == SetupModeFastAuction {
+			return map[string]interface{}{
+				"type":              "fast_auction_bid_matrix",
+				"playerId":          gs.AuctionState.GetCurrentBidder(),
+				"setupMode":         gs.SetupMode,
+				"nominatedFactions": factions,
+			}
+		}
+
+		return map[string]interface{}{
+			"type":              "auction_bid",
+			"playerId":          gs.AuctionState.GetCurrentBidder(),
+			"setupMode":         gs.SetupMode,
+			"nominatedFactions": factions,
+		}
 	}
 
 	if gs.Phase == PhaseSetup && gs.SetupSubphase == SetupSubphaseBonusCards {
@@ -607,4 +694,50 @@ func serializePendingDecision(gs *GameState) interface{} {
 	}
 
 	return nil
+}
+
+func serializeAuctionState(as *AuctionState) interface{} {
+	if as == nil {
+		return nil
+	}
+
+	nominationOrder := make([]string, 0, len(as.NominationOrder))
+	for _, faction := range as.NominationOrder {
+		nominationOrder = append(nominationOrder, faction.String())
+	}
+
+	currentBids := make(map[string]int)
+	for faction, bid := range as.CurrentBids {
+		currentBids[faction.String()] = bid
+	}
+
+	factionHolders := make(map[string]string)
+	for faction, playerID := range as.FactionHolders {
+		factionHolders[faction.String()] = playerID
+	}
+
+	fastBids := make(map[string]map[string]int)
+	for playerID, bids := range as.FastBids {
+		playerBids := make(map[string]int)
+		for faction, bid := range bids {
+			playerBids[faction.String()] = bid
+		}
+		fastBids[playerID] = playerBids
+	}
+
+	return map[string]interface{}{
+		"active":              as.Active,
+		"mode":                as.Mode,
+		"nominationPhase":     as.NominationPhase,
+		"currentBidder":       as.GetCurrentBidder(),
+		"currentBidderIndex":  as.CurrentBidderIndex,
+		"nominationsComplete": as.NominationsComplete,
+		"nominationOrder":     nominationOrder,
+		"currentBids":         currentBids,
+		"factionHolders":      factionHolders,
+		"seatOrder":           as.SeatOrder,
+		"playerHasFaction":    as.PlayerHasFaction,
+		"fastSubmitted":       as.FastSubmitted,
+		"fastBids":            fastBids,
+	}
 }

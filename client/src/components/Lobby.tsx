@@ -26,6 +26,7 @@ export function Lobby(): React.ReactElement {
   const [newGameName, setNewGameName] = useState('')
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
   const [randomizeTurnOrder, setRandomizeTurnOrder] = useState(true)
+  const [setupMode, setSetupMode] = useState<'snellman' | 'auction' | 'fast_auction'>('snellman')
 
   useEffect(() => {
     if (lastMessage === null) return
@@ -178,6 +179,19 @@ export function Lobby(): React.ReactElement {
                 />
                 Randomize turn order on start
               </label>
+              <div className="mt-3">
+                <label className="block text-sm text-gray-200 mb-1">Setup mode</label>
+                <select
+                  value={setupMode}
+                  onChange={(e) => { setSetupMode(e.target.value as 'snellman' | 'auction' | 'fast_auction') }}
+                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={!isConnected}
+                >
+                  <option value="snellman">Snellman (Pick Factions)</option>
+                  <option value="auction">Auction</option>
+                  <option value="fast_auction">Fast Auction</option>
+                </select>
+              </div>
             </div>
 
             {/* Test WebSocket Section */}
@@ -258,6 +272,7 @@ export function Lobby(): React.ReactElement {
                                 payload: {
                                   gameID: g.id,
                                   randomizeTurnOrder,
+                                  setupMode,
                                 },
                               })
                             }}

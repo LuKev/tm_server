@@ -43,16 +43,9 @@ func TestTurnOrder_PassOrderDeterminesNextRound(t *testing.T) {
 		t.Fatalf("player3 pass failed: %v", err)
 	}
 
-	bonusCard3 := BonusCardWorkerPower
-	pass1 := NewPassAction("player1", &bonusCard3)
-	err = pass1.Execute(gs)
-	if err != nil {
-		t.Fatalf("player1 pass failed: %v", err)
-	}
-
-	// Verify pass order was recorded
-	if len(gs.PassOrder) != 3 {
-		t.Fatalf("expected 3 players in pass order, got %d", len(gs.PassOrder))
+	// Verify pass order is tracked before the final pass completes the round.
+	if len(gs.PassOrder) != 2 {
+		t.Fatalf("expected 2 players in pass order before final pass, got %d", len(gs.PassOrder))
 	}
 	if gs.PassOrder[0] != "player2" {
 		t.Errorf("expected player2 to pass first, got %s", gs.PassOrder[0])
@@ -60,12 +53,18 @@ func TestTurnOrder_PassOrderDeterminesNextRound(t *testing.T) {
 	if gs.PassOrder[1] != "player3" {
 		t.Errorf("expected player3 to pass second, got %s", gs.PassOrder[1])
 	}
-	if gs.PassOrder[2] != "player1" {
-		t.Errorf("expected player1 to pass third, got %s", gs.PassOrder[2])
+
+	// Final pass should complete the round and automatically start the next one.
+	bonusCard3 := BonusCardWorkerPower
+	pass1 := NewPassAction("player1", &bonusCard3)
+	err = pass1.Execute(gs)
+	if err != nil {
+		t.Fatalf("player1 pass failed: %v", err)
 	}
 
-	// Start new round
-	gs.StartNewRound()
+	if gs.Round != 2 {
+		t.Fatalf("expected next round to start automatically (round 2), got round %d", gs.Round)
+	}
 
 	// Verify turn order matches pass order
 	if len(gs.TurnOrder) != 3 {
@@ -81,7 +80,7 @@ func TestTurnOrder_PassOrderDeterminesNextRound(t *testing.T) {
 		t.Errorf("expected player1 to go third, got %s", gs.TurnOrder[2])
 	}
 
-	// Verify pass order was reset
+	// Verify pass order was reset after automatic StartNewRound.
 	if len(gs.PassOrder) != 0 {
 		t.Errorf("expected pass order to be reset, got %d entries", len(gs.PassOrder))
 	}
@@ -186,20 +185,18 @@ func TestTurnOrder_AllPlayersPassed(t *testing.T) {
 		t.Error("expected AllPlayersPassed to be false initially")
 	}
 
-	// Player1 passes
-	bonusCard1 := BonusCardPriest
-	pass1 := NewPassAction("player1", &bonusCard1)
-	pass1.Execute(gs)
+	// Mark one player as passed.
+	player1 := gs.GetPlayer("player1")
+	player1.HasPassed = true
 
 	// Still not all passed
 	if gs.AllPlayersPassed() {
 		t.Error("expected AllPlayersPassed to be false with 1 player passed")
 	}
 
-	// Player2 passes
-	bonusCard2 := BonusCardWorkerPower
-	pass2 := NewPassAction("player2", &bonusCard2)
-	pass2.Execute(gs)
+	// Mark second player as passed.
+	player2 := gs.GetPlayer("player2")
+	player2.HasPassed = true
 
 	// Now all have passed
 	if !gs.AllPlayersPassed() {

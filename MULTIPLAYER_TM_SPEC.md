@@ -1,4 +1,4 @@
-# Terra Mystica Multiplayer Spec (Locked V2)
+# Terra Mystica Multiplayer Spec (Locked V3)
 
 ## 1. Purpose
 Build a real-time multiplayer mode (2-5 players) on top of the existing replay viewer + rules engine so players can play full base-game Terra Mystica with authoritative server rules and interactive UI.
@@ -11,22 +11,21 @@ This spec is implementation-oriented and scoped to current repository structure:
 ## 2. Product Scope
 ### 2.1 In Scope
 1. Lobby -> start game -> full playthrough with up to 5 players.
-2. Snellman-style faction pick (no auction), all at 20 VP.
+2. Setup modes: Snellman pick, regular auction, and fast auction.
 3. Full setup flow (faction, dwellings, bonus cards).
 4. Full round/action/reaction gameplay including leech, towns, favor, cult, power/special actions.
 5. Pre-commit action confirmation for irreversible actions; no post-confirm undo in v1.
 6. Reconnect-safe multiplayer state sync via websocket.
 
 ### 2.2 Out of Scope for First Multiplayer Iteration
-1. BGA auction/bidding setup mode.
-2. Fire & Ice factions.
-3. Landscapes expansion.
-4. AI players.
-5. Matchmaking/ranked ladders.
-6. Spectator mode.
-7. Turn timers.
-8. Mid-game resign/drop handling.
-9. Deferred items are tracked in `MULTIPLAYER_TODO_LATER.md`.
+1. Fire & Ice factions.
+2. Landscapes expansion.
+3. AI players.
+4. Matchmaking/ranked ladders.
+5. Spectator mode.
+6. Turn timers.
+7. Mid-game resign/drop handling.
+8. Deferred items are tracked in `MULTIPLAYER_TODO_LATER.md`.
 
 ### 2.3 Defaults and Config
 1. Setup turn order default is randomized, host-configurable.
@@ -39,7 +38,8 @@ This spec is implementation-oriented and scoped to current repository structure:
 2. Replay parsers cover broad action vocabulary from Snellman + BGA logs in `server/internal/notation/*`.
 3. Frontend already renders board, buildings, bridges, cult tracks, favor/town/bonus tiles, player boards.
 
-### 3.2 Critical Gaps
+### 3.2 Initial Critical Gaps (Now Addressed)
+All items in this list are completed in the current implementation; retained for historical scope tracking.
 1. Websocket `perform_action` only handles `select_faction` and `setup_dwelling`.
 2. Client action service only submits those two actions.
 3. No per-game websocket room filtering; broadcasts go to all clients.
@@ -144,11 +144,26 @@ Server responses:
 3. Reject stale `expectedRevision` with resync message.
 
 ## 7. Setup Flow Spec (Strict)
+### 7.0 Setup Mode Selection
+1. Host-selectable setup mode: `snellman` (default), `auction`, `fast_auction`.
+2. `snellman` mode starts all players at 20 VP.
+3. `auction` and `fast_auction` start from 40 VP minus bid reduction.
+4. Setup mode is serialized in game state and drives pending-decision/action validation.
+
 ### 7.1 Faction Selection
 1. Turn order is randomized by default, with host override support.
-2. No duplicate faction.
-3. Start VP = 20.
-4. On completion -> setup dwellings starts.
+2. No duplicate faction (or duplicate faction color in auction nomination).
+3. Snellman mode: sequential faction picks, 20 VP starts.
+4. Auction mode:
+- nomination phase (seat order)
+- live bidding phase (seat order, one current bid holder per faction)
+- finalize faction assignment + bid-adjusted VP + turn order from nomination order
+5. Fast auction mode:
+- nomination phase (seat order)
+- each player submits full bid matrix once (forced sequential submission)
+- deterministic assignment resolution over all nominated factions
+- finalize faction assignment + bid-adjusted VP + turn order from nomination order
+6. On completion -> setup dwellings starts.
 
 ### 7.2 Starting Dwellings
 Implement true base-game setup ordering with faction exceptions.
@@ -387,7 +402,7 @@ Canonical action `type` list for websocket payload:
 7. Milestone G: full regression suite + multiplayer soak tests. **Status: Completed**
 
 ## 16. Locked Decisions (2026-02-21)
-1. Multiplayer v1 uses no auction; all factions start at 20 VP.
+1. Multiplayer supports three setup modes: Snellman (20 VP), Auction, and Fast Auction.
 2. Setup/faction order defaults to random and must be host-configurable.
 3. Setup rules are strict base-rule ordering, including faction exceptions.
 4. Setup bonus-card picks use strict reverse setup order.
@@ -423,11 +438,15 @@ Completed in current implementation:
 15. Websocket contract coverage now includes `spade_followup` + `discard_pending_spade` transitions.
 16. A 5-seat reconnect churn multiplayer soak test is implemented in websocket E2E coverage.
 17. UX polish pass completed for advanced modal flows (Chaos parameter templates/validation and pending-spade/cult-spade clarity banners).
+18. Auction setup mode (`auction`) implemented end-to-end (state model, actions, websocket protocol, lobby selector UI, setup transition).
+19. Fast auction setup mode (`fast_auction`) implemented end-to-end (sealed bid matrix submission, deterministic assignment resolver, setup transition).
+20. Added targeted Snellman fixture inventory coverage for faction/mechanic branches including Fakirs, Dwarves, Engineers, Cultists, bridge usage, and leech acceptance markers.
 
 Validation completed for this spec revision:
-1. `bazel test //internal/websocket:websocket_test //internal/game:game_test //internal/replay:replay_test` (from `server/`) passed.
-2. `bazel test //...` (from `server/`) passed.
-3. `npm run type-check && npm run build` (from `client/`) passed.
+1. `bazel test //internal/game:game_test --test_filter='TestAuctionSetupFlow_.*'` (from `server/`) passed.
+2. `bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketE2E_(RegularAuctionSetupFlow|FastAuctionSetupFlow|SetupToActionAndTurnAuthority)'` (from `server/`) passed.
+3. `bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketGolden_.*|TestWebsocketGoldenCandidateFixtures_.*'` (from `server/`) passed.
+4. Full unfiltered `//internal/game:game_test` currently has pre-existing failures outside auction scope (`TestBonusCard_CoinAccumulation`, `TestTurnOrder_PassOrderDeterminesNextRound`, `TestTurnOrder_AllPlayersPassed`).
 
 Remaining out-of-scope items are tracked in `MULTIPLAYER_TODO_LATER.md`.
 
@@ -481,4 +500,26 @@ Layer B: UI golden replay (browser E2E)
 
 ### 18.5 Coverage Notes
 1. This golden game exercises a broad multiplayer path: setup, leech accept/decline, conversions, upgrades, power actions, cult spades, favor/town picks, passing, and endgame scoring.
-2. It does not cover every faction-specific edge branch (for example Engineers bridge, Halflings 3-spade branch, Cultists pending cult-choice branch), so focused scenario tests remain required alongside the golden run.
+2. Additional targeted fixture inventory checks now cover branch presence for Fakirs, Dwarves, Engineers, Cultists, bridge actions, and accepted-power events.
+3. Full completion assertions are still only enforced on the primary golden fixture (S69 G2); focused branch tests remain required alongside the golden run.
+
+### 18.6 Implementation Status
+1. Layer A implementation is complete.
+- Test: `server/internal/websocket/golden_snellman_e2e_test.go`
+- Fixture: `server/internal/websocket/testdata/4pLeague_S69_D1L1_G2.txt`
+- Current assertion: exact final totals
+  - Nomads 166
+  - Darklings 137
+  - Mermaids 130
+  - Witches 124
+- Verified via Bazel:
+  - `bazel test //internal/websocket:websocket_test --test_filter=TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores`
+2. Layer B (browser-driven UI golden) remains planned and is not yet implemented in this pass.
+
+### 18.7 Additional Targeted Snellman Fixtures
+1. `4pLeague_S1_D1L1_G3` (Fakirs + Dwarves; includes `ACT6` and bridge usage).
+2. `4pLeague_S60_D1L1_G4` (Dwarves + Cultists; includes accepted-power markers and bridge action usage).
+3. `4pLeague_S61_D1L1_G3` (Engineers + Cultists; includes Engineers bridge special action markers `ACTE` and accepted-power markers).
+4. `4pLeague_S69_D1L1_G4` (Dwarves + Cultists; high-signal modern season regression candidate).
+5. `4pLeague_S69_D1L1_G7` (Engineers + Cultists; high-signal modern season regression candidate).
+6. Status: candidate fixture inventory test is implemented in `server/internal/websocket/golden_snellman_e2e_test.go`.

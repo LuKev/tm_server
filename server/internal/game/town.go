@@ -105,6 +105,25 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 }
 
 func (gs *GameState) createPendingTown(playerID string, connected []board.Hex, skippedRiver *board.Hex, factionType models.FactionType) {
+	// Avoid duplicate pending formations for the same connected component.
+	// This can happen when a full-board recheck (e.g. after taking Fire+2) touches
+	// multiple buildings within the same component before the town is claimed.
+	for _, existing := range gs.PendingTownFormations[playerID] {
+		if existing == nil {
+			continue
+		}
+		if !sameTownComponent(existing.Hexes, connected) {
+			continue
+		}
+		// Preserve a discovered skipped-river placement for Mermaids if the
+		// existing pending formation doesn't already have one.
+		if existing.SkippedRiverHex == nil && skippedRiver != nil {
+			existing.SkippedRiverHex = skippedRiver
+			existing.CanBeDelayed = factionType == models.FactionMermaids
+		}
+		return
+	}
+
 	// For Mermaids: determine if town can be delayed
 	// - If river was skipped (skippedRiver != nil), can be delayed
 	// - If only land tiles (skippedRiver == nil), must claim immediately
@@ -121,6 +140,32 @@ func (gs *GameState) createPendingTown(playerID string, connected []board.Hex, s
 		CanBeDelayed:    canBeDelayed,
 	}
 	gs.PendingTownFormations[playerID] = append(gs.PendingTownFormations[playerID], newTown)
+}
+
+func sameTownComponent(a, b []board.Hex) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	if len(a) == 0 {
+		return true
+	}
+	counts := make(map[board.Hex]int, len(a))
+	for _, h := range a {
+		counts[h]++
+	}
+	for _, h := range b {
+		count, ok := counts[h]
+		if !ok || count == 0 {
+			return false
+		}
+		counts[h] = count - 1
+	}
+	for _, count := range counts {
+		if count != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // CanFormTown checks if the given connected buildings meet town requirements

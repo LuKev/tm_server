@@ -493,6 +493,9 @@ func TestSelectFavorTile_Fire2EnablesTownFormation(t *testing.T) {
 	if len(gs.PendingTownFormations["player1"]) == 0 {
 		t.Fatal("expected pending town formation after selecting Fire+2 (6 power is now enough)")
 	}
+	if len(gs.PendingTownFormations["player1"]) != 1 {
+		t.Fatalf("expected exactly 1 pending town formation after Fire+2 recheck, got %d", len(gs.PendingTownFormations["player1"]))
+	}
 
 	// Verify the pending town formation includes all 5 buildings
 	if len(gs.PendingTownFormations["player1"][0].Hexes) != 5 {

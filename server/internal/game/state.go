@@ -19,7 +19,9 @@ type GameState struct {
 	Players                          map[string]*Player                 `json:"players"`
 	Round                            int                                `json:"round"`
 	Phase                            GamePhase                          `json:"phase"`
+	SetupMode                        SetupMode                          `json:"setupMode"`
 	SetupSubphase                    SetupSubphase                      `json:"setupSubphase"`
+	AuctionState                     *AuctionState                      `json:"auctionState,omitempty"`
 	SetupDwellingOrder               []string                           `json:"setupDwellingOrder"`
 	SetupDwellingIndex               int                                `json:"setupDwellingIndex"`
 	SetupBonusOrder                  []string                           `json:"setupBonusOrder"`
@@ -129,6 +131,15 @@ const (
 	SetupSubphaseComplete   SetupSubphase = "complete"
 )
 
+// SetupMode controls faction-selection setup flow.
+type SetupMode string
+
+const (
+	SetupModeSnellman    SetupMode = "snellman"
+	SetupModeAuction     SetupMode = "auction"
+	SetupModeFastAuction SetupMode = "fast_auction"
+)
+
 // CultTrack represents the four cult tracks
 type CultTrack int
 
@@ -165,6 +176,7 @@ func NewGameState() *GameState {
 		Players:                   make(map[string]*Player),
 		Round:                     1,
 		Phase:                     PhaseSetup,
+		SetupMode:                 SetupModeSnellman,
 		SetupSubphase:             SetupSubphaseNone,
 		PowerActions:              NewPowerActionState(),
 		CultTracks:                NewCultTrackState(),
@@ -181,7 +193,6 @@ func NewGameState() *GameState {
 	}
 }
 
-// AddPlayer adds a player to the game
 // AddPlayer adds a player to the game
 func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error {
 	if _, exists := gs.Players[playerID]; exists {
@@ -1162,7 +1173,7 @@ func (gs *GameState) HasPendingActions(playerID string) bool {
 	if gs.PendingTownCultTopChoice != nil && gs.PendingTownCultTopChoice.PlayerID == playerID {
 		return true
 	}
-	if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+	if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && hasImmediatePendingTownSelection(pendingTowns) {
 		return true
 	}
 	// Check for pending spades (from power actions or cult track advancement)
@@ -1177,11 +1188,20 @@ func (gs *GameState) HasPendingActions(playerID string) bool {
 
 func (gs *GameState) GetPendingTownSelectionPlayer() string {
 	for _, playerID := range gs.TurnOrder {
-		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && hasImmediatePendingTownSelection(pendingTowns) {
 			return playerID
 		}
 	}
 	return ""
+}
+
+func hasImmediatePendingTownSelection(formations []*PendingTownFormation) bool {
+	for _, formation := range formations {
+		if formation != nil && !formation.CanBeDelayed {
+			return true
+		}
+	}
+	return false
 }
 
 func (gs *GameState) GetPendingSpadeFollowupPlayer() (string, int) {

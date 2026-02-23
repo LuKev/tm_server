@@ -222,6 +222,7 @@ export interface GameState {
   id: string
   revision?: number
   phase: GamePhase
+  setupMode?: 'snellman' | 'auction' | 'fast_auction'
   setupSubphase?: string
   setupDwellingOrder?: string[]
   setupDwellingIndex?: number
@@ -253,6 +254,7 @@ export interface GameState {
   pendingCultistsCultSelection?: unknown
   pendingTownCultTopChoice?: unknown
   pendingDecision?: Record<string, unknown> | null
+  auctionState?: AuctionState | null
 }
 
 export interface PowerActionState {
@@ -269,4 +271,20 @@ export interface PlayerFinalScore {
   totalVp: number
   largestAreaSize: number
   totalResourceValue: number
+}
+
+export interface AuctionState {
+  active: boolean
+  mode: 'auction' | 'fast_auction'
+  nominationPhase: boolean
+  currentBidder: string
+  currentBidderIndex: number
+  nominationsComplete: number
+  nominationOrder: string[]
+  currentBids: Record<string, number>
+  factionHolders: Record<string, string>
+  seatOrder: string[]
+  playerHasFaction: Record<string, boolean>
+  fastSubmitted: Record<string, boolean>
+  fastBids: Record<string, Record<string, number>>
 }

@@ -50,7 +50,9 @@ func (a *SelectTownTileAction) Execute(gs *GameState) error {
 	}
 
 	if pendingTowns, ok := gs.PendingTownFormations[a.PlayerID]; !ok || len(pendingTowns) == 0 {
-		gs.NextTurn()
+		if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID {
+			gs.NextTurn()
+		}
 	}
 
 	return nil

@@ -27,6 +27,15 @@ func NewManager() *Manager {
 	return &Manager{games: make(map[string]*GameMeta), nextID: 1}
 }
 
+func cloneGameMeta(in *GameMeta) *GameMeta {
+	if in == nil {
+		return nil
+	}
+	out := *in
+	out.Players = append([]string(nil), in.Players...)
+	return &out
+}
+
 func (m *Manager) CreateGame(name string, maxPlayers int) *GameMeta {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -34,14 +43,17 @@ func (m *Manager) CreateGame(name string, maxPlayers int) *GameMeta {
 	m.nextID++
 	g := &GameMeta{ID: id, Name: name, MaxPlayers: maxPlayers, CreatedAt: time.Now(), Players: make([]string, 0, maxPlayers)}
 	m.games[id] = g
-	return g
+	return cloneGameMeta(g)
 }
 
 func (m *Manager) GetGame(id string) (*GameMeta, bool) {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	g, ok := m.games[id]
-	return g, ok
+	if !ok {
+		return nil, false
+	}
+	return cloneGameMeta(g), true
 }
 
 func (m *Manager) JoinGame(id string, playerName string) bool {
@@ -86,7 +98,7 @@ func (m *Manager) ListGames() []*GameMeta {
 	defer m.mu.RUnlock()
 	out := make([]*GameMeta, 0, len(m.games))
 	for _, g := range m.games {
-		out = append(out, g)
+		out = append(out, cloneGameMeta(g))
 	}
 	return out
 }

@@ -29,6 +29,9 @@ func (a *SelectFactionAction) Validate(gs *GameState) error {
 	if gs.Phase != PhaseFactionSelection {
 		return errors.New("not in faction selection phase")
 	}
+	if gs.SetupMode != SetupModeSnellman {
+		return fmt.Errorf("select_faction is disabled for setup mode %s", gs.SetupMode)
+	}
 
 	// Check if it's player's turn
 	if gs.TurnOrder[gs.CurrentPlayerIndex] != a.PlayerID {
@@ -52,19 +55,8 @@ func (a *SelectFactionAction) Validate(gs *GameState) error {
 
 // Execute performs the action
 func (a *SelectFactionAction) Execute(gs *GameState) error {
-	faction := factions.NewFaction(a.FactionType)
-	player := gs.Players[a.PlayerID]
-	if player == nil {
-		return fmt.Errorf("player not found: %s", a.PlayerID)
-	}
-
-	// Assign faction
-	player.Faction = faction
-	player.Resources = NewResourcePool(faction.GetStartingResources())
-
-	// Initialize shipping level
-	if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
-		player.ShippingLevel = shippingFaction.GetShippingLevel()
+	if err := assignFactionToPlayer(gs, a.PlayerID, a.FactionType, 20); err != nil {
+		return err
 	}
 
 	// Move to next player or start setup phase
@@ -95,4 +87,40 @@ func allPlayersHaveFactions(gs *GameState) bool {
 		}
 	}
 	return true
+}
+
+func assignFactionToPlayer(gs *GameState, playerID string, factionType models.FactionType, startingVP int) error {
+	faction := factions.NewFaction(factionType)
+	player := gs.Players[playerID]
+	if player == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+
+	player.Faction = faction
+	player.Resources = NewResourcePool(faction.GetStartingResources())
+	player.VictoryPoints = startingVP
+
+	startingCult := faction.GetStartingCultPositions()
+	if player.CultPositions == nil {
+		player.CultPositions = make(map[CultTrack]int, 4)
+	}
+	player.CultPositions[CultFire] = startingCult.Fire
+	player.CultPositions[CultWater] = startingCult.Water
+	player.CultPositions[CultEarth] = startingCult.Earth
+	player.CultPositions[CultAir] = startingCult.Air
+	if gs.CultTracks != nil {
+		if _, ok := gs.CultTracks.PlayerPositions[playerID]; !ok {
+			gs.CultTracks.InitializePlayer(playerID)
+		}
+		gs.CultTracks.PlayerPositions[playerID][CultFire] = startingCult.Fire
+		gs.CultTracks.PlayerPositions[playerID][CultWater] = startingCult.Water
+		gs.CultTracks.PlayerPositions[playerID][CultEarth] = startingCult.Earth
+		gs.CultTracks.PlayerPositions[playerID][CultAir] = startingCult.Air
+	}
+
+	if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
+		player.ShippingLevel = shippingFaction.GetShippingLevel()
+	}
+
+	return nil
 }
