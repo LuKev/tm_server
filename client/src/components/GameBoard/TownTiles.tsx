@@ -81,7 +81,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClic
 
     return (
         <div className="tt-resize-container">
-            <div className="town-tiles-container">
+            <div className="town-tiles-container" data-testid="town-tiles">
                 {filledSlots.map((id) => {
                     const count = tileCounts[id] || 0;
                     const config = TOWN_TILE_CONFIGS[id as TownTileId];
@@ -95,6 +95,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClic
                         <button
                             type="button"
                             key={id}
+                            data-testid={`town-tile-${String(id)}`}
                             className="town-tile-slot"
                             onClick={() => { onTileClick?.(id as TownTileId); }}
                             disabled={isTileClickable ? !clickable : false}

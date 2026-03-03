@@ -1,5 +1,5 @@
 import React from 'react';
-import { BonusCardType, FactionType, type GameState, type PlayerState } from '../../types/game.types';
+import { BonusCardType, FactionType, type GameState, type IncomePreview, type PlayerState } from '../../types/game.types';
 import { FACTIONS } from '../../data/factions';
 import { FACTION_COLORS } from '../../utils/colors';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerCircleIcon } from '../shared/Icons';
@@ -26,7 +26,7 @@ const resolveFactionType = (player: PlayerState): FactionType | null => {
   return null;
 };
 
-export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState }) => {
+export const PlayerSummaryBar: React.FC<{ gameState: GameState; showIncomePreview?: boolean }> = ({ gameState, showIncomePreview = false }) => {
   if (!gameState.players) return null;
 
   const playerIds =
@@ -68,6 +68,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
         const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
         const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
         const vp = player.victoryPoints ?? player.VictoryPoints ?? 0;
+        const incomePreview = (gameState.nextRoundIncome?.[pid] ?? null) as IncomePreview | null
 
         return (
           <div
@@ -142,6 +143,19 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState }> = ({ gameState
                 />
               </div>
             </div>
+
+            {(showIncomePreview && (gameState.round?.round ?? 0) <= 5 && incomePreview) && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.2rem', minWidth: 0, fontSize: '0.7rem', lineHeight: 1, color: '#4b5563' }}>
+                <span style={{ fontWeight: 600, color: '#6b7280' }}>Next Income</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>+{incomePreview.coins}C</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>+{incomePreview.workers}W</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>+{incomePreview.priests}P</span>
+                <span style={{ fontVariantNumeric: 'tabular-nums' }}>+{incomePreview.power}PW</span>
+                {(incomePreview.spades ?? 0) > 0 && (
+                  <span style={{ fontVariantNumeric: 'tabular-nums' }}>+{incomePreview.spades}SP</span>
+                )}
+              </div>
+            )}
           </div>
         );
       })}

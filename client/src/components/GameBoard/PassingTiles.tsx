@@ -253,7 +253,7 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
     const numCards = availableCards.length;
 
     return (
-        <div className="passing-tiles-container" style={{ gridTemplateColumns: `repeat(${String(numCards)}, 1fr)`, aspectRatio: `${String(numCards)} / 4` }}>
+        <div className="passing-tiles-container" data-testid="passing-tiles" style={{ gridTemplateColumns: `repeat(${String(numCards)}, 1fr)`, aspectRatio: `${String(numCards)} / 4` }}>
             {availableCards.map((cardTypeVal) => {
                 const cardType = cardTypeVal as BonusCardType;
 
@@ -289,6 +289,7 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
                 return (
                     <button
                         key={cardType}
+                        data-testid={`passing-card-${String(cardType)}`}
                         type="button"
                         onClick={() => { onCardClick?.(cardType); }}
                         disabled={isCardClickable ? !isCardClickable(cardType) : false}

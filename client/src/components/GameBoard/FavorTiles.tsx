@@ -14,7 +14,7 @@ export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClick
     const available = gameState?.favorTiles?.available || {};
 
     return (
-        <div className="favor-tiles-container">
+        <div className="favor-tiles-container" data-testid="favor-tiles">
             {FAVOR_TILES.map((tile) => {
                 // Use available count if present, otherwise fallback to initialCount (for setup/loading)
                 const count = available[tile.type] !== undefined ? available[tile.type] : tile.initialCount;
@@ -28,6 +28,7 @@ export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClick
                     <button
                         type="button"
                         key={tile.id}
+                        data-testid={`favor-tile-${String(tile.type)}`}
                         className="favor-tile"
                         onClick={() => { onTileClick?.(tile.type); }}
                         disabled={isTileClickable ? !isTileClickable(tile.type, count) : false}

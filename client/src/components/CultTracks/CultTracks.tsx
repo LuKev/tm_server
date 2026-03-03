@@ -492,9 +492,10 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   };
 
   return (
-    <div className="cult-tracks w-full">
+    <div className="cult-tracks w-full" data-testid="cult-tracks" style={{ position: 'relative' }}>
       <canvas
         ref={canvasRef}
+        data-testid="cult-tracks-canvas"
         width={500} // 250 * 2 for scale
         height={1120} // 560 * 2 for scale
         style={{
@@ -509,6 +510,61 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
         onMouseLeave={() => { setHoveredTile(null); }}
         onClick={handleClick}
       />
+      <div
+        aria-hidden={onBonusTileClick === undefined}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+        }}
+      >
+        {cults.map((cult, cultIndex) => {
+          const tileWidth = 25;
+          const tileHeight = 20;
+          const tileSpacing = 5;
+          const gridWidth = 2 * tileWidth + tileSpacing;
+          const startX = (cultWidth - gridWidth) / 2;
+          const tiles = bonusTiles?.get(cult) || [];
+
+          return Array.from({ length: 5 }).map((_, tileIndex) => {
+            let x, y;
+            if (tileIndex < 4) {
+              const row = Math.floor(tileIndex / 2);
+              const col = tileIndex % 2;
+              x = cultWidth * cultIndex + startX + col * (tileWidth + tileSpacing);
+              y = 460 + row * (tileHeight + tileSpacing);
+            } else {
+              x = cultWidth * cultIndex + startX + tileWidth / 2 + tileSpacing / 2;
+              y = 460 + 2 * (tileHeight + tileSpacing);
+            }
+
+            const tile = tiles[tileIndex];
+            const hasPriest = !!(tile?.priests && tile.priests > 0 && tile.faction !== undefined);
+            return (
+              <button
+                key={`${String(cult)}-${String(tileIndex)}`}
+                type="button"
+                data-testid={`cult-spot-${String(cult)}-${String(tileIndex)}`}
+                disabled={hasPriest || onBonusTileClick === undefined}
+                onClick={() => { onBonusTileClick?.(cult, tileIndex); }}
+                style={{
+                  position: 'absolute',
+                  left: `${String((x / 250) * 100)}%`,
+                  top: `${String((y / 560) * 100)}%`,
+                  width: `${String((tileWidth / 250) * 100)}%`,
+                  height: `${String((tileHeight / 560) * 100)}%`,
+                  pointerEvents: 'auto',
+                  border: 'none',
+                  background: 'transparent',
+                  padding: 0,
+                  margin: 0,
+                  cursor: hasPriest ? 'not-allowed' : 'pointer',
+                }}
+              />
+            );
+          });
+        })}
+      </div>
     </div>
   );
 };

@@ -5,7 +5,7 @@ export interface PerformActionPayload {
   type: string
   gameID: string
   actionId: string
-  expectedRevision: number
+  expectedRevision?: number
   params?: Record<string, unknown>
 }
 
@@ -21,6 +21,11 @@ const makeActionID = (): string => {
   return `action-${Date.now()}-${Math.random().toString(16).slice(2)}`
 }
 
+const shouldDisableExpectedRevision = (): boolean => {
+  if (typeof window === 'undefined') return false
+  return Boolean((window as Window & { __TM_DISABLE_EXPECTED_REVISION__?: unknown }).__TM_DISABLE_EXPECTED_REVISION__)
+}
+
 export function useActionService(): {
   submitAction: (gameID: string, type: string, params?: Record<string, unknown>) => void
   submitSetupDwelling: (playerID: string, q: number, r: number, gameID?: string) => void
@@ -31,15 +36,19 @@ export function useActionService(): {
   const submitAction = (gameID: string, type: string, params: Record<string, unknown> = {}): void => {
     const expectedRevision = useGameStore.getState().gameState?.revision ?? 0
 
+    const payload: PerformActionPayload = {
+      type,
+      gameID,
+      actionId: makeActionID(),
+      params,
+    }
+    if (!shouldDisableExpectedRevision()) {
+      payload.expectedRevision = expectedRevision
+    }
+
     const message: ActionMessage = {
       type: 'perform_action',
-      payload: {
-        type,
-        gameID,
-        actionId: makeActionID(),
-        expectedRevision,
-        params,
-      },
+      payload,
     }
 
     sendMessage(message)

@@ -77,9 +77,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }, [gameState?.map?.hexes]);
 
   return (
-    <div className="game-board-container bg-white rounded-lg shadow-md p-4 flex flex-col gap-4 h-full w-full overflow-y-auto">
+    <div className="game-board-container bg-white rounded-lg shadow-md p-4 flex flex-col gap-4 h-full w-full overflow-y-auto" data-testid="game-board">
       <div className="overflow-auto flex-shrink-0">
         <HexGridCanvas
+          testId="hex-grid-canvas"
           hexes={currentHexes}
           buildings={buildings}
           bridges={gameState?.map?.bridges || []}
@@ -94,7 +95,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
       </div>
 
       {/* Power Actions Section */}
-      <div className="border-t pt-4 flex-1 min-h-0">
+      <div className="border-t pt-4 flex-1 min-h-0" data-testid="power-actions-section">
         <PowerActions onActionClick={handlePowerActionClick} />
       </div>
 

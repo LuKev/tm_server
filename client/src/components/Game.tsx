@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
@@ -21,6 +21,8 @@ import {
   TerrainType,
   BonusCardType,
   FactionType,
+  type LeechAutoMode,
+  type PlayerOptions,
   type FavorTileType,
   type TownTileId,
 } from '../types/game.types'
@@ -40,6 +42,22 @@ type ConfirmDialog = {
   message: string
   onConfirm: () => void
 }
+
+const DEFAULT_PLAYER_OPTIONS: PlayerOptions = {
+  autoLeechMode: 'off',
+  autoConvertOnPass: false,
+  confirmActions: true,
+  showIncomePreview: false,
+}
+
+const LEECH_AUTO_OPTIONS: Array<{ value: LeechAutoMode; label: string }> = [
+  { value: 'off', label: 'Auto accept power: Off' },
+  { value: 'accept_1', label: 'Auto accept up to 1 power (0 VP)' },
+  { value: 'accept_2', label: 'Auto accept up to 2 power (1 VP)' },
+  { value: 'accept_3', label: 'Auto accept up to 3 power (2 VP)' },
+  { value: 'accept_4', label: 'Auto accept up to 4 power (3 VP)' },
+  { value: 'decline_vp', label: 'Auto decline VP-cost leech (accept only 1/0)' },
+]
 
 type PendingPowerMode =
   | { type: 'power_spade'; actionType: PowerActionType }
@@ -151,6 +169,7 @@ export const Game = () => {
   const { submitAction, submitSetupDwelling, submitSelectFaction } = useActionService()
 
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
+  const [turnEndNotice, setTurnEndNotice] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [powerMode, setPowerMode] = useState<PendingPowerMode | null>(null)
 
@@ -257,7 +276,17 @@ export const Game = () => {
     }
   }, [errorMessage])
 
-  const queueConfirm = (title: string, message: string, onConfirm: () => void): void => {
+  const queueConfirm = (
+    title: string,
+    message: string,
+    onConfirm: () => void,
+    scope: 'interaction' | 'turn_end' = 'interaction',
+  ): void => {
+    const needsConfirmation = localPlayerOptions.confirmActions && scope === 'turn_end'
+    if (!needsConfirmation) {
+      onConfirm()
+      return
+    }
     setConfirmDialog({ title, message, onConfirm })
   }
 
@@ -285,6 +314,27 @@ export const Game = () => {
     return gameState.players[localPlayerId] ?? null
   }, [gameState?.players, localPlayerId])
 
+  const localPlayerOptions = useMemo((): PlayerOptions => {
+    if (!localPlayer?.options) return DEFAULT_PLAYER_OPTIONS
+    return {
+      autoLeechMode: localPlayer.options.autoLeechMode ?? DEFAULT_PLAYER_OPTIONS.autoLeechMode,
+      autoConvertOnPass: localPlayer.options.autoConvertOnPass ?? DEFAULT_PLAYER_OPTIONS.autoConvertOnPass,
+      confirmActions: localPlayer.options.confirmActions ?? DEFAULT_PLAYER_OPTIONS.confirmActions,
+      showIncomePreview: localPlayer.options.showIncomePreview ?? DEFAULT_PLAYER_OPTIONS.showIncomePreview,
+    }
+  }, [localPlayer])
+
+  const updatePlayerOptions = (patch: Partial<PlayerOptions>): void => {
+    performAction('set_player_options', patch as Record<string, unknown>)
+  }
+
+  useEffect(() => {
+    if (!localPlayerOptions.confirmActions) {
+      setConfirmDialog(null)
+      setTurnEndNotice(null)
+    }
+  }, [localPlayerOptions.confirmActions])
+
   const localFactionType = useMemo(() => {
     if (!localPlayer) return FactionType.Unknown
     const raw = (localPlayer.faction ?? localPlayer.Faction) as unknown
@@ -308,6 +358,7 @@ export const Game = () => {
   const pendingDecision = (gameState?.pendingDecision ?? null) as Record<string, unknown> | null
   const pendingDecisionType = (pendingDecision?.type as string | undefined) ?? null
   const pendingDecisionPlayerId = (pendingDecision?.playerId as string | undefined) ?? null
+  const previousTurnOwnerRef = useRef<string | null>(null)
   const pendingAuctionFactions = useMemo(() => {
     const raw = (pendingDecision?.nominatedFactions as unknown[]) ?? []
     return raw
@@ -315,6 +366,40 @@ export const Game = () => {
       .filter((value) => value.length > 0)
   }, [pendingDecision])
   const hasPendingDecisionForMe = !!localPlayerId && pendingDecisionPlayerId === localPlayerId
+
+  useEffect(() => {
+    const currentOwner = currentPlayerId ?? null
+    const previousOwner = previousTurnOwnerRef.current
+
+    if (!localPlayerOptions.confirmActions) {
+      setTurnEndNotice(null)
+      previousTurnOwnerRef.current = currentOwner
+      return
+    }
+
+    if (
+      localPlayerId
+      && previousOwner === localPlayerId
+      && currentOwner !== localPlayerId
+      && gameState?.phase === GamePhase.Action
+      && !hasPendingDecisionForMe
+    ) {
+      setTurnEndNotice('Your turn has ended.')
+    }
+
+    if (currentOwner === localPlayerId) {
+      setTurnEndNotice(null)
+    }
+
+    previousTurnOwnerRef.current = currentOwner
+  }, [
+    currentPlayerId,
+    gameState?.phase,
+    gameState?.revision,
+    hasPendingDecisionForMe,
+    localPlayerId,
+    localPlayerOptions.confirmActions,
+  ])
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]
     const raw = (pendingDecision?.candidateTracks as unknown[]) ?? []
@@ -326,6 +411,10 @@ export const Game = () => {
     if (pendingDecisionType !== 'town_cult_top_choice') return 0
     return Number(pendingDecision?.maxSelections ?? 0)
   }, [pendingDecision, pendingDecisionType])
+  const pendingLeechOffersForMe = useMemo(() => {
+    if (!(hasPendingDecisionForMe && pendingDecisionType === 'leech_offer')) return [] as Array<Record<string, unknown>>
+    return ((pendingDecision?.offers as Array<Record<string, unknown>> | undefined) ?? [])
+  }, [hasPendingDecisionForMe, pendingDecision, pendingDecisionType])
 
   useEffect(() => {
     if (!(hasPendingDecisionForMe && pendingDecisionType === 'town_cult_top_choice')) {
@@ -441,11 +530,24 @@ export const Game = () => {
   }, [gameState?.bonusCards?.playerCards])
 
   const availableCards = useMemo(() => {
-    const cards = Object.entries(gameState?.bonusCards?.available ?? {})
-      .map(([k]) => Number(k))
-      .filter((card) => Number.isInteger(card) && card >= 0)
-    return cards.sort((a, b) => a - b)
-  }, [gameState?.bonusCards?.available])
+    const cardSet = new Set<number>()
+
+    Object.entries(gameState?.bonusCards?.available ?? {}).forEach(([k]) => {
+      const card = Number(k)
+      if (Number.isInteger(card) && card >= 0) {
+        cardSet.add(card)
+      }
+    })
+
+    Object.values(gameState?.bonusCards?.playerCards ?? {}).forEach((cardRaw) => {
+      const card = Number(cardRaw)
+      if (Number.isInteger(card) && card >= 0) {
+        cardSet.add(card)
+      }
+    })
+
+    return [...cardSet].sort((a, b) => a - b)
+  }, [gameState?.bonusCards?.available, gameState?.bonusCards?.playerCards])
 
   const passedPlayers = useMemo(() => {
     const passed = new Set<string>()
@@ -579,7 +681,7 @@ export const Game = () => {
       return
     }
 
-    if (hasPendingCultSpadesForMe > 0 && isMyTurn) {
+    if (hasPendingCultSpadesForMe > 0) {
       setPendingHex({ q, r })
       setHexActionMode('transform_only')
       setSelectedTerrain(localHomeTerrain)
@@ -874,7 +976,7 @@ export const Game = () => {
     queueConfirm('Confirm Pass', `Pass and take ${bonusCardLabel(cardType)}?${warning}`, () => {
       performAction('pass', { bonusCard: cardType })
       setConfirmDialog(null)
-    })
+    }, 'turn_end')
   }
 
   const isPassingCardClickable = (cardType: BonusCardType): boolean => {
@@ -895,6 +997,17 @@ export const Game = () => {
     return !owner
   }
 
+  const handlePassWithoutCard = (): void => {
+    if (!isMyTurn || !isActionPhase(gameState?.phase) || hasPendingDecisionForMe) return
+    const warning = hasUnspentOptionalActions
+      ? ' You still have optional special actions or pending spades available.'
+      : ''
+    queueConfirm('Confirm Pass', `Pass this round without selecting a bonus card?${warning}`, () => {
+      performAction('pass', {})
+      setConfirmDialog(null)
+    }, 'turn_end')
+  }
+
   const handleFavorTileClick = (tileType: FavorTileType): void => {
     if (!(hasPendingDecisionForMe && pendingDecisionType === 'favor_tile_selection')) return
 
@@ -909,8 +1022,17 @@ export const Game = () => {
     return hasPendingDecisionForMe && pendingDecisionType === 'favor_tile_selection' && !!localPlayerId
   }
 
+  const hasPendingTownFormationForMe = useMemo(() => {
+    if (!localPlayerId) return false
+    const pending = gameState?.pendingTownFormations as Record<string, unknown[] | undefined> | undefined
+    const list = pending?.[localPlayerId] ?? []
+    return list.length > 0
+  }, [gameState?.pendingTownFormations, localPlayerId])
+
   const handleTownTileClick = (tileId: TownTileId): void => {
-    if (!(hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection')) return
+    const isMandatoryTownSelection = hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection'
+    const isOptionalDelayedTownSelection = !!localPlayerId && hasPendingTownFormationForMe
+    if (!isMandatoryTownSelection && !isOptionalDelayedTownSelection) return
 
     queueConfirm('Confirm Town Tile', `Take ${townTileLabel(tileId)}?`, () => {
       performAction('select_town_tile', { tileType: tileId })
@@ -920,7 +1042,9 @@ export const Game = () => {
 
   const isTownTileClickable = (_tileId: TownTileId, count: number): boolean => {
     if (count <= 0) return false
-    return hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection' && !!localPlayerId
+    const isMandatoryTownSelection = hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection'
+    const isOptionalDelayedTownSelection = !!localPlayerId && hasPendingTownFormationForMe
+    return isMandatoryTownSelection || isOptionalDelayedTownSelection
   }
 
   const submitCultChoice = (track: CultType): void => {
@@ -1140,12 +1264,13 @@ export const Game = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-gray-100">
+    <div className="min-h-screen p-4 bg-gray-100" data-testid="game-screen">
       <div className="max-w-[1800px] mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-gray-800">Terra Mystica - Game {gameId}</h1>
           <div className="flex gap-2">
             <button
+              data-testid="layout-lock-toggle"
               onClick={() => { setIsLayoutLocked(!isLayoutLocked) }}
               className={`px-4 py-2 rounded text-sm font-medium transition-colors ${isLayoutLocked
                 ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
@@ -1155,6 +1280,7 @@ export const Game = () => {
               {isLayoutLocked ? 'Unlock Layout' : 'Lock Layout'}
             </button>
             <button
+              data-testid="layout-reset"
               onClick={resetLayout}
               className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-sm font-medium text-gray-700 transition-colors"
             >
@@ -1163,8 +1289,113 @@ export const Game = () => {
           </div>
         </div>
 
+        {localPlayerId && (
+          <div className="mb-3 rounded border border-slate-300 bg-white px-3 py-2" data-testid="player-options-panel">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Player Options</div>
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="flex items-center gap-2 text-sm text-slate-800">
+                <span>Auto Leech</span>
+                <select
+                  data-testid="option-auto-leech-mode"
+                  className="rounded border border-slate-300 px-2 py-1 text-sm"
+                  value={localPlayerOptions.autoLeechMode}
+                  onChange={(e) => { updatePlayerOptions({ autoLeechMode: e.target.value as LeechAutoMode }) }}
+                >
+                  {LEECH_AUTO_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-slate-800">
+                <input
+                  data-testid="option-auto-convert-pass"
+                  type="checkbox"
+                  checked={localPlayerOptions.autoConvertOnPass}
+                  onChange={(e) => { updatePlayerOptions({ autoConvertOnPass: e.target.checked }) }}
+                />
+                <span>Auto convert on pass</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-slate-800">
+                <input
+                  data-testid="option-confirm-actions"
+                  type="checkbox"
+                  checked={localPlayerOptions.confirmActions}
+                  onChange={(e) => { updatePlayerOptions({ confirmActions: e.target.checked }) }}
+                />
+                <span>Confirm Turn End</span>
+              </label>
+
+              <label className="flex items-center gap-2 text-sm text-slate-800">
+                <input
+                  data-testid="option-show-income-preview"
+                  type="checkbox"
+                  checked={localPlayerOptions.showIncomePreview}
+                  onChange={(e) => { updatePlayerOptions({ showIncomePreview: e.target.checked }) }}
+                />
+                <span>Show Next Income</span>
+              </label>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-3 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px]" data-testid="game-decision-strip">
+          {confirmDialog ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
+                <div className="text-sm text-slate-700">{confirmDialog.message}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
+                <button
+                  data-testid="confirm-action-confirm"
+                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+                  onClick={() => {
+                    if (!confirmDialog) return
+                    confirmDialog.onConfirm()
+                  }}
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          ) : pendingLeechOffersForMe.length > 0 ? (
+            <div className="space-y-2">
+              <div className="text-sm font-semibold text-slate-900">Leech Offer</div>
+              {pendingLeechOffersForMe.map((offer, idx) => {
+                const amount = Number(offer.Amount ?? offer.amount ?? 0)
+                const vpCost = Math.max(0, amount - 1)
+                return (
+                  <div key={idx} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                    <span className="text-sm text-slate-800">Accept {String(amount)} power for {String(vpCost)} VP?</span>
+                    <div className="flex items-center gap-2">
+                      <button data-testid={`leech-offer-${idx}-accept`} className="rounded bg-green-600 px-3 py-1 text-sm text-white" onClick={() => { performAction('accept_leech', { offerIndex: idx }) }}>Accept</button>
+                      <button data-testid={`leech-offer-${idx}-decline`} className="rounded bg-gray-600 px-3 py-1 text-sm text-white" onClick={() => { performAction('decline_leech', { offerIndex: idx }) }}>Decline</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          ) : turnEndNotice ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-slate-800">{turnEndNotice}</div>
+              <button
+                data-testid="turn-end-ack"
+                className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
+                onClick={() => { setTurnEndNotice(null) }}
+              >
+                OK
+              </button>
+            </div>
+          ) : (
+            <div className="text-sm text-slate-500">No pending confirmations.</div>
+          )}
+        </div>
+
         {errorMessage && (
-          <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800">
+          <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800" data-testid="action-error-message">
             {errorMessage}
           </div>
         )}
@@ -1188,12 +1419,13 @@ export const Game = () => {
         )}
 
         {(hasPendingSpadesForMe > 0 && isMyTurn) && (
-          <div className="mb-3 flex items-center justify-between rounded border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900">
+          <div className="mb-3 flex items-center justify-between rounded border border-amber-300 bg-amber-50 px-4 py-2 text-sm text-amber-900" data-testid="pending-spades-banner">
             <span>
               Pending spade follow-up: {String(hasPendingSpadesForMe)} spade(s) remaining.
               {canBuildWithPendingSpadeForMe ? '' : ' Dwelling build on this follow-up is not allowed.'}
             </span>
             <button
+              data-testid="discard-pending-spade"
               className="rounded bg-amber-700 px-3 py-1 text-white"
               onClick={() => { performAction('discard_pending_spade', { count: 1 }) }}
             >
@@ -1202,9 +1434,21 @@ export const Game = () => {
           </div>
         )}
 
-        {(hasPendingCultSpadesForMe > 0 && isMyTurn) && (
+        {(hasPendingCultSpadesForMe > 0) && (
           <div className="mb-3 rounded border border-emerald-300 bg-emerald-50 px-4 py-2 text-sm text-emerald-900">
             Pending cult reward spade: {String(hasPendingCultSpadesForMe)} remaining. Select a hex to transform (no dwelling build).
+          </div>
+        )}
+
+        {isMyTurn && isActionPhase(gameState?.phase) && !hasPendingDecisionForMe && (gameState?.round?.round ?? 0) >= 6 && (
+          <div className="mb-3 flex items-center justify-end">
+            <button
+              data-testid="pass-without-card"
+              className="rounded bg-slate-700 px-3 py-2 text-sm font-medium text-white hover:bg-slate-800"
+              onClick={handlePassWithoutCard}
+            >
+              Pass (Final Round)
+            </button>
           </div>
         )}
 
@@ -1219,7 +1463,7 @@ export const Game = () => {
         )}
 
         {gameState?.phase === GamePhase.FactionSelection && setupMode !== 'snellman' && (
-          <div className="mb-4 rounded border border-slate-300 bg-white p-4">
+          <div className="mb-4 rounded border border-slate-300 bg-white p-4" data-testid="auction-setup-panel">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">
                 {setupMode === 'auction' ? 'Auction Setup' : 'Fast Auction Setup'}
@@ -1254,6 +1498,7 @@ export const Game = () => {
                   {availableAuctionNominationFactions.map((factionType) => (
                     <button
                       key={factionType}
+                      data-testid={`auction-nominate-${factionType}`}
                       onClick={() => { handleAuctionNominate(factionType) }}
                       className="rounded bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                     >
@@ -1272,6 +1517,7 @@ export const Game = () => {
                     <span className="w-32 text-sm text-slate-800">{faction}</span>
                     <input
                       type="number"
+                      data-testid={`auction-bid-input-${faction}`}
                       min={0}
                       max={40}
                       value={auctionBidInputs[faction] ?? 0}
@@ -1282,6 +1528,7 @@ export const Game = () => {
                       className="w-24 rounded border border-slate-300 px-2 py-1 text-sm"
                     />
                     <button
+                      data-testid={`auction-bid-submit-${faction}`}
                       onClick={() => { handleAuctionBid(faction) }}
                       className="rounded bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700"
                     >
@@ -1300,6 +1547,7 @@ export const Game = () => {
                     <span className="w-32 text-sm text-slate-800">{faction}</span>
                     <input
                       type="number"
+                      data-testid={`fast-auction-bid-input-${faction}`}
                       min={0}
                       max={40}
                       value={fastAuctionBidInputs[faction] ?? 0}
@@ -1312,6 +1560,7 @@ export const Game = () => {
                   </div>
                 ))}
                 <button
+                  data-testid="fast-auction-submit"
                   onClick={handleFastAuctionSubmit}
                   className="rounded bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                 >
@@ -1359,7 +1608,7 @@ export const Game = () => {
                 display: 'flex',
               }}
             >
-              {gameState && <PlayerSummaryBar gameState={gameState} />}
+              {gameState && <PlayerSummaryBar gameState={gameState} showIncomePreview={localPlayerOptions.showIncomePreview} />}
             </div>
           </div>
 
@@ -1475,28 +1724,6 @@ export const Game = () => {
       </div>
 
       <Modal
-        isOpen={confirmDialog !== null}
-        onClose={() => { setConfirmDialog(null) }}
-        title={confirmDialog?.title ?? 'Confirm Action'}
-        footer={(
-          <>
-            <button className="px-4 py-2 rounded bg-gray-200 text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
-            <button
-              className="px-4 py-2 rounded bg-blue-600 text-white"
-              onClick={() => {
-                if (!confirmDialog) return
-                confirmDialog.onConfirm()
-              }}
-            >
-              Confirm
-            </button>
-          </>
-        )}
-      >
-        <p>{confirmDialog?.message}</p>
-      </Modal>
-
-      <Modal
         isOpen={pendingHex !== null}
         onClose={() => {
           closeHexModal()
@@ -1505,10 +1732,11 @@ export const Game = () => {
           }
         }}
         title={isHalflingsSpadeDecision ? 'Apply Halflings Spade' : isCultSpadeDecision ? 'Use Cult Spade' : 'Hex Action'}
+        testId="hex-action-modal"
         footer={(
           <>
-            <button className="px-4 py-2 rounded bg-gray-200 text-gray-800" onClick={closeHexModal}>Cancel</button>
-            <button className="px-4 py-2 rounded bg-blue-600 text-white" onClick={submitHexModalAction}>Submit</button>
+            <button data-testid="hex-action-cancel" className="px-4 py-2 rounded bg-gray-200 text-gray-800" onClick={closeHexModal}>Cancel</button>
+            <button data-testid="hex-action-submit" className="px-4 py-2 rounded bg-blue-600 text-white" onClick={submitHexModalAction}>Submit</button>
           </>
         )}
       >
@@ -1521,6 +1749,7 @@ export const Game = () => {
             <>
               <p>Choose terrain to transform to.</p>
               <select
+                data-testid="hex-action-terrain-halflings"
                 value={selectedTerrain}
                 onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
                 className="w-full rounded border px-2 py-1"
@@ -1546,6 +1775,7 @@ export const Game = () => {
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">Action</label>
                   <select
+                    data-testid="hex-action-mode"
                     value={hexActionMode ?? 'build'}
                     onChange={(e) => { setHexActionMode(e.target.value as 'build' | 'transform_build' | 'transform_only') }}
                     className="w-full rounded border px-2 py-1"
@@ -1561,6 +1791,7 @@ export const Game = () => {
                 <div className="space-y-2">
                   <label className="block text-sm font-medium">Target terrain</label>
                   <select
+                    data-testid="hex-action-target-terrain"
                     value={selectedTerrain}
                     onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
                     className="w-full rounded border px-2 py-1"
@@ -1580,6 +1811,7 @@ export const Game = () => {
         isOpen={upgradeHex !== null}
         onClose={() => { setUpgradeHex(null) }}
         title="Upgrade Building"
+        testId="upgrade-building-modal"
       >
         <div className="space-y-2">
           {upgradeOptions.length === 0 && <p>No legal upgrades for this building.</p>}
@@ -1587,6 +1819,7 @@ export const Game = () => {
             <button
               key={opt.type}
               type="button"
+              data-testid={`upgrade-option-${String(opt.type)}`}
               className="w-full rounded border px-3 py-2 text-left hover:bg-gray-100"
               onClick={() => { selectUpgrade(opt.type) }}
             >
@@ -1600,12 +1833,14 @@ export const Game = () => {
         isOpen={cultChoiceContext !== null}
         onClose={() => { setCultChoiceContext(null) }}
         title="Choose Cult Track"
+        testId="cult-choice-modal"
       >
         <div className="grid grid-cols-2 gap-2">
           {CULT_CHOICES.map((choice) => (
             <button
               key={choice.track}
               type="button"
+              data-testid={`cult-choice-${String(choice.track)}`}
               className="rounded border px-3 py-2 hover:bg-gray-100"
               onClick={() => { submitCultChoice(choice.track) }}
             >
@@ -1619,10 +1854,12 @@ export const Game = () => {
         isOpen={chaosModalOpen}
         onClose={() => { setChaosModalOpen(false) }}
         title="Chaos Magicians Double Turn"
+        testId="chaos-double-turn-modal"
         footer={(
           <>
-            <button className="px-4 py-2 rounded bg-gray-200 text-gray-800" onClick={() => { setChaosModalOpen(false) }}>Cancel</button>
+            <button data-testid="chaos-double-turn-cancel" className="px-4 py-2 rounded bg-gray-200 text-gray-800" onClick={() => { setChaosModalOpen(false) }}>Cancel</button>
             <button
+              data-testid="chaos-double-turn-submit"
               className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
               onClick={submitChaosDoubleTurn}
               disabled={chaosFirstParamsError !== null || chaosSecondParamsError !== null}
@@ -1637,6 +1874,7 @@ export const Game = () => {
           <div className="space-y-2">
             <label className="block text-sm font-medium">First action</label>
             <select
+              data-testid="chaos-double-turn-first-type"
               className="w-full rounded border px-2 py-1"
               value={chaosFirstType}
               onChange={(e) => {
@@ -1654,6 +1892,7 @@ export const Game = () => {
             <div className="flex items-center justify-between">
               <button
                 type="button"
+                data-testid="chaos-double-turn-first-template"
                 className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-800"
                 onClick={() => { applyChaosTemplate('first', chaosFirstType) }}
               >
@@ -1663,11 +1902,12 @@ export const Game = () => {
                 <span className="text-xs text-red-700">{chaosFirstParamsError}</span>
               )}
             </div>
-            <textarea className="w-full rounded border px-2 py-1 font-mono text-xs" rows={4} value={chaosFirstParams} onChange={(e) => { setChaosFirstParams(e.target.value) }} />
+            <textarea data-testid="chaos-double-turn-first-params" className="w-full rounded border px-2 py-1 font-mono text-xs" rows={4} value={chaosFirstParams} onChange={(e) => { setChaosFirstParams(e.target.value) }} />
           </div>
           <div className="space-y-2">
             <label className="block text-sm font-medium">Second action</label>
             <select
+              data-testid="chaos-double-turn-second-type"
               className="w-full rounded border px-2 py-1"
               value={chaosSecondType}
               onChange={(e) => {
@@ -1685,6 +1925,7 @@ export const Game = () => {
             <div className="flex items-center justify-between">
               <button
                 type="button"
+                data-testid="chaos-double-turn-second-template"
                 className="rounded bg-gray-200 px-2 py-1 text-xs text-gray-800"
                 onClick={() => { applyChaosTemplate('second', chaosSecondType) }}
               >
@@ -1694,7 +1935,7 @@ export const Game = () => {
                 <span className="text-xs text-red-700">{chaosSecondParamsError}</span>
               )}
             </div>
-            <textarea className="w-full rounded border px-2 py-1 font-mono text-xs" rows={4} value={chaosSecondParams} onChange={(e) => { setChaosSecondParams(e.target.value) }} />
+            <textarea data-testid="chaos-double-turn-second-params" className="w-full rounded border px-2 py-1 font-mono text-xs" rows={4} value={chaosSecondParams} onChange={(e) => { setChaosSecondParams(e.target.value) }} />
           </div>
         </div>
       </Modal>
@@ -1703,6 +1944,7 @@ export const Game = () => {
         isOpen={hasPendingDecisionForMe && pendingDecisionType === 'town_cult_top_choice'}
         onClose={() => { }}
         title="Choose Cults To Top"
+        testId="town-cult-top-choice-modal"
       >
         <div className="space-y-3">
           <p>
@@ -1713,6 +1955,7 @@ export const Game = () => {
               <button
                 key={track}
                 type="button"
+                data-testid={`town-cult-top-choice-${String(track)}`}
                 className={`rounded border px-3 py-2 text-left ${selectedTownCultTracks.includes(track) ? 'bg-blue-100 border-blue-400' : 'hover:bg-gray-100'}`}
                 onClick={() => { toggleTownCultTrack(track) }}
               >
@@ -1722,6 +1965,7 @@ export const Game = () => {
           </div>
           <button
             type="button"
+            data-testid="town-cult-top-choice-confirm"
             className="rounded bg-blue-600 px-3 py-2 text-white disabled:bg-blue-300"
             disabled={selectedTownCultTracks.length !== pendingTownCultTopMaxSelections}
             onClick={() => {
@@ -1734,37 +1978,17 @@ export const Game = () => {
       </Modal>
 
       <Modal
-        isOpen={hasPendingDecisionForMe && pendingDecisionType === 'leech_offer'}
-        onClose={() => { }}
-        title="Leech Offer"
-      >
-        <div className="space-y-3">
-          {((pendingDecision?.offers as Array<Record<string, unknown>> | undefined) ?? []).map((offer, idx) => {
-            const amount = Number(offer.Amount ?? offer.amount ?? 0)
-            const vpCost = Math.max(0, amount - 1)
-            return (
-              <div key={idx} className="rounded border p-3">
-                <p>Accept {String(amount)} power for {String(vpCost)} VP?</p>
-                <div className="mt-2 flex gap-2">
-                  <button className="rounded bg-green-600 px-3 py-1 text-white" onClick={() => { performAction('accept_leech', { offerIndex: idx }) }}>Accept</button>
-                  <button className="rounded bg-gray-600 px-3 py-1 text-white" onClick={() => { performAction('decline_leech', { offerIndex: idx }) }}>Decline</button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      </Modal>
-
-      <Modal
         isOpen={hasPendingDecisionForMe && pendingDecisionType === 'setup_bonus_card'}
         onClose={() => { }}
         title="Choose Setup Bonus Card"
+        testId="setup-bonus-card-modal"
       >
         <div className="grid grid-cols-2 gap-2">
           {setupBonusCards.map((cardId) => (
             <button
               key={cardId}
               type="button"
+              data-testid={`setup-bonus-card-${String(cardId)}`}
               className="rounded border px-3 py-2 hover:bg-gray-100"
               onClick={() => { performAction('setup_bonus_card', { bonusCard: cardId }) }}
             >
@@ -1778,18 +2002,26 @@ export const Game = () => {
         isOpen={hasPendingDecisionForMe && pendingDecisionType === 'darklings_ordination'}
         onClose={() => { }}
         title="Darklings Ordination"
+        testId="darklings-ordination-modal"
       >
-        <div className="grid grid-cols-4 gap-2">
+        <div className="space-y-3">
+          <p>
+            Darklings can only convert workers to priests when a player just upgraded to a stronghold.
+            Choose how many workers to convert (0–3).
+          </p>
+          <div className="grid grid-cols-4 gap-2">
           {[0, 1, 2, 3].map((count) => (
             <button
               key={count}
               type="button"
+              data-testid={`darklings-ordination-${count}`}
               className="rounded border px-3 py-2 hover:bg-gray-100"
               onClick={() => { performAction('darklings_ordination', { workersToConvert: count }) }}
             >
               {count}
             </button>
           ))}
+          </div>
         </div>
       </Modal>
 
@@ -1797,22 +2029,24 @@ export const Game = () => {
         isOpen={hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades' && Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0) === 0}
         onClose={() => { }}
         title="Halflings Optional Dwelling"
+        testId="halflings-optional-dwelling-modal"
       >
         <div className="space-y-3">
           <p>All spades used. Build one dwelling on a transformed hex or skip.</p>
           <div className="grid grid-cols-2 gap-2">
             {transformedHalflingsHexes.map((h) => (
-              <button
-                key={`${String(h.q)},${String(h.r)}`}
-                type="button"
-                className="rounded border px-3 py-2 hover:bg-gray-100"
-                onClick={() => { performAction('halflings_build_dwelling', { targetHex: h }) }}
-              >
-                Build at ({String(h.q)},{String(h.r)})
-              </button>
-            ))}
+            <button
+              key={`${String(h.q)},${String(h.r)}`}
+              type="button"
+              data-testid={`halflings-build-${String(h.q)}-${String(h.r)}`}
+              className="rounded border px-3 py-2 hover:bg-gray-100"
+              onClick={() => { performAction('halflings_build_dwelling', { targetHex: h }) }}
+            >
+              Build at ({String(h.q)},{String(h.r)})
+            </button>
+          ))}
           </div>
-          <button className="rounded bg-gray-600 px-3 py-2 text-white" onClick={() => { performAction('halflings_skip_dwelling') }}>
+          <button data-testid="halflings-skip-dwelling" className="rounded bg-gray-600 px-3 py-2 text-white" onClick={() => { performAction('halflings_skip_dwelling') }}>
             Skip dwelling
           </button>
         </div>
@@ -1822,12 +2056,14 @@ export const Game = () => {
         isOpen={hasPendingDecisionForMe && pendingDecisionType === 'cultists_cult_choice'}
         onClose={() => { }}
         title="Cultists: Choose Cult Track"
+        testId="cultists-cult-choice-modal"
       >
         <div className="grid grid-cols-2 gap-2">
           {CULT_CHOICES.map((choice) => (
             <button
               key={choice.track}
               type="button"
+              data-testid={`cultists-cult-choice-${String(choice.track)}`}
               className="rounded border px-3 py-2 hover:bg-gray-100"
               onClick={() => { performAction('select_cultists_track', { cultTrack: choice.track }) }}
             >

@@ -99,13 +99,14 @@ export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): Re
     const usedActions = gameState?.powerActions?.UsedActions ?? {};
 
     return (
-        <div className="power-actions-container">
+        <div className="power-actions-container" data-testid="power-actions">
             {ACTIONS.map((action) => {
                 const isUsed = usedActions[action.type];
 
                 return (
                     <div
                         key={action.type}
+                        data-testid={`power-action-${String(action.type)}`}
                         className={`power-action-tile ${isUsed ? 'used' : ''}`}
                         onClick={() => !isUsed && onActionClick?.(action.type)}
                         title={action.label}

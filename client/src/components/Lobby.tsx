@@ -99,7 +99,7 @@ export function Lobby(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4" data-testid="lobby-screen">
       <div className="max-w-4xl w-full">
         {/* Header */}
         <div className="text-center mb-8">
@@ -121,6 +121,7 @@ export function Lobby(): React.ReactElement {
               <label className="block text-sm font-medium text-gray-200 mb-2">Player Name</label>
               <input
                 type="text"
+                data-testid="lobby-player-name"
                 value={playerName}
                 onChange={(e) => { setPlayerName(e.target.value); }}
                 className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -137,6 +138,7 @@ export function Lobby(): React.ReactElement {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <input
                   type="text"
+                  data-testid="lobby-game-name"
                   value={newGameName}
                   onChange={(e) => { setNewGameName(e.target.value); }}
                   className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -144,6 +146,7 @@ export function Lobby(): React.ReactElement {
                   disabled={!isConnected}
                 />
                 <select
+                  data-testid="lobby-max-players"
                   value={newGameMaxPlayers}
                   onChange={(e) => { setNewGameMaxPlayers(Number(e.target.value)); }}
                   className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -156,6 +159,7 @@ export function Lobby(): React.ReactElement {
                   <option value={5}>5 players</option>
                 </select>
                 <button
+                  data-testid="lobby-create-game"
                   onClick={handleCreateGame}
                   disabled={!isConnected || !playerName.trim() || !newGameName.trim()}
                   className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
@@ -163,6 +167,7 @@ export function Lobby(): React.ReactElement {
                   Create
                 </button>
                 <button
+                  data-testid="lobby-refresh-games-top"
                   onClick={() => { sendMessage({ type: 'list_games' }); }}
                   disabled={!isConnected}
                   className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg font-medium transition-colors"
@@ -173,6 +178,7 @@ export function Lobby(): React.ReactElement {
               <label className="mt-3 inline-flex items-center gap-2 text-sm text-gray-200">
                 <input
                   type="checkbox"
+                  data-testid="lobby-randomize-turn-order"
                   checked={randomizeTurnOrder}
                   onChange={(e) => { setRandomizeTurnOrder(e.target.checked); }}
                   className="rounded border-white/30 bg-white/10"
@@ -182,6 +188,7 @@ export function Lobby(): React.ReactElement {
               <div className="mt-3">
                 <label className="block text-sm text-gray-200 mb-1">Setup mode</label>
                 <select
+                  data-testid="lobby-setup-mode"
                   value={setupMode}
                   onChange={(e) => { setSetupMode(e.target.value as 'snellman' | 'auction' | 'fast_auction') }}
                   className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -201,6 +208,7 @@ export function Lobby(): React.ReactElement {
               <div className="flex gap-2 mb-4">
                 <input
                   type="text"
+                  data-testid="lobby-test-message"
                   value={testMessage}
                   onChange={(e) => { setTestMessage(e.target.value); }}
                   onKeyDown={(e) => {
@@ -213,6 +221,7 @@ export function Lobby(): React.ReactElement {
                   disabled={!isConnected}
                 />
                 <button
+                  data-testid="lobby-send-test-message"
                   onClick={handleSendTest}
                   disabled={!isConnected || !testMessage.trim()}
                   className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
@@ -242,6 +251,7 @@ export function Lobby(): React.ReactElement {
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-xl font-semibold text-white">Open Games</h2>
                 <button
+                  data-testid="lobby-refresh-games-list"
                   onClick={() => { sendMessage({ type: 'list_games' }); }}
                   disabled={!isConnected}
                   className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 text-white rounded-md"
@@ -261,11 +271,13 @@ export function Lobby(): React.ReactElement {
                         </div>
                         <div className="flex gap-2">
                           <button
+                            data-testid={`lobby-join-${g.id}`}
                             onClick={() => { handleJoinGame(g.id); }}
                             disabled={!isConnected || !playerName.trim() || isFull}
                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium"
                           >Join</button>
                           <button
+                            data-testid={`lobby-start-${g.id}`}
                             onClick={() => {
                               sendMessage({
                                 type: 'start_game',

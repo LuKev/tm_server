@@ -1,0 +1,3056 @@
+{
+  "fixture": "testdata/4pLeague_S60_D1L1_G4.txt",
+  "playerIds": [
+    "Cultists",
+    "Darklings",
+    "Dwarves",
+    "Giants"
+  ],
+  "scoringTiles": [
+    "SCORE2",
+    "SCORE7",
+    "SCORE1",
+    "SCORE8",
+    "SCORE6",
+    "SCORE3"
+  ],
+  "bonusCards": [
+    "BON-4C",
+    "BON-6C",
+    "BON-SHIP",
+    "BON-WP",
+    "BON-BB",
+    "BON-P",
+    "BON-DW"
+  ],
+  "turnOrderPolicy": "pass_order",
+  "actions": [
+    {
+      "playerId": "Cultists",
+      "type": "select_faction",
+      "params": {
+        "faction": "Cultists"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_faction",
+      "params": {
+        "faction": "Darklings"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_faction",
+      "params": {
+        "faction": "Dwarves"
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "select_faction",
+      "params": {
+        "faction": "Giants"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 9,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 4,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 10,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_worker"
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 9,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "pass",
+      "params": {
+        "bonusCard": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 10,
+          "r": 4
+        },
+        "targetTerrain": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 10,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 3
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        },
+        "useSkip": true
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 10,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        },
+        "useSkip": true
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 6
+        },
+        "useSkip": true
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 0,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 9,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 0,
+        "bridgeHex1": {
+          "q": 9,
+          "r": 2
+        },
+        "bridgeHex2": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 9,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "burn_power",
+      "params": {
+        "amount": 2
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 7,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 5
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 5
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "pass",
+      "params": {
+        "bonusCard": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": -2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 6,
+          "r": 8
+        },
+        "targetTerrain": 3
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 8
+        },
+        "useSkip": true
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 5,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 0,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 1,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 2
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 2,
+          "r": 8
+        },
+        "targetTerrain": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 9,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 9,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 0,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 11,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 6,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 8,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 11,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Giants",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -3,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 4,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 11,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "advance_digging",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Giants",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Giants",
+      "type": "pass",
+      "params": {}
+    }
+  ],
+  "expectedFinalScores": {
+    "Cultists": 149,
+    "Darklings": 151,
+    "Dwarves": 167,
+    "Giants": 115
+  }
+}

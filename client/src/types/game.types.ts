@@ -138,6 +138,24 @@ export interface PlayerState {
   townTiles?: number[] // Array of TownTileType IDs
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
+  options?: PlayerOptions
+}
+
+export type LeechAutoMode = 'off' | 'accept_1' | 'accept_2' | 'accept_3' | 'accept_4' | 'decline_vp'
+
+export interface PlayerOptions {
+  autoLeechMode: LeechAutoMode
+  autoConvertOnPass: boolean
+  confirmActions: boolean
+  showIncomePreview: boolean
+}
+
+export interface IncomePreview {
+  coins: number
+  workers: number
+  priests: number
+  power: number
+  spades: number
 }
 
 export enum SpecialActionType {
@@ -255,6 +273,7 @@ export interface GameState {
   pendingTownCultTopChoice?: unknown
   pendingDecision?: Record<string, unknown> | null
   auctionState?: AuctionState | null
+  nextRoundIncome?: Record<string, IncomePreview> | null
 }
 
 export interface PowerActionState {

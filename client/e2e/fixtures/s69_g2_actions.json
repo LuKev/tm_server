@@ -1,0 +1,2732 @@
+{
+  "fixture": "testdata/4pLeague_S69_D1L1_G2.txt",
+  "playerIds": [
+    "Witches",
+    "Nomads",
+    "Darklings",
+    "Mermaids"
+  ],
+  "scoringTiles": [
+    "SCORE5",
+    "SCORE8",
+    "SCORE7",
+    "SCORE9",
+    "SCORE6",
+    "SCORE2"
+  ],
+  "bonusCards": [
+    "BON-SPD",
+    "BON-4C",
+    "BON-6C",
+    "BON-TP",
+    "BON-P",
+    "BON-DW",
+    "BON-SHIP-VP"
+  ],
+  "turnOrderPolicy": "pass_order",
+  "actions": [
+    {
+      "playerId": "Witches",
+      "type": "select_faction",
+      "params": {
+        "faction": "Witches"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_faction",
+      "params": {
+        "faction": "Nomads"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_faction",
+      "params": {
+        "faction": "Darklings"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_faction",
+      "params": {
+        "faction": "Mermaids"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 5,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 4,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 0,
+        "bridgeHex1": {
+          "q": 3,
+          "r": 5
+        },
+        "bridgeHex2": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "burn_power",
+      "params": {
+        "amount": 2
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 9
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 2
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "pass",
+      "params": {
+        "bonusCard": 9
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "pass",
+      "params": {
+        "bonusCard": 5
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 8
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 4,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 0,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 5,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 10,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 5
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 5
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "pass",
+      "params": {
+        "bonusCard": 9
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 0,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 5,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -1,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Nomads",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Nomads",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 5
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 6
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "pass",
+      "params": {
+        "bonusCard": 5
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "pass",
+      "params": {
+        "bonusCard": 9
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 9,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 7,
+          "r": 0
+        },
+        "targetTerrain": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 2
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 4,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": -1,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 5
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 7,
+        "cultTrack": 1
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Mermaids",
+      "type": "pass",
+      "params": {}
+    }
+  ],
+  "expectedFinalScores": {
+    "Darklings": 137,
+    "Mermaids": 130,
+    "Nomads": 166,
+    "Witches": 124
+  }
+}

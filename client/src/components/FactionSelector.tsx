@@ -60,7 +60,7 @@ export function FactionSelector({
     }
 
     return (
-        <div className="w-full mb-6">
+        <div className="w-full mb-6" data-testid="faction-selector">
             <div className="bg-[#f5e6d3] rounded-lg shadow-2xl p-6 w-full">
                 {/* Header */}
                 <div className="bg-white border-2 border-gray-800 rounded-md py-2 px-4 mb-4 text-center">
@@ -84,6 +84,7 @@ export function FactionSelector({
                         return (
                             <button
                                 key={factionType}
+                                data-testid={`faction-option-${factionType}`}
                                 onClick={() => { if (isMyTurn && isAvailable) onSelect(factionType); }}
                                 disabled={!isMyTurn || !isAvailable}
                                 style={{

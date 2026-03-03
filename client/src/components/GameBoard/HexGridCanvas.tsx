@@ -17,6 +17,7 @@ interface HexGridCanvasProps {
   onHexHover?: (q: number, r: number) => void;
   showCoords?: boolean;
   disableHover?: boolean;
+  testId?: string;
 }
 
 export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
@@ -30,6 +31,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   onHexHover,
   showCoords = true,
   disableHover: _disableHover = false,
+  testId,
 }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -519,6 +521,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   return (
     <canvas
       ref={canvasRef}
+      data-testid={testId}
       width={dims.width}
       height={dims.height}
       style={{

@@ -1,0 +1,3075 @@
+{
+  "fixture": "testdata/4pLeague_S61_D1L1_G3.txt",
+  "playerIds": [
+    "Darklings",
+    "Cultists",
+    "Engineers",
+    "Witches"
+  ],
+  "scoringTiles": [
+    "SCORE2",
+    "SCORE9",
+    "SCORE1",
+    "SCORE5",
+    "SCORE6",
+    "SCORE7"
+  ],
+  "bonusCards": [
+    "BON-SPD",
+    "BON-4C",
+    "BON-SHIP",
+    "BON-WP",
+    "BON-BB",
+    "BON-TP",
+    "BON-P"
+  ],
+  "turnOrderPolicy": "pass_order",
+  "actions": [
+    {
+      "playerId": "Darklings",
+      "type": "select_faction",
+      "params": {
+        "faction": "Darklings"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_faction",
+      "params": {
+        "faction": "Cultists"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_faction",
+      "params": {
+        "faction": "Engineers"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_faction",
+      "params": {
+        "faction": "Witches"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_dwelling",
+      "params": {
+        "hex": {
+          "q": 2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 1
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "setup_bonus_card",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 6,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 6,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 6,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 6,
+          "r": 8
+        },
+        "targetTerrain": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 0,
+        "bridgeHex1": {
+          "q": 6,
+          "r": 6
+        },
+        "bridgeHex2": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 7,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 8
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_worker"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 8,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 4,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "burn_power",
+      "params": {
+        "amount": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 8,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "pass",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 5
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 7,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 10
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 10,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 3,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_worker"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 4,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "targetHex": {
+          "q": 10,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "replay_conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 3,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 5,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 3,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 9
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 0,
+        "bridgeHex1": {
+          "q": 4,
+          "r": 6
+        },
+        "bridgeHex2": {
+          "q": 3,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 5
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "pass",
+      "params": {
+        "bonusCard": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 0,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 0,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 4,
+          "r": 0
+        },
+        "targetTerrain": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 9,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 2
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Engineers",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 4,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 5,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 1
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "engineers_bridge",
+      "params": {
+        "bridgeHex1": {
+          "q": 3,
+          "r": 2
+        },
+        "bridgeHex2": {
+          "q": 4,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 2
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 5,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 9,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {
+        "bonusCard": 8
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -1,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 3
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {
+        "bonusCard": 7
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -2,
+          "r": 5
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 6,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -1,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "pass",
+      "params": {
+        "bonusCard": 4
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {
+        "bonusCard": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 9,
+          "r": 3
+        },
+        "targetTerrain": 4
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": -3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "use_cult_spade",
+      "params": {
+        "targetHex": {
+          "q": 7,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 4,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 0,
+        "bridgeHex1": {
+          "q": -1,
+          "r": 5
+        },
+        "bridgeHex2": {
+          "q": 0,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 3,
+        "targetHex": {
+          "q": 3,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 6
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_worker"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 9,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 5
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 8,
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 8
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 4,
+        "targetHex": {
+          "q": 4,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 1,
+          "r": 3
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 7,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 4,
+        "targetHex": {
+          "q": 4,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "darklings_ordination",
+      "params": {
+        "workersToConvert": 3
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_worker"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 1
+        }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "engineers_bridge",
+      "params": {
+        "bridgeHex1": {
+          "q": 1,
+          "r": 4
+        },
+        "bridgeHex2": {
+          "q": 0,
+          "r": 6
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 2
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -3,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 2,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 4
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "power_action_claim",
+      "params": {
+        "actionType": 1
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "special_action_use",
+      "params": {
+        "actionType": 9,
+        "cultTrack": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 4,
+        "targetHex": {
+          "q": 8,
+          "r": 7
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 3
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": 2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "replay_conversion",
+      "params": {
+        "amount": 4,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Engineers",
+      "type": "pass",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": true,
+        "targetHex": {
+          "q": -2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_town_tile",
+      "params": {
+        "tileType": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "burn_power",
+      "params": {
+        "amount": 1
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 6,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 2,
+        "targetHex": {
+          "q": -1,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "select_favor_tile",
+      "params": {
+        "tileType": 11
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "worker_to_coin"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "priest_to_worker"
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "upgrade_building",
+      "params": {
+        "newBuildingType": 1,
+        "targetHex": {
+          "q": -2,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 1,
+          "r": 0
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "transform_build",
+      "params": {
+        "buildDwelling": false,
+        "targetHex": {
+          "q": 10,
+          "r": 4
+        }
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "pass",
+      "params": {}
+    }
+  ],
+  "expectedFinalScores": {
+    "Cultists": 160,
+    "Darklings": 161,
+    "Engineers": 113,
+    "Witches": 96
+  }
+}

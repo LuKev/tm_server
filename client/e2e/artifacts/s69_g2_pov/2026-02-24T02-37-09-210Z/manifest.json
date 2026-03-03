@@ -1,0 +1,11 @@
+{
+  "fixture": "testdata/4pLeague_S69_D1L1_G2.txt",
+  "game": "4pLeague_S69_D1L1_G2",
+  "generatedAt": "2026-02-24T02:37:20.699Z",
+  "videos": {
+    "Witches": "/Users/kevin/projects/tm_server/client/e2e/artifacts/s69_g2_pov/2026-02-24T02-37-09-210Z/Witches.webm",
+    "Nomads": "/Users/kevin/projects/tm_server/client/e2e/artifacts/s69_g2_pov/2026-02-24T02-37-09-210Z/Nomads.webm",
+    "Darklings": "/Users/kevin/projects/tm_server/client/e2e/artifacts/s69_g2_pov/2026-02-24T02-37-09-210Z/Darklings.webm",
+    "Mermaids": "/Users/kevin/projects/tm_server/client/e2e/artifacts/s69_g2_pov/2026-02-24T02-37-09-210Z/Mermaids.webm"
+  }
+}
