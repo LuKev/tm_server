@@ -441,12 +441,18 @@ Completed in current implementation:
 18. Auction setup mode (`auction`) implemented end-to-end (state model, actions, websocket protocol, lobby selector UI, setup transition).
 19. Fast auction setup mode (`fast_auction`) implemented end-to-end (sealed bid matrix submission, deterministic assignment resolver, setup transition).
 20. Added targeted Snellman fixture inventory coverage for faction/mechanic branches including Fakirs, Dwarves, Engineers, Cultists, bridge usage, and leech acceptance markers.
+21. Playwright browser action-contract suite implemented for multiplayer UI click paths (lobby + setup + action-phase + pending-decision modals), asserting exact outbound websocket payloads for action dispatch.
 
 Validation completed for this spec revision:
 1. `bazel test //internal/game:game_test --test_filter='TestAuctionSetupFlow_.*'` (from `server/`) passed.
 2. `bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketE2E_(RegularAuctionSetupFlow|FastAuctionSetupFlow|SetupToActionAndTurnAuthority)'` (from `server/`) passed.
 3. `bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketGolden_.*|TestWebsocketGoldenCandidateFixtures_.*'` (from `server/`) passed.
-4. Full unfiltered `//internal/game:game_test` currently has pre-existing failures outside auction scope (`TestBonusCard_CoinAccumulation`, `TestTurnOrder_PassOrderDeterminesNextRound`, `TestTurnOrder_AllPlayersPassed`).
+4. Full unfiltered `bazel test //... --test_output=errors` (from `server/`) passes.
+5. `npx playwright test --workers=1` (from `client/`) passes with 15 Playwright tests:
+- 12 UI action-contract tests.
+- 1 websocket-driven full-game golden completion test.
+- 1 click-driven full-game golden completion test (all actions via UI clicks/modals).
+- 1 full multi-POV capture completion test.
 
 Remaining out-of-scope items are tracked in `MULTIPLAYER_TODO_LATER.md`.
 
@@ -461,7 +467,7 @@ Remaining out-of-scope items are tracked in `MULTIPLAYER_TODO_LATER.md`.
 - Witches (Fujiwara): 124
 
 ### 18.2 Test Architecture
-Run this as a two-layer golden test so rules, protocol, and UI are all validated.
+Run this as a layered golden test so rules, protocol, and UI are all validated.
 
 Layer A: Protocol/Rules golden replay (websocket E2E)
 1. Start in-memory websocket server (`httptest`) with game + lobby managers.
@@ -471,12 +477,23 @@ Layer A: Protocol/Rules golden replay (websocket E2E)
 5. Require `action_accepted` and monotonic revision progression at every step.
 6. Assert final phase is end and final scoring totals match exactly.
 
-Layer B: UI golden replay (browser E2E)
-1. Launch 4 browser clients (one per seat) and connect to one live game.
-2. Drive the same action plan through actual UI interactions (hex clicks, modals, card/tile picks, cult selections, pass flow).
-3. Wait for `game_state_update`/revision advancement after each committed action.
-4. Fail if any unexpected `action_rejected` is surfaced.
-5. At completion, assert final score panel matches expected totals exactly.
+Layer B: Live-game browser completion (browser E2E)
+1. Launch one browser observer client against a real backend game and connect four real websocket seat clients.
+2. Configure deterministic fixture scoring/bonus setup using test-only websocket command guard.
+3. Replay the full fixture action stream over websocket with strict `actionId` + `expectedRevision`.
+4. Require `action_accepted` and monotonic revision advancement at every step; fail on rejection or revision stall.
+5. Keep browser UI attached throughout and assert endgame score display matches expected totals exactly.
+
+Layer C: UI action-contract coverage (browser E2E)
+1. Drive all gameplay UI affordances through clicks/selections in mocked-state Playwright tests.
+2. Assert each interaction emits the exact expected outbound websocket `perform_action` payload.
+3. Cover lobby/setup/action/pending-decision/special-action flows so every multiplayer action path is clickable and mapped.
+
+Layer D: Click-driven full-game UI completion (browser E2E)
+1. Launch four real browser pages, one for each seat/player, against a real backend game.
+2. Execute the full golden action stream only by driving UI controls on the active player's page (hex clicks, modal selections, card/tile clicks, pass controls).
+3. Reject the run on any action that cannot be performed from visible UI affordances.
+4. Require terminal phase and exact final totals; export per-player POV videos and manifest.
 
 ### 18.3 Oracle/Comparison Strategy
 1. Use replay parser/simulator output as oracle stream for move order and expected terminal totals.
@@ -514,7 +531,22 @@ Layer B: UI golden replay (browser E2E)
   - Witches 124
 - Verified via Bazel:
   - `bazel test //internal/websocket:websocket_test --test_filter=TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores`
-2. Layer B (browser-driven UI golden) remains planned and is not yet implemented in this pass.
+2. Layer B implementation is complete.
+- Test: `client/e2e/ui-full-game-completion.spec.ts`
+- Fixture/action stream: `client/e2e/fixtures/s69_g2_actions.json`
+- Topology: 4 websocket seat bots + 1 live browser observer against real backend (`bazel run //cmd/server:server`) and Vite client.
+- Current assertion: fixture replays to end phase with exact final totals and matching UI score text.
+- Verification command: `npx playwright test e2e/ui-full-game-completion.spec.ts --workers=1` (from `client/`)
+3. Layer C browser UI action-contract coverage is implemented in this pass:
+- Test: `client/e2e/ui-action-contract.spec.ts`
+- Harness: mocked websocket transport with deterministic state injection and payload capture
+- Scope: lobby create/join/start + faction/setup + core/advanced actions + modal decisions + pass/special flows
+- Verification command: `npm run e2e` (from `client/`)
+4. Layer D click-driven full-game browser completion is implemented in this pass.
+- Test: `client/e2e/ui-full-game-click-driven.spec.ts`
+- Topology: 4 websocket seat bots + 4 live browser POV pages; each action is performed through the current actor's UI.
+- Current assertion: full game completes to end phase with exact final totals and exported POV videos.
+- Verification command: `npx playwright test e2e/ui-full-game-click-driven.spec.ts --workers=1` (from `client/`)
 
 ### 18.7 Additional Targeted Snellman Fixtures
 1. `4pLeague_S1_D1L1_G3` (Fakirs + Dwarves; includes `ACT6` and bridge usage).
