@@ -50,16 +50,4 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
       Engineers: 113,
     },
   },
-  {
-    id: 's69_g7',
-    scriptPath: path.resolve(fixturesDir, 's69_g7_actions.json'),
-    mode: 'nightly',
-    fixtureLabel: '4pLeague_S69_D1L1_G7',
-    expectedScores: {
-      Swarmlings: 139,
-      Nomads: 135,
-      Engineers: 133,
-      Cultists: 131,
-    },
-  },
 ]

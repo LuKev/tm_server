@@ -2,9 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import WebSocket from 'ws'
-
-type JsonObject = Record<string, unknown>
+import { WsBot, type JsonObject } from './support/wsBot'
 
 type GoldenAction = {
   playerId: string
@@ -20,94 +18,6 @@ type GoldenScript = {
   turnOrderPolicy?: string
   actions: GoldenAction[]
   expectedFinalScores: Record<string, number>
-}
-
-class WsBot {
-  private readonly ws: WebSocket
-  private readonly queue: JsonObject[] = []
-  private readonly statesByGame: Map<string, JsonObject> = new Map()
-
-  private constructor(ws: WebSocket) {
-    this.ws = ws
-    this.ws.on('message', (raw) => {
-      const payload = typeof raw === 'string' ? raw : raw.toString('utf8')
-      let parsed: JsonObject
-      try {
-        parsed = JSON.parse(payload) as JsonObject
-      } catch {
-        return
-      }
-      const msgType = String(parsed.type ?? '')
-      if (msgType === 'game_state_update') {
-        const state = (parsed.payload ?? {}) as JsonObject
-        const gameID = String(state.id ?? '')
-        if (gameID !== '') {
-          this.statesByGame.set(gameID, state)
-        }
-      }
-
-      this.queue.push(parsed)
-    })
-  }
-
-  static async connect(url: string): Promise<WsBot> {
-    const ws = new WebSocket(url)
-    await new Promise<void>((resolve, reject) => {
-      ws.once('open', () => resolve())
-      ws.once('error', (err) => reject(err))
-    })
-    return new WsBot(ws)
-  }
-
-  close(): void {
-    this.ws.close()
-  }
-
-  send(type: string, payload?: JsonObject): void {
-    this.ws.send(JSON.stringify({ type, payload }))
-  }
-
-  async waitForType(type: string, timeoutMs = 10_000): Promise<JsonObject> {
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      const idx = this.queue.findIndex((msg) => String(msg.type ?? '') === type)
-      if (idx >= 0) {
-        const [msg] = this.queue.splice(idx, 1)
-        return msg
-      }
-      await new Promise((resolve) => setTimeout(resolve, 25))
-    }
-    throw new Error(`timeout waiting for websocket message type=${type}`)
-  }
-
-  async waitForRevision(gameID: string, minRevision: number, timeoutMs = 20_000): Promise<JsonObject> {
-    const current = this.getState(gameID)
-    const currentRevision = Number(current?.revision ?? -1)
-    if (current && currentRevision >= minRevision) {
-      return current
-    }
-
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      const msg = await this.waitForType('game_state_update', Math.min(1_500, deadline - Date.now()))
-      const state = (msg.payload ?? {}) as JsonObject
-      if (String(state.id ?? '') !== gameID) {
-        continue
-      }
-      const revision = Number(state.revision ?? -1)
-      if (revision >= minRevision) {
-        return state
-      }
-    }
-    throw new Error(`timeout waiting for revision >= ${String(minRevision)} for game ${gameID}`)
-  }
-
-  getState(gameID: string): JsonObject | null {
-    return this.statesByGame.get(gameID) ?? null
-  }
-
-}
-
 const thisDir = path.dirname(fileURLToPath(import.meta.url))
 const scriptPath = path.resolve(thisDir, 'fixtures', 's69_g2_actions.json')
 const goldenScript = JSON.parse(fs.readFileSync(scriptPath, 'utf8')) as GoldenScript

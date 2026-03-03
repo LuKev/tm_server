@@ -1,10 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import fs from 'node:fs'
-import WebSocket from 'ws'
 import { clickByTestId, clickHex } from './support/uiInteractions'
 import { GOLDEN_SCENARIOS } from './fixtures/golden_scenarios'
-
-type JsonObject = Record<string, unknown>
+import { WsBot, type JsonObject } from './support/wsBot'
 
 type GoldenAction = {
   playerId: string
@@ -25,116 +23,6 @@ type GoldenScript = {
 type Segment = {
   start: number
   endExclusive: number
-}
-
-class WsBot {
-  private readonly ws: WebSocket
-  private readonly queueByType: Map<string, JsonObject[]> = new Map()
-  private readonly statesByGame: Map<string, JsonObject> = new Map()
-
-  private constructor(ws: WebSocket) {
-    this.ws = ws
-    this.ws.on('message', (raw) => {
-      const payload = typeof raw === 'string' ? raw : raw.toString('utf8')
-      let parsed: JsonObject
-      try {
-        parsed = JSON.parse(payload) as JsonObject
-      } catch {
-        return
-      }
-      const msgType = String(parsed.type ?? '')
-      if (msgType === 'game_state_update') {
-        const state = (parsed.payload ?? {}) as JsonObject
-        const gameID = String(state.id ?? '')
-        if (gameID !== '') {
-          this.statesByGame.set(gameID, state)
-        }
-      }
-      if (msgType !== '') {
-        const queue = this.queueByType.get(msgType) ?? []
-        queue.push(parsed)
-        if (queue.length > 8_000) {
-          queue.splice(0, queue.length - 8_000)
-        }
-        this.queueByType.set(msgType, queue)
-      }
-    })
-  }
-
-  static async connect(url: string): Promise<WsBot> {
-    const ws = new WebSocket(url)
-    await new Promise<void>((resolve, reject) => {
-      ws.once('open', () => resolve())
-      ws.once('error', (err) => reject(err))
-    })
-    return new WsBot(ws)
-  }
-
-  close(): void {
-    this.ws.close()
-  }
-
-  send(type: string, payload?: JsonObject): void {
-    this.ws.send(JSON.stringify({ type, payload }))
-  }
-
-  async waitForType(type: string, timeoutMs = 10_000): Promise<JsonObject> {
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      const queue = this.queueByType.get(type)
-      if (queue && queue.length > 0) {
-        const msg = queue.shift()
-        if (msg) {
-          return msg
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 25))
-    }
-    throw new Error(`timeout waiting for websocket message type=${type}`)
-  }
-
-  async waitForAnyType(types: string[], timeoutMs = 10_000): Promise<JsonObject> {
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      for (const type of types) {
-        const queue = this.queueByType.get(type)
-        if (queue && queue.length > 0) {
-          const msg = queue.shift()
-          if (msg) {
-            return msg
-          }
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 25))
-    }
-    throw new Error(`timeout waiting for websocket message types=${types.join(',')}`)
-  }
-
-  async waitForRevision(gameID: string, minRevision: number, timeoutMs = 20_000): Promise<JsonObject> {
-    const current = this.getState(gameID)
-    const currentRevision = Number(current?.revision ?? -1)
-    if (current && currentRevision >= minRevision) {
-      return current
-    }
-
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      const msg = await this.waitForType('game_state_update', Math.min(1_500, deadline - Date.now()))
-      const state = (msg.payload ?? {}) as JsonObject
-      if (String(state.id ?? '') !== gameID) {
-        continue
-      }
-      const revision = Number(state.revision ?? -1)
-      if (revision >= minRevision) {
-        return state
-      }
-    }
-    throw new Error(`timeout waiting for revision >= ${String(minRevision)} for game ${gameID}`)
-  }
-
-  getState(gameID: string): JsonObject | null {
-    return this.statesByGame.get(gameID) ?? null
-  }
 }
 
 const asRecord = (v: unknown): JsonObject => (typeof v === 'object' && v !== null ? (v as JsonObject) : {})
@@ -331,8 +219,7 @@ async function createConfiguredGame(wsURL: string, script: GoldenScript, nameSuf
 }
 
 function buildSegments(actionsLength: number): Segment[] {
-  const rawSize = Number(process.env.TM_CLICK_SEGMENT_SIZE ?? 24)
-  const segmentSize = Number.isFinite(rawSize) ? Math.max(1, Math.trunc(rawSize)) : 24
+  const segmentSize = 24
 
   const all: Segment[] = []
   for (let start = 0; start < actionsLength; start += segmentSize) {
@@ -342,12 +229,10 @@ function buildSegments(actionsLength: number): Segment[] {
     })
   }
 
-  const startSegment = Math.max(0, Math.trunc(Number(process.env.TM_CLICK_SEGMENT_START ?? 0)))
-  const endSegment = Math.min(all.length, Math.trunc(Number(process.env.TM_CLICK_SEGMENT_END ?? all.length)))
-  return all.slice(startSegment, Math.max(startSegment, endSegment))
+  return all
 }
 
-async function clickAction(page: Page, creator: WsBot, gameID: string, action: GoldenAction, index: number): Promise<boolean> {
+async function clickAction(page: Page, creator: WsBot, gameID: string, action: GoldenAction): Promise<boolean> {
   const params = action.params ?? {}
 
   switch (action.type) {
@@ -385,7 +270,6 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
         if (pendingType === 'leech_offer' && pendingPlayerID === action.playerId) {
           throw new Error(`expected leech decision control ${testId} for ${action.playerId}, but it was not visible`)
         }
-        console.log(`[click-golden] step=${String(index).padStart(4, '0')} auto-resolved leech for ${action.playerId}`)
         return false
       }
       await clickByTestId(page, testId)
@@ -644,8 +528,6 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
 
     for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
       const segment = segments[segmentIndex]
-      console.log(`[click-golden-segment] ${String(segmentIndex + 1)}/${String(segments.length)} actions=${segment.start}-${String(segment.endExclusive - 1)}`)
-
       const { creator, gameID, revision: initialRevision } = await createConfiguredGame(
         wsURL,
         goldenScript,
@@ -697,8 +579,7 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
             throw new Error(`missing viewer for player ${action.playerId}`)
           }
 
-          console.log(`[click-golden-segment] step=${String(index).padStart(4, '0')} player=${action.playerId} type=${action.type}`)
-          const advanced = await clickAction(page, creator, gameID, action, index)
+          const advanced = await clickAction(page, creator, gameID, action)
           if (!advanced) {
             continue
           }

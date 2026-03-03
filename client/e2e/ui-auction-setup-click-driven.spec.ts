@@ -1,113 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
-import WebSocket from 'ws'
 import { BASE_GAME_MAP } from '../src/data/baseGameMap'
 import { FactionType, TerrainType } from '../src/types/game.types'
 import { clickByTestId, clickHex } from './support/uiInteractions'
-
-type JsonObject = Record<string, unknown>
-const DEBUG_AUCTION = process.env.TM_E2E_DEBUG_AUCTION === '1'
-
-const debugAuction = (...args: unknown[]): void => {
-  if (!DEBUG_AUCTION) return
-  // eslint-disable-next-line no-console
-  console.log('[auction-e2e]', ...args)
-}
-
-class WsBot {
-  private readonly ws: WebSocket
-  private readonly queueByType: Map<string, JsonObject[]> = new Map()
-  private readonly statesByGame: Map<string, JsonObject> = new Map()
-
-  private constructor(ws: WebSocket) {
-    this.ws = ws
-    this.ws.on('message', (raw) => {
-      const payload = typeof raw === 'string' ? raw : raw.toString('utf8')
-      let parsed: JsonObject
-      try {
-        parsed = JSON.parse(payload) as JsonObject
-      } catch {
-        return
-      }
-      const msgType = String(parsed.type ?? '')
-      if (msgType === 'game_state_update') {
-        const state = (parsed.payload ?? {}) as JsonObject
-        const gameID = String(state.id ?? '')
-        if (gameID !== '') this.statesByGame.set(gameID, state)
-      }
-      if (msgType !== '') {
-        const queue = this.queueByType.get(msgType) ?? []
-        queue.push(parsed)
-        if (queue.length > 2_000) queue.splice(0, queue.length - 2_000)
-        this.queueByType.set(msgType, queue)
-      }
-    })
-  }
-
-  static async connect(url: string): Promise<WsBot> {
-    const ws = new WebSocket(url)
-    await new Promise<void>((resolve, reject) => {
-      ws.once('open', () => resolve())
-      ws.once('error', (err) => reject(err))
-    })
-    return new WsBot(ws)
-  }
-
-  close(): void {
-    this.ws.close()
-  }
-
-  send(type: string, payload?: JsonObject): void {
-    this.ws.send(JSON.stringify({ type, payload }))
-  }
-
-  async waitForType(type: string, timeoutMs = 12_000): Promise<JsonObject> {
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      const queue = this.queueByType.get(type)
-      if (queue && queue.length > 0) {
-        const msg = queue.shift()
-        if (msg) return msg
-      }
-      await new Promise((resolve) => setTimeout(resolve, 25))
-    }
-    throw new Error(`timeout waiting for websocket message type=${type}`)
-  }
-
-  async waitForAnyType(types: string[], timeoutMs = 12_000): Promise<JsonObject> {
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      for (const type of types) {
-        const queue = this.queueByType.get(type)
-        if (queue && queue.length > 0) {
-          const msg = queue.shift()
-          if (msg) return msg
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 25))
-    }
-    throw new Error(`timeout waiting for websocket message types=${types.join(',')}`)
-  }
-
-  async waitForRevision(gameID: string, minRevision: number, timeoutMs = 20_000): Promise<JsonObject> {
-    const current = this.statesByGame.get(gameID)
-    const currentRevision = Number((current ?? {}).revision ?? -1)
-    if (current && currentRevision >= minRevision) {
-      return current
-    }
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      await this.waitForType('game_state_update', Math.min(1_000, deadline - Date.now()))
-      const latest = this.statesByGame.get(gameID)
-      const revision = Number((latest ?? {}).revision ?? -1)
-      if (latest && revision >= minRevision) return latest
-    }
-    throw new Error(`timeout waiting for revision >= ${String(minRevision)}`)
-  }
-
-  getState(gameID: string): JsonObject | null {
-    return this.statesByGame.get(gameID) ?? null
-  }
-}
+import { WsBot, type JsonObject } from './support/wsBot'
 
 async function fetchGameState(
   observer: WsBot,
@@ -359,7 +254,6 @@ function setupDwellingCandidateOrder(state: JsonObject, playerID: string): Array
   const faction = String(player.faction ?? '')
   const terrain = terrainForFaction(faction)
   if (terrain === null) {
-    debugAuction('setup dwelling terrain unresolved', { actorId: playerID, faction })
     return BASE_GAME_MAP.map((h) => ({ q: h.coord.q, r: h.coord.r }))
   }
 
@@ -420,12 +314,10 @@ async function clickFirstLegalHexUntilRevisionIncrements(
     const key = `${String(hex.q)},${String(hex.r)}`
     if (seen.has(key)) continue
     seen.add(key)
-    debugAuction('setup dwelling attempt', { actorID, revision, q: hex.q, r: hex.r, attempts, candidateCount: candidates.length, fallbackCount: fallback.length })
     await clickHex(page, hex.q, hex.r)
     const next = await waitForRevisionViaFetch(observer, gameID, observerPlayerID, revision + 1, 450).catch(() => null)
     const nextRevision = Number((next ?? {}).revision ?? revision)
     if (nextRevision > revision) {
-      debugAuction('setup dwelling attempt advanced', { actorID, nextRevision, attempts })
       return nextRevision
     }
   }
@@ -458,7 +350,6 @@ async function runAuctionToActionPhase(
 
   await expect(hostPage.locator('[data-testid^="lobby-start-"]').first()).toBeVisible({ timeout: 15_000 })
   const gameID = await resolveGameIDViaLobbySocket(wsURL, gameName)
-  debugAuction('created game', { setupMode, gameID, gameName, hostName })
   const startBtn = hostPage.getByTestId(`lobby-start-${gameID}`)
 
   const joinBots = new Map<string, WsBot>()
@@ -510,18 +401,6 @@ async function runAuctionToActionPhase(
       const pendingPlayerId = String(
         pendingDecision.playerId ?? ((state.auctionState ?? {}) as JsonObject).currentBidder ?? '',
       )
-      debugAuction('tick', {
-        revision,
-        phase,
-        setupSubphase,
-        setupDwellingOrderLen: setupDwellingOrder.length,
-        setupDwellingIndex,
-        setupBonusOrderLen: setupBonusOrder.length,
-        setupBonusIndex,
-        pendingType,
-        pendingPlayerId,
-      })
-
       if (phase === 1) {
         const actorId = pendingPlayerId
         if (!actorId) throw new Error('missing pending auction player id')
@@ -544,7 +423,6 @@ async function runAuctionToActionPhase(
               const next = await waitForRevisionViaFetch(observer, gameID, hostName, revision + 1, 1_500).catch(() => null)
               if (next) {
                 revision = Number(next.revision ?? revision + 1)
-                debugAuction('nominate advanced', { actorId, revision })
                 advanced = true
                 break
               }
@@ -589,18 +467,15 @@ async function runAuctionToActionPhase(
               const submitVisible = await submit.isVisible().catch(() => false)
               const submitEnabled = await submit.isEnabled().catch(() => false)
               if (!submitVisible || !submitEnabled) continue
-              debugAuction('bid attempt', { actorId, faction: factionName, currentBid, holder, bidValue, revision })
               await submit.click()
               const next = await waitForRevisionViaFetch(observer, gameID, hostName, revision + 1, 1_500).catch(() => null)
               if (next) {
                 revision = Number(next.revision ?? revision + 1)
-                debugAuction('bid advanced', { actorId, faction: factionName, revision })
                 advanced = true
                 break
               }
               const err = await actorPage.getByTestId('action-error-message').textContent().catch(() => null)
               if (err && err.trim() !== '') {
-                debugAuction('bid rejected', { actorId, faction: factionName, err: err.trim() })
               }
             }
             if (!advanced && count > 0) {
@@ -616,12 +491,10 @@ async function runAuctionToActionPhase(
                 const submitVisible = await submit.isVisible().catch(() => false)
                 const submitEnabled = await submit.isEnabled().catch(() => false)
                 if (!submitVisible || !submitEnabled) continue
-                debugAuction('bid fallback attempt', { actorId, faction: suffix, revision })
                 await submit.click()
                 const next = await waitForRevisionViaFetch(observer, gameID, hostName, revision + 1, 1_500).catch(() => null)
                 if (next) {
                   revision = Number(next.revision ?? revision + 1)
-                  debugAuction('bid fallback advanced', { actorId, faction: suffix, revision })
                   advanced = true
                   break
                 }
@@ -630,13 +503,6 @@ async function runAuctionToActionPhase(
           })
           if (!advanced) {
             const auctionState = (state.auctionState ?? {}) as JsonObject
-            debugAuction('bid stalled', {
-              actorId,
-              currentBidder: auctionState.currentBidder,
-              playerHasFaction: auctionState.playerHasFaction,
-              currentBids: auctionState.currentBids,
-              factionHolders: auctionState.factionHolders,
-            })
             throw new Error(`failed to make progress on auction bid for ${actorId}`)
           }
           continue
@@ -654,7 +520,6 @@ async function runAuctionToActionPhase(
             await clickByTestId(actorPage, 'fast-auction-submit')
             const next = await waitForRevisionViaFetch(observer, gameID, hostName, revision + 1, 15_000)
             revision = Number(next.revision ?? revision + 1)
-            debugAuction('fast bids advanced', { actorId, revision })
           })
           continue
         } else {
@@ -670,7 +535,6 @@ async function runAuctionToActionPhase(
         await withActorPage(actorId, async (actorPage) => {
           revision = await clickFirstLegalHexUntilRevisionIncrements(actorPage, observer, gameID, hostName, revision, state, actorId)
         })
-        debugAuction('setup dwelling advanced', { actorId, revision })
         continue
       }
 
@@ -681,7 +545,6 @@ async function runAuctionToActionPhase(
           await actorPage.getByTestId('setup-bonus-card-modal').waitFor({ state: 'visible', timeout: 8_000 })
           revision = await clickSetupBonusCardUntilRevisionAdvances(actorPage, observer, gameID, hostName, revision)
         })
-        debugAuction('setup bonus advanced', { actorId, revision })
         continue
       }
 
