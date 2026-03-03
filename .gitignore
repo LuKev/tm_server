@@ -8,6 +8,10 @@ bazel-*
 # Local env
 .env
 
+# E2E generated outputs
+client/e2e/artifacts/
+client/test-results/
+
 # Project docs to ignore
 IMPLEMENTATION_PLAN.md
 QUICKSTART.md

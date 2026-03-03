@@ -754,3 +754,16 @@
     - favor-tile selection pending now resolves by consuming the next pending `LogFavorTileAction` and marking it skipped.
   - Added stream-scanning helpers for cultist and favor-tile actions (`findCultistAdvanceInAction`, `findPendingFavorTileAction`) so pending checks can inspect compound/pre/post-income wrappers.
   - Added a skipped-action map for replayer actions (`skippedActions`) to avoid replaying rows that were deliberately pre-resolved.
+
+- 2026-03-03 E2E Playwright cleanup and repo hygiene:
+  - Refactored `client/e2e` specs to consume shared `WsBot` from `client/e2e/support/wsBot.ts`:
+    - `client/e2e/ui-full-game-completion.spec.ts`
+    - `client/e2e/ui-full-game-multi-pov.spec.ts`
+    - `client/e2e/ui-illegal-action-real-server.spec.ts`
+    - `client/e2e/ui-auction-setup-click-driven.spec.ts`
+  - Removed stale scenario entry `s69_g7` from `client/e2e/fixtures/golden_scenarios.ts`.
+  - Removed debug-only and temporary `console.log`/auction tracing calls from E2E tests.
+  - Deleted tracked generated outputs and ignored them going forward:
+    - `client/e2e/artifacts/`
+    - `client/test-results/`
+  - Working tree now has dedicated notes in `.gitignore` for future generated E2E artifacts.
