@@ -2,11 +2,16 @@ package websocket
 
 import (
 	"embed"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"reflect"
 	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,10 +22,104 @@ import (
 	"github.com/lukev/tm_server/internal/lobby"
 	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
+	"github.com/lukev/tm_server/internal/replay"
 )
+
+var errReplayEnded = errors.New("replay reached end")
+var errGoldenCannotAutoFundUpgrade = errors.New("cannot auto-fund upgrade cost")
 
 //go:embed testdata/*.txt
 var snellmanFixtureFS embed.FS
+
+type goldenFixtureSpec struct {
+	id       string
+	fixture  string
+	playerID []string
+	expected map[string]int
+}
+
+func goldenFixtureCatalog() []goldenFixtureSpec {
+	return []goldenFixtureSpec{
+		{
+			id:       "s69_g2",
+			fixture:  "testdata/4pLeague_S69_D1L1_G2.txt",
+			playerID: []string{"Witches", "Nomads", "Darklings", "Mermaids"},
+			expected: map[string]int{
+				"Nomads":    166,
+				"Darklings": 137,
+				"Mermaids":  130,
+				"Witches":   124,
+			},
+		},
+		{
+			id:       "s60_g4",
+			fixture:  "testdata/4pLeague_S60_D1L1_G4.txt",
+			playerID: []string{"Cultists", "Darklings", "Dwarves", "Giants"},
+			expected: map[string]int{
+				"Dwarves":   167,
+				"Darklings": 151,
+				"Cultists":  149,
+				"Giants":    115,
+			},
+		},
+		{
+			id:       "s61_g3",
+			fixture:  "testdata/4pLeague_S61_D1L1_G3.txt",
+			playerID: []string{"Darklings", "Cultists", "Engineers", "Witches"},
+			expected: map[string]int{
+				"Cultists":  151,
+				"Darklings": 151,
+				"Witches":   126,
+				"Engineers": 125,
+			},
+		},
+		{
+			id:       "s69_g7",
+			fixture:  "testdata/4pLeague_S69_D1L1_G7.txt",
+			playerID: []string{"Cultists", "Engineers", "Swarmlings", "Nomads"},
+			expected: map[string]int{
+				"Swarmlings": 139,
+				"Nomads":     135,
+				"Engineers":  133,
+				"Cultists":   131,
+			},
+		},
+	}
+}
+
+func findGoldenFixtureSpec(id string) (goldenFixtureSpec, bool) {
+	for _, spec := range goldenFixtureCatalog() {
+		if spec.id == id {
+			return spec, true
+		}
+	}
+	return goldenFixtureSpec{}, false
+}
+
+func goldenFixtureIDs() []string {
+	catalog := goldenFixtureCatalog()
+	ids := make([]string, 0, len(catalog))
+	for _, spec := range catalog {
+		ids = append(ids, spec.id)
+	}
+	return ids
+}
+
+type goldenExportAction struct {
+	PlayerID string         `json:"playerId"`
+	Type     string         `json:"type"`
+	Params   map[string]any `json:"params"`
+}
+
+type goldenExportScript struct {
+	Fixture             string               `json:"fixture"`
+	PlayerIDs           []string             `json:"playerIds"`
+	ScoringTiles        []string             `json:"scoringTiles"`
+	BonusCards          []string             `json:"bonusCards"`
+	TurnOrderPolicy     string               `json:"turnOrderPolicy"`
+	Actions             []goldenExportAction `json:"actions"`
+	ExpectedFinalScores map[string]int       `json:"expectedFinalScores"`
+}
 
 func TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores(t *testing.T) {
 	runGoldenSnellmanFixture(
@@ -33,7 +132,50 @@ func TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores(t *testin
 			"Mermaids":  130,
 			"Witches":   124,
 		},
+		true,
 	)
+}
+
+func TestWebsocketGolden_SnellmanS61D1L1G3_CompletesWithExpectedScores(t *testing.T) {
+	runGoldenSnellmanFixture(
+		t,
+		"testdata/4pLeague_S61_D1L1_G3.txt",
+		[]string{"Darklings", "Cultists", "Engineers", "Witches"},
+		map[string]int{
+			"Cultists":  151,
+			"Darklings": 151,
+			"Witches":   126,
+			"Engineers": 125,
+		},
+		true,
+	)
+}
+
+func TestWebsocketGolden_ExportActionScript(t *testing.T) {
+	normalizedID := strings.TrimSpace(os.Getenv("TM_EXPORT_GOLDEN_ID"))
+	if normalizedID == "" {
+		t.Skip("set TM_EXPORT_GOLDEN_ID to export a fixture action script")
+	}
+	outputPath := strings.TrimSpace(os.Getenv("TM_EXPORT_GOLDEN_ACTIONS_PATH"))
+	if outputPath == "" {
+		t.Skip("set TM_EXPORT_GOLDEN_ACTIONS_PATH to export a fixture action script")
+	}
+
+	spec, ok := findGoldenFixtureSpec(normalizedID)
+	if !ok {
+		t.Fatalf("unknown TM_EXPORT_GOLDEN_ID=%q (valid: %s)", normalizedID, strings.Join(goldenFixtureIDs(), ", "))
+	}
+
+	script := runGoldenSnellmanFixture(t, spec.fixture, spec.playerID, spec.expected, false)
+	encoded, err := json.MarshalIndent(script, "", "  ")
+	if err != nil {
+		t.Fatalf("marshal export script: %v", err)
+	}
+	encoded = append(encoded, '\n')
+	if err := os.WriteFile(outputPath, encoded, 0o644); err != nil {
+		t.Fatalf("write export script %s: %v", outputPath, err)
+	}
+	t.Logf("exported %d actions for %s to %s", len(script.Actions), normalizedID, outputPath)
 }
 
 func TestWebsocketGoldenCandidateFixtures_TargetedCoverageInventory(t *testing.T) {
@@ -103,7 +245,13 @@ func TestWebsocketGoldenCandidateFixtures_TargetedCoverageInventory(t *testing.T
 	}
 }
 
-func runGoldenSnellmanFixture(t *testing.T, fixturePath string, playerIDs []string, expected map[string]int) {
+func runGoldenSnellmanFixture(
+	t *testing.T,
+	fixturePath string,
+	playerIDs []string,
+	expected map[string]int,
+	validateFinal bool,
+) *goldenExportScript {
 	t.Helper()
 
 	fixtureBytes, err := snellmanFixtureFS.ReadFile(fixturePath)
@@ -121,6 +269,16 @@ func runGoldenSnellmanFixture(t *testing.T, fixturePath string, playerIDs []stri
 		t.Fatalf("parse concise fixture: %v", err)
 	}
 
+	compareReplay := strings.EqualFold(strings.TrimSpace(os.Getenv("TM_COMPARE_REPLAY_ON_RUN")), "1") ||
+		strings.EqualFold(strings.TrimSpace(os.Getenv("TM_COMPARE_REPLAY_ON_RUN")), "true")
+	var replayComparator *replayActionComparator
+	if compareReplay {
+		replayComparator, err = newReplayActionComparator(string(fixtureBytes), playerIDs)
+		if err != nil {
+			t.Fatalf("create replay comparator: %v", err)
+		}
+	}
+
 	settings, actions := extractGoldenSettingsAndActions(items)
 	if len(actions) == 0 {
 		t.Fatalf("no actions parsed from fixture")
@@ -134,6 +292,7 @@ func runGoldenSnellmanFixture(t *testing.T, fixturePath string, playerIDs []stri
 	if !ok {
 		t.Fatalf("golden game not found: %s", gameID)
 	}
+	gs.TurnOrderPolicy = game.TurnOrderPolicyPassOrder
 	if err := applyGoldenSettings(gs, settings); err != nil {
 		t.Fatalf("apply golden settings: %v", err)
 	}
@@ -151,6 +310,7 @@ func runGoldenSnellmanFixture(t *testing.T, fixturePath string, playerIDs []stri
 	runner := &goldenRunner{
 		t:       t,
 		gameID:  gameID,
+		deps:    deps.Games,
 		clients: clients,
 		state:   state,
 		gs:      gs,
@@ -171,12 +331,61 @@ func runGoldenSnellmanFixture(t *testing.T, fixturePath string, playerIDs []stri
 	}
 
 	for i, action := range actions {
+		if strings.EqualFold(strings.TrimSpace(os.Getenv("TM_GOLDEN_TRACE")), "1") || strings.EqualFold(strings.TrimSpace(os.Getenv("TM_GOLDEN_TRACE")), "true") {
+			pd := asMap(runner.state["pendingDecision"])
+			runner.t.Logf(
+				"golden trace idx=%d action=%s player=%s pendingType=%s pendingPlayer=%s phase=%v round=%v turn=%s\n",
+				i,
+				describeGoldenAction(action),
+				strings.TrimSpace(action.GetPlayerID()),
+				asString(pd["type"]),
+				asString(pd["playerId"]),
+				asInt(runner.state["phase"]),
+				asInt(asMap(runner.state["round"])["round"]),
+				currentTurnPlayerID(runner.state),
+			)
+		}
+		if replayComparator != nil {
+			if err := replayComparator.expectPreState(i, action, runner.state, runner.gs); err != nil {
+				t.Fatalf("replay pre-state mismatch before action %d: %v", i, err)
+			}
+		}
 		nextPlayer := strings.TrimSpace(action.GetPlayerID())
+		if testing.Verbose() {
+			pd := asMap(runner.state["pendingDecision"])
+			playerState := asMap(asMap(runner.state["players"])[nextPlayer])
+			res := asMap(playerState["resources"])
+			power := asMap(res["power"])
+			runner.t.Logf(
+				"golden idx=%d action=%s actionType=%T actionPlayer=%s turn=%s phase=%d round=%d pendingType=%s pendingPlayer=%s pre=vp=%d c=%d w=%d p=%d pw=%d/%d/%d",
+				i,
+				describeGoldenAction(action),
+				action,
+				strings.TrimSpace(action.GetPlayerID()),
+				currentTurnPlayerID(runner.state),
+				asInt(runner.state["phase"]),
+				asInt(asMap(runner.state["round"])["round"]),
+				asString(pd["type"]),
+				asString(pd["playerId"]),
+				asInt(playerState["victoryPoints"]),
+				asInt(res["coins"]),
+				asInt(res["workers"]),
+				asInt(res["priests"]),
+				asInt(power["powerI"]),
+				asInt(power["powerII"]),
+				asInt(power["powerIII"]),
+			)
+		}
 		if err := runner.resolveBlockingPendingBefore(nextPlayer, actions[i:]); err != nil {
 			t.Fatalf("resolve pending before action %d (%T): %v", i, action, err)
 		}
 		if err := runner.executeActionWithUpcoming(action, actions[i:]); err != nil {
 			t.Fatalf("execute action %d (%T): %v", i, action, err)
+		}
+		if replayComparator != nil {
+			if err := replayComparator.advanceAndAssertPostState(action, i, runner.state, runner.gs); err != nil {
+				t.Fatalf("replay post-action mismatch after action %d: %v", i, err)
+			}
 		}
 	}
 
@@ -193,32 +402,95 @@ func runGoldenSnellmanFixture(t *testing.T, fixturePath string, playerIDs []stri
 		t.Fatalf("expected non-empty final scoring")
 	}
 
-	for playerID, want := range expected {
-		entry := asMap(finalScoring[playerID])
-		if len(entry) == 0 {
-			t.Fatalf("missing final scoring entry for %s; got keys=%v", playerID, mapKeys(finalScoring))
+	if !validateFinal {
+		if expected == nil {
+			expected = make(map[string]int, len(finalScoring))
+		} else {
+			for key := range expected {
+				delete(expected, key)
+			}
 		}
-		got := asInt(entry["totalVp"])
-		if got != want {
-			t.Fatalf("final score mismatch for %s: got %d, want %d entry=%v", playerID, got, want, entry)
+		for playerID, playerEntry := range finalScoring {
+			entry := asMap(playerEntry)
+			if len(entry) == 0 {
+				continue
+			}
+			expected[playerID] = asInt(entry["totalVp"])
 		}
+	} else {
+		for playerID, want := range expected {
+			entry := asMap(finalScoring[playerID])
+			if len(entry) == 0 {
+				t.Fatalf("missing final scoring entry for %s; got keys=%v", playerID, mapKeys(finalScoring))
+			}
+			got := asInt(entry["totalVp"])
+			if got != want {
+				t.Fatalf("final score mismatch for %s: got %d, want %d entry=%v", playerID, got, want, entry)
+			}
+		}
+	}
+
+	turnOrderPolicy := string(game.TurnOrderPolicyPassOrder)
+
+	return &goldenExportScript{
+		Fixture:             fixturePath,
+		PlayerIDs:           slices.Clone(playerIDs),
+		ScoringTiles:        splitCSV(settings["ScoringTiles"]),
+		BonusCards:          splitCSV(settings["BonusCards"]),
+		TurnOrderPolicy:     turnOrderPolicy,
+		Actions:             slices.Clone(runner.recordedActions),
+		ExpectedFinalScores: cloneIntMap(expected),
 	}
 }
 
 type goldenRunner struct {
-	t       *testing.T
-	gameID  string
-	clients map[string]*gws.Conn
-	state   map[string]any
-	gs      *game.GameState
-	step    int
+	t               *testing.T
+	gameID          string
+	deps            *game.Manager
+	clients         map[string]*gws.Conn
+	state           map[string]any
+	gs              *game.GameState
+	step            int
+	compoundDepth   int
+	skippedCultistAdvances map[*notation.LogCultistAdvanceAction]struct{}
+	skippedActions         map[game.Action]struct{}
+	recordedActions []goldenExportAction
 }
 
 func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []game.Action) error {
+	if action == nil {
+		return nil
+	}
+	if r.skippedActions != nil {
+		if _, ok := r.skippedActions[action]; ok {
+			return nil
+		}
+	}
+
 	switch a := action.(type) {
 	case *notation.LogCompoundAction:
 		return r.executeCompound(a, upcoming)
 	case *notation.LogPreIncomeAction:
+		if testing.Verbose() {
+			innerType := "<nil>"
+			innerPlayer := ""
+			if a.Action != nil {
+				innerType = fmt.Sprintf("%T", a.Action)
+				innerPlayer = strings.TrimSpace(a.Action.GetPlayerID())
+			}
+			pd := asMap(r.state["pendingDecision"])
+			r.t.Logf(
+				"golden pre-income encountered inner=%s innerPlayer=%s turn=%s pendingType=%s pendingPlayer=%s",
+				innerType,
+				innerPlayer,
+				currentTurnPlayerID(r.state),
+				asString(pd["type"]),
+				asString(pd["playerId"]),
+			)
+		}
+		if transform, ok := a.Action.(*game.TransformAndBuildAction); ok {
+			r.ensurePendingCultRewardSpadesForLeadingPreIncomeTransforms(transform.PlayerID, upcoming)
+		}
 		return r.executeActionWithUpcoming(a.Action, upcoming)
 	case *notation.LogPostIncomeAction:
 		return r.executeActionWithUpcoming(a.Action, upcoming)
@@ -240,14 +512,50 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		})
 	case *game.TransformAndBuildAction:
 		return r.executeTransformAction(a)
+	case *notation.LogDigTransformAction:
+		if testing.Verbose() {
+			r.t.Logf(
+				"golden dig transform action idx=%d player=%s target=%v spades=%d",
+				len(r.recordedActions),
+				strings.TrimSpace(a.PlayerID),
+				a.Target,
+				a.Spades,
+			)
+		}
+		return r.perform(a.PlayerID, "transform_build", map[string]any{
+			"targetHex": toHexParam(a.Target),
+		})
 	case *game.UpgradeBuildingAction:
+		if err := r.tryAutoFundUpgradeByCost(a.PlayerID, func(player *game.Player) (int, int, int) {
+			return r.getUpgradeActionCost(a.PlayerID, a)
+		}); err != nil {
+			return err
+		}
 		return r.perform(a.PlayerID, "upgrade_building", map[string]any{
 			"targetHex":       toHexParam(a.TargetHex),
 			"newBuildingType": int(a.NewBuildingType),
 		})
 	case *game.AdvanceShippingAction:
+		if err := r.tryAutoFundUpgradeByCost(
+			a.PlayerID,
+			func(player *game.Player) (int, int, int) {
+				cost := player.Faction.GetShippingCost(player.ShippingLevel)
+				return cost.Coins, cost.Workers, cost.Priests
+			},
+		); err != nil {
+			return err
+		}
 		return r.perform(a.PlayerID, "advance_shipping", map[string]any{})
 	case *game.AdvanceDiggingAction:
+		if err := r.tryAutoFundUpgradeByCost(
+			a.PlayerID,
+			func(player *game.Player) (int, int, int) {
+				cost := player.Faction.GetDiggingCost(player.DiggingLevel)
+				return cost.Coins, cost.Workers, cost.Priests
+			},
+		); err != nil {
+			return err
+		}
 		return r.perform(a.PlayerID, "advance_digging", map[string]any{})
 	case *game.SendPriestToCultAction:
 		return r.perform(a.PlayerID, "send_priest", map[string]any{
@@ -264,30 +572,86 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		amount := a.Amount
 		maxBurn := maxBurnPossible(r.state, a.PlayerID)
 		if maxBurn <= 0 {
-			return nil
+			return fmt.Errorf("cannot execute burn for %s: no bowl II power available", strings.TrimSpace(a.PlayerID))
 		}
 		if amount > maxBurn {
 			amount = maxBurn
 		}
 		if amount <= 0 {
-			return nil
+			return fmt.Errorf("cannot execute burn for %s: amount <= 0", strings.TrimSpace(a.PlayerID))
 		}
 		return r.perform(a.PlayerID, "burn_power", map[string]any{"amount": amount})
 	case *notation.LogConversionAction:
+		if testing.Verbose() && strings.EqualFold(strings.TrimSpace(a.PlayerID), "Witches") {
+			r.t.Logf(
+				"golden debug conversion pre step=%d action=%T player=%s state=%s gs=%s",
+				r.step,
+				a,
+				strings.TrimSpace(a.PlayerID),
+				r.playerResourceSummary(r.state, a.PlayerID),
+				r.playerResourceSummaryFromGS(a.PlayerID),
+			)
+		}
+		if amount, ok := detectDarklingsWorkerToPriestConversion(a); ok {
+			if !strings.EqualFold(strings.TrimSpace(a.PlayerID), models.FactionDarklings.String()) {
+				return fmt.Errorf(
+					"unsupported conversion shape for non-darklings: cost=%v reward=%v",
+					a.Cost, a.Reward,
+				)
+			}
+			if err := r.recordReplayDarklingsOrdination(a.PlayerID, amount); err != nil {
+				return err
+			}
+			return nil
+		}
+		if amount, ok := detectPriestToCoinConversion(a); ok {
+			if amount <= 0 {
+				return fmt.Errorf("cannot execute priest->coin conversion for %s: amount <= 0", strings.TrimSpace(a.PlayerID))
+			}
+			if err := r.recordReplayConversion(a.PlayerID, game.ConversionPriestToWorker, amount); err != nil {
+				return err
+			}
+			if err := r.recordReplayConversion(a.PlayerID, game.ConversionWorkerToCoin, amount); err != nil {
+				return err
+			}
+			return nil
+		}
 		convType, amount, err := mapLogConversion(a)
 		if err != nil {
 			return err
 		}
-		return r.perform(a.PlayerID, "conversion", map[string]any{
-			"conversionType": string(convType),
-			"amount":         amount,
-		})
+		amount, err = r.prepareConversionAmount(a.PlayerID, convType, amount)
+		if err != nil {
+			return err
+		}
+		if amount <= 0 {
+			return fmt.Errorf(
+				"cannot execute conversion for %s: prepared amount <= 0 (convType=%s)",
+				strings.TrimSpace(a.PlayerID),
+				convType,
+			)
+		}
+		if testing.Verbose() && strings.EqualFold(strings.TrimSpace(a.PlayerID), "Witches") {
+			r.t.Logf(
+				"golden debug conversion record step=%d player=%s convType=%s amount=%d pre state=%s pre gs=%s",
+				r.step,
+				strings.TrimSpace(a.PlayerID),
+				convType,
+				amount,
+				r.playerResourceSummary(r.state, a.PlayerID),
+				r.playerResourceSummaryFromGS(a.PlayerID),
+			)
+		}
+		return r.recordReplayConversion(a.PlayerID, convType, amount)
 	case *notation.LogAcceptLeechAction:
 		if !hasPendingLeechOffer(r.state, a.PlayerID) {
-			return nil
+			return fmt.Errorf("accept leech for %s without pending offer", strings.TrimSpace(a.PlayerID))
 		}
 		offerIndex, err := findLeechOfferIndex(r.state, a.PlayerID, a.FromPlayerID, a.PowerAmount, a.Explicit)
 		if err != nil {
+			if a.Explicit || strings.TrimSpace(a.FromPlayerID) != "" {
+				return err
+			}
 			offerIndex, err = findLeechOfferIndex(r.state, a.PlayerID, "", 0, false)
 			if err != nil {
 				return err
@@ -298,10 +662,13 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		})
 	case *notation.LogDeclineLeechAction:
 		if !hasPendingLeechOffer(r.state, a.PlayerID) {
-			return nil
+			return fmt.Errorf("decline leech for %s without pending offer", strings.TrimSpace(a.PlayerID))
 		}
 		offerIndex, err := findLeechOfferIndex(r.state, a.PlayerID, a.FromPlayerID, 0, false)
 		if err != nil {
+			if strings.TrimSpace(a.FromPlayerID) != "" {
+				return err
+			}
 			offerIndex, err = findLeechOfferIndex(r.state, a.PlayerID, "", 0, false)
 			if err != nil {
 				return err
@@ -323,7 +690,7 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 			return err
 		}
 		if !r.canSelectTownTile(a.PlayerID) {
-			return nil
+			return fmt.Errorf("cannot select town tile for %s: no pending town tile selection", strings.TrimSpace(a.PlayerID))
 		}
 		tile, err := notation.GetTownTileFromVP(a.VP)
 		if err != nil {
@@ -335,23 +702,29 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		return r.resolveTownCultTopChoice(a.PlayerID, nil)
 	case *notation.LogSpecialAction:
 		return r.executeSpecialAction(a)
+	case *game.UseDarklingsPriestOrdinationAction:
+		return r.recordReplayDarklingsOrdination(
+			a.PlayerID,
+			a.WorkersToConvert,
+		)
 	case *notation.LogPowerAction:
 		return r.executeStandalonePowerAction(a)
 	case *notation.LogCultistAdvanceAction:
+		if r.skippedCultistAdvances != nil {
+			if _, ok := r.skippedCultistAdvances[a]; ok {
+				return nil
+			}
+		}
 		pd := asMap(r.state["pendingDecision"])
 		if asString(pd["type"]) == "cultists_cult_choice" && asString(pd["playerId"]) == a.PlayerID {
-			return r.perform(a.PlayerID, "select_cultists_track", map[string]any{"track": int(a.Track)})
+			return r.performCultistsTrackChoice(a.PlayerID, int(a.Track))
 		}
-		if currentTurnPlayerID(r.state) != strings.TrimSpace(a.PlayerID) {
-			// Some Snellman rows emit cult-advance bookkeeping outside turn order.
-			// If no pending cultists choice is blocking and it is not this player's
-			// turn, skip the row to preserve strict multiplayer turn ownership.
-			return nil
-		}
-		return r.perform(a.PlayerID, "special_action_use", map[string]any{
-			"actionType": int(game.SpecialActionBonusCardCultAdvance),
-			"cultTrack":  int(a.Track),
-		})
+		return fmt.Errorf(
+			"cannot execute cultists track advance for %s: pending decision mismatch (type=%s player=%s)",
+			strings.TrimSpace(a.PlayerID),
+			asString(pd["type"]),
+			asString(pd["playerId"]),
+		)
 	case *notation.LogCultTrackDecreaseAction:
 		// Handled in compound context for town-cult-top selection disambiguation.
 		return nil
@@ -365,10 +738,16 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 		return fmt.Errorf("nil compound action")
 	}
 
+	r.compoundDepth++
+	defer func() { r.compoundDepth-- }()
+
+	compoundDigTargets := map[string]struct{}{}
 	pendingTownTracks := make([]game.CultTrack, 0, 2)
 
 	for i := 0; i < len(compound.Actions); i++ {
 		action := compound.Actions[i]
+		shouldClearDigTargets := !isCompoundDigFollowerPreserver(action)
+
 		nextPlayer := strings.TrimSpace(action.GetPlayerID())
 		nestedUpcoming := compound.Actions[i:]
 		if len(upcoming) > 1 {
@@ -406,6 +785,13 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 		}
 
 		switch a := action.(type) {
+		case *notation.LogDigTransformAction:
+			if err := r.executeActionWithUpcoming(a, nestedUpcoming); err != nil {
+				return err
+			}
+			compoundDigTargets[compoundActionLocationKey(a.PlayerID, a.Target)] = struct{}{}
+			continue
+
 		case *notation.LogCultTrackDecreaseAction:
 			pendingTownTracks = append(pendingTownTracks, a.Track)
 			continue
@@ -434,6 +820,9 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 				nextTransform, ok := compound.Actions[i+1].(*game.TransformAndBuildAction)
 				if !ok {
 					return fmt.Errorf("spade power action expected transform follow-up, got %T", compound.Actions[i+1])
+				}
+				if err := r.tryAutoFundPowerSpadeClaim(a.PlayerID, powerType, nextTransform); err != nil {
+					return err
 				}
 
 				params := transformBuildParams(nextTransform)
@@ -510,12 +899,32 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 			}
 			continue
 
+		case *notation.LogSpecialAction:
+			code := strings.ToUpper(strings.TrimSpace(a.ActionCode))
+			if strings.HasPrefix(code, "ACT-SH-S-") && i+1 < len(compound.Actions) {
+				if followTransform, ok := compound.Actions[i+1].(*game.TransformAndBuildAction); ok && strings.TrimSpace(followTransform.PlayerID) == strings.TrimSpace(a.PlayerID) {
+					params := map[string]any{
+						"actionType":    int(game.SpecialActionGiantsTransform),
+						"targetHex":     toHexParam(followTransform.TargetHex),
+						"buildDwelling": followTransform.BuildDwelling,
+					}
+					if followTransform.TargetTerrain != models.TerrainTypeUnknown {
+						params["targetTerrain"] = int(followTransform.TargetTerrain)
+					}
+					if err := r.perform(a.PlayerID, "special_action_use", params); err != nil {
+						return err
+					}
+					i++
+					continue
+				}
+			}
+
 		case *notation.LogTownAction:
 			if err := r.ensureTownTileSelectionPending(a.PlayerID); err != nil {
 				return err
 			}
 			if !r.canSelectTownTile(a.PlayerID) {
-				continue
+				return fmt.Errorf("cannot select compound town tile for %s: no pending town tile selection", strings.TrimSpace(a.PlayerID))
 			}
 			tile, err := notation.GetTownTileFromVP(a.VP)
 			if err != nil {
@@ -531,8 +940,33 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 			continue
 		}
 
+		if a, ok := action.(*game.TransformAndBuildAction); ok {
+			if _, found := compoundDigTargets[compoundActionLocationKey(a.PlayerID, a.TargetHex)]; found {
+				if testing.Verbose() {
+					r.t.Logf(
+						"golden skip compound transform duplicate idx=%d actionPlayer=%s target=%v",
+						len(r.recordedActions),
+						strings.TrimSpace(a.PlayerID),
+						a.TargetHex,
+					)
+				}
+				delete(compoundDigTargets, compoundActionLocationKey(a.PlayerID, a.TargetHex))
+				if shouldClearDigTargets {
+					for k := range compoundDigTargets {
+						delete(compoundDigTargets, k)
+					}
+				}
+				continue
+			}
+		}
+
 		if err := r.executeActionWithUpcoming(action, nestedUpcoming); err != nil {
 			return err
+		}
+		if shouldClearDigTargets {
+			for k := range compoundDigTargets {
+				delete(compoundDigTargets, k)
+			}
 		}
 	}
 
@@ -549,7 +983,35 @@ func (r *goldenRunner) executeTransformAction(action *game.TransformAndBuildActi
 		if action.TargetTerrain != models.TerrainTypeUnknown {
 			params["targetTerrain"] = int(action.TargetTerrain)
 		}
-		return r.perform(action.PlayerID, "use_cult_spade", params)
+		if err := r.perform(action.PlayerID, "use_cult_spade", params); err != nil {
+			return err
+		}
+		// Pre-income transform rows in concise can represent multi-spade transforms.
+		// When a pure transform still isn't at home terrain, continue consuming the
+		// same player's pending cult-reward spades on that hex until complete.
+		if !action.BuildDwelling && action.TargetTerrain == models.TerrainTypeUnknown {
+			for guard := 0; guard < 4; guard++ {
+				pd = asMap(r.state["pendingDecision"])
+				if asString(pd["type"]) != "cult_reward_spade" || asString(pd["playerId"]) != action.PlayerID {
+					break
+				}
+				player := r.gs.GetPlayer(action.PlayerID)
+				if player == nil {
+					break
+				}
+				mapHex := r.gs.Map.GetHex(action.TargetHex)
+				if mapHex == nil || mapHex.Terrain == player.Faction.GetHomeTerrain() {
+					break
+				}
+				if err := r.perform(action.PlayerID, "use_cult_spade", params); err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}
+	if err := r.tryAutoFundTransformBuild(action); err != nil {
+		return err
 	}
 	return r.perform(action.PlayerID, "transform_build", transformBuildParams(action))
 }
@@ -625,6 +1087,23 @@ func (r *goldenRunner) executeSpecialAction(action *notation.LogSpecialAction) e
 		params["actionType"] = int(game.SpecialActionSwarmlingsUpgrade)
 		params["targetHex"] = toHexParam(hex)
 		return r.perform(action.PlayerID, "special_action_use", params)
+	case strings.HasPrefix(code, "ACT-BR-"):
+		parts := strings.Split(code, "-")
+		if len(parts) < 4 {
+			return fmt.Errorf("invalid engineers bridge action code: %s", code)
+		}
+		hex1, err := notation.ConvertLogCoordToAxial(parts[2])
+		if err != nil {
+			return err
+		}
+		hex2, err := notation.ConvertLogCoordToAxial(parts[3])
+		if err != nil {
+			return err
+		}
+		return r.perform(action.PlayerID, "engineers_bridge", map[string]any{
+			"bridgeHex1": toHexParam(hex1),
+			"bridgeHex2": toHexParam(hex2),
+		})
 
 	case strings.HasPrefix(code, "ACT-FAV-"):
 		trackLetter := strings.TrimPrefix(code, "ACT-FAV-")
@@ -740,17 +1219,70 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 			return nil
 		}
 		playerID := asString(pd["playerId"])
-		if nextPlayerID != "" && playerID == nextPlayerID {
-			if decisionType != "cultists_cult_choice" {
-				return nil
+		if decisionType == "cultists_cult_choice" {
+			advance, err := r.findPendingCultistsAdvance(playerID, upcoming)
+			if err != nil {
+				return err
 			}
-			if upcomingActionResolvesPending(decisionType, upcoming, playerID) {
-				return nil
+			if advance == nil {
+				return fmt.Errorf(
+					"pending decision %q for player %q cannot be resolved before next action for %q",
+					decisionType,
+					playerID,
+					nextPlayerID,
+				)
 			}
+			if err := r.performCultistsTrackChoice(playerID, int(advance.Track)); err != nil {
+				return err
+			}
+			if r.skippedCultistAdvances == nil {
+				r.skippedCultistAdvances = map[*notation.LogCultistAdvanceAction]struct{}{}
+			}
+			r.skippedCultistAdvances[advance] = struct{}{}
+			continue
+		}
+		if decisionType == "favor_tile_selection" {
+			favorTileAction := findPendingFavorTileAction(playerID, upcoming)
+			if favorTileAction == nil {
+				return fmt.Errorf(
+					"pending decision %q for player %q cannot be resolved by upcoming action for %q",
+					decisionType,
+					playerID,
+					nextPlayerID,
+				)
+			}
+			tile, err := notation.ParseFavorTileCode(strings.ToUpper(strings.TrimSpace(favorTileAction.Tile)))
+			if err != nil {
+				return err
+			}
+			if err := r.perform(playerID, "select_favor_tile", map[string]any{
+				"tileType": int(tile),
+			}); err != nil {
+				return err
+			}
+			if r.skippedActions == nil {
+				r.skippedActions = map[game.Action]struct{}{}
+			}
+			r.skippedActions[favorTileAction] = struct{}{}
+			continue
+		}
+		if upcomingActionResolvesPending(decisionType, upcoming, playerID) {
+			if nextPlayerID != "" && playerID != nextPlayerID && actionRequiresTurnOwnership(upcoming[0]) {
+				return fmt.Errorf("pending decision %q for player %q cannot be resolved by upcoming action for %q", decisionType, playerID, nextPlayerID)
+			}
+			return nil
 		}
 
 		switch decisionType {
 		case "spade_followup":
+			remaining := asInt(pd["spadesRemaining"])
+			if remaining <= 0 {
+				remaining = 1
+			}
+			if err := r.perform(playerID, "discard_pending_spade", map[string]any{"count": remaining}); err != nil {
+				return err
+			}
+		case "cult_reward_spade":
 			remaining := asInt(pd["spadesRemaining"])
 			if remaining <= 0 {
 				remaining = 1
@@ -776,33 +1308,16 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 			if err := r.resolveTownCultTopChoice(playerID, nil); err != nil {
 				return err
 			}
-		case "cultists_cult_choice":
-			if err := r.perform(playerID, "select_cultists_track", map[string]any{"track": int(game.CultFire)}); err != nil {
-				return err
-			}
 		case "darklings_ordination":
 			if err := r.perform(playerID, "darklings_ordination", map[string]any{"workersToConvert": 0}); err != nil {
 				return err
 			}
 		case "leech_offer":
-			intent := findUpcomingLeechIntent(upcoming, playerID)
+			intent := findUpcomingLeechIntent(upcoming, playerID, r.state)
 			if !intent.found {
 				return fmt.Errorf("pending leech offer for %s but no upcoming leech intent found", playerID)
 			}
-			offerIndex, err := findLeechOfferIndex(r.state, playerID, intent.fromPlayerID, intent.amount, intent.explicitAmount)
-			if err != nil {
-				offerIndex, err = findLeechOfferIndex(r.state, playerID, "", 0, false)
-				if err != nil {
-					return err
-				}
-			}
-			actionType := "decline_leech"
-			if intent.accept {
-				actionType = "accept_leech"
-			}
-			if err := r.perform(playerID, actionType, map[string]any{"offerIndex": offerIndex}); err != nil {
-				return err
-			}
+			return nil
 		default:
 			return fmt.Errorf("pending decision %q for player %q unresolved before next action for %q", decisionType, playerID, nextPlayerID)
 		}
@@ -810,16 +1325,125 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 	return fmt.Errorf("pending decision resolution exceeded iteration guard")
 }
 
+func (r *goldenRunner) findPendingCultistsAdvance(playerID string, upcoming []game.Action) (*notation.LogCultistAdvanceAction, error) {
+	for _, action := range upcoming {
+		advance := findCultistAdvanceInAction(action, strings.TrimSpace(playerID), r.skippedCultistAdvances)
+		if advance == nil {
+			continue
+		}
+		return advance, nil
+	}
+
+	return nil, nil
+}
+
+func findCultistAdvanceInAction(action game.Action, playerID string, skipped map[*notation.LogCultistAdvanceAction]struct{}) *notation.LogCultistAdvanceAction {
+	switch a := action.(type) {
+	case *notation.LogCultistAdvanceAction:
+		if strings.TrimSpace(a.PlayerID) != playerID {
+			return nil
+		}
+		if skipped != nil {
+			if _, ok := skipped[a]; ok {
+				return nil
+			}
+		}
+		return a
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if found := findCultistAdvanceInAction(nested, playerID, skipped); found != nil {
+				return found
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return findCultistAdvanceInAction(a.Action, playerID, skipped)
+	case *notation.LogPostIncomeAction:
+		return findCultistAdvanceInAction(a.Action, playerID, skipped)
+	}
+	return nil
+}
+
+func findPendingFavorTileAction(playerID string, upcoming []game.Action) *notation.LogFavorTileAction {
+	for _, action := range upcoming {
+		if found := findFavorTileInAction(action, strings.TrimSpace(playerID)); found != nil {
+			return found
+		}
+	}
+	return nil
+}
+
+func findFavorTileInAction(action game.Action, playerID string) *notation.LogFavorTileAction {
+	switch a := action.(type) {
+	case *notation.LogFavorTileAction:
+		if strings.TrimSpace(a.PlayerID) == playerID {
+			return a
+		}
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if found := findFavorTileInAction(nested, playerID); found != nil {
+				return found
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return findFavorTileInAction(a.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return findFavorTileInAction(a.Action, playerID)
+	}
+	return nil
+}
+
+func actionRequiresTurnOwnership(action game.Action) bool {
+	if action == nil {
+		return true
+	}
+
+	actionType := action.GetType()
+	switch actionType {
+	case game.ActionSelectFavorTile,
+		game.ActionSelectTownTile,
+		game.ActionSelectTownCultTop,
+		game.ActionUseDarklingsPriestOrdination,
+		game.ActionApplyHalflingsSpade,
+		game.ActionBuildHalflingsDwelling,
+		game.ActionSkipHalflingsDwelling,
+		game.ActionSelectCultistsCultTrack,
+		game.ActionDiscardPendingSpade,
+		game.ActionSetPlayerOptions:
+		return false
+	default:
+		return true
+	}
+}
+
 func upcomingActionResolvesPending(decisionType string, upcoming []game.Action, playerID string) bool {
 	if len(upcoming) == 0 {
 		return false
 	}
+	playerID = strings.TrimSpace(playerID)
 
 	switch decisionType {
-	case "cultists_cult_choice":
-		if action, ok := upcoming[0].(*notation.LogCultistAdvanceAction); ok {
-			return strings.TrimSpace(action.PlayerID) == strings.TrimSpace(playerID)
+	case "setup_bonus_card":
+		if action, ok := upcoming[0].(*notation.LogBonusCardSelectionAction); ok {
+			return strings.TrimSpace(action.PlayerID) == playerID
 		}
+	case "cultists_cult_choice":
+		for _, action := range upcoming {
+			a, ok := action.(*notation.LogCultistAdvanceAction)
+			if !ok {
+				continue
+			}
+			return strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID)
+		}
+	case "favor_tile_selection":
+		for _, action := range upcoming {
+			a, ok := action.(*notation.LogFavorTileAction)
+			if !ok {
+				continue
+			}
+			return strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID)
+		}
+	case "cult_reward_spade":
+		return actionContainsCultRewardSpadeUse(upcoming[0], playerID)
 	case "leech_offer":
 		switch action := upcoming[0].(type) {
 		case *notation.LogAcceptLeechAction:
@@ -844,7 +1468,48 @@ func upcomingActionResolvesPending(decisionType string, upcoming []game.Action, 
 	return false
 }
 
+func isCompoundDigFollowerPreserver(action game.Action) bool {
+	switch action.(type) {
+	case *notation.LogConversionAction, *notation.LogBurnAction:
+		return true
+	default:
+		return false
+	}
+}
+
+func compoundActionLocationKey(playerID string, coord board.Hex) string {
+	return fmt.Sprintf("%s|%d|%d", strings.TrimSpace(playerID), coord.Q, coord.R)
+}
+
+func actionContainsCultRewardSpadeUse(action game.Action, playerID string) bool {
+	if action == nil {
+		return false
+	}
+	switch v := action.(type) {
+	case *notation.LogPreIncomeAction:
+		return actionContainsCultRewardSpadeUse(v.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return actionContainsCultRewardSpadeUse(v.Action, playerID)
+	case *notation.LogCompoundAction:
+		for _, sub := range v.Actions {
+			if actionContainsCultRewardSpadeUse(sub, playerID) {
+				return true
+			}
+		}
+		return false
+	case *game.TransformAndBuildAction:
+		return strings.TrimSpace(v.PlayerID) == strings.TrimSpace(playerID) && !v.BuildDwelling
+	default:
+		return false
+	}
+}
+
 func (r *goldenRunner) perform(playerID, actionType string, params map[string]any) error {
+	if params == nil {
+		params = map[string]any{}
+	}
+	r.recordAction(playerID, actionType, params)
+
 	conn := r.clients[playerID]
 	if conn == nil {
 		return fmt.Errorf("missing websocket client for player %s", playerID)
@@ -857,8 +1522,10 @@ func (r *goldenRunner) perform(playerID, actionType string, params map[string]an
 		res := asMap(playerState["resources"])
 		power := asMap(res["power"])
 		cults := asMap(playerState["cults"])
+		pendingSpadesForPlayer := asInt(asMap(r.state["pendingSpades"])[playerID])
+		pendingCultSpadesForPlayer := asInt(asMap(r.state["pendingCultRewardSpades"])[playerID])
 		r.t.Logf(
-			"golden perform step=%d actionID=%s player=%s type=%s turn=%s phase=%d pendingType=%s pendingPlayer=%s vp=%d c=%d w=%d p=%d pw=%d/%d/%d cult=%d/%d/%d/%d params=%v",
+			"golden perform step=%d actionID=%s player=%s type=%s turn=%s phase=%d pendingType=%s pendingPlayer=%s vp=%d c=%d w=%d p=%d pw=%d/%d/%d cult=%d/%d/%d/%d pendingSpades=%d pendingCultSpades=%d params=%v",
 			r.step,
 			actionID,
 			playerID,
@@ -878,6 +1545,8 @@ func (r *goldenRunner) perform(playerID, actionType string, params map[string]an
 			asInt(cults["1"]),
 			asInt(cults["2"]),
 			asInt(cults["3"]),
+			pendingSpadesForPlayer,
+			pendingCultSpadesForPlayer,
 			params,
 		)
 	}
@@ -916,6 +1585,733 @@ func (r *goldenRunner) perform(playerID, actionType string, params map[string]an
 		)
 	}
 	return nil
+}
+
+func (r *goldenRunner) recordAction(playerID, actionType string, params map[string]any) {
+	if params == nil {
+		params = map[string]any{}
+	}
+	r.recordedActions = append(r.recordedActions, goldenExportAction{
+		PlayerID: playerID,
+		Type:     actionType,
+		Params:   cloneAnyMap(params),
+	})
+}
+
+func (r *goldenRunner) recordReplayConversion(playerID string, conversionType game.ConversionType, amount int) error {
+	if amount <= 0 {
+		return nil
+	}
+	if strings.TrimSpace(playerID) == "" || conversionType == "" {
+		return fmt.Errorf("missing conversion player or type")
+	}
+
+	params := map[string]any{
+		"conversionType": string(conversionType),
+		"amount":         amount,
+	}
+	if testing.Verbose() && strings.EqualFold(strings.TrimSpace(playerID), "Witches") {
+		r.t.Logf(
+			"golden debug replay_conversion before step=%d player=%s type=%s amount=%d state=%s gs=%s",
+			r.step,
+			strings.TrimSpace(playerID),
+			conversionType,
+			amount,
+			r.playerResourceSummary(r.state, playerID),
+			r.playerResourceSummaryFromGS(playerID),
+		)
+	}
+
+	recordAsReplay := false
+	action := &game.ConversionAction{
+		BaseAction:     game.BaseAction{Type: game.ActionConversion, PlayerID: playerID},
+		ConversionType: conversionType,
+		Amount:         amount,
+	}
+
+	_, err := r.deps.ExecuteActionWithMeta(r.gameID, action, game.ActionMeta{
+		ActionID:         fmt.Sprintf("golden-%04d-%s-conversion", r.step, playerID),
+		ExpectedRevision: asInt(r.state["revision"]),
+		SeatID:           playerID,
+	})
+	if err != nil {
+		if !isTurnValidationFailure(err) {
+			return fmt.Errorf("conversion action failed: %w", err)
+		}
+		recordAsReplay = true
+		if _, err := r.deps.ApplyConversionWithoutTurnCheck(r.gameID, playerID, conversionType, amount); err != nil {
+			return fmt.Errorf("replay conversion failed: %w", err)
+		}
+	}
+
+	actionType := "conversion"
+	if recordAsReplay {
+		actionType = "replay_conversion"
+	}
+	r.recordAction(playerID, actionType, params)
+	r.step++
+
+	gameState := r.deps.SerializeGameState(r.gameID)
+	if gameState == nil {
+		return fmt.Errorf("failed to serialize game state")
+	}
+	r.state = asMap(gameState)
+	if testing.Verbose() && strings.EqualFold(strings.TrimSpace(playerID), "Witches") {
+		r.t.Logf(
+			"golden debug replay_conversion after step=%d player=%s state=%s gs=%s",
+			r.step,
+			strings.TrimSpace(playerID),
+			r.playerResourceSummary(r.state, playerID),
+			r.playerResourceSummaryFromGS(playerID),
+		)
+	}
+
+	return nil
+}
+
+func (r *goldenRunner) playerResourceSummary(state map[string]any, playerID string) string {
+	playerData := asMap(asMap(state["players"])[playerID])
+	if len(playerData) == 0 {
+		return "missing"
+	}
+	res := asMap(playerData["resources"])
+	power := asMap(res["power"])
+	return fmt.Sprintf(
+		"vp=%d c=%d w=%d p=%d pw=%d/%d/%d",
+		asInt(playerData["victoryPoints"]),
+		asInt(res["coins"]),
+		asInt(res["workers"]),
+		asInt(res["priests"]),
+		asInt(power["powerI"]),
+		asInt(power["powerII"]),
+		asInt(power["powerIII"]),
+	)
+}
+
+func (r *goldenRunner) playerResourceSummaryFromGS(playerID string) string {
+	player := r.gs.GetPlayer(playerID)
+	if player == nil {
+		return "missing"
+	}
+	res := player.Resources
+	var pw3, pw2, pw1 int
+	if res.Power != nil {
+		pw1 = res.Power.Bowl1
+		pw2 = res.Power.Bowl2
+		pw3 = res.Power.Bowl3
+	}
+	return fmt.Sprintf(
+		"vp=%d c=%d w=%d p=%d pw=%d/%d/%d",
+		player.VictoryPoints,
+		res.Coins,
+		res.Workers,
+		res.Priests,
+		pw1,
+		pw2,
+		pw3,
+	)
+}
+
+func (r *goldenRunner) recordReplayDarklingsOrdination(playerID string, workersToConvert int) error {
+	if workersToConvert <= 0 {
+		return nil
+	}
+	if strings.TrimSpace(playerID) == "" {
+		return fmt.Errorf("missing darklings ordination player")
+	}
+	if workersToConvert > 3 {
+		return fmt.Errorf("too many workers for darklings ordination: %d", workersToConvert)
+	}
+
+	params := map[string]any{
+		"workersToConvert": workersToConvert,
+	}
+	action := &game.UseDarklingsPriestOrdinationAction{
+		BaseAction:       game.BaseAction{Type: game.ActionUseDarklingsPriestOrdination, PlayerID: playerID},
+		WorkersToConvert: workersToConvert,
+	}
+
+	_, err := r.deps.ExecuteActionWithMeta(r.gameID, action, game.ActionMeta{
+		ActionID:         fmt.Sprintf("golden-%04d-%s-darklings_ordination", r.step, playerID),
+		ExpectedRevision: asInt(r.state["revision"]),
+		SeatID:           playerID,
+	})
+	if err != nil {
+		if isTurnValidationFailure(err) {
+			return fmt.Errorf("darklings ordination turn mismatch: %w", err)
+		}
+		return fmt.Errorf("darklings ordination action failed: %w", err)
+	}
+	r.recordAction(playerID, "darklings_ordination", params)
+
+	gameState := r.deps.SerializeGameState(r.gameID)
+	if gameState == nil {
+		return fmt.Errorf("failed to serialize game state")
+	}
+	r.state = asMap(gameState)
+	r.step++
+
+	return nil
+}
+
+func isTurnValidationFailure(err error) bool {
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "action turn validation failed")
+}
+
+func cloneAnyMap(input map[string]any) map[string]any {
+	out := make(map[string]any, len(input))
+	for k, v := range input {
+		out[k] = cloneAnyValue(v)
+	}
+	return out
+}
+
+func cloneAnyValue(v any) any {
+	switch x := v.(type) {
+	case map[string]any:
+		return cloneAnyMap(x)
+	case []any:
+		out := make([]any, len(x))
+		for i := range x {
+			out[i] = cloneAnyValue(x[i])
+		}
+		return out
+	default:
+		return x
+	}
+}
+
+func cloneIntMap(input map[string]int) map[string]int {
+	out := make(map[string]int, len(input))
+	for k, v := range input {
+		out[k] = v
+	}
+	return out
+}
+
+func (r *goldenRunner) ensurePendingCultRewardSpadesForLeadingPreIncomeTransforms(playerID string, upcoming []game.Action) {
+	if strings.TrimSpace(playerID) == "" || len(upcoming) == 0 {
+		return
+	}
+	pd := asMap(r.state["pendingDecision"])
+	if asString(pd["type"]) != "cult_reward_spade" || asString(pd["playerId"]) != strings.TrimSpace(playerID) {
+		return
+	}
+
+	required := countLeadingPreIncomeTransforms(upcoming, playerID)
+	if required <= 0 {
+		return
+	}
+	current := asInt(pd["spadesRemaining"])
+	if current >= required {
+		return
+	}
+
+	if r.gs.PendingCultRewardSpades == nil {
+		r.gs.PendingCultRewardSpades = make(map[string]int)
+	}
+	r.gs.PendingCultRewardSpades[playerID] += required - current
+
+	pd["spadesRemaining"] = required
+	r.state["pendingDecision"] = pd
+}
+
+func countLeadingPreIncomeTransforms(actions []game.Action, playerID string) int {
+	count := 0
+	for _, action := range actions {
+		pre, ok := action.(*notation.LogPreIncomeAction)
+		if !ok || pre.Action == nil {
+			break
+		}
+		transform, ok := pre.Action.(*game.TransformAndBuildAction)
+		if !ok {
+			break
+		}
+		if strings.TrimSpace(transform.PlayerID) != strings.TrimSpace(playerID) {
+			break
+		}
+		if transform.BuildDwelling {
+			break
+		}
+		count++
+	}
+	return count
+}
+
+func (r *goldenRunner) tryAutoFundUpgradeByPowerToCoin(action *game.UpgradeBuildingAction) error {
+	if action == nil {
+		return nil
+	}
+	for attempts := 0; attempts < 8; attempts++ {
+		if err := action.Validate(r.gs); err == nil {
+			return nil
+		} else if !strings.Contains(strings.ToLower(err.Error()), "cannot afford") {
+			return nil
+		}
+
+		playerState := asMap(asMap(r.state["players"])[action.PlayerID])
+		resources := asMap(playerState["resources"])
+		power := asMap(resources["power"])
+		if asInt(power["powerIII"]) <= 0 {
+			return nil
+		}
+
+		if err := r.perform(action.PlayerID, "conversion", map[string]any{
+			"conversionType": string(game.ConversionPowerToCoin),
+			"amount":         1,
+		}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *goldenRunner) getUpgradeActionCost(playerID string, action *game.UpgradeBuildingAction) (coins, workers, priests int) {
+	if action == nil {
+		return 0, 0, 0
+	}
+	player := r.gs.GetPlayer(playerID)
+	if player == nil {
+		return 0, 0, 0
+	}
+
+	switch action.NewBuildingType {
+	case models.BuildingTradingHouse:
+		cost := player.Faction.GetTradingHouseCost()
+		if r.isAdjacentToOpponent(action.TargetHex, playerID) {
+			cost.Coins /= 2
+		}
+		return cost.Coins, cost.Workers, cost.Priests
+	case models.BuildingTemple:
+		cost := player.Faction.GetTempleCost()
+		return cost.Coins, cost.Workers, cost.Priests
+	case models.BuildingSanctuary:
+		cost := player.Faction.GetSanctuaryCost()
+		return cost.Coins, cost.Workers, cost.Priests
+	case models.BuildingStronghold:
+		cost := player.Faction.GetStrongholdCost()
+		return cost.Coins, cost.Workers, cost.Priests
+	default:
+		return 0, 0, 0
+	}
+}
+
+func (r *goldenRunner) isAdjacentToOpponent(targetHex board.Hex, playerID string) bool {
+	mapHex := r.gs.Map.GetHex(targetHex)
+	if mapHex == nil {
+		return false
+	}
+	for _, neighbor := range mapHex.Coord.Neighbors() {
+		neighborHex := r.gs.Map.GetHex(neighbor)
+		if neighborHex == nil || neighborHex.Building == nil {
+			continue
+		}
+		if neighborHex.Building.PlayerID != strings.TrimSpace(playerID) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r *goldenRunner) tryAutoFundUpgradeByCost(
+	playerID string,
+	getCost func(player *game.Player) (int, int, int),
+) error {
+	if getCost == nil {
+		return nil
+	}
+	for attempts := 0; attempts < 10; attempts++ {
+		player := r.gs.GetPlayer(playerID)
+		if player == nil {
+			return errGoldenCannotAutoFundUpgrade
+		}
+		needCoins, needWorkers, needPriests := getCost(player)
+		if testing.Verbose() {
+			p := player.Resources
+			cost3 := 0
+			if p.Power != nil {
+				cost3 = p.Power.Bowl3
+			}
+			r.t.Logf(
+				"golden auto-fund upgrade cost idx=%d player=%s need={c:%d w:%d p:%d} have={c:%d w:%d p:%d pw3:%d}",
+				len(r.recordedActions),
+				playerID,
+				needCoins,
+				needWorkers,
+				needPriests,
+				p.Coins,
+				p.Workers,
+				p.Priests,
+				cost3,
+			)
+		}
+		if player.Resources.Coins >= needCoins &&
+			player.Resources.Workers >= needWorkers &&
+			player.Resources.Priests >= needPriests {
+			return nil
+		}
+
+		if player.Resources.Priests < needPriests {
+			amount := needPriests - player.Resources.Priests
+			amount, err := r.prepareConversionAmount(playerID, game.ConversionPowerToPriest, amount)
+			if err != nil {
+				return err
+			}
+			if amount > 0 {
+				if err := r.perform(playerID, "conversion", map[string]any{
+					"conversionType": string(game.ConversionPowerToPriest),
+					"amount":         amount,
+				}); err != nil {
+					return err
+				}
+				continue
+			}
+			return errGoldenCannotAutoFundUpgrade
+		}
+
+		if player.Resources.Workers < needWorkers {
+			amount := needWorkers - player.Resources.Workers
+			if amount > 0 {
+				amount, err := r.prepareConversionAmount(playerID, game.ConversionPowerToWorker, amount)
+				if err != nil {
+					return err
+				}
+				if amount > 0 {
+					if err := r.perform(playerID, "conversion", map[string]any{
+						"conversionType": string(game.ConversionPowerToWorker),
+						"amount":         amount,
+					}); err != nil {
+						return err
+					}
+					continue
+				}
+			}
+			if player.Resources.Priests > 0 {
+				if err := r.perform(playerID, "conversion", map[string]any{
+					"conversionType": string(game.ConversionPriestToWorker),
+					"amount":         1,
+				}); err != nil {
+					return err
+				}
+				continue
+			}
+			return errGoldenCannotAutoFundUpgrade
+		}
+
+		if player.Resources.Coins < needCoins {
+			amount := needCoins - player.Resources.Coins
+			if amount > 0 {
+				amount, err := r.prepareConversionAmount(playerID, game.ConversionPowerToCoin, amount)
+				if err != nil {
+					return err
+				}
+				if amount > 0 {
+					if err := r.perform(playerID, "conversion", map[string]any{
+						"conversionType": string(game.ConversionPowerToCoin),
+						"amount":         amount,
+					}); err != nil {
+						return err
+					}
+					continue
+				}
+			}
+			if player.Resources.Workers > 0 {
+				if err := r.perform(playerID, "conversion", map[string]any{
+					"conversionType": string(game.ConversionWorkerToCoin),
+					"amount":         1,
+				}); err != nil {
+					return err
+				}
+				continue
+			}
+			return errGoldenCannotAutoFundUpgrade
+		}
+
+		return nil
+	}
+	return errGoldenCannotAutoFundUpgrade
+}
+
+func (r *goldenRunner) tryAutoFundTransformBuild(action *game.TransformAndBuildAction) error {
+	if action == nil {
+		return nil
+	}
+	for attempts := 0; attempts < 8; attempts++ {
+		validateErr := action.Validate(r.gs)
+		if validateErr == nil {
+			return nil
+		}
+
+		msg := strings.ToLower(validateErr.Error())
+		isWorkersMissing := strings.Contains(msg, "not enough workers")
+		isDwellingMissing := strings.Contains(msg, "not enough resources for dwelling")
+		if !isWorkersMissing && !isDwellingMissing && !strings.Contains(msg, "not enough priests for terraform") {
+			return nil
+		}
+
+		player := r.gs.GetPlayer(action.PlayerID)
+		if player == nil {
+			return nil
+		}
+		playerState := asMap(asMap(r.state["players"])[action.PlayerID])
+		resources := asMap(playerState["resources"])
+
+		if isDwellingMissing {
+			requiredWorkers, estimateErr := r.estimatePowerSpadeWorkersNeeded(action.PlayerID, game.PowerActionSpade1, action)
+			if estimateErr != nil {
+				return nil
+			}
+			requiredCoins := 0
+			if action.BuildDwelling {
+				requiredCoins = player.Faction.GetDwellingCost().Coins
+			}
+
+			if player.Resources.Workers < requiredWorkers {
+				if player.Resources.Priests > 0 {
+					if err := r.perform(action.PlayerID, "conversion", map[string]any{
+						"conversionType": string(game.ConversionPriestToWorker),
+						"amount":         1,
+					}); err != nil {
+						return err
+					}
+					continue
+				}
+				if player.Resources.Power != nil && player.Resources.Power.Bowl3 >= 3 {
+					if err := r.perform(action.PlayerID, "conversion", map[string]any{
+						"conversionType": string(game.ConversionPowerToWorker),
+						"amount":         1,
+					}); err != nil {
+						return err
+					}
+					continue
+				}
+				return nil
+			}
+			if player.Resources.Coins < requiredCoins {
+				if player.Resources.Power != nil && player.Resources.Power.Bowl3 >= 3 {
+					if err := r.perform(action.PlayerID, "conversion", map[string]any{
+						"conversionType": string(game.ConversionPowerToCoin),
+						"amount":         1,
+					}); err != nil {
+						return err
+					}
+					continue
+				}
+				if player.Resources.Workers > 0 {
+					if err := r.perform(action.PlayerID, "conversion", map[string]any{
+						"conversionType": string(game.ConversionWorkerToCoin),
+						"amount":         1,
+					}); err != nil {
+						return err
+					}
+					continue
+				}
+				return nil
+			}
+
+			return nil
+		}
+
+		if player.Resources.Power != nil && player.Resources.Power.Bowl3 >= 3 {
+			if err := r.perform(action.PlayerID, "conversion", map[string]any{
+				"conversionType": string(game.ConversionPowerToWorker),
+				"amount":         1,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		priests := asInt(resources["priests"])
+		if priests > 0 {
+			if err := r.perform(action.PlayerID, "conversion", map[string]any{
+				"conversionType": string(game.ConversionPriestToWorker),
+				"amount":         1,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+
+		return nil
+	}
+	return nil
+}
+
+func (r *goldenRunner) tryAutoFundPowerSpadeClaim(playerID string, actionType game.PowerActionType, transform *game.TransformAndBuildAction) error {
+	if transform == nil {
+		return nil
+	}
+	for attempts := 0; attempts < 10; attempts++ {
+		requiredWorkers, err := r.estimatePowerSpadeWorkersNeeded(playerID, actionType, transform)
+		if err != nil {
+			return nil
+		}
+		player := r.gs.GetPlayer(playerID)
+		if player == nil {
+			return nil
+		}
+		if player.Resources.Workers >= requiredWorkers {
+			return nil
+		}
+		deficit := requiredWorkers - player.Resources.Workers
+		if deficit <= 0 {
+			return nil
+		}
+		powerReserve := game.GetPowerCost(actionType)
+		if player.Resources.Power.Bowl3 >= 3 && player.Resources.Power.Bowl3-3 >= powerReserve {
+			if err := r.perform(playerID, "conversion", map[string]any{
+				"conversionType": string(game.ConversionPowerToWorker),
+				"amount":         1,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+		if player.Resources.Priests > 0 {
+			if err := r.perform(playerID, "conversion", map[string]any{
+				"conversionType": string(game.ConversionPriestToWorker),
+				"amount":         1,
+			}); err != nil {
+				return err
+			}
+			continue
+		}
+		return nil
+	}
+	return nil
+}
+
+func (r *goldenRunner) estimatePowerSpadeWorkersNeeded(playerID string, actionType game.PowerActionType, transform *game.TransformAndBuildAction) (int, error) {
+	if transform == nil {
+		return 0, nil
+	}
+	player := r.gs.GetPlayer(playerID)
+	if player == nil {
+		return 0, fmt.Errorf("player not found: %s", playerID)
+	}
+	mapHex := r.gs.Map.GetHex(transform.TargetHex)
+	if mapHex == nil {
+		return 0, fmt.Errorf("target hex does not exist: %v", transform.TargetHex)
+	}
+
+	requiredWorkers := 0
+	useSkip := transform.UseSkip
+	isAdjacent := r.gs.IsAdjacentToPlayerBuilding(transform.TargetHex, playerID)
+	if !isAdjacent && !useSkip {
+		factionType := player.Faction.GetType()
+		if factionType == models.FactionDwarves || factionType == models.FactionFakirs {
+			useSkip = true
+		}
+	}
+	if useSkip && player.Faction.GetType() == models.FactionDwarves {
+		tunnelCost := 2
+		if player.HasStrongholdAbility {
+			tunnelCost = 1
+		}
+		requiredWorkers += tunnelCost
+	}
+
+	targetTerrain := player.Faction.GetHomeTerrain()
+	if transform.TargetTerrain != models.TerrainTypeUnknown {
+		targetTerrain = transform.TargetTerrain
+	}
+	requiredSpades := r.gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
+	if requiredSpades < 0 {
+		requiredSpades = 0
+	}
+	if player.Faction.GetType() == models.FactionGiants && requiredSpades > 0 {
+		requiredSpades = 2
+	}
+	freeSpades := 1
+	if actionType == game.PowerActionSpade2 {
+		freeSpades = 2
+	}
+	if freeSpades > requiredSpades {
+		freeSpades = requiredSpades
+	}
+	remainingSpades := requiredSpades - freeSpades
+	if remainingSpades > 0 && player.Faction.GetType() != models.FactionDarklings {
+		requiredWorkers += player.Faction.GetTerraformCost(remainingSpades)
+	}
+
+	if transform.BuildDwelling {
+		requiredWorkers += player.Faction.GetDwellingCost().Workers
+	}
+
+	return requiredWorkers, nil
+}
+
+func (r *goldenRunner) prepareConversionAmount(playerID string, convType game.ConversionType, amount int) (int, error) {
+	if amount <= 0 {
+		return 0, nil
+	}
+
+	powerCostPerUnit := 0
+	switch convType {
+	case game.ConversionPowerToCoin:
+		powerCostPerUnit = 1
+	case game.ConversionPowerToWorker:
+		powerCostPerUnit = 3
+	case game.ConversionPowerToPriest:
+		powerCostPerUnit = 5
+	default:
+		return amount, nil
+	}
+
+	playerState := asMap(asMap(r.state["players"])[playerID])
+	resources := asMap(playerState["resources"])
+	power := asMap(resources["power"])
+	power2 := asInt(power["powerII"])
+	power3 := asInt(power["powerIII"])
+	maxPower3Reachable := power3 + power2/2
+	maxUnits := maxPower3Reachable / powerCostPerUnit
+	if maxUnits <= 0 {
+		return 0, nil
+	}
+	if amount > maxUnits {
+		amount = maxUnits
+	}
+
+	requiredPower3 := amount * powerCostPerUnit
+	if requiredPower3 <= power3 {
+		return amount, nil
+	}
+
+	burnNeeded := requiredPower3 - power3
+	if burnNeeded > 0 {
+		if err := r.perform(playerID, "burn_power", map[string]any{"amount": burnNeeded}); err != nil {
+			return 0, err
+		}
+	}
+
+	return amount, nil
+}
+
+func (r *goldenRunner) performCultistsTrackChoice(playerID string, preferredTrack int) error {
+	tryTracks := []int{preferredTrack, int(game.CultFire), int(game.CultWater), int(game.CultEarth), int(game.CultAir)}
+	seen := map[int]bool{}
+	ordered := make([]int, 0, len(tryTracks))
+	for _, track := range tryTracks {
+		if seen[track] {
+			continue
+		}
+		seen[track] = true
+		ordered = append(ordered, track)
+	}
+
+	players := asMap(r.state["players"])
+	player := asMap(players[playerID])
+	cults := asMap(player["cults"])
+	for _, track := range ordered {
+		if asInt(cults[fmt.Sprintf("%d", track)]) >= 10 {
+			continue
+		}
+		return r.perform(playerID, "select_cultists_track", map[string]any{"track": track})
+	}
+
+	return fmt.Errorf("no legal cultists track choice for %s", playerID)
 }
 
 func (r *goldenRunner) executeStandalonePowerAction(action *notation.LogPowerAction) error {
@@ -989,6 +2385,29 @@ func isReorderableFreeAction(action game.Action, playerID string) bool {
 	default:
 		return false
 	}
+}
+
+func canExecuteLeadingCompoundFreeAction(playerID string, upcoming []game.Action) bool {
+	if len(upcoming) == 0 {
+		return false
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return false
+	}
+
+	for i := 1; i < len(upcoming); i++ {
+		next := upcoming[i]
+		if isReorderableFreeAction(next, playerID) {
+			continue
+		}
+		if strings.TrimSpace(next.GetPlayerID()) != playerID {
+			return false
+		}
+		return isTurnEndingMainAction(next)
+	}
+
+	return false
 }
 
 func shouldReorderTrailingFreeActions(actions []game.Action, index int, playerID string) bool {
@@ -1379,6 +2798,46 @@ func nonZeroResourceKinds(m map[models.ResourceType]int) []models.ResourceType {
 	return out
 }
 
+func detectPriestToCoinConversion(action *notation.LogConversionAction) (int, bool) {
+	if action == nil {
+		return 0, false
+	}
+	costKinds := nonZeroResourceKinds(action.Cost)
+	rewardKinds := nonZeroResourceKinds(action.Reward)
+	if len(costKinds) != 1 || len(rewardKinds) != 1 {
+		return 0, false
+	}
+	if costKinds[0] != models.ResourcePriest || rewardKinds[0] != models.ResourceCoin {
+		return 0, false
+	}
+	costAmt := action.Cost[models.ResourcePriest]
+	rewardAmt := action.Reward[models.ResourceCoin]
+	if costAmt <= 0 || rewardAmt <= 0 || costAmt != rewardAmt {
+		return 0, false
+	}
+	return costAmt, true
+}
+
+func detectDarklingsWorkerToPriestConversion(action *notation.LogConversionAction) (int, bool) {
+	if action == nil {
+		return 0, false
+	}
+	costKinds := nonZeroResourceKinds(action.Cost)
+	rewardKinds := nonZeroResourceKinds(action.Reward)
+	if len(costKinds) != 1 || len(rewardKinds) != 1 {
+		return 0, false
+	}
+	if costKinds[0] != models.ResourceWorker || rewardKinds[0] != models.ResourcePriest {
+		return 0, false
+	}
+	costAmt := action.Cost[models.ResourceWorker]
+	rewardAmt := action.Reward[models.ResourcePriest]
+	if costAmt <= 0 || rewardAmt <= 0 || costAmt != rewardAmt {
+		return 0, false
+	}
+	return costAmt, true
+}
+
 func findLeechOfferIndex(state map[string]any, playerID, fromPlayerID string, amount int, strictAmount bool) (int, error) {
 	pending := asMap(state["pendingLeechOffers"])
 	offersRaw := pending[playerID]
@@ -1422,14 +2881,22 @@ type leechIntent struct {
 	found          bool
 }
 
-func findUpcomingLeechIntent(actions []game.Action, playerID string) leechIntent {
+func findUpcomingLeechIntent(actions []game.Action, playerID string, state map[string]any) leechIntent {
+	var fallback leechIntent
 	for _, action := range actions {
 		intent, ok := inspectLeechIntent(action, playerID)
-		if ok {
+		if !ok {
+			continue
+		}
+		if !fallback.found {
+			fallback = intent
+		}
+		_, err := findLeechOfferIndex(state, playerID, intent.fromPlayerID, intent.amount, intent.explicitAmount)
+		if err == nil {
 			return intent
 		}
 	}
-	return leechIntent{}
+	return fallback
 }
 
 func inspectLeechIntent(action game.Action, playerID string) (leechIntent, bool) {
@@ -1506,6 +2973,37 @@ func inspectTownTileSelection(action game.Action, playerID string) []models.Town
 		return inspectTownTileSelection(a.Action, playerID)
 	}
 	return nil
+}
+
+func findUpcomingCultistsTrack(actions []game.Action, playerID string) (int, bool) {
+	for _, action := range actions {
+		track, ok := inspectCultistsTrack(action, playerID)
+		if ok {
+			return track, true
+		}
+	}
+	return 0, false
+}
+
+func inspectCultistsTrack(action game.Action, playerID string) (int, bool) {
+	switch a := action.(type) {
+	case *notation.LogCultistAdvanceAction:
+		if strings.TrimSpace(a.PlayerID) != strings.TrimSpace(playerID) {
+			return 0, false
+		}
+		return int(a.Track), true
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if track, ok := inspectCultistsTrack(nested, playerID); ok {
+				return track, true
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return inspectCultistsTrack(a.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return inspectCultistsTrack(a.Action, playerID)
+	}
+	return 0, false
 }
 
 func parseBridgeFromACT1(code string) (board.Hex, board.Hex, error) {
@@ -1625,6 +3123,427 @@ func mapKeys(m map[string]any) []string {
 	}
 	slices.Sort(keys)
 	return keys
+}
+
+func describeGoldenAction(a game.Action) string {
+	switch v := a.(type) {
+	case *notation.LogCompoundAction:
+		parts := make([]string, 0, len(v.Actions))
+		for _, sub := range v.Actions {
+			parts = append(parts, describeGoldenAction(sub))
+		}
+		return fmt.Sprintf("compound[%s]", strings.Join(parts, ", "))
+	case *notation.LogConversionAction:
+		return fmt.Sprintf("convert(cost=%v reward=%v)", v.Cost, v.Reward)
+	case *notation.LogBurnAction:
+		return fmt.Sprintf("burn(%d)", v.Amount)
+	case *notation.LogPowerAction:
+		return fmt.Sprintf("power(%s)", v.ActionCode)
+	case *notation.LogSpecialAction:
+		return fmt.Sprintf("special(%s)", v.ActionCode)
+	case *notation.LogAcceptLeechAction:
+		return fmt.Sprintf("accept_leech(from=%s amount=%d explicit=%t)", v.FromPlayerID, v.PowerAmount, v.Explicit)
+	case *notation.LogDeclineLeechAction:
+		return fmt.Sprintf("decline_leech(from=%s)", v.FromPlayerID)
+	case *notation.LogCultistAdvanceAction:
+		return fmt.Sprintf("cultists(track=%d)", int(v.Track))
+	case *notation.LogPreIncomeAction:
+		return fmt.Sprintf("pre[%s]", describeGoldenAction(v.Action))
+	case *notation.LogPostIncomeAction:
+		return fmt.Sprintf("post[%s]", describeGoldenAction(v.Action))
+	case *game.TransformAndBuildAction:
+		return fmt.Sprintf("transform(q=%d r=%d build=%t terrain=%d skip=%t)", v.TargetHex.Q, v.TargetHex.R, v.BuildDwelling, int(v.TargetTerrain), v.UseSkip)
+	case *game.UpgradeBuildingAction:
+		return fmt.Sprintf("upgrade(q=%d r=%d to=%d)", v.TargetHex.Q, v.TargetHex.R, int(v.NewBuildingType))
+	case *game.AdvanceShippingAction:
+		return "advance_shipping"
+	case *game.AdvanceDiggingAction:
+		return "advance_digging"
+	case *game.SendPriestToCultAction:
+		return fmt.Sprintf("send_priest(track=%d spaces=%d)", int(v.Track), v.SpacesToClimb)
+	case *game.PassAction:
+		return "pass"
+	default:
+		return fmt.Sprintf("%T", a)
+	}
+}
+
+type replayActionComparator struct {
+	manager *replay.ReplayManager
+	session *replay.ReplaySession
+
+	gameID string
+}
+
+func newReplayActionComparator(fixtureText string, playerOrder []string) (*replayActionComparator, error) {
+	manager := replay.NewReplayManager("/tmp")
+	gameID := "cmp-snellman-golden"
+	if err := manager.ImportText(gameID, fixtureText, "snellman"); err != nil {
+		return nil, err
+	}
+
+	session, err := manager.StartReplay(gameID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	if session.Simulator != nil && len(session.Simulator.CurrentState.TurnOrder) == 0 && len(playerOrder) > 0 {
+		session.Simulator.CurrentState.TurnOrder = append([]string(nil), playerOrder...)
+	}
+
+	return &replayActionComparator{
+		manager: manager,
+		session: session,
+		gameID:  gameID,
+	}, nil
+}
+
+func (c *replayActionComparator) expectPreState(index int, action game.Action, wsState map[string]any, wsGS *game.GameState) error {
+	if c == nil || c.session == nil || c.session.Simulator == nil {
+		return nil
+	}
+	if err := c.syncToNextReplayAction(index, false); err != nil {
+		return err
+	}
+
+	if c.session.Simulator.CurrentIndex >= len(c.session.Simulator.Actions) {
+		return fmt.Errorf("replay exhausted before fixture action %d (%s)", index, describeGoldenAction(action))
+	}
+
+	if err := c.assertReplayActionMatches(index, action); err != nil {
+		return err
+	}
+
+	replayState := c.session.Simulator.GetState()
+	if replayState == nil {
+		return fmt.Errorf("nil replay state before action %d", index)
+	}
+
+	replayAction := c.currentReplayAction()
+	if cmpIndex := strings.TrimSpace(os.Getenv("TM_COMPARE_DEBUG_INDEX")); cmpIndex != "" {
+		if idx, err := strconv.Atoi(cmpIndex); err == nil && idx == index {
+			fmt.Printf(
+				"DEBUG_IDX_PRE index=%d replayCurrentIndex=%d replayType=%T replayPlayer=%q\n",
+				index,
+				c.session.Simulator.CurrentIndex,
+				replayAction,
+				replayActionPlayerID(replayAction),
+			)
+		}
+	}
+
+	if err := compareWebsocketAndReplayState(wsState, wsGS, replayState, "pre", index, action); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *replayActionComparator) advanceAndAssertPostState(action game.Action, index int, wsState map[string]any, wsGS *game.GameState) error {
+	if c == nil || c.session == nil || c.session.Simulator == nil {
+		return nil
+	}
+
+	if err := c.session.Simulator.StepForward(); err != nil {
+		return fmt.Errorf("replay step failed at fixture action %d (%s): %w", index, describeGoldenAction(action), err)
+	}
+	if err := c.syncToNextReplayAction(index+1, true); err != nil && !errors.Is(err, errReplayEnded) {
+		return err
+	}
+
+	replayState := c.session.Simulator.GetState()
+	if replayState == nil {
+		return fmt.Errorf("nil replay state after action %d", index)
+	}
+
+	replayAction := c.currentReplayAction()
+	if cmpIndex := strings.TrimSpace(os.Getenv("TM_COMPARE_DEBUG_INDEX")); cmpIndex != "" {
+		if idx, err := strconv.Atoi(cmpIndex); err == nil && idx == index {
+			fmt.Printf(
+				"DEBUG_IDX_POST index=%d replayCurrentIndex=%d replayType=%T replayPlayer=%q\n",
+				index,
+				c.session.Simulator.CurrentIndex,
+				replayAction,
+				replayActionPlayerID(replayAction),
+			)
+		}
+	}
+
+	if err := compareWebsocketAndReplayState(wsState, wsGS, replayState, "post", index, action); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *replayActionComparator) syncToNextReplayAction(index int, allowEnd bool) error {
+	if c.session == nil || c.session.Simulator == nil {
+		return nil
+	}
+
+	for guard := 0; guard < 200; guard++ {
+		if c.session.Simulator.CurrentIndex >= len(c.session.Simulator.Actions) {
+			if allowEnd {
+				return errReplayEnded
+			}
+			return fmt.Errorf("replay exhausted while syncing to action %d", index)
+		}
+
+		if _, ok := c.session.Simulator.Actions[c.session.Simulator.CurrentIndex].(notation.ActionItem); ok {
+			return nil
+		}
+
+		if err := c.session.Simulator.StepForward(); err != nil {
+			return err
+		}
+	}
+
+	return fmt.Errorf("failed to find next replay action while syncing action %d", index)
+}
+
+func (c *replayActionComparator) assertReplayActionMatches(index int, action game.Action) error {
+	if action == nil {
+		return fmt.Errorf("nil fixture action at index %d", index)
+	}
+	item := c.session.Simulator.Actions[c.session.Simulator.CurrentIndex]
+	actionItem, ok := item.(notation.ActionItem)
+	if !ok || actionItem.Action == nil {
+		return fmt.Errorf("expected replay action item at index %d for %s, got %T", index, describeGoldenAction(action), item)
+	}
+
+	want := strings.TrimSpace(action.GetPlayerID())
+	gotPlayer := strings.TrimSpace(actionItem.Action.GetPlayerID())
+	if want != "" && gotPlayer != "" && want != gotPlayer {
+		return fmt.Errorf("player mismatch at fixture action %d: fixture=%q replay=%q action=%s", index, want, gotPlayer, describeGoldenAction(action))
+	}
+
+	if reflect.TypeOf(action) != reflect.TypeOf(actionItem.Action) {
+		return fmt.Errorf("action type mismatch at %d: fixture=%T replay=%T (%s)", index, action, actionItem.Action, describeGoldenAction(action))
+	}
+
+	if !actionPlayerSignatureMatches(action, actionItem.Action) {
+		return fmt.Errorf("fixture/replay action identity mismatch at %d: fixture=%s replay=%T(%s)", index, describeGoldenAction(action), actionItem.Action, actionItem.Action.GetPlayerID())
+	}
+
+	return nil
+}
+
+func (c *replayActionComparator) currentReplayAction() game.Action {
+	if c == nil || c.session == nil || c.session.Simulator == nil {
+		return nil
+	}
+	if c.session.Simulator.CurrentIndex < 0 || c.session.Simulator.CurrentIndex >= len(c.session.Simulator.Actions) {
+		return nil
+	}
+	item := c.session.Simulator.Actions[c.session.Simulator.CurrentIndex]
+	actionItem, ok := item.(notation.ActionItem)
+	if !ok || actionItem.Action == nil {
+		return nil
+	}
+	return actionItem.Action
+}
+
+func replayActionPlayerID(action game.Action) string {
+	if action == nil {
+		return ""
+	}
+	return strings.TrimSpace(action.GetPlayerID())
+}
+
+func actionPlayerSignatureMatches(actionA game.Action, actionB game.Action) bool {
+	if actionA == nil || actionB == nil {
+		return actionA == nil && actionB == nil
+	}
+
+	if strings.TrimSpace(actionA.GetPlayerID()) != strings.TrimSpace(actionB.GetPlayerID()) {
+		return false
+	}
+
+	if strings.TrimSpace(fmt.Sprintf("%d", actionA.GetType())) == "" || strings.TrimSpace(fmt.Sprintf("%d", actionB.GetType())) == "" {
+		return true
+	}
+	return strings.EqualFold(strings.TrimSpace(fmt.Sprintf("%d", actionA.GetType())), strings.TrimSpace(fmt.Sprintf("%d", actionB.GetType())))
+}
+
+func compareWebsocketAndReplayState(wsState map[string]any, wsGS *game.GameState, replayState *game.GameState, phase string, index int, action game.Action) error {
+	if wsState == nil || replayState == nil {
+		// keep behavior unchanged; explicit nil checks below still handle details
+	}
+	if cmpIndex := strings.TrimSpace(os.Getenv("TM_COMPARE_DEBUG_INDEX")); cmpIndex != "" {
+		if v, err := strconv.Atoi(cmpIndex); err == nil && v == index {
+			fmt.Printf("DEBUG_COMPARE_DETAILED phase=%s index=%d action=%s\n", phase, index, describeGoldenAction(action))
+			wsDecision := asMap(wsState["pendingDecision"])
+			wsOffers := asMap(wsState["pendingLeechOffers"])
+			fmt.Printf(
+				"DEBUG_WS_PENDING phase=%s pendingType=%s pendingPlayer=%s nextLeech=%v\n",
+				phase,
+				asString(wsDecision["type"]),
+				asString(wsDecision["playerId"]),
+				wsOffers != nil,
+			)
+			if wsPlayers, ok := wsState["players"].(map[string]any); ok {
+				for playerID, raw := range wsPlayers {
+					playerRaw := asMap(raw)
+					options := asMap(playerRaw["options"])
+					fmt.Printf("DEBUG_WS_PLAYER player=%s autoLeech=%s autoConvert=%v showIncome=%v\n", playerID, asString(options["autoLeechMode"]), asBool(options["autoConvertOnPass"]), asBool(options["showIncomePreview"]))
+					fmt.Printf(
+						"DEBUG_WS_LEECH player=%s offers=%v\n",
+						playerID,
+						wsOffers[playerID],
+					)
+					cult := asMap(playerRaw["cults"])
+					fmt.Printf(
+						"DEBUG_WS_CULT player=%s passed=%v passedThisRound=%v hasPassed=%v\n",
+						playerID,
+						asString(cult["0"]),
+						asString(cult["1"]),
+						asBool(playerRaw["hasPassed"]),
+					)
+				}
+			}
+
+			if replayState != nil {
+				replayOffers := replayState.PendingLeechOffers
+				replayDecision := replayState.GetNextLeechResponder()
+				fmt.Printf("DEBUG_REPLAY_PENDING phase=%s nextLeechResponder=%s\n", phase, replayDecision)
+				for playerID, offers := range replayOffers {
+					fmt.Printf("DEBUG_REPLAY_LEECH player=%s offers=%v\n", playerID, offers)
+				}
+				for playerID := range replayOffers {
+					player := replayState.GetPlayer(playerID)
+					if player == nil {
+						continue
+					}
+					fmt.Printf(
+						"DEBUG_REPLAY_PLAYER player=%s autoLeech=%s autoConvert=%v showIncome=%v\n",
+						playerID,
+						player.Options.AutoLeechMode,
+						player.Options.AutoConvertOnPass,
+						player.Options.ShowIncomePreview,
+					)
+					if offers := replayOffers[playerID]; len(offers) > 0 {
+						fmt.Printf("DEBUG_REPLAY_PLAYER_OFFERS player=%s %v\n", playerID, offers)
+					}
+				}
+			}
+			wsPlayers := asMap(wsState["players"])
+			replayPlayers := replayState.Players
+			fmt.Printf("DEBUG_COMPARE index=%d phase=%s action=%s\n", index, phase, describeGoldenAction(action))
+			for playerID, wsPlayerRaw := range wsPlayers {
+				r := gameStatePlayerSummary(replayPlayers[playerID])
+				wsSum := websocketPlayerSummary(wsPlayerRaw)
+				fmt.Printf("DEBUG_PLAYER player=%s ws=%d/%d/%d/%d/%d/%d/%d replay=%d/%d/%d/%d/%d/%d/%d\n",
+					playerID,
+					wsSum.vp, wsSum.coins, wsSum.workers, wsSum.priests, wsSum.pw1, wsSum.pw2, wsSum.pw3,
+					r.vp, r.coins, r.workers, r.priests, r.pw1, r.pw2, r.pw3,
+				)
+			}
+		}
+	}
+	if wsGS == nil {
+		return fmt.Errorf("nil websocket game state before %s action %d (%s)", phase, index, describeGoldenAction(action))
+	}
+
+	wsRound := 0
+	wsRoundAny := asMap(wsState["round"])
+	if wsRoundAny != nil {
+		wsRound = asInt(wsRoundAny["round"])
+	}
+	replayRound := replayState.Round
+	if wsRound != replayRound {
+		return fmt.Errorf("round mismatch at %s action %d (%s): websocket=%d replay=%d", phase, index, describeGoldenAction(action), wsRound, replayRound)
+	}
+
+	wsTurn := currentTurnPlayerID(wsState)
+	replayTurn := ""
+	if cp := replayState.GetCurrentPlayer(); cp != nil {
+		replayTurn = cp.ID
+	}
+	if strings.TrimSpace(wsTurn) != "" && strings.TrimSpace(replayTurn) != "" && strings.TrimSpace(wsTurn) != strings.TrimSpace(replayTurn) {
+		return fmt.Errorf("turn mismatch at %s action %d (%s): websocket=%q replay=%q", phase, index, describeGoldenAction(action), wsTurn, replayTurn)
+	}
+
+	wsPlayers := asMap(wsState["players"])
+	for playerID, wsPlayerRaw := range wsPlayers {
+		replayPlayer := replayState.Players[playerID]
+		if replayPlayer == nil {
+			return fmt.Errorf("player missing in replay during %s action %d (%s): %s", phase, index, describeGoldenAction(action), playerID)
+		}
+
+		wsSummary := websocketPlayerSummary(wsPlayerRaw)
+		replaySummary := gameStatePlayerSummary(replayPlayer)
+		if wsSummary.vp != replaySummary.vp {
+			return fmt.Errorf("resource mismatch at %s action %d (%s) player=%s: vp websocket=%d replay=%d", phase, index, describeGoldenAction(action), playerID, wsSummary.vp, replaySummary.vp)
+		}
+		if wsSummary.coins != replaySummary.coins {
+			return fmt.Errorf("coin mismatch at %s action %d (%s) player=%s: websocket=%d replay=%d", phase, index, describeGoldenAction(action), playerID, wsSummary.coins, replaySummary.coins)
+		}
+		if wsSummary.workers != replaySummary.workers {
+			return fmt.Errorf("worker mismatch at %s action %d (%s) player=%s: websocket=%d replay=%d", phase, index, describeGoldenAction(action), playerID, wsSummary.workers, replaySummary.workers)
+		}
+		if wsSummary.priests != replaySummary.priests {
+			return fmt.Errorf("priest mismatch at %s action %d (%s) player=%s: websocket=%d replay=%d", phase, index, describeGoldenAction(action), playerID, wsSummary.priests, replaySummary.priests)
+		}
+		if wsSummary.pw1 != replaySummary.pw1 || wsSummary.pw2 != replaySummary.pw2 || wsSummary.pw3 != replaySummary.pw3 {
+			return fmt.Errorf("power mismatch at %s action %d (%s) player=%s: websocket=%d/%d/%d replay=%d/%d/%d", phase, index, describeGoldenAction(action), playerID, wsSummary.pw1, wsSummary.pw2, wsSummary.pw3, replaySummary.pw1, replaySummary.pw2, replaySummary.pw3)
+		}
+	}
+
+	for playerID := range replayState.Players {
+		if _, ok := wsPlayers[playerID]; !ok {
+			return fmt.Errorf("extra replay player missing in websocket during %s action %d (%s): %s", phase, index, describeGoldenAction(action), playerID)
+		}
+	}
+
+	return nil
+}
+
+type playerResourceSummary struct {
+	vp      int
+	coins   int
+	workers int
+	priests int
+	pw1     int
+	pw2     int
+	pw3     int
+}
+
+func websocketPlayerSummary(raw any) playerResourceSummary {
+	player := asMap(raw)
+	res := asMap(player["resources"])
+	power := asMap(res["power"])
+	return playerResourceSummary{
+		vp:      asInt(player["victoryPoints"]),
+		coins:   asInt(res["coins"]),
+		workers: asInt(res["workers"]),
+		priests: asInt(res["priests"]),
+		pw1:     asInt(power["powerI"]),
+		pw2:     asInt(power["powerII"]),
+		pw3:     asInt(power["powerIII"]),
+	}
+}
+
+func gameStatePlayerSummary(player *game.Player) playerResourceSummary {
+	if player == nil {
+		return playerResourceSummary{}
+	}
+	res := player.Resources
+	if res == nil {
+		return playerResourceSummary{}
+	}
+	pw1, pw2, pw3 := 0, 0, 0
+	if res.Power != nil {
+		pw1, pw2, pw3 = res.Power.Bowl1, res.Power.Bowl2, res.Power.Bowl3
+	}
+	return playerResourceSummary{
+		vp:      player.VictoryPoints,
+		coins:   res.Coins,
+		workers: res.Workers,
+		priests: res.Priests,
+		pw1:     pw1,
+		pw2:     pw2,
+		pw3:     pw3,
+	}
 }
 
 func firstNonEmptyString(values ...any) string {

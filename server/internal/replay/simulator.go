@@ -63,7 +63,10 @@ func (s *GameSimulator) StepForward() error {
 
 	item := s.Actions[s.CurrentIndex]
 
-	// Check for missing Round 0 bonus cards before Round 1 starts
+	// Check for missing Round 0 bonus cards before Round 1 starts.
+	// After setup is completed, `CompleteSetupAndStartRoundOne` advances directly into
+	// action phase and clears `BonusCards.PlayerHasCard`, so we must allow that path
+	// to skip strict setup validation once setup has actually completed.
 	if rs, ok := item.(notation.RoundStartItem); ok && rs.Round == 1 {
 		// Ensure TurnOrder is populated if empty (might happen if players added via map iteration)
 		if len(s.CurrentState.TurnOrder) == 0 {
@@ -72,17 +75,22 @@ func (s *GameSimulator) StepForward() error {
 			}
 		}
 
-		// Check if all players have a bonus card
-		missingPlayers := make([]string, 0)
-		for _, p := range s.CurrentState.TurnOrder {
-			if !s.CurrentState.BonusCards.PlayerHasCard[p] {
-				missingPlayers = append(missingPlayers, p)
+		// During strict strict-setup replay, RoundStart for round 1 can appear before
+		// all bonus card rows are replayed. Skip the strict check while still in setup
+		// so setup bonus-card rows can execute before round-start bonuses become required.
+		if s.CurrentState.Phase != game.PhaseSetup && s.CurrentState.SetupSubphase != game.SetupSubphaseComplete {
+			// Check if all players have a bonus card
+			missingPlayers := make([]string, 0)
+			for _, p := range s.CurrentState.TurnOrder {
+				if !s.CurrentState.BonusCards.PlayerHasCard[p] {
+					missingPlayers = append(missingPlayers, p)
+				}
 			}
-		}
-		if len(missingPlayers) > 0 {
-			return &game.MissingInfoError{
-				Type:    "initial_bonus_card",
-				Players: missingPlayers,
+			if len(missingPlayers) > 0 {
+				return &game.MissingInfoError{
+					Type:    "initial_bonus_card",
+					Players: missingPlayers,
+				}
 			}
 		}
 	}
@@ -148,6 +156,21 @@ func (s *GameSimulator) StepForward() error {
 			}
 		}
 	case notation.RoundStartItem:
+		if v.Round == 1 && s.CurrentState.Phase == game.PhaseSetup {
+			if len(v.TurnOrder) > 0 {
+				s.CurrentState.TurnOrder = v.TurnOrder
+			}
+			s.CurrentState.Round = v.Round
+
+			// Setup logs include Round 1 income separately, and the websocket state is already
+			// in action phase when this transition is processed. Calling CompleteSetupAndStartRoundOne()
+			// aligns simulator state with websocket behavior for this transition.
+			s.CurrentState.CompleteSetupAndStartRoundOne()
+			s.incomePending = false
+			s.incomeGranted = false
+			break
+		}
+
 		// If the previous round has ended (all players passed), execute cleanup now.
 		// Snellman/BGA logs can contain late reactions after the final PASS of the round
 		// (leeches, Cultists +TRACK bonuses, etc.). Triggering cleanup immediately on

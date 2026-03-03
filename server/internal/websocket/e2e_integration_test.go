@@ -638,8 +638,12 @@ func readUntilStateRevisionAtLeast(t *testing.T, conn *gws.Conn, revision int, t
 		}
 
 		payload := asMap(msg["payload"])
-		if asInt(payload["revision"]) >= revision {
+		got := asInt(payload["revision"])
+		if got == revision {
 			return payload
+		}
+		if got > revision {
+			t.Fatalf("unexpected websocket state revision while waiting for revision %d: got %d", revision, got)
 		}
 	}
 }

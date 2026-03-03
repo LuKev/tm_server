@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
+	"github.com/lukev/tm_server/internal/notation"
 )
 
 const (
@@ -91,6 +93,37 @@ type performActionPayload struct {
 type nestedActionPayload struct {
 	Type   string          `json:"type"`
 	Params json.RawMessage `json:"params,omitempty"`
+}
+
+type testApplyFixtureSettingsPayload struct {
+	GameID          string   `json:"gameID"`
+	ScoringTiles    []string `json:"scoringTiles"`
+	BonusCards      []string `json:"bonusCards"`
+	TurnOrderPolicy string   `json:"turnOrderPolicy,omitempty"`
+}
+
+type testReplayActionPayload struct {
+	PlayerID string          `json:"playerId"`
+	Type     string          `json:"type"`
+	Params   json.RawMessage `json:"params,omitempty"`
+}
+
+type testConversionPayload struct {
+	ConversionType string `json:"conversionType"`
+	Amount         int    `json:"amount"`
+}
+
+type testApplyConversionPayload struct {
+	GameID         string `json:"gameID"`
+	PlayerID       string `json:"playerId"`
+	ConversionType string `json:"conversionType"`
+	Amount         int    `json:"amount"`
+}
+
+type testReplayActionsToIndexPayload struct {
+	GameID       string                    `json:"gameID"`
+	EndExclusive int                       `json:"endExclusive"`
+	Actions      []testReplayActionPayload `json:"actions"`
 }
 
 func (c *Client) bindSeat(gameID, playerID string) {
@@ -192,10 +225,278 @@ func (c *Client) handleInboundMessage(env inboundMsg) {
 
 	case "perform_action":
 		c.handlePerformAction(env.Payload)
+	case "test_apply_conversion":
+		c.handleTestApplyConversion(env.Payload)
+	case "test_apply_fixture_settings":
+		c.handleTestApplyFixtureSettings(env.Payload)
+	case "test_replay_actions_to_index":
+		c.handleTestReplayActionsToIndex(env.Payload)
 
 	default:
 		log.Printf("Unknown message type: %s", env.Type)
 	}
+}
+
+func (c *Client) handleTestApplyFixtureSettings(payload json.RawMessage) {
+	if os.Getenv("TM_ENABLE_TEST_COMMANDS") != "1" {
+		c.sendActionRejected("", "forbidden", "test commands are disabled")
+		return
+	}
+
+	var p testApplyFixtureSettingsPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		c.sendActionRejected("", "invalid_payload", "invalid fixture settings payload")
+		return
+	}
+	p.GameID = strings.TrimSpace(p.GameID)
+	if p.GameID == "" {
+		c.sendActionRejected("", "missing_game_id", "missing game id")
+		return
+	}
+
+	seatID := c.seatForGame(p.GameID)
+	if seatID == "" {
+		c.sendActionRejected("", "unauthorized", "you are not seated in this game")
+		return
+	}
+
+	scoringTiles, err := scoringTilesFromCodesForFixture(p.ScoringTiles)
+	if err != nil {
+		c.sendActionRejected("", "invalid_scoring_tiles", err.Error())
+		return
+	}
+	bonusCards, err := bonusCardsFromCodesForFixture(p.BonusCards)
+	if err != nil {
+		c.sendActionRejected("", "invalid_bonus_cards", err.Error())
+		return
+	}
+	turnOrderPolicy, err := turnOrderPolicyFromFixturePayload(p.TurnOrderPolicy)
+	if err != nil {
+		c.sendActionRejected("", "invalid_turn_order_policy", err.Error())
+		return
+	}
+
+	newRevision, err := c.deps.Games.ApplyFixtureSettings(p.GameID, scoringTiles, bonusCards, turnOrderPolicy)
+	if err != nil {
+		c.sendActionRejected("", "apply_failed", err.Error())
+		return
+	}
+
+	gameState := c.deps.Games.SerializeGameState(p.GameID)
+	if gameState == nil {
+		c.sendActionRejected("", "apply_failed", "failed to serialize game state")
+		return
+	}
+	stateMsg, _ := json.Marshal(map[string]any{
+		"type":    "game_state_update",
+		"payload": gameState,
+	})
+	c.hub.BroadcastToGame(p.GameID, stateMsg)
+
+	ack, _ := json.Marshal(map[string]any{
+		"type": "test_command_applied",
+		"payload": map[string]any{
+			"gameID":      p.GameID,
+			"newRevision": newRevision,
+		},
+	})
+	c.send <- ack
+}
+
+func (c *Client) handleTestApplyConversion(payload json.RawMessage) {
+	if os.Getenv("TM_ENABLE_TEST_COMMANDS") != "1" {
+		c.sendActionRejected("", "forbidden", "test commands are disabled")
+		return
+	}
+
+	var p testApplyConversionPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		c.sendActionRejected("", "invalid_payload", "invalid conversion payload")
+		return
+	}
+
+	gameID := strings.TrimSpace(p.GameID)
+	if gameID == "" {
+		c.sendActionRejected("", "missing_game_id", "missing game id")
+		return
+	}
+
+	seatID := c.seatForGame(gameID)
+	if seatID == "" {
+		c.sendActionRejected("", "unauthorized", "you are not seated in this game")
+		return
+	}
+
+	playerID := strings.TrimSpace(p.PlayerID)
+	if playerID == "" {
+		playerID = seatID
+	}
+	if playerID != seatID {
+		// Keep test command usage scoped to the sender's seat to avoid
+		// unintended cross-game mutations during automation.
+		c.sendActionRejected("", "unauthorized", "player is not your seat")
+		return
+	}
+
+	if playerID == "" {
+		c.sendActionRejected("", "missing_player_id", "missing player id")
+		return
+	}
+
+	amount := p.Amount
+	if amount <= 0 {
+		c.sendActionRejected("", "invalid_amount", "amount must be positive")
+		return
+	}
+
+	conversionType := game.ConversionType(strings.TrimSpace(p.ConversionType))
+	if conversionType == "" {
+		c.sendActionRejected("", "invalid_conversion_type", "missing conversionType")
+		return
+	}
+
+	if _, err := c.deps.Games.ApplyConversionWithoutTurnCheck(gameID, playerID, conversionType, amount); err != nil {
+		c.sendActionRejected("", "conversion_failed", err.Error())
+		return
+	}
+
+	gameState := c.deps.Games.SerializeGameState(gameID)
+	if gameState == nil {
+		c.sendActionRejected("", "test_command_failed", "failed to serialize game state")
+		return
+	}
+
+	stateMsg, _ := json.Marshal(map[string]any{
+		"type":    "game_state_update",
+		"payload": gameState,
+	})
+	c.hub.BroadcastToGame(gameID, stateMsg)
+
+	ack, _ := json.Marshal(map[string]any{
+		"type": "test_command_applied",
+		"payload": map[string]any{
+			"gameID":        gameID,
+			"playerId":      playerID,
+			"conversionType": conversionType,
+			"amount":        amount,
+		},
+	})
+	c.send <- ack
+}
+
+func (c *Client) handleTestReplayActionsToIndex(payload json.RawMessage) {
+	if os.Getenv("TM_ENABLE_TEST_COMMANDS") != "1" {
+		c.sendActionRejected("", "forbidden", "test commands are disabled")
+		return
+	}
+
+	var p testReplayActionsToIndexPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		c.sendActionRejected("", "invalid_payload", "invalid replay payload")
+		return
+	}
+	p.GameID = strings.TrimSpace(p.GameID)
+	if p.GameID == "" {
+		c.sendActionRejected("", "missing_game_id", "missing game id")
+		return
+	}
+	if p.EndExclusive < 0 {
+		c.sendActionRejected("", "invalid_index", "endExclusive must be >= 0")
+		return
+	}
+	if p.EndExclusive > len(p.Actions) {
+		c.sendActionRejected("", "invalid_index", "endExclusive exceeds action list length")
+		return
+	}
+
+	seatID := c.seatForGame(p.GameID)
+	if seatID == "" {
+		c.sendActionRejected("", "unauthorized", "you are not seated in this game")
+		return
+	}
+
+	for i := 0; i < p.EndExclusive; i++ {
+		replay := p.Actions[i]
+		playerID := strings.TrimSpace(replay.PlayerID)
+		if playerID == "" {
+			c.sendActionRejected("", "invalid_action", fmt.Sprintf("action %d missing playerId", i))
+			return
+		}
+
+		if strings.TrimSpace(replay.Type) == "replay_conversion" {
+			if err := c.handleTestReplayConversionPayload(p.GameID, playerID, replay.Params); err != nil {
+				c.sendActionRejected("", "replay_failed", fmt.Sprintf("action %d execute failed: %v", i, err))
+				return
+			}
+			continue
+		}
+
+		req := performActionPayload{
+			Type:     strings.TrimSpace(replay.Type),
+			GameID:   p.GameID,
+			ActionID: fmt.Sprintf("test-replay-%d", i),
+			Params:   replay.Params,
+		}
+		action, err := buildActionFromPayload(req, playerID)
+		if err != nil {
+			c.sendActionRejected("", "invalid_action", fmt.Sprintf("action %d parse failed: %v", i, err))
+			return
+		}
+
+		_, err = c.deps.Games.ExecuteActionWithMeta(p.GameID, action, game.ActionMeta{
+			ActionID:         req.ActionID,
+			ExpectedRevision: -1,
+			SeatID:           playerID,
+		})
+		if err != nil {
+			c.sendActionRejected("", "replay_failed", fmt.Sprintf("action %d execute failed: %v", i, err))
+			return
+		}
+	}
+
+	gameState := c.deps.Games.SerializeGameState(p.GameID)
+	if gameState == nil {
+		c.sendActionRejected("", "replay_failed", "failed to serialize game state")
+		return
+	}
+
+	stateMsg, _ := json.Marshal(map[string]any{
+		"type":    "game_state_update",
+		"payload": gameState,
+	})
+	c.hub.BroadcastToGame(p.GameID, stateMsg)
+
+	ack, _ := json.Marshal(map[string]any{
+		"type": "test_command_applied",
+		"payload": map[string]any{
+			"gameID":       p.GameID,
+			"endExclusive": p.EndExclusive,
+		},
+	})
+	c.send <- ack
+}
+
+func (c *Client) handleTestReplayConversionPayload(gameID, playerID string, payload json.RawMessage) error {
+	var p testConversionPayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		return fmt.Errorf("invalid conversion payload: %w", err)
+	}
+
+	conversionType := game.ConversionType(strings.TrimSpace(p.ConversionType))
+	if conversionType == "" {
+		return fmt.Errorf("missing conversionType")
+	}
+
+	amount := p.Amount
+	if amount <= 0 {
+		return fmt.Errorf("amount must be positive")
+	}
+
+	if _, err := c.deps.Games.ApplyConversionWithoutTurnCheck(gameID, strings.TrimSpace(playerID), conversionType, amount); err != nil {
+		return fmt.Errorf("conversion failed: %w", err)
+	}
+
+	return nil
 }
 
 func (c *Client) handleStartGame(payload json.RawMessage) {
@@ -494,6 +795,18 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			return false, fmt.Errorf("invalid bool parameter")
 		}
 		return val, nil
+	}
+
+	parseOptionalBoolParam := func(keys ...string) (*bool, error) {
+		raw, ok := getParam(keys...)
+		if !ok {
+			return nil, nil
+		}
+		var val bool
+		if err := json.Unmarshal(raw, &val); err != nil {
+			return nil, fmt.Errorf("invalid bool parameter")
+		}
+		return &val, nil
 	}
 
 	parseStringParam := func(keys ...string) (string, error) {
@@ -843,6 +1156,30 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			BaseAction: game.BaseAction{Type: game.ActionBurnPower, PlayerID: seatID},
 			Amount:     amount,
 		}, nil
+
+	case "set_player_options":
+		var autoLeechMode *game.LeechAutoMode
+		if raw, ok := getParam("autoLeechMode"); ok {
+			s, err := parseStringRaw(raw)
+			if err != nil {
+				return nil, fmt.Errorf("invalid autoLeechMode: %w", err)
+			}
+			mode := game.LeechAutoMode(strings.TrimSpace(s))
+			autoLeechMode = &mode
+		}
+		confirmActions, err := parseOptionalBoolParam("confirmActions")
+		if err != nil {
+			return nil, err
+		}
+		autoConvertOnPass, err := parseOptionalBoolParam("autoConvertOnPass")
+		if err != nil {
+			return nil, err
+		}
+		showIncomePreview, err := parseOptionalBoolParam("showIncomePreview")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSetPlayerOptionsAction(seatID, autoLeechMode, autoConvertOnPass, confirmActions, showIncomePreview), nil
 
 	default:
 		return nil, fmt.Errorf("unknown action type: %s", req.Type)
@@ -1200,6 +1537,80 @@ func parseStringRaw(raw json.RawMessage) (string, error) {
 		return "", err
 	}
 	return s, nil
+}
+
+func scoringTilesFromCodesForFixture(codes []string) ([]game.ScoringTile, error) {
+	typeByCode := map[string]game.ScoringTileType{
+		"SCORE1": game.ScoringSpades,
+		"SCORE2": game.ScoringTown,
+		"SCORE3": game.ScoringDwellingWater,
+		"SCORE4": game.ScoringStrongholdFire,
+		"SCORE5": game.ScoringDwellingFire,
+		"SCORE6": game.ScoringTradingHouseWater,
+		"SCORE7": game.ScoringStrongholdAir,
+		"SCORE8": game.ScoringTradingHouseAir,
+		"SCORE9": game.ScoringTemplePriest,
+	}
+
+	allTiles := game.GetAllScoringTiles()
+	tileByType := make(map[game.ScoringTileType]game.ScoringTile, len(allTiles))
+	for _, tile := range allTiles {
+		tileByType[tile.Type] = tile
+	}
+
+	out := make([]game.ScoringTile, 0, len(codes))
+	for _, rawCode := range codes {
+		code := strings.ToUpper(strings.TrimSpace(rawCode))
+		if code == "" {
+			continue
+		}
+		tileType, ok := typeByCode[code]
+		if !ok {
+			return nil, fmt.Errorf("unknown scoring tile code: %s", rawCode)
+		}
+		tile, ok := tileByType[tileType]
+		if !ok {
+			return nil, fmt.Errorf("missing scoring tile type in registry: %v", tileType)
+		}
+		out = append(out, tile)
+	}
+	if len(out) != 6 {
+		return nil, fmt.Errorf("expected 6 scoring tiles, got %d", len(out))
+	}
+	return out, nil
+}
+
+func turnOrderPolicyFromFixturePayload(raw string) (game.TurnOrderPolicy, error) {
+	value := strings.TrimSpace(raw)
+	if value == "" {
+		return game.TurnOrderPolicyPassOrder, nil
+	}
+	policy := game.TurnOrderPolicy(value)
+	switch policy {
+	case game.TurnOrderPolicyPassOrder, game.TurnOrderPolicyCyclicFromFirstPasser:
+		return policy, nil
+	default:
+		return "", fmt.Errorf("unknown turn order policy: %s", value)
+	}
+}
+
+func bonusCardsFromCodesForFixture(codes []string) ([]game.BonusCardType, error) {
+	out := make([]game.BonusCardType, 0, len(codes))
+	for _, rawCode := range codes {
+		code := strings.ToUpper(strings.TrimSpace(rawCode))
+		if code == "" {
+			continue
+		}
+		card := notation.ParseBonusCardCode(code)
+		if card == game.BonusCardUnknown {
+			return nil, fmt.Errorf("unknown bonus card code: %s", rawCode)
+		}
+		out = append(out, card)
+	}
+	if len(out) == 0 {
+		return nil, fmt.Errorf("missing bonus cards")
+	}
+	return out, nil
 }
 
 func (c *Client) sendError(code string) {

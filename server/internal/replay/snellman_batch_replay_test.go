@@ -148,6 +148,19 @@ func describeAction(a game.Action) string {
 		return fmt.Sprintf("fav(%s)", v.Tile)
 	case *notation.LogPowerAction:
 		return fmt.Sprintf("power(%s)", v.ActionCode)
+	case *notation.LogAcceptLeechAction:
+		return fmt.Sprintf("accept_leech(from=%s amount=%d explicit=%t)", v.FromPlayerID, v.PowerAmount, v.Explicit)
+	case *notation.LogDeclineLeechAction:
+		return fmt.Sprintf("decline_leech(from=%s)", v.FromPlayerID)
+	case *notation.LogPreIncomeAction:
+		return fmt.Sprintf("pre[%s]", describeAction(v.Action))
+	case *notation.LogPostIncomeAction:
+		return fmt.Sprintf("post[%s]", describeAction(v.Action))
+	case *notation.LogCultistAdvanceAction:
+		return fmt.Sprintf("cultists(track=%d)", int(v.Track))
+	case *game.TransformAndBuildAction:
+		terrain := int(v.TargetTerrain)
+		return fmt.Sprintf("transform(q=%d r=%d build=%t terrain=%d skip=%t)", v.TargetHex.Q, v.TargetHex.R, v.BuildDwelling, terrain, v.UseSkip)
 	default:
 		return fmt.Sprintf("%T", a)
 	}

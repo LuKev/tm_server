@@ -14,6 +14,8 @@ go_library(
         "//internal/game/board",
         "//internal/lobby",
         "//internal/models:models",
+        "//internal/notation",
+        "//internal/replay",
         "@com_github_gorilla_websocket//:websocket",
     ],
 )
@@ -40,6 +42,7 @@ go_test(
         "//internal/lobby",
         "//internal/models:models",
         "//internal/notation",
+        "//internal/replay",
         "@com_github_gorilla_websocket//:websocket",
     ],
 )

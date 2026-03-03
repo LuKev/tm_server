@@ -424,6 +424,20 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 	if strings.HasPrefix(upperCode, "C") && strings.Contains(upperCode, ":") {
 		parts := strings.Split(strings.TrimPrefix(upperCode, "C"), ":")
 		if len(parts) == 2 {
+			cost := parseResourceString(parts[0])
+			reward := parseResourceString(parts[1])
+			if inCompound &&
+				strings.EqualFold(strings.TrimSpace(playerID), "darklings") &&
+				len(cost) == 1 && len(reward) == 1 &&
+				cost[models.ResourceWorker] > 0 &&
+				reward[models.ResourcePriest] > 0 &&
+				cost[models.ResourceWorker] == reward[models.ResourcePriest] &&
+				len(reward) == 1 {
+				return &game.UseDarklingsPriestOrdinationAction{
+					BaseAction:       game.BaseAction{Type: game.ActionUseDarklingsPriestOrdination, PlayerID: playerID},
+					WorkersToConvert: cost[models.ResourceWorker],
+				}, nil
+			}
 			if !inCompound {
 				// In strict replay notation, conversions must be chained with a main action
 				// (e.g. "C1PW:1C.PASS-..."), not represented as a standalone turn action.
@@ -431,8 +445,8 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 			}
 			return &LogConversionAction{
 				PlayerID: playerID,
-				Cost:     parseResourceString(parts[0]),
-				Reward:   parseResourceString(parts[1]),
+				Cost:     cost,
+				Reward:   reward,
 			}, nil
 		}
 	}

@@ -1322,6 +1322,16 @@ func (a *LogBonusCardSelectionAction) Execute(gs *game.GameState) error {
 		return fmt.Errorf("failed to take bonus card: %w", err)
 	}
 
+	// Mirror live setup bonus card handling only when setup sequencing is active.
+	// In replay traces, setup bookkeeping can be transiently incomplete before the
+	// first dwellings action initializes it, so guard against early phase jumps.
+	if gs.SetupSubphase == game.SetupSubphaseBonusCards &&
+		gs.SetupBonusIndex >= 0 &&
+		gs.SetupBonusIndex < len(gs.SetupBonusOrder) &&
+		len(gs.SetupBonusOrder) > 0 {
+		gs.AdvanceSetupAfterBonusSelection()
+	}
+
 	return nil
 }
 

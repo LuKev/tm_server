@@ -204,6 +204,10 @@ func TestSnellmanLedgerResourcesMatchReplay_S67_G6(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S67_D1L1_G6.txt")
 }
 
+func TestSnellmanLedgerResourcesMatchReplay_S61_G3(t *testing.T) {
+	runSnellmanLedgerResourcesMatchFromDir(t, filepath.Join("testdata", "snellman_batch_s60_63"), "4pLeague_S61_D1L1_G3.txt")
+}
+
 func TestSnellmanLedgerResourcesMatchReplay_S68_G2(t *testing.T) {
 	runSnellmanLedgerResourcesMatch(t, "4pLeague_S68_D1L1_G2.txt")
 }

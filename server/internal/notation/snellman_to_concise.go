@@ -3,6 +3,7 @@ package notation
 import (
 	"bufio"
 	"fmt"
+	"sort"
 	"regexp"
 	"strconv"
 	"strings"
@@ -400,7 +401,7 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 		}
 		conciseActions := []string{conciseAction}
 		if !inSetupPhase {
-			conciseActions = splitConciseActionIntoStandaloneReactions(conciseAction, factionName, appendCultBonus)
+			conciseActions = splitConciseActionIntoStandaloneReactions(conciseAction, factionName, appendCultBonus, linear)
 		}
 		if len(conciseActions) == 0 {
 			continue
@@ -770,6 +771,14 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 		if len(round.TurnOrder) > 0 {
 			columns = round.TurnOrder
 		}
+		if linear {
+			anchors := roundLeechAnchors[round]
+			if anchors == nil {
+				anchors = make(map[int]map[string]string)
+				roundLeechAnchors[round] = anchors
+			}
+			enforceReplayLinearSourceLeechOrder(round, columns, anchors)
+		}
 		if !linear {
 			anchors := roundLeechAnchors[round]
 			if anchors == nil {
@@ -967,6 +976,110 @@ func enforceLeechSourceOrder(round *snellmanRoundData, columns []string, anchors
 	}
 	rebuildFromAnchoredEvents(round, columns, events, anchors)
 	return nil
+}
+
+func enforceReplayLinearSourceLeechOrder(round *snellmanRoundData, columns []string, anchors map[int]map[string]string) {
+	if round == nil || len(columns) == 0 || len(round.Rows) == 0 {
+		return
+	}
+	events := flattenAnchoredEvents(round, columns, anchors)
+	if len(events) == 0 {
+		return
+	}
+
+	leechIdxBySource := make(map[int][]int)
+	for i, ev := range events {
+		if !isLeechOrDeclineToken(ev.token) {
+			continue
+		}
+		sourceFaction := normalizeFactionNameForMatching(resolveLeechSourceFromEvent(ev))
+		if sourceFaction == "" {
+			continue
+		}
+		sourceIndex := resolveSourceEventIndex(events, i, sourceFaction)
+		if sourceIndex < 0 {
+			continue
+		}
+		leechIdxBySource[sourceIndex] = append(leechIdxBySource[sourceIndex], i)
+	}
+	if len(leechIdxBySource) == 0 {
+		return
+	}
+
+	used := make([]bool, len(events))
+	reordered := make([]anchoredEvent, 0, len(events))
+	for i := 0; i < len(events); i++ {
+		if used[i] {
+			continue
+		}
+		ev := events[i]
+		reordered = append(reordered, ev)
+		if isLeechOrDeclineToken(ev.token) || !actionMayTriggerLeech(ev.token) {
+			continue
+		}
+		leechIdx := leechIdxBySource[i]
+		if len(leechIdx) == 0 {
+			continue
+		}
+
+		sourceCol := factionColumnIndex(columns, ev.faction)
+		sort.SliceStable(leechIdx, func(l, r int) bool {
+			leftIdx, rightIdx := leechIdx[l], leechIdx[r]
+			leftCol := factionColumnIndex(columns, events[leftIdx].faction)
+			rightCol := factionColumnIndex(columns, events[rightIdx].faction)
+			if sourceCol >= 0 && leftCol >= 0 {
+				leftRank := (leftCol - sourceCol + len(columns)) % len(columns)
+				rightRank := (rightCol - sourceCol + len(columns)) % len(columns)
+				if leftRank != rightRank {
+					return leftRank < rightRank
+				}
+			}
+			return leftIdx < rightIdx
+		})
+		for _, idx := range leechIdx {
+			used[idx] = true
+			reordered = append(reordered, events[idx])
+		}
+	}
+
+	rebuildFromAnchoredEvents(round, columns, reordered, anchors)
+}
+
+func resolveLeechSourceFromEvent(ev anchoredEvent) string {
+	if source := strings.TrimSpace(ev.sourceFaction); source != "" {
+		return source
+	}
+	if source := extractLeechSourceFromConciseToken(ev.token); source != "" {
+		return source
+	}
+	return ""
+}
+
+func resolveSourceEventIndex(events []anchoredEvent, eventIndex int, sourceFaction string) int {
+	if eventIndex <= 0 || len(events) == 0 || eventIndex >= len(events) {
+		return -1
+	}
+	source := normalizeFactionNameForMatching(sourceFaction)
+	if source == "" {
+		return -1
+	}
+	for i := eventIndex - 1; i >= 0; i-- {
+		if isLeechOrDeclineToken(events[i].token) {
+			continue
+		}
+		if normalizeFactionNameForMatching(events[i].faction) == source && actionMayTriggerLeech(events[i].token) {
+			return i
+		}
+	}
+	for i := eventIndex + 1; i < len(events); i++ {
+		if isLeechOrDeclineToken(events[i].token) {
+			continue
+		}
+		if normalizeFactionNameForMatching(events[i].faction) == source && actionMayTriggerLeech(events[i].token) {
+			return i
+		}
+	}
+	return -1
 }
 
 func flattenAnchoredEvents(round *snellmanRoundData, columns []string, anchors map[int]map[string]string) []anchoredEvent {
@@ -2148,6 +2261,7 @@ func splitConciseActionIntoStandaloneReactions(
 	conciseAction string,
 	faction string,
 	backtrackCultBonus func(string),
+	splitUpgradeFavorForReplay bool,
 ) []string {
 	token := strings.TrimSpace(conciseAction)
 	if token == "" {
@@ -2157,9 +2271,14 @@ func splitConciseActionIntoStandaloneReactions(
 	parts := strings.Split(token, ".")
 	out := make([]string, 0, len(parts))
 	chain := make([]string, 0, len(parts))
+	pendingCultBumps := make([]string, 0, 2)
 	flushChain := func() {
 		if len(chain) == 0 {
 			return
+		}
+		if len(pendingCultBumps) > 0 {
+			chain = append(chain, pendingCultBumps...)
+			pendingCultBumps = pendingCultBumps[:0]
 		}
 		out = append(out, strings.Join(chain, "."))
 		chain = chain[:0]
@@ -2167,19 +2286,80 @@ func splitConciseActionIntoStandaloneReactions(
 
 	isCultists := normalizeFactionNameForMatching(faction) == "cultists"
 	seenMain := false
-	for _, raw := range parts {
+	isUpgradeToken := func(part string) bool {
+		return strings.HasPrefix(part, "UP-")
+	}
+	isFavorToken := func(part string) bool {
+		return strings.HasPrefix(part, "FAV-")
+	}
+	hasUpcomingNonLeech := func(start int) bool {
+		for i := start; i < len(parts); i++ {
+			p := strings.TrimSpace(parts[i])
+			if p == "" {
+				continue
+			}
+			if isLeechOrDeclineToken(p) {
+				continue
+			}
+			return true
+		}
+		return false
+	}
+
+	for i, raw := range parts {
 		part := strings.TrimSpace(raw)
 		if part == "" {
 			continue
 		}
+		if splitUpgradeFavorForReplay && isUpgradeToken(part) && len(parts) > i+1 {
+			nextPart := ""
+			for j := i + 1; j < len(parts); j++ {
+				nextPart = strings.TrimSpace(parts[j])
+				if nextPart != "" {
+					break
+				}
+			}
+			if isFavorToken(nextPart) {
+				chain = append(chain, part)
+				flushChain()
+				continue
+			}
+		}
 		if isCultists {
 			if bump := normalizeCultTrackBumpToken(part); bump != "" && !seenMain {
+				nextPart := ""
+				for j := i + 1; j < len(parts); j++ {
+					next := strings.TrimSpace(parts[j])
+					if next != "" {
+						nextPart = next
+						break
+					}
+				}
+				if nextPart != "" && isLeechOrDeclineToken(nextPart) {
+					if splitUpgradeFavorForReplay {
+						chain = append(chain, bump)
+						seenMain = true
+						continue
+					}
+					if hasUpcomingNonLeech(i + 2) {
+						pendingCultBumps = append(pendingCultBumps, bump)
+						continue
+					}
+					chain = append(chain, bump)
+					seenMain = true
+					continue
+				}
+				if len(parts) == 1 {
+					chain = append(chain, bump)
+					seenMain = true
+					continue
+				}
 				if backtrackCultBonus != nil {
 					backtrackCultBonus(bump)
 				}
 				continue
-			}
 		}
+	}
 		if isLeechOrDeclineToken(part) {
 			flushChain()
 			out = append(out, part)

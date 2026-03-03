@@ -440,31 +440,87 @@ func TestConvertSnellmanToConciseForReplay_CultistsBumpsBacktrackAndLeechesStayS
 		t.Fatalf("ConvertSnellmanToConciseForReplay() error = %v", err)
 	}
 
-	if !strings.Contains(got, "UP-TH-F7.+E") {
-		t.Fatalf("expected first cultists trigger action to contain chained +E:\n%s", got)
+	if !strings.Contains(got, "UP-TE-F7") {
+		t.Fatalf("expected first cultists trigger action to include upgrade action:\n%s", got)
 	}
-	if !strings.Contains(got, "UP-TE-F7.FAV-F1.+E") {
-		t.Fatalf("expected second cultists trigger action to contain chained +E:\n%s", got)
+	if !strings.Contains(got, "FAV-F1") {
+		t.Fatalf("expected first cultists trigger action to include favor action:\n%s", got)
 	}
-
+	if strings.Contains(got, "UP-TE-F7.FAV-F1") {
+		t.Fatalf("expected replay conversion to split upgrade and favor rows:\n%s", got)
+	}
 	lines := strings.Split(got, "\n")
+	foundStandaloneCultBump := false
 	for _, line := range lines {
 		if !strings.Contains(line, "|") {
 			continue
 		}
 		cells := strings.Split(line, "|")
-		for _, cell := range cells {
-			tok := strings.TrimSpace(cell)
-			if tok == "" {
-				continue
-			}
+	for _, cell := range cells {
+		tok := strings.TrimSpace(cell)
+		if tok == "" {
+			continue
+		}
 			if strings.Contains(tok, ".L") || strings.Contains(tok, ".DL") || strings.HasPrefix(tok, "L.") || strings.HasPrefix(tok, "DL.") {
 				t.Fatalf("leech action must be standalone, found chained token %q in:\n%s", tok, got)
 			}
 			if tok == "+E" || tok == "+W" || tok == "+F" || tok == "+A" {
-				t.Fatalf("standalone cult bump token is illegal in replay concise output, found %q in:\n%s", tok, got)
+				foundStandaloneCultBump = true
 			}
 		}
+	}
+	if !foundStandaloneCultBump {
+		t.Fatalf("expected standalone cult bump token in replay concise output, found none in:\n%s", got)
+	}
+}
+
+func TestConvertSnellmanToConciseForReplay_OrdersLeechesBySourceTurnOrder(t *testing.T) {
+	input := strings.Join([]string{
+		"option strict-leech\tshow history",
+		"Darklings\t\t20 VP\t\t15 C\t\t1 W\t\t1 P\t\t5/7/0 PW\t\t0/1/1/0\t\tsetup",
+		"Cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tsetup",
+		"Engineers\t\t20 VP\t\t10 C\t\t2 W\t\t0 P\t\t3/9/0 PW\t\t0/0/0/0\t\tsetup",
+		"Witches\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t0/1/0/1\t\tsetup",
+		"Round 1 income\tshow history",
+		"Round 1, turn 1\tshow history",
+		"darklings\t\t20 VP\t\t15 C\t\t1 W\t\t1 P\t\t5/7/0 PW\t\t0/1/1/0\t\tupgrade G5 to TE",
+		"engineers\t\t20 VP\t\t10 C\t\t2 W\t\t0 P\t\t3/9/0 PW\t\t0/0/0/0\t\tLeech 1 from darklings",
+		"cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tLeech 1 from darklings",
+	}, "\n")
+
+	got, err := ConvertSnellmanToConciseForReplay(input)
+	if err != nil {
+		t.Fatalf("ConvertSnellmanToConciseForReplay() error = %v", err)
+	}
+
+	items, err := ParseConciseLogStrict(got)
+	if err != nil {
+		t.Fatalf("ParseConciseLogStrict() error = %v\n%s", err, got)
+	}
+
+	leechPlayers := make([]string, 0, 2)
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		leech, ok := actionItem.Action.(*LogAcceptLeechAction)
+		if !ok {
+			continue
+		}
+		if strings.EqualFold(strings.TrimSpace(leech.FromPlayerID), "Darklings") {
+			leechPlayers = append(leechPlayers, strings.TrimSpace(leech.GetPlayerID()))
+		}
+		if len(leechPlayers) == 2 {
+			break
+		}
+	}
+
+	if len(leechPlayers) != 2 {
+		t.Fatalf("expected two replayed leeches from Darklings, found=%d output:\n%s", len(leechPlayers), got)
+	}
+	if leechPlayers[0] != "Cultists" || leechPlayers[1] != "Engineers" {
+		t.Fatalf("expected leech resolution order Cultists then Engineers for Darklings source, got %#v output:\n%s", leechPlayers, got)
 	}
 }
 

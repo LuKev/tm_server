@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game"
 )
 
 func TestParseActionCode_RecognizesSpecialACTCodes(t *testing.T) {
@@ -147,6 +149,48 @@ func TestParseActionCode_IsCaseInsensitiveForCompoundTokens(t *testing.T) {
 	}
 	if gotType := fmt.Sprintf("%T", compound.Actions[2]); !strings.HasSuffix(gotType, ".AdvanceShippingAction") {
 		t.Fatalf("compound third action type = %s, want *game.AdvanceShippingAction", gotType)
+	}
+}
+
+func TestParseActionCode_DarklingsWorkerToPriestConversion(t *testing.T) {
+	action, err := parseActionCode("Darklings", "BURN3.C3W:3P")
+	if err != nil {
+		t.Fatalf("parseActionCode(darklings ordination) error = %v", err)
+	}
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(darklings ordination) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 2 {
+		t.Fatalf("compound action count = %d, want 2", len(compound.Actions))
+	}
+	ord, ok := compound.Actions[1].(*game.UseDarklingsPriestOrdinationAction)
+	if !ok {
+		t.Fatalf("compound second action type = %T, want *game.UseDarklingsPriestOrdinationAction", compound.Actions[1])
+	}
+	if ord.WorkersToConvert != 3 {
+		t.Fatalf("workersToConvert = %d, want 3", ord.WorkersToConvert)
+	}
+}
+
+func TestParseActionCode_NonDarklingsWorkerToPriestConversionStaysLogConversion(t *testing.T) {
+	action, err := parseActionCode("Cultists", "BURN3.C3W:3P")
+	if err != nil {
+		t.Fatalf("parseActionCode(non-darklings ordination) error = %v", err)
+	}
+
+	compound, ok := action.(*LogCompoundAction)
+	if !ok {
+		t.Fatalf("parseActionCode(non-darklings ordination) type = %T, want *LogCompoundAction", action)
+	}
+	if len(compound.Actions) != 2 {
+		t.Fatalf("compound action count = %d, want 2", len(compound.Actions))
+	}
+	if _, ok := compound.Actions[1].(*LogConversionAction); !ok {
+		t.Fatalf("compound second action type = %T, want *LogConversionAction", compound.Actions[1])
+	}
+	if _, ok := compound.Actions[1].(*game.UseDarklingsPriestOrdinationAction); ok {
+		t.Fatalf("non-darklings conversion unexpectedly parsed as darklings ordination")
 	}
 }
 
