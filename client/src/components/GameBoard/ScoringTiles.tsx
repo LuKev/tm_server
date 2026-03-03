@@ -138,8 +138,6 @@ export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound 
         return null;
     }
 
-    // console.log('ScoringTiles rendering', { tiles, currentRound, timestamp: Date.now() });
-
     // Reverse tiles to show R6 at top, R1 at bottom
     const reversedTiles = [...tiles].reverse();
 

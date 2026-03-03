@@ -44,7 +44,6 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   }
 
   const handleHexClick = (q: number, r: number): void => {
-    // console.log(`GameBoard: Hex clicked: (${q}, ${r})`);
     onHexClick?.(q, r);
   };
 

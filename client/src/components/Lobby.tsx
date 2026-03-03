@@ -20,8 +20,6 @@ export function Lobby(): React.ReactElement {
   const { isConnected, sendMessage, lastMessage, connectionStatus } = useWebSocket()
   const navigate = useNavigate()
   const [playerName, setPlayerName] = useState('')
-  const [testMessage, setTestMessage] = useState('')
-  const [messages, setMessages] = useState<string[]>([])
   const [games, setGames] = useState<GameInfo[]>([])
   const [newGameName, setNewGameName] = useState('')
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
@@ -31,23 +29,11 @@ export function Lobby(): React.ReactElement {
   useEffect(() => {
     if (lastMessage === null) return
 
-    // Collect raw messages for debugging
-    setMessages(prev => [
-      ...prev,
-      typeof lastMessage === 'string' ? lastMessage : JSON.stringify(lastMessage),
-    ])
-
     // Handle lobby messages
     if (lastMessage && typeof lastMessage === 'object' && 'type' in lastMessage) {
       const msg = lastMessage as LobbyMessage
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload as GameInfo[] : [])
-      } else if (msg.type === 'game_joined') {
-        // Don't navigate immediately, wait for start
-        // console.log('Joined game:', msg.payload.gameId)
-      } else if (msg.type === 'game_created') {
-        // Don't navigate immediately, wait for start
-        // console.log('Created game:', msg.payload.gameId)
       } else if (msg.type === 'game_state_update') {
         const gameState = msg.payload as GameState | undefined
         // If we are in this game AND it has started, navigate to it
@@ -65,13 +51,6 @@ export function Lobby(): React.ReactElement {
       sendMessage({ type: 'list_games' })
     }
   }, [isConnected, sendMessage])
-
-  const handleSendTest = (): void => {
-    if (testMessage.trim()) {
-      sendMessage(testMessage)
-      setTestMessage('')
-    }
-  }
 
   const getStatusColor = (): string => {
     switch (connectionStatus) {
@@ -198,51 +177,6 @@ export function Lobby(): React.ReactElement {
                   <option value="auction">Auction</option>
                   <option value="fast_auction">Fast Auction</option>
                 </select>
-              </div>
-            </div>
-
-            {/* Test WebSocket Section */}
-            <div className="border-t border-white/20 pt-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Test WebSocket Connection</h2>
-
-              <div className="flex gap-2 mb-4">
-                <input
-                  type="text"
-                  data-testid="lobby-test-message"
-                  value={testMessage}
-                  onChange={(e) => { setTestMessage(e.target.value); }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSendTest()
-                    }
-                  }}
-                  className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Type a message..."
-                  disabled={!isConnected}
-                />
-                <button
-                  data-testid="lobby-send-test-message"
-                  onClick={handleSendTest}
-                  disabled={!isConnected || !testMessage.trim()}
-                  className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
-                >
-                  Send
-                </button>
-              </div>
-
-              {/* Messages Display */}
-              <div className="bg-black/30 rounded-lg p-4 h-48 overflow-y-auto">
-                <div className="space-y-2">
-                  {messages.length === 0 ? (
-                    <p className="text-gray-400 text-sm">No messages yet. Send a test message!</p>
-                  ) : (
-                    messages.map((msg, idx) => (
-                      <div key={idx} className="text-sm text-gray-200 font-mono">
-                        {msg}
-                      </div>
-                    ))
-                  )}
-                </div>
               </div>
             </div>
 

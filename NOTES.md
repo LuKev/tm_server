@@ -146,6 +146,16 @@
       - `TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores`
       - `TestWebsocketGolden_SnellmanS61D1L1G3_CompletesWithExpectedScores`
 
+- 2026-03-03 main-repo cleanup + code review pass:
+  - Cleaned production-facing UI debug/test remnants:
+    - Removed test websocket logging panel from `client/src/components/Lobby.tsx`.
+    - Guarded map/cult-track test routes behind `import.meta.env.DEV` in `client/src/App.tsx`.
+    - Removed startup and transient console debug output from `client/src/main.tsx` and `client/src/services/WebSocketContext.tsx`.
+    - Removed leftover debug/commented logs and intrusive test click side effects in `client/src/components/GameBoard/*` and `client/src/components/MapTest.tsx`.
+  - Ongoing server review findings to address:
+    - `server/internal/websocket/handler.go` and `server/cmd/server/main.go` still allow all websocket/CORS origins.
+    - `client/src/components/Lobby.tsx` previously tracked raw websocket messages indefinitely for debug; now removed.
+
 - 2026-02-20 cult position-10 key semantics update:
   - `server/internal/game/cult.go` now consumes one key whenever a player newly reaches cult position `10`.
   - Position-10 checks now require key availability (`player.Keys`) with bounded key credit only from unclaimed, non-delayed pending towns (`CanBeDelayed=false`), so delayed Mermaids pending towns do not grant credit.

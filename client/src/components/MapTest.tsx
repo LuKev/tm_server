@@ -80,36 +80,18 @@ export const MapTest: React.FC = (): React.ReactElement => {
     });
   }
 
-  const handleHexClick = (q: number, r: number): void => {
-    // console.log(`Clicked hex (${q}, ${r})`);
-    alert(`Clicked hex (${String(q)}, ${String(r)})`);
+  const handleHexClick = (_q: number, _r: number): void => {
+    void _q
+    void _r
   };
 
   const handleHexHover = (q: number, r: number): void => {
     setHoveredHex(`${String(q)},${String(r)}`);
   };
 
-  const handleBonusTileClick = (cult: CultType, tileIndex: number): void => {
-    const cultNames = ['Fire', 'Water', 'Earth', 'Air'];
-    const cultName = cultNames[cult];
-    const tiles = testBonusTiles.get(cult);
-    const tile = tiles?.[tileIndex];
-
-    if (tile?.priests && tile.faction !== undefined) {
-      const factionNames: Partial<Record<FactionType, string>> = {
-        [FactionType.Giants]: 'Giants',
-        [FactionType.Swarmlings]: 'Swarmlings',
-        [FactionType.Halflings]: 'Halflings',
-        [FactionType.Dwarves]: 'Dwarves',
-      };
-      const factionName = factionNames[tile.faction] ?? 'Unknown';
-      alert(`Clicked: ${cultName} cult - Priest tile (${factionName})`);
-    } else if (tile?.power) {
-      const spotName = tileIndex === 4 ? 'Return spot (1 power)' : `Power ${String(tile.power)} spot`;
-      alert(`Clicked: ${cultName} cult - ${spotName}`);
-    } else {
-      alert(`Clicked: ${cultName} cult - Tile ${String(tileIndex + 1)}`);
-    }
+  const handleBonusTileClick = (_cult: CultType, _tileIndex: number): void => {
+    void _cult
+    void _tileIndex
   };
 
   const highlightedHexes = new Set<string>();

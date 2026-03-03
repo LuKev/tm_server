@@ -8,6 +8,8 @@ import { Replay } from './components/Replay';
 import { ImportGame } from './components/ImportGame';
 
 function App(): React.ReactElement {
+  const showTestRoutes = import.meta.env.DEV
+
   // Get base path from environment, default to '/' for local dev
   const basePath = import.meta.env.VITE_BASE_PATH || '/';
 
@@ -20,8 +22,8 @@ function App(): React.ReactElement {
             <Route path="/import" element={<ImportGame />} />
             <Route path="/game/:gameId" element={<Game />} />
             <Route path="/replay/:gameId" element={<Replay />} />
-            <Route path="/maptest" element={<MapTest />} />
-            <Route path="/culttrackstest" element={<CultTracksTest />} />
+            {showTestRoutes && <Route path="/maptest" element={<MapTest />} />}
+            {showTestRoutes && <Route path="/culttrackstest" element={<CultTracksTest />} />}
           </Routes>
         </div>
       </Router>

@@ -93,8 +93,8 @@ Based on `terra-mystica/stc/game.js` with direct port of drawing logic to TypeSc
 
 - `/` - Game lobby
 - `/game/:id` - Main game view
-- `/maptest` - Interactive map testing
-- `/culttrackstest` - Cult tracks testing
+- `/maptest` - Interactive map testing (development only)
+- `/culttrackstest` - Cult tracks testing (development only)
 
 ## Expanding the ESLint configuration
 

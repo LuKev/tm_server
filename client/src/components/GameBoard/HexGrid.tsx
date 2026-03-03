@@ -56,8 +56,6 @@ export const HexGrid: React.FC<HexGridProps> = ({
     maxR = Math.max(maxR, hex.coord.r);
   });
 
-  // console.log(`Q range: ${minQ} to ${maxQ}, R range: ${minR} to ${maxR}`);
-
   // Find actual leftmost/rightmost and top/bottom hex positions
   let minX = Infinity, maxX = -Infinity;
   let minY = Infinity, maxY = -Infinity;
