@@ -136,11 +136,17 @@ func TestBurnPower(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+	if ps.Bowl1 != 5 {
+		t.Errorf("expected Bowl1 = 5 (unchanged), got %d", ps.Bowl1)
+	}
 	if ps.Bowl2 != 4 {
 		t.Errorf("expected Bowl2 = 4 (10 - 6), got %d", ps.Bowl2)
 	}
 	if ps.Bowl3 != 3 {
 		t.Errorf("expected Bowl3 = 3, got %d", ps.Bowl3)
+	}
+	if ps.TotalPower() != 12 {
+		t.Errorf("expected total power to be 12 after sacrificing 3 tokens, got %d", ps.TotalPower())
 	}
 }
 
@@ -154,11 +160,17 @@ func TestBurnPowerNotEnough(t *testing.T) {
 		t.Errorf("expected error when burning without enough power")
 	}
 	// State should be unchanged
+	if ps.Bowl1 != 5 {
+		t.Errorf("expected Bowl1 = 5 (unchanged), got %d", ps.Bowl1)
+	}
 	if ps.Bowl2 != 5 {
 		t.Errorf("expected Bowl2 = 5 (unchanged), got %d", ps.Bowl2)
 	}
 	if ps.Bowl3 != 0 {
 		t.Errorf("expected Bowl3 = 0 (unchanged), got %d", ps.Bowl3)
+	}
+	if ps.TotalPower() != 10 {
+		t.Errorf("expected total power to remain 10, got %d", ps.TotalPower())
 	}
 }
 

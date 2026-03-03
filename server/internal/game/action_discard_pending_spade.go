@@ -27,9 +27,17 @@ func (a *DiscardPendingSpadeAction) Validate(gs *GameState) error {
 	if a.Count <= 0 {
 		return fmt.Errorf("discard count must be at least 1")
 	}
-	pending := 0
+	pendingActionSpades := 0
 	if gs.PendingSpades != nil {
-		pending = gs.PendingSpades[a.PlayerID]
+		pendingActionSpades = gs.PendingSpades[a.PlayerID]
+	}
+	pendingCultSpades := 0
+	if gs.PendingCultRewardSpades != nil {
+		pendingCultSpades = gs.PendingCultRewardSpades[a.PlayerID]
+	}
+	pending := pendingActionSpades
+	if pending <= 0 {
+		pending = pendingCultSpades
 	}
 	if pending <= 0 {
 		return fmt.Errorf("player has no pending spades to discard")
@@ -46,12 +54,29 @@ func (a *DiscardPendingSpadeAction) Execute(gs *GameState) error {
 		return err
 	}
 
-	gs.PendingSpades[a.PlayerID] -= a.Count
-	if gs.PendingSpades[a.PlayerID] <= 0 {
-		delete(gs.PendingSpades, a.PlayerID)
-		delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		gs.PendingSpades[a.PlayerID] -= a.Count
+		if gs.PendingSpades[a.PlayerID] <= 0 {
+			delete(gs.PendingSpades, a.PlayerID)
+			delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+		}
+		gs.NextTurn()
+		return nil
 	}
 
-	gs.NextTurn()
+	if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+		gs.PendingCultRewardSpades[a.PlayerID] -= a.Count
+		if gs.PendingCultRewardSpades[a.PlayerID] <= 0 {
+			delete(gs.PendingCultRewardSpades, a.PlayerID)
+		}
+		if gs.Phase == PhaseIncome {
+			if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
+				gs.GrantIncome()
+				gs.StartActionPhase()
+			}
+		}
+		return nil
+	}
+
 	return nil
 }

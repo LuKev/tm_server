@@ -27,6 +27,7 @@ type GameState struct {
 	SetupBonusOrder                  []string                           `json:"setupBonusOrder"`
 	SetupBonusIndex                  int                                `json:"setupBonusIndex"`
 	SetupPlacedDwellings             map[string]int                     `json:"setupPlacedDwellings"`
+	TurnOrderPolicy                  TurnOrderPolicy                    `json:"turnOrderPolicy"`
 	TurnOrder                        []string                           `json:"turnOrder"`
 	CurrentPlayerIndex               int                                `json:"currentPlayerIndex"`
 	PassOrder                        []string                           `json:"passOrder"`
@@ -140,6 +141,16 @@ const (
 	SetupModeFastAuction SetupMode = "fast_auction"
 )
 
+// TurnOrderPolicy controls how next-round turn order is derived after passing.
+type TurnOrderPolicy string
+
+const (
+	// TurnOrderPolicyPassOrder is the base-rule behavior: full pass order defines next round.
+	TurnOrderPolicyPassOrder TurnOrderPolicy = "pass_order"
+	// TurnOrderPolicyCyclicFromFirstPasser keeps cyclic seat order, rotated to first passer.
+	TurnOrderPolicyCyclicFromFirstPasser TurnOrderPolicy = "cyclic_from_first_passer"
+)
+
 // CultTrack represents the four cult tracks
 type CultTrack int
 
@@ -155,6 +166,7 @@ type Player struct {
 	ID                   string                     `json:"id"`
 	Name                 string                     `json:"name"`
 	Faction              factions.Faction           `json:"faction"`
+	Options              PlayerOptions              `json:"options"`
 	Resources            *ResourcePool              `json:"resources"`
 	ShippingLevel        int                        `json:"shippingLevel"`
 	DiggingLevel         int                        `json:"diggingLevel"`
@@ -169,6 +181,49 @@ type Player struct {
 	TownTiles            []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
 }
 
+// LeechAutoMode controls automatic accept/decline behavior for power leech offers.
+type LeechAutoMode string
+
+const (
+	LeechAutoModeOff       LeechAutoMode = "off"
+	LeechAutoModeAccept1   LeechAutoMode = "accept_1"
+	LeechAutoModeAccept2   LeechAutoMode = "accept_2"
+	LeechAutoModeAccept3   LeechAutoMode = "accept_3"
+	LeechAutoModeAccept4   LeechAutoMode = "accept_4"
+	LeechAutoModeDeclineVP LeechAutoMode = "decline_vp"
+)
+
+func (m LeechAutoMode) IsValid() bool {
+	switch m {
+	case LeechAutoModeOff,
+		LeechAutoModeAccept1,
+		LeechAutoModeAccept2,
+		LeechAutoModeAccept3,
+		LeechAutoModeAccept4,
+		LeechAutoModeDeclineVP:
+		return true
+	default:
+		return false
+	}
+}
+
+// PlayerOptions holds UX and automation toggles controlled by each player.
+type PlayerOptions struct {
+	AutoLeechMode     LeechAutoMode `json:"autoLeechMode"`
+	AutoConvertOnPass bool          `json:"autoConvertOnPass"`
+	ConfirmActions    bool          `json:"confirmActions"`
+	ShowIncomePreview bool          `json:"showIncomePreview"`
+}
+
+func defaultPlayerOptions() PlayerOptions {
+	return PlayerOptions{
+		AutoLeechMode:     LeechAutoModeOff,
+		AutoConvertOnPass: false,
+		ConfirmActions:    true,
+		ShowIncomePreview: false,
+	}
+}
+
 // NewGameState creates a new game state with an initialized map
 func NewGameState() *GameState {
 	return &GameState{
@@ -178,6 +233,7 @@ func NewGameState() *GameState {
 		Phase:                     PhaseSetup,
 		SetupMode:                 SetupModeSnellman,
 		SetupSubphase:             SetupSubphaseNone,
+		TurnOrderPolicy:           TurnOrderPolicyPassOrder,
 		PowerActions:              NewPowerActionState(),
 		CultTracks:                NewCultTrackState(),
 		FavorTiles:                NewFavorTileState(),
@@ -229,6 +285,7 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	player := &Player{
 		ID:            playerID,
 		Faction:       faction,
+		Options:       defaultPlayerOptions(),
 		Resources:     NewResourcePool(startingResources),
 		ShippingLevel: startingShippingLevel,
 		DiggingLevel:  0,
@@ -825,8 +882,26 @@ func (gs *GameState) StartNewRound() {
 
 	// Set turn order based on pass order (first to pass goes first next round)
 	if len(gs.PassOrder) > 0 {
-		gs.TurnOrder = make([]string, len(gs.PassOrder))
-		copy(gs.TurnOrder, gs.PassOrder)
+		switch gs.TurnOrderPolicy {
+		case TurnOrderPolicyCyclicFromFirstPasser:
+			firstPasser := gs.PassOrder[0]
+			anchor := -1
+			for i, playerID := range gs.TurnOrder {
+				if playerID == firstPasser {
+					anchor = i
+					break
+				}
+			}
+			if anchor >= 0 {
+				rotated := append([]string{}, gs.TurnOrder[anchor:]...)
+				rotated = append(rotated, gs.TurnOrder[:anchor]...)
+				gs.TurnOrder = rotated
+			} else {
+				gs.TurnOrder = append([]string{}, gs.PassOrder...)
+			}
+		default:
+			gs.TurnOrder = append([]string{}, gs.PassOrder...)
+		}
 	}
 
 	// Reset pass order for the new round

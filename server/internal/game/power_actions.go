@@ -186,12 +186,20 @@ func (a *PowerAction) validateSpadeAction(gs *GameState, player *Player) error {
 	}
 
 	// Check adjacency (or skip range for Fakirs/Dwarves)
+	isAdjacent := gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID)
+	if !isAdjacent && !a.UseSkip {
+		factionType := player.Faction.GetType()
+		if factionType == models.FactionDwarves || factionType == models.FactionFakirs {
+			// Match transform/build behavior: auto-enable skip when needed.
+			a.UseSkip = true
+		}
+	}
 	if a.UseSkip {
 		if err := ValidateSkipAbility(gs, player, *a.TargetHex); err != nil {
 			return err
 		}
 	} else {
-		if !gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID) {
+		if !isAdjacent {
 			return fmt.Errorf("hex is not adjacent to player's buildings")
 		}
 	}
@@ -352,12 +360,16 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	currentTerrain := mapHex.Terrain
 	targetTerrain := player.Faction.GetHomeTerrain()
 	distance := gs.Map.GetTerrainDistance(currentTerrain, targetTerrain)
+	requiredSpades := distance
+	if player.Faction.GetType() == models.FactionGiants {
+		requiredSpades = 2
+	}
 
 	if distance == 0 {
 		return fmt.Errorf("hex is already home terrain")
 	}
 
-	remainingSpades := a.calculateRemainingSpades(distance, freeSpades)
+	remainingSpades := a.calculateRemainingSpades(requiredSpades, freeSpades)
 
 	// Pay for remaining spades
 	if err := a.paySpadeCosts(player, remainingSpades); err != nil {
@@ -370,7 +382,7 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 	}
 
 	// Award VP from scoring tile for ALL spades used (both free and paid)
-	a.awardSpadeBonuses(gs, player, distance)
+	a.awardSpadeBonuses(gs, player, requiredSpades)
 
 	// Build dwelling if requested
 	if a.BuildDwelling {

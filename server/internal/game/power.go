@@ -103,6 +103,8 @@ func (ps *PowerSystem) BurnPower(amount int) error {
 	}
 
 	ps.Bowl2 -= cost
+	// Snellman/replay burn semantics: one token is sacrificed and one moves to Bowl III.
+	// Net result per burned power: bowl II -2, bowl III +1.
 	ps.Bowl3 += amount
 
 	return nil

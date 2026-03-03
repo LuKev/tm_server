@@ -44,9 +44,6 @@ func (a *EngineersBridgeAction) Validate(gs *GameState) error {
 	if player.Faction == nil || player.Faction.GetType() != models.FactionEngineers {
 		return fmt.Errorf("only Engineers can use this action")
 	}
-	if !player.HasStrongholdAbility {
-		return fmt.Errorf("engineers stronghold ability not available")
-	}
 	if player.Resources.Workers < engineersBridgeWorkerCost {
 		return fmt.Errorf("not enough workers: need %d, have %d", engineersBridgeWorkerCost, player.Resources.Workers)
 	}

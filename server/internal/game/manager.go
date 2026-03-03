@@ -1,8 +1,10 @@
 package game
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"strings"
 	"sync"
 	"time"
 
@@ -83,6 +85,63 @@ func (m *Manager) GetRevision(id string) (int, bool) {
 	return m.revisions[id], true
 }
 
+// ApplyFixtureSettings sets scoring and bonus card availability for a game and bumps revision.
+// This is intended for deterministic integration/golden automation paths.
+func (m *Manager) ApplyFixtureSettings(gameID string, scoringTiles []ScoringTile, bonusCards []BonusCardType, turnOrderPolicy TurnOrderPolicy) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	gs := m.games[gameID]
+	if gs == nil {
+		return 0, fmt.Errorf("game %s not found", gameID)
+	}
+
+	gs.ScoringTiles.Tiles = append([]ScoringTile(nil), scoringTiles...)
+	gs.BonusCards.SetAvailableBonusCards(bonusCards)
+	if turnOrderPolicy != "" {
+		gs.TurnOrderPolicy = turnOrderPolicy
+	}
+
+	nextRevision := m.revisions[gameID] + 1
+	m.revisions[gameID] = nextRevision
+	return nextRevision, nil
+}
+
+// ApplyConversionWithoutTurnCheck applies a conversion action for test replay and
+// UI automation paths without requiring player turn ownership.
+func (m *Manager) ApplyConversionWithoutTurnCheck(gameID, playerID string, conversionType ConversionType, amount int) (int, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	gs := m.games[gameID]
+	if gs == nil {
+		return 0, fmt.Errorf("game %s not found", gameID)
+	}
+
+	action := &ConversionAction{
+		BaseAction:     BaseAction{Type: ActionConversion, PlayerID: playerID},
+		ConversionType: conversionType,
+		Amount:         amount,
+	}
+
+	if err := action.Validate(gs); err != nil {
+		return 0, fmt.Errorf("conversion validation failed: %w", err)
+	}
+
+	if err := action.Execute(gs); err != nil {
+		return 0, fmt.Errorf("conversion execution failed: %w", err)
+	}
+
+	if err := gs.ResolveAutoLeechOffers(); err != nil {
+		return 0, fmt.Errorf("auto leech resolution failed: %w", err)
+	}
+
+	currentRevision := m.revisions[gameID]
+	nextRevision := currentRevision + 1
+	m.revisions[gameID] = nextRevision
+	return nextRevision, nil
+}
+
 // ListGames returns all active games.
 func (m *Manager) ListGames() []*GameState {
 	m.mu.RLock()
@@ -132,6 +191,9 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if err := action.Execute(gs); err != nil {
 		return nil, fmt.Errorf("action execution failed: %w", err)
 	}
+	if err := gs.ResolveAutoLeechOffers(); err != nil {
+		return nil, fmt.Errorf("auto leech resolution failed: %w", err)
+	}
 
 	currentRevision++
 	m.revisions[gameID] = currentRevision
@@ -148,6 +210,12 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	actionType := action.GetType()
 	playerID := action.GetPlayerID()
+	if actionType == ActionSetPlayerOptions {
+		if gs.GetPlayer(playerID) == nil {
+			return fmt.Errorf("player not found")
+		}
+		return nil
+	}
 
 	if gs.HasPendingLeechOffers() {
 		expected := gs.GetNextLeechResponder()
@@ -161,13 +229,13 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	}
 
 	if gs.PendingCultistsCultSelection != nil {
-		if actionType != ActionSelectCultistsCultTrack {
-			return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
+		pendingPlayer := strings.TrimSpace(gs.PendingCultistsCultSelection.PlayerID)
+		if strings.TrimSpace(playerID) == pendingPlayer {
+			if actionType != ActionSelectCultistsCultTrack {
+				return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
+			}
+			return nil
 		}
-		if playerID != gs.PendingCultistsCultSelection.PlayerID {
-			return fmt.Errorf("cultists cult selection required from player %s", gs.PendingCultistsCultSelection.PlayerID)
-		}
-		return nil
 	}
 
 	if gs.PendingFavorTileSelection != nil {
@@ -214,7 +282,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		if playerID != requiredPlayer {
 			return fmt.Errorf("cult reward spade follow-up required from player %s", requiredPlayer)
 		}
-		if actionType != ActionUseCultSpade {
+		if actionType != ActionUseCultSpade && actionType != ActionDiscardPendingSpade {
 			return fmt.Errorf("cult reward spade follow-up pending for player %s", requiredPlayer)
 		}
 		return nil
@@ -316,7 +384,8 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionSkipHalflingsDwelling,
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
-		ActionDiscardPendingSpade:
+		ActionDiscardPendingSpade,
+		ActionSetPlayerOptions:
 		return false
 	default:
 		return true
@@ -392,7 +461,19 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 	if gs == nil {
 		return nil
 	}
-	return SerializeStateWithRevision(gs, gameID, m.revisions[gameID])
+	state := SerializeStateWithRevision(gs, gameID, m.revisions[gameID])
+
+	// Detach nested mutable maps/slices while the manager read-lock is held so JSON
+	// encoding in websocket handlers does not race with concurrent action writes.
+	raw, err := json.Marshal(state)
+	if err != nil {
+		return state
+	}
+	var detached map[string]interface{}
+	if err := json.Unmarshal(raw, &detached); err != nil {
+		return state
+	}
+	return detached
 }
 
 // SerializeState converts the game state to a map for JSON response.
@@ -489,6 +570,7 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 		"revision":             revision,
 		"phase":                gs.Phase,
 		"setupMode":            gs.SetupMode,
+		"turnOrderPolicy":      gs.TurnOrderPolicy,
 		"setupSubphase":        gs.SetupSubphase,
 		"setupDwellingOrder":   gs.SetupDwellingOrder,
 		"setupDwellingIndex":   gs.SetupDwellingIndex,
@@ -559,6 +641,7 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 		"pendingTownCultTopChoice":         gs.PendingTownCultTopChoice,
 		"pendingDecision":                  serializePendingDecision(gs),
 		"auctionState":                     serializeAuctionState(gs.AuctionState),
+		"nextRoundIncome":                  serializeNextRoundIncomePreview(gs),
 		"finalScoring": func() interface{} {
 			if gs.FinalScoring == nil {
 				return nil
@@ -566,6 +649,19 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 			return gs.FinalScoring
 		}(),
 	}
+}
+
+func serializeNextRoundIncomePreview(gs *GameState) interface{} {
+	if gs == nil || gs.Round < 1 || gs.Round > 5 {
+		return nil
+	}
+	preview := make(map[string]IncomePreview)
+	for playerID := range gs.Players {
+		if income, ok := gs.GetNextRoundIncomePreview(playerID); ok {
+			preview[playerID] = income
+		}
+	}
+	return preview
 }
 
 func serializePendingDecision(gs *GameState) interface{} {

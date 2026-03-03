@@ -49,7 +49,7 @@ func TestEngineersBridgeAction_Execute(t *testing.T) {
 	}
 }
 
-func TestEngineersBridgeAction_RequiresStronghold(t *testing.T) {
+func TestEngineersBridgeAction_DoesNotRequireStronghold(t *testing.T) {
 	gs := NewGameState()
 	gs.AddPlayer("player1", factions.NewEngineers())
 	player := gs.GetPlayer("player1")
@@ -74,7 +74,7 @@ func TestEngineersBridgeAction_RequiresStronghold(t *testing.T) {
 	}
 
 	action := NewEngineersBridgeAction("player1", hex1, hex2)
-	if err := action.Validate(gs); err == nil {
-		t.Fatalf("expected validation error without stronghold ability")
+	if err := action.Validate(gs); err != nil {
+		t.Fatalf("expected validation to succeed without stronghold ability, got: %v", err)
 	}
 }

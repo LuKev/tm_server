@@ -47,3 +47,30 @@ func TestDiscardPendingSpadeAction_ValidateFailsWithoutPending(t *testing.T) {
 		t.Fatalf("expected validation to fail with no pending spades")
 	}
 }
+
+func TestDiscardPendingSpadeAction_ExecuteCultRewardDuringIncome(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewHalflings()); err != nil {
+		t.Fatalf("failed to add p1: %v", err)
+	}
+	if err := gs.AddPlayer("p2", factions.NewWitches()); err != nil {
+		t.Fatalf("failed to add p2: %v", err)
+	}
+
+	gs.Phase = PhaseIncome
+	gs.TurnOrder = []string{"p1", "p2"}
+	gs.CurrentPlayerIndex = 0
+	gs.PendingCultRewardSpades = map[string]int{"p1": 1}
+
+	action := NewDiscardPendingSpadeAction("p1", 1)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("discard cult reward spade should succeed: %v", err)
+	}
+
+	if count := gs.PendingCultRewardSpades["p1"]; count != 0 {
+		t.Fatalf("expected pending cult reward spades for p1 to be cleared, got %d", count)
+	}
+	if gs.Phase != PhaseAction {
+		t.Fatalf("expected phase to advance to action after resolving income cult spades, got %d", gs.Phase)
+	}
+}

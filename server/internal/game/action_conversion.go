@@ -10,6 +10,7 @@ const (
 	ConversionPowerToWorker  ConversionType = "power_to_worker"
 	ConversionPowerToPriest  ConversionType = "power_to_priest"
 	ConversionPriestToWorker ConversionType = "priest_to_worker"
+	ConversionWorkerToPriest ConversionType = "worker_to_priest"
 	ConversionWorkerToCoin   ConversionType = "worker_to_coin"
 	ConversionAlchVPToCoin   ConversionType = "alchemists_vp_to_coin"
 	ConversionAlchCoinToVP   ConversionType = "alchemists_coin_to_vp"
@@ -38,6 +39,9 @@ func (a *ConversionAction) Validate(gs *GameState) error {
 	}
 	if a.Amount <= 0 {
 		return fmt.Errorf("conversion amount must be positive")
+	}
+	if a.ConversionType == ConversionWorkerToPriest {
+		return fmt.Errorf("worker to priest conversion is only allowed through Darklings priest ordination")
 	}
 
 	return nil

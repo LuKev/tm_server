@@ -48,11 +48,10 @@ func (a *SetupBonusCardAction) Execute(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, a.BonusCard)
-	if err != nil {
+	if _, err := gs.BonusCards.TakeBonusCard(a.PlayerID, a.BonusCard); err != nil {
 		return fmt.Errorf("failed to take setup bonus card: %w", err)
 	}
-	player.Resources.Coins += coins
+	// Bonus card coins are awarded during income/grant rounds, not during setup selection.
 
 	gs.AdvanceSetupAfterBonusSelection()
 	return nil

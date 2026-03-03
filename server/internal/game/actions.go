@@ -42,6 +42,7 @@ const (
 	ActionConversion                   // Free conversion action (does not consume main action)
 	ActionBurnPower                    // Free burn action (does not consume main action)
 	ActionEngineersBridge              // Engineers SH special action: build bridge for workers
+	ActionSetPlayerOptions             // Update player UX/automation options
 )
 
 // Action represents a player action
@@ -1019,6 +1020,8 @@ func (a *PassAction) Execute(gs *GameState) error {
 		}
 		player.Resources.Coins += coins
 	}
+
+	gs.ApplyAutoConvertOnPass(a.PlayerID)
 
 	// Award VP from Air+1 favor tile (VP based on Trading House count)
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
