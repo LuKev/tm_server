@@ -78,6 +78,7 @@ go_test(
         "final_scoring_test.go",
         "income_test.go",
         "manager_revision_test.go",
+        "manager_serialize_options_test.go",
         "map_indirect_base_test.go",
         "power_actions_test.go",
         "power_test.go",

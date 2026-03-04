@@ -494,6 +494,7 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 			"id":      playerID,
 			"name":    playerID,
 			"faction": factionType,
+			"options": player.Options,
 			"resources": map[string]interface{}{
 				"coins":   player.Resources.Coins,
 				"workers": player.Resources.Workers,

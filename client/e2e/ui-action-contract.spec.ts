@@ -330,6 +330,119 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await waitForPerformAction(page, 'decline_leech', { offerIndex: 0 })
   })
 
+  test('player options reflect state and emit set_player_options actions', async ({ page }) => {
+    const state = makeBaseGameState({
+      players: {
+        ...makeBaseGameState().players,
+        p1: {
+          ...makeBaseGameState().players.p1,
+          options: {
+            autoLeechMode: 'accept_2',
+            autoConvertOnPass: true,
+            confirmActions: true,
+            showIncomePreview: true,
+          },
+        },
+      },
+    })
+
+    await openGameWithState(page, state)
+
+    await expect(page.getByTestId('option-auto-leech-mode')).toHaveValue('accept_2')
+    await expect(page.getByTestId('option-auto-convert-pass')).toBeChecked()
+    await expect(page.getByTestId('option-show-income-preview')).toBeChecked()
+
+    await clearSentMessages(page)
+    await page.getByTestId('option-auto-leech-mode').selectOption('decline_vp')
+    await waitForPerformAction(page, 'set_player_options', { autoLeechMode: 'decline_vp' })
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        players: {
+          ...state.players,
+          p1: {
+            ...state.players.p1,
+            options: {
+              autoLeechMode: 'decline_vp',
+              autoConvertOnPass: true,
+              confirmActions: true,
+              showIncomePreview: true,
+            },
+          },
+        },
+      },
+    })
+    await expect(page.getByTestId('option-auto-leech-mode')).toHaveValue('decline_vp')
+
+    await clearSentMessages(page)
+    await page.getByTestId('option-auto-convert-pass').click()
+    await waitForPerformAction(page, 'set_player_options', { autoConvertOnPass: false })
+
+    await clearSentMessages(page)
+    await page.getByTestId('option-show-income-preview').click()
+    await waitForPerformAction(page, 'set_player_options', { showIncomePreview: false })
+  })
+
+  test('decision strip shows waiting/prompt states and only current board shows conversions', async ({ page }) => {
+    const state = makeBaseGameState({
+      currentTurn: 1,
+      players: {
+        ...makeBaseGameState().players,
+        p1: { ...makeBaseGameState().players.p1, name: 'Alice' },
+        p2: { ...makeBaseGameState().players.p2, name: 'Bob' },
+      },
+    })
+
+    await openGameWithState(page, state)
+
+    await expect(page.getByTestId('player-summary-bar')).toContainText('Alice')
+    await expect(page.getByTestId('player-summary-bar')).toContainText('Bob')
+    await expect(page.getByTestId('player-summary-bar')).toContainText('YOU')
+
+    await expect(page.getByTestId('player-p1-conversion-worker_to_coin')).toHaveCount(0)
+    await expect(page.getByTestId('player-p2-conversion-worker_to_coin')).toBeVisible()
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        pendingDecision: { type: 'favor_tile_selection', playerId: 'p1' },
+      },
+    })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Please select a favor tile')
+    await expect(page.getByTestId(`favor-tile-${String(FavorTileType.Water2)}`)).toHaveClass(/favor-tile-selectable/)
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        pendingDecision: { type: 'town_tile_selection', playerId: 'p1' },
+      },
+    })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Please select a town tile')
+    await expect(page.getByTestId(`town-tile-${String(TownTileId.Vp7Workers2)}`)).toHaveClass(/town-tile-slot-selectable/)
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        currentTurn: 0,
+        pendingDecision: {
+          type: 'leech_offer',
+          playerId: 'p2',
+          offers: [{ Amount: 2 }],
+        },
+        pendingLeechOffers: {
+          p2: [{ Amount: 2 }],
+          p3: [{ Amount: 1 }],
+        },
+      },
+    })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting On Leech Responses')
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting for 2 other players')
+  })
+
   test('transform/build, building upgrade, conversion, ship/dig and burn are wired to perform_action', async ({ page }) => {
     let state = makeBaseGameState({
       phase: GamePhase.Action,
@@ -406,7 +519,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
       },
     })
     await clearSentMessages(page)
-    await clickByTestId(page, `town-tile-${String(TownTileId.Vp7Workers2)}`)
+    await clickByTestId(page, `town-tile-${String(TownTileId.Vp7Workers2)}`, { allowForce: true })
     await confirmAction(page)
     await waitForPerformAction(page, 'select_town_tile', { tileType: TownTileId.Vp7Workers2 })
 
@@ -547,6 +660,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await openGameWithState(page, giantsState)
     await clickByTestId(page, 'player-p1-stronghold-action')
+    await expect(page.getByTestId('player-p1-stronghold-action')).toHaveClass(/pb-special-action-active/)
     await clickHex(page, 1, 0)
     await clickByTestId(page, 'hex-action-submit')
     await waitForPerformAction(page, 'special_action_use', {
@@ -755,7 +869,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await openGameWithState(page, base)
 
-    await clickByTestId(page, 'player-p1-water2-action')
+    await clickByTestId(page, 'player-p1-water2-action', { allowForce: true })
     const cultModal = page.getByTestId('cult-choice-modal').first()
     const cultModalVisible = await cultModal.isVisible().catch(() => false)
     if (!cultModalVisible) {

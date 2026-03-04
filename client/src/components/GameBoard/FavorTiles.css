@@ -23,6 +23,12 @@
     overflow: hidden;
 }
 
+.favor-tile-selectable:hover {
+    outline: 0.2em solid #facc15;
+    outline-offset: 0.02em;
+    box-shadow: 0 0 0.6em rgba(250, 204, 21, 0.85);
+}
+
 .favor-tile-bg {
     position: absolute;
     top: 0;

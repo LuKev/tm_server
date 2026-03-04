@@ -96,7 +96,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClic
                             type="button"
                             key={id}
                             data-testid={`town-tile-${String(id)}`}
-                            className="town-tile-slot"
+                            className={`town-tile-slot ${clickable ? 'town-tile-slot-selectable' : ''}`}
                             onClick={() => { onTileClick?.(id as TownTileId); }}
                             disabled={isTileClickable ? !clickable : false}
                             style={{

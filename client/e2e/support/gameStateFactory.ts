@@ -52,6 +52,12 @@ const defaultPlayer = (
   specialActionsUsed: {},
   victoryPoints: 20,
   name,
+  options: {
+    autoLeechMode: 'off',
+    autoConvertOnPass: false,
+    confirmActions: true,
+    showIncomePreview: false,
+  },
 })
 
 const buildBaseMapHexes = (): Record<string, MapHex> => {

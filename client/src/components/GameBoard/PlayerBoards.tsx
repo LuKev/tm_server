@@ -49,12 +49,13 @@ const getTownTileConfig = (tileId: TownTileId): { vp: number; rewards: React.Rea
     }
 };
 
-const StrongholdOctagon: React.FC<{ isUsed?: boolean; onClick?: () => void; disabled?: boolean; testId?: string }> = ({ isUsed, onClick, disabled, testId }) => (
+const StrongholdOctagon: React.FC<{ isUsed?: boolean; isActive?: boolean; onClick?: () => void; disabled?: boolean; testId?: string }> = ({ isUsed, isActive, onClick, disabled, testId }) => (
     <button
         type="button"
         data-testid={testId}
         onClick={onClick}
         disabled={disabled}
+        className={isActive ? 'pb-special-action-active' : 'pb-special-action-hover'}
         style={{
             position: 'relative',
             width: '2.4rem',
@@ -67,6 +68,7 @@ const StrongholdOctagon: React.FC<{ isUsed?: boolean; onClick?: () => void; disa
             padding: 0,
             cursor: disabled ? 'not-allowed' : 'pointer',
             opacity: disabled ? 0.6 : 1,
+            borderRadius: '0.35rem',
         }}
     >
         <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.1))' }}>
@@ -88,13 +90,14 @@ const StrongholdOctagon: React.FC<{ isUsed?: boolean; onClick?: () => void; disa
     </button>
 );
 
-const StrongholdSquare: React.FC<{ onClick?: () => void; disabled?: boolean; label?: string; testId?: string }> = ({ onClick, disabled, label, testId }) => (
+const StrongholdSquare: React.FC<{ isActive?: boolean; onClick?: () => void; disabled?: boolean; label?: string; testId?: string }> = ({ isActive, onClick, disabled, label, testId }) => (
     <button
         type="button"
         data-testid={testId}
         onClick={onClick}
         disabled={disabled}
         title={label}
+        className={isActive ? 'pb-special-action-active' : 'pb-special-action-hover'}
         style={{
             width: '2.4rem',
             height: '2.4rem',
@@ -185,6 +188,10 @@ interface PlayerBoardProps {
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
+    activeStrongholdActionType?: SpecialActionType | null;
+    isEngineersBridgeActive?: boolean;
+    isMermaidsConnectActive?: boolean;
+    isWater2Active?: boolean;
 }
 
 const PlayerBoard: React.FC<PlayerBoardProps> = ({
@@ -199,7 +206,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     onStrongholdAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
-    onWater2Action
+    onWater2Action,
+    activeStrongholdActionType,
+    isEngineersBridgeActive,
+    isMermaidsConnectActive,
+    isWater2Active
 }) => {
     const gameState = useGameStore(s => s.gameState);
     const localPlayerId = useGameStore(s => s.localPlayerId);
@@ -263,6 +274,10 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const isLocalPlayer = localPlayerId === playerId;
     const isEngineersSquareAction = factionType === FactionType.Engineers && !!player.hasStrongholdAbility;
     const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
+    const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
+    const isLocalEngineersBridgeActive = !!isEngineersBridgeActive && isLocalPlayer;
+    const isLocalMermaidsConnectActive = !!isMermaidsConnectActive && isLocalPlayer;
+    const isLocalWater2Active = !!isWater2Active && isLocalPlayer;
 
     const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
@@ -364,6 +379,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                             <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdOctagon
                                                     isUsed={isStrongholdActionUsed}
+                                                    isActive={isStrongholdActionActive}
                                                     onClick={() => { if (strongholdActionType !== null) onStrongholdAction?.(playerId, strongholdActionType); }}
                                                     disabled={!isLocalPlayer || !!isStrongholdActionUsed}
                                                     testId={`player-${playerId}-stronghold-action`}
@@ -373,6 +389,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                         {isEngineersSquareAction && (
                                             <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdSquare
+                                                    isActive={isLocalEngineersBridgeActive}
                                                     label="BR"
                                                     onClick={() => { onEngineersBridgeAction?.(playerId); }}
                                                     disabled={!isLocalPlayer}
@@ -383,6 +400,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                         {isMermaidsSquareAction && (
                                             <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdSquare
+                                                    isActive={isLocalMermaidsConnectActive}
                                                     label="CT"
                                                     onClick={() => { onMermaidsConnectAction?.(playerId); }}
                                                     disabled={!isLocalPlayer}
@@ -480,9 +498,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                         </div>
                     </div>
 
-                    {/* Column 2: Conversions (normal) or Towns (replay mode) */}
+                    {/* Column 2: Conversions (current player only) or Towns */}
                     <div className="pb-conversions-col">
-                        {isReplayMode ? (
+                        {(isReplayMode || !isCurrentPlayer) ? (
                             <>
                                 <div className="pb-section-title">Towns</div>
                                 <div className="pb-towns-area">
@@ -599,6 +617,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                         <button
                                                             type="button"
                                                             data-testid={`player-${playerId}-water2-action`}
+                                                            className={isLocalWater2Active ? 'pb-special-action-active' : 'pb-special-action-hover'}
                                                             onClick={() => { onWater2Action?.(playerId); }}
                                                             style={{
                                                                 position: 'absolute',
@@ -606,6 +625,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                                 background: 'transparent',
                                                                 border: 'none',
                                                                 cursor: 'pointer',
+                                                                borderRadius: '0.45rem',
                                                             }}
                                                         />
                                                     )}
@@ -635,6 +655,10 @@ interface PlayerBoardsProps {
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
+    activeStrongholdActionType?: SpecialActionType | null;
+    isEngineersBridgeActive?: boolean;
+    isMermaidsConnectActive?: boolean;
+    isWater2Active?: boolean;
 }
 
 export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
@@ -646,7 +670,11 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
     onStrongholdAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
-    onWater2Action
+    onWater2Action,
+    activeStrongholdActionType,
+    isEngineersBridgeActive,
+    isMermaidsConnectActive,
+    isWater2Active
 }) => {
     const gameState = useGameStore(s => s.gameState);
 
@@ -718,6 +746,10 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
                             onEngineersBridgeAction={onEngineersBridgeAction}
                             onMermaidsConnectAction={onMermaidsConnectAction}
                             onWater2Action={onWater2Action}
+                            activeStrongholdActionType={activeStrongholdActionType}
+                            isEngineersBridgeActive={isEngineersBridgeActive}
+                            isMermaidsConnectActive={isMermaidsConnectActive}
+                            isWater2Active={isWater2Active}
                         />
                     );
                 })}

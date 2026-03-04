@@ -29,7 +29,7 @@ export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClick
                         type="button"
                         key={tile.id}
                         data-testid={`favor-tile-${String(tile.type)}`}
-                        className="favor-tile"
+                        className={`favor-tile ${isTileClickable && isTileClickable(tile.type, count) ? 'favor-tile-selectable' : ''}`}
                         onClick={() => { onTileClick?.(tile.type); }}
                         disabled={isTileClickable ? !isTileClickable(tile.type, count) : false}
                         style={{

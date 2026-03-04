@@ -24,6 +24,7 @@ interface PassingTilesProps {
     passedPlayers?: Set<string>; // Set of PlayerIDs who have passed
     onCardClick?: (cardType: BonusCardType) => void;
     isCardClickable?: (cardType: BonusCardType) => boolean;
+    activeSpecialCardActionType?: SpecialActionType | null;
 }
 
 const isSplitCard = (type: BonusCardType): boolean => {
@@ -246,7 +247,8 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
     players,
     passedPlayers,
     onCardClick,
-    isCardClickable
+    isCardClickable,
+    activeSpecialCardActionType
 }) => {
     if (!availableCards || availableCards.length === 0) return null;
 
@@ -275,6 +277,11 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
 
                 const isPassed = ownerId ? passedPlayers?.has(ownerId) : false;
                 const coins = bonusCardCoins?.[String(cardType)] ?? 0;
+                const isSpecialActionCard = cardType === BonusCardType.Spade || cardType === BonusCardType.CultAdvance;
+                const isActiveSpecialAction = (
+                    (cardType === BonusCardType.Spade && activeSpecialCardActionType === SpecialActionType.BonusCardSpade)
+                    || (cardType === BonusCardType.CultAdvance && activeSpecialCardActionType === SpecialActionType.BonusCardCultAdvance)
+                );
 
                 // Determine if this card is used (for special action cards)
                 let isUsed = false;
@@ -291,6 +298,7 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
                         key={cardType}
                         data-testid={`passing-card-${String(cardType)}`}
                         type="button"
+                        className={`${isSpecialActionCard ? 'passing-card-special-action' : ''} ${isActiveSpecialAction ? 'passing-card-special-action-active' : ''}`.trim()}
                         onClick={() => { onCardClick?.(cardType); }}
                         disabled={isCardClickable ? !isCardClickable(cardType) : false}
                         style={{

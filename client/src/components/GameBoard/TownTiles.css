@@ -14,6 +14,7 @@
     height: 100%;
     padding: 2%;
     box-sizing: border-box;
+    min-height: 12rem;
 }
 
 /* Individual tile slot */
@@ -21,11 +22,16 @@
     position: relative;
     width: 100%;
     padding-top: 115%;
+    min-height: 4.8rem;
     display: flex;
     justify-content: center;
     align-items: center;
     container-type: inline-size;
     /* Enable container queries */
+}
+
+.town-tile-slot-selectable:hover .town-tile-stack-0 {
+    box-shadow: 0 0 0 0.18em #facc15, 0 0 0.65em rgba(250, 204, 21, 0.85);
 }
 
 .town-tile {

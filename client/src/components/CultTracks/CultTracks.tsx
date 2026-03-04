@@ -30,6 +30,34 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   const cults = useMemo(() => [CultType.Fire, CultType.Water, CultType.Earth, CultType.Air], []);
   const cultWidth = 250 / 4; // 62.5px per cult
   const height = 560; // Match game board height
+  const tileWidth = 25;
+  const tileHeight = 20;
+  const tileSpacing = 5;
+
+  const getPriestSpotRect = useCallback((cultIndex: number, tileIndex: number): { x: number; y: number; width: number; height: number } => {
+    const gridWidth = 2 * tileWidth + tileSpacing;
+    const startX = (cultWidth - gridWidth) / 2;
+    const baseX = cultWidth * cultIndex + startX;
+    const baseY = 460;
+
+    if (tileIndex < 4) {
+      const row = Math.floor(tileIndex / 2);
+      const col = tileIndex % 2;
+      return {
+        x: baseX + col * (tileWidth + tileSpacing),
+        y: baseY + row * (tileHeight + tileSpacing),
+        width: tileWidth,
+        height: tileHeight,
+      };
+    }
+
+    return {
+      x: baseX + tileWidth / 2 + tileSpacing / 2,
+      y: baseY + 2 * (tileHeight + tileSpacing),
+      width: tileWidth,
+      height: tileHeight,
+    };
+  }, [cultWidth, tileHeight, tileSpacing, tileWidth]);
 
   // Draw hex path (simplified from makeHexPath)
   const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
@@ -190,30 +218,13 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
       ctx.lineWidth = 0.2;
 
       const tiles = bonusTiles?.get(cult) || [];
-      const tileWidth = 25;
-      const tileHeight = 20;
-      const tileSpacing = 5;
-
-      // Calculate total grid width and center it within the cult column
-      const gridWidth = 2 * tileWidth + tileSpacing;
-      const startX = (cultWidth - gridWidth) / 2;
 
       // Draw 2x2 grid of priest spots + return spot
       for (let tileIndex = 0; tileIndex < 5; tileIndex++) {
         const tile = tiles[tileIndex];
-        let x, y;
-
-        // Position calculation: first 4 are 2x2 grid, 5th is centered below
-        if (tileIndex < 4) {
-          const row = Math.floor(tileIndex / 2);
-          const col = tileIndex % 2;
-          x = startX + col * (tileWidth + tileSpacing);
-          y = row * (tileHeight + tileSpacing);
-        } else {
-          // 5th spot: centered below the grid
-          x = startX + tileWidth / 2 + tileSpacing / 2;
-          y = 2 * (tileHeight + tileSpacing);
-        }
+        const rect = getPriestSpotRect(j, tileIndex);
+        const x = rect.x - cultWidth * j;
+        const y = rect.y - 460;
 
         // Draw tile background box
         ctx.beginPath();
@@ -226,8 +237,8 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
         // Draw border (green if hovered and no priest, gray otherwise)
         if (hoveredTile && hoveredTile.cult === cult && hoveredTile.index === tileIndex && !hasPriest) {
-          ctx.strokeStyle = '#00ff00'; // Green outline on hover
-          ctx.lineWidth = 2;
+          ctx.strokeStyle = '#FFD700';
+          ctx.lineWidth = 2.4;
         } else {
           ctx.strokeStyle = '#999'; // Gray border
           ctx.lineWidth = 1;
@@ -355,144 +366,10 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
     ctx.stroke();
     ctx.restore();
-  }, [cultPositions, bonusTiles, hoveredTile, cultWidth, cults, drawCultMarker, priestsOnTrack, players]);
-
-  // Handle mouse move for hover effects
-  const handleMouseMove = (e: React.MouseEvent<HTMLCanvasElement>): void => {
-    const canvas = canvasRef.current;
-    if (!canvas || !bonusTiles) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * 2; // Account for canvas scaling
-    const y = (e.clientY - rect.top) * 2;
-
-    // Only check priest spots area (bottom of canvas)
-    const priestAreaY = 960; // Start of priest spots area (460 * 2 + empirical adjustment)
-    if (y < priestAreaY) {
-      setHoveredTile(null);
-      return;
-    }
-
-    // Check if mouse is over any priest spot
-    let foundTile = false;
-    for (let cultIndex = 0; cultIndex < 4; cultIndex++) {
-      const cult = cults[cultIndex];
-
-      const tileWidth = 25;
-      const tileHeight = 20;
-      const tileSpacing = 5;
-
-      // Calculate centered position (matching rendering logic)
-      const gridWidth = 2 * tileWidth + tileSpacing;
-      const startX = (cultWidth - gridWidth) / 2;
-      const cultX = (cultWidth * cultIndex + startX) * 2; // Scale by 2 for mouse coords
-      const cultY = 960; // 460 * 2 + empirical adjustment
-
-      const tiles = bonusTiles?.get(cult) || [];
-
-      // Check all 5 spots (4 in 2x2 grid + 1 return spot)
-      for (let tileIndex = 0; tileIndex < 5; tileIndex++) {
-        let tileX, tileY;
-
-        // Position calculation: first 4 are 2x2 grid, 5th is centered below
-        if (tileIndex < 4) {
-          const row = Math.floor(tileIndex / 2);
-          const col = tileIndex % 2;
-          tileX = cultX + col * (tileWidth + tileSpacing) * 2;
-          tileY = cultY + row * (tileHeight + tileSpacing) * 2;
-        } else {
-          // 5th spot: centered below the grid
-          tileX = cultX + (tileWidth / 2 + tileSpacing / 2) * 2;
-          tileY = cultY + 2 * (tileHeight + tileSpacing) * 2;
-        }
-
-        if (x >= tileX && x <= tileX + tileWidth * 2 &&
-          y >= tileY && y <= tileY + tileHeight * 2) {
-          // Only hover if spot doesn't have a priest
-          const tile = tiles[tileIndex];
-          const hasPriest = tile?.priests && tile.priests > 0 && tile.faction !== undefined;
-
-          if (!hasPriest) {
-            setHoveredTile({ cult, index: tileIndex });
-            foundTile = true;
-          }
-          break;
-        }
-      }
-      if (foundTile) break;
-    }
-
-    if (!foundTile) {
-      setHoveredTile(null);
-    }
-  };
-
-  // Handle mouse click for priest spots
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>): void => {
-    const canvas = canvasRef.current;
-    if (!canvas || !bonusTiles) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = (e.clientX - rect.left) * 2; // Account for canvas scaling
-    const y = (e.clientY - rect.top) * 2;
-
-    // Only handle clicks in priest spots area (bottom of canvas)
-    const priestAreaY = 960; // Start of priest spots area (460 * 2 + empirical adjustment)
-    if (y < priestAreaY) {
-      return; // Ignore clicks outside priest spots area
-    }
-
-    if (!onBonusTileClick) return;
-
-    // Check if click is on any priest spot
-    for (let cultIndex = 0; cultIndex < 4; cultIndex++) {
-      const cult = cults[cultIndex];
-
-      const tileWidth = 25;
-      const tileHeight = 20;
-      const tileSpacing = 5;
-
-      // Calculate centered position (matching hover detection)
-      const gridWidth = 2 * tileWidth + tileSpacing;
-      const startX = (cultWidth - gridWidth) / 2;
-      const cultX = (cultWidth * cultIndex + startX) * 2; // Scale by 2 for mouse coords
-      const cultY = 960; // 460 * 2 + empirical adjustment
-
-      const tiles = bonusTiles?.get(cult) || [];
-
-      // Check all 5 spots (4 in 2x2 grid + 1 return spot)
-      for (let tileIndex = 0; tileIndex < 5; tileIndex++) {
-        let tileX, tileY;
-
-        // Position calculation: first 4 are 2x2 grid, 5th is centered below
-        if (tileIndex < 4) {
-          const row = Math.floor(tileIndex / 2);
-          const col = tileIndex % 2;
-          tileX = cultX + col * (tileWidth + tileSpacing) * 2;
-          tileY = cultY + row * (tileHeight + tileSpacing) * 2;
-        } else {
-          // 5th spot: centered below the grid
-          tileX = cultX + (tileWidth / 2 + tileSpacing / 2) * 2;
-          tileY = cultY + 2 * (tileHeight + tileSpacing) * 2;
-        }
-
-        if (x >= tileX && x <= tileX + tileWidth * 2 &&
-          y >= tileY && y <= tileY + tileHeight * 2) {
-          // Only click if spot doesn't have a priest
-          const tile = tiles[tileIndex];
-          const hasPriest = tile?.priests && tile.priests > 0 && tile.faction !== undefined;
-
-          if (!hasPriest) {
-            onBonusTileClick(cult, tileIndex);
-          }
-          return;
-        }
-      }
-    }
-  };
+  }, [cultPositions, bonusTiles, hoveredTile, cultWidth, cults, drawCultMarker, priestsOnTrack, players, getPriestSpotRect, tileHeight, tileWidth]);
 
   return (
-    <div className="cult-tracks w-full" data-testid="cult-tracks" style={{ position: 'relative' }}>
+    <div className="cult-tracks w-full" data-testid="cult-tracks" style={{ position: 'relative', border: '1px solid #333' }}>
       <canvas
         ref={canvasRef}
         data-testid="cult-tracks-canvas"
@@ -501,14 +378,9 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
         style={{
           width: '100%',
           height: '100%',
-          objectFit: 'contain',
-          border: '1px solid #333',
           display: 'block',
-          cursor: hoveredTile ? 'pointer' : 'default'
+          cursor: 'default'
         }}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => { setHoveredTile(null); }}
-        onClick={handleClick}
       />
       <div
         aria-hidden={onBonusTileClick === undefined}
@@ -519,27 +391,14 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
         }}
       >
         {cults.map((cult, cultIndex) => {
-          const tileWidth = 25;
-          const tileHeight = 20;
-          const tileSpacing = 5;
-          const gridWidth = 2 * tileWidth + tileSpacing;
-          const startX = (cultWidth - gridWidth) / 2;
           const tiles = bonusTiles?.get(cult) || [];
 
           return Array.from({ length: 5 }).map((_, tileIndex) => {
-            let x, y;
-            if (tileIndex < 4) {
-              const row = Math.floor(tileIndex / 2);
-              const col = tileIndex % 2;
-              x = cultWidth * cultIndex + startX + col * (tileWidth + tileSpacing);
-              y = 460 + row * (tileHeight + tileSpacing);
-            } else {
-              x = cultWidth * cultIndex + startX + tileWidth / 2 + tileSpacing / 2;
-              y = 460 + 2 * (tileHeight + tileSpacing);
-            }
+            const rect = getPriestSpotRect(cultIndex, tileIndex);
 
             const tile = tiles[tileIndex];
             const hasPriest = !!(tile?.priests && tile.priests > 0 && tile.faction !== undefined);
+            const isHovered = hoveredTile?.cult === cult && hoveredTile.index === tileIndex;
             return (
               <button
                 key={`${String(cult)}-${String(tileIndex)}`}
@@ -547,18 +406,23 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
                 data-testid={`cult-spot-${String(cult)}-${String(tileIndex)}`}
                 disabled={hasPriest || onBonusTileClick === undefined}
                 onClick={() => { onBonusTileClick?.(cult, tileIndex); }}
+                onMouseEnter={() => {
+                  if (!hasPriest) setHoveredTile({ cult, index: tileIndex });
+                }}
+                onMouseLeave={() => { setHoveredTile(null); }}
                 style={{
                   position: 'absolute',
-                  left: `${String((x / 250) * 100)}%`,
-                  top: `${String((y / 560) * 100)}%`,
+                  left: `${String((rect.x / 250) * 100)}%`,
+                  top: `${String((rect.y / 560) * 100)}%`,
                   width: `${String((tileWidth / 250) * 100)}%`,
                   height: `${String((tileHeight / 560) * 100)}%`,
                   pointerEvents: 'auto',
-                  border: 'none',
+                  border: isHovered ? '2px solid #facc15' : 'none',
                   background: 'transparent',
                   padding: 0,
                   margin: 0,
                   cursor: hasPriest ? 'not-allowed' : 'pointer',
+                  boxShadow: isHovered ? '0 0 10px rgba(250, 204, 21, 0.85)' : 'none',
                 }}
               />
             );

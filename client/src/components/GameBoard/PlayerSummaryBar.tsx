@@ -26,7 +26,11 @@ const resolveFactionType = (player: PlayerState): FactionType | null => {
   return null;
 };
 
-export const PlayerSummaryBar: React.FC<{ gameState: GameState; showIncomePreview?: boolean }> = ({ gameState, showIncomePreview = false }) => {
+export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: string | null; showIncomePreview?: boolean }> = ({
+  gameState,
+  localPlayerId,
+  showIncomePreview = false,
+}) => {
   if (!gameState.players) return null;
 
   const playerIds =
@@ -63,6 +67,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; showIncomePrevie
         const factionType = resolveFactionType(player) ?? FactionType.Unknown;
         const factionColor = FACTION_COLORS[factionType] ?? '#9ca3af';
         const isCurrent = pid === currentPlayerId;
+        const isLocal = !!localPlayerId && pid === localPlayerId;
 
         const hasTempShippingBonus = gameState.bonusCards?.playerCards?.[pid] === BonusCardType.Shipping;
         const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
@@ -86,6 +91,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; showIncomePrevie
               boxSizing: 'border-box',
               outline: isCurrent ? '2px solid #FACC15' : undefined, // yellow-400
               outlineOffset: isCurrent ? '0px' : undefined,
+              boxShadow: isLocal ? 'inset 0 0 0 2px #2563eb' : undefined,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', lineHeight: 1 }}>
@@ -103,15 +109,25 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; showIncomePrevie
                 />
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#374151', fontWeight: 600 }}>
                   <span>#{turnOrderNumber}</span>
+                  <span style={{ maxWidth: '8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {player.name}
+                  </span>
                   <span style={{ color: '#9ca3af' }}>|</span>
                   <span style={{ fontWeight: 700 }}>{vp} VP</span>
                 </div>
               </div>
-              {isCurrent && (
-                <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1f2937', lineHeight: 1 }}>
-                  TURN
-                </div>
-              )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                {isLocal && (
+                  <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#1d4ed8', lineHeight: 1 }}>
+                    YOU
+                  </div>
+                )}
+                {isCurrent && (
+                  <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1f2937', lineHeight: 1 }}>
+                    TURN
+                  </div>
+                )}
+              </div>
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', minWidth: 0, fontSize: '0.75rem', lineHeight: 1 }}>

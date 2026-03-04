@@ -27,6 +27,14 @@
     transform: translateY(-0.5cqw);
 }
 
+.passing-card-special-action:hover .passing-tile {
+    box-shadow: inset 0 0 0 0.22cqw #facc15, 0 0 0.8cqw rgba(250, 204, 21, 0.85);
+}
+
+.passing-card-special-action-active .passing-tile {
+    box-shadow: inset 0 0 0 0.22cqw #facc15, 0 0 0.8cqw rgba(250, 204, 21, 0.85);
+}
+
 .passing-tile-bg {
     position: absolute;
     top: 0;

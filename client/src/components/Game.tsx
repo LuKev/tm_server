@@ -59,6 +59,14 @@ const LEECH_AUTO_OPTIONS: Array<{ value: LeechAutoMode; label: string }> = [
   { value: 'decline_vp', label: 'Auto decline VP-cost leech (accept only 1/0)' },
 ]
 
+const STRONGHOLD_TARGET_ACTION_TYPES: SpecialActionType[] = [
+  SpecialActionType.WitchesRide,
+  SpecialActionType.SwarmlingsUpgrade,
+  SpecialActionType.GiantsTransform,
+  SpecialActionType.NomadsSandstorm,
+  SpecialActionType.MermaidsRiverTown,
+]
+
 type PendingPowerMode =
   | { type: 'power_spade'; actionType: PowerActionType }
   | { type: 'power_bridge'; source: 'power' | 'engineers'; firstHex: { q: number; r: number } | null }
@@ -415,6 +423,18 @@ export const Game = () => {
     if (!(hasPendingDecisionForMe && pendingDecisionType === 'leech_offer')) return [] as Array<Record<string, unknown>>
     return ((pendingDecision?.offers as Array<Record<string, unknown>> | undefined) ?? [])
   }, [hasPendingDecisionForMe, pendingDecision, pendingDecisionType])
+  const pendingLeechResponders = useMemo(() => {
+    const pending = gameState?.pendingLeechOffers ?? {}
+    return Object.entries(pending)
+      .filter(([, offers]) => Array.isArray(offers) && offers.length > 0)
+      .map(([playerId]) => playerId)
+  }, [gameState?.pendingLeechOffers])
+  const waitingOnOtherLeechResponses = useMemo(() => {
+    if (!localPlayerId || pendingLeechResponders.length === 0) return 0
+    if (!isMyTurn) return 0
+    if (pendingLeechResponders.includes(localPlayerId)) return 0
+    return pendingLeechResponders.filter((pid) => pid !== localPlayerId).length
+  }, [isMyTurn, localPlayerId, pendingLeechResponders])
 
   useEffect(() => {
     if (!(hasPendingDecisionForMe && pendingDecisionType === 'town_cult_top_choice')) {
@@ -1139,6 +1159,25 @@ export const Game = () => {
   const isHalflingsSpadeDecision = hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades'
   const isCultSpadeDecision = hasPendingCultSpadesForMe > 0
   const isPendingSpadeDecision = hasPendingSpadesForMe > 0
+  const hasFavorSelectionForMe = hasPendingDecisionForMe && pendingDecisionType === 'favor_tile_selection'
+  const hasTownSelectionForMe = (hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection')
+    || (!!localPlayerId && hasPendingTownFormationForMe)
+  const activeStrongholdActionType = useMemo((): SpecialActionType | null => {
+    if (powerMode?.type === 'special_action_target' && STRONGHOLD_TARGET_ACTION_TYPES.includes(powerMode.actionType)) {
+      return powerMode.actionType
+    }
+    if (cultChoiceContext === 'auren_sh') return SpecialActionType.AurenCultAdvance
+    if (chaosModalOpen) return SpecialActionType.ChaosMagiciansDoubleTurn
+    return null
+  }, [chaosModalOpen, cultChoiceContext, powerMode])
+  const activeBonusCardActionType = useMemo((): SpecialActionType | null => {
+    if (powerMode?.type === 'special_action_target' && powerMode.actionType === SpecialActionType.BonusCardSpade) {
+      return SpecialActionType.BonusCardSpade
+    }
+    if (cultChoiceContext === 'bonus_cult') return SpecialActionType.BonusCardCultAdvance
+    return null
+  }, [cultChoiceContext, powerMode])
+  const activeWater2Action = cultChoiceContext === 'water2'
 
   const closeHexModal = (): void => {
     setPendingHex(null)
@@ -1340,7 +1379,7 @@ export const Game = () => {
           </div>
         )}
 
-        <div className="mb-3 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px]" data-testid="game-decision-strip">
+        <div className="mb-3 sticky top-2 z-40 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px] shadow-sm" data-testid="game-decision-strip">
           {confirmDialog ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -1378,16 +1417,51 @@ export const Game = () => {
                 )
               })}
             </div>
+          ) : waitingOnOtherLeechResponses > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Waiting On Leech Responses</div>
+                <div className="text-sm text-slate-700">
+                  Waiting for {String(waitingOnOtherLeechResponses)} other player{waitingOnOtherLeechResponses === 1 ? '' : 's'} to accept/decline leech.
+                </div>
+              </div>
+            </div>
+          ) : hasFavorSelectionForMe ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Please select a favor tile</div>
+                <div className="text-sm text-slate-700">A favor tile is required before your turn can continue.</div>
+              </div>
+            </div>
+          ) : hasTownSelectionForMe ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Please select a town tile</div>
+                <div className="text-sm text-slate-700">A town tile selection is required.</div>
+              </div>
+            </div>
           ) : turnEndNotice ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-slate-800">{turnEndNotice}</div>
-              <button
-                data-testid="turn-end-ack"
-                className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
-                onClick={() => { setTurnEndNotice(null) }}
-              >
-                OK
-              </button>
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Turn Complete</div>
+                <div className="text-sm text-slate-700">{turnEndNotice}</div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  data-testid="turn-end-undo"
+                  className="rounded bg-amber-600 px-3 py-1 text-sm text-white"
+                  onClick={() => { setErrorMessage('Undo is not available yet.') }}
+                >
+                  Undo
+                </button>
+                <button
+                  data-testid="turn-end-ack"
+                  className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
+                  onClick={() => { setTurnEndNotice(null) }}
+                >
+                  Dismiss
+                </button>
+              </div>
             </div>
           ) : (
             <div className="text-sm text-slate-500">No pending confirmations.</div>
@@ -1414,7 +1488,9 @@ export const Game = () => {
 
         {(powerMode?.type === 'power_spade' || powerMode?.type === 'special_action_target') && (
           <div className="mb-3 rounded border border-blue-300 bg-blue-50 px-4 py-2 text-sm text-blue-800">
-            Click a target hex.
+            {powerMode?.type === 'special_action_target' && STRONGHOLD_TARGET_ACTION_TYPES.includes(powerMode.actionType)
+              ? 'Stronghold action active: click a target hex.'
+              : 'Click a target hex.'}
           </div>
         )}
 
@@ -1608,7 +1684,13 @@ export const Game = () => {
                 display: 'flex',
               }}
             >
-              {gameState && <PlayerSummaryBar gameState={gameState} showIncomePreview={localPlayerOptions.showIncomePreview} />}
+              {gameState && (
+                <PlayerSummaryBar
+                  gameState={gameState}
+                  localPlayerId={localPlayerId}
+                  showIncomePreview={localPlayerOptions.showIncomePreview}
+                />
+              )}
             </div>
           </div>
 
@@ -1693,6 +1775,10 @@ export const Game = () => {
                 onEngineersBridgeAction={handleEngineersBridgeAction}
                 onMermaidsConnectAction={handleMermaidsConnectAction}
                 onWater2Action={handleWater2Action}
+                activeStrongholdActionType={activeStrongholdActionType}
+                isEngineersBridgeActive={powerMode?.type === 'power_bridge' && powerMode.source === 'engineers'}
+                isMermaidsConnectActive={powerMode?.type === 'special_action_target' && powerMode.actionType === SpecialActionType.MermaidsRiverTown}
+                isWater2Active={activeWater2Action}
               />
             </div>
           </div>
@@ -1710,6 +1796,7 @@ export const Game = () => {
                 passedPlayers={passedPlayers}
                 onCardClick={handlePassingTileClick}
                 isCardClickable={isPassingCardClickable}
+                activeSpecialCardActionType={activeBonusCardActionType}
               />
             </div>
           </div>

@@ -113,21 +113,24 @@ export async function clickWhenVisible(locator: Locator): Promise<void> {
   await locator.click()
 }
 
-export async function clickByTestId(page: Page, testId: string): Promise<void> {
+export async function clickByTestId(page: Page, testId: string, options?: { allowForce?: boolean }): Promise<void> {
   const locator = page.getByTestId(testId).first()
-  await locator.waitFor({ state: 'attached', timeout: 10_000 })
+  if (options?.allowForce) {
+    await locator.waitFor({ state: 'attached', timeout: 10_000 })
+  } else {
+    await locator.waitFor({ state: 'visible', timeout: 10_000 })
+    await expect(locator).toBeEnabled()
+  }
   await locator.scrollIntoViewIfNeeded().catch(() => undefined)
-  const clicked = await locator.click({ timeout: 3_000, force: true }).then(() => true).catch(() => false)
+
+  const clicked = await locator.click({ timeout: 3_000 }).then(() => true).catch(() => false)
   if (clicked) return
 
-  await Promise.race([
-    locator.evaluate((el) => {
-      (el as HTMLElement).click()
-    }),
-    new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`timeout dispatching click for data-testid=${testId}`)), 3_000)
-    }),
-  ])
+  if (!options?.allowForce) {
+    throw new Error(`unable to click data-testid=${testId} without force`)
+  }
+
+  await locator.click({ timeout: 3_000, force: true })
 }
 
 export async function confirmAction(page: Page): Promise<void> {

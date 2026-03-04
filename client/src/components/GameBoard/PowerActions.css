@@ -28,12 +28,13 @@
     height: 100%;
     /* Fill grid cell */
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: box-shadow 0.2s, transform 0.2s;
     overflow: hidden;
 }
 
 .power-action-tile:hover {
-    background-color: #f3f4f6;
+    box-shadow: inset 0 0 0 3px #facc15, 0 0 10px rgba(250, 204, 21, 0.8);
+    transform: translateY(-1px);
 }
 
 .power-cost {
