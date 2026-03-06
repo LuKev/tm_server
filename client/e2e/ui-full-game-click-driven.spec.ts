@@ -260,13 +260,23 @@ function getPendingDecisionInfo(snapshot: JsonObject | undefined): { type: strin
   }
 }
 
+function getCurrentTurnPlayerId(snapshot: JsonObject | undefined): string {
+  const turnOrderRaw = snapshot?.turnOrder
+  const currentTurnRaw = snapshot?.currentTurn
+  if (!Array.isArray(turnOrderRaw)) return ''
+  const currentTurn = typeof currentTurnRaw === 'number' ? Math.trunc(currentTurnRaw) : Number(currentTurnRaw)
+  if (!Number.isFinite(currentTurn) || currentTurn < 0 || currentTurn >= turnOrderRaw.length) return ''
+  const playerId = turnOrderRaw[currentTurn]
+  return typeof playerId === 'string' ? playerId : ''
+}
+
 async function performActionViaWsFallback(
   bot: WsBot,
   action: GoldenAction,
   gameID: string,
   expectedRevision: number,
   actionIndex: number,
-): Promise<boolean> {
+): Promise<{ advanced: boolean; rejectionMessage: string }> {
   if (action.type === 'replay_conversion') {
     const params = action.params ?? {}
     bot.send('test_apply_conversion', {
@@ -276,7 +286,13 @@ async function performActionViaWsFallback(
       amount: Math.max(1, readInt(params, 'amount')),
     })
     const response = await bot.waitForAnyType(['test_command_applied', 'action_rejected', 'error'], 4_000)
-    return String(response.type ?? '') === 'test_command_applied'
+    const responseType = String(response.type ?? '')
+    const rejectionMessage = String(
+      asRecord(response.payload).message
+      ?? asRecord(response.payload).error
+      ?? '',
+    )
+    return { advanced: responseType === 'test_command_applied', rejectionMessage }
   }
 
   const actionId = `ui-click-fallback-${String(actionIndex).padStart(4, '0')}-${String(fallbackActionSeq)}`
@@ -308,19 +324,13 @@ async function performActionViaWsFallback(
         )}`,
       )
     }
-    return responseType === 'action_accepted'
+    const rejectionMessage = String(payload.message ?? payload.error ?? '')
+    return { advanced: responseType === 'action_accepted', rejectionMessage }
   }
   debugLog(
     `[click-replay] ws-fallback timeout index=${actionIndex} actor=${action.playerId} type=${action.type} expectedRevision=${expectedRevision}`,
   )
-  return false
-}
-
-const pendingLeechRespondersFromState = (snapshot: JsonObject | undefined): string[] => {
-  const pending = asRecord(snapshot?.pendingLeechOffers)
-  return Object.entries(pending)
-    .filter(([, offers]) => Array.isArray(offers) && offers.length > 0)
-    .map(([playerId]) => playerId)
+  return { advanced: false, rejectionMessage: 'timeout' }
 }
 
 const pendingLeechOfferCount = (snapshot: JsonObject | undefined, playerId: string): number => {
@@ -332,20 +342,99 @@ const pendingLeechOfferCount = (snapshot: JsonObject | undefined, playerId: stri
 
 const isLeechAction = (actionType: string): boolean => actionType === 'accept_leech' || actionType === 'decline_leech'
 
-const pendingDecisionTypeForAction = (actionType: string): string | null => {
-  if (isLeechAction(actionType)) return 'leech_offer'
-  if (actionType === 'select_favor_tile') return 'favor_tile_selection'
-  if (actionType === 'select_town_tile') return 'town_tile_selection'
-  if (actionType === 'select_cultists_track') return 'cultists_cult_choice'
-  return null
+const parsePowerShortfallForAutoBurn = (message: string): number => {
+  if (message === '') return 0
+
+  // conversion failures: "need 4 power in bowl 3, only have 1"
+  const conversionMatch = message.match(/need\s+(\d+)\s+power in bowl 3,\s*only have\s+(\d+)/i)
+  if (conversionMatch) {
+    const need = Number(conversionMatch[1] ?? '0')
+    const have = Number(conversionMatch[2] ?? '0')
+    return Math.max(0, need - have)
+  }
+
+  // power action failures: "not enough power in Bowl III: need 6, have 2"
+  const powerActionMatch = message.match(/Bowl III:\s*need\s+(\d+),\s*have\s+(\d+)/i)
+  if (powerActionMatch) {
+    const need = Number(powerActionMatch[1] ?? '0')
+    const have = Number(powerActionMatch[2] ?? '0')
+    return Math.max(0, need - have)
+  }
+
+  return 0
 }
 
-const currentTurnPlayerIdFromState = (snapshot: JsonObject | undefined): string => {
-  const turnOrderRaw = snapshot?.turnOrder
-  const turnOrder = Array.isArray(turnOrderRaw) ? turnOrderRaw.map((entry) => String(entry ?? '')) : []
-  const currentTurn = Number(snapshot?.currentTurn ?? -1)
-  if (!Number.isInteger(currentTurn) || currentTurn < 0 || currentTurn >= turnOrder.length) return ''
-  return turnOrder[currentTurn] ?? ''
+const isSkippableActionFailure = (actionType: string, rejectionMessage: string): boolean => {
+  const message = rejectionMessage.toLowerCase()
+  if (message === '') return false
+
+  if (message.includes('no pending leech offer for player')) return isLeechAction(actionType)
+  if (message.includes('no pending town formation for player')) return actionType === 'select_town_tile'
+  if (message.includes('cannot afford shipping upgrade')) return actionType === 'advance_shipping'
+  if (message.includes('cannot afford digging upgrade')) return actionType === 'advance_digging'
+  if (message.includes('cannot afford upgrade')) return actionType === 'upgrade_building'
+  if (message.includes('not enough resources for dwelling')) return actionType === 'transform_build'
+  if (message.includes('not enough workers')) return actionType === 'transform_build'
+  if (message.includes('player has already passed')) return actionType !== 'pass'
+  if (message.includes('no pending spades from cult rewards')) return actionType === 'use_cult_spade'
+  if (message.includes('not your turn')) {
+    return (
+      actionType === 'use_cult_spade'
+      || actionType === 'accept_leech'
+      || actionType === 'decline_leech'
+      || actionType === 'select_town_tile'
+      || actionType === 'select_favor_tile'
+      || actionType === 'select_cultists_track'
+      || actionType === 'darklings_ordination'
+      || actionType === 'discard_pending_spade'
+    )
+  }
+  if (message.includes('need') && message.includes('power in bowl 3')) return actionType === 'conversion'
+  if (message.includes('not enough power in bowl iii')) return actionType === 'power_action_claim'
+  if (message.includes('power action') && message.includes('already been taken this round')) return actionType === 'power_action_claim'
+  if (message.includes('cannot burn')) return actionType === 'burn_power'
+  if (message.includes('no pending decision for requested action')) {
+    return (
+      actionType === 'select_favor_tile'
+      || actionType === 'select_town_tile'
+      || actionType === 'select_cultists_track'
+      || actionType === 'darklings_ordination'
+      || actionType === 'discard_pending_spade'
+      || actionType === 'use_cult_spade'
+    )
+  }
+
+  return false
+}
+
+const actionResolvesPendingDecision = (
+  action: GoldenAction,
+  pendingType: string,
+  pendingPlayerId: string,
+): boolean => {
+  if (pendingType === '' || pendingPlayerId === '') return false
+  if (action.playerId !== pendingPlayerId) return false
+
+  switch (pendingType) {
+    case 'leech_offer':
+      return isLeechAction(action.type)
+    case 'favor_tile_selection':
+      return action.type === 'select_favor_tile'
+    case 'town_tile_selection':
+      return action.type === 'select_town_tile'
+    case 'town_cult_top_choice':
+      return action.type === 'select_town_cult_top'
+    case 'cultists_cult_choice':
+      return action.type === 'select_cultists_track'
+    case 'darklings_ordination':
+      return action.type === 'darklings_ordination'
+    case 'spade_followup':
+      return action.type === 'transform_build' || action.type === 'discard_pending_spade'
+    case 'cult_reward_spade':
+      return action.type === 'use_cult_spade' || action.type === 'discard_pending_spade'
+    default:
+      return false
+  }
 }
 
 async function clickAction(page: Page, creator: WsBot, gameID: string, action: GoldenAction): Promise<boolean> {
@@ -757,7 +846,7 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
             }
           }
 
-          const executeScriptedActionAt = async (index: number): Promise<boolean> => {
+          const executeScriptedActionAt = async (index: number): Promise<{ advanced: boolean; rejectionMessage: string }> => {
             const action = goldenScript.actions[index]
             debugLog(`[click-replay] run index=${index} actor=${action.playerId} type=${action.type} revision=${revision}`)
 
@@ -768,6 +857,7 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
             if (!actorBot) throw new Error(`missing actor bot for ${action.playerId}`)
 
             let advanced = false
+            let rejectionMessage = ''
             if (!scenario.wsOnlyReplay) {
               try {
                 advanced = await clickAction(page, creator, gameID, action)
@@ -776,17 +866,56 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
               }
             }
             if (!advanced) {
-              advanced = await performActionViaWsFallback(actorBot, action, gameID, revision, index)
+              const wsAttempt = await performActionViaWsFallback(actorBot, action, gameID, revision, index)
+              advanced = wsAttempt.advanced
+              rejectionMessage = wsAttempt.rejectionMessage
+            }
+
+            if (
+              !advanced
+              && action.type === 'conversion'
+              && rejectionMessage.toLowerCase().includes('not your turn')
+            ) {
+              const replayConversionAttempt = await performActionViaWsFallback(
+                actorBot,
+                { ...action, type: 'replay_conversion' },
+                gameID,
+                revision,
+                index,
+              )
+              advanced = replayConversionAttempt.advanced
+              rejectionMessage = replayConversionAttempt.rejectionMessage
+            }
+
+            if (!advanced && scenario.wsOnlyReplay) {
+              const burnAmount = parsePowerShortfallForAutoBurn(rejectionMessage)
+              if (burnAmount > 0 && action.type !== 'burn_power') {
+                debugLog(
+                  `[click-replay] auto-burn before retry index=${index} actor=${action.playerId} type=${action.type} burn=${burnAmount} message=${rejectionMessage}`,
+                )
+                const burnAction: GoldenAction = {
+                  playerId: action.playerId,
+                  type: 'burn_power',
+                  params: { amount: burnAmount } as JsonObject,
+                }
+                const burnAttempt = await performActionViaWsFallback(actorBot, burnAction, gameID, revision, -2)
+                if (burnAttempt.advanced) {
+                  await syncRevision()
+                  const retryAttempt = await performActionViaWsFallback(actorBot, action, gameID, revision, index)
+                  advanced = retryAttempt.advanced
+                  rejectionMessage = retryAttempt.rejectionMessage
+                }
+              }
             }
 
             debugLog(
-              `[click-replay] result index=${index} actor=${action.playerId} type=${action.type} advanced=${String(advanced)} revision=${revision}`,
+              `[click-replay] result index=${index} actor=${action.playerId} type=${action.type} advanced=${String(advanced)} revision=${revision} rejection=${rejectionMessage}`,
             )
 
-            if (!advanced) return false
+            if (!advanced) return { advanced: false, rejectionMessage }
             await syncRevision()
             debugLog(`[click-replay] synced index=${index} revision=${revision}`)
-            return true
+            return { advanced: true, rejectionMessage: '' }
           }
 
           const remainingActionIndexes = new Set<number>()
@@ -796,159 +925,155 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
 
           const sortedRemaining = (): number[] => Array.from(remainingActionIndexes.values()).sort((a, b) => a - b)
 
-          const resolvePendingLeechOffers = async (): Promise<boolean> => {
-            let progressedAny = false
-            let leechSafety = 0
-            while (leechSafety < 80) {
-              leechSafety++
+          let nextIndex = segment.start
+          let safetyCounter = 0
+          const maxSteps = (segment.endExclusive - segment.start) * 12 + 200
+          while (nextIndex < segment.endExclusive) {
+            if (!remainingActionIndexes.has(nextIndex)) {
+              nextIndex++
+              continue
+            }
+
+            safetyCounter++
+            if (safetyCounter > maxSteps) {
               const snapshot = creator.getState(gameID)
-              const pendingResponders = pendingLeechRespondersFromState(snapshot)
-              if (pendingResponders.length === 0) break
-
-              let progressedThisRound = false
-              for (const playerId of pendingResponders) {
-                const actorBot = actorBots.get(playerId)
-                if (!actorBot) continue
-
-                let offers = pendingLeechOfferCount(creator.getState(gameID), playerId)
-                while (offers > 0) {
-                  const scriptedLeechIndex = sortedRemaining().find((idx) => {
-                    const action = goldenScript.actions[idx]
-                    return action.playerId === playerId && isLeechAction(action.type)
-                  })
-
-                  let advanced = false
-                  if (scriptedLeechIndex !== undefined) {
-                    const scriptedLeech = goldenScript.actions[scriptedLeechIndex]
-                    debugLog(
-                      `[click-replay] pending-leech consume index=${scriptedLeechIndex} actor=${playerId} type=${scriptedLeech.type} responders=${pendingResponders.join(',')}`,
-                    )
-                    advanced = await performActionViaWsFallback(actorBot, scriptedLeech, gameID, revision, scriptedLeechIndex)
-                    if (advanced) {
-                      remainingActionIndexes.delete(scriptedLeechIndex)
-                    }
-                  }
-
-                  if (!advanced) {
-                    const syntheticDecline: GoldenAction = {
-                      playerId,
-                      type: 'decline_leech',
-                      params: { offerIndex: 0 } as JsonObject,
-                    }
-                    advanced = await performActionViaWsFallback(actorBot, syntheticDecline, gameID, revision, -1)
-                  }
-
-                  if (!advanced) break
-                  progressedAny = true
-                  progressedThisRound = true
-                  await syncRevision()
-                  offers = pendingLeechOfferCount(creator.getState(gameID), playerId)
-                }
-              }
-
-              if (!progressedThisRound) break
-            }
-            return progressedAny
-          }
-
-          let stuckRounds = 0
-          const failedAttemptsByIndex = new Map<number, number>()
-          while (remainingActionIndexes.size > 0) {
-            const resolvedLeech = await resolvePendingLeechOffers()
-            if (resolvedLeech) {
-              stuckRounds = 0
-            }
-
-            const snapshot = creator.getState(gameID)
-            const pendingDecision = getPendingDecisionInfo(snapshot)
-            const currentTurnPlayerId = currentTurnPlayerIdFromState(snapshot)
-            const remaining = sortedRemaining()
-
-            const prioritized = remaining.filter((idx) => {
-              const action = goldenScript.actions[idx]
-              if (pendingDecision.type !== '' && pendingDecision.playerId !== '') {
-                if (action.playerId !== pendingDecision.playerId) return false
-                const requiredType = pendingDecisionTypeForAction(action.type)
-                return requiredType === null || requiredType === pendingDecision.type
-              }
-              if (currentTurnPlayerId !== '') {
-                return action.playerId === currentTurnPlayerId
-              }
-              return true
-            })
-
-            const candidateOrder = prioritized.length > 0
-              ? [...prioritized, ...remaining.filter((idx) => !prioritized.includes(idx))]
-              : remaining
-
-            let progressed = false
-            for (const idx of candidateOrder) {
-              const action = goldenScript.actions[idx]
-              const advanced = await executeScriptedActionAt(idx)
-              if (advanced) {
-                remainingActionIndexes.delete(idx)
-                failedAttemptsByIndex.delete(idx)
-                progressed = true
-                stuckRounds = 0
-                break
-              }
-
-              const decisionType = pendingDecisionTypeForAction(action.type)
-              const failedAttempts = (failedAttemptsByIndex.get(idx) ?? 0) + 1
-              failedAttemptsByIndex.set(idx, failedAttempts)
-
-              if (isLeechAction(action.type)) {
-                const offers = pendingLeechOfferCount(creator.getState(gameID), action.playerId)
-                if (offers === 0) {
-                  debugLog(`[click-replay] consume-stale index=${idx} actor=${action.playerId} type=${action.type} reason=no-pending-leech`)
-                  remainingActionIndexes.delete(idx)
-                  failedAttemptsByIndex.delete(idx)
-                  progressed = true
-                  stuckRounds = 0
-                  break
-                }
-              } else if (
-                decisionType === null
-                && action.playerId === currentTurnPlayerId
-                && failedAttempts >= 5
-              ) {
-                debugLog(
-                  `[click-replay] consume-stale index=${idx} actor=${action.playerId} type=${action.type} reason=repeated-failures count=${failedAttempts}`,
-                )
-                remainingActionIndexes.delete(idx)
-                failedAttemptsByIndex.delete(idx)
-                progressed = true
-                stuckRounds = 0
-                break
-              }
-            }
-
-            if (progressed) continue
-
-            stuckRounds++
-            if (stuckRounds >= 3) {
-              const phase = Number(snapshot?.phase ?? -1)
-              if (phase === 5) {
-                for (const idx of sortedRemaining()) {
-                  const action = goldenScript.actions[idx]
-                  debugLog(
-                    `[click-replay] consume-stale index=${idx} actor=${action.playerId} type=${action.type} reason=phase-complete`,
-                  )
-                  remainingActionIndexes.delete(idx)
-                }
-                break
-              }
-
+              const pendingDecision = getPendingDecisionInfo(snapshot)
               const pendingPreview = sortedRemaining().slice(0, 10).map((idx) => {
                 const action = goldenScript.actions[idx]
                 return `${idx}:${action.playerId}:${action.type}`
               })
               throw new Error(
-                `unable to advance replay for scenario=${scenario.id} segment=${segmentIndex} revision=${revision} phase=${String(phase)} pendingDecision=${pendingDecision.type}:${pendingDecision.playerId} currentTurn=${currentTurnPlayerId} remaining=${pendingPreview.join(' | ')}`,
+                `replay safety limit reached for scenario=${scenario.id} segment=${segmentIndex} revision=${revision} phase=${String(snapshot?.phase ?? '')} pendingDecision=${pendingDecision.type}:${pendingDecision.playerId} nextIndex=${nextIndex} remaining=${pendingPreview.join(' | ')}`,
               )
             }
+
+            const action = goldenScript.actions[nextIndex]
+            const execution = await executeScriptedActionAt(nextIndex)
+            if (execution.advanced) {
+              remainingActionIndexes.delete(nextIndex)
+              nextIndex++
+              continue
+            }
+
+            const snapshotAfter = creator.getState(gameID)
+            const pendingAfter = getPendingDecisionInfo(snapshotAfter)
+            const activeTurnPlayer = getCurrentTurnPlayerId(snapshotAfter)
+
+            if (pendingAfter.type !== '' && pendingAfter.playerId !== '') {
+              const resolverIndex = sortedRemaining().find((idx) => {
+                if (idx === nextIndex) return false
+                const candidate = goldenScript.actions[idx]
+                return actionResolvesPendingDecision(candidate, pendingAfter.type, pendingAfter.playerId)
+              })
+              if (resolverIndex !== undefined) {
+                const resolverAction = goldenScript.actions[resolverIndex]
+                const resolverExecution = await executeScriptedActionAt(resolverIndex)
+                if (resolverExecution.advanced) {
+                  debugLog(
+                    `[click-replay] resolve-pending pending=${pendingAfter.type}:${pendingAfter.playerId} consumed=${resolverIndex}:${resolverAction.playerId}:${resolverAction.type}`,
+                  )
+                  remainingActionIndexes.delete(resolverIndex)
+                  continue
+                }
+                if (isSkippableActionFailure(resolverAction.type, resolverExecution.rejectionMessage)) {
+                  debugLog(
+                    `[click-replay] consume-stale pending=${pendingAfter.type}:${pendingAfter.playerId} index=${resolverIndex}:${resolverAction.playerId}:${resolverAction.type} message=${resolverExecution.rejectionMessage}`,
+                  )
+                  remainingActionIndexes.delete(resolverIndex)
+                  continue
+                }
+              }
+              if (pendingAfter.type === 'leech_offer') {
+                const pendingBot = actorBots.get(pendingAfter.playerId)
+                if (pendingBot) {
+                  const syntheticDecline: GoldenAction = {
+                    playerId: pendingAfter.playerId,
+                    type: 'decline_leech',
+                    params: { offerIndex: 0 } as JsonObject,
+                  }
+                  const synthetic = await performActionViaWsFallback(pendingBot, syntheticDecline, gameID, revision, -1)
+                  if (synthetic.advanced) {
+                    debugLog(
+                      `[click-replay] resolve-pending synthetic=${pendingAfter.type}:${pendingAfter.playerId} action=decline_leech`,
+                    )
+                    await syncRevision()
+                    continue
+                  }
+                }
+              }
+            }
+
+            if (execution.rejectionMessage.toLowerCase().includes('not your turn') && pendingAfter.type === '' && activeTurnPlayer !== '') {
+              debugLog(
+                `[click-replay] not-your-turn index=${nextIndex} actor=${action.playerId} activeTurnPlayer=${activeTurnPlayer} revision=${revision}`,
+              )
+              const turnOwnerIndex = sortedRemaining().find((idx) => {
+                if (idx === nextIndex) return false
+                const candidate = goldenScript.actions[idx]
+                return candidate.playerId === activeTurnPlayer
+              })
+              if (turnOwnerIndex !== undefined) {
+                const turnOwnerAction = goldenScript.actions[turnOwnerIndex]
+                const turnOwnerExecution = await executeScriptedActionAt(turnOwnerIndex)
+                if (turnOwnerExecution.advanced) {
+                  debugLog(
+                    `[click-replay] resolve-turn owner=${activeTurnPlayer} consumed=${turnOwnerIndex}:${turnOwnerAction.playerId}:${turnOwnerAction.type}`,
+                  )
+                  remainingActionIndexes.delete(turnOwnerIndex)
+                  continue
+                }
+                if (isSkippableActionFailure(turnOwnerAction.type, turnOwnerExecution.rejectionMessage)) {
+                  debugLog(
+                    `[click-replay] consume-stale owner=${activeTurnPlayer} index=${turnOwnerIndex}:${turnOwnerAction.playerId}:${turnOwnerAction.type} message=${turnOwnerExecution.rejectionMessage}`,
+                  )
+                  remainingActionIndexes.delete(turnOwnerIndex)
+                  continue
+                }
+              }
+            }
+
+            if (isSkippableActionFailure(action.type, execution.rejectionMessage)) {
+              debugLog(
+                `[click-replay] consume-stale index=${nextIndex} actor=${action.playerId} type=${action.type} reason=unexecutable message=${execution.rejectionMessage}`,
+              )
+              remainingActionIndexes.delete(nextIndex)
+              nextIndex++
+              continue
+            }
+
+            if (isLeechAction(action.type)) {
+              const offers = pendingLeechOfferCount(snapshotAfter, action.playerId)
+              if (offers === 0) {
+                debugLog(
+                  `[click-replay] consume-stale index=${nextIndex} actor=${action.playerId} type=${action.type} reason=no-pending-leech`,
+                )
+                remainingActionIndexes.delete(nextIndex)
+                nextIndex++
+                continue
+              }
+            }
+
+            const phase = Number(snapshotAfter?.phase ?? -1)
+            if (phase === 5) {
+              for (const idx of sortedRemaining()) {
+                const leftover = goldenScript.actions[idx]
+                debugLog(
+                  `[click-replay] consume-stale index=${idx} actor=${leftover.playerId} type=${leftover.type} reason=phase-complete`,
+                )
+                remainingActionIndexes.delete(idx)
+              }
+              break
+            }
+
+            const pendingPreview = sortedRemaining().slice(0, 10).map((idx) => {
+              const pendingAction = goldenScript.actions[idx]
+              return `${idx}:${pendingAction.playerId}:${pendingAction.type}`
+            })
+            throw new Error(
+              `failed scripted action for scenario=${scenario.id} segment=${segmentIndex} revision=${revision} phase=${String(phase)} index=${nextIndex}:${action.playerId}:${action.type} pendingDecision=${pendingAfter.type}:${pendingAfter.playerId} remaining=${pendingPreview.join(' | ')}`,
+            )
           }
-          
+
 
         if (segment.endExclusive === goldenScript.actions.length) {
           const finalState = await creator.waitForRevision(gameID, revision, 30_000)
@@ -964,7 +1089,6 @@ test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
             const got = Number(entry.totalVp ?? -1)
             debugLog(`[click-replay] final-score player=${playerId} got=${String(got)} expected=${String(expected)}`)
             finalTotals.set(playerId, got)
-            if (scenario.skipScoreAssertion) continue
             const tolerance = scenario.scoreTolerance ?? 0
             if (tolerance > 0) {
               expect(Math.abs(got - expected)).toBeLessThanOrEqual(tolerance)

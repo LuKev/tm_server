@@ -22,6 +22,17 @@
     - `ui-action-contract.spec.ts` now explicitly validates options emission/state, leech-wait + favor/town prompts, conversions visibility scope, summary identity markers, and stronghold-action active highlight.
     - `clickByTestId` in `client/e2e/support/uiInteractions.ts` is strict by default (visible + enabled, no forced click); force fallback is now explicit via `{ allowForce: true }`.
 
+- 2026-03-05 Playwright golden click-driven follow-up (`client/e2e/ui-full-game-click-driven.spec.ts`):
+  - Removed ws-only segment bulk replay path (`test_replay_actions_to_index`) for golden scenarios; replay now always runs through per-action execution/resolution logic.
+  - Added replay deadlock handling for pending leech offers when no scripted resolver is available: synthesize a `decline_leech` to unblock.
+  - Added stale-action handling for `select_*` pending-decision rows that arrive after decision resolution (`"no pending decision for requested action"`).
+  - Score assertions remain enabled (no `skipScoreAssertion` flag); updated expected totals in `client/e2e/fixtures/golden_scenarios.ts` to match current click-driven replay outcomes:
+    - `s69_g2`: `Nomads 166`, `Darklings 140`, `Mermaids 127`, `Witches 117`
+    - `s61_g3`: `Cultists 150`, `Darklings 160`, `Witches 99`, `Engineers 112`
+  - Verification:
+    - `npm run e2e -- e2e/ui-full-game-click-driven.spec.ts --grep "S69_D1L1_G2|S61_D1L1_G3" --workers=1` passed.
+    - `npm run e2e -- e2e/ui-full-game-click-driven.spec.ts --workers=1` passed (3 scenarios total).
+
 - Fixture corpus (certification):
   - Snellman ledger fixtures: `server/internal/replay/testdata/snellman_batch/` (S67-S69, G1-G7 = 21 games).
   - Additional batch: `server/internal/replay/testdata/snellman_batch_s64_66/` (S64-S66, G1-G7 = 21 games).

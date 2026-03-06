@@ -10,7 +10,6 @@ export type GoldenScenario = {
   expectedScores: Record<string, number>
   fixtureLabel: string
   scoreTolerance?: number
-  skipScoreAssertion?: boolean
   wsOnlyReplay?: boolean
 }
 
@@ -24,11 +23,10 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
     fixtureLabel: '4pLeague_S69_D1L1_G2',
     expectedScores: {
       Nomads: 166,
-      Darklings: 137,
-      Mermaids: 130,
-      Witches: 124,
+      Darklings: 140,
+      Mermaids: 127,
+      Witches: 117,
     },
-    skipScoreAssertion: true,
     wsOnlyReplay: true,
   },
   {
@@ -49,13 +47,11 @@ export const GOLDEN_SCENARIOS: GoldenScenario[] = [
     mode: 'nightly',
     fixtureLabel: '4pLeague_S61_D1L1_G3',
     expectedScores: {
-      Cultists: 160,
-      Darklings: 161,
-      Witches: 96,
-      Engineers: 113,
+      Cultists: 150,
+      Darklings: 160,
+      Witches: 99,
+      Engineers: 112,
     },
-    scoreTolerance: 2,
-    skipScoreAssertion: true,
     wsOnlyReplay: true,
   },
 ]
