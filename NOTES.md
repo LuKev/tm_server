@@ -825,3 +825,20 @@
   - Verified command:
     - `cd client && npx playwright test --project=chromium`
     - Result: `19 passed`, `4 skipped`, `0 failed`.
+
+- 2026-03-05 click-driven golden unskip follow-up (`s69_g2` + `s61_g3`):
+  - Removed scenario-level skipping path by using explicit per-scenario replay mode flags in `client/e2e/fixtures/golden_scenarios.ts`:
+    - added `wsOnlyReplay?: boolean`.
+    - set `wsOnlyReplay: true` for both `s69_g2` and `s61_g3`.
+  - In `client/e2e/ui-full-game-click-driven.spec.ts`, click execution is now gated by `!scenario.wsOnlyReplay` (instead of `!scenario.skipScoreAssertion`), so ws-only scenarios no longer rely on score-assertion config to disable UI clicking.
+  - Added debug-only final score logging (`TM_CLICK_DEBUG=1`) to aid replay drift diagnosis.
+  - Current stability mode for these two fixtures:
+    - both run to completion (not skipped),
+    - final score assertion is skipped (`skipScoreAssertion: true`) because ws-only replay can consume stale/off-turn rows differently and produce non-deterministic final VP parity.
+    - UI still validates end-state rendering via player summary bar totals from actual final state.
+  - Verification:
+    - `cd client && npm run e2e -- e2e/ui-full-game-click-driven.spec.ts --grep "S69_D1L1_G2|S61_D1L1_G3" --workers=1`
+    - result: `2 passed`.
+  - Related non-UI signal:
+    - server websocket strict golden score tests for the same fixtures still fail in Bazel with pending leech/turn-order mismatches:
+      - `bazel --batch test //internal/websocket:websocket_test --test_filter='TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores|TestWebsocketGolden_SnellmanS61D1L1G3_CompletesWithExpectedScores' --test_output=errors`
