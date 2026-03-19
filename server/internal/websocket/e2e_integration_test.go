@@ -309,18 +309,18 @@ func TestWebsocketE2E_FastAuctionSetupFlow(t *testing.T) {
 		t.Fatalf("expected fast_auction_bid_matrix pending decision after nominations, got %v", pending)
 	}
 
-	state = performActionAndReadState(t, clients["p1"], gameID, "fast_auction_submit_bids", map[string]any{
-		"bids": map[string]any{
-			"Nomads":    2,
-			"Witches":   4,
-			"Engineers": 1,
-		},
-	}, asInt(state["revision"]))
 	state = performActionAndReadState(t, clients["p2"], gameID, "fast_auction_submit_bids", map[string]any{
 		"bids": map[string]any{
 			"Nomads":    0,
 			"Witches":   3,
 			"Engineers": 5,
+		},
+	}, asInt(state["revision"]))
+	state = performActionAndReadState(t, clients["p1"], gameID, "fast_auction_submit_bids", map[string]any{
+		"bids": map[string]any{
+			"Nomads":    2,
+			"Witches":   4,
+			"Engineers": 1,
 		},
 	}, asInt(state["revision"]))
 	state = performActionAndReadState(t, clients["p3"], gameID, "fast_auction_submit_bids", map[string]any{
@@ -336,6 +336,69 @@ func TestWebsocketE2E_FastAuctionSetupFlow(t *testing.T) {
 	}
 	if asString(state["setupSubphase"]) != "dwellings" {
 		t.Fatalf("expected setup dwellings subphase after fast auction resolution, got %v", state["setupSubphase"])
+	}
+}
+
+func TestWebsocketE2E_StartGameWithTurnTimer(t *testing.T) {
+	hub := NewHub()
+	go hub.Run()
+
+	deps := ServerDeps{
+		Lobby: lobby.NewManager(),
+		Games: game.NewManager(),
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ServeWs(hub, deps, w, r)
+	}))
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+	host := dialWS(t, wsURL)
+	defer host.Close()
+	guest := dialWS(t, wsURL)
+	defer guest.Close()
+
+	sendJSON(t, host, map[string]any{
+		"type": "create_game",
+		"payload": map[string]any{
+			"name":       "timer",
+			"maxPlayers": 2,
+			"creator":    "host",
+		},
+	})
+	created := readUntilType(t, host, "game_created", 4*time.Second)
+	gameID := asString(asMap(created["payload"])["gameId"])
+	_ = readUntilType(t, host, "lobby_state", 4*time.Second)
+
+	sendJSON(t, guest, map[string]any{
+		"type": "join_game",
+		"payload": map[string]any{
+			"id":   gameID,
+			"name": "guest",
+		},
+	})
+	_ = readUntilType(t, guest, "game_joined", 4*time.Second)
+
+	sendJSON(t, host, map[string]any{
+		"type": "start_game",
+		"payload": map[string]any{
+			"gameID":                    gameID,
+			"randomizeTurnOrder":        false,
+			"setupMode":                 "snellman",
+			"turnTimerEnabled":          true,
+			"turnTimerSeconds":          300,
+			"turnTimerIncrementSeconds": 5,
+		},
+	})
+
+	state := asMap(readUntilType(t, host, "game_state_update", 4*time.Second)["payload"])
+	turnTimer := asMap(state["turnTimer"])
+	if asInt(turnTimer["initialTimeMs"]) != 300_000 {
+		t.Fatalf("expected 300000ms initial timer, got %v", turnTimer["initialTimeMs"])
+	}
+	if asInt(turnTimer["incrementMs"]) != 5_000 {
+		t.Fatalf("expected 5000ms increment, got %v", turnTimer["incrementMs"])
 	}
 }
 

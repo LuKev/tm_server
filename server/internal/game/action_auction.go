@@ -129,9 +129,6 @@ func (a *FastAuctionSubmitBidsAction) Validate(gs *GameState) error {
 	if gs.AuctionState.NominationPhase {
 		return fmt.Errorf("auction is still in nomination phase")
 	}
-	if current := gs.GetCurrentPlayer(); current == nil || current.ID != a.PlayerID {
-		return fmt.Errorf("not your turn")
-	}
 	if len(a.Bids) == 0 {
 		return fmt.Errorf("missing fast auction bid payload")
 	}

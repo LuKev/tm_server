@@ -15,6 +15,7 @@ import (
 type CreateGameOptions struct {
 	RandomizeTurnOrder bool
 	SetupMode          SetupMode
+	TurnTimer          *TurnTimerConfig
 }
 
 // ActionMeta provides metadata for action execution.
@@ -46,6 +47,7 @@ type Manager struct {
 	games           map[string]*GameState
 	revisions       map[string]int
 	appliedActionID map[string]map[string]int
+	now             func() time.Time
 }
 
 // NewManager creates a new game manager.
@@ -54,6 +56,7 @@ func NewManager() *Manager {
 		games:           make(map[string]*GameState),
 		revisions:       make(map[string]int),
 		appliedActionID: make(map[string]map[string]int),
+		now:             time.Now,
 	}
 }
 
@@ -61,6 +64,9 @@ func NewManager() *Manager {
 func (m *Manager) CreateGameWithState(id string, gs *GameState) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+	if gs != nil && gs.TurnTimer != nil {
+		gs.TurnTimer.SyncActivePlayers(activeDecisionPlayerIDs(gs), m.now())
+	}
 	m.games[id] = gs
 	m.revisions[id] = 0
 	m.appliedActionID[id] = make(map[string]int)
@@ -168,6 +174,10 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if gs == nil {
 		return nil, fmt.Errorf("game %s not found", gameID)
 	}
+	now := m.now()
+	if gs.TurnTimer != nil {
+		gs.TurnTimer.ChargeActivePlayers(now)
+	}
 
 	currentRevision := m.revisions[gameID]
 	beforeTurn := captureTurnProgress(gs)
@@ -202,6 +212,9 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
 	syncTurnConfirmationPreferences(gs, action)
 	refreshTurnConfirmationUndoCheckpoint(gs, action)
+	if gs.TurnTimer != nil {
+		gs.TurnTimer.SyncActivePlayers(activeDecisionPlayerIDs(gs), now)
+	}
 
 	currentRevision++
 	m.revisions[gameID] = currentRevision
@@ -662,7 +675,8 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionDiscardPendingSpade,
 		ActionSetPlayerOptions,
 		ActionConfirmTurn,
-		ActionUndoTurn:
+		ActionUndoTurn,
+		ActionFastAuctionSubmitBids:
 		return false
 	default:
 		return true
@@ -722,6 +736,12 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	if setupMode == SetupModeAuction || setupMode == SetupModeFastAuction {
 		gs.AuctionState = NewAuctionStateWithMode(turnOrder, setupMode)
 	}
+	if opts.TurnTimer != nil {
+		gs.TurnTimer = NewTurnTimerState(turnOrder, *opts.TurnTimer)
+		if gs.TurnTimer != nil {
+			gs.TurnTimer.SyncActivePlayers(activeDecisionPlayerIDs(gs), m.now())
+		}
+	}
 
 	m.games[id] = gs
 	m.revisions[id] = 0
@@ -738,7 +758,7 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 	if gs == nil {
 		return nil
 	}
-	state := SerializeStateWithRevision(gs, gameID, m.revisions[gameID])
+	state := serializeStateWithRevisionAt(gs, gameID, m.revisions[gameID], m.now())
 
 	// Detach nested mutable maps/slices while the manager read-lock is held so JSON
 	// encoding in websocket handlers does not race with concurrent action writes.
@@ -755,11 +775,15 @@ func (m *Manager) SerializeGameState(gameID string) map[string]interface{} {
 
 // SerializeState converts the game state to a map for JSON response.
 func SerializeState(gs *GameState, gameID string) map[string]interface{} {
-	return SerializeStateWithRevision(gs, gameID, 0)
+	return serializeStateWithRevisionAt(gs, gameID, 0, time.Now())
 }
 
 // SerializeStateWithRevision converts game state to JSON-friendly map including revision.
 func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[string]interface{} {
+	return serializeStateWithRevisionAt(gs, gameID, revision, time.Now())
+}
+
+func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, now time.Time) map[string]interface{} {
 	players := make(map[string]interface{})
 	for playerID, player := range gs.Players {
 		var factionType models.FactionType
@@ -921,6 +945,7 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 		"pendingTurnConfirmationPlayerId":  gs.PendingTurnConfirmationPlayerID,
 		"pendingDecision":                  serializePendingDecision(gs),
 		"auctionState":                     serializeAuctionState(gs.AuctionState),
+		"turnTimer":                        serializeTurnTimer(gs.TurnTimer, now),
 		"nextRoundIncome":                  serializeNextRoundIncomePreview(gs),
 		"finalScoring": func() interface{} {
 			if gs.FinalScoring == nil {
@@ -965,9 +990,11 @@ func serializePendingDecision(gs *GameState) interface{} {
 		}
 
 		if gs.SetupMode == SetupModeFastAuction {
+			pendingPlayers := gs.AuctionState.GetPendingFastSubmitters()
 			return map[string]interface{}{
 				"type":              "fast_auction_bid_matrix",
 				"playerId":          gs.AuctionState.GetCurrentBidder(),
+				"playerIds":         pendingPlayers,
 				"setupMode":         gs.SetupMode,
 				"nominatedFactions": factions,
 			}

@@ -63,6 +63,9 @@ type startGamePayload struct {
 	GameID             string `json:"gameID"`
 	RandomizeTurnOrder *bool  `json:"randomizeTurnOrder,omitempty"`
 	SetupMode          string `json:"setupMode,omitempty"`
+	TurnTimerEnabled   *bool  `json:"turnTimerEnabled,omitempty"`
+	TurnTimerSeconds   *int   `json:"turnTimerSeconds,omitempty"`
+	TurnTimerIncrement *int   `json:"turnTimerIncrementSeconds,omitempty"`
 }
 
 type lobbyStateMsg struct {
@@ -542,6 +545,10 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		c.sendError("not_in_game")
 		return
 	}
+	if strings.TrimSpace(meta.Host) != "" && startSeat != strings.TrimSpace(meta.Host) {
+		c.sendActionRejected("", "host_only", "only the host can start this game")
+		return
+	}
 
 	randomize := true
 	if p.RandomizeTurnOrder != nil {
@@ -560,9 +567,34 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		return
 	}
 
+	var turnTimer *game.TurnTimerConfig
+	if p.TurnTimerEnabled != nil && *p.TurnTimerEnabled {
+		initialSeconds := 25 * 60
+		if p.TurnTimerSeconds != nil {
+			initialSeconds = *p.TurnTimerSeconds
+		}
+		incrementSeconds := 0
+		if p.TurnTimerIncrement != nil {
+			incrementSeconds = *p.TurnTimerIncrement
+		}
+		if initialSeconds <= 0 {
+			c.sendActionRejected("", "invalid_turn_timer", "turn timer must start above 0 seconds")
+			return
+		}
+		if incrementSeconds < 0 {
+			c.sendActionRejected("", "invalid_turn_timer", "turn timer increment cannot be negative")
+			return
+		}
+		turnTimer = &game.TurnTimerConfig{
+			InitialTimeMs: int64(initialSeconds) * 1000,
+			IncrementMs:   int64(incrementSeconds) * 1000,
+		}
+	}
+
 	err := c.deps.Games.CreateGameWithOptions(p.GameID, meta.Players, game.CreateGameOptions{
 		RandomizeTurnOrder: randomize,
 		SetupMode:          setupMode,
+		TurnTimer:          turnTimer,
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
 		log.Printf("error creating game: %v", err)
@@ -595,7 +627,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers)
+	meta := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator)
 	if p.Creator != "" {
 		_ = c.deps.Lobby.JoinGame(meta.ID, p.Creator)
 		c.bindSeat(meta.ID, p.Creator)

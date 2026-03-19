@@ -25,6 +25,9 @@ export function Lobby(): React.ReactElement {
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
   const [randomizeTurnOrder, setRandomizeTurnOrder] = useState(true)
   const [setupMode, setSetupMode] = useState<'snellman' | 'auction' | 'fast_auction'>('snellman')
+  const [turnTimerEnabled, setTurnTimerEnabled] = useState(false)
+  const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
+  const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
 
   useEffect(() => {
     if (lastMessage === null) return
@@ -178,6 +181,52 @@ export function Lobby(): React.ReactElement {
                   <option value="fast_auction">Fast Auction</option>
                 </select>
               </div>
+              <div className="mt-3 rounded-lg border border-white/15 bg-white/5 p-3">
+                <label className="inline-flex items-center gap-2 text-sm text-gray-200">
+                  <input
+                    type="checkbox"
+                    data-testid="lobby-turn-timer-enabled"
+                    checked={turnTimerEnabled}
+                    onChange={(e) => { setTurnTimerEnabled(e.target.checked) }}
+                    className="rounded border-white/30 bg-white/10"
+                  />
+                  Enable turn timer
+                </label>
+                {turnTimerEnabled && (
+                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <label className="text-sm text-gray-200">
+                      <span className="mb-1 block">Initial minutes</span>
+                      <input
+                        type="number"
+                        data-testid="lobby-turn-timer-minutes"
+                        min={1}
+                        step={1}
+                        value={turnTimerMinutes}
+                        onChange={(e) => {
+                          const value = Number(e.target.value)
+                          setTurnTimerMinutes(Number.isFinite(value) ? value : 25)
+                        }}
+                        className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                    <label className="text-sm text-gray-200">
+                      <span className="mb-1 block">Increment seconds</span>
+                      <input
+                        type="number"
+                        data-testid="lobby-turn-timer-increment"
+                        min={0}
+                        step={1}
+                        value={turnTimerIncrementSeconds}
+                        onChange={(e) => {
+                          const value = Number(e.target.value)
+                          setTurnTimerIncrementSeconds(Number.isFinite(value) ? value : 0)
+                        }}
+                        className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Games List */}
@@ -215,13 +264,16 @@ export function Lobby(): React.ReactElement {
                             onClick={() => {
                               sendMessage({
                                 type: 'start_game',
-                                payload: {
-                                  gameID: g.id,
-                                  randomizeTurnOrder,
-                                  setupMode,
-                                },
-                              })
-                            }}
+                              payload: {
+                                gameID: g.id,
+                                randomizeTurnOrder,
+                                setupMode,
+                                turnTimerEnabled,
+                                turnTimerSeconds: Math.max(1, Math.trunc(turnTimerMinutes * 60)),
+                                turnTimerIncrementSeconds: Math.max(0, Math.trunc(turnTimerIncrementSeconds)),
+                              },
+                            })
+                          }}
                             disabled={!isConnected || !isFull}
                             className={`px-4 py-2 ${isFull
                               ? 'bg-green-600 hover:bg-green-700'

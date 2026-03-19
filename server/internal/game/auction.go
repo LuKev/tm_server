@@ -206,9 +206,6 @@ func (as *AuctionState) SubmitFastBids(playerID string, bids map[models.FactionT
 	if as.NominationPhase {
 		return fmt.Errorf("still in nomination phase")
 	}
-	if as.SeatOrder[as.CurrentBidderIndex] != playerID {
-		return fmt.Errorf("not your turn to submit fast auction bids")
-	}
 	if as.FastSubmitted[playerID] {
 		return fmt.Errorf("player already submitted fast auction bids")
 	}
@@ -233,7 +230,7 @@ func (as *AuctionState) SubmitFastBids(playerID string, bids map[models.FactionT
 
 	as.FastBids[playerID] = playerBids
 	as.FastSubmitted[playerID] = true
-	as.advanceToNextFastBidder()
+	as.syncCurrentBidderToFirstPendingFastSubmitter()
 
 	if as.allFastBidsSubmitted() {
 		if err := as.resolveFastAuctionAssignments(); err != nil {
@@ -245,19 +242,14 @@ func (as *AuctionState) SubmitFastBids(playerID string, bids map[models.FactionT
 	return nil
 }
 
-func (as *AuctionState) advanceToNextFastBidder() {
-	startIndex := as.CurrentBidderIndex
-
-	for {
-		as.CurrentBidderIndex = (as.CurrentBidderIndex + 1) % len(as.SeatOrder)
-		if as.CurrentBidderIndex == startIndex {
-			return
-		}
-		candidate := as.SeatOrder[as.CurrentBidderIndex]
-		if !as.FastSubmitted[candidate] {
+func (as *AuctionState) syncCurrentBidderToFirstPendingFastSubmitter() {
+	for i, playerID := range as.SeatOrder {
+		if !as.FastSubmitted[playerID] {
+			as.CurrentBidderIndex = i
 			return
 		}
 	}
+	as.CurrentBidderIndex = 0
 }
 
 func (as *AuctionState) allFastBidsSubmitted() bool {
@@ -375,10 +367,31 @@ func (as *AuctionState) GetCurrentBidder() string {
 		return ""
 	}
 
+	if as.Mode == SetupModeFastAuction {
+		pending := as.GetPendingFastSubmitters()
+		if len(pending) > 0 {
+			return pending[0]
+		}
+		return ""
+	}
+
 	if as.CurrentBidderIndex < len(as.SeatOrder) {
 		return as.SeatOrder[as.CurrentBidderIndex]
 	}
 	return ""
+}
+
+func (as *AuctionState) GetPendingFastSubmitters() []string {
+	if as == nil || as.Mode != SetupModeFastAuction || as.NominationPhase {
+		return nil
+	}
+	pending := make([]string, 0, len(as.SeatOrder))
+	for _, playerID := range as.SeatOrder {
+		if !as.FastSubmitted[playerID] {
+			pending = append(pending, playerID)
+		}
+	}
+	return pending
 }
 
 // GetStartingVP returns the starting VP for a faction based on the final bid

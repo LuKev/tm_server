@@ -454,7 +454,7 @@ async function runAuctionToActionPhase(
               const currentBid = Number(currentBids[factionName] ?? 0)
               const holder = String(factionHolders[factionName] ?? '')
               if (holder !== '' && holder !== actorId && currentBid >= 40) continue
-              const bidValue = holder !== '' && holder !== actorId ? Math.min(40, currentBid + 1) : currentBid
+              const bidValue = holder !== '' && holder !== actorId ? 1 : 0
               await input.fill(String(bidValue))
               const submit = actorPage.getByTestId(`auction-bid-submit-${factionName}`).first()
               const submitVisible = await submit.isVisible().catch(() => false)

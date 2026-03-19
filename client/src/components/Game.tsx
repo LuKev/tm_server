@@ -388,13 +388,23 @@ export const Game = () => {
   const pendingDecision = (gameState?.pendingDecision ?? null) as Record<string, unknown> | null
   const pendingDecisionType = (pendingDecision?.type as string | undefined) ?? null
   const pendingDecisionPlayerId = (pendingDecision?.playerId as string | undefined) ?? null
+  const pendingDecisionPlayerIds = useMemo(() => {
+    const raw = (pendingDecision?.playerIds as unknown[]) ?? []
+    return raw
+      .map((value) => (typeof value === 'string' ? value : ''))
+      .filter((value) => value.length > 0)
+  }, [pendingDecision])
   const pendingAuctionFactions = useMemo(() => {
     const raw = (pendingDecision?.nominatedFactions as unknown[]) ?? []
     return raw
       .map((value) => (typeof value === 'string' ? value : ''))
       .filter((value) => value.length > 0)
   }, [pendingDecision])
-  const hasPendingDecisionForMe = !!localPlayerId && pendingDecisionPlayerId === localPlayerId
+  const hasPendingDecisionForMe = !!localPlayerId
+    && (pendingDecisionPlayerId === localPlayerId || pendingDecisionPlayerIds.includes(localPlayerId))
+  const isFastAuctionBidDecisionForMe = pendingDecisionType === 'fast_auction_bid_matrix'
+    && !!localPlayerId
+    && !(auctionState?.fastSubmitted?.[localPlayerId] ?? false)
   const isOtherPlayerTurnConfirmationWindow = !!pendingDecisionPlayerId
     && pendingDecisionPlayerId !== localPlayerId
     && (pendingDecisionType === 'post_action_free_actions' || pendingDecisionType === 'turn_confirmation')
@@ -454,7 +464,7 @@ export const Game = () => {
       const next = { ...current }
       pendingAuctionFactions.forEach((faction) => {
         if (next[faction] === undefined) {
-          next[faction] = Number(auctionState?.currentBids?.[faction] ?? 0)
+          next[faction] = 0
         }
       })
       return next
@@ -462,7 +472,7 @@ export const Game = () => {
   }, [auctionState?.currentBids, pendingAuctionFactions, pendingDecisionType])
 
   useEffect(() => {
-    if (pendingDecisionType !== 'fast_auction_bid_matrix') return
+    if (!isFastAuctionBidDecisionForMe) return
     if (pendingAuctionFactions.length === 0) return
     setFastAuctionBidInputs((current) => {
       const next = { ...current }
@@ -473,7 +483,7 @@ export const Game = () => {
       })
       return next
     })
-  }, [pendingAuctionFactions, pendingDecisionType])
+  }, [isFastAuctionBidDecisionForMe, pendingAuctionFactions])
 
   const setupDwellingPlayerId = useMemo(() => {
     if (!gameState?.setupDwellingOrder) return null
@@ -834,8 +844,10 @@ export const Game = () => {
   }
 
   const handleAuctionBid = (factionType: string): void => {
-    const vpReduction = Math.max(0, Math.min(40, Math.trunc(Number(auctionBidInputs[factionType] ?? 0))))
-    queueConfirm('Confirm Auction Bid', `Bid ${String(vpReduction)} VP reduction on ${factionType}?`, () => {
+    const additionalReduction = Math.max(0, Math.min(40, Math.trunc(Number(auctionBidInputs[factionType] ?? 0))))
+    const currentReduction = Number(auctionState?.currentBids?.[factionType] ?? 0)
+    const vpReduction = Math.max(0, Math.min(40, currentReduction + additionalReduction))
+    queueConfirm('Confirm Auction Bid', `Increase ${factionType} to ${String(vpReduction)} VP reduction?`, () => {
       performAction('auction_bid', { faction: factionType, vpReduction })
       setConfirmDialog(null)
     })
@@ -1832,7 +1844,9 @@ export const Game = () => {
                 {setupMode === 'auction' ? 'Auction Setup' : 'Fast Auction Setup'}
               </h2>
               <span className="text-sm text-slate-600">
-                Current: {(pendingDecisionPlayerId ?? auctionState?.currentBidder ?? '').toString() || 'n/a'}
+                {setupMode === 'fast_auction'
+                  ? `Waiting: ${pendingDecisionPlayerIds.length > 0 ? pendingDecisionPlayerIds.join(', ') : 'none'}`
+                  : `Current: ${(pendingDecisionPlayerId ?? auctionState?.currentBidder ?? '').toString() || 'n/a'}`}
               </span>
             </div>
 
@@ -1847,7 +1861,7 @@ export const Game = () => {
                 {(auctionState?.nominationOrder ?? []).map((faction) => (
                   <div key={faction} className="rounded border border-slate-200 px-3 py-2 text-sm text-slate-700">
                     <div className="font-medium">{faction}</div>
-                    <div>Bid: {String(auctionState?.currentBids?.[faction] ?? 0)}</div>
+                    <div>Current bid: {String(auctionState?.currentBids?.[faction] ?? 0)}</div>
                     <div>Holder: {(auctionState?.factionHolders?.[faction] ?? 'none').toString()}</div>
                   </div>
                 ))}
@@ -1874,10 +1888,11 @@ export const Game = () => {
 
             {(hasPendingDecisionForMe && pendingDecisionType === 'auction_bid') && (
               <div className="space-y-2">
-                <p className="text-sm text-slate-700">Submit one bid on a nominated faction:</p>
+                <p className="text-sm text-slate-700">Submit one additional bid amount on a nominated faction:</p>
                 {pendingAuctionFactions.map((faction) => (
                   <div key={faction} className="flex items-center gap-2">
                     <span className="w-32 text-sm text-slate-800">{faction}</span>
+                    <span className="w-32 text-xs text-slate-500">Current {String(auctionState?.currentBids?.[faction] ?? 0)}</span>
                     <input
                       type="number"
                       data-testid={`auction-bid-input-${faction}`}
@@ -1902,7 +1917,7 @@ export const Game = () => {
               </div>
             )}
 
-            {(hasPendingDecisionForMe && pendingDecisionType === 'fast_auction_bid_matrix') && (
+            {(isFastAuctionBidDecisionForMe) && (
               <div className="space-y-2">
                 <p className="text-sm text-slate-700">Set VP-reduction bids for all nominated factions:</p>
                 {pendingAuctionFactions.map((faction) => (

@@ -53,6 +53,7 @@ type GameState struct {
 	PendingFreeActionsPlayerID       string                             `json:"pendingFreeActionsPlayerId"`
 	PendingTurnConfirmationPlayerID  string                             `json:"pendingTurnConfirmationPlayerId"`
 	PendingTurnConfirmationSnapshot  *GameState                         `json:"-"`
+	TurnTimer                        *TurnTimerState                    `json:"turnTimer,omitempty"`
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
 	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
 	SuppressTurnAdvance              bool                               `json:"-"`
@@ -216,6 +217,24 @@ type PlayerOptions struct {
 	AutoConvertOnPass bool          `json:"autoConvertOnPass"`
 	ConfirmActions    bool          `json:"confirmActions"`
 	ShowIncomePreview bool          `json:"showIncomePreview"`
+}
+
+// TurnTimerConfig configures optional chess-clock style timing for a game.
+type TurnTimerConfig struct {
+	InitialTimeMs int64 `json:"initialTimeMs"`
+	IncrementMs   int64 `json:"incrementMs"`
+}
+
+// PlayerTurnTimer tracks one player's remaining time and whether their clock is running.
+type PlayerTurnTimer struct {
+	RemainingMs   int64 `json:"remainingMs"`
+	ActiveSinceMs int64 `json:"-"`
+}
+
+// TurnTimerState stores authoritative timer state for all players in a game.
+type TurnTimerState struct {
+	Config  TurnTimerConfig             `json:"config"`
+	Players map[string]*PlayerTurnTimer `json:"players"`
 }
 
 func defaultPlayerOptions() PlayerOptions {

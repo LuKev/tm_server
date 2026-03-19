@@ -93,15 +93,15 @@ func TestAuctionSetupFlow_FastAuctionTransitionsToSetup(t *testing.T) {
 		NewAuctionNominateFactionAction("p1", models.FactionNomads),
 		NewAuctionNominateFactionAction("p2", models.FactionWitches),
 		NewAuctionNominateFactionAction("p3", models.FactionEngineers),
-		NewFastAuctionSubmitBidsAction("p1", map[models.FactionType]int{
-			models.FactionNomads:    2,
-			models.FactionWitches:   4,
-			models.FactionEngineers: 1,
-		}),
 		NewFastAuctionSubmitBidsAction("p2", map[models.FactionType]int{
 			models.FactionNomads:    0,
 			models.FactionWitches:   3,
 			models.FactionEngineers: 5,
+		}),
+		NewFastAuctionSubmitBidsAction("p1", map[models.FactionType]int{
+			models.FactionNomads:    2,
+			models.FactionWitches:   4,
+			models.FactionEngineers: 1,
 		}),
 		NewFastAuctionSubmitBidsAction("p3", map[models.FactionType]int{
 			models.FactionNomads:    1,

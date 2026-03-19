@@ -273,6 +273,7 @@ export interface GameState {
   pendingTownCultTopChoice?: unknown
   pendingDecision?: Record<string, unknown> | null
   auctionState?: AuctionState | null
+  turnTimer?: TurnTimerState | null
   nextRoundIncome?: Record<string, IncomePreview> | null
 }
 
@@ -306,4 +307,17 @@ export interface AuctionState {
   playerHasFaction: Record<string, boolean>
   fastSubmitted: Record<string, boolean>
   fastBids: Record<string, Record<string, number>>
+}
+
+export interface TurnTimerPlayerState {
+  remainingMs: number
+  isActive: boolean
+}
+
+export interface TurnTimerState {
+  initialTimeMs: number
+  incrementMs: number
+  serverNowMs: number
+  activePlayerIds: string[]
+  players: Record<string, TurnTimerPlayerState>
 }

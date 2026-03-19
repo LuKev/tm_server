@@ -9,6 +9,7 @@ import (
 type GameMeta struct {
 	ID         string    `json:"id"`
 	Name       string    `json:"name"`
+	Host       string    `json:"host"`
 	Players    []string  `json:"players"`
 	MaxPlayers int       `json:"maxPlayers"`
 	CreatedAt  time.Time `json:"createdAt"`
@@ -36,12 +37,12 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int) *GameMeta {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string) *GameMeta {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	id := strconv.Itoa(m.nextID)
 	m.nextID++
-	g := &GameMeta{ID: id, Name: name, MaxPlayers: maxPlayers, CreatedAt: time.Now(), Players: make([]string, 0, maxPlayers)}
+	g := &GameMeta{ID: id, Name: name, Host: host, MaxPlayers: maxPlayers, CreatedAt: time.Now(), Players: make([]string, 0, maxPlayers)}
 	m.games[id] = g
 	return cloneGameMeta(g)
 }

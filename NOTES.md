@@ -868,3 +868,9 @@
 - 2026-03-19 turn-confirm preference contract:
   - `player.Options.ConfirmActions` now controls both end-of-turn confirmation and the post-action free conversion/burn window.
   - If a player unchecks `Confirm Turn End` while their confirm/free-action window is already pending, the server clears both pending states immediately so the next player can act without waiting for an explicit confirm.
+
+- 2026-03-19 auction + timer behavior:
+  - Regular auction UI now treats the typed bid amount as an additional increment over the current faction bid; the server action payload still carries the absolute `vpReduction`.
+  - Fast auction bidding is asynchronous after nomination: any unsubmitted player may submit out of seat order, and the pending decision includes `playerIds` for all remaining submitters.
+  - Optional turn timers are configured by the lobby host when starting the game; only the host may start a lobby game.
+  - Timer state is server-authoritative and serialized as `turnTimer` with `serverNowMs`, per-player `remainingMs`, and `activePlayerIds`; the client animates locally from those snapshots instead of relying on periodic websocket ticks.

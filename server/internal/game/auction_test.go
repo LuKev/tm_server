@@ -281,6 +281,34 @@ func TestAuction_GetAuctionSummary(t *testing.T) {
 	}
 }
 
+func TestAuction_FastAuctionAllowsOutOfOrderSubmission(t *testing.T) {
+	seatOrder := []string{"player1", "player2", "player3"}
+	auction := NewAuctionStateWithMode(seatOrder, SetupModeFastAuction)
+
+	if err := auction.NominateFaction("player1", models.FactionNomads); err != nil {
+		t.Fatalf("nominate player1: %v", err)
+	}
+	if err := auction.NominateFaction("player2", models.FactionWitches); err != nil {
+		t.Fatalf("nominate player2: %v", err)
+	}
+	if err := auction.NominateFaction("player3", models.FactionEngineers); err != nil {
+		t.Fatalf("nominate player3: %v", err)
+	}
+
+	if err := auction.SubmitFastBids("player2", map[models.FactionType]int{
+		models.FactionNomads:    0,
+		models.FactionWitches:   3,
+		models.FactionEngineers: 5,
+	}); err != nil {
+		t.Fatalf("player2 out-of-order submit: %v", err)
+	}
+
+	pending := auction.GetPendingFastSubmitters()
+	if len(pending) != 2 || pending[0] != "player1" || pending[1] != "player3" {
+		t.Fatalf("pending fast submitters = %v, want [player1 player3]", pending)
+	}
+}
+
 func TestGameSetupOptions_Validation(t *testing.T) {
 	// Valid options
 	opts := GameSetupOptions{

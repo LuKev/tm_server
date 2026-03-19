@@ -56,6 +56,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingCultistsCultSelection = clonePendingCultistsCultSelection(gs.PendingCultistsCultSelection)
 	clone.PendingTownCultTopChoice = clonePendingTownCultTopChoice(gs.PendingTownCultTopChoice)
 	clone.FinalScoring = cloneFinalScoring(gs.FinalScoring)
+	clone.TurnTimer = cloneTurnTimerState(gs.TurnTimer)
 
 	if gs.RiverTownHex != nil {
 		hex := *gs.RiverTownHex
@@ -168,6 +169,25 @@ func cloneAuctionState(src *AuctionState) *AuctionState {
 		dst.FastSubmitted[playerID] = submitted
 	}
 	return &dst
+}
+
+func cloneTurnTimerState(src *TurnTimerState) *TurnTimerState {
+	if src == nil {
+		return nil
+	}
+	dst := &TurnTimerState{
+		Config:  src.Config,
+		Players: make(map[string]*PlayerTurnTimer, len(src.Players)),
+	}
+	for playerID, timer := range src.Players {
+		if timer == nil {
+			dst.Players[playerID] = nil
+			continue
+		}
+		timerCopy := *timer
+		dst.Players[playerID] = &timerCopy
+	}
+	return dst
 }
 
 func clonePowerActionState(src *PowerActionState) *PowerActionState {

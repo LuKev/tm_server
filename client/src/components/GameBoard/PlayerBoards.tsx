@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState } from '../../types/game.types';
+import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState, type TurnTimerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon, ShippingIcon } from '../shared/Icons';
@@ -175,9 +175,30 @@ const BuildingTrackSlot: React.FC<{
     );
 };
 
+const formatTimerRemaining = (remainingMs: number): string => {
+    const sign = remainingMs < 0 ? '-' : '';
+    const absoluteSeconds = Math.max(0, Math.ceil(Math.abs(remainingMs) / 1000));
+    const minutes = Math.floor(absoluteSeconds / 60);
+    const seconds = absoluteSeconds % 60;
+    return `${sign}${String(minutes)}:${String(seconds).padStart(2, '0')}`;
+};
+
+const getDisplayedRemainingMs = (
+    turnTimer: TurnTimerState | null | undefined,
+    playerId: string,
+    nowMs: number,
+): number | null => {
+    if (!turnTimer) return null;
+    const playerTimer = turnTimer.players?.[playerId];
+    if (!playerTimer) return null;
+    if (!playerTimer.isActive) return playerTimer.remainingMs;
+    return playerTimer.remainingMs - Math.max(0, nowMs - turnTimer.serverNowMs);
+};
+
 interface PlayerBoardProps {
     playerId: string;
     turnOrder: number | string;
+    displayNowMs?: number;
     isCurrentPlayer?: boolean;
     isReplayMode?: boolean;
     canUseTurnActions?: boolean;
@@ -199,6 +220,7 @@ interface PlayerBoardProps {
 const PlayerBoard: React.FC<PlayerBoardProps> = ({
     playerId,
     turnOrder,
+    displayNowMs = Date.now(),
     isCurrentPlayer,
     isReplayMode,
     canUseTurnActions = false,
@@ -292,6 +314,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
     const townTiles = player.townTiles ?? [];
+    const displayedRemainingMs = getDisplayedRemainingMs(gameState?.turnTimer ?? null, playerId, displayNowMs);
+    const timerIsActive = !!gameState?.turnTimer?.players?.[playerId]?.isActive;
 
     const renderTownTiles = (): React.ReactNode => {
         if (townTiles.length === 0) {
@@ -344,6 +368,18 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                         {turnOrder}
                     </div>
                     <div className="pb-player-name">{player.name} ({FactionType[factionType]})</div>
+                    {displayedRemainingMs !== null && (
+                        <div
+                            className="resource-item"
+                            data-testid={`player-${playerId}-turn-timer`}
+                            style={{
+                                fontWeight: timerIsActive ? 700 : 500,
+                                color: timerIsActive ? '#0f766e' : '#334155',
+                            }}
+                        >
+                            {formatTimerRemaining(displayedRemainingMs)}
+                        </div>
+                    )}
 
                     <div className="resource-display">
                         <div className="resource-item"><CoinIcon /> {player.resources.coins}</div>
@@ -699,6 +735,7 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
     isWater2Active
 }) => {
     const gameState = useGameStore(s => s.gameState);
+    const [displayNowMs, setDisplayNowMs] = React.useState(() => Date.now());
 
     // JS-based scaling to ensure reliability
     // Hooks must be called unconditionally
@@ -720,6 +757,15 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
         observer.observe(containerRef.current);
         return () => { observer.disconnect(); };
     }, [gameState?.phase, gameState?.players]); // Re-run when game state loads/changes
+
+    React.useEffect(() => {
+        const hasActiveTimer = Object.values(gameState?.turnTimer?.players ?? {}).some((playerTimer) => playerTimer?.isActive);
+        if (!hasActiveTimer) return;
+        const interval = window.setInterval(() => {
+            setDisplayNowMs(Date.now());
+        }, 1000);
+        return () => { window.clearInterval(interval); };
+    }, [gameState?.turnTimer]);
 
     if (!gameState?.players) return null;
 
@@ -758,6 +804,7 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
                             key={pid}
                             playerId={pid}
                             turnOrder={turnOrder}
+                            displayNowMs={displayNowMs}
                             isCurrentPlayer={isCurrentPlayer}
                             isReplayMode={isReplayMode}
                             canUseTurnActions={canUseTurnActions}
