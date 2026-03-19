@@ -11,6 +11,10 @@
     - The lobby screen was watching a single transient `lastMessage`, so the later `lobby_state` could overwrite the `game_state_update` before React processed the effect.
     - Symptom: clicking `Start` removed the row from the open-games list but did not navigate to `/game/:id`.
     - Fix: drive lobby auto-navigation from the durable Zustand `gameState` instead of from `lastMessage`, and cover it with a Playwright contract test that emits `game_state_update` followed immediately by `lobby_state`.
+  - Railway follow-up:
+    - Railway deploys the `client` root directly in this setup, so strict TypeScript errors in client code can slip past server-only verification and block deploys even when runtime behavior is correct.
+    - Concrete failure: `client/src/components/Lobby.tsx` had an unused `GameState` type import, which failed `tsc -b` during Railway build.
+    - Repo rule added to `AGENTS.md`: always run `cd server && bazel test //:client_build_test --test_output=errors` before shipping frontend changes.
   - Verification:
     - `cd server && bazel test //internal/lobby:lobby_test --test_output=errors`
     - `cd server && bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketE2E_(StartGameWithTurnTimer|LobbySingleSeatAndLeaveFlow)' --test_output=errors`

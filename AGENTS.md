@@ -2,6 +2,7 @@
 
 - Always use Bazel commands in this repository.
 - Do not use `go test` or `go build`; use the Bazel equivalent instead.
+- Before shipping frontend/client changes, always run the Bazel-backed client production build check from `server`: `bazel test //:client_build_test --test_output=errors`. This is required even for small UI-only edits because Railway deploys the `client` root directly and strict TypeScript failures will block deploys.
 - Maintain a workspace notes file at `NOTES.md`.
 - Treat `NOTES.md` as shared agent memory for this workspace: whenever a conversation reveals a non-trivial detail that could help in the future (constraints, decisions, gotchas, environment quirks, follow-ups), add to or update `NOTES.md`.
 
