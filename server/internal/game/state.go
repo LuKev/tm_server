@@ -50,6 +50,9 @@ type GameState struct {
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
 	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
 	PendingTownCultTopChoice         *PendingTownCultTopChoice          `json:"pendingTownCultTopChoice"`
+	PendingFreeActionsPlayerID       string                             `json:"pendingFreeActionsPlayerId"`
+	PendingTurnConfirmationPlayerID  string                             `json:"pendingTurnConfirmationPlayerId"`
+	PendingTurnConfirmationSnapshot  *GameState                         `json:"-"`
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
 	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
 	SuppressTurnAdvance              bool                               `json:"-"`
@@ -536,6 +539,30 @@ func (gs *GameState) HasPendingLeechOffers() bool {
 		if len(offers) > 0 {
 			return true
 		}
+	}
+	return false
+}
+
+func (gs *GameState) isBlockingLeechResponder(playerID string) bool {
+	if gs == nil {
+		return false
+	}
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return true
+	}
+	return !player.HasPassed
+}
+
+func (gs *GameState) HasBlockingPendingLeechOffers() bool {
+	for playerID, offers := range gs.PendingLeechOffers {
+		if len(offers) == 0 {
+			continue
+		}
+		if !gs.isBlockingLeechResponder(playerID) {
+			continue
+		}
+		return true
 	}
 	return false
 }
@@ -1228,7 +1255,7 @@ func (gs *GameState) AlchemistsConvertCoinsToVP(playerID string, coins int) erro
 
 // HasPendingActions checks if a player has any pending actions that block turn advancement
 func (gs *GameState) HasPendingActions(playerID string) bool {
-	if gs.HasPendingLeechOffers() {
+	if gs.HasBlockingPendingLeechOffers() {
 		return true
 	}
 	if gs.PendingFavorTileSelection != nil && gs.PendingFavorTileSelection.PlayerID == playerID {
@@ -1329,6 +1356,30 @@ func (gs *GameState) GetNextLeechResponder() string {
 		idx := (startIdx + i) % len(gs.TurnOrder)
 		playerID := gs.TurnOrder[idx]
 		if offers := gs.PendingLeechOffers[playerID]; len(offers) > 0 {
+			return playerID
+		}
+	}
+
+	return ""
+}
+
+func (gs *GameState) GetNextBlockingLeechResponder() string {
+	if !gs.HasBlockingPendingLeechOffers() || len(gs.TurnOrder) == 0 {
+		return ""
+	}
+
+	startIdx := 0
+	if gs.CurrentPlayerIndex >= 0 && gs.CurrentPlayerIndex < len(gs.TurnOrder) {
+		startIdx = (gs.CurrentPlayerIndex + 1) % len(gs.TurnOrder)
+	}
+
+	for i := 0; i < len(gs.TurnOrder); i++ {
+		idx := (startIdx + i) % len(gs.TurnOrder)
+		playerID := gs.TurnOrder[idx]
+		if offers := gs.PendingLeechOffers[playerID]; len(offers) > 0 {
+			if !gs.isBlockingLeechResponder(playerID) {
+				continue
+			}
 			return playerID
 		}
 	}

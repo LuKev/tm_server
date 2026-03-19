@@ -80,7 +80,11 @@ func (a *SelectCultistsCultTrackAction) Execute(gs *GameState) error {
 	// Clear the pending state
 	gs.PendingCultistsCultSelection = nil
 
-	if !gs.HasPendingLeechOffers() {
+	if gs.AllPlayersPassed() && !gs.HasLateRoundPendingDecisions() {
+		advanceAfterRoundComplete(gs)
+		return nil
+	}
+	if !gs.HasBlockingPendingLeechOffers() {
 		if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID {
 			gs.NextTurn()
 		}

@@ -43,6 +43,8 @@ const (
 	ActionBurnPower                    // Free burn action (does not consume main action)
 	ActionEngineersBridge              // Engineers SH special action: build bridge for workers
 	ActionSetPlayerOptions             // Update player UX/automation options
+	ActionConfirmTurn                  // Confirm the current turn before the next player may act
+	ActionUndoTurn                     // Undo the current turn back to the last snapshot
 )
 
 // Action represents a player action
@@ -1053,17 +1055,34 @@ func (a *PassAction) Execute(gs *GameState) error {
 	// double-processing round boundaries.
 	isReplaySimulation := gs.ReplayMode != nil && gs.ReplayMode["__replay__"]
 	if roundComplete := gs.NextTurn(); roundComplete && !isReplaySimulation {
-		justCompletedRound := gs.Round
-		if gs.ExecuteCleanupPhase() {
-			gs.StartNewRound()
-			gs.AwardCultRewardsForRound(justCompletedRound)
-			if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
-				gs.GrantIncome()
-				gs.StartActionPhase()
-			}
+		if gs.HasLateRoundPendingDecisions() {
+			return nil
 		}
+		advanceAfterRoundComplete(gs)
 	}
 	return nil
+}
+
+func (gs *GameState) HasLateRoundPendingDecisions() bool {
+	if gs == nil {
+		return false
+	}
+	return gs.HasPendingLeechOffers() || gs.PendingCultistsCultSelection != nil
+}
+
+func advanceAfterRoundComplete(gs *GameState) {
+	if gs == nil {
+		return
+	}
+	justCompletedRound := gs.Round
+	if gs.ExecuteCleanupPhase() {
+		gs.StartNewRound()
+		gs.AwardCultRewardsForRound(justCompletedRound)
+		if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
+			gs.GrantIncome()
+			gs.StartActionPhase()
+		}
+	}
 }
 
 // SendPriestToCultAction represents sending a priest to a cult track

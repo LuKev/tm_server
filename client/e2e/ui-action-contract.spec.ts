@@ -22,7 +22,7 @@ import {
   waitForSocketReady,
   waitForPerformAction,
 } from './support/mockWebSocket'
-import { clickByTestId, clickHex, confirmAction } from './support/uiInteractions'
+import { clickByTestId, clickCultSpot, clickHex, confirmAction } from './support/uiInteractions'
 
 const unknownFactionPlayers = (): Record<string, PlayerState> => ({
   p1: {
@@ -305,7 +305,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     })
 
     await openGameWithState(page, state)
-    await clickByTestId(page, 'cult-spot-0-0')
+    await clickCultSpot(page, 0, 0)
     await confirmAction(page)
     await waitForPerformAction(page, 'send_priest', { cultTrack: CultType.Fire, spacesToClimb: 3 })
 
@@ -328,6 +328,79 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await clearSentMessages(page)
     await clickByTestId(page, 'leech-offer-0-decline')
     await waitForPerformAction(page, 'decline_leech', { offerIndex: 0 })
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        currentTurn: 2,
+        pendingDecision: {
+          type: 'post_action_free_actions',
+          playerId: 'p2',
+        },
+        pendingLeechOffers: {
+          p1: [{ Amount: 2 }],
+        },
+      },
+    })
+    await clearSentMessages(page)
+
+    await expect(page.getByTestId('leech-offer-0-accept')).toBeVisible()
+    await clickByTestId(page, 'leech-offer-0-accept')
+    await waitForPerformAction(page, 'accept_leech', { offerIndex: 0 })
+  })
+
+  test('post-action free window renders inline turn confirm and undo actions', async ({ page }) => {
+    const state = makeBaseGameState({
+      currentTurn: 1,
+      pendingDecision: {
+        type: 'post_action_free_actions',
+        playerId: 'p1',
+      },
+    })
+
+    await openGameWithState(page, state)
+    await expect(page.getByTestId('turn-end-confirm')).toBeVisible()
+    await expect(page.getByTestId('turn-end-undo')).toBeVisible()
+
+    await clickByTestId(page, 'turn-end-confirm')
+    await waitForPerformAction(page, 'confirm_turn')
+
+    await clearSentMessages(page)
+    await clickByTestId(page, 'turn-end-undo')
+    await waitForPerformAction(page, 'undo_turn')
+  })
+
+  test('turn confirmation stays inline and local conversions still work during post-action free actions', async ({ page }) => {
+    const state = makeBaseGameState({
+      currentTurn: 1,
+      pendingDecision: {
+        type: 'post_action_free_actions',
+        playerId: 'p1',
+      },
+    })
+
+    await openGameWithState(page, state)
+    await expect(page.getByTestId('turn-end-confirm')).toBeVisible()
+    await clickByTestId(page, 'player-p1-conversion-worker_to_coin')
+    await waitForPerformAction(page, 'conversion', { conversionType: 'worker_to_coin', amount: 1 })
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        pendingDecision: {
+          type: 'turn_confirmation',
+          playerId: 'p1',
+        },
+      },
+    })
+    await clearSentMessages(page)
+
+    await expect(page.getByTestId('turn-end-confirm')).toBeVisible()
+    await expect(page.getByTestId('turn-end-undo')).toBeVisible()
+    await clickByTestId(page, 'turn-end-confirm')
+    await waitForPerformAction(page, 'confirm_turn')
   })
 
   test('player options reflect state and emit set_player_options actions', async ({ page }) => {
@@ -384,7 +457,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await waitForPerformAction(page, 'set_player_options', { showIncomePreview: false })
   })
 
-  test('decision strip shows waiting/prompt states and only current board shows conversions', async ({ page }) => {
+  test('decision strip shows waiting/prompt states and the local board shows conversions', async ({ page }) => {
     const state = makeBaseGameState({
       currentTurn: 1,
       players: {
@@ -400,8 +473,8 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await expect(page.getByTestId('player-summary-bar')).toContainText('Bob')
     await expect(page.getByTestId('player-summary-bar')).toContainText('YOU')
 
-    await expect(page.getByTestId('player-p1-conversion-worker_to_coin')).toHaveCount(0)
-    await expect(page.getByTestId('player-p2-conversion-worker_to_coin')).toBeVisible()
+    await expect(page.getByTestId('player-p1-conversion-worker_to_coin')).toBeVisible()
+    await expect(page.getByTestId('player-p2-conversion-worker_to_coin')).toHaveCount(0)
 
     await emitWs(page, {
       type: 'game_state_update',
@@ -441,6 +514,25 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     })
     await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting On Leech Responses')
     await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting for 2 other players')
+  })
+
+  test('selectable town tiles highlight in green on hover', async ({ page }) => {
+    const state = makeBaseGameState({
+      pendingDecision: {
+        type: 'town_tile_selection',
+        playerId: 'p1',
+      },
+    })
+
+    await openGameWithState(page, state)
+
+    const tile = page.getByTestId(`town-tile-${String(TownTileId.Vp7Workers2)}`).first()
+    await tile.hover()
+    const highlightShadow = await tile.evaluate((node) => {
+      const tileNode = node.querySelector('.town-tile-stack-0') as HTMLElement | null
+      return tileNode ? getComputedStyle(tileNode).boxShadow : ''
+    })
+    expect(highlightShadow).toMatch(/34,\s*197,\s*94/)
   })
 
   test('transform/build, building upgrade, conversion, ship/dig and burn are wired to perform_action', async ({ page }) => {
@@ -677,11 +769,11 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
           p1: {
             ...makeBaseGameState().players.p1,
             faction: FactionType.Engineers,
-            hasStrongholdAbility: true,
+            hasStrongholdAbility: false,
           },
         },
       }),
-      [{ q: 0, r: 0, ownerPlayerId: 'p1', faction: FactionType.Engineers, type: BuildingType.Stronghold }],
+      [{ q: 0, r: 0, ownerPlayerId: 'p1', faction: FactionType.Engineers, type: BuildingType.Dwelling }],
     )
 
     await emitWs(page, { type: 'game_state_update', payload: engineersState })
@@ -869,15 +961,10 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await openGameWithState(page, base)
 
-    await clickByTestId(page, 'player-p1-water2-action', { allowForce: true })
-    const cultModal = page.getByTestId('cult-choice-modal').first()
-    const cultModalVisible = await cultModal.isVisible().catch(() => false)
-    if (!cultModalVisible) {
-      await page.getByTestId('player-p1-water2-action').first().evaluate((el) => {
-        (el as HTMLElement).click()
-      })
-    }
-    await expect(cultModal).toBeVisible()
+    await page.getByTestId('player-p1-water2-action').evaluate((node) => {
+      (node as HTMLButtonElement).click()
+    })
+    await expect(page.getByTestId(`cult-choice-${String(CultType.Water)}`)).toBeVisible()
     await clickByTestId(page, `cult-choice-${String(CultType.Water)}`)
     await waitForPerformAction(page, 'special_action_use', {
       specialActionType: SpecialActionType.Water2CultAdvance,
@@ -894,7 +981,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
         },
       },
     })
-    await expect(page.getByTestId('darklings-ordination-modal')).toBeVisible()
+    await expect(page.getByTestId('darklings-ordination-2')).toBeVisible()
     await expect(page.getByText('Darklings can only convert workers to priests when a player just upgraded to a stronghold.')).toBeVisible()
     await clearSentMessages(page)
     await clickByTestId(page, 'darklings-ordination-2')

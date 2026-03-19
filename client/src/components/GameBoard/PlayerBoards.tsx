@@ -272,7 +272,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const strongholdActionType = getStrongholdActionType(factionType);
     const isStrongholdActionUsed = strongholdActionType !== null && player.specialActionsUsed?.[strongholdActionType];
     const isLocalPlayer = localPlayerId === playerId;
-    const isEngineersSquareAction = factionType === FactionType.Engineers && !!player.hasStrongholdAbility;
+    const isEngineersSquareAction = factionType === FactionType.Engineers;
     const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
     const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
     const isLocalEngineersBridgeActive = !!isEngineersBridgeActive && isLocalPlayer;
@@ -498,9 +498,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                         </div>
                     </div>
 
-                    {/* Column 2: Conversions (current player only) or Towns */}
+                    {/* Column 2: Conversions on the local player's board, towns elsewhere */}
                     <div className="pb-conversions-col">
-                        {(isReplayMode || !isCurrentPlayer) ? (
+                        {(isReplayMode || !isLocalPlayer) ? (
                             <>
                                 <div className="pb-section-title">Towns</div>
                                 <div className="pb-towns-area">

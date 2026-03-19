@@ -15,6 +15,37 @@ export interface PriestSpot {
   faction?: FactionType; // For colored priest markers
 }
 
+const CULT_TRACK_WIDTH = 250 / 4; // 62.5px per cult
+const CULT_TRACK_HEIGHT = 560;
+const CULT_PRIEST_SPOT_WIDTH = 25;
+const CULT_PRIEST_SPOT_HEIGHT = 20;
+const CULT_PRIEST_SPOT_SPACING = 5;
+const CULT_PRIEST_SPOT_BASE_Y = 462;
+
+export const getPriestSpotRect = (cultIndex: number, tileIndex: number): { x: number; y: number; width: number; height: number } => {
+  const gridWidth = 2 * CULT_PRIEST_SPOT_WIDTH + CULT_PRIEST_SPOT_SPACING;
+  const startX = (CULT_TRACK_WIDTH - gridWidth) / 2;
+  const baseX = CULT_TRACK_WIDTH * cultIndex + startX;
+
+  if (tileIndex < 4) {
+    const row = Math.floor(tileIndex / 2);
+    const col = tileIndex % 2;
+    return {
+      x: baseX + col * (CULT_PRIEST_SPOT_WIDTH + CULT_PRIEST_SPOT_SPACING),
+      y: CULT_PRIEST_SPOT_BASE_Y + row * (CULT_PRIEST_SPOT_HEIGHT + CULT_PRIEST_SPOT_SPACING),
+      width: CULT_PRIEST_SPOT_WIDTH,
+      height: CULT_PRIEST_SPOT_HEIGHT,
+    };
+  }
+
+  return {
+    x: baseX + CULT_PRIEST_SPOT_WIDTH / 2 + CULT_PRIEST_SPOT_SPACING / 2,
+    y: CULT_PRIEST_SPOT_BASE_Y + 2 * (CULT_PRIEST_SPOT_HEIGHT + CULT_PRIEST_SPOT_SPACING),
+    width: CULT_PRIEST_SPOT_WIDTH,
+    height: CULT_PRIEST_SPOT_HEIGHT,
+  };
+}
+
 interface CultTracksProps {
   cultPositions: Map<CultType, CultPosition[]>; // For each cult, list of faction positions
   bonusTiles?: Map<CultType, PriestSpot[]>; // Priest spots at bottom (power or priest rewards)
@@ -28,36 +59,11 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   const [hoveredTile, setHoveredTile] = useState<{ cult: CultType, index: number } | null>(null);
 
   const cults = useMemo(() => [CultType.Fire, CultType.Water, CultType.Earth, CultType.Air], []);
-  const cultWidth = 250 / 4; // 62.5px per cult
-  const height = 560; // Match game board height
-  const tileWidth = 25;
-  const tileHeight = 20;
-  const tileSpacing = 5;
-
-  const getPriestSpotRect = useCallback((cultIndex: number, tileIndex: number): { x: number; y: number; width: number; height: number } => {
-    const gridWidth = 2 * tileWidth + tileSpacing;
-    const startX = (cultWidth - gridWidth) / 2;
-    const baseX = cultWidth * cultIndex + startX;
-    const baseY = 460;
-
-    if (tileIndex < 4) {
-      const row = Math.floor(tileIndex / 2);
-      const col = tileIndex % 2;
-      return {
-        x: baseX + col * (tileWidth + tileSpacing),
-        y: baseY + row * (tileHeight + tileSpacing),
-        width: tileWidth,
-        height: tileHeight,
-      };
-    }
-
-    return {
-      x: baseX + tileWidth / 2 + tileSpacing / 2,
-      y: baseY + 2 * (tileHeight + tileSpacing),
-      width: tileWidth,
-      height: tileHeight,
-    };
-  }, [cultWidth, tileHeight, tileSpacing, tileWidth]);
+  const cultWidth = CULT_TRACK_WIDTH;
+  const height = CULT_TRACK_HEIGHT;
+  const tileWidth = CULT_PRIEST_SPOT_WIDTH;
+  const tileHeight = CULT_PRIEST_SPOT_HEIGHT;
+  const tileSpacing = CULT_PRIEST_SPOT_SPACING;
 
   // Draw hex path (simplified from makeHexPath)
   const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
@@ -214,7 +220,9 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
       // Priest spots at bottom (2x2 grid)
       ctx.save();
-      ctx.translate(0, 460);
+      // Keep the canvas-drawn priest boxes aligned with the absolute-positioned
+      // overlay buttons, which already use the shared getPriestSpotRect() math.
+      ctx.translate(0, 450);
       ctx.lineWidth = 0.2;
 
       const tiles = bonusTiles?.get(cult) || [];

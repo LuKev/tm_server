@@ -83,6 +83,7 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 		return err
 	}
 
+	wasBlocking := gs.HasBlockingPendingLeechOffers()
 	player := gs.GetPlayer(playerID)
 	offers := gs.PendingLeechOffers[playerID]
 	offer := offers[offerIndex]
@@ -127,7 +128,11 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 	}
 
 	// Continue turn flow after the full leech queue resolves.
-	if !gs.HasPendingLeechOffers() && gs.PendingCultistsCultSelection == nil {
+	if gs.AllPlayersPassed() && !gs.HasLateRoundPendingDecisions() {
+		advanceAfterRoundComplete(gs)
+		return nil
+	}
+	if wasBlocking && !gs.HasBlockingPendingLeechOffers() && gs.PendingCultistsCultSelection == nil {
 		gs.NextTurn()
 	}
 

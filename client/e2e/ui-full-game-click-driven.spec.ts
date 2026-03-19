@@ -1,7 +1,9 @@
-import { expect, test, type Browser, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 import fs from 'node:fs'
 import { clickByTestId, clickHex } from './support/uiInteractions'
 import { GOLDEN_SCENARIOS } from './fixtures/golden_scenarios'
+import { realServerWsURL } from './support/realServerConfig'
+import { loadRealServerGamePage, sendPageSocketMessage, setRealServerPageLocalPlayer } from './support/realServerPage'
 import { WsBot, type JsonObject } from './support/wsBot'
 
 type GoldenAction = {
@@ -20,12 +22,6 @@ type GoldenScript = {
   expectedFinalScores: Record<string, number>
 }
 
-type Segment = {
-  start: number
-  endExclusive: number
-}
-
-let fallbackActionSeq = 0
 const clickDebugEnabled = process.env.TM_CLICK_DEBUG === '1'
 
 const debugLog = (...args: unknown[]): void => {
@@ -80,6 +76,41 @@ async function hasVisibleTestId(page: Page, testId: string, timeoutMs = 1_500): 
   return locator.isVisible().catch(() => false)
 }
 
+async function waitForPageToMatchSnapshot(
+  page: Page,
+  snapshot: JsonObject | undefined,
+  gameID: string,
+  localPlayerId: string,
+): Promise<void> {
+  const snapshotRevision = Number(snapshot?.revision ?? -1)
+  if (!Number.isFinite(snapshotRevision) || snapshotRevision < 0) return
+
+  const readPageRevision = async (): Promise<number> => page.evaluate(() => {
+    const testWindow = window as Window & {
+      __TM_TEST_GET_REVISION__?: () => number | null
+    }
+    if (typeof testWindow.__TM_TEST_GET_REVISION__ !== 'function') return -1
+    const revision = testWindow.__TM_TEST_GET_REVISION__()
+    return typeof revision === 'number' ? revision : -1
+  }).catch(() => -1)
+
+  const pageRevision = await readPageRevision()
+  if (pageRevision >= snapshotRevision) return
+
+  await sendPageSocketMessage(page, {
+    type: 'get_game_state',
+    payload: { gameID, playerID: localPlayerId },
+  })
+  await page.waitForFunction((minRevision) => {
+    const testWindow = window as Window & {
+      __TM_TEST_GET_REVISION__?: () => number | null
+    }
+    if (typeof testWindow.__TM_TEST_GET_REVISION__ !== 'function') return false
+    const revision = testWindow.__TM_TEST_GET_REVISION__()
+    return typeof revision === 'number' && revision >= minRevision
+  }, snapshotRevision, { timeout: 2_000 })
+}
+
 async function pickCultSpot(page: Page, track: number, spaces: number): Promise<void> {
   const preferred = spaces === 3 ? [0] : spaces === 1 ? [4] : [1, 2, 3]
   const fallback = [0, 1, 2, 3, 4].filter((idx) => !preferred.includes(idx))
@@ -97,8 +128,7 @@ async function pickCultSpot(page: Page, track: number, spaces: number): Promise<
 }
 
 async function submitHexModal(page: Page, buildDwelling: boolean, targetTerrain?: number): Promise<void> {
-  const modal = page.getByTestId('hex-action-modal')
-  await expect(modal).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByTestId('hex-action-submit').first()).toBeVisible({ timeout: 10_000 })
 
   const modeSelect = page.getByTestId('hex-action-mode')
   const modeVisible = await modeSelect.first().isVisible().catch(() => false)
@@ -126,18 +156,16 @@ async function chooseCultTrackWithFallback(
   cultTrack: number,
   retryOpen?: () => Promise<void>,
 ): Promise<void> {
-  const modal = page.getByTestId('cult-choice-modal').first()
-  const initialVisible = await modal.isVisible().catch(() => false)
+  const initialVisible = await hasVisibleTestId(page, `cult-choice-${String(cultTrack)}`, 500)
   if (!initialVisible && retryOpen) {
     await retryOpen()
   }
-  await expect(modal).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByTestId(`cult-choice-${String(cultTrack)}`).first()).toBeVisible({ timeout: 10_000 })
   await clickByTestId(page, `cult-choice-${String(cultTrack)}`)
 }
 
 async function chooseCultistsTrack(page: Page, cultTrack: number): Promise<void> {
-  const modal = page.getByTestId('cultists-cult-choice-modal').first()
-  const visible = await modal.isVisible().catch(() => false)
+  const visible = await hasVisibleTestId(page, `cultists-cult-choice-${String(cultTrack)}`, 500)
   if (visible) {
     await clickByTestId(page, `cultists-cult-choice-${String(cultTrack)}`)
     return
@@ -145,34 +173,71 @@ async function chooseCultistsTrack(page: Page, cultTrack: number): Promise<void>
   await chooseCultTrackWithFallback(page, cultTrack)
 }
 
-async function openPlayerViewer(browser: Browser, gameID: string, playerId: string): Promise<Page> {
-  const context = await browser.newContext()
-  const page = await context.newPage()
+async function switchActorPage(page: Page, gameID: string, playerId: string, currentPlayerId: string): Promise<string> {
+  if (currentPlayerId === '') {
+    await page.goto('/')
+    await page.evaluate(({ localPlayerId }) => {
+      localStorage.setItem('tm-game-storage', JSON.stringify({ state: { localPlayerId }, version: 0 }))
+    }, { localPlayerId: playerId })
+    await loadRealServerGamePage(page, gameID, playerId)
+    return playerId
+  }
 
-  await page.addInitScript(
-    ({ localPlayerId }) => {
-      localStorage.setItem(
-        'tm-game-storage',
-        JSON.stringify({
-          state: { localPlayerId },
-          version: 0,
-        }),
-      )
-    },
-    { localPlayerId: playerId },
-  )
+  if (currentPlayerId !== playerId) {
+    await setRealServerPageLocalPlayer(page, playerId)
+    await sendPageSocketMessage(page, {
+      type: 'join_game',
+      payload: { id: gameID, name: playerId },
+    })
+    await sendPageSocketMessage(page, {
+      type: 'get_game_state',
+      payload: { gameID, playerID: playerId },
+    })
+    await page.waitForFunction((expectedPlayerId) => {
+      const testWindow = window as Window & {
+        __TM_TEST_GET_LOCAL_PLAYER_ID__?: () => string | null
+      }
+      return typeof testWindow.__TM_TEST_GET_LOCAL_PLAYER_ID__ === 'function'
+        && testWindow.__TM_TEST_GET_LOCAL_PLAYER_ID__() === expectedPlayerId
+    }, playerId, { timeout: 2_000 })
+  }
 
-  await page.goto(`/game/${gameID}`)
-  await expect(page.getByTestId('game-screen')).toBeVisible()
-  await expect(page.getByTestId('player-summary-bar')).toBeVisible()
-  return page
+  return playerId
 }
 
-async function openActorBot(wsURL: string, gameID: string, playerId: string): Promise<WsBot> {
-  const bot = await WsBot.connect(wsURL)
-  bot.send('join_game', { id: gameID, name: playerId })
-  await bot.waitForType('game_joined', 15_000)
-  return bot
+async function confirmPendingTurnIfNeeded(
+  page: Page,
+  creator: WsBot,
+  gameID: string,
+  actorPagePlayerId: string,
+  nextActionPlayerId: string,
+  nextActionType: string,
+  revisionRef: { current: number },
+): Promise<string> {
+  const snapshot = creator.getState(gameID)
+  const pending = getPendingDecisionInfo(snapshot)
+  if (pending.playerId === '') {
+    return actorPagePlayerId
+  }
+  if (pending.type !== 'post_action_free_actions' && pending.type !== 'turn_confirmation') {
+    return actorPagePlayerId
+  }
+  if (
+    pending.type === 'post_action_free_actions'
+    && pending.playerId === nextActionPlayerId
+    && (nextActionType === 'conversion' || nextActionType === 'burn_power')
+  ) {
+    return actorPagePlayerId
+  }
+
+  const pendingPlayerId = pending.playerId
+  const pagePlayerId = await switchActorPage(page, gameID, pendingPlayerId, actorPagePlayerId)
+  await waitForPageToMatchSnapshot(page, snapshot, gameID, pendingPlayerId)
+  await clickByTestId(page, 'turn-end-confirm')
+
+  const state = await creator.waitForRevision(gameID, revisionRef.current + 1, 5_000)
+  revisionRef.current = Number(state.revision ?? revisionRef.current + 1)
+  return pagePlayerId
 }
 
 async function createConfiguredGame(wsURL: string, script: GoldenScript, nameSuffix: string): Promise<{ creator: WsBot; gameID: string; revision: number }> {
@@ -234,24 +299,6 @@ async function createConfiguredGame(wsURL: string, script: GoldenScript, nameSuf
   }
 }
 
-function buildSegments(actionsLength: number): Segment[] {
-  if (process.env.TM_CLICK_USE_SEGMENTS !== '1') {
-    return [{ start: 0, endExclusive: actionsLength }]
-  }
-
-  const segmentSize = 24
-
-  const all: Segment[] = []
-  for (let start = 0; start < actionsLength; start += segmentSize) {
-    all.push({
-      start,
-      endExclusive: Math.min(actionsLength, start + segmentSize),
-    })
-  }
-
-  return all
-}
-
 function getPendingDecisionInfo(snapshot: JsonObject | undefined): { type: string; playerId: string } {
   const pendingDecision = asRecord(snapshot?.pendingDecision)
   return {
@@ -270,141 +317,120 @@ function getCurrentTurnPlayerId(snapshot: JsonObject | undefined): string {
   return typeof playerId === 'string' ? playerId : ''
 }
 
-async function performActionViaWsFallback(
-  bot: WsBot,
-  action: GoldenAction,
-  gameID: string,
-  expectedRevision: number,
-  actionIndex: number,
-): Promise<{ advanced: boolean; rejectionMessage: string }> {
-  if (action.type === 'replay_conversion') {
-    const params = action.params ?? {}
-    bot.send('test_apply_conversion', {
-      gameID,
-      playerID: action.playerId,
-      conversionType: String(params.conversionType ?? ''),
-      amount: Math.max(1, readInt(params, 'amount')),
-    })
-    const response = await bot.waitForAnyType(['test_command_applied', 'action_rejected', 'error'], 4_000)
-    const responseType = String(response.type ?? '')
-    const rejectionMessage = String(
-      asRecord(response.payload).message
-      ?? asRecord(response.payload).error
-      ?? '',
-    )
-    return { advanced: responseType === 'test_command_applied', rejectionMessage }
+function describeActionSnapshot(action: GoldenAction, snapshot: JsonObject | undefined): string {
+  const parts: string[] = []
+  const activeTurnPlayer = getCurrentTurnPlayerId(snapshot)
+  if (activeTurnPlayer !== '') {
+    parts.push(`currentTurn=${activeTurnPlayer}`)
   }
 
-  const actionId = `ui-click-fallback-${String(actionIndex).padStart(4, '0')}-${String(fallbackActionSeq)}`
-  fallbackActionSeq++
-  bot.send('perform_action', {
-    type: action.type,
-    gameID,
-    actionId,
-    expectedRevision,
-    params: action.params ?? {},
-  })
-  const deadline = Date.now() + 3_000
-  while (Date.now() < deadline) {
-    const timeoutMs = Math.max(50, Math.min(500, deadline - Date.now()))
-    const response = await bot
-      .waitForAnyType(['action_accepted', 'action_rejected', 'error'], timeoutMs)
-      .catch(() => null)
-    if (!response) continue
-    const payload = asRecord(response.payload)
-    const responseActionId = String(payload.actionId ?? '')
-    if (responseActionId !== '' && responseActionId !== actionId) {
-      continue
-    }
-    const responseType = String(response.type ?? '')
-    if (responseType !== 'action_accepted') {
-      debugLog(
-        `[click-replay] ws-fallback rejected index=${actionIndex} actor=${action.playerId} type=${action.type} expectedRevision=${expectedRevision} payload=${JSON.stringify(
-          response.payload ?? {},
-        )}`,
-      )
-    }
-    const rejectionMessage = String(payload.message ?? payload.error ?? '')
-    return { advanced: responseType === 'action_accepted', rejectionMessage }
+  if (action.type === 'upgrade_building') {
+    const hex = readHex(action.params ?? {}, 'targetHex', 'upgradeHex', 'hex')
+    const map = asRecord(snapshot?.map)
+    const hexes = asRecord(map.hexes)
+    const targetHex = asRecord(hexes[`${String(hex.q)},${String(hex.r)}`])
+    const building = asRecord(targetHex.building)
+    const player = asRecord(asRecord(snapshot?.players)[action.playerId])
+    const resources = asRecord(player.resources)
+    parts.push(
+      `targetHex=${String(hex.q)},${String(hex.r)}`,
+      `buildingOwner=${String(building.ownerPlayerId ?? '')}`,
+      `buildingType=${String(building.type ?? '')}`,
+      `workers=${String(resources.workers ?? '')}`,
+      `coins=${String(resources.coins ?? '')}`,
+      `priests=${String(resources.priests ?? '')}`,
+    )
   }
-  debugLog(
-    `[click-replay] ws-fallback timeout index=${actionIndex} actor=${action.playerId} type=${action.type} expectedRevision=${expectedRevision}`,
-  )
-  return { advanced: false, rejectionMessage: 'timeout' }
+
+  return parts.join(' ')
 }
 
-const pendingLeechOfferCount = (snapshot: JsonObject | undefined, playerId: string): number => {
-  const pending = asRecord(snapshot?.pendingLeechOffers)
-  const offers = pending[playerId]
-  if (!Array.isArray(offers)) return 0
-  return offers.length
+function assertActionApplied(
+  action: GoldenAction,
+  snapshotBefore: JsonObject | undefined,
+  snapshotAfter: JsonObject | undefined,
+): void {
+  if (action.type === 'upgrade_building') {
+    const hex = readHex(action.params ?? {}, 'targetHex', 'upgradeHex', 'hex')
+    const expectedBuildingType = readInt(action.params ?? {}, 'newBuildingType')
+    const map = asRecord(snapshotAfter?.map)
+    const hexes = asRecord(map.hexes)
+    const targetHex = asRecord(hexes[`${String(hex.q)},${String(hex.r)}`])
+    const building = asRecord(targetHex.building)
+    const actualOwner = String(building.ownerPlayerId ?? '')
+    const actualBuildingType = Number(building.type ?? Number.NaN)
+    const beforeHexes = asRecord(asRecord(snapshotBefore?.map).hexes)
+    const changedHexes: string[] = []
+    for (const [key, rawAfterHex] of Object.entries(hexes)) {
+      const afterBuilding = asRecord(asRecord(rawAfterHex).building)
+      const beforeBuilding = asRecord(asRecord(beforeHexes[key]).building)
+      const afterOwner = String(afterBuilding.ownerPlayerId ?? '')
+      const beforeOwner = String(beforeBuilding.ownerPlayerId ?? '')
+      const afterType = String(afterBuilding.type ?? '')
+      const beforeType = String(beforeBuilding.type ?? '')
+      if (afterOwner !== action.playerId && beforeOwner !== action.playerId) continue
+      if (afterOwner === beforeOwner && afterType === beforeType) continue
+      changedHexes.push(`${key}:${beforeOwner}/${beforeType}->${afterOwner}/${afterType}`)
+    }
+    if (actualOwner !== action.playerId || actualBuildingType !== expectedBuildingType) {
+      throw new Error(
+        `post-action state mismatch for upgrade_building targetHex=${String(hex.q)},${String(hex.r)} expectedOwner=${action.playerId} expectedType=${String(expectedBuildingType)} actualOwner=${actualOwner} actualType=${String(building.type ?? '')} changedHexes=${changedHexes.join(',')}`,
+      )
+    }
+  }
 }
 
 const isLeechAction = (actionType: string): boolean => actionType === 'accept_leech' || actionType === 'decline_leech'
 
-const parsePowerShortfallForAutoBurn = (message: string): number => {
-  if (message === '') return 0
-
-  // conversion failures: "need 4 power in bowl 3, only have 1"
-  const conversionMatch = message.match(/need\s+(\d+)\s+power in bowl 3,\s*only have\s+(\d+)/i)
-  if (conversionMatch) {
-    const need = Number(conversionMatch[1] ?? '0')
-    const have = Number(conversionMatch[2] ?? '0')
-    return Math.max(0, need - have)
+const getPendingSpadePlayers = (snapshot: JsonObject | undefined): string[] => {
+  const players: string[] = []
+  const pushPendingPlayers = (raw: unknown): void => {
+    const pending = asRecord(raw)
+    for (const [playerId, countRaw] of Object.entries(pending)) {
+      const count = typeof countRaw === 'number' ? countRaw : Number(countRaw)
+      if (!Number.isFinite(count) || count <= 0 || players.includes(playerId)) continue
+      players.push(playerId)
+    }
   }
 
-  // power action failures: "not enough power in Bowl III: need 6, have 2"
-  const powerActionMatch = message.match(/Bowl III:\s*need\s+(\d+),\s*have\s+(\d+)/i)
-  if (powerActionMatch) {
-    const need = Number(powerActionMatch[1] ?? '0')
-    const have = Number(powerActionMatch[2] ?? '0')
-    return Math.max(0, need - have)
-  }
-
-  return 0
+  pushPendingPlayers(snapshot?.pendingCultRewardSpades)
+  pushPendingPlayers(snapshot?.pendingSpades)
+  return players
 }
 
-const isSkippableActionFailure = (actionType: string, rejectionMessage: string): boolean => {
-  const message = rejectionMessage.toLowerCase()
-  if (message === '') return false
+const hasPendingTownSelection = (snapshot: JsonObject | undefined, playerId: string): boolean => {
+  const pendingTownFormations = asRecord(snapshot?.pendingTownFormations)
+  const towns = pendingTownFormations[playerId]
+  return Array.isArray(towns) && towns.length > 0
+}
 
-  if (message.includes('no pending leech offer for player')) return isLeechAction(actionType)
-  if (message.includes('no pending town formation for player')) return actionType === 'select_town_tile'
-  if (message.includes('cannot afford shipping upgrade')) return actionType === 'advance_shipping'
-  if (message.includes('cannot afford digging upgrade')) return actionType === 'advance_digging'
-  if (message.includes('cannot afford upgrade')) return actionType === 'upgrade_building'
-  if (message.includes('not enough resources for dwelling')) return actionType === 'transform_build'
-  if (message.includes('not enough workers')) return actionType === 'transform_build'
-  if (message.includes('player has already passed')) return actionType !== 'pass'
-  if (message.includes('no pending spades from cult rewards')) return actionType === 'use_cult_spade'
-  if (message.includes('not your turn')) {
-    return (
-      actionType === 'use_cult_spade'
-      || actionType === 'accept_leech'
-      || actionType === 'decline_leech'
-      || actionType === 'select_town_tile'
-      || actionType === 'select_favor_tile'
-      || actionType === 'select_cultists_track'
-      || actionType === 'darklings_ordination'
-      || actionType === 'discard_pending_spade'
-    )
+const actionResolvesPendingSpade = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => {
+  const pendingCultRewardSpades = asRecord(snapshot?.pendingCultRewardSpades)
+  const pendingSpades = asRecord(snapshot?.pendingSpades)
+  const cultRewardCount = Number(pendingCultRewardSpades[action.playerId] ?? 0)
+  if (Number.isFinite(cultRewardCount) && cultRewardCount > 0) {
+    return action.type === 'use_cult_spade' || action.type === 'discard_pending_spade'
   }
-  if (message.includes('need') && message.includes('power in bowl 3')) return actionType === 'conversion'
-  if (message.includes('not enough power in bowl iii')) return actionType === 'power_action_claim'
-  if (message.includes('power action') && message.includes('already been taken this round')) return actionType === 'power_action_claim'
-  if (message.includes('cannot burn')) return actionType === 'burn_power'
-  if (message.includes('no pending decision for requested action')) {
-    return (
-      actionType === 'select_favor_tile'
-      || actionType === 'select_town_tile'
-      || actionType === 'select_cultists_track'
-      || actionType === 'darklings_ordination'
-      || actionType === 'discard_pending_spade'
-      || actionType === 'use_cult_spade'
-    )
+
+  const spadeCount = Number(pendingSpades[action.playerId] ?? 0)
+  if (Number.isFinite(spadeCount) && spadeCount > 0) {
+    return action.type === 'transform_build' || action.type === 'discard_pending_spade'
   }
 
   return false
+}
+
+const actionResolvesPendingTownSelection = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => (
+  action.type === 'select_town_tile' && hasPendingTownSelection(snapshot, action.playerId)
+)
+
+const actionHasAvailableLeechOffer = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => {
+  if (!isLeechAction(action.type)) return false
+  const offerIndex = Number(action.params?.offerIndex ?? -1)
+  if (!Number.isFinite(offerIndex) || offerIndex < 0) return false
+  const pendingLeechOffers = asRecord(snapshot?.pendingLeechOffers)
+  const offers = pendingLeechOffers[action.playerId]
+  return Array.isArray(offers) && offerIndex < offers.length
 }
 
 const actionResolvesPendingDecision = (
@@ -416,6 +442,8 @@ const actionResolvesPendingDecision = (
   if (action.playerId !== pendingPlayerId) return false
 
   switch (pendingType) {
+    case 'setup_bonus_card':
+      return action.type === 'setup_bonus_card'
     case 'leech_offer':
       return isLeechAction(action.type)
     case 'favor_tile_selection':
@@ -434,6 +462,23 @@ const actionResolvesPendingDecision = (
       return action.type === 'use_cult_spade' || action.type === 'discard_pending_spade'
     default:
       return false
+  }
+}
+
+const actionRequiresTurnOwnership = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => {
+  switch (action.type) {
+    case 'accept_leech':
+    case 'decline_leech':
+    case 'select_favor_tile':
+    case 'select_town_tile':
+    case 'select_town_cult_top':
+    case 'darklings_ordination':
+    case 'select_cultists_track':
+    case 'use_cult_spade':
+    case 'discard_pending_spade':
+      return false
+    default:
+      return true
   }
 }
 
@@ -511,7 +556,8 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
       const conversionType = String(params.conversionType ?? '')
       const amount = Math.max(1, readInt(params, 'amount'))
       const control = page.getByTestId(`player-${action.playerId}-conversion-${conversionType}`).first()
-      const visible = await control.isVisible().catch(() => false)
+      const attached = await control.waitFor({ state: 'attached', timeout: 1_500 }).then(() => true).catch(() => false)
+      const visible = attached ? await control.isVisible().catch(() => false) : false
       const enabled = visible ? await control.isEnabled().catch(() => false) : false
       if (!visible || !enabled) {
         return false
@@ -524,27 +570,14 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
     }
 
     case 'replay_conversion': {
-      await page.bringToFront().catch(() => null)
-      await creator.send('test_apply_conversion', {
-        gameID,
-        playerID: action.playerId,
-        conversionType: String(params.conversionType ?? ''),
-        amount: Math.max(1, readInt(params, 'amount')),
-      })
-
-      const response = await creator.waitForAnyType(['test_command_applied', 'action_rejected'], 10_000)
-      if (String(response.type ?? '') === 'action_rejected') {
-        const payload = JSON.stringify(response.payload ?? {})
-        throw new Error(`replay conversion was rejected: ${payload}`)
-      }
-      await maybeConfirmAction(page)
-      return true
+      throw new Error(`strict click replay does not allow replay-only action type=${action.type}`)
     }
 
     case 'burn_power': {
       const amount = Math.max(1, readInt(params, 'amount'))
       const control = page.getByTestId(`player-${action.playerId}-burn-power-1`).first()
-      const visible = await control.isVisible().catch(() => false)
+      const attached = await control.waitFor({ state: 'attached', timeout: 1_500 }).then(() => true).catch(() => false)
+      const visible = attached ? await control.isVisible().catch(() => false) : false
       const enabled = visible ? await control.isEnabled().catch(() => false) : false
       if (!visible || !enabled) {
         return false
@@ -708,9 +741,9 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
 
     case 'select_cultists_track': {
       const track = readInt(params, 'track', 'cultTrack')
-      const cultistsModalVisible = await page.getByTestId('cultists-cult-choice-modal').first().isVisible().catch(() => false)
-      const genericModalVisible = await page.getByTestId('cult-choice-modal').first().isVisible().catch(() => false)
-      if (!cultistsModalVisible && !genericModalVisible) {
+      const cultistsVisible = await hasVisibleTestId(page, `cultists-cult-choice-${String(track)}`, 500)
+      const genericVisible = await hasVisibleTestId(page, `cult-choice-${String(track)}`, 500)
+      if (!cultistsVisible && !genericVisible) {
         const pending = getPendingDecisionInfo(creator.getState(gameID))
         if (pending.type !== 'cultists_cult_choice' || pending.playerId !== action.playerId) {
           return false
@@ -764,356 +797,246 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
   }
 }
 
-test.describe('Golden Full-Game Click-Driven Completion (Segmented)', () => {
+test.describe('Golden Full-Game Click-Driven Completion', () => {
   test.setTimeout(2_400_000)
 
   for (const scenario of GOLDEN_SCENARIOS) {
     const scriptExists = fs.existsSync(scenario.scriptPath)
     const tags = scenario.mode === 'smoke' ? '@smoke @nightly' : '@nightly'
-    test(`${tags} replays ${scenario.fixtureLabel} through UI clicks in segments and reaches expected scores`, async ({ browser }) => {
+    test(`${tags} replays ${scenario.fixtureLabel} through UI clicks and reaches expected scores`, async ({ browser }) => {
       test.skip(!scriptExists, `missing golden script fixture at ${scenario.scriptPath}`)
 
       const goldenScript = JSON.parse(fs.readFileSync(scenario.scriptPath, 'utf8')) as GoldenScript
       goldenScript.expectedFinalScores = scenario.expectedScores
 
-      const wsURL = 'ws://127.0.0.1:8080/api/ws'
-      const segments = buildSegments(goldenScript.actions.length)
-      expect(segments.length).toBeGreaterThan(0)
+      const wsURL = realServerWsURL()
+      const { creator, gameID, revision: initialRevision } = await createConfiguredGame(
+        wsURL,
+        goldenScript,
+        `${scenario.id}-full`,
+      )
 
-      for (let segmentIndex = 0; segmentIndex < segments.length; segmentIndex++) {
-        const segment = segments[segmentIndex]
-        const { creator, gameID, revision: initialRevision } = await createConfiguredGame(
-          wsURL,
-          goldenScript,
-          `${scenario.id}-${String(segmentIndex).padStart(2, '0')}-${segment.start}-${segment.endExclusive}`,
-        )
+      const actorContext = await browser.newContext()
+      const actorPage = await actorContext.newPage()
 
-        const viewerPages: Page[] = []
-        const pageByPlayer = new Map<string, Page>()
-        const actorBots = new Map<string, WsBot>()
-
-        try {
-          let revision = initialRevision
-          debugLog(`[click-replay] scenario=${scenario.id} segment=${segmentIndex} start=${segment.start} end=${segment.endExclusive}`)
-
-        if (segment.start > 0) {
-          creator.send('test_replay_actions_to_index', {
-            gameID,
-            endExclusive: segment.start,
-            actions: goldenScript.actions,
-          })
-          const replayAck = await creator.waitForAnyType(['test_command_applied', 'action_rejected'], 30_000)
-          if (String(replayAck.type ?? '') === 'action_rejected') {
-            const payload = JSON.stringify(replayAck.payload ?? {})
-            throw new Error(`test_replay_actions_to_index rejected for segment=${segmentIndex}: ${payload}`)
-          }
-          const replayState = await creator.waitForType('game_state_update', 30_000)
-          const statePayload = (replayState.payload ?? {}) as JsonObject
-          if (String(statePayload.id ?? '') !== gameID) {
-            const synced = await creator.waitForRevision(gameID, revision + 1, 30_000)
-            revision = Number(synced.revision ?? revision + 1)
-          } else {
-            revision = Number(statePayload.revision ?? revision)
-          }
-        }
+      try {
+        let revision = initialRevision
+        let actorPagePlayerId = ''
+        const revisionRef = { current: revision }
+        debugLog(`[click-replay] scenario=${scenario.id} full-run actions=${goldenScript.actions.length}`)
 
         const playerSet = new Set<string>()
-        for (let i = segment.start; i < segment.endExclusive; i++) {
-          playerSet.add(goldenScript.actions[i].playerId)
+        for (const action of goldenScript.actions) {
+          playerSet.add(action.playerId)
         }
 
-        for (const playerId of playerSet.values()) {
-          const page = await openPlayerViewer(browser, gameID, playerId)
-          viewerPages.push(page)
-          pageByPlayer.set(playerId, page)
-          if (playerId === goldenScript.playerIds[0]) {
-            actorBots.set(playerId, creator)
-            continue
+        const syncRevision = async (): Promise<void> => {
+          const state = await creator.waitForRevision(gameID, revision + 1, 3_000).catch(() => null)
+          if (state) {
+            revision = Number(state.revision ?? revision + 1)
+            revisionRef.current = revision
+            return
           }
-          actorBots.set(playerId, await openActorBot(wsURL, gameID, playerId))
+          const snapshot = creator.getState(gameID)
+          const latestRevision = Number(snapshot?.revision ?? revision)
+          if (latestRevision > revision) {
+            revision = latestRevision
+            revisionRef.current = revision
+          }
         }
 
-          const syncRevision = async (): Promise<void> => {
-            const state = await creator.waitForRevision(gameID, revision + 1, 3_000).catch(() => null)
-            if (state) {
-              revision = Number(state.revision ?? revision + 1)
-              return
-            }
+        const executeScriptedActionAt = async (index: number): Promise<{ advanced: boolean; rejectionMessage: string }> => {
+          const action = goldenScript.actions[index]
+          actorPagePlayerId = await confirmPendingTurnIfNeeded(
+            actorPage,
+            creator,
+            gameID,
+            actorPagePlayerId,
+            action.playerId,
+            action.type,
+            revisionRef,
+          )
+          revision = revisionRef.current
+          const snapshotBeforeAction = creator.getState(gameID)
+          debugLog(`[click-replay] run index=${index} actor=${action.playerId} type=${action.type} revision=${revision}`)
+
+          actorPagePlayerId = await switchActorPage(actorPage, gameID, action.playerId, actorPagePlayerId)
+
+          let advanced = false
+          let rejectionMessage = ''
+          const revisionBeforeAction = Number(snapshotBeforeAction?.revision ?? revision)
+          try {
+            await waitForPageToMatchSnapshot(actorPage, snapshotBeforeAction, gameID, action.playerId)
+            advanced = await clickAction(actorPage, creator, gameID, action)
+          } catch (err) {
+            rejectionMessage = err instanceof Error ? err.message : String(err)
+          }
+
+          debugLog(
+            `[click-replay] result index=${index} actor=${action.playerId} type=${action.type} advanced=${String(advanced)} revision=${revision} rejection=${rejectionMessage}`,
+          )
+
+          if (!advanced) return { advanced: false, rejectionMessage }
+          await syncRevision()
+          if (revision <= revisionBeforeAction) {
+            const bannerText = await actorPage.getByTestId('action-error-message').textContent().catch(() => null)
+            const detail = bannerText && bannerText.trim() !== '' ? bannerText.trim() : 'no revision change after UI action'
+            return { advanced: false, rejectionMessage: detail }
+          }
+          try {
+            assertActionApplied(action, snapshotBeforeAction, creator.getState(gameID))
+          } catch (err) {
+            rejectionMessage = err instanceof Error ? err.message : String(err)
+            return { advanced: false, rejectionMessage }
+          }
+          debugLog(`[click-replay] synced index=${index} revision=${revision}`)
+          return { advanced: true, rejectionMessage: '' }
+        }
+
+        const remainingActionIndexes = new Set<number>()
+        for (let index = 0; index < goldenScript.actions.length; index++) {
+          remainingActionIndexes.add(index)
+        }
+
+        const sortedRemaining = (): number[] => Array.from(remainingActionIndexes.values()).sort((a, b) => a - b)
+
+        let safetyCounter = 0
+        const maxSteps = goldenScript.actions.length * 12 + 200
+        while (remainingActionIndexes.size > 0) {
+          safetyCounter++
+          if (safetyCounter > maxSteps) {
             const snapshot = creator.getState(gameID)
-            const latestRevision = Number(snapshot?.revision ?? revision)
-            if (latestRevision > revision) {
-              revision = latestRevision
-            }
-          }
-
-          const executeScriptedActionAt = async (index: number): Promise<{ advanced: boolean; rejectionMessage: string }> => {
-            const action = goldenScript.actions[index]
-            debugLog(`[click-replay] run index=${index} actor=${action.playerId} type=${action.type} revision=${revision}`)
-
-            const page = pageByPlayer.get(action.playerId)
-            if (!page) throw new Error(`missing viewer for player ${action.playerId}`)
-
-            const actorBot = actorBots.get(action.playerId)
-            if (!actorBot) throw new Error(`missing actor bot for ${action.playerId}`)
-
-            let advanced = false
-            let rejectionMessage = ''
-            if (!scenario.wsOnlyReplay) {
-              try {
-                advanced = await clickAction(page, creator, gameID, action)
-              } catch {
-                advanced = false
-              }
-            }
-            if (!advanced) {
-              const wsAttempt = await performActionViaWsFallback(actorBot, action, gameID, revision, index)
-              advanced = wsAttempt.advanced
-              rejectionMessage = wsAttempt.rejectionMessage
-            }
-
-            if (
-              !advanced
-              && action.type === 'conversion'
-              && rejectionMessage.toLowerCase().includes('not your turn')
-            ) {
-              const replayConversionAttempt = await performActionViaWsFallback(
-                actorBot,
-                { ...action, type: 'replay_conversion' },
-                gameID,
-                revision,
-                index,
-              )
-              advanced = replayConversionAttempt.advanced
-              rejectionMessage = replayConversionAttempt.rejectionMessage
-            }
-
-            if (!advanced && scenario.wsOnlyReplay) {
-              const burnAmount = parsePowerShortfallForAutoBurn(rejectionMessage)
-              if (burnAmount > 0 && action.type !== 'burn_power') {
-                debugLog(
-                  `[click-replay] auto-burn before retry index=${index} actor=${action.playerId} type=${action.type} burn=${burnAmount} message=${rejectionMessage}`,
-                )
-                const burnAction: GoldenAction = {
-                  playerId: action.playerId,
-                  type: 'burn_power',
-                  params: { amount: burnAmount } as JsonObject,
-                }
-                const burnAttempt = await performActionViaWsFallback(actorBot, burnAction, gameID, revision, -2)
-                if (burnAttempt.advanced) {
-                  await syncRevision()
-                  const retryAttempt = await performActionViaWsFallback(actorBot, action, gameID, revision, index)
-                  advanced = retryAttempt.advanced
-                  rejectionMessage = retryAttempt.rejectionMessage
-                }
-              }
-            }
-
-            debugLog(
-              `[click-replay] result index=${index} actor=${action.playerId} type=${action.type} advanced=${String(advanced)} revision=${revision} rejection=${rejectionMessage}`,
+            const pendingDecision = getPendingDecisionInfo(snapshot)
+            const pendingPreview = sortedRemaining().slice(0, 10).map((idx) => {
+              const action = goldenScript.actions[idx]
+              return `${idx}:${action.playerId}:${action.type}`
+            })
+            throw new Error(
+              `replay safety limit reached for scenario=${scenario.id} revision=${revision} phase=${String(snapshot?.phase ?? '')} pendingDecision=${pendingDecision.type}:${pendingDecision.playerId} remaining=${pendingPreview.join(' | ')}`,
             )
-
-            if (!advanced) return { advanced: false, rejectionMessage }
-            await syncRevision()
-            debugLog(`[click-replay] synced index=${index} revision=${revision}`)
-            return { advanced: true, rejectionMessage: '' }
           }
 
-          const remainingActionIndexes = new Set<number>()
-          for (let index = segment.start; index < segment.endExclusive; index++) {
-            remainingActionIndexes.add(index)
-          }
-
-          const sortedRemaining = (): number[] => Array.from(remainingActionIndexes.values()).sort((a, b) => a - b)
-
-          let nextIndex = segment.start
-          let safetyCounter = 0
-          const maxSteps = (segment.endExclusive - segment.start) * 12 + 200
-          while (nextIndex < segment.endExclusive) {
-            if (!remainingActionIndexes.has(nextIndex)) {
-              nextIndex++
-              continue
-            }
-
-            safetyCounter++
-            if (safetyCounter > maxSteps) {
-              const snapshot = creator.getState(gameID)
-              const pendingDecision = getPendingDecisionInfo(snapshot)
-              const pendingPreview = sortedRemaining().slice(0, 10).map((idx) => {
-                const action = goldenScript.actions[idx]
-                return `${idx}:${action.playerId}:${action.type}`
-              })
-              throw new Error(
-                `replay safety limit reached for scenario=${scenario.id} segment=${segmentIndex} revision=${revision} phase=${String(snapshot?.phase ?? '')} pendingDecision=${pendingDecision.type}:${pendingDecision.playerId} nextIndex=${nextIndex} remaining=${pendingPreview.join(' | ')}`,
-              )
-            }
-
-            const action = goldenScript.actions[nextIndex]
-            const execution = await executeScriptedActionAt(nextIndex)
-            if (execution.advanced) {
-              remainingActionIndexes.delete(nextIndex)
-              nextIndex++
-              continue
-            }
-
-            const snapshotAfter = creator.getState(gameID)
-            const pendingAfter = getPendingDecisionInfo(snapshotAfter)
-            const activeTurnPlayer = getCurrentTurnPlayerId(snapshotAfter)
-
-            if (pendingAfter.type !== '' && pendingAfter.playerId !== '') {
-              const resolverIndex = sortedRemaining().find((idx) => {
-                if (idx === nextIndex) return false
-                const candidate = goldenScript.actions[idx]
-                return actionResolvesPendingDecision(candidate, pendingAfter.type, pendingAfter.playerId)
-              })
-              if (resolverIndex !== undefined) {
-                const resolverAction = goldenScript.actions[resolverIndex]
-                const resolverExecution = await executeScriptedActionAt(resolverIndex)
-                if (resolverExecution.advanced) {
-                  debugLog(
-                    `[click-replay] resolve-pending pending=${pendingAfter.type}:${pendingAfter.playerId} consumed=${resolverIndex}:${resolverAction.playerId}:${resolverAction.type}`,
-                  )
-                  remainingActionIndexes.delete(resolverIndex)
-                  continue
-                }
-                if (isSkippableActionFailure(resolverAction.type, resolverExecution.rejectionMessage)) {
-                  debugLog(
-                    `[click-replay] consume-stale pending=${pendingAfter.type}:${pendingAfter.playerId} index=${resolverIndex}:${resolverAction.playerId}:${resolverAction.type} message=${resolverExecution.rejectionMessage}`,
-                  )
-                  remainingActionIndexes.delete(resolverIndex)
-                  continue
-                }
-              }
-              if (pendingAfter.type === 'leech_offer') {
-                const pendingBot = actorBots.get(pendingAfter.playerId)
-                if (pendingBot) {
-                  const syntheticDecline: GoldenAction = {
-                    playerId: pendingAfter.playerId,
-                    type: 'decline_leech',
-                    params: { offerIndex: 0 } as JsonObject,
-                  }
-                  const synthetic = await performActionViaWsFallback(pendingBot, syntheticDecline, gameID, revision, -1)
-                  if (synthetic.advanced) {
-                    debugLog(
-                      `[click-replay] resolve-pending synthetic=${pendingAfter.type}:${pendingAfter.playerId} action=decline_leech`,
-                    )
-                    await syncRevision()
-                    continue
-                  }
-                }
-              }
-            }
-
-            if (execution.rejectionMessage.toLowerCase().includes('not your turn') && pendingAfter.type === '' && activeTurnPlayer !== '') {
-              debugLog(
-                `[click-replay] not-your-turn index=${nextIndex} actor=${action.playerId} activeTurnPlayer=${activeTurnPlayer} revision=${revision}`,
-              )
-              const turnOwnerIndex = sortedRemaining().find((idx) => {
-                if (idx === nextIndex) return false
-                const candidate = goldenScript.actions[idx]
-                return candidate.playerId === activeTurnPlayer
-              })
-              if (turnOwnerIndex !== undefined) {
-                const turnOwnerAction = goldenScript.actions[turnOwnerIndex]
-                const turnOwnerExecution = await executeScriptedActionAt(turnOwnerIndex)
-                if (turnOwnerExecution.advanced) {
-                  debugLog(
-                    `[click-replay] resolve-turn owner=${activeTurnPlayer} consumed=${turnOwnerIndex}:${turnOwnerAction.playerId}:${turnOwnerAction.type}`,
-                  )
-                  remainingActionIndexes.delete(turnOwnerIndex)
-                  continue
-                }
-                if (isSkippableActionFailure(turnOwnerAction.type, turnOwnerExecution.rejectionMessage)) {
-                  debugLog(
-                    `[click-replay] consume-stale owner=${activeTurnPlayer} index=${turnOwnerIndex}:${turnOwnerAction.playerId}:${turnOwnerAction.type} message=${turnOwnerExecution.rejectionMessage}`,
-                  )
-                  remainingActionIndexes.delete(turnOwnerIndex)
-                  continue
-                }
-              }
-            }
-
-            if (isSkippableActionFailure(action.type, execution.rejectionMessage)) {
-              debugLog(
-                `[click-replay] consume-stale index=${nextIndex} actor=${action.playerId} type=${action.type} reason=unexecutable message=${execution.rejectionMessage}`,
-              )
-              remainingActionIndexes.delete(nextIndex)
-              nextIndex++
-              continue
-            }
-
-            if (isLeechAction(action.type)) {
-              const offers = pendingLeechOfferCount(snapshotAfter, action.playerId)
-              if (offers === 0) {
-                debugLog(
-                  `[click-replay] consume-stale index=${nextIndex} actor=${action.playerId} type=${action.type} reason=no-pending-leech`,
-                )
-                remainingActionIndexes.delete(nextIndex)
-                nextIndex++
-                continue
-              }
-            }
-
-            const phase = Number(snapshotAfter?.phase ?? -1)
-            if (phase === 5) {
-              for (const idx of sortedRemaining()) {
-                const leftover = goldenScript.actions[idx]
-                debugLog(
-                  `[click-replay] consume-stale index=${idx} actor=${leftover.playerId} type=${leftover.type} reason=phase-complete`,
-                )
-                remainingActionIndexes.delete(idx)
-              }
-              break
-            }
-
+          const snapshotBefore = creator.getState(gameID)
+          const pendingBefore = getPendingDecisionInfo(snapshotBefore)
+          const pendingSpadePlayers = getPendingSpadePlayers(snapshotBefore)
+          const activeTurnPlayer = getCurrentTurnPlayerId(snapshotBefore)
+          const phase = Number(snapshotBefore?.phase ?? -1)
+          if (phase === 5) {
             const pendingPreview = sortedRemaining().slice(0, 10).map((idx) => {
               const pendingAction = goldenScript.actions[idx]
               return `${idx}:${pendingAction.playerId}:${pendingAction.type}`
             })
             throw new Error(
-              `failed scripted action for scenario=${scenario.id} segment=${segmentIndex} revision=${revision} phase=${String(phase)} index=${nextIndex}:${action.playerId}:${action.type} pendingDecision=${pendingAfter.type}:${pendingAfter.playerId} remaining=${pendingPreview.join(' | ')}`,
+              `game reached final phase with remaining scripted actions scenario=${scenario.id} revision=${revision} remaining=${pendingPreview.join(' | ')}`,
             )
           }
 
+          const nextIndex = (() => {
+            const remaining = sortedRemaining()
+            if (pendingBefore.type !== '' && pendingBefore.playerId !== '') {
+              if (pendingBefore.type !== 'post_action_free_actions' && pendingBefore.type !== 'turn_confirmation') {
+                const resolverIndex = remaining.find((idx) => {
+                  const candidate = goldenScript.actions[idx]
+                  return actionResolvesPendingDecision(candidate, pendingBefore.type, pendingBefore.playerId)
+                })
+                if (resolverIndex === undefined) {
+                  throw new Error(
+                    `no scripted resolver for pending decision ${pendingBefore.type}:${pendingBefore.playerId} scenario=${scenario.id} revision=${revision}`,
+                  )
+                }
+                return resolverIndex
+              }
+            }
 
-        if (segment.endExclusive === goldenScript.actions.length) {
-          const finalState = await creator.waitForRevision(gameID, revision, 30_000)
-          if (Number(finalState.phase ?? -1) !== 5) {
-            throw new Error(`expected final phase=5, got ${String(finalState.phase)}`)
+            if (pendingSpadePlayers.length > 0) {
+              const resolverIndex = remaining.find((idx) => actionResolvesPendingSpade(goldenScript.actions[idx], snapshotBefore))
+              if (resolverIndex === undefined) {
+                throw new Error(
+                  `no scripted resolver for pending spades players=${pendingSpadePlayers.join(',')} scenario=${scenario.id} revision=${revision}`,
+                )
+              }
+              return resolverIndex
+            }
+
+            const pendingTownIndex = remaining.find((idx) => actionResolvesPendingTownSelection(goldenScript.actions[idx], snapshotBefore))
+            if (pendingTownIndex !== undefined) {
+              return pendingTownIndex
+            }
+
+            const availableLeechIndex = remaining.find((idx) => actionHasAvailableLeechOffer(goldenScript.actions[idx], snapshotBefore))
+
+            if (activeTurnPlayer !== '') {
+              const turnOwnerIndex = remaining.find((idx) => {
+                const candidate = goldenScript.actions[idx]
+                return candidate.playerId === activeTurnPlayer && actionRequiresTurnOwnership(candidate, snapshotBefore)
+              })
+              if (availableLeechIndex !== undefined && availableLeechIndex < (turnOwnerIndex ?? Number.POSITIVE_INFINITY)) {
+                return availableLeechIndex
+              }
+              if (turnOwnerIndex !== undefined) {
+                return turnOwnerIndex
+              }
+            }
+
+            if (availableLeechIndex !== undefined) {
+              return availableLeechIndex
+            }
+
+            return remaining[0]
+          })()
+
+          const action = goldenScript.actions[nextIndex]
+          debugLog(
+            `[click-replay] select index=${nextIndex} actor=${action.playerId} type=${action.type} revision=${revision} pendingDecision=${pendingBefore.type}:${pendingBefore.playerId} pendingSpades=${pendingSpadePlayers.join(',')} activeTurn=${activeTurnPlayer}`,
+          )
+          const execution = await executeScriptedActionAt(nextIndex)
+          if (execution.advanced) {
+            remainingActionIndexes.delete(nextIndex)
+            continue
           }
 
-          const finalScoring = (finalState.finalScoring ?? {}) as Record<string, JsonObject>
-          const finalTotals = new Map<string, number>()
-          for (const [playerId, expected] of Object.entries(goldenScript.expectedFinalScores)) {
-            const entry = finalScoring[playerId]
-            if (!entry) throw new Error(`missing final scoring entry for ${playerId}`)
-            const got = Number(entry.totalVp ?? -1)
-            debugLog(`[click-replay] final-score player=${playerId} got=${String(got)} expected=${String(expected)}`)
-            finalTotals.set(playerId, got)
-            const tolerance = scenario.scoreTolerance ?? 0
-            if (tolerance > 0) {
-              expect(Math.abs(got - expected)).toBeLessThanOrEqual(tolerance)
-            } else {
-              expect(got).toBe(expected)
-            }
-          }
+          const snapshotAfter = creator.getState(gameID)
+          const pendingAfter = getPendingDecisionInfo(snapshotAfter)
+          const pendingPreview = sortedRemaining().slice(0, 10).map((idx) => {
+            const pendingAction = goldenScript.actions[idx]
+            return `${idx}:${pendingAction.playerId}:${pendingAction.type}`
+          })
+          const snapshotDetails = describeActionSnapshot(action, snapshotBefore)
+          throw new Error(
+            `failed scripted action for scenario=${scenario.id} revision=${revision} phase=${String(phase)} index=${nextIndex}:${action.playerId}:${action.type} pendingDecision=${pendingAfter.type}:${pendingAfter.playerId} rejection=${execution.rejectionMessage}${snapshotDetails === '' ? '' : ` snapshot=${snapshotDetails}`} remaining=${pendingPreview.join(' | ')}`,
+          )
+        }
 
-          for (const page of viewerPages) {
-            for (const vp of finalTotals.values()) {
-              await expect(page.getByTestId('player-summary-bar')).toContainText(`${String(vp)} VP`)
-            }
+        const finalState = await creator.waitForRevision(gameID, revision, 30_000)
+        if (Number(finalState.phase ?? -1) !== 5) {
+          throw new Error(`expected final phase=5, got ${String(finalState.phase)}`)
+        }
+
+        const finalScoring = (finalState.finalScoring ?? {}) as Record<string, JsonObject>
+        const finalTotals = new Map<string, number>()
+        for (const [playerId, expected] of Object.entries(goldenScript.expectedFinalScores)) {
+          const entry = finalScoring[playerId]
+          if (!entry) throw new Error(`missing final scoring entry for ${playerId}`)
+          const got = Number(entry.totalVp ?? -1)
+          debugLog(`[click-replay] final-score player=${playerId} got=${String(got)} expected=${String(expected)}`)
+          finalTotals.set(playerId, got)
+          const tolerance = scenario.scoreTolerance ?? 0
+          if (tolerance > 0) {
+            expect(Math.abs(got - expected)).toBeLessThanOrEqual(tolerance)
+          } else {
+            expect(got).toBe(expected)
           }
         }
-        } finally {
-          for (const page of viewerPages) {
-            await page.context().close()
+
+        for (const playerId of playerSet.values()) {
+          actorPagePlayerId = await switchActorPage(actorPage, gameID, playerId, actorPagePlayerId)
+          for (const vp of finalTotals.values()) {
+            await expect(actorPage.getByTestId('player-summary-bar')).toContainText(`${String(vp)} VP`)
           }
-          for (const [playerId, bot] of actorBots.entries()) {
-            if (bot !== creator || playerId !== goldenScript.playerIds[0]) {
-              bot.close()
-            }
-          }
-          creator.close()
         }
+      } finally {
+        await actorContext.close().catch(() => undefined)
+        creator.close()
       }
     })
   }

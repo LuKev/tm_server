@@ -1,6 +1,8 @@
 import { expect, test, type Browser, type Page } from '@playwright/test'
 import { BASE_GAME_MAP } from '../src/data/baseGameMap'
 import { FactionType, TerrainType } from '../src/types/game.types'
+import { realServerWsURL } from './support/realServerConfig'
+import { loadRealServerGamePage, primeRealServerPage } from './support/realServerPage'
 import { clickByTestId, clickHex } from './support/uiInteractions'
 import { WsBot, type JsonObject } from './support/wsBot'
 
@@ -56,15 +58,8 @@ async function waitForRevisionViaFetch(
 async function openPlayerGamePage(browser: Browser, gameID: string, playerId: string): Promise<Page> {
   const context = await browser.newContext()
   const page = await context.newPage()
-  await page.addInitScript(
-    ({ localPlayerId }) => {
-      localStorage.setItem('tm-game-storage', JSON.stringify({ state: { localPlayerId }, version: 0 }))
-      ;(window as Window & { __TM_DISABLE_EXPECTED_REVISION__?: boolean }).__TM_DISABLE_EXPECTED_REVISION__ = true
-    },
-    { localPlayerId: playerId },
-  )
-  await page.goto(`/game/${gameID}`)
-  await expect(page.getByTestId('game-screen')).toBeVisible()
+  await primeRealServerPage(page, playerId, { disableExpectedRevision: true })
+  await loadRealServerGamePage(page, gameID, playerId)
   return page
 }
 
@@ -165,26 +160,25 @@ async function clickSetupBonusCardUntilRevisionAdvances(
   throw new Error(lastError ? `failed to select setup bonus card: ${lastError}` : 'failed to select setup bonus card')
 }
 
-async function resolveGameIDViaLobbySocket(wsURL: string, gameName: string, timeoutMs = 15_000): Promise<string> {
-  const bot = await WsBot.connect(wsURL)
-  try {
-    const deadline = Date.now() + timeoutMs
-    while (Date.now() < deadline) {
-      bot.send('list_games')
-      const msg = await bot.waitForType('lobby_state', Math.min(2_000, deadline - Date.now())).catch(() => null)
-      const payload = ((msg ?? {}).payload ?? []) as Array<Record<string, unknown>>
-      for (const game of payload) {
-        if (String(game.name ?? '') === gameName) {
-          const id = String(game.id ?? '')
-          if (id !== '') return id
-        }
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100))
+async function resolveLobbyGameIDFromPage(page: Page, gameName: string): Promise<string> {
+  const gameID = await page.waitForFunction((targetGameName) => {
+    const buttons = Array.from(document.querySelectorAll<HTMLElement>('[data-testid^="lobby-start-"]'))
+    for (const button of buttons) {
+      const rowText = button.parentElement?.parentElement?.textContent ?? ''
+      if (!rowText.includes(targetGameName)) continue
+      const testId = button.dataset.testid ?? ''
+      if (!testId.startsWith('lobby-start-')) continue
+      return testId.replace('lobby-start-', '')
     }
-    throw new Error(`could not resolve game id via lobby socket for ${gameName}`)
-  } finally {
-    bot.close()
+    return null
+  }, gameName, { timeout: 15_000 })
+    .then((handle) => handle.jsonValue())
+
+  const resolvedGameID = typeof gameID === 'string' ? gameID : ''
+  if (resolvedGameID === '') {
+    throw new Error(`could not resolve lobby game id for ${gameName}`)
   }
+  return resolvedGameID
 }
 
 function terrainForFaction(faction: string): TerrainType | null {
@@ -330,7 +324,7 @@ async function runAuctionToActionPhase(
   hostPage: Page,
   setupMode: 'auction' | 'fast_auction',
 ): Promise<void> {
-  const wsURL = 'ws://127.0.0.1:8080/api/ws'
+  const wsURL = realServerWsURL()
   const runId = String(Math.floor(Math.random() * 10_000))
   const prefix = setupMode === 'fast_auction' ? 'fa' : 'au'
   const hostName = `${prefix}h${runId}`
@@ -348,8 +342,7 @@ async function runAuctionToActionPhase(
   await hostPage.getByTestId('lobby-setup-mode').selectOption(setupMode)
   await hostPage.getByTestId('lobby-create-game').click()
 
-  await expect(hostPage.locator('[data-testid^="lobby-start-"]').first()).toBeVisible({ timeout: 15_000 })
-  const gameID = await resolveGameIDViaLobbySocket(wsURL, gameName)
+  const gameID = await resolveLobbyGameIDFromPage(hostPage, gameName)
   const startBtn = hostPage.getByTestId(`lobby-start-${gameID}`)
 
   const joinBots = new Map<string, WsBot>()
@@ -542,7 +535,7 @@ async function runAuctionToActionPhase(
         const actorId = pendingPlayerId
         if (!actorId) throw new Error('missing setup bonus actor id')
         await withActorPage(actorId, async (actorPage) => {
-          await actorPage.getByTestId('setup-bonus-card-modal').waitFor({ state: 'visible', timeout: 8_000 })
+          await actorPage.locator('[data-testid^="setup-bonus-card-"]').first().waitFor({ state: 'visible', timeout: 8_000 })
           revision = await clickSetupBonusCardUntilRevisionAdvances(actorPage, observer, gameID, hostName, revision)
         })
         continue

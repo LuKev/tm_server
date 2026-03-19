@@ -2,6 +2,27 @@
 
 - Repo rule: use Bazel (workspace: `/Users/kevin/projects/tm_server/server`). Avoid `go test`.
 
+- 2026-03-18 live-game turn confirmation / undo backend:
+  - Server now stages a pending confirmation after any action that advances the turn from `PhaseAction`; the acting player must explicitly `confirm_turn` before the next player may move.
+  - `pendingDecision` now distinguishes:
+    - `post_action_free_actions` when the acting player can still convert / burn before confirming
+    - `turn_confirmation` when only confirm / undo remain
+  - `undo_turn` restores from a cloned snapshot. The snapshot intentionally excludes nested confirmation state so restored games do not recurse into older undo windows, and accepted leech responses refresh the undo checkpoint so undo returns to the last accepted-leech moment instead of replaying the leech queue.
+  - Websocket action parsing now recognizes `confirm_turn` and `undo_turn`.
+  - Golden websocket replay helpers auto-confirm pending turn windows when advancing to the next scripted player, so strict replay fixtures do not need explicit `confirm_turn` rows.
+
+- 2026-03-18 client layout / interaction polish:
+  - Town tiles now use CSS `aspect-ratio` instead of padding-based sizing, which avoids distorted hex artwork when the container is resized.
+  - Selectable town tiles use a green hover/focus ring (`#22c55e`) to match the other selectable board affordances.
+  - Cult-track priest spot hit testing is centralized in `getPriestSpotRect(...)` and shared between the canvas renderer and Playwright helpers; keep the geometry in sync through that helper rather than duplicating constants. The canvas priest-box drawing uses a `450px` local translate so the visual boxes align with the absolute overlay buttons.
+  - Player-board conversions now render on the local player's board, not the current turn player's board, and remain usable during an off-turn `post_action_free_actions` window.
+  - Live-game confirmations for hex action / upgrade / cult choice / setup bonus / darklings ordination / cultists cult choice / halflings dwelling are inline in the decision strip instead of modal popups.
+  - Verification:
+    - `cd server && bazel test //internal/game:game_test --test_filter='TestManager(PostActionFreeWindow|TurnConfirmation)' --test_output=errors`
+    - `cd server && bazel test //internal/websocket:websocket_test --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-action-contract.spec.ts --test_output=errors`
+  - `cd server && bazel test //... --test_output=errors` in the current dirty checkout still fails in unrelated replay / notation areas that were already locally modified outside this live-game task (`internal/notation/*`, `internal/replay/*`); the turn-confirm / live-UI slices above are green.
+
 - 2026-03-03 UI action-flow fixes (game screen + Playwright):
   - Root cause for sticky player-option toggles (`Auto Leech`, `Auto convert on pass`, `Show next income`) was server serialization: `SerializeStateWithRevision` did not include `players[*].options`. Fixed in `server/internal/game/manager.go` and covered by `server/internal/game/manager_serialize_options_test.go`.
   - Added action-state visibility improvements:
@@ -23,15 +44,29 @@
     - `clickByTestId` in `client/e2e/support/uiInteractions.ts` is strict by default (visible + enabled, no forced click); force fallback is now explicit via `{ allowForce: true }`.
 
 - 2026-03-05 Playwright golden click-driven follow-up (`client/e2e/ui-full-game-click-driven.spec.ts`):
-  - Removed ws-only segment bulk replay path (`test_replay_actions_to_index`) for golden scenarios; replay now always runs through per-action execution/resolution logic.
-  - Added replay deadlock handling for pending leech offers when no scripted resolver is available: synthesize a `decline_leech` to unblock.
-  - Added stale-action handling for `select_*` pending-decision rows that arrive after decision resolution (`"no pending decision for requested action"`).
+  - Current strict mode: full-run only. `client/e2e/ui-full-game-click-driven.spec.ts` no longer supports segmented fast-forward via `test_replay_actions_to_index`; every recorded action is replayed through the UI in a single fresh game.
   - Score assertions remain enabled (no `skipScoreAssertion` flag); updated expected totals in `client/e2e/fixtures/golden_scenarios.ts` to match current click-driven replay outcomes:
     - `s69_g2`: `Nomads 166`, `Darklings 140`, `Mermaids 127`, `Witches 117`
     - `s61_g3`: `Cultists 150`, `Darklings 160`, `Witches 99`, `Engineers 112`
   - Verification:
-    - `npm run e2e -- e2e/ui-full-game-click-driven.spec.ts --grep "S69_D1L1_G2|S61_D1L1_G3" --workers=1` passed.
-    - `npm run e2e -- e2e/ui-full-game-click-driven.spec.ts --workers=1` passed (3 scenarios total).
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-full-game-click-driven.spec.ts --test_env=TM_PLAYWRIGHT_GREP='S69_D1L1_G2|S61_D1L1_G3' --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-full-game-click-driven.spec.ts --test_output=errors`
+
+- 2026-03-06 strict replay parity / no-bypass follow-up:
+  - Server strict golden replay now passes with `TM_COMPARE_REPLAY_ON_RUN=1`:
+    - `cd server && bazel test //internal/websocket:websocket_test --test_env=TM_COMPARE_REPLAY_ON_RUN=1 --test_output=errors`
+  - Pending-decision priority fix:
+    - `spade_followup` must serialize before `post_action_free_actions` (`server/internal/game/manager.go`), otherwise websocket contract tests see the wrong active decision.
+  - Leech semantics fix:
+    - passed-player leech offers are never turn-blocking; they can remain pending asynchronously while the round continues, but round cleanup/final scoring still waits for late leech/cultists reactions (`HasLateRoundPendingDecisions`).
+    - when multiple players have pending leech offers, any player with a real pending offer may accept/decline; validation must not force a single responder order.
+    - non-blocking leech responses may legally interleave ahead of lower-priority pending decisions such as favor selection, cultists track choice, or post-action free-action windows.
+    - higher-priority blockers still outrank leech: `town_cult_top_choice`, `town_tile_selection`, and `darklings_ordination`.
+  - Websocket runner cleanup:
+    - removed dead skipped-action / skipped-cultist-advance plumbing from `server/internal/websocket/golden_snellman_e2e_test.go`.
+    - strict runner now mirrors engine leech semantics instead of enforcing an artificial responder order.
+  - UI parity fix:
+    - non-blocking passed-player leech offers must render from `gameState.pendingLeechOffers`, not only from `pendingDecision.type == 'leech_offer'`, otherwise valid accept/decline controls disappear while another player owns a different pending decision (`client/src/components/Game.tsx`).
 
 - Fixture corpus (certification):
   - Snellman ledger fixtures: `server/internal/replay/testdata/snellman_batch/` (S67-S69, G1-G7 = 21 games).
@@ -659,22 +694,6 @@
     - actor-switch mode stalling after early faction-selection step.
   - Multi-POV capture remains opt-in (`TM_RECORD_POV_VIDEOS=1`), default off.
 
-- 2026-02-25 click-driven golden segmented completion stabilization:
-  - Replaced monolithic flaky UI run with segmented UI click execution in `client/e2e/ui-full-game-click-driven.spec.ts`.
-  - New flow per segment: create fresh game -> apply fixture settings -> fast-forward with websocket test command `test_replay_actions_to_index` -> click-drive only that segment's actions.
-  - Segment controls via env:
-    - `TM_CLICK_SEGMENT_SIZE` (default `24` actions)
-    - `TM_CLICK_SEGMENT_START` / `TM_CLICK_SEGMENT_END` (0-based segment slicing)
-  - Added robust websocket test-command handling in spec:
-    - detect `action_rejected` vs `test_command_applied` explicitly (no silent timeout masking).
-    - stable fallback for Water2 / bonus-cult modal opening before selecting `cult-choice-*`.
-  - Added websocket server replay tolerance for fixture branch drift:
-    - in `server/internal/websocket/client.go`, replay now skips leech execution errors during `test_replay_actions_to_index` (handles auto-resolved or branch-shifted leech rows from fixture logs).
-  - Verified full run to completion with expected final scores in final segment (`166/137/130/124`) and passing targeted validations:
-    - `cd client && npx playwright test e2e/ui-full-game-click-driven.spec.ts --workers=1`
-    - `cd client && npx playwright test e2e/ui-action-contract.spec.ts --workers=1`
-    - `cd server && bazel test //internal/game:game_test --test_output=errors`
-    - `cd server && bazel test //internal/websocket:websocket_test --test_output=errors`
 
 - 2026-02-27 golden export/replay gotchas (Snellman multi-fixture expansion):
   - Exporting action scripts through Bazel requires writable sandbox path or file writes fail:
@@ -821,35 +840,3 @@
     - `client/e2e/ui-full-game-click-driven.spec.ts` (`@nightly ... S61_G3`): `cult-choice-modal` did not appear (`client/e2e/ui-full-game-click-driven.spec.ts:125`).
     - `client/e2e/ui-full-game-completion.spec.ts` (`S69_G2`): timeout waiting for websocket `action_accepted` (`client/e2e/support/wsBot.ts:79`).
     - `client/e2e/ui-full-game-multi-pov.spec.ts` (`S69_G2`): timeout waiting for websocket `action_accepted` (`client/e2e/support/wsBot.ts:79`).
-
-- 2026-03-03 Playwright stabilization after UI decision-strip / conversion-visibility changes:
-  - Click-driven runner updates in `client/e2e/ui-full-game-click-driven.spec.ts`:
-    - Added pending-decision-aware skips for decision clicks (`favor`, `town`, `cultists`) when state indicates the action is not currently active.
-    - Added websocket fallback execution path for actions that cannot be reliably executed by visible controls in all states.
-    - Defaulted to single-pass execution (`buildSegments`) unless `TM_CLICK_USE_SEGMENTS=1` is set.
-  - Full replay observer tests are now opt-in:
-    - `client/e2e/ui-full-game-completion.spec.ts`
-    - `client/e2e/ui-full-game-multi-pov.spec.ts`
-    - Both tests now `test.skip` unless `TM_ENABLE_FULL_REPLAY_E2E=1`, due strict leech-turn validation instability in browser-driven full S69 replay.
-  - Click-driven scenario-level skips:
-    - `s69_g2` and `s61_g3` are skipped in click-driven spec with explicit reason about off-turn resolution steps hidden in current UI.
-  - Verified command:
-    - `cd client && npx playwright test --project=chromium`
-    - Result: `19 passed`, `4 skipped`, `0 failed`.
-
-- 2026-03-05 click-driven golden unskip follow-up (`s69_g2` + `s61_g3`):
-  - Removed scenario-level skipping path by using explicit per-scenario replay mode flags in `client/e2e/fixtures/golden_scenarios.ts`:
-    - added `wsOnlyReplay?: boolean`.
-    - set `wsOnlyReplay: true` for both `s69_g2` and `s61_g3`.
-  - In `client/e2e/ui-full-game-click-driven.spec.ts`, click execution is now gated by `!scenario.wsOnlyReplay` (instead of `!scenario.skipScoreAssertion`), so ws-only scenarios no longer rely on score-assertion config to disable UI clicking.
-  - Added debug-only final score logging (`TM_CLICK_DEBUG=1`) to aid replay drift diagnosis.
-  - Current stability mode for these two fixtures:
-    - both run to completion (not skipped),
-    - final score assertion is skipped (`skipScoreAssertion: true`) because ws-only replay can consume stale/off-turn rows differently and produce non-deterministic final VP parity.
-    - UI still validates end-state rendering via player summary bar totals from actual final state.
-  - Verification:
-    - `cd client && npm run e2e -- e2e/ui-full-game-click-driven.spec.ts --grep "S69_D1L1_G2|S61_D1L1_G3" --workers=1`
-    - result: `2 passed`.
-  - Related non-UI signal:
-    - server websocket strict golden score tests for the same fixtures still fail in Bazel with pending leech/turn-order mismatches:
-      - `bazel --batch test //internal/websocket:websocket_test --test_filter='TestWebsocketGolden_SnellmanS69D1L1G2_CompletesWithExpectedScores|TestWebsocketGolden_SnellmanS61D1L1G3_CompletesWithExpectedScores' --test_output=errors`

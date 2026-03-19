@@ -375,10 +375,10 @@ func (c *Client) handleTestApplyConversion(payload json.RawMessage) {
 	ack, _ := json.Marshal(map[string]any{
 		"type": "test_command_applied",
 		"payload": map[string]any{
-			"gameID":        gameID,
-			"playerId":      playerID,
+			"gameID":         gameID,
+			"playerId":       playerID,
 			"conversionType": conversionType,
-			"amount":        amount,
+			"amount":         amount,
 		},
 	})
 	c.send <- ack
@@ -1020,6 +1020,12 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			return nil, err
 		}
 		return game.NewPassAction(seatID, bonusCard), nil
+
+	case "confirm_turn":
+		return game.NewConfirmTurnAction(seatID), nil
+
+	case "undo_turn":
+		return game.NewUndoTurnAction(seatID), nil
 
 	case "accept_leech":
 		offerIndex, err := parseIntParam("offerIndex")

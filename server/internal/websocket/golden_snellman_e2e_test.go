@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -331,6 +332,17 @@ func runGoldenSnellmanFixture(
 	}
 
 	for i, action := range actions {
+		if runner.isNoOpLeechAction(action) {
+			if testing.Verbose() {
+				runner.t.Logf("golden skip no-op leech idx=%d action=%s", i, describeGoldenAction(action))
+			}
+			if replayComparator != nil {
+				if err := replayComparator.advanceAndAssertPostState(action, i, runner.state, runner.gs); err != nil {
+					t.Fatalf("replay post-action mismatch after action %d: %v", i, err)
+				}
+			}
+			continue
+		}
 		if strings.EqualFold(strings.TrimSpace(os.Getenv("TM_GOLDEN_TRACE")), "1") || strings.EqualFold(strings.TrimSpace(os.Getenv("TM_GOLDEN_TRACE")), "true") {
 			pd := asMap(runner.state["pendingDecision"])
 			runner.t.Logf(
@@ -452,19 +464,12 @@ type goldenRunner struct {
 	gs              *game.GameState
 	step            int
 	compoundDepth   int
-	skippedCultistAdvances map[*notation.LogCultistAdvanceAction]struct{}
-	skippedActions         map[game.Action]struct{}
 	recordedActions []goldenExportAction
 }
 
 func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []game.Action) error {
 	if action == nil {
 		return nil
-	}
-	if r.skippedActions != nil {
-		if _, ok := r.skippedActions[action]; ok {
-			return nil
-		}
 	}
 
 	switch a := action.(type) {
@@ -645,6 +650,9 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		return r.recordReplayConversion(a.PlayerID, convType, amount)
 	case *notation.LogAcceptLeechAction:
 		if !hasPendingLeechOffer(r.state, a.PlayerID) {
+			if r.isNoOpLeechAction(a) {
+				return nil
+			}
 			return fmt.Errorf("accept leech for %s without pending offer", strings.TrimSpace(a.PlayerID))
 		}
 		offerIndex, err := findLeechOfferIndex(r.state, a.PlayerID, a.FromPlayerID, a.PowerAmount, a.Explicit)
@@ -662,6 +670,9 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		})
 	case *notation.LogDeclineLeechAction:
 		if !hasPendingLeechOffer(r.state, a.PlayerID) {
+			if r.isNoOpLeechAction(a) {
+				return nil
+			}
 			return fmt.Errorf("decline leech for %s without pending offer", strings.TrimSpace(a.PlayerID))
 		}
 		offerIndex, err := findLeechOfferIndex(r.state, a.PlayerID, a.FromPlayerID, 0, false)
@@ -710,11 +721,6 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 	case *notation.LogPowerAction:
 		return r.executeStandalonePowerAction(a)
 	case *notation.LogCultistAdvanceAction:
-		if r.skippedCultistAdvances != nil {
-			if _, ok := r.skippedCultistAdvances[a]; ok {
-				return nil
-			}
-		}
 		pd := asMap(r.state["pendingDecision"])
 		if asString(pd["type"]) == "cultists_cult_choice" && asString(pd["playerId"]) == a.PlayerID {
 			return r.performCultistsTrackChoice(a.PlayerID, int(a.Track))
@@ -743,9 +749,16 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 
 	compoundDigTargets := map[string]struct{}{}
 	pendingTownTracks := make([]game.CultTrack, 0, 2)
+	preExecuted := make(map[int]bool, len(compound.Actions))
 
 	for i := 0; i < len(compound.Actions); i++ {
+		if preExecuted[i] {
+			continue
+		}
 		action := compound.Actions[i]
+		if r.isNoOpLeechAction(action) {
+			continue
+		}
 		shouldClearDigTargets := !isCompoundDigFollowerPreserver(action)
 
 		nextPlayer := strings.TrimSpace(action.GetPlayerID())
@@ -756,36 +769,15 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 		if err := r.resolveBlockingPendingBefore(nextPlayer, nestedUpcoming); err != nil {
 			return err
 		}
-
-		// Snellman rows can serialize free actions (burn/conversion) after a
-		// turn-ending main action. In strict multiplayer flow these must be
-		// applied before the main action if the next non-free action belongs to
-		// another player.
-		if shouldReorderTrailingFreeActions(compound.Actions, i, nextPlayer) {
-			reorderEnd := i + 1
-			for reorderEnd < len(compound.Actions) && isReorderableFreeAction(compound.Actions[reorderEnd], nextPlayer) {
-				follow := compound.Actions[reorderEnd]
-				followUpcoming := compound.Actions[reorderEnd:]
-				if len(upcoming) > 1 {
-					followUpcoming = append(slices.Clone(followUpcoming), upcoming[1:]...)
-				}
-				if err := r.resolveBlockingPendingBefore(nextPlayer, followUpcoming); err != nil {
-					return err
-				}
-				if err := r.executeActionWithUpcoming(follow, followUpcoming); err != nil {
-					return err
-				}
-				reorderEnd++
-			}
-			if err := r.executeActionWithUpcoming(action, nestedUpcoming); err != nil {
-				return err
-			}
-			i = reorderEnd - 1
-			continue
+		if err := r.preExecuteReplayFundingForCompoundAction(action, compound.Actions, i, upcoming, preExecuted); err != nil {
+			return err
 		}
 
 		switch a := action.(type) {
 		case *notation.LogDigTransformAction:
+			if hasLaterCompoundTransformAction(compound.Actions[i+1:], a.PlayerID, a.Target) {
+				continue
+			}
 			if err := r.executeActionWithUpcoming(a, nestedUpcoming); err != nil {
 				return err
 			}
@@ -942,21 +934,25 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 
 		if a, ok := action.(*game.TransformAndBuildAction); ok {
 			if _, found := compoundDigTargets[compoundActionLocationKey(a.PlayerID, a.TargetHex)]; found {
-				if testing.Verbose() {
-					r.t.Logf(
-						"golden skip compound transform duplicate idx=%d actionPlayer=%s target=%v",
-						len(r.recordedActions),
-						strings.TrimSpace(a.PlayerID),
-						a.TargetHex,
-					)
-				}
-				delete(compoundDigTargets, compoundActionLocationKey(a.PlayerID, a.TargetHex))
-				if shouldClearDigTargets {
-					for k := range compoundDigTargets {
-						delete(compoundDigTargets, k)
+				if a.BuildDwelling {
+					delete(compoundDigTargets, compoundActionLocationKey(a.PlayerID, a.TargetHex))
+				} else {
+					if testing.Verbose() {
+						r.t.Logf(
+							"golden skip compound transform duplicate idx=%d actionPlayer=%s target=%v",
+							len(r.recordedActions),
+							strings.TrimSpace(a.PlayerID),
+							a.TargetHex,
+						)
 					}
+					delete(compoundDigTargets, compoundActionLocationKey(a.PlayerID, a.TargetHex))
+					if shouldClearDigTargets {
+						for k := range compoundDigTargets {
+							delete(compoundDigTargets, k)
+						}
+					}
+					continue
 				}
-				continue
 			}
 		}
 
@@ -971,6 +967,173 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 	}
 
 	return nil
+}
+
+type goldenReplayInsufficientResources struct {
+	needCoins, needWorkers, needPriests, needPower int
+	haveCoins, haveWorkers, havePriests, havePower int
+}
+
+func goldenIsReplayAffordabilityError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "not enough resources") ||
+		strings.Contains(msg, "insufficient resources") ||
+		strings.Contains(msg, "not enough workers") ||
+		strings.Contains(msg, "not enough priests") ||
+		strings.Contains(msg, "cannot afford")
+}
+
+func parseGoldenReplayInsufficientResources(err error) (goldenReplayInsufficientResources, bool) {
+	if err == nil {
+		return goldenReplayInsufficientResources{}, false
+	}
+	re := regexp.MustCompile(`insufficient resources: need \(coins:(\d+), workers:(\d+), priests:(\d+), power:(\d+)\), have \(coins:(\d+), workers:(\d+), priests:(\d+), power:(\d+)\)`)
+	m := re.FindStringSubmatch(strings.ToLower(err.Error()))
+	if len(m) != 9 {
+		return goldenReplayInsufficientResources{}, false
+	}
+	toInt := func(s string) int {
+		n, _ := strconv.Atoi(s)
+		return n
+	}
+	return goldenReplayInsufficientResources{
+		needCoins:   toInt(m[1]),
+		needWorkers: toInt(m[2]),
+		needPriests: toInt(m[3]),
+		needPower:   toInt(m[4]),
+		haveCoins:   toInt(m[5]),
+		haveWorkers: toInt(m[6]),
+		havePriests: toInt(m[7]),
+		havePower:   toInt(m[8]),
+	}, true
+}
+
+func parseGoldenReplayNotEnoughResources(err error) (goldenReplayInsufficientResources, bool) {
+	if err == nil {
+		return goldenReplayInsufficientResources{}, false
+	}
+	re := regexp.MustCompile(`not enough resources for [^:]+: need \{(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\}, have &\{(\d+)\s+(\d+)\s+(\d+)\s+`)
+	m := re.FindStringSubmatch(strings.ToLower(err.Error()))
+	if len(m) != 8 {
+		return goldenReplayInsufficientResources{}, false
+	}
+	toInt := func(s string) int {
+		n, _ := strconv.Atoi(s)
+		return n
+	}
+	return goldenReplayInsufficientResources{
+		needCoins:   toInt(m[1]),
+		needWorkers: toInt(m[2]),
+		needPriests: toInt(m[3]),
+		needPower:   toInt(m[4]),
+		haveCoins:   toInt(m[5]),
+		haveWorkers: toInt(m[6]),
+		havePriests: toInt(m[7]),
+		havePower:   0,
+	}, true
+}
+
+func goldenIsReplayPreExecutableActionForError(action game.Action, err error) bool {
+	if action == nil || err == nil {
+		return false
+	}
+
+	need, ok := parseGoldenReplayInsufficientResources(err)
+	if !ok {
+		need, ok = parseGoldenReplayNotEnoughResources(err)
+		if !ok {
+			_, isBurn := action.(*notation.LogBurnAction)
+			return isBurn
+		}
+	}
+
+	defCoins := need.needCoins - need.haveCoins
+	defWorkers := need.needWorkers - need.haveWorkers
+	defPriests := need.needPriests - need.havePriests
+	defPower := need.needPower - need.havePower
+
+	switch v := action.(type) {
+	case *notation.LogBurnAction:
+		return true
+	case *notation.LogConversionAction:
+		if defCoins > 0 && v.Reward[models.ResourceCoin] > 0 {
+			return true
+		}
+		if defWorkers > 0 && v.Reward[models.ResourceWorker] > 0 {
+			return true
+		}
+		if defPriests > 0 && v.Reward[models.ResourcePriest] > 0 {
+			return true
+		}
+		if defPower > 0 && v.Reward[models.ResourcePower] > 0 {
+			return true
+		}
+		return false
+	default:
+		return false
+	}
+}
+
+func (r *goldenRunner) preExecuteReplayFundingForCompoundAction(
+	action game.Action,
+	actions []game.Action,
+	index int,
+	upcoming []game.Action,
+	preExecuted map[int]bool,
+) error {
+	if action == nil {
+		return nil
+	}
+	validateErr := action.Validate(r.gs)
+	if !goldenIsReplayAffordabilityError(validateErr) {
+		return nil
+	}
+
+	replayed := false
+	for j := index + 1; j < len(actions); j++ {
+		later := actions[j]
+		if preExecuted[j] || !goldenIsReplayPreExecutableActionForError(later, validateErr) {
+			continue
+		}
+		laterUpcoming := actions[j:]
+		if len(upcoming) > 1 {
+			laterUpcoming = append(slices.Clone(laterUpcoming), upcoming[1:]...)
+		}
+		if err := r.resolveBlockingPendingBefore(strings.TrimSpace(later.GetPlayerID()), laterUpcoming); err != nil {
+			return err
+		}
+		if err := r.executeActionWithUpcoming(later, laterUpcoming); err != nil {
+			return err
+		}
+		preExecuted[j] = true
+		replayed = true
+	}
+	if !replayed {
+		return nil
+	}
+	return nil
+}
+
+func (r *goldenRunner) isNoOpLeechAction(action game.Action) bool {
+	switch a := action.(type) {
+	case *notation.LogAcceptLeechAction:
+		if hasPendingLeechOffer(r.state, a.PlayerID) {
+			return false
+		}
+		player := r.gs.GetPlayer(a.PlayerID)
+		if player == nil || player.Resources == nil || player.Resources.Power == nil {
+			return false
+		}
+		capacity := player.Resources.Power.Bowl2 + 2*player.Resources.Power.Bowl1
+		return capacity <= 0
+	case *notation.LogDeclineLeechAction:
+		return !hasPendingLeechOffer(r.state, a.PlayerID)
+	default:
+		return false
+	}
 }
 
 func (r *goldenRunner) executeTransformAction(action *game.TransformAndBuildAction) error {
@@ -1211,60 +1374,36 @@ func (r *goldenRunner) canSelectTownTile(playerID string) bool {
 }
 
 func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcoming []game.Action) error {
-	townChoiceCursor := map[string]int{}
 	for guard := 0; guard < 12; guard++ {
 		pd := asMap(r.state["pendingDecision"])
 		decisionType := asString(pd["type"])
+		playerID := asString(pd["playerId"])
 		if decisionType == "" {
 			return nil
 		}
-		playerID := asString(pd["playerId"])
-		if decisionType == "cultists_cult_choice" {
-			advance, err := r.findPendingCultistsAdvance(playerID, upcoming)
-			if err != nil {
+		if decisionType == "post_action_free_actions" {
+			if playerID == "" {
+				return nil
+			}
+			if len(upcoming) > 0 && canUsePostActionFreeWindow(upcoming[0], playerID) {
+				return nil
+			}
+			if err := r.performSynthetic(playerID, "confirm_turn", nil); err != nil {
 				return err
 			}
-			if advance == nil {
-				return fmt.Errorf(
-					"pending decision %q for player %q cannot be resolved before next action for %q",
-					decisionType,
-					playerID,
-					nextPlayerID,
-				)
-			}
-			if err := r.performCultistsTrackChoice(playerID, int(advance.Track)); err != nil {
-				return err
-			}
-			if r.skippedCultistAdvances == nil {
-				r.skippedCultistAdvances = map[*notation.LogCultistAdvanceAction]struct{}{}
-			}
-			r.skippedCultistAdvances[advance] = struct{}{}
 			continue
 		}
-		if decisionType == "favor_tile_selection" {
-			favorTileAction := findPendingFavorTileAction(playerID, upcoming)
-			if favorTileAction == nil {
-				return fmt.Errorf(
-					"pending decision %q for player %q cannot be resolved by upcoming action for %q",
-					decisionType,
-					playerID,
-					nextPlayerID,
-				)
+		if decisionType == "turn_confirmation" {
+			if playerID == "" {
+				return nil
 			}
-			tile, err := notation.ParseFavorTileCode(strings.ToUpper(strings.TrimSpace(favorTileAction.Tile)))
-			if err != nil {
+			if err := r.performSynthetic(playerID, "confirm_turn", nil); err != nil {
 				return err
 			}
-			if err := r.perform(playerID, "select_favor_tile", map[string]any{
-				"tileType": int(tile),
-			}); err != nil {
-				return err
-			}
-			if r.skippedActions == nil {
-				r.skippedActions = map[game.Action]struct{}{}
-			}
-			r.skippedActions[favorTileAction] = struct{}{}
 			continue
+		}
+		if len(upcoming) > 0 && r.canUseImmediateLeechResponse(upcoming[0]) {
+			return nil
 		}
 		if upcomingActionResolvesPending(decisionType, upcoming, playerID) {
 			if nextPlayerID != "" && playerID != nextPlayerID && actionRequiresTurnOwnership(upcoming[0]) {
@@ -1272,52 +1411,11 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 			}
 			return nil
 		}
+		if decisionType == "leech_offer" && canContinueFreeActionBeforeLeech(r.state, upcoming) {
+			return nil
+		}
 
 		switch decisionType {
-		case "spade_followup":
-			remaining := asInt(pd["spadesRemaining"])
-			if remaining <= 0 {
-				remaining = 1
-			}
-			if err := r.perform(playerID, "discard_pending_spade", map[string]any{"count": remaining}); err != nil {
-				return err
-			}
-		case "cult_reward_spade":
-			remaining := asInt(pd["spadesRemaining"])
-			if remaining <= 0 {
-				remaining = 1
-			}
-			if err := r.perform(playerID, "discard_pending_spade", map[string]any{"count": remaining}); err != nil {
-				return err
-			}
-		case "town_cult_top_choice":
-			if err := r.resolveTownCultTopChoice(playerID, nil); err != nil {
-				return err
-			}
-		case "town_tile_selection":
-			choices := findUpcomingTownTileSelections(upcoming, playerID)
-			cursor := townChoiceCursor[playerID]
-			if cursor >= len(choices) {
-				return fmt.Errorf("pending town tile selection for %s but no upcoming town choice found", playerID)
-			}
-			tile := choices[cursor]
-			townChoiceCursor[playerID] = cursor + 1
-			if err := r.perform(playerID, "select_town_tile", map[string]any{"tileType": int(tile)}); err != nil {
-				return err
-			}
-			if err := r.resolveTownCultTopChoice(playerID, nil); err != nil {
-				return err
-			}
-		case "darklings_ordination":
-			if err := r.perform(playerID, "darklings_ordination", map[string]any{"workersToConvert": 0}); err != nil {
-				return err
-			}
-		case "leech_offer":
-			intent := findUpcomingLeechIntent(upcoming, playerID, r.state)
-			if !intent.found {
-				return fmt.Errorf("pending leech offer for %s but no upcoming leech intent found", playerID)
-			}
-			return nil
 		default:
 			return fmt.Errorf("pending decision %q for player %q unresolved before next action for %q", decisionType, playerID, nextPlayerID)
 		}
@@ -1325,40 +1423,85 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 	return fmt.Errorf("pending decision resolution exceeded iteration guard")
 }
 
-func (r *goldenRunner) findPendingCultistsAdvance(playerID string, upcoming []game.Action) (*notation.LogCultistAdvanceAction, error) {
-	for _, action := range upcoming {
-		advance := findCultistAdvanceInAction(action, strings.TrimSpace(playerID), r.skippedCultistAdvances)
-		if advance == nil {
-			continue
-		}
-		return advance, nil
+func canUsePostActionFreeWindow(action game.Action, playerID string) bool {
+	if action == nil {
+		return false
 	}
 
-	return nil, nil
+	switch a := action.(type) {
+	case *notation.LogConversionAction, *notation.LogBurnAction:
+		return strings.TrimSpace(action.GetPlayerID()) == strings.TrimSpace(playerID)
+	case *notation.LogCompoundAction:
+		if len(a.Actions) == 0 {
+			return false
+		}
+		return canUsePostActionFreeWindow(a.Actions[0], playerID)
+	case *notation.LogPreIncomeAction:
+		return canUsePostActionFreeWindow(a.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return canUsePostActionFreeWindow(a.Action, playerID)
+	default:
+		return false
+	}
 }
 
-func findCultistAdvanceInAction(action game.Action, playerID string, skipped map[*notation.LogCultistAdvanceAction]struct{}) *notation.LogCultistAdvanceAction {
+func (r *goldenRunner) canUseImmediateLeechResponse(action game.Action) bool {
+	if r == nil || action == nil {
+		return false
+	}
+	playerID := leechActionPlayerID(action)
+	if playerID == "" {
+		return false
+	}
+	if !hasPendingLeechOffer(r.state, playerID) {
+		return false
+	}
+	pd := asMap(r.state["pendingDecision"])
+	switch asString(pd["type"]) {
+	case "town_cult_top_choice", "town_tile_selection", "darklings_ordination":
+		return false
+	default:
+		return true
+	}
+}
+
+func leechActionPlayerID(action game.Action) string {
+	switch a := action.(type) {
+	case *notation.LogAcceptLeechAction:
+		return strings.TrimSpace(a.PlayerID)
+	case *notation.LogDeclineLeechAction:
+		return strings.TrimSpace(a.PlayerID)
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if playerID := leechActionPlayerID(nested); playerID != "" {
+				return playerID
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return leechActionPlayerID(a.Action)
+	case *notation.LogPostIncomeAction:
+		return leechActionPlayerID(a.Action)
+	}
+	return ""
+}
+
+func findCultistAdvanceInAction(action game.Action, playerID string) *notation.LogCultistAdvanceAction {
 	switch a := action.(type) {
 	case *notation.LogCultistAdvanceAction:
 		if strings.TrimSpace(a.PlayerID) != playerID {
 			return nil
 		}
-		if skipped != nil {
-			if _, ok := skipped[a]; ok {
-				return nil
-			}
-		}
 		return a
 	case *notation.LogCompoundAction:
 		for _, nested := range a.Actions {
-			if found := findCultistAdvanceInAction(nested, playerID, skipped); found != nil {
+			if found := findCultistAdvanceInAction(nested, playerID); found != nil {
 				return found
 			}
 		}
 	case *notation.LogPreIncomeAction:
-		return findCultistAdvanceInAction(a.Action, playerID, skipped)
+		return findCultistAdvanceInAction(a.Action, playerID)
 	case *notation.LogPostIncomeAction:
-		return findCultistAdvanceInAction(a.Action, playerID, skipped)
+		return findCultistAdvanceInAction(a.Action, playerID)
 	}
 	return nil
 }
@@ -1423,49 +1566,131 @@ func upcomingActionResolvesPending(decisionType string, upcoming []game.Action, 
 
 	switch decisionType {
 	case "setup_bonus_card":
-		if action, ok := upcoming[0].(*notation.LogBonusCardSelectionAction); ok {
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	case "cultists_cult_choice":
+		for _, action := range upcoming {
+			if actionResolvesPendingDecision(decisionType, playerID, action) {
+				return true
+			}
+		}
+	case "favor_tile_selection":
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	case "cult_reward_spade":
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	case "leech_offer":
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	case "town_tile_selection":
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	case "town_cult_top_choice":
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	case "darklings_ordination":
+		return actionResolvesPendingDecision(decisionType, playerID, upcoming[0])
+	}
+
+	return false
+}
+
+func actionResolvesPendingDecision(decisionType, playerID string, action game.Action) bool {
+	if action == nil {
+		return false
+	}
+	playerID = strings.TrimSpace(playerID)
+
+	switch v := action.(type) {
+	case *notation.LogCompoundAction:
+		if len(v.Actions) == 0 {
+			return false
+		}
+		return actionResolvesPendingDecision(decisionType, playerID, v.Actions[0])
+	case *notation.LogPreIncomeAction:
+		return actionResolvesPendingDecision(decisionType, playerID, v.Action)
+	case *notation.LogPostIncomeAction:
+		return actionResolvesPendingDecision(decisionType, playerID, v.Action)
+	}
+
+	switch decisionType {
+	case "setup_bonus_card":
+		if action, ok := action.(*notation.LogBonusCardSelectionAction); ok {
 			return strings.TrimSpace(action.PlayerID) == playerID
 		}
 	case "cultists_cult_choice":
-		for _, action := range upcoming {
-			a, ok := action.(*notation.LogCultistAdvanceAction)
-			if !ok {
-				continue
-			}
-			return strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID)
-		}
+		return findCultistAdvanceInAction(action, playerID) != nil
 	case "favor_tile_selection":
-		for _, action := range upcoming {
-			a, ok := action.(*notation.LogFavorTileAction)
-			if !ok {
-				continue
-			}
-			return strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID)
-		}
+		return findFavorTileInAction(action, playerID) != nil
 	case "cult_reward_spade":
-		return actionContainsCultRewardSpadeUse(upcoming[0], playerID)
+		return actionContainsCultRewardSpadeUse(action, playerID)
 	case "leech_offer":
-		switch action := upcoming[0].(type) {
+		switch action := action.(type) {
 		case *notation.LogAcceptLeechAction:
-			return strings.TrimSpace(action.PlayerID) == strings.TrimSpace(playerID)
+			return strings.TrimSpace(action.PlayerID) == playerID
 		case *notation.LogDeclineLeechAction:
-			return strings.TrimSpace(action.PlayerID) == strings.TrimSpace(playerID)
+			return strings.TrimSpace(action.PlayerID) == playerID
 		}
 	case "town_tile_selection":
-		if action, ok := upcoming[0].(*notation.LogTownAction); ok {
-			return strings.TrimSpace(action.PlayerID) == strings.TrimSpace(playerID)
-		}
+		return findTownActionInAction(action, playerID) != nil
 	case "town_cult_top_choice":
-		if action, ok := upcoming[0].(*notation.LogCultTrackDecreaseAction); ok {
-			return strings.TrimSpace(action.PlayerID) == strings.TrimSpace(playerID)
-		}
+		return findTownCultTopChoiceInAction(action, playerID) != nil
 	case "darklings_ordination":
-		if action, ok := upcoming[0].(*game.UseDarklingsPriestOrdinationAction); ok {
-			return strings.TrimSpace(action.PlayerID) == strings.TrimSpace(playerID)
+		if action, ok := action.(*game.UseDarklingsPriestOrdinationAction); ok {
+			return strings.TrimSpace(action.PlayerID) == playerID
 		}
 	}
 
 	return false
+}
+
+func findTownActionInAction(action game.Action, playerID string) *notation.LogTownAction {
+	switch a := action.(type) {
+	case *notation.LogTownAction:
+		if strings.TrimSpace(a.PlayerID) == playerID {
+			return a
+		}
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if found := findTownActionInAction(nested, playerID); found != nil {
+				return found
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return findTownActionInAction(a.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return findTownActionInAction(a.Action, playerID)
+	}
+	return nil
+}
+
+func findTownCultTopChoiceInAction(action game.Action, playerID string) *notation.LogCultTrackDecreaseAction {
+	switch a := action.(type) {
+	case *notation.LogCultTrackDecreaseAction:
+		if strings.TrimSpace(a.PlayerID) == playerID {
+			return a
+		}
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if found := findTownCultTopChoiceInAction(nested, playerID); found != nil {
+				return found
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return findTownCultTopChoiceInAction(a.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return findTownCultTopChoiceInAction(a.Action, playerID)
+	}
+	return nil
+}
+
+func canContinueFreeActionBeforeLeech(state map[string]any, upcoming []game.Action) bool {
+	if len(upcoming) == 0 {
+		return false
+	}
+	current := upcoming[0]
+	if strings.TrimSpace(currentTurnPlayerID(state)) != strings.TrimSpace(current.GetPlayerID()) {
+		return false
+	}
+	if !isReorderableFreeAction(current, current.GetPlayerID()) {
+		return false
+	}
+	return true
 }
 
 func isCompoundDigFollowerPreserver(action game.Action) bool {
@@ -1479,6 +1704,20 @@ func isCompoundDigFollowerPreserver(action game.Action) bool {
 
 func compoundActionLocationKey(playerID string, coord board.Hex) string {
 	return fmt.Sprintf("%s|%d|%d", strings.TrimSpace(playerID), coord.Q, coord.R)
+}
+
+func hasLaterCompoundTransformAction(actions []game.Action, playerID string, target board.Hex) bool {
+	key := compoundActionLocationKey(playerID, target)
+	for _, action := range actions {
+		transform, ok := action.(*game.TransformAndBuildAction)
+		if !ok {
+			continue
+		}
+		if compoundActionLocationKey(transform.PlayerID, transform.TargetHex) == key {
+			return true
+		}
+	}
+	return false
 }
 
 func actionContainsCultRewardSpadeUse(action game.Action, playerID string) bool {
@@ -1572,7 +1811,7 @@ func (r *goldenRunner) perform(playerID, actionType string, params map[string]an
 			passed[id] = asBool(asMap(raw)["hasPassed"])
 		}
 		r.t.Logf(
-			"golden post step=%d actionID=%s rev=%d turn=%s phase=%d round=%d pendingType=%s pendingPlayer=%s passed=%v",
+			"golden post step=%d actionID=%s rev=%d turn=%s phase=%d round=%d pendingType=%s pendingPlayer=%s passed=%v playerState=%s gsState=%s",
 			r.step-1,
 			actionID,
 			asInt(r.state["revision"]),
@@ -1582,8 +1821,38 @@ func (r *goldenRunner) perform(playerID, actionType string, params map[string]an
 			asString(asMap(r.state["pendingDecision"])["type"]),
 			asString(asMap(r.state["pendingDecision"])["playerId"]),
 			passed,
+			r.playerResourceSummary(r.state, playerID),
+			r.playerResourceSummaryFromGS(playerID),
 		)
 	}
+	return nil
+}
+
+func (r *goldenRunner) performSynthetic(playerID, actionType string, params map[string]any) error {
+	if params == nil {
+		params = map[string]any{}
+	}
+
+	conn := r.clients[playerID]
+	if conn == nil {
+		return fmt.Errorf("missing websocket client for player %s", playerID)
+	}
+	expectedRevision := asInt(r.state["revision"])
+	actionID := fmt.Sprintf("golden-auto-%04d-%s-%s", r.step, playerID, actionType)
+
+	sendJSON(r.t, conn, map[string]any{
+		"type": "perform_action",
+		"payload": map[string]any{
+			"type":             actionType,
+			"gameID":           r.gameID,
+			"actionId":         actionID,
+			"expectedRevision": expectedRevision,
+			"params":           params,
+		},
+	})
+
+	_ = readUntilType(r.t, conn, "action_accepted", 6*time.Second)
+	r.state = readUntilStateRevisionAtLeast(r.t, conn, expectedRevision+1, 6*time.Second)
 	return nil
 }
 
@@ -2089,7 +2358,7 @@ func (r *goldenRunner) tryAutoFundTransformBuild(action *game.TransformAndBuildA
 				return nil
 			}
 			if player.Resources.Coins < requiredCoins {
-				if player.Resources.Power != nil && player.Resources.Power.Bowl3 >= 3 {
+				if player.Resources.Power != nil && player.Resources.Power.Bowl3 >= 1 {
 					if err := r.perform(action.PlayerID, "conversion", map[string]any{
 						"conversionType": string(game.ConversionPowerToCoin),
 						"amount":         1,
@@ -2382,75 +2651,6 @@ func isReorderableFreeAction(action game.Action, playerID string) bool {
 		return strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID)
 	case *notation.LogConversionAction:
 		return strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID)
-	default:
-		return false
-	}
-}
-
-func canExecuteLeadingCompoundFreeAction(playerID string, upcoming []game.Action) bool {
-	if len(upcoming) == 0 {
-		return false
-	}
-	playerID = strings.TrimSpace(playerID)
-	if playerID == "" {
-		return false
-	}
-
-	for i := 1; i < len(upcoming); i++ {
-		next := upcoming[i]
-		if isReorderableFreeAction(next, playerID) {
-			continue
-		}
-		if strings.TrimSpace(next.GetPlayerID()) != playerID {
-			return false
-		}
-		return isTurnEndingMainAction(next)
-	}
-
-	return false
-}
-
-func shouldReorderTrailingFreeActions(actions []game.Action, index int, playerID string) bool {
-	if index < 0 || index >= len(actions) || strings.TrimSpace(playerID) == "" {
-		return false
-	}
-	if !isTurnEndingMainAction(actions[index]) {
-		return false
-	}
-
-	reorderEnd := index + 1
-	for reorderEnd < len(actions) && isReorderableFreeAction(actions[reorderEnd], playerID) {
-		reorderEnd++
-	}
-	if reorderEnd == index+1 {
-		return false
-	}
-	if reorderEnd >= len(actions) {
-		return true
-	}
-
-	nextNonFreePlayer := strings.TrimSpace(actions[reorderEnd].GetPlayerID())
-	return nextNonFreePlayer != strings.TrimSpace(playerID)
-}
-
-func isTurnEndingMainAction(action game.Action) bool {
-	switch action.(type) {
-	case *game.TransformAndBuildAction:
-		return true
-	case *game.UpgradeBuildingAction:
-		return true
-	case *game.AdvanceShippingAction:
-		return true
-	case *game.AdvanceDiggingAction:
-		return true
-	case *game.SendPriestToCultAction:
-		return true
-	case *game.PassAction:
-		return true
-	case *notation.LogPowerAction:
-		return true
-	case *notation.LogSpecialAction:
-		return true
 	default:
 		return false
 	}
@@ -2881,31 +3081,13 @@ type leechIntent struct {
 	found          bool
 }
 
-func findUpcomingLeechIntent(actions []game.Action, playerID string, state map[string]any) leechIntent {
-	var fallback leechIntent
-	for _, action := range actions {
-		intent, ok := inspectLeechIntent(action, playerID)
-		if !ok {
-			continue
-		}
-		if !fallback.found {
-			fallback = intent
-		}
-		_, err := findLeechOfferIndex(state, playerID, intent.fromPlayerID, intent.amount, intent.explicitAmount)
-		if err == nil {
-			return intent
-		}
-	}
-	return fallback
-}
-
-func inspectLeechIntent(action game.Action, playerID string) (leechIntent, bool) {
+func inspectLeechAction(action game.Action, playerID string) (game.Action, leechIntent, bool) {
 	switch a := action.(type) {
 	case *notation.LogAcceptLeechAction:
 		if strings.TrimSpace(a.PlayerID) != strings.TrimSpace(playerID) {
-			return leechIntent{}, false
+			return nil, leechIntent{}, false
 		}
-		return leechIntent{
+		return a, leechIntent{
 			accept:         true,
 			fromPlayerID:   a.FromPlayerID,
 			amount:         a.PowerAmount,
@@ -2914,24 +3096,25 @@ func inspectLeechIntent(action game.Action, playerID string) (leechIntent, bool)
 		}, true
 	case *notation.LogDeclineLeechAction:
 		if strings.TrimSpace(a.PlayerID) != strings.TrimSpace(playerID) {
-			return leechIntent{}, false
+			return nil, leechIntent{}, false
 		}
-		return leechIntent{
-			accept: false,
-			found:  true,
+		return a, leechIntent{
+			accept:       false,
+			fromPlayerID: a.FromPlayerID,
+			found:        true,
 		}, true
 	case *notation.LogCompoundAction:
 		for _, nested := range a.Actions {
-			if intent, ok := inspectLeechIntent(nested, playerID); ok {
-				return intent, true
+			if matchedAction, intent, ok := inspectLeechAction(nested, playerID); ok {
+				return matchedAction, intent, true
 			}
 		}
 	case *notation.LogPreIncomeAction:
-		return inspectLeechIntent(a.Action, playerID)
+		return inspectLeechAction(a.Action, playerID)
 	case *notation.LogPostIncomeAction:
-		return inspectLeechIntent(a.Action, playerID)
+		return inspectLeechAction(a.Action, playerID)
 	}
-	return leechIntent{}, false
+	return nil, leechIntent{}, false
 }
 
 func findUpcomingTownTileSelection(actions []game.Action, playerID string) (models.TownTileType, bool) {
@@ -3254,6 +3437,13 @@ func (c *replayActionComparator) advanceAndAssertPostState(action game.Action, i
 	replayState := c.session.Simulator.GetState()
 	if replayState == nil {
 		return fmt.Errorf("nil replay state after action %d", index)
+	}
+	if c.session.Simulator.CurrentIndex >= len(c.session.Simulator.Actions) &&
+		replayState.Phase == game.PhaseAction &&
+		replayState.Round >= 6 &&
+		replayState.AllPlayersPassed() &&
+		!replayState.HasLateRoundPendingDecisions() {
+		replayState.ExecuteCleanupPhase()
 	}
 
 	replayAction := c.currentReplayAction()

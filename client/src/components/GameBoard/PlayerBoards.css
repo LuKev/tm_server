@@ -249,10 +249,12 @@
 .pb-conversions-col {
     display: flex;
     flex-direction: column;
+    align-self: stretch;
+    justify-content: flex-start;
     gap: 0.5em;
     padding: 0.5em;
     border-left: 1px solid #d1d5db;
-    min-width: 6.5em;
+    min-width: 6.75em;
     flex-shrink: 0;
 }
 
@@ -268,6 +270,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.25em;
+    align-items: stretch;
 }
 
 .conversion-btn {
@@ -524,8 +527,7 @@
 .pb-town-slot {
     position: relative;
     width: 40px;
-    padding-top: 46px;
-    /* 115% aspect ratio */
+    aspect-ratio: 100 / 115;
     display: flex;
     justify-content: center;
     align-items: center;

@@ -170,6 +170,8 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	currentRevision := m.revisions[gameID]
+	beforeTurn := captureTurnProgress(gs)
+	undoSnapshot := gs.CloneForUndo()
 	if meta.ActionID != "" {
 		if _, exists := m.appliedActionID[gameID][meta.ActionID]; exists {
 			return &ActionResult{Revision: currentRevision, Duplicate: true}, nil
@@ -184,6 +186,8 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 		return nil, fmt.Errorf("action turn validation failed: %w", err)
 	}
 
+	maybeExpirePendingFreeActionsWindow(gs, action)
+
 	if err := action.Validate(gs); err != nil {
 		return nil, fmt.Errorf("action validation failed: %w", err)
 	}
@@ -194,6 +198,9 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if err := gs.ResolveAutoLeechOffers(); err != nil {
 		return nil, fmt.Errorf("auto leech resolution failed: %w", err)
 	}
+	updatePendingFreeActionsWindow(gs, action)
+	stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
+	refreshTurnConfirmationUndoCheckpoint(gs, action)
 
 	currentRevision++
 	m.revisions[gameID] = currentRevision
@@ -210,6 +217,16 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	actionType := action.GetType()
 	playerID := action.GetPlayerID()
+	if actionType == ActionConfirmTurn || actionType == ActionUndoTurn {
+		if !gs.HasPendingTurnConfirmation() {
+			return fmt.Errorf("no pending turn confirmation")
+		}
+		if strings.TrimSpace(playerID) != strings.TrimSpace(gs.PendingTurnConfirmationPlayerID) {
+			return fmt.Errorf("turn confirmation pending for player %s", gs.PendingTurnConfirmationPlayerID)
+		}
+		return nil
+	}
+
 	if actionType == ActionSetPlayerOptions {
 		if gs.GetPlayer(playerID) == nil {
 			return fmt.Errorf("player not found")
@@ -217,15 +234,53 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
-	if gs.HasPendingLeechOffers() {
-		expected := gs.GetNextLeechResponder()
-		if actionType != ActionAcceptPowerLeech && actionType != ActionDeclinePowerLeech {
-			return fmt.Errorf("leech response pending for player %s", expected)
+	if gs.PendingTownCultTopChoice != nil {
+		if actionType != ActionSelectTownCultTop {
+			return fmt.Errorf("town cult-top choice pending for player %s", gs.PendingTownCultTopChoice.PlayerID)
 		}
-		if expected != "" && expected != playerID {
-			return fmt.Errorf("leech response required from player %s", expected)
+		if playerID != gs.PendingTownCultTopChoice.PlayerID {
+			return fmt.Errorf("town cult-top choice required from player %s", gs.PendingTownCultTopChoice.PlayerID)
 		}
 		return nil
+	}
+
+	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
+		if actionType != ActionSelectTownTile {
+			return fmt.Errorf("town tile selection pending for player %s", townPlayer)
+		}
+		if playerID != townPlayer {
+			return fmt.Errorf("town tile selection required from player %s", townPlayer)
+		}
+		return nil
+	}
+
+	if gs.PendingDarklingsPriestOrdination != nil {
+		if actionType != ActionUseDarklingsPriestOrdination {
+			return fmt.Errorf("darklings priest ordination pending for player %s", gs.PendingDarklingsPriestOrdination.PlayerID)
+		}
+		if playerID != gs.PendingDarklingsPriestOrdination.PlayerID {
+			return fmt.Errorf("darklings priest ordination required from player %s", gs.PendingDarklingsPriestOrdination.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.HasPendingLeechOffers() {
+		expected := gs.GetNextBlockingLeechResponder()
+		if actionType == ActionAcceptPowerLeech || actionType == ActionDeclinePowerLeech {
+			if len(gs.PendingLeechOffers[playerID]) == 0 {
+				if expected != "" {
+					return fmt.Errorf("leech response required from player %s", expected)
+				}
+				return fmt.Errorf("no pending leech offer for player %s", playerID)
+			}
+			return nil
+		}
+		if expected != "" {
+			if canCurrentPlayerContinueFreeActionBeforeLeech(gs, action) {
+				return nil
+			}
+			return fmt.Errorf("leech response pending for player %s", expected)
+		}
 	}
 
 	if gs.PendingCultistsCultSelection != nil {
@@ -244,16 +299,6 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		}
 		if playerID != gs.PendingFavorTileSelection.PlayerID {
 			return fmt.Errorf("favor tile selection required from player %s", gs.PendingFavorTileSelection.PlayerID)
-		}
-		return nil
-	}
-
-	if gs.PendingDarklingsPriestOrdination != nil {
-		if actionType != ActionUseDarklingsPriestOrdination {
-			return fmt.Errorf("darklings priest ordination pending for player %s", gs.PendingDarklingsPriestOrdination.PlayerID)
-		}
-		if playerID != gs.PendingDarklingsPriestOrdination.PlayerID {
-			return fmt.Errorf("darklings priest ordination required from player %s", gs.PendingDarklingsPriestOrdination.PlayerID)
 		}
 		return nil
 	}
@@ -288,31 +333,26 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
-	if gs.PendingTownCultTopChoice != nil {
-		if actionType != ActionSelectTownCultTop {
-			return fmt.Errorf("town cult-top choice pending for player %s", gs.PendingTownCultTopChoice.PlayerID)
-		}
-		if playerID != gs.PendingTownCultTopChoice.PlayerID {
-			return fmt.Errorf("town cult-top choice required from player %s", gs.PendingTownCultTopChoice.PlayerID)
-		}
-		return nil
-	}
-
-	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
-		if actionType != ActionSelectTownTile {
-			return fmt.Errorf("town tile selection pending for player %s", townPlayer)
-		}
-		if playerID != townPlayer {
-			return fmt.Errorf("town tile selection required from player %s", townPlayer)
-		}
-		return nil
-	}
-
 	if actionType == ActionSelectTownTile {
 		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
 			return nil
 		}
 		return fmt.Errorf("no pending town formation for player %s", playerID)
+	}
+
+	if pendingPlayerID := strings.TrimSpace(gs.PendingFreeActionsPlayerID); pendingPlayerID != "" &&
+		strings.TrimSpace(playerID) == pendingPlayerID {
+		if canPlayerUsePendingFreeActionsWindow(gs, action) {
+			return nil
+		}
+		current := gs.GetCurrentPlayer()
+		if current != nil && strings.TrimSpace(current.ID) == pendingPlayerID {
+			return fmt.Errorf("post-action free actions pending for player %s", pendingPlayerID)
+		}
+	}
+
+	if canPlayerUsePendingFreeActionsWindow(gs, action) {
+		return nil
 	}
 
 	if gs.Phase == PhaseFactionSelection {
@@ -358,6 +398,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
+	if pendingPlayerID := strings.TrimSpace(gs.PendingTurnConfirmationPlayerID); pendingPlayerID != "" {
+		if strings.TrimSpace(playerID) == pendingPlayerID {
+			if canPlayerUsePendingFreeActionsWindow(gs, action) || actionType == ActionSetPlayerOptions {
+				return nil
+			}
+			return fmt.Errorf("turn confirmation pending for player %s", pendingPlayerID)
+		}
+		return fmt.Errorf("turn confirmation pending for player %s", pendingPlayerID)
+	}
+
 	if actionRequiresTurnOwnership(actionType) {
 		current := gs.GetCurrentPlayer()
 		if current == nil {
@@ -369,6 +419,203 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	}
 
 	return nil
+}
+
+func canCurrentPlayerContinueFreeActionBeforeLeech(gs *GameState, action Action) bool {
+	if gs == nil || action == nil {
+		return false
+	}
+	current := gs.GetCurrentPlayer()
+	if current == nil || current.ID != action.GetPlayerID() {
+		return false
+	}
+	switch action.GetType() {
+	case ActionConversion, ActionBurnPower:
+		return true
+	default:
+		return false
+	}
+}
+
+func canPlayerUsePendingFreeActionsWindow(gs *GameState, action Action) bool {
+	if gs == nil || action == nil {
+		return false
+	}
+	pendingPlayerID := strings.TrimSpace(gs.PendingFreeActionsPlayerID)
+	if pendingPlayerID == "" || strings.TrimSpace(action.GetPlayerID()) != pendingPlayerID {
+		return false
+	}
+	switch action.GetType() {
+	case ActionConversion, ActionBurnPower:
+		return true
+	default:
+		return false
+	}
+}
+
+func maybeExpirePendingFreeActionsWindow(gs *GameState, action Action) {
+	if gs == nil || action == nil {
+		return
+	}
+	pendingPlayerID := strings.TrimSpace(gs.PendingFreeActionsPlayerID)
+	if pendingPlayerID == "" {
+		return
+	}
+	playerID := strings.TrimSpace(action.GetPlayerID())
+	if playerID == "" {
+		return
+	}
+	if playerID == pendingPlayerID && canPlayerUsePendingFreeActionsWindow(gs, action) {
+		return
+	}
+	if isPendingResolutionActionType(action.GetType()) {
+		return
+	}
+	current := gs.GetCurrentPlayer()
+	if current == nil {
+		return
+	}
+	if strings.TrimSpace(current.ID) == pendingPlayerID && playerID != pendingPlayerID {
+		gs.PendingFreeActionsPlayerID = ""
+		gs.advanceToNextPlayer()
+		return
+	}
+	if strings.TrimSpace(current.ID) != playerID {
+		return
+	}
+	gs.PendingFreeActionsPlayerID = ""
+}
+
+func updatePendingFreeActionsWindow(gs *GameState, action Action) {
+	if gs == nil {
+		return
+	}
+	if gs.Phase != PhaseAction {
+		gs.PendingFreeActionsPlayerID = ""
+		return
+	}
+	if action == nil {
+		return
+	}
+	if opensPendingFreeActionsWindow(action) {
+		playerID := strings.TrimSpace(action.GetPlayerID())
+		player := gs.GetPlayer(playerID)
+		if player != nil && !player.HasPassed {
+			gs.PendingFreeActionsPlayerID = playerID
+			return
+		}
+	}
+	if gs.PendingFreeActionsPlayerID != "" {
+		if current := gs.GetCurrentPlayer(); current != nil && strings.TrimSpace(current.ID) == strings.TrimSpace(gs.PendingFreeActionsPlayerID) {
+			return
+		}
+	}
+	if action.GetType() == ActionPass {
+		gs.PendingFreeActionsPlayerID = ""
+	}
+}
+
+type turnProgress struct {
+	phase         GamePhase
+	round         int
+	currentTurn   int
+	setupSubphase SetupSubphase
+}
+
+func captureTurnProgress(gs *GameState) turnProgress {
+	if gs == nil {
+		return turnProgress{}
+	}
+	return turnProgress{
+		phase:         gs.Phase,
+		round:         gs.Round,
+		currentTurn:   gs.CurrentPlayerIndex,
+		setupSubphase: gs.SetupSubphase,
+	}
+}
+
+func stageTurnConfirmation(gs *GameState, action Action, before turnProgress, snapshot *GameState) {
+	if gs == nil || action == nil || snapshot == nil {
+		return
+	}
+	if action.GetType() == ActionConfirmTurn || action.GetType() == ActionUndoTurn {
+		return
+	}
+	if before.phase != PhaseAction {
+		return
+	}
+	if shouldBeginTurnConfirmation(action) && !gs.HasPendingTurnConfirmation() {
+		gs.BeginPendingTurnConfirmation(action.GetPlayerID(), snapshot)
+	}
+}
+
+func refreshTurnConfirmationUndoCheckpoint(gs *GameState, action Action) {
+	if gs == nil || action == nil || !gs.HasPendingTurnConfirmation() {
+		return
+	}
+	if action.GetType() != ActionAcceptPowerLeech {
+		return
+	}
+	snapshot := gs.CloneForUndo()
+	if snapshot == nil {
+		return
+	}
+	pendingPlayerID := strings.TrimSpace(gs.PendingTurnConfirmationPlayerID)
+	if pendingPlayerID != "" {
+		snapshot.setCurrentPlayerByID(pendingPlayerID)
+	}
+	gs.PendingTurnConfirmationSnapshot = snapshot
+}
+
+func shouldBeginTurnConfirmation(action Action) bool {
+	if action == nil {
+		return false
+	}
+	if opensPendingFreeActionsWindow(action) {
+		return true
+	}
+	return action.GetType() == ActionPass
+}
+
+func opensPendingFreeActionsWindow(action Action) bool {
+	if action == nil {
+		return false
+	}
+	switch action.GetType() {
+	case ActionTransformAndBuild,
+		ActionUpgradeBuilding,
+		ActionAdvanceShipping,
+		ActionAdvanceDigging,
+		ActionSendPriestToCult,
+		ActionPowerAction,
+		ActionSpecialAction,
+		ActionEngineersBridge:
+		return true
+	default:
+		return false
+	}
+}
+
+func isPendingResolutionActionType(actionType ActionType) bool {
+	switch actionType {
+	case ActionAcceptPowerLeech,
+		ActionDeclinePowerLeech,
+		ActionSelectFavorTile,
+		ActionSelectTownTile,
+		ActionSelectTownCultTop,
+		ActionUseDarklingsPriestOrdination,
+		ActionApplyHalflingsSpade,
+		ActionBuildHalflingsDwelling,
+		ActionSkipHalflingsDwelling,
+		ActionSelectCultistsCultTrack,
+		ActionUseCultSpade,
+		ActionDiscardPendingSpade,
+		ActionSetupBonusCard,
+		ActionSetPlayerOptions:
+		return true
+	default:
+		return false
+	}
 }
 
 func actionRequiresTurnOwnership(actionType ActionType) bool {
@@ -385,7 +632,9 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
 		ActionDiscardPendingSpade,
-		ActionSetPlayerOptions:
+		ActionSetPlayerOptions,
+		ActionConfirmTurn,
+		ActionUndoTurn:
 		return false
 	default:
 		return true
@@ -640,6 +889,8 @@ func SerializeStateWithRevision(gs *GameState, gameID string, revision int) map[
 		"pendingDarklingsPriestOrdination": gs.PendingDarklingsPriestOrdination,
 		"pendingCultistsCultSelection":     gs.PendingCultistsCultSelection,
 		"pendingTownCultTopChoice":         gs.PendingTownCultTopChoice,
+		"pendingFreeActionsPlayerId":       gs.PendingFreeActionsPlayerID,
+		"pendingTurnConfirmationPlayerId":  gs.PendingTurnConfirmationPlayerID,
 		"pendingDecision":                  serializePendingDecision(gs),
 		"auctionState":                     serializeAuctionState(gs.AuctionState),
 		"nextRoundIncome":                  serializeNextRoundIncomePreview(gs),
@@ -711,8 +962,32 @@ func serializePendingDecision(gs *GameState) interface{} {
 		}
 	}
 
+	if gs.PendingTownCultTopChoice != nil {
+		return map[string]interface{}{
+			"type":            "town_cult_top_choice",
+			"playerId":        gs.PendingTownCultTopChoice.PlayerID,
+			"candidateTracks": gs.PendingTownCultTopChoice.CandidateTracks,
+			"maxSelections":   gs.PendingTownCultTopChoice.MaxSelections,
+			"advanceAmount":   gs.PendingTownCultTopChoice.AdvanceAmount,
+		}
+	}
+
+	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
+		return map[string]interface{}{
+			"type":     "town_tile_selection",
+			"playerId": townPlayer,
+		}
+	}
+
+	if gs.PendingDarklingsPriestOrdination != nil {
+		return map[string]interface{}{
+			"type":     "darklings_ordination",
+			"playerId": gs.PendingDarklingsPriestOrdination.PlayerID,
+		}
+	}
+
 	if gs.HasPendingLeechOffers() {
-		if playerID := gs.GetNextLeechResponder(); playerID != "" {
+		if playerID := gs.GetNextBlockingLeechResponder(); playerID != "" {
 			offers := gs.PendingLeechOffers[playerID]
 			return map[string]interface{}{
 				"type":     "leech_offer",
@@ -734,13 +1009,6 @@ func serializePendingDecision(gs *GameState) interface{} {
 			"type":     "favor_tile_selection",
 			"playerId": gs.PendingFavorTileSelection.PlayerID,
 			"count":    gs.PendingFavorTileSelection.Count,
-		}
-	}
-
-	if gs.PendingDarklingsPriestOrdination != nil {
-		return map[string]interface{}{
-			"type":     "darklings_ordination",
-			"playerId": gs.PendingDarklingsPriestOrdination.PlayerID,
 		}
 	}
 
@@ -773,20 +1041,17 @@ func serializePendingDecision(gs *GameState) interface{} {
 		}
 	}
 
-	if gs.PendingTownCultTopChoice != nil {
+	if playerID := strings.TrimSpace(gs.PendingFreeActionsPlayerID); playerID != "" {
 		return map[string]interface{}{
-			"type":            "town_cult_top_choice",
-			"playerId":        gs.PendingTownCultTopChoice.PlayerID,
-			"candidateTracks": gs.PendingTownCultTopChoice.CandidateTracks,
-			"maxSelections":   gs.PendingTownCultTopChoice.MaxSelections,
-			"advanceAmount":   gs.PendingTownCultTopChoice.AdvanceAmount,
+			"type":     "post_action_free_actions",
+			"playerId": playerID,
 		}
 	}
 
-	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
+	if playerID := strings.TrimSpace(gs.PendingTurnConfirmationPlayerID); playerID != "" {
 		return map[string]interface{}{
-			"type":     "town_tile_selection",
-			"playerId": townPlayer,
+			"type":     "turn_confirmation",
+			"playerId": playerID,
 		}
 	}
 

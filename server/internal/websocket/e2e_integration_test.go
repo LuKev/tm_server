@@ -204,6 +204,9 @@ func TestWebsocketSoak_FivePlayers_ReconnectChurn(t *testing.T) {
 			t.Fatalf("no available bonus card during soak at iteration %d", i)
 		}
 
+		if state = confirmPendingTurnIfNeeded(t, clients, gameID, state); state == nil {
+			t.Fatalf("confirmPendingTurnIfNeeded returned nil state")
+		}
 		state = performActionAndReadState(t, clients[currentPlayerID], gameID, "pass", map[string]any{
 			"bonusCard": card,
 		}, asInt(state["revision"]))
@@ -593,6 +596,25 @@ func performActionAndReadState(t *testing.T, conn *gws.Conn, gameID, actionType 
 	_ = readUntilType(t, conn, "action_accepted", 4*time.Second)
 	targetRevision := expectedRevision + 1
 	return readUntilStateRevisionAtLeast(t, conn, targetRevision, 4*time.Second)
+}
+
+func confirmPendingTurnIfNeeded(t *testing.T, clients map[string]*gws.Conn, gameID string, state map[string]any) map[string]any {
+	t.Helper()
+	pending := asMap(state["pendingDecision"])
+	playerID := asString(pending["playerId"])
+	switch asString(pending["type"]) {
+	case "post_action_free_actions", "turn_confirmation":
+		if playerID == "" {
+			return state
+		}
+		conn := clients[playerID]
+		if conn == nil {
+			t.Fatalf("missing client for pending confirmation player %s", playerID)
+		}
+		return performActionAndReadState(t, conn, gameID, "confirm_turn", nil, asInt(state["revision"]))
+	default:
+		return state
+	}
 }
 
 func performActionExpectReject(t *testing.T, conn *gws.Conn, gameID, actionType string, params map[string]any, expectedRevision int) {

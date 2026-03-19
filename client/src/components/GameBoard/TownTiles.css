@@ -8,30 +8,34 @@
 .town-tiles-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-rows: repeat(2, minmax(0, 1fr));
     gap: 2%;
     width: 100%;
     height: 100%;
     padding: 2%;
     box-sizing: border-box;
     min-height: 12rem;
+    align-content: stretch;
 }
 
 /* Individual tile slot */
 .town-tile-slot {
     position: relative;
     width: 100%;
-    padding-top: 115%;
+    aspect-ratio: 100 / 115;
     min-height: 4.8rem;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    display: block;
     container-type: inline-size;
     /* Enable container queries */
+    overflow: visible;
+    appearance: none;
+    -webkit-appearance: none;
 }
 
-.town-tile-slot-selectable:hover .town-tile-stack-0 {
-    box-shadow: 0 0 0 0.18em #facc15, 0 0 0.65em rgba(250, 204, 21, 0.85);
+.town-tile-slot-selectable:not(:disabled):hover .town-tile-stack-0,
+.town-tile-slot-selectable:focus-visible .town-tile-stack-0 {
+    box-shadow: 0 0 0 0.18em #22c55e, 0 0 0.7em rgba(34, 197, 94, 0.6);
+    transform: translateY(-0.02em);
 }
 
 .town-tile {
@@ -57,6 +61,7 @@
     color: #333;
     filter: drop-shadow(0.1em 0.1em 0.2em rgba(0, 0, 0, 0.3));
     transition: transform 0.2s;
+    will-change: transform, box-shadow;
 }
 
 /* Fallback for browsers without container query support */

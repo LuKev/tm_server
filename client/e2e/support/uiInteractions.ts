@@ -1,5 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test'
 import { BASE_GAME_MAP } from '../../src/data/baseGameMap'
+import { getPriestSpotRect } from '../../src/components/CultTracks/CultTracks'
 
 const HEX_SIZE = 35
 const HEX_WIDTH = Math.cos(Math.PI / 6) * HEX_SIZE * 2
@@ -43,60 +44,76 @@ export async function clickHex(page: Page, q: number, r: number): Promise<void> 
   const canvas = page.getByTestId('hex-grid-canvas')
   await canvas.scrollIntoViewIfNeeded()
   await expect(canvas).toBeVisible()
-  const box = await canvas.boundingBox()
-  if (!box) {
-    throw new Error('Hex canvas bounding box unavailable')
-  }
 
   const dims = boardDimensions()
   const center = hexCenter(r, q)
   const internalX = center.x + dims.offsetX
   const internalY = center.y + dims.offsetY
 
-  const clickX = (internalX / dims.width) * box.width
-  const clickY = (internalY / dims.height) * box.height
+  await canvas.evaluate((node, target) => {
+    const el = node as HTMLCanvasElement
+    let parent = el.parentElement
+    while (parent) {
+      const style = window.getComputedStyle(parent)
+      const scrollableX = (style.overflowX === 'auto' || style.overflowX === 'scroll' || style.overflow === 'auto' || style.overflow === 'scroll')
+        && parent.scrollWidth > parent.clientWidth
+      const scrollableY = (style.overflowY === 'auto' || style.overflowY === 'scroll' || style.overflow === 'auto' || style.overflow === 'scroll')
+        && parent.scrollHeight > parent.clientHeight
+      if (scrollableX || scrollableY) {
+        const rect = el.getBoundingClientRect()
+        const scaleX = rect.width / el.width
+        const scaleY = rect.height / el.height
+        if (scrollableX) {
+          const targetX = target.internalX * scaleX
+          parent.scrollLeft = Math.max(0, targetX - parent.clientWidth / 2)
+        }
+        if (scrollableY) {
+          const targetY = target.internalY * scaleY
+          parent.scrollTop = Math.max(0, targetY - parent.clientHeight / 2)
+        }
+      }
+      parent = parent.parentElement
+    }
+  }, { internalX, internalY })
 
-  await canvas.click({
-    force: true,
-    timeout: 10_000,
-    position: {
-      x: clickX,
-      y: clickY,
-    },
+  await page.waitForTimeout(50)
+
+  const geometry = await canvas.evaluate((node) => {
+    const el = node as HTMLCanvasElement
+    const rect = el.getBoundingClientRect()
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+    }
+  })
+
+  const clickX = geometry.left + (internalX / dims.width) * geometry.width
+  const clickY = geometry.top + (internalY / dims.height) * geometry.height
+
+  await page.mouse.click(clickX, clickY, {
+    button: 'left',
   })
 }
 
 export async function clickCultSpot(page: Page, cultIndex: number, tileIndex: number): Promise<void> {
+  const overlayButton = page.getByTestId(`cult-spot-${String(cultIndex)}-${String(tileIndex)}`).first()
+  const overlayVisible = await overlayButton.isVisible().catch(() => false)
+  if (overlayVisible) {
+    await overlayButton.click({ force: true })
+    return
+  }
+
   const canvas = page.getByTestId('cult-tracks-canvas')
   await expect(canvas).toBeVisible()
 
-  const cultWidth = 250 / 4
-  const tileWidth = 25
-  const tileHeight = 20
-  const tileSpacing = 5
-  const gridWidth = tileWidth * 2 + tileSpacing
-  const startX = (cultWidth - gridWidth) / 2
-
-  const tileOriginX = (() => {
-    if (tileIndex < 4) {
-      const col = tileIndex % 2
-      return cultIndex * cultWidth + startX + col * (tileWidth + tileSpacing)
-    }
-    return cultIndex * cultWidth + startX + tileWidth / 2 + tileSpacing / 2
-  })()
-
-  const tileOriginY = (() => {
-    if (tileIndex < 4) {
-      const row = Math.floor(tileIndex / 2)
-      return 460 + row * (tileHeight + tileSpacing)
-    }
-    return 460 + 2 * (tileHeight + tileSpacing)
-  })()
+  const rect = getPriestSpotRect(cultIndex, tileIndex)
 
   // CultTracks converts mouse CSS coordinates with `* 2` internally, so click in the
   // unscaled logical space rather than scaling by rendered bounding box.
-  const clickX = tileOriginX + tileWidth / 2
-  const clickY = tileOriginY + tileHeight / 2
+  const clickX = rect.x + rect.width / 2
+  const clickY = rect.y + rect.height / 2
 
   await canvas.click({
     force: true,
@@ -122,9 +139,36 @@ export async function clickByTestId(page: Page, testId: string, options?: { allo
     await expect(locator).toBeEnabled()
   }
   await locator.scrollIntoViewIfNeeded().catch(() => undefined)
+  await locator.evaluate((node) => {
+    (node as HTMLElement).scrollIntoView({
+      block: 'center',
+      inline: 'center',
+      behavior: 'instant',
+    })
+  }).catch(() => undefined)
 
   const clicked = await locator.click({ timeout: 3_000 }).then(() => true).catch(() => false)
   if (clicked) return
+
+  if (!options?.allowForce) {
+    const geometry = await locator.evaluate((node) => {
+      const rect = (node as HTMLElement).getBoundingClientRect()
+      return {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      }
+    }).catch(() => null)
+    if (geometry && geometry.width > 0 && geometry.height > 0) {
+      await page.mouse.click(
+        geometry.left + geometry.width / 2,
+        geometry.top + geometry.height / 2,
+      ).then(() => undefined).catch(() => undefined)
+      const stillVisible = await locator.isVisible().catch(() => false)
+      if (stillVisible === false) return
+    }
+  }
 
   if (!options?.allowForce) {
     throw new Error(`unable to click data-testid=${testId} without force`)
