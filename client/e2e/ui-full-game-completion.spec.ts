@@ -2,6 +2,8 @@ import { expect, test, type Page } from '@playwright/test'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { realServerWsURL } from './support/realServerConfig'
+import { loadRealServerGamePage, primeRealServerPage } from './support/realServerPage'
 import { WsBot, type JsonObject } from './support/wsBot'
 
 type GoldenAction = {
@@ -24,22 +26,8 @@ const scriptPath = path.resolve(thisDir, 'fixtures', 's69_g2_actions.json')
 const goldenScript = JSON.parse(fs.readFileSync(scriptPath, 'utf8')) as GoldenScript
 
 async function prepareGameObserver(page: Page, gameID: string, localPlayerId: string): Promise<void> {
-  await page.addInitScript(
-    ({ playerId }) => {
-      localStorage.setItem(
-        'tm-game-storage',
-        JSON.stringify({
-          state: { localPlayerId: playerId },
-          version: 0,
-        }),
-      )
-    },
-    { playerId: localPlayerId },
-  )
-
-  await page.goto(`/game/${gameID}`)
-  await expect(page.getByTestId('game-screen')).toBeVisible()
-  await expect(page.getByTestId('player-summary-bar')).toBeVisible()
+  await primeRealServerPage(page, localPlayerId)
+  await loadRealServerGamePage(page, gameID, localPlayerId)
 }
 
 test.describe('Golden Full-Game Completion (Real Server + UI Observer)', () => {
@@ -51,7 +39,7 @@ test.describe('Golden Full-Game Completion (Real Server + UI Observer)', () => {
       'full S69 replay is unstable under strict leech-turn validation; enable explicitly for local investigation',
     )
 
-    const wsURL = 'ws://127.0.0.1:8080/api/ws'
+    const wsURL = realServerWsURL()
 
     const bots = new Map<string, WsBot>()
     try {

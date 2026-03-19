@@ -2,6 +2,18 @@
 
 - Repo rule: use Bazel (workspace: `/Users/kevin/projects/tm_server/server`). Avoid `go test`.
 
+- 2026-03-18 working/blocked split after Bazel Playwright wrapper work:
+  - Verified client-side subset under Bazel:
+    - `cd server && bazel test //:client_build_test --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-action-contract.spec.ts --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-full-game-completion.spec.ts --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-full-game-multi-pov.spec.ts --test_output=errors`
+  - The `ui-full-game-completion` and `ui-full-game-multi-pov` specs are still gated by `TM_ENABLE_FULL_REPLAY_E2E`; the Bazel runs above verify wrapper/config plumbing and spec compilation, not strict replay completion.
+  - The current local replay/parser branch is not green:
+    - `//internal/notation:notation_test` fails on cult-bump splitting expectations after local notation changes.
+    - `//internal/replay:replay_test` fails broadly on replay/leech ordering and resource alignment after the local notation/replay changes.
+    - `//internal/game:game_test` also needs follow-up before the newly added pending-priority regression tests should be committed.
+
 - 2026-03-18 live-game turn confirmation / undo backend:
   - Server now stages a pending confirmation after any action that advances the turn from `PhaseAction`; the acting player must explicitly `confirm_turn` before the next player may move.
   - `pendingDecision` now distinguishes:

@@ -2,6 +2,8 @@ import { expect, test, type Browser, type BrowserContext, type Page, type TestIn
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { realServerWsURL } from './support/realServerConfig'
+import { loadRealServerGamePage, primeRealServerPage } from './support/realServerPage'
 import { WsBot, type JsonObject } from './support/wsBot'
 
 type GoldenAction = {
@@ -41,22 +43,8 @@ async function openPlayerPov(browser: Browser, gameID: string, playerId: string,
   })
   const page = await context.newPage()
 
-  await page.addInitScript(
-    ({ localPlayerId }) => {
-      localStorage.setItem(
-        'tm-game-storage',
-        JSON.stringify({
-          state: { localPlayerId },
-          version: 0,
-        }),
-      )
-    },
-    { localPlayerId: playerId },
-  )
-
-  await page.goto(`/game/${gameID}`)
-  await expect(page.getByTestId('game-screen')).toBeVisible()
-  await expect(page.getByTestId('player-summary-bar')).toBeVisible()
+  await primeRealServerPage(page, playerId)
+  await loadRealServerGamePage(page, gameID, playerId)
   return { playerId, context, page }
 }
 
@@ -85,7 +73,7 @@ test.describe('Golden Full-Game Multi-POV Video Capture', () => {
       'full S69 replay is unstable under strict leech-turn validation; enable explicitly for local investigation',
     )
 
-    const wsURL = 'ws://127.0.0.1:8080/api/ws'
+    const wsURL = realServerWsURL()
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const artifactsRunDir = path.resolve(thisDir, 'artifacts', 's69_g2_pov', timestamp)
     const rawVideoDir = path.resolve(testInfo.outputDir, 'pov-raw')

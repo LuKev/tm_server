@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/lukev/tm_server/internal/api"
@@ -56,7 +57,13 @@ func main() {
 	replayHandler.RegisterRoutes(router)
 
 	// Start server
-	addr := ":8080"
+	addr := strings.TrimSpace(os.Getenv("PORT"))
+	if addr == "" {
+		addr = "8080"
+	}
+	if !strings.Contains(addr, ":") {
+		addr = ":" + addr
+	}
 	log.Printf("Terra Mystica server starting on %s", addr)
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatal("ListenAndServe: ", err)

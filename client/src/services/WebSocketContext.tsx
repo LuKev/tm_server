@@ -29,6 +29,11 @@ interface WebSocketProviderProps {
   children: React.ReactNode
 }
 
+type TestWebSocketWindow = Window & {
+  __TM_TEST_IS_CONNECTED__?: () => boolean
+  __TM_TEST_SEND_MESSAGE__?: (message: unknown) => void
+}
+
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false)
   const [lastMessage, setLastMessage] = useState<unknown>(null)
@@ -36,8 +41,26 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
+  const installTestHooks = useCallback((ws: WebSocket | null) => {
+    if (!import.meta.env.DEV || typeof window === 'undefined') return
+    const testWindow = window as TestWebSocketWindow
+    if (!ws) {
+      testWindow.__TM_TEST_IS_CONNECTED__ = () => false
+      testWindow.__TM_TEST_SEND_MESSAGE__ = undefined
+      return
+    }
+    testWindow.__TM_TEST_IS_CONNECTED__ = () => ws.readyState === WebSocket.OPEN
+    testWindow.__TM_TEST_SEND_MESSAGE__ = (message: unknown) => {
+      if (ws.readyState !== WebSocket.OPEN) {
+        throw new Error('WebSocket is not connected')
+      }
+      const payload = typeof message === 'string' ? message : JSON.stringify(message)
+      ws.send(payload)
+    }
+  }, [])
+
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    if (wsRef.current?.readyState === WebSocket.OPEN || wsRef.current?.readyState === WebSocket.CONNECTING) {
       return
     }
 
@@ -48,8 +71,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     const wsUrl = `${protocol}//${host}/api/ws`;
 
     const ws = new WebSocket(wsUrl);
+    wsRef.current = ws
+    installTestHooks(ws)
 
     ws.onopen = () => {
+      if (wsRef.current !== ws) return
       setIsConnected(true)
       setConnectionStatus('connected')
     }
@@ -72,12 +98,16 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
 
     ws.onerror = (_error) => {
+      if (wsRef.current !== ws) return
       setConnectionStatus('error')
     }
 
     ws.onclose = () => {
+      if (wsRef.current !== ws) return
+      wsRef.current = null
       setIsConnected(false)
       setConnectionStatus('disconnected')
+      installTestHooks(null)
 
       // Attempt to reconnect after 3 seconds
       reconnectTimeoutRef.current = setTimeout(() => {
@@ -85,8 +115,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       }, 3000)
     }
 
-    wsRef.current = ws
-  }, [])
+  }, [installTestHooks])
 
   const sendMessage = useCallback((message: unknown) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
@@ -104,11 +133,14 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current)
       }
-      if (wsRef.current) {
-        wsRef.current.close()
+      const ws = wsRef.current
+      wsRef.current = null
+      installTestHooks(null)
+      if (ws) {
+        ws.close()
       }
     }
-  }, [connect])
+  }, [connect, installTestHooks])
 
   return (
     <WebSocketContext.Provider value={{ isConnected, sendMessage, lastMessage, connectionStatus }}>
