@@ -2,6 +2,29 @@
 
 - Repo rule: use Bazel (workspace: `/Users/kevin/projects/tm_server/server`). Avoid `go test`.
 
+- 2026-03-19 round-start cult-spade / timer bug:
+  - Root cause: stale post-action turn state could survive cleanup into the next round. `PendingFreeActionsPlayerID` and `PendingTurnConfirmationPlayerID` were not being cleared at round reset, so after round-start cult reward spades resolved, the server could still think the previous-round actor owned the decision window.
+  - Symptom: after round-start cult spades (reported as Giants before Dwarves in round 2), the UI timer still highlighted the old player and the real next player could not act because turn confirmation was still pending for the stale player ID.
+  - Fix: clear pending free-action / turn-confirmation windows in both `ResetRoundState()` and `StartNewRound()` so no post-action window can leak across a round boundary.
+  - Regression coverage:
+    - `TestResetRoundState` now asserts pending free actions and turn confirmation state are cleared.
+    - `TestTurnTimer_CultSpadeRoundStartClearsStaleTurnConfirmationWindows` simulates round-start cult spade resolution, verifies timer handoff to the new round's first player, and confirms that player can act.
+  - Verification:
+    - `cd server && bazel test //internal/game:game_test --test_filter='TestResetRoundState|TestTurnTimer_' --test_output=errors`
+  - Current unrelated repo failure while spot-checking broader coverage:
+    - `cd server && bazel test //internal/game:game_test --test_output=errors` currently fails in `TestManager_PostActionFreeWindow_PendingResolutionAdvancesTurnAndKeepsFreeWindow` because the test tries to add both Auren and Witches (duplicate Forest home terrain). This does not touch the round-start cult-spade fix.
+
+- 2026-03-19 decision-strip actor copy:
+  - The in-game decision strip now always shows a top-level "Required Action" line naming the current actor(s), even when the lower portion of the strip is showing confirmations, hex-target prompts, or other inline controls.
+  - Action-phase default copy is explicit:
+    - local player: `You must take an action.`
+    - remote player: `<name> must take an action.`
+  - Pending-decision copy is specialized per decision type, including cult-reward spades (`<name> must use cult spades.`) and multi-player leech windows (`Alice and Bob must make leech decisions.`).
+  - Interrupted Bazel Playwright runs can leave the backend on `:18080` and the ephemeral Vite port occupied; if `//:client_playwright_test` immediately fails saying a port is already used, kill the stale test server processes before rerunning.
+  - Verification:
+    - `cd server && bazel test //:client_build_test --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-action-contract.spec.ts --test_output=errors`
+
 - 2026-03-19 TM lobby flow:
   - Lobby open seats are now restricted to one unstarted game per player. Creating a game auto-seats the creator immediately, joining a second open game is rejected server-side, and `leave_game` is the explicit escape hatch before starting.
   - Lobby metadata now keeps started games for reconnect authorization (`get_game_state` still checks `lobby.GetGame(...)`), but `ListGames()` only returns unstarted games so the lobby UI shows true open tables.

@@ -151,3 +151,82 @@ func TestTurnTimer_FastAuctionTracksAllUnsubmittedPlayers(t *testing.T) {
 		t.Fatalf("serialized activePlayerIds = %v, want [p1 p3]", turnTimer["activePlayerIds"])
 	}
 }
+
+func TestTurnTimer_CultSpadeRoundStartClearsStaleTurnConfirmationWindows(t *testing.T) {
+	baseTime := time.Unix(1_700_000_200, 0)
+	now := baseTime
+
+	mgr := NewManager()
+	mgr.now = func() time.Time { return now }
+
+	gs := NewGameState()
+	if err := gs.AddPlayer("dwarves", factions.NewDwarves()); err != nil {
+		t.Fatalf("add dwarves: %v", err)
+	}
+	if err := gs.AddPlayer("giants", factions.NewGiants()); err != nil {
+		t.Fatalf("add giants: %v", err)
+	}
+
+	gs.Round = 1
+	gs.Phase = PhaseCleanup
+	gs.TurnOrder = []string{"giants", "dwarves"}
+	gs.PassOrder = []string{"dwarves", "giants"}
+	gs.PendingFreeActionsPlayerID = "giants"
+	gs.PendingTurnConfirmationPlayerID = "giants"
+	gs.PendingTurnConfirmationSnapshot = NewGameState()
+	gs.TurnTimer = NewTurnTimerState([]string{"dwarves", "giants"}, TurnTimerConfig{
+		InitialTimeMs: 60_000,
+		IncrementMs:   5_000,
+	})
+
+	gs.ResetRoundState()
+	gs.StartNewRound()
+	gs.PendingCultRewardSpades = map[string]int{"giants": 1}
+
+	mgr.CreateGameWithState("g1", gs)
+
+	if gs.TurnOrder[0] != "dwarves" {
+		t.Fatalf("turn order[0] = %s, want dwarves", gs.TurnOrder[0])
+	}
+	giantsTimer := gs.TurnTimer.Players["giants"]
+	dwarvesTimer := gs.TurnTimer.Players["dwarves"]
+	if dwarvesTimer == nil || giantsTimer == nil {
+		t.Fatal("missing timer state")
+	}
+	if giantsTimer.ActiveSinceMs != now.UnixMilli() {
+		t.Fatalf("expected giants timer active during cult spade at %d, got %d", now.UnixMilli(), giantsTimer.ActiveSinceMs)
+	}
+
+	if _, err := mgr.ExecuteActionWithMeta("g1", NewDiscardPendingSpadeAction("giants", 1), ActionMeta{ExpectedRevision: 0}); err != nil {
+		t.Fatalf("giants discard cult spade: %v", err)
+	}
+
+	if gs.Phase != PhaseAction {
+		t.Fatalf("phase = %v, want %v", gs.Phase, PhaseAction)
+	}
+	current := gs.GetCurrentPlayer()
+	if current == nil || current.ID != "dwarves" {
+		t.Fatalf("current player = %v, want dwarves", current)
+	}
+	if gs.PendingFreeActionsPlayerID != "" {
+		t.Fatalf("expected pending free actions to clear, got %q", gs.PendingFreeActionsPlayerID)
+	}
+	if gs.PendingTurnConfirmationPlayerID != "" || gs.PendingTurnConfirmationSnapshot != nil {
+		t.Fatalf("expected pending turn confirmation to clear")
+	}
+	if dwarvesTimer.ActiveSinceMs != now.UnixMilli() {
+		t.Fatalf("expected dwarves timer active at %d, got %d", now.UnixMilli(), dwarvesTimer.ActiveSinceMs)
+	}
+	if giantsTimer.ActiveSinceMs != 0 {
+		t.Fatalf("expected giants timer stopped, got %d", giantsTimer.ActiveSinceMs)
+	}
+
+	now = now.Add(time.Second)
+	if _, err := mgr.ExecuteActionWithMeta("g1", &ConversionAction{
+		BaseAction:     BaseAction{Type: ActionConversion, PlayerID: "dwarves"},
+		ConversionType: ConversionWorkerToCoin,
+		Amount:         1,
+	}, ActionMeta{ExpectedRevision: 1}); err != nil {
+		t.Fatalf("dwarves should be able to act after cult spades resolve: %v", err)
+	}
+}

@@ -589,10 +589,12 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
         ...makeBaseGameState().players,
         p1: { ...makeBaseGameState().players.p1, name: 'Alice', townTiles: [TownTileId.Vp4Ship1] },
         p2: { ...makeBaseGameState().players.p2, name: 'Bob', townTiles: [TownTileId.Vp7Workers2] },
+        p3: { ...makeBaseGameState().players.p3, name: 'Carol' },
       },
     })
 
     await openGameWithState(page, state)
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Bob must take an action.')
 
     await expect(page.getByTestId('player-summary-bar')).toContainText('Alice')
     await expect(page.getByTestId('player-summary-bar')).toContainText('Bob')
@@ -613,6 +615,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
         pendingDecision: { type: 'favor_tile_selection', playerId: 'p1' },
       },
     })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('You must select a favor tile.')
     await expect(page.getByTestId('game-decision-strip')).toContainText('Please select a favor tile')
     await expect(page.getByTestId(`favor-tile-${String(FavorTileType.Water2)}`)).toHaveClass(/favor-tile-selectable/)
 
@@ -623,6 +626,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
         pendingDecision: { type: 'town_tile_selection', playerId: 'p1' },
       },
     })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('You must select a town tile.')
     await expect(page.getByTestId('game-decision-strip')).toContainText('Please select a town tile')
     await expect(page.getByTestId(`town-tile-${String(TownTileId.Vp7Workers2)}`)).toHaveClass(/town-tile-slot-selectable/)
 
@@ -642,8 +646,23 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
         },
       },
     })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Bob and Carol must make leech decisions.')
     await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting On Leech Responses')
-    await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting for 2 other players')
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Waiting for Bob and Carol to accept or decline leech.')
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        pendingDecision: {
+          type: 'cult_reward_spade',
+          playerId: 'p2',
+          spadesRemaining: 1,
+        },
+        pendingLeechOffers: {},
+      },
+    })
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Bob must use cult spades.')
   })
 
   test('selectable town tiles highlight in green on hover', async ({ page }) => {

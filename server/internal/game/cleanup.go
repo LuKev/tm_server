@@ -76,6 +76,8 @@ func (gs *GameState) ResetRoundState() {
 		}
 	}
 	gs.PendingTownFormations = retainedTownFormations
+	gs.PendingFreeActionsPlayerID = ""
+	gs.ClearPendingTurnConfirmation()
 
 	// Note: PendingSpades will be cleared at the start of the next income phase
 	// This allows cult reward spades to be used for bonus transforms during cleanup

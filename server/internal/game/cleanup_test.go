@@ -133,6 +133,9 @@ func TestResetRoundState(t *testing.T) {
 	gs.PendingLeechOffers = map[string][]*PowerLeechOffer{
 		"player1": {{Amount: 5}},
 	}
+	gs.PendingFreeActionsPlayerID = "player1"
+	gs.PendingTurnConfirmationPlayerID = "player1"
+	gs.PendingTurnConfirmationSnapshot = NewGameState()
 
 	// Reset round state
 	gs.ResetRoundState()
@@ -147,6 +150,12 @@ func TestResetRoundState(t *testing.T) {
 	}
 	if len(gs.PendingLeechOffers) != 0 {
 		t.Error("PendingLeechOffers should be cleared")
+	}
+	if gs.PendingFreeActionsPlayerID != "" {
+		t.Error("PendingFreeActionsPlayerID should be cleared")
+	}
+	if gs.PendingTurnConfirmationPlayerID != "" || gs.PendingTurnConfirmationSnapshot != nil {
+		t.Error("Pending turn confirmation should be cleared")
 	}
 }
 

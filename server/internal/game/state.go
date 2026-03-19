@@ -925,6 +925,9 @@ func (gs *GameState) StartNewRound() {
 
 	gs.Round++
 	gs.CurrentPlayerIndex = 0
+	// Post-action confirmation/free-action windows never carry across rounds.
+	gs.PendingFreeActionsPlayerID = ""
+	gs.ClearPendingTurnConfirmation()
 
 	// Set turn order based on pass order (first to pass goes first next round)
 	if len(gs.PassOrder) > 0 {

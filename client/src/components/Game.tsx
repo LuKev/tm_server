@@ -169,6 +169,25 @@ const bonusCardLabel = (id: number): string => {
 
 const isActionPhase = (phase?: GamePhase): boolean => phase === GamePhase.Action
 
+const formatActorList = (
+  playerIds: string[],
+  players: Record<string, { name?: string } | undefined> | undefined,
+  localPlayerId: string | null | undefined,
+): string => {
+  const uniqueIds = playerIds.filter((playerId, index) => playerId && playerIds.indexOf(playerId) === index)
+  const labels = uniqueIds.map((playerId) => {
+    if (playerId === localPlayerId) return 'You'
+    const player = players?.[playerId]
+    const displayName = typeof player?.name === 'string' ? player.name.trim() : ''
+    return displayName || playerId
+  })
+
+  if (labels.length === 0) return 'Unknown player'
+  if (labels.length === 1) return labels[0]
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`
+  return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
+}
+
 export const Game = () => {
   const { gameId } = useParams()
   const { isConnected, sendMessage, lastMessage } = useWebSocket()
@@ -446,6 +465,110 @@ export const Game = () => {
     if (pendingLeechResponders.includes(localPlayerId)) return 0
     return pendingLeechResponders.filter((pid) => pid !== localPlayerId).length
   }, [isMyTurn, localPlayerId, pendingLeechResponders])
+  const setupDwellingPlayerId = useMemo(() => {
+    if (!gameState?.setupDwellingOrder) return null
+    const idx = gameState.setupDwellingIndex ?? -1
+    if (idx < 0 || idx >= gameState.setupDwellingOrder.length) return null
+    return gameState.setupDwellingOrder[idx] ?? null
+  }, [gameState?.setupDwellingOrder, gameState?.setupDwellingIndex])
+  const orderedPendingLeechResponders = useMemo(() => {
+    if (pendingLeechResponders.length === 0) return [] as string[]
+    const turnOrder = gameState?.turnOrder ?? []
+    const pendingSet = new Set(pendingLeechResponders)
+    const ordered = turnOrder.filter((playerId) => pendingSet.has(playerId))
+    pendingLeechResponders.forEach((playerId) => {
+      if (!ordered.includes(playerId)) {
+        ordered.push(playerId)
+      }
+    })
+    return ordered
+  }, [gameState?.turnOrder, pendingLeechResponders])
+  const pendingLeechResponderList = useMemo(
+    () => formatActorList(orderedPendingLeechResponders, gameState?.players, localPlayerId),
+    [gameState?.players, localPlayerId, orderedPendingLeechResponders],
+  )
+  const decisionStripStatus = useMemo(() => {
+    const actorText = (playerIds: string[], singularAction: string, pluralAction = singularAction): string => {
+      const uniqueIds = playerIds.filter((playerId, index) => playerId && playerIds.indexOf(playerId) === index)
+      if (uniqueIds.length === 0) return ''
+      return `${formatActorList(uniqueIds, gameState?.players, localPlayerId)} ${uniqueIds.length > 1 ? pluralAction : singularAction}`
+    }
+
+    if (orderedPendingLeechResponders.length > 0) {
+      return actorText(orderedPendingLeechResponders, 'must make a leech decision.', 'must make leech decisions.')
+    }
+
+    switch (pendingDecisionType) {
+      case 'cult_reward_spade':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must use cult spades.')
+      case 'spade_followup':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must resolve pending spades.')
+      case 'post_action_free_actions':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must finish free actions or confirm the turn.')
+      case 'turn_confirmation':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must confirm or undo the turn.')
+      case 'favor_tile_selection':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must select a favor tile.')
+      case 'town_tile_selection':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must select a town tile.')
+      case 'town_cult_top_choice':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose cult tracks to top.')
+      case 'setup_bonus_card':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose a setup bonus card.')
+      case 'darklings_ordination':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose a Darklings ordination.')
+      case 'cultists_cult_choice':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose a cult track.')
+      case 'halflings_spades': {
+        const remaining = Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0)
+        return actorText([pendingDecisionPlayerId ?? ''], remaining === 0 ? 'must decide whether to build a dwelling.' : 'must use Halflings spades.')
+      }
+      case 'auction_nomination':
+        return actorText([pendingDecisionPlayerId ?? auctionState?.currentBidder ?? ''], 'must nominate a faction.')
+      case 'auction_bid':
+        return actorText([pendingDecisionPlayerId ?? auctionState?.currentBidder ?? ''], 'must place a bid.')
+      case 'fast_auction_bid_matrix':
+        return actorText(pendingDecisionPlayerIds, 'must submit bids.', 'must submit bids.')
+      default:
+        break
+    }
+
+    if (gameState?.phase === GamePhase.FactionSelection) {
+      if (setupMode === 'snellman' && currentPlayerId) {
+        return actorText([currentPlayerId], 'must choose a faction.')
+      }
+      if (setupMode === 'auction' && (pendingDecisionPlayerId ?? auctionState?.currentBidder)) {
+        return actorText([pendingDecisionPlayerId ?? auctionState?.currentBidder ?? ''], 'must continue the auction.')
+      }
+      if (setupMode === 'fast_auction' && pendingDecisionPlayerIds.length > 0) {
+        return actorText(pendingDecisionPlayerIds, 'must submit bids.', 'must submit bids.')
+      }
+    }
+
+    if (gameState?.phase === GamePhase.Setup && setupDwellingPlayerId) {
+      return actorText([setupDwellingPlayerId], 'must place a dwelling.')
+    }
+
+    if (isActionPhase(gameState?.phase) && currentPlayerId) {
+      return actorText([currentPlayerId], 'must take an action.')
+    }
+
+    return 'Waiting for the next required action.'
+  }, [
+    auctionState?.currentBidder,
+    currentPlayerId,
+    gameState?.pendingHalflingsSpades,
+    gameState?.phase,
+    gameState?.players,
+    gameState?.turnOrder,
+    localPlayerId,
+    orderedPendingLeechResponders,
+    pendingDecisionPlayerId,
+    pendingDecisionPlayerIds,
+    pendingDecisionType,
+    setupDwellingPlayerId,
+    setupMode,
+  ])
 
   useEffect(() => {
     if (!(hasPendingDecisionForMe && pendingDecisionType === 'town_cult_top_choice')) {
@@ -484,13 +607,6 @@ export const Game = () => {
       return next
     })
   }, [isFastAuctionBidDecisionForMe, pendingAuctionFactions])
-
-  const setupDwellingPlayerId = useMemo(() => {
-    if (!gameState?.setupDwellingOrder) return null
-    const idx = gameState.setupDwellingIndex ?? -1
-    if (idx < 0 || idx >= gameState.setupDwellingOrder.length) return null
-    return gameState.setupDwellingOrder[idx] ?? null
-  }, [gameState?.setupDwellingOrder, gameState?.setupDwellingIndex])
 
   const hasPendingSpadesForMe = useMemo(() => {
     if (!localPlayerId) return 0
@@ -1409,6 +1525,10 @@ export const Game = () => {
         )}
 
         <div className="mb-3 sticky top-2 z-40 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px] shadow-sm" data-testid="game-decision-strip">
+          <div className="mb-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Action</div>
+            <div className="text-sm font-semibold text-slate-900">{decisionStripStatus}</div>
+          </div>
           {confirmDialog ? (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -1722,7 +1842,7 @@ export const Game = () => {
               <div>
                 <div className="text-sm font-semibold text-slate-900">Waiting On Leech Responses</div>
                 <div className="text-sm text-slate-700">
-                  Waiting for {String(waitingOnOtherLeechResponses)} other player{waitingOnOtherLeechResponses === 1 ? '' : 's'} to accept/decline leech.
+                  Waiting for {pendingLeechResponderList} to accept or decline leech.
                 </div>
               </div>
             </div>
@@ -1763,7 +1883,7 @@ export const Game = () => {
               </div>
             </div>
           ) : (
-            <div className="text-sm text-slate-500">No pending confirmations.</div>
+            <div className="text-sm text-slate-500">No pending follow-up controls.</div>
           )}
         </div>
 
