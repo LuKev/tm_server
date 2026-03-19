@@ -9,7 +9,7 @@ const backendPort = process.env.VITE_BACKEND_PORT ?? process.env.TM_PLAYWRIGHT_S
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Base path for production deployment at kezilu.com/tm
+  // Base path is configurable for subpath deployments. Railway production serves at root.
   base: process.env.VITE_BASE_PATH || '/',
   cacheDir: process.env.VITE_CACHE_DIR || 'node_modules/.vite',
   resolve: {
