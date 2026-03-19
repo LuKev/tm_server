@@ -13,6 +13,7 @@
     - `//internal/notation:notation_test` fails on cult-bump splitting expectations after local notation changes.
     - `//internal/replay:replay_test` fails broadly on replay/leech ordering and resource alignment after the local notation/replay changes.
     - `//internal/game:game_test` also needs follow-up before the newly added pending-priority regression tests should be committed.
+  - 2026-03-19 follow-up: the remaining local replay/parser/fixture diff from that branch was discarded instead of committed. Revalidating it still left `notation_test` and `replay_test` broadly red, so treat that change set as an abandoned experiment rather than an in-progress patch to revive.
 
 - 2026-03-18 live-game turn confirmation / undo backend:
   - Server now stages a pending confirmation after any action that advances the turn from `PhaseAction`; the acting player must explicitly `confirm_turn` before the next player may move.
