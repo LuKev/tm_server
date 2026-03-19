@@ -535,12 +535,59 @@ func TestPowerAction_InsufficientPower(t *testing.T) {
 
 	player := gs.GetPlayer("player1")
 	player.Resources.Power.Bowl3 = 2 // Not enough for any action
+	player.Resources.Power.Bowl2 = 0
 
 	action := NewPowerAction("player1", PowerActionBridge)
 
 	err := action.Execute(gs)
 	if err == nil {
 		t.Fatal("expected error when player has insufficient power")
+	}
+}
+
+func TestPowerAction_AutoBurnsMissingPowerBeforeClaim(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+
+	player := gs.GetPlayer("player1")
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		t.Fatal("missing player resources")
+	}
+	player.Resources.Power.Bowl1 = 0
+	player.Resources.Power.Bowl2 = 11
+	player.Resources.Power.Bowl3 = 1
+	player.Resources.Coins = 20
+	player.Resources.Workers = 20
+	player.Resources.Priests = 5
+
+	initialHex := board.NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+	targetHex := board.NewHex(1, 0)
+	gs.Map.TransformTerrain(targetHex, models.TerrainForest)
+
+	if err := NewPowerActionWithTransform("player1", PowerActionSpade2, targetHex, true).Execute(gs); err != nil {
+		t.Fatalf("expected auto-burned ACT6 to succeed, got error: %v", err)
+	}
+
+	if player.Resources.Power.Bowl1 != 6 {
+		t.Fatalf("bowl1 = %d, want 6 after ACT6", player.Resources.Power.Bowl1)
+	}
+	if player.Resources.Power.Bowl2 != 1 {
+		t.Fatalf("bowl2 = %d, want 1 after auto-burn", player.Resources.Power.Bowl2)
+	}
+	if player.Resources.Power.Bowl3 != 0 {
+		t.Fatalf("bowl3 = %d, want 0 after auto-burn and spend", player.Resources.Power.Bowl3)
+	}
+	if gs.Map.GetHex(targetHex).Building == nil {
+		t.Fatal("expected ACT6 target hex to have a dwelling after execution")
 	}
 }
 

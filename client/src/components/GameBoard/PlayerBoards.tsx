@@ -3,7 +3,7 @@ import { useGameStore } from '../../stores/gameStore';
 import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
-import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon } from '../shared/Icons';
+import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon, ShippingIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import { TownTileId } from '../../types/game.types';
@@ -35,7 +35,7 @@ const getTownTileConfig = (tileId: TownTileId): { vp: number; rewards: React.Rea
         case TownTileId.Vp7Workers2:
             return { vp: 7, rewards: <WorkerIcon className="icon-sm">2</WorkerIcon> };
         case TownTileId.Vp4Ship1:
-            return { vp: 4, rewards: <span style={{ fontSize: '0.6em' }}>Ship</span> };
+            return { vp: 4, rewards: <ShippingIcon className="icon-sm" /> };
         case TownTileId.Vp8Cult1:
             return { vp: 8, rewards: <CultRhombusIcon className="icon-sm" /> };
         case TownTileId.Vp9Priest1:
@@ -180,6 +180,8 @@ interface PlayerBoardProps {
     turnOrder: number | string;
     isCurrentPlayer?: boolean;
     isReplayMode?: boolean;
+    canUseTurnActions?: boolean;
+    canUseConversions?: boolean;
     onConversion?: (playerId: string, conversionType: string) => void;
     onBurnPower?: (playerId: string, amount: number) => void;
     onAdvanceShipping?: (playerId: string) => void;
@@ -199,6 +201,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     turnOrder,
     isCurrentPlayer,
     isReplayMode,
+    canUseTurnActions = false,
+    canUseConversions = false,
     onConversion,
     onBurnPower,
     onAdvanceShipping,
@@ -272,6 +276,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const strongholdActionType = getStrongholdActionType(factionType);
     const isStrongholdActionUsed = strongholdActionType !== null && player.specialActionsUsed?.[strongholdActionType];
     const isLocalPlayer = localPlayerId === playerId;
+    const pendingDecision = gameState?.pendingDecision as { type?: string; playerId?: string } | null | undefined;
+    const isLocalPostActionFreeWindow = isLocalPlayer
+        && pendingDecision?.playerId === playerId
+        && pendingDecision?.type === 'post_action_free_actions';
+    const conversionActionsEnabled = canUseConversions || isLocalPostActionFreeWindow;
     const isEngineersSquareAction = factionType === FactionType.Engineers;
     const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
     const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
@@ -282,6 +291,37 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
+    const townTiles = player.townTiles ?? [];
+
+    const renderTownTiles = (): React.ReactNode => {
+        if (townTiles.length === 0) {
+            return <div className="pb-empty-text">None</div>;
+        }
+        return (
+            <div className="pb-towns-list">
+                {townTiles.map((tileId, idx) => {
+                    const config = getTownTileConfig(tileId as TownTileId);
+                    return (
+                        <div key={`town-${String(idx)}`} className="pb-town-slot">
+                            <div className="town-tile">
+                                <div className="town-tile-content">
+                                    <div className="town-tile-top">
+                                        <span className="vp-value">{config.vp}</span>
+                                        <span className="vp-label">VP</span>
+                                    </div>
+                                    {config.rewards && (
+                                        <div className="town-tile-bottom">
+                                            {config.rewards}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
 
     return (
         <div className="pb-resize-container">
@@ -330,6 +370,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                         className="conversion-btn"
                                         style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
                                         onClick={() => { onAdvanceShipping?.(playerId); }}
+                                        disabled={!canUseTurnActions}
                                     >
                                         +Ship
                                     </button>
@@ -339,6 +380,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                         className="conversion-btn"
                                         style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
                                         onClick={() => { onAdvanceDigging?.(playerId); }}
+                                        disabled={!canUseTurnActions}
                                     >
                                         +Dig
                                     </button>
@@ -381,7 +423,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                     isUsed={isStrongholdActionUsed}
                                                     isActive={isStrongholdActionActive}
                                                     onClick={() => { if (strongholdActionType !== null) onStrongholdAction?.(playerId, strongholdActionType); }}
-                                                    disabled={!isLocalPlayer || !!isStrongholdActionUsed}
+                                                    disabled={!isLocalPlayer || !canUseTurnActions || !!isStrongholdActionUsed}
                                                     testId={`player-${playerId}-stronghold-action`}
                                                 />
                                             </div>
@@ -392,7 +434,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                     isActive={isLocalEngineersBridgeActive}
                                                     label="BR"
                                                     onClick={() => { onEngineersBridgeAction?.(playerId); }}
-                                                    disabled={!isLocalPlayer}
+                                                    disabled={!isLocalPlayer || !canUseTurnActions}
                                                     testId={`player-${playerId}-engineers-bridge`}
                                                 />
                                             </div>
@@ -403,7 +445,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                     isActive={isLocalMermaidsConnectActive}
                                                     label="CT"
                                                     onClick={() => { onMermaidsConnectAction?.(playerId); }}
-                                                    disabled={!isLocalPlayer}
+                                                    disabled={!isLocalPlayer || !canUseTurnActions}
                                                     testId={`player-${playerId}-mermaids-connect`}
                                                 />
                                             </div>
@@ -498,57 +540,32 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                         </div>
                     </div>
 
-                    {/* Column 2: Conversions on the local player's board, towns elsewhere */}
+                    {/* Column 2: Local players get conversions plus towns; others show towns */}
                     <div className="pb-conversions-col">
                         {(isReplayMode || !isLocalPlayer) ? (
                             <>
                                 <div className="pb-section-title">Towns</div>
                                 <div className="pb-towns-area">
-                                    {(() => {
-                                        const townTiles = player.townTiles ?? [];
-                                        if (townTiles.length === 0) {
-                                            return <div className="pb-empty-text">None</div>;
-                                        }
-                                        return (
-                                            <div className="pb-towns-list">
-                                                {townTiles.map((tileId, idx) => {
-                                                    const config = getTownTileConfig(tileId as TownTileId);
-                                                    return (
-                                                        <div key={`town-${String(idx)}`} className="pb-town-slot">
-                                                            <div className="town-tile">
-                                                                <div className="town-tile-content">
-                                                                    <div className="town-tile-top">
-                                                                        <span className="vp-value">{config.vp}</span>
-                                                                        <span className="vp-label">VP</span>
-                                                                    </div>
-                                                                    {config.rewards && (
-                                                                        <div className="town-tile-bottom">
-                                                                            {config.rewards}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })}
-                                            </div>
-                                        );
-                                    })()}
+                                    {renderTownTiles()}
                                 </div>
                             </>
                         ) : (
                             <>
                                 <div className="pb-section-title">Conversions</div>
                                 <div className="conversion-area">
-                                    <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer}>1 Priest → 1 Worker</button>
-                                    <button data-testid={`player-${playerId}-conversion-worker_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'worker_to_coin'); }} disabled={!isLocalPlayer}>1 Worker → 1 Coin</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer}>5 PW → 1 Priest</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer}>3 PW → 1 Worker</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer}>1 PW → 1 Coin</button>
-                                    <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer}>Burn 2PW → +1 Bowl III</button>
+                                    <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Priest → 1 Worker</button>
+                                    <button data-testid={`player-${playerId}-conversion-worker_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'worker_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Worker → 1 Coin</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>5 PW → 1 Priest</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>3 PW → 1 Worker</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 PW → 1 Coin</button>
+                                    <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>Burn 2PW → +1 Bowl III</button>
                                     {factionType === FactionType.Alchemists && (
-                                        <button data-testid={`player-${playerId}-conversion-alchemists_vp_to_coin`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer}>1 VP → 1 Coin</button>
+                                        <button data-testid={`player-${playerId}-conversion-alchemists_vp_to_coin`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 VP → 1 Coin</button>
                                     )}
+                                </div>
+                                <div className="pb-section-title">Towns</div>
+                                <div className="pb-towns-area">
+                                    {renderTownTiles()}
                                 </div>
                             </>
                         )}
@@ -619,12 +636,13 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                             data-testid={`player-${playerId}-water2-action`}
                                                             className={isLocalWater2Active ? 'pb-special-action-active' : 'pb-special-action-hover'}
                                                             onClick={() => { onWater2Action?.(playerId); }}
+                                                            disabled={!canUseTurnActions}
                                                             style={{
                                                                 position: 'absolute',
                                                                 inset: 0,
                                                                 background: 'transparent',
                                                                 border: 'none',
-                                                                cursor: 'pointer',
+                                                                cursor: canUseTurnActions ? 'pointer' : 'not-allowed',
                                                                 borderRadius: '0.45rem',
                                                             }}
                                                         />
@@ -647,6 +665,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
 
 interface PlayerBoardsProps {
     isReplayMode?: boolean;
+    canUseTurnActions?: boolean;
+    canUseConversions?: boolean;
     onConversion?: (playerId: string, conversionType: string) => void;
     onBurnPower?: (playerId: string, amount: number) => void;
     onAdvanceShipping?: (playerId: string) => void;
@@ -663,6 +683,8 @@ interface PlayerBoardsProps {
 
 export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
     isReplayMode,
+    canUseTurnActions = false,
+    canUseConversions = false,
     onConversion,
     onBurnPower,
     onAdvanceShipping,
@@ -738,6 +760,8 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
                             turnOrder={turnOrder}
                             isCurrentPlayer={isCurrentPlayer}
                             isReplayMode={isReplayMode}
+                            canUseTurnActions={canUseTurnActions}
+                            canUseConversions={canUseConversions}
                             onConversion={onConversion}
                             onBurnPower={onBurnPower}
                             onAdvanceShipping={onAdvanceShipping}

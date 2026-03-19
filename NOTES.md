@@ -28,7 +28,13 @@
   - Selectable town tiles use a green hover/focus ring (`#22c55e`) to match the other selectable board affordances.
   - Cult-track priest spot hit testing is centralized in `getPriestSpotRect(...)` and shared between the canvas renderer and Playwright helpers; keep the geometry in sync through that helper rather than duplicating constants. The canvas priest-box drawing uses a `450px` local translate so the visual boxes align with the absolute overlay buttons.
   - Player-board conversions now render on the local player's board, not the current turn player's board, and remain usable during an off-turn `post_action_free_actions` window.
+  - The local player's board still needs the normal town section; local boards should show `Conversions` plus `Towns`, while non-local boards keep just `Towns`.
+  - The `VP4 ship/carpet` town reward should render with the same shipping boat icon used elsewhere, not the literal text `Ship/Carpet`.
   - Live-game confirmations for hex action / upgrade / cult choice / setup bonus / darklings ordination / cultists cult choice / halflings dwelling are inline in the decision strip instead of modal popups.
+  - Board/display coordinates should use row-normalized letter+number labels from the fixed map layout (`A1` at axial `{q:0,r:0}`, `A3` at `{q:-1,r:2}`); do not derive labels directly from raw `q`.
+  - While one player is in `post_action_free_actions` or `turn_confirmation`, the next player should be client-blocked from starting actions until that confirmation resolves.
+  - Power actions may auto-burn the exact Bowl II shortfall needed to afford the chosen action; undo must restore the pre-burn state together with the claimed power action.
+  - `use_cult_spade` should support an explicit target terrain choice so cult-reward spades do not silently auto-pick the transformed terrain.
   - Verification:
     - `cd server && bazel test //internal/game:game_test --test_filter='TestManager(PostActionFreeWindow|TurnConfirmation)' --test_output=errors`
     - `cd server && bazel test //internal/websocket:websocket_test --test_output=errors`

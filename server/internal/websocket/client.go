@@ -1076,7 +1076,14 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
-		return game.NewUseCultSpadeAction(seatID, hex), nil
+		targetTerrain := models.TerrainTypeUnknown
+		if raw, ok := getParam("targetTerrain"); ok {
+			targetTerrain, err = parseTerrainTypeRaw(raw)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return game.NewUseCultSpadeActionWithTerrain(seatID, hex, targetTerrain), nil
 
 	case "select_cultists_track":
 		track, err := parseCultTrack(getParam)

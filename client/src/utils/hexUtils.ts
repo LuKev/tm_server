@@ -1,5 +1,7 @@
 // Hex coordinate utilities - TypeScript version of terra-mystica/stc/game.js
 
+import { BASE_GAME_MAP } from '../data/baseGameMap'
+
 export interface AxialCoord {
   q: number;
   r: number;
@@ -9,6 +11,30 @@ export interface PixelCoord {
   x: number;
   y: number;
 }
+
+const DISPLAY_COORDINATES = (() => {
+  const byRow = new Map<number, number[]>()
+  BASE_GAME_MAP.forEach((hex) => {
+    if (hex.isRiver) return
+    const qValues = byRow.get(hex.coord.r)
+    if (qValues) {
+      qValues.push(hex.coord.q)
+      return
+    }
+    byRow.set(hex.coord.r, [hex.coord.q])
+  })
+
+  const labels = new Map<string, string>()
+  byRow.forEach((qValues, row) => {
+    qValues
+      .sort((left, right) => left - right)
+      .forEach((q, landIndex) => {
+        labels.set(`${String(q)},${String(row)}`, `${String.fromCharCode(65 + row)}${String(landIndex + 1)}`)
+      })
+  })
+
+  return labels
+})()
 
 // Hex size constant (matches terra-mystica/stc/game.js)
 export const HEX_SIZE = 35;
@@ -47,6 +73,14 @@ export function axialToRowCol(coord: AxialCoord): { row: number; col: number } {
     row: coord.r,
     col: coord.q,
   };
+}
+
+export function getDisplayCoordinate(coord: AxialCoord): string | null {
+  return DISPLAY_COORDINATES.get(`${String(coord.q)},${String(coord.r)}`) ?? null
+}
+
+export function formatDisplayCoordinate(coord: AxialCoord): string {
+  return getDisplayCoordinate(coord) ?? `(${String(coord.q)}, ${String(coord.r)})`
 }
 
 /**

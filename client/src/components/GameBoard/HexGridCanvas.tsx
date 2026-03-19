@@ -1,7 +1,7 @@
 // Canvas-based hex grid renderer - based on terra-mystica/stc/game.js
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
 import type { MapHexData } from '../../data/baseGameMap';
-import { hexCenter, HEX_SIZE } from '../../utils/hexUtils';
+import { getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
 import type { Building, Bridge } from '../../types/game.types';
 import { BuildingType } from '../../types/game.types';
@@ -168,12 +168,14 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
 
     // Show coordinates when showCoords is true
     if (showCoords) {
+      const displayCoord = getDisplayCoordinate(hex.coord)
+      if (displayCoord === null) return
       ctx.save();
       ctx.fillStyle = getContrastColor(fillColor);
       ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${String(hex.coord.q)},${String(hex.coord.r)}`, center.x, center.y);
+      ctx.fillText(displayCoord, center.x, center.y);
       ctx.restore();
     }
   }, [showCoords]);

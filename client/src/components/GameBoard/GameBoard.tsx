@@ -13,6 +13,7 @@ interface GameBoardProps {
   onBridgeEdgeClick?: (from: { q: number; r: number }, to: { q: number; r: number }) => void;
   bridgeEdgeSelectionEnabled?: boolean;
   onPowerActionClick?: (action: PowerActionType) => void;
+  disablePowerActions?: boolean;
   isReplayMode?: boolean;
 }
 
@@ -21,6 +22,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   onBridgeEdgeClick,
   bridgeEdgeSelectionEnabled,
   onPowerActionClick,
+  disablePowerActions = false,
   isReplayMode
 }): React.ReactElement => {
   const gameState = useGameStore(s => s.gameState);
@@ -95,7 +97,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Power Actions Section */}
       <div className="border-t pt-4 flex-1 min-h-0" data-testid="power-actions-section">
-        <PowerActions onActionClick={handlePowerActionClick} />
+        <PowerActions onActionClick={handlePowerActionClick} disabled={disablePowerActions} />
       </div>
 
       {/* Player Boards Section */}

@@ -296,6 +296,35 @@ func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 	}
 }
 
+func TestUseCultSpadeAction_AllowsExplicitTerrainChoice(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+
+	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
+
+	homeHex := board.NewHex(0, 0)
+	gs.Map.GetHex(homeHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(homeHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	targetHex := board.NewHex(1, 0) // Mountain on the base map
+	action := NewUseCultSpadeActionWithTerrain("player1", targetHex, models.TerrainWasteland)
+
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("failed to use cult spade with explicit terrain: %v", err)
+	}
+	if gs.Map.GetHex(targetHex).Terrain != models.TerrainWasteland {
+		t.Fatalf("terrain = %v, want wasteland", gs.Map.GetHex(targetHex).Terrain)
+	}
+}
+
 // Additional comprehensive tests for all cult reward types
 
 func TestAwardCultRewards_Priests(t *testing.T) {

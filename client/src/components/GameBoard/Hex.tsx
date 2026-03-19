@@ -3,7 +3,7 @@ import React from 'react';
 import type { Building } from '../../types/game.types';
 import { type TerrainType } from '../../types/game.types';
 import type { AxialCoord } from '../../utils/hexUtils';
-import { getHexCorners } from '../../utils/hexUtils';
+import { getDisplayCoordinate, getHexCorners } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, getContrastColor } from '../../utils/colors';
 import { BuildingComponent } from './Building';
 
@@ -31,6 +31,7 @@ export const Hex: React.FC<HexProps> = ({
   onMouseEnter,
 }) => {
   const corners = getHexCorners(center, hexSize);
+  const displayCoord = getDisplayCoordinate(coord)
 
   // Create SVG path from corners
   const pathData = corners
@@ -65,7 +66,7 @@ export const Hex: React.FC<HexProps> = ({
       )}
 
       {/* Debug: Show coordinates in dev mode */}
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === 'development' && displayCoord !== null && (
         <text
           x={center.x}
           y={center.y}
@@ -74,7 +75,7 @@ export const Hex: React.FC<HexProps> = ({
           fill={getContrastColor(fillColor)}
           style={{ pointerEvents: 'none', userSelect: 'none' }}
         >
-          {coord.q},{coord.r}
+          {displayCoord}
         </text>
       )}
     </g>

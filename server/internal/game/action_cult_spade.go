@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // UseCultSpadeAction represents using a free spade from cult track rewards
@@ -11,7 +12,8 @@ import (
 // The temporary shipping bonus from bonus cards does NOT extend the range
 type UseCultSpadeAction struct {
 	BaseAction
-	TargetHex board.Hex
+	TargetHex     board.Hex
+	TargetTerrain models.TerrainType
 }
 
 // NewUseCultSpadeAction creates a new cult spade action
@@ -21,8 +23,15 @@ func NewUseCultSpadeAction(playerID string, targetHex board.Hex) *UseCultSpadeAc
 			Type:     ActionUseCultSpade,
 			PlayerID: playerID,
 		},
-		TargetHex: targetHex,
+		TargetHex:     targetHex,
+		TargetTerrain: models.TerrainTypeUnknown,
 	}
+}
+
+func NewUseCultSpadeActionWithTerrain(playerID string, targetHex board.Hex, targetTerrain models.TerrainType) *UseCultSpadeAction {
+	action := NewUseCultSpadeAction(playerID, targetHex)
+	action.TargetTerrain = targetTerrain
+	return action
 }
 
 // GetType returns the action type
@@ -63,6 +72,9 @@ func (a *UseCultSpadeAction) Validate(gs *GameState) error {
 	if mapHex.Terrain == player.Faction.GetHomeTerrain() {
 		return fmt.Errorf("hex is already your home terrain")
 	}
+	if err := a.validateTargetTerrain(mapHex.Terrain, player.Faction.GetHomeTerrain()); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -75,12 +87,7 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	mapHex := gs.Map.GetHex(a.TargetHex)
-	currentTerrain := mapHex.Terrain
-	homeTerrain := player.Faction.GetHomeTerrain()
-
-	// Cult spade actions transform BY 1 spade towards home terrain
-	// Not all the way to home terrain (unless it's only 1 spade away)
-	targetTerrain := board.CalculateIntermediateTerrain(currentTerrain, homeTerrain, 1)
+	targetTerrain := a.resolveTargetTerrain(mapHex.Terrain, player.Faction.GetHomeTerrain())
 
 	// Transform terrain BY 1 spade (not all the way to home)
 	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
@@ -114,4 +121,25 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	}
 
 	return nil
+}
+
+func (a *UseCultSpadeAction) validateTargetTerrain(currentTerrain, homeTerrain models.TerrainType) error {
+	targetTerrain := a.resolveTargetTerrain(currentTerrain, homeTerrain)
+	if targetTerrain == currentTerrain {
+		return fmt.Errorf("cult spade must transform the terrain")
+	}
+	if targetTerrain == models.TerrainRiver || targetTerrain == models.TerrainTypeUnknown {
+		return fmt.Errorf("invalid cult spade target terrain")
+	}
+	if board.TerrainDistance(currentTerrain, targetTerrain) != 1 {
+		return fmt.Errorf("cult spade target terrain must be exactly 1 spade away")
+	}
+	return nil
+}
+
+func (a *UseCultSpadeAction) resolveTargetTerrain(currentTerrain, homeTerrain models.TerrainType) models.TerrainType {
+	if a.TargetTerrain != models.TerrainTypeUnknown {
+		return a.TargetTerrain
+	}
+	return board.CalculateIntermediateTerrain(currentTerrain, homeTerrain, 1)
 }

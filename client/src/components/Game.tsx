@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useMemo, useEffect, useRef, useState } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
@@ -34,6 +34,7 @@ import './Game.css'
 import { getCultPositions, resolveFaction } from '../utils/gameUtils'
 import { useGameLayout } from '../hooks/useGameLayout'
 import { Modal } from './shared/Modal'
+import { formatDisplayCoordinate } from '../utils/hexUtils'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -177,7 +178,6 @@ export const Game = () => {
   const { submitAction, submitSetupDwelling, submitSelectFaction } = useActionService()
 
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
-  const [turnEndNotice, setTurnEndNotice] = useState<string | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [powerMode, setPowerMode] = useState<PendingPowerMode | null>(null)
 
@@ -362,7 +362,6 @@ export const Game = () => {
   useEffect(() => {
     if (!localPlayerOptions.confirmActions) {
       setConfirmDialog(null)
-      setTurnEndNotice(null)
     }
   }, [localPlayerOptions.confirmActions])
 
@@ -389,7 +388,6 @@ export const Game = () => {
   const pendingDecision = (gameState?.pendingDecision ?? null) as Record<string, unknown> | null
   const pendingDecisionType = (pendingDecision?.type as string | undefined) ?? null
   const pendingDecisionPlayerId = (pendingDecision?.playerId as string | undefined) ?? null
-  const previousTurnOwnerRef = useRef<string | null>(null)
   const pendingAuctionFactions = useMemo(() => {
     const raw = (pendingDecision?.nominatedFactions as unknown[]) ?? []
     return raw
@@ -397,41 +395,12 @@ export const Game = () => {
       .filter((value) => value.length > 0)
   }, [pendingDecision])
   const hasPendingDecisionForMe = !!localPlayerId && pendingDecisionPlayerId === localPlayerId
-  const isBlockingPendingDecisionForMe = hasPendingDecisionForMe
-
-  useEffect(() => {
-    const currentOwner = currentPlayerId ?? null
-    const previousOwner = previousTurnOwnerRef.current
-
-    if (!localPlayerOptions.confirmActions) {
-      setTurnEndNotice(null)
-      previousTurnOwnerRef.current = currentOwner
-      return
-    }
-
-    if (
-      localPlayerId
-      && previousOwner === localPlayerId
-      && currentOwner !== localPlayerId
-      && gameState?.phase === GamePhase.Action
-      && !isBlockingPendingDecisionForMe
-    ) {
-      setTurnEndNotice('Your turn has ended.')
-    }
-
-    if (currentOwner === localPlayerId) {
-      setTurnEndNotice(null)
-    }
-
-    previousTurnOwnerRef.current = currentOwner
-  }, [
-    currentPlayerId,
-    gameState?.phase,
-    gameState?.revision,
-    isBlockingPendingDecisionForMe,
-    localPlayerId,
-    localPlayerOptions.confirmActions,
-  ])
+  const isOtherPlayerTurnConfirmationWindow = !!pendingDecisionPlayerId
+    && pendingDecisionPlayerId !== localPlayerId
+    && (pendingDecisionType === 'post_action_free_actions' || pendingDecisionType === 'turn_confirmation')
+  const isBlockingPendingDecisionForMe = hasPendingDecisionForMe || isOtherPlayerTurnConfirmationWindow
+  const formatHexCoord = (coord: { q: number; r: number }): string => formatDisplayCoordinate(coord)
+  const canInitiateTurnAction = isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]
     const raw = (pendingDecision?.candidateTracks as unknown[]) ?? []
@@ -719,12 +688,14 @@ export const Game = () => {
 
     if (gameState.phase === GamePhase.Setup && gameState.setupSubphase === 'dwellings') {
       if (setupDwellingPlayerId !== localPlayerId) return
-      queueConfirm('Confirm Setup Dwelling', `Place setup dwelling at (${String(q)},${String(r)})?`, () => {
+      queueConfirm('Confirm Setup Dwelling', `Place setup dwelling at ${formatHexCoord({ q, r })}?`, () => {
         submitSetupDwelling(localPlayerId, q, r, gameId)
         setConfirmDialog(null)
       })
       return
     }
+
+    if (isOtherPlayerTurnConfirmationWindow) return
 
     if (hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades') {
       setPendingHex({ q, r })
@@ -763,7 +734,7 @@ export const Game = () => {
       const to = { q, r }
       queueConfirm(
         'Confirm Bridge',
-        `Build bridge from (${String(from.q)},${String(from.r)}) to (${String(to.q)},${String(to.r)})?`,
+        `Build bridge from ${formatHexCoord(from)} to ${formatHexCoord(to)}?`,
         () => {
           performAction(powerMode.source === 'engineers' ? 'engineers_bridge' : 'power_bridge_place', { bridgeHex1: from, bridgeHex2: to })
           setPowerMode(null)
@@ -776,7 +747,7 @@ export const Game = () => {
     if (powerMode?.type === 'special_action_target') {
       const actionType = powerMode.actionType
       if (actionType === SpecialActionType.WitchesRide) {
-        queueConfirm('Confirm Witches Ride', `Use Witches Ride on (${String(q)},${String(r)})?`, () => {
+        queueConfirm('Confirm Witches Ride', `Use Witches Ride on ${formatHexCoord({ q, r })}?`, () => {
           performAction('special_action_use', {
             specialActionType: actionType,
             targetHex: { q, r },
@@ -788,7 +759,7 @@ export const Game = () => {
       }
 
       if (actionType === SpecialActionType.SwarmlingsUpgrade) {
-        queueConfirm('Confirm Swarmlings Upgrade', `Use Swarmlings free upgrade at (${String(q)},${String(r)})?`, () => {
+        queueConfirm('Confirm Swarmlings Upgrade', `Use Swarmlings free upgrade at ${formatHexCoord({ q, r })}?`, () => {
           performAction('special_action_use', {
             specialActionType: actionType,
             upgradeHex: { q, r },
@@ -807,7 +778,7 @@ export const Game = () => {
       }
 
       if (actionType === SpecialActionType.MermaidsRiverTown) {
-        queueConfirm('Confirm Mermaids Connect', `Connect river town at (${String(q)},${String(r)})?`, () => {
+        queueConfirm('Confirm Mermaids Connect', `Connect river town at ${formatHexCoord({ q, r })}?`, () => {
           performAction('special_action_use', {
             specialActionType: actionType,
             targetHex: { q, r },
@@ -819,7 +790,7 @@ export const Game = () => {
       return
     }
 
-    if (!isMyTurn || !isActionPhase(gameState.phase) || isBlockingPendingDecisionForMe) return
+    if (!canInitiateTurnAction) return
 
     const hex = gameState.map?.hexes?.[`${String(q)},${String(r)}`]
     if (!hex) return
@@ -833,11 +804,12 @@ export const Game = () => {
   }
 
   const handleBridgeEdgeClick = (from: { q: number; r: number }, to: { q: number; r: number }): void => {
+    if (isOtherPlayerTurnConfirmationWindow) return
     if (powerMode?.type !== 'power_bridge') return
 
     queueConfirm(
       'Confirm Bridge',
-      `Build bridge from (${String(from.q)},${String(from.r)}) to (${String(to.q)},${String(to.r)})?`,
+      `Build bridge from ${formatHexCoord(from)} to ${formatHexCoord(to)}?`,
       () => {
         performAction(powerMode.source === 'engineers' ? 'engineers_bridge' : 'power_bridge_place', { bridgeHex1: from, bridgeHex2: to })
         setPowerMode(null)
@@ -881,7 +853,7 @@ export const Game = () => {
   }
 
   const handlePowerActionClick = (action: PowerActionType): void => {
-    if (!isMyTurn || isBlockingPendingDecisionForMe || !isActionPhase(gameState?.phase)) return
+    if (!canInitiateTurnAction) return
 
     if (action === PowerActionType.Bridge) {
       setPowerMode({ type: 'power_bridge', source: 'power', firstHex: null })
@@ -900,7 +872,7 @@ export const Game = () => {
   }
 
   const handleCultSpotClick = (cult: CultType, tileIndex: number): void => {
-    if (!isMyTurn || isBlockingPendingDecisionForMe) return
+    if (!canInitiateTurnAction) return
 
     const spaces = tileIndex === 0 ? 3 : tileIndex === 4 ? 1 : 2
     queueConfirm(
@@ -914,7 +886,6 @@ export const Game = () => {
   }
 
   const handleConversion = (playerId: string, conversionType: string): void => {
-    const canUseConversionWindow = (isMyTurn && !isBlockingPendingDecisionForMe) || isPostActionFreeWindowForMe
     if (!gameState || playerId !== localPlayerId || !canUseConversionWindow) return
 
     queueConfirm('Confirm Conversion', `Execute conversion: ${conversionType}?`, () => {
@@ -924,7 +895,6 @@ export const Game = () => {
   }
 
   const handleBurnPower = (playerId: string, amount: number): void => {
-    const canUseConversionWindow = (isMyTurn && !isBlockingPendingDecisionForMe) || isPostActionFreeWindowForMe
     if (!gameState || playerId !== localPlayerId || !canUseConversionWindow) return
 
     queueConfirm('Confirm Burn Power', `Burn ${String(amount * 2)} power from Bowl II to gain ${String(amount)} power in Bowl III?`, () => {
@@ -934,7 +904,7 @@ export const Game = () => {
   }
 
   const handleAdvanceShipping = (playerId: string): void => {
-    if (playerId !== localPlayerId || !isMyTurn || isBlockingPendingDecisionForMe) return
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
 
     queueConfirm('Confirm Shipping Upgrade', 'Upgrade shipping track?', () => {
       performAction('advance_shipping')
@@ -943,7 +913,7 @@ export const Game = () => {
   }
 
   const handleAdvanceDigging = (playerId: string): void => {
-    if (playerId !== localPlayerId || !isMyTurn || isBlockingPendingDecisionForMe) return
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
 
     queueConfirm('Confirm Digging Upgrade', 'Upgrade digging track?', () => {
       performAction('advance_digging')
@@ -952,17 +922,17 @@ export const Game = () => {
   }
 
   const handleEngineersBridgeAction = (playerId: string): void => {
-    if (playerId !== localPlayerId || !isMyTurn || isBlockingPendingDecisionForMe || !isActionPhase(gameState?.phase)) return
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
     setPowerMode({ type: 'power_bridge', source: 'engineers', firstHex: null })
   }
 
   const handleMermaidsConnectAction = (playerId: string): void => {
-    if (playerId !== localPlayerId || !isMyTurn || isBlockingPendingDecisionForMe || !isActionPhase(gameState?.phase)) return
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
     setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.MermaidsRiverTown })
   }
 
   const handleStrongholdAction = (_playerId: string, actionType: SpecialActionType): void => {
-    if (!isMyTurn || isBlockingPendingDecisionForMe) return
+    if (!canInitiateTurnAction) return
 
     if (actionType === SpecialActionType.AurenCultAdvance) {
       setCultChoiceContext('auren_sh')
@@ -992,7 +962,7 @@ export const Game = () => {
   }
 
   const handleWater2Action = (_playerId: string): void => {
-    if (!isMyTurn || isBlockingPendingDecisionForMe) return
+    if (!canInitiateTurnAction) return
     setCultChoiceContext('water2')
   }
 
@@ -1010,7 +980,7 @@ export const Game = () => {
       return
     }
 
-    if (isOwnedByMe && isMyTurn && isActionPhase(gameState.phase)) {
+    if (isOwnedByMe && canInitiateTurnAction) {
       if (cardType === BonusCardType.Spade) {
         setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.BonusCardSpade })
         return
@@ -1021,7 +991,7 @@ export const Game = () => {
       return
     }
 
-    if (!isMyTurn || !isActionPhase(gameState.phase) || isBlockingPendingDecisionForMe) return
+    if (!canInitiateTurnAction) return
     if (owner) return
 
     const warning = hasUnspentOptionalActions
@@ -1041,18 +1011,18 @@ export const Game = () => {
       return hasPendingDecisionForMe && !owner
     }
 
-    if (owner === localPlayerId && isMyTurn && isActionPhase(gameState.phase)) {
+    if (owner === localPlayerId && canInitiateTurnAction) {
       if (cardType === BonusCardType.Spade || cardType === BonusCardType.CultAdvance) {
         return true
       }
     }
 
-    if (!isMyTurn || !isActionPhase(gameState.phase) || isBlockingPendingDecisionForMe) return false
+    if (!canInitiateTurnAction) return false
     return !owner
   }
 
   const handlePassWithoutCard = (): void => {
-    if (!isMyTurn || !isActionPhase(gameState?.phase) || isBlockingPendingDecisionForMe) return
+    if (!canInitiateTurnAction) return
     const warning = hasUnspentOptionalActions
       ? ' You still have optional special actions or pending spades available.'
       : ''
@@ -1195,6 +1165,7 @@ export const Game = () => {
   const isPendingSpadeDecision = hasPendingSpadesForMe > 0
   const isPostActionFreeWindowForMe = hasPendingDecisionForMe && pendingDecisionType === 'post_action_free_actions'
   const isTurnConfirmationWindowForMe = hasPendingDecisionForMe && (pendingDecisionType === 'post_action_free_actions' || pendingDecisionType === 'turn_confirmation')
+  const canUseConversionWindow = canInitiateTurnAction || isPostActionFreeWindowForMe
   const hasFavorSelectionForMe = hasPendingDecisionForMe && pendingDecisionType === 'favor_tile_selection'
   const hasTownSelectionForMe = (hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection')
     || (!!localPlayerId && hasPendingTownFormationForMe)
@@ -1243,7 +1214,10 @@ export const Game = () => {
     }
 
     if (hasPendingCultSpadesForMe > 0) {
-      performAction('use_cult_spade', { hex: pendingHex })
+      performAction('use_cult_spade', {
+        hex: pendingHex,
+        targetTerrain: selectedTerrain,
+      })
       closeHexModal()
       return
     }
@@ -1450,9 +1424,7 @@ export const Game = () => {
                   <div className="text-sm font-semibold text-slate-900">
                     {isHalflingsSpadeDecision ? 'Apply Halflings Spade' : isCultSpadeDecision ? 'Use Cult Spade' : 'Hex Action'}
                   </div>
-                  <div className="text-sm text-slate-700">
-                    Selected hex: ({String(pendingHex.q)}, {String(pendingHex.r)})
-                  </div>
+                  <div className="text-sm text-slate-700">Selected hex: {formatHexCoord(pendingHex)}</div>
                 </div>
                 <div className="flex items-center gap-2">
                   <button data-testid="hex-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={cancelHexAction}>Cancel</button>
@@ -1477,8 +1449,23 @@ export const Game = () => {
               )}
 
               {isCultSpadeDecision && (
-                <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                  This action uses one cult reward spade and cannot build a dwelling.
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                    This action uses one cult reward spade and cannot build a dwelling.
+                  </div>
+                  <label className="flex flex-col gap-1 text-sm text-slate-800">
+                    <span className="font-medium">Target terrain</span>
+                    <select
+                      data-testid="hex-action-target-terrain"
+                      value={selectedTerrain}
+                      onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
+                      className="rounded border px-2 py-1"
+                    >
+                      {TERRAIN_CHOICES.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
               )}
 
@@ -1526,9 +1513,7 @@ export const Game = () => {
             <div className="space-y-3">
               <div>
                 <div className="text-sm font-semibold text-slate-900">Upgrade Building</div>
-                <div className="text-sm text-slate-700">
-                  Select an upgrade for ({String(upgradeHex.q)}, {String(upgradeHex.r)}).
-                </div>
+                <div className="text-sm text-slate-700">Select an upgrade for {formatHexCoord(upgradeHex)}.</div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {upgradeOptions.length === 0 && <span className="text-sm text-slate-700">No legal upgrades for this building.</span>}
@@ -1691,7 +1676,7 @@ export const Game = () => {
                     className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
                     onClick={() => { performAction('halflings_build_dwelling', { targetHex: h }) }}
                   >
-                    Build at ({String(h.q)},{String(h.r)})
+                    Build at {formatHexCoord(h)}
                   </button>
                 ))}
                 <button
@@ -1747,11 +1732,6 @@ export const Game = () => {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-slate-900">Confirm Turn</div>
-                <div className="text-sm text-slate-700">
-                  {isPostActionFreeWindowForMe
-                    ? 'You can still make conversions or burn power before confirming. Undo restores the last undo checkpoint for this turn.'
-                    : 'Confirm before the next player can move. Undo restores the last undo checkpoint for this turn.'}
-                </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -1767,29 +1747,6 @@ export const Game = () => {
                   onClick={() => { performAction('confirm_turn') }}
                 >
                   Confirm turn
-                </button>
-              </div>
-            </div>
-          ) : turnEndNotice ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Turn Complete</div>
-                <div className="text-sm text-slate-700">{turnEndNotice}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  data-testid="turn-end-undo"
-                  className="rounded bg-amber-600 px-3 py-1 text-sm text-white"
-                  onClick={() => { setErrorMessage('Undo is not available yet.') }}
-                >
-                  Undo
-                </button>
-                <button
-                  data-testid="turn-end-ack"
-                  className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
-                  onClick={() => { setTurnEndNotice(null) }}
-                >
-                  Dismiss
                 </button>
               </div>
             </div>
@@ -1812,7 +1769,7 @@ export const Game = () => {
 
         {(powerMode?.type === 'power_bridge' && powerMode.firstHex != null) && (
           <div className="mb-3 rounded border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-800">
-            Bridge mode: first endpoint selected at ({String(powerMode.firstHex.q)},{String(powerMode.firstHex.r)}). Click the second endpoint.
+            Bridge mode: first endpoint selected at {formatHexCoord(powerMode.firstHex)}. Click the second endpoint.
           </div>
         )}
 
@@ -1846,7 +1803,7 @@ export const Game = () => {
           </div>
         )}
 
-        {isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe && (gameState?.round?.round ?? 0) >= 6 && (
+        {canInitiateTurnAction && (gameState?.round?.round ?? 0) >= 6 && (
           <div className="mb-3 flex items-center justify-end">
             <button
               data-testid="pass-without-card"
@@ -2046,6 +2003,7 @@ export const Game = () => {
                 onBridgeEdgeClick={handleBridgeEdgeClick}
                 bridgeEdgeSelectionEnabled={powerMode?.type === 'power_bridge'}
                 onPowerActionClick={handlePowerActionClick}
+                disablePowerActions={!canInitiateTurnAction}
               />
             </div>
           </div>
@@ -2097,6 +2055,8 @@ export const Game = () => {
             </div>
             <div className="flex-1 overflow-hidden">
               <PlayerBoards
+                canUseTurnActions={canInitiateTurnAction}
+                canUseConversions={canUseConversionWindow}
                 onConversion={handleConversion}
                 onBurnPower={handleBurnPower}
                 onAdvanceShipping={handleAdvanceShipping}

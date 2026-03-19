@@ -6,7 +6,8 @@ import {
     PowerIcon,
     WorkerIcon,
     CoinIcon,
-    CultRhombusIcon
+    CultRhombusIcon,
+    ShippingIcon
 } from '../shared/Icons';
 
 // Config for the 8 distinct town tiles
@@ -35,7 +36,7 @@ const TOWN_TILE_CONFIGS: Record<TownTileId, TownTileConfig> = {
     [TownTileId.Vp4Ship1]: {
         id: TownTileId.Vp4Ship1,
         vp: 4,
-        rewards: <div className="reward-container"><span className="reward-text">Ship/Carpet</span></div>
+        rewards: <div className="reward-container"><ShippingIcon className="icon-md" /></div>
     },
     [TownTileId.Vp8Cult1]: {
         id: TownTileId.Vp8Cult1,

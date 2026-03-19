@@ -92,9 +92,10 @@ import { useGameStore } from '../../stores/gameStore';
 
 interface PowerActionsProps {
     onActionClick?: (action: PowerActionType) => void;
+    disabled?: boolean;
 }
 
-export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): React.ReactElement => {
+export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick, disabled = false }): React.ReactElement => {
     const gameState = useGameStore(state => state.gameState);
     const usedActions = gameState?.powerActions?.UsedActions ?? {};
 
@@ -102,15 +103,16 @@ export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick }): Re
         <div className="power-actions-container" data-testid="power-actions">
             {ACTIONS.map((action) => {
                 const isUsed = usedActions[action.type];
+                const isDisabled = disabled || isUsed;
 
                 return (
                     <div
                         key={action.type}
                         data-testid={`power-action-${String(action.type)}`}
                         className={`power-action-tile ${isUsed ? 'used' : ''}`}
-                        onClick={() => !isUsed && onActionClick?.(action.type)}
+                        onClick={() => !isDisabled && onActionClick?.(action.type)}
                         title={action.label}
-                        style={{ cursor: isUsed ? 'not-allowed' : 'pointer', opacity: isUsed ? 0.7 : 1 }}
+                        style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.7 : 1 }}
                     >
                         {/* Power Cost */}
                         <div className="power-cost">

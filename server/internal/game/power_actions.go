@@ -149,8 +149,9 @@ func (a *PowerAction) Validate(gs *GameState) error {
 
 	// Check if player has enough power in Bowl III
 	powerCost := GetPowerCost(a.ActionType)
-	if player.Resources.Power.Bowl3 < powerCost {
-		return fmt.Errorf("not enough power in Bowl III: need %d, have %d", powerCost, player.Resources.Power.Bowl3)
+	requiredBurn := a.requiredAutoBurn(player)
+	if requiredBurn > 0 && !player.Resources.Power.CanBurn(requiredBurn) {
+		return fmt.Errorf("not enough power for action: need %d in Bowl III, have %d and cannot auto-burn %d more from Bowl II", powerCost, player.Resources.Power.Bowl3, requiredBurn)
 	}
 
 	// Validate spade actions
@@ -242,10 +243,16 @@ func (a *PowerAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	powerCost := GetPowerCost(a.ActionType)
+	if requiredBurn := a.requiredAutoBurn(player); requiredBurn > 0 {
+		if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
+			return fmt.Errorf("failed to auto-burn power for action: %w", err)
+		}
+	}
 
 	// Move power from Bowl III to Bowl I
-	player.Resources.Power.Bowl3 -= powerCost
-	player.Resources.Power.Bowl1 += powerCost
+	if err := player.Resources.Power.SpendPower(powerCost); err != nil {
+		return err
+	}
 
 	// Mark action as used
 	gs.PowerActions.MarkUsed(a.ActionType)
@@ -325,6 +332,19 @@ func (a *PowerAction) Execute(gs *GameState) error {
 
 	gs.NextTurn()
 	return nil
+}
+
+func (a *PowerAction) requiredAutoBurn(player *Player) int {
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return 0
+	}
+
+	powerCost := GetPowerCost(a.ActionType)
+	if player.Resources.Power.Bowl3 >= powerCost {
+		return 0
+	}
+
+	return powerCost - player.Resources.Power.Bowl3
 }
 
 func (a *PowerAction) requiredSpadesForTransform(gs *GameState, player *Player) (int, error) {

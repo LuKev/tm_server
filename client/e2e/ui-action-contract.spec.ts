@@ -14,6 +14,7 @@ import {
   type PlayerState,
 } from '../src/types/game.types'
 import { makeBaseGameState, withBuildings } from './support/gameStateFactory'
+import { formatDisplayCoordinate, getDisplayCoordinate } from '../src/utils/hexUtils'
 import {
   clearSentMessages,
   emitWs,
@@ -360,8 +361,12 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     })
 
     await openGameWithState(page, state)
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Confirm Turn')
+    await expect(page.getByTestId('game-decision-strip')).not.toContainText('Undo restores the last undo checkpoint')
     await expect(page.getByTestId('turn-end-confirm')).toBeVisible()
     await expect(page.getByTestId('turn-end-undo')).toBeVisible()
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Confirm Turn')
+    await expect(page.getByTestId('game-decision-strip')).not.toContainText('You can still make conversions or burn power before confirming')
 
     await clickByTestId(page, 'turn-end-confirm')
     await waitForPerformAction(page, 'confirm_turn')
@@ -401,6 +406,39 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await expect(page.getByTestId('turn-end-undo')).toBeVisible()
     await clickByTestId(page, 'turn-end-confirm')
     await waitForPerformAction(page, 'confirm_turn')
+  })
+
+  test('display coordinates use server-style board labels', () => {
+    expect(formatDisplayCoordinate({ q: 0, r: 0 })).toBe('A1')
+    expect(formatDisplayCoordinate({ q: 3, r: 4 })).toBe('E6')
+    expect(formatDisplayCoordinate({ q: -2, r: 5 })).toBe('F1')
+    expect(formatDisplayCoordinate({ q: 8, r: 8 })).toBe('I12')
+    expect(getDisplayCoordinate({ q: 0, r: 2 })).toBeNull()
+  })
+
+  test('hex action strip uses display coordinates instead of axial coordinates', async ({ page }) => {
+    const state = makeBaseGameState()
+
+    await openGameWithState(page, state)
+    await clickHex(page, 0, 0)
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Selected hex: A1')
+  })
+
+  test('next player cannot act until the previous player confirms', async ({ page }) => {
+    const state = makeBaseGameState({
+      currentTurn: 1,
+      pendingDecision: {
+        type: 'turn_confirmation',
+        playerId: 'p1',
+      },
+    })
+
+    await openGameWithState(page, state, 'p2')
+    await expect(page.getByTestId('player-p2-conversion-worker_to_coin')).toBeDisabled()
+    await expect(page.getByTestId('player-p2-upgrade-shipping')).toBeDisabled()
+    await expect(page.getByTestId(`power-action-${String(PowerActionType.Priest)}`)).toHaveCSS('cursor', 'not-allowed')
+    await page.getByTestId(`power-action-${String(PowerActionType.Priest)}`).click({ force: true })
+    await expect.poll(async () => page.evaluate(() => (window.__tmE2E?.sent ?? []).length)).toBe(0)
   })
 
   test('player options reflect state and emit set_player_options actions', async ({ page }) => {
@@ -457,13 +495,13 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await waitForPerformAction(page, 'set_player_options', { showIncomePreview: false })
   })
 
-  test('decision strip shows waiting/prompt states and the local board shows conversions', async ({ page }) => {
+  test('decision strip shows waiting/prompt states and the local board shows conversions and towns', async ({ page }) => {
     const state = makeBaseGameState({
       currentTurn: 1,
       players: {
         ...makeBaseGameState().players,
-        p1: { ...makeBaseGameState().players.p1, name: 'Alice' },
-        p2: { ...makeBaseGameState().players.p2, name: 'Bob' },
+        p1: { ...makeBaseGameState().players.p1, name: 'Alice', townTiles: [TownTileId.Vp4Ship1] },
+        p2: { ...makeBaseGameState().players.p2, name: 'Bob', townTiles: [TownTileId.Vp7Workers2] },
       },
     })
 
@@ -473,7 +511,12 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await expect(page.getByTestId('player-summary-bar')).toContainText('Bob')
     await expect(page.getByTestId('player-summary-bar')).toContainText('YOU')
 
+    const localBoard = page.getByTestId('player-board-p1')
     await expect(page.getByTestId('player-p1-conversion-worker_to_coin')).toBeVisible()
+    await expect(localBoard.getByText('Conversions')).toBeVisible()
+    await expect(localBoard.getByText('Towns')).toBeVisible()
+    await expect(localBoard.locator('.pb-town-slot')).toHaveCount(1)
+    await expect(localBoard).not.toContainText('Ship/Carpet')
     await expect(page.getByTestId('player-p2-conversion-worker_to_coin')).toHaveCount(0)
 
     await emitWs(page, {
@@ -535,6 +578,18 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     expect(highlightShadow).toMatch(/34,\s*197,\s*94/)
   })
 
+  test('ship town tile uses iconography instead of the Ship/Carpet text label', async ({ page }) => {
+    const state = makeBaseGameState({
+      pendingDecision: {
+        type: 'town_tile_selection',
+        playerId: 'p1',
+      },
+    })
+
+    await openGameWithState(page, state)
+    await expect(page.getByTestId(`town-tile-${String(TownTileId.Vp4Ship1)}`)).not.toContainText('Ship/Carpet')
+  })
+
   test('transform/build, building upgrade, conversion, ship/dig and burn are wired to perform_action', async ({ page }) => {
     let state = makeBaseGameState({
       phase: GamePhase.Action,
@@ -549,6 +604,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await openGameWithState(page, state)
 
     await clickHex(page, 1, 0)
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Selected hex: A2')
     await page.getByTestId('hex-action-mode').selectOption('transform_build')
     await page.getByTestId('hex-action-target-terrain').selectOption(String(TerrainType.Desert))
     await clickByTestId(page, 'hex-action-submit')
@@ -560,6 +616,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await clearSentMessages(page)
     await clickHex(page, 0, 0)
+    await expect(page.getByTestId('game-decision-strip')).toContainText('Select an upgrade for A1.')
     await clickByTestId(page, 'upgrade-option-1')
     await waitForPerformAction(page, 'upgrade_building', {
       targetHex: { q: 0, r: 0 },
@@ -667,6 +724,22 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await clearSentMessages(page)
     await clickByTestId(page, 'discard-pending-spade')
     await waitForPerformAction(page, 'discard_pending_spade', { count: 1 })
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        pendingCultRewardSpades: { p1: 1 },
+      },
+    })
+    await clearSentMessages(page)
+    await clickHex(page, 1, 0)
+    await page.getByTestId('hex-action-target-terrain').selectOption(String(TerrainType.Wasteland))
+    await clickByTestId(page, 'hex-action-submit')
+    await waitForPerformAction(page, 'use_cult_spade', {
+      hex: { q: 1, r: 0 },
+      targetTerrain: TerrainType.Wasteland,
+    })
   })
 
   test('pass action and bonus-card special actions are wired', async ({ page }) => {

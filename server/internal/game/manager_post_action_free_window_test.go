@@ -7,6 +7,16 @@ import (
 	"github.com/lukev/tm_server/internal/game/factions"
 )
 
+func postActionPendingDecisionMap(t *testing.T, gs *GameState) map[string]interface{} {
+	t.Helper()
+	raw := serializePendingDecision(gs)
+	pending, ok := raw.(map[string]interface{})
+	if !ok {
+		t.Fatalf("serializePendingDecision() = %T, want map[string]interface{}", raw)
+	}
+	return pending
+}
+
 func TestManager_PostActionFreeWindow_AllowsActorConversionAfterMainAction(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("actor", factions.NewCultists()); err != nil {
@@ -52,7 +62,7 @@ func TestManager_PostActionFreeWindow_AllowsActorConversionAfterMainAction(t *te
 	if !gs.HasPendingTurnConfirmation() {
 		t.Fatal("expected pending turn confirmation after main action")
 	}
-	if pending := serializePendingDecision(gs); pending["type"] != "post_action_free_actions" || pending["playerId"] != "actor" {
+	if pending := postActionPendingDecisionMap(t, gs); pending["type"] != "post_action_free_actions" || pending["playerId"] != "actor" {
 		t.Fatalf("pending decision = %v, want post_action_free_actions for actor", pending)
 	}
 
@@ -187,7 +197,7 @@ func TestManager_PostActionFreeWindow_PendingResolutionAdvancesTurnAndKeepsFreeW
 	if current := gs.GetCurrentPlayer(); current == nil || current.ID != "next" {
 		t.Fatalf("current player after pending resolution = %v, want next", current)
 	}
-	if pending := serializePendingDecision(gs); pending["type"] != "post_action_free_actions" || pending["playerId"] != "actor" {
+	if pending := postActionPendingDecisionMap(t, gs); pending["type"] != "post_action_free_actions" || pending["playerId"] != "actor" {
 		t.Fatalf("pending decision after favor = %v, want post_action_free_actions for actor", pending)
 	}
 	if !gs.HasPendingTurnConfirmation() {
