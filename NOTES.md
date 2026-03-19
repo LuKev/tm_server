@@ -23,6 +23,11 @@
     - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-action-contract.spec.ts --test_output=errors`
   - `cd server && bazel test //... --test_output=errors` in the current dirty checkout still fails in unrelated replay / notation areas that were already locally modified outside this live-game task (`internal/notation/*`, `internal/replay/*`); the turn-confirm / live-UI slices above are green.
 
+- 2026-03-18 Railway client deploy gotcha:
+  - Railway root dir `client` means only `client/nixpacks.toml` is considered; `server/nixpacks.toml` / `server/railway.json` are expected to be ignored in that deploy.
+  - A strict TypeScript `noUnusedLocals` failure in `client/src/components/CultTracks/CultTracks.tsx` (`tileSpacing`) blocked `tsc -b` during Railway build.
+  - Added Bazel wrapper `//:client_build_test` (`server/tools/client_build_test.sh`) to cover the client production build path from the repo's Bazel workflow. It uses a temp copied client tree plus `vite build --configLoader native` to avoid Bazel-sandbox write issues while still catching real client build regressions.
+
 - 2026-03-03 UI action-flow fixes (game screen + Playwright):
   - Root cause for sticky player-option toggles (`Auto Leech`, `Auto convert on pass`, `Show next income`) was server serialization: `SerializeStateWithRevision` did not include `players[*].options`. Fixed in `server/internal/game/manager.go` and covered by `server/internal/game/manager_serialize_options_test.go`.
   - Added action-state visibility improvements:

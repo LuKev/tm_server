@@ -12,3 +12,25 @@ gazelle(
     ],
     command = "update-repos",
 )
+
+sh_test(
+    name = "client_playwright_test",
+    srcs = ["tools/client_playwright_test.sh"],
+    args = ["$(location //cmd/server:server)"],
+    data = ["//cmd/server:server"],
+    env = {
+        "TM_REPO_ROOT": "/Users/kevin/projects/tm_server",
+    },
+    size = "enormous",
+    timeout = "long",
+)
+
+sh_test(
+    name = "client_build_test",
+    srcs = ["tools/client_build_test.sh"],
+    env = {
+        "TM_REPO_ROOT": "/Users/kevin/projects/tm_server",
+    },
+    size = "large",
+    timeout = "moderate",
+)

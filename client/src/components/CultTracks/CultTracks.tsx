@@ -63,7 +63,6 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
   const height = CULT_TRACK_HEIGHT;
   const tileWidth = CULT_PRIEST_SPOT_WIDTH;
   const tileHeight = CULT_PRIEST_SPOT_HEIGHT;
-  const tileSpacing = CULT_PRIEST_SPOT_SPACING;
 
   // Draw hex path (simplified from makeHexPath)
   const drawHexPath = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, size: number): void => {
