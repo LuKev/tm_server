@@ -6,6 +6,11 @@
   - Lobby open seats are now restricted to one unstarted game per player. Creating a game auto-seats the creator immediately, joining a second open game is rejected server-side, and `leave_game` is the explicit escape hatch before starting.
   - Lobby metadata now keeps started games for reconnect authorization (`get_game_state` still checks `lobby.GetGame(...)`), but `ListGames()` only returns unstarted games so the lobby UI shows true open tables.
   - Root cause of the "new game shows a greyed-out Join button" confusion was mostly UI semantics, not missing server state: `handleCreateGame` already auto-joined the creator on the server, but the lobby UI still rendered generic Join controls instead of treating the creator as already seated. The fix is to show `Leave` for the joined row, disable joining/creating other open games until leaving, and hide started games from the open-games list.
+  - Follow-up start-game bug on production:
+    - `start_game` emits `game_state_update` and then `lobby_state` back-to-back.
+    - The lobby screen was watching a single transient `lastMessage`, so the later `lobby_state` could overwrite the `game_state_update` before React processed the effect.
+    - Symptom: clicking `Start` removed the row from the open-games list but did not navigate to `/game/:id`.
+    - Fix: drive lobby auto-navigation from the durable Zustand `gameState` instead of from `lastMessage`, and cover it with a Playwright contract test that emits `game_state_update` followed immediately by `lobby_state`.
   - Verification:
     - `cd server && bazel test //internal/lobby:lobby_test --test_output=errors`
     - `cd server && bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketE2E_(StartGameWithTurnTimer|LobbySingleSeatAndLeaveFlow)' --test_output=errors`

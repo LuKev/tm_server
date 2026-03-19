@@ -54,6 +54,8 @@ function formatLobbyError(payload: LobbyErrorPayload): string {
 export function Lobby(): React.ReactElement {
   const { isConnected, sendMessage, lastMessage, connectionStatus } = useWebSocket()
   const navigate = useNavigate()
+  const gameState = useGameStore((state) => state.gameState)
+  const storedLocalPlayerId = useGameStore((state) => state.localPlayerId)
   const [playerName, setPlayerName] = useState('')
   const [games, setGames] = useState<GameInfo[]>([])
   const [newGameName, setNewGameName] = useState('')
@@ -66,11 +68,18 @@ export function Lobby(): React.ReactElement {
   const [lobbyError, setLobbyError] = useState<string | null>(null)
 
   const trimmedPlayerName = playerName.trim()
+  const activePlayerName = trimmedPlayerName || storedLocalPlayerId?.trim() || ''
   const joinedGame = useMemo(
-    () => games.find((game) => trimmedPlayerName !== '' && game.players.includes(trimmedPlayerName)) ?? null,
-    [games, trimmedPlayerName],
+    () => games.find((game) => activePlayerName !== '' && game.players.includes(activePlayerName)) ?? null,
+    [activePlayerName, games],
   )
   const joinedGameId = joinedGame?.id ?? null
+
+  useEffect(() => {
+    if (gameState?.id && activePlayerName !== '' && gameState.players[activePlayerName] && gameState.started) {
+      void navigate(`/game/${gameState.id}`)
+    }
+  }, [activePlayerName, gameState, navigate])
 
   useEffect(() => {
     if (lastMessage === null) return
@@ -80,18 +89,13 @@ export function Lobby(): React.ReactElement {
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload as GameInfo[] : [])
         setLobbyError(null)
-      } else if (msg.type === 'game_state_update') {
-        const gameState = msg.payload as GameState | undefined
-        if (gameState?.id && gameState.players[trimmedPlayerName] && gameState.started) {
-          void navigate(`/game/${gameState.id}`)
-        }
       } else if (msg.type === 'error') {
         setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
       } else if (msg.type === 'game_left') {
         setLobbyError(null)
       }
     }
-  }, [lastMessage, navigate, trimmedPlayerName])
+  }, [lastMessage])
 
   useEffect(() => {
     if (isConnected) {

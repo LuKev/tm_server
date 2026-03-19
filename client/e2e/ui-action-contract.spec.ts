@@ -198,6 +198,57 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     })
   })
 
+  test('lobby navigates to the started game even if lobby_state arrives immediately after', async ({ page }) => {
+    await installMockWebSocket(page, 'host')
+    await page.goto('/')
+
+    await page.getByTestId('lobby-player-name').fill('host')
+    const startedState = makeBaseGameState({
+      id: 'g-start',
+      started: true,
+      players: {
+        host: {
+          id: 'host',
+          name: 'host',
+          faction: FactionType.Unknown,
+          resources: { coins: 15, workers: 7, priests: 1, power: { powerI: 5, powerII: 7, powerIII: 0 } },
+          shipping: 0,
+          digging: 0,
+          cults: {},
+          buildings: {},
+          victoryPoints: 20,
+        },
+        p2: {
+          id: 'p2',
+          name: 'p2',
+          faction: FactionType.Unknown,
+          resources: { coins: 15, workers: 7, priests: 1, power: { powerI: 5, powerII: 7, powerIII: 0 } },
+          shipping: 0,
+          digging: 0,
+          cults: {},
+          buildings: {},
+          victoryPoints: 20,
+        },
+      },
+      turnOrder: ['host', 'p2'],
+    })
+    await page.evaluate((state) => {
+      const emit = window.__tmE2E?.emit
+      if (!emit) throw new Error('missing mock websocket emitter')
+
+      emit({
+        type: 'game_state_update',
+        payload: state,
+      })
+      emit({
+        type: 'lobby_state',
+        payload: [],
+      })
+    }, startedState)
+
+    await expect(page).toHaveURL(/\/game\/g-start$/)
+  })
+
   test('faction selection emits select_faction', async ({ page }) => {
     const state = makeBaseGameState({
       phase: GamePhase.FactionSelection,
