@@ -864,3 +864,7 @@
     - `client/e2e/ui-full-game-click-driven.spec.ts` (`@nightly ... S61_G3`): `cult-choice-modal` did not appear (`client/e2e/ui-full-game-click-driven.spec.ts:125`).
     - `client/e2e/ui-full-game-completion.spec.ts` (`S69_G2`): timeout waiting for websocket `action_accepted` (`client/e2e/support/wsBot.ts:79`).
     - `client/e2e/ui-full-game-multi-pov.spec.ts` (`S69_G2`): timeout waiting for websocket `action_accepted` (`client/e2e/support/wsBot.ts:79`).
+
+- 2026-03-19 turn-confirm preference contract:
+  - `player.Options.ConfirmActions` now controls both end-of-turn confirmation and the post-action free conversion/burn window.
+  - If a player unchecks `Confirm Turn End` while their confirm/free-action window is already pending, the server clears both pending states immediately so the next player can act without waiting for an explicit confirm.

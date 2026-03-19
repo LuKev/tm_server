@@ -200,6 +200,7 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 	updatePendingFreeActionsWindow(gs, action)
 	stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
+	syncTurnConfirmationPreferences(gs, action)
 	refreshTurnConfirmationUndoCheckpoint(gs, action)
 
 	currentRevision++
@@ -500,7 +501,7 @@ func updatePendingFreeActionsWindow(gs *GameState, action Action) {
 	if opensPendingFreeActionsWindow(action) {
 		playerID := strings.TrimSpace(action.GetPlayerID())
 		player := gs.GetPlayer(playerID)
-		if player != nil && !player.HasPassed {
+		if player != nil && !player.HasPassed && playerUsesTurnConfirmation(gs, playerID) {
 			gs.PendingFreeActionsPlayerID = playerID
 			return
 		}
@@ -544,8 +545,24 @@ func stageTurnConfirmation(gs *GameState, action Action, before turnProgress, sn
 	if before.phase != PhaseAction {
 		return
 	}
-	if shouldBeginTurnConfirmation(action) && !gs.HasPendingTurnConfirmation() {
+	if shouldBeginTurnConfirmation(action) && playerUsesTurnConfirmation(gs, action.GetPlayerID()) && !gs.HasPendingTurnConfirmation() {
 		gs.BeginPendingTurnConfirmation(action.GetPlayerID(), snapshot)
+	}
+}
+
+func syncTurnConfirmationPreferences(gs *GameState, action Action) {
+	if gs == nil || action == nil {
+		return
+	}
+	playerID := strings.TrimSpace(action.GetPlayerID())
+	if playerID == "" || playerUsesTurnConfirmation(gs, playerID) {
+		return
+	}
+	if strings.TrimSpace(gs.PendingFreeActionsPlayerID) == playerID {
+		gs.PendingFreeActionsPlayerID = ""
+	}
+	if strings.TrimSpace(gs.PendingTurnConfirmationPlayerID) == playerID {
+		gs.ClearPendingTurnConfirmation()
 	}
 }
 
@@ -594,6 +611,17 @@ func opensPendingFreeActionsWindow(action Action) bool {
 	default:
 		return false
 	}
+}
+
+func playerUsesTurnConfirmation(gs *GameState, playerID string) bool {
+	if gs == nil {
+		return false
+	}
+	player := gs.GetPlayer(strings.TrimSpace(playerID))
+	if player == nil {
+		return false
+	}
+	return player.Options.ConfirmActions
 }
 
 func isPendingResolutionActionType(actionType ActionType) bool {

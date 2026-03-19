@@ -85,6 +85,60 @@ func TestManager_PostActionFreeWindow_AllowsActorConversionAfterMainAction(t *te
 	}
 }
 
+func TestManager_PostActionFreeWindow_SkipsWindowWhenConfirmTurnDisabled(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("actor", factions.NewCultists()); err != nil {
+		t.Fatalf("add actor: %v", err)
+	}
+	if err := gs.AddPlayer("next", factions.NewWitches()); err != nil {
+		t.Fatalf("add next: %v", err)
+	}
+	gs.TurnOrder = []string{"actor", "next"}
+	gs.CurrentPlayerIndex = 0
+	gs.Phase = PhaseAction
+
+	actor := gs.GetPlayer("actor")
+	next := gs.GetPlayer("next")
+	if actor == nil || next == nil || actor.Resources == nil || next.Resources == nil {
+		t.Fatal("missing player resources")
+	}
+	actor.Options.ConfirmActions = false
+	actor.Resources.Priests = 1
+	next.Resources.Priests = 1
+
+	mgr := NewManager()
+	mgr.CreateGameWithState("g1", gs)
+
+	if _, err := mgr.ExecuteActionWithMeta("g1", &SendPriestToCultAction{
+		BaseAction:    BaseAction{Type: ActionSendPriestToCult, PlayerID: "actor"},
+		Track:         CultFire,
+		SpacesToClimb: 1,
+	}, ActionMeta{ExpectedRevision: 0}); err != nil {
+		t.Fatalf("actor send_priest: %v", err)
+	}
+
+	if current := gs.GetCurrentPlayer(); current == nil || current.ID != "next" {
+		t.Fatalf("current player after main action = %v, want next", current)
+	}
+	if got := strings.TrimSpace(gs.PendingFreeActionsPlayerID); got != "" {
+		t.Fatalf("pending free-actions player = %q, want empty", got)
+	}
+	if gs.HasPendingTurnConfirmation() {
+		t.Fatal("expected no pending turn confirmation when confirm turn is disabled")
+	}
+	if pending := serializePendingDecision(gs); pending != nil {
+		t.Fatalf("pending decision = %v, want nil", pending)
+	}
+
+	if _, err := mgr.ExecuteActionWithMeta("g1", &SendPriestToCultAction{
+		BaseAction:    BaseAction{Type: ActionSendPriestToCult, PlayerID: "next"},
+		Track:         CultWater,
+		SpacesToClimb: 1,
+	}, ActionMeta{ExpectedRevision: 1}); err != nil {
+		t.Fatalf("next send_priest without confirm window: %v", err)
+	}
+}
+
 func TestManager_PostActionFreeWindow_BlocksNextPlayerUntilActorConfirms(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("actor", factions.NewCultists()); err != nil {

@@ -77,6 +77,67 @@ func TestManagerTurnConfirmation_RequiresExplicitConfirmBeforeNextPlayerActs(t *
 	}
 }
 
+func TestManagerTurnConfirmation_DisablingConfirmClearsPendingWindow(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("actor", factions.NewCultists()); err != nil {
+		t.Fatalf("add actor: %v", err)
+	}
+	if err := gs.AddPlayer("next", factions.NewWitches()); err != nil {
+		t.Fatalf("add next: %v", err)
+	}
+	gs.TurnOrder = []string{"actor", "next"}
+	gs.CurrentPlayerIndex = 0
+	gs.Phase = PhaseAction
+
+	actor := gs.GetPlayer("actor")
+	next := gs.GetPlayer("next")
+	if actor == nil || next == nil || actor.Resources == nil || next.Resources == nil {
+		t.Fatal("missing player resources")
+	}
+	actor.Resources.Priests = 1
+	next.Resources.Priests = 1
+
+	mgr := NewManager()
+	mgr.CreateGameWithState("g1", gs)
+
+	if _, err := mgr.ExecuteActionWithMeta("g1", &SendPriestToCultAction{
+		BaseAction:    BaseAction{Type: ActionSendPriestToCult, PlayerID: "actor"},
+		Track:         CultFire,
+		SpacesToClimb: 1,
+	}, ActionMeta{ExpectedRevision: 0}); err != nil {
+		t.Fatalf("actor send_priest: %v", err)
+	}
+	if !gs.HasPendingTurnConfirmation() {
+		t.Fatal("expected pending turn confirmation after main action")
+	}
+	if got := strings.TrimSpace(gs.PendingFreeActionsPlayerID); got != "actor" {
+		t.Fatalf("pending free-actions player = %q, want actor", got)
+	}
+
+	confirmActions := false
+	if _, err := mgr.ExecuteActionWithMeta("g1", NewSetPlayerOptionsAction("actor", nil, nil, &confirmActions, nil), ActionMeta{ExpectedRevision: 1}); err != nil {
+		t.Fatalf("disable confirm action: %v", err)
+	}
+
+	if gs.HasPendingTurnConfirmation() {
+		t.Fatal("expected pending turn confirmation to clear when confirm turn is disabled")
+	}
+	if got := strings.TrimSpace(gs.PendingFreeActionsPlayerID); got != "" {
+		t.Fatalf("pending free-actions player after disabling confirm = %q, want empty", got)
+	}
+	if pending := serializePendingDecision(gs); pending != nil {
+		t.Fatalf("pending decision after disabling confirm = %v, want nil", pending)
+	}
+
+	if _, err := mgr.ExecuteActionWithMeta("g1", &SendPriestToCultAction{
+		BaseAction:    BaseAction{Type: ActionSendPriestToCult, PlayerID: "next"},
+		Track:         CultWater,
+		SpacesToClimb: 1,
+	}, ActionMeta{ExpectedRevision: 2}); err != nil {
+		t.Fatalf("next send_priest after disabling confirm: %v", err)
+	}
+}
+
 func TestManagerTurnConfirmation_UndoRestoresLastAcceptedLeechCheckpoint(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("actor", factions.NewHalflings()); err != nil {
