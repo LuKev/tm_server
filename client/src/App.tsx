@@ -6,6 +6,7 @@ import { MapTest } from './components/MapTest';
 import { CultTracksTest } from './components/CultTracks/CultTracksTest';
 import { Replay } from './components/Replay';
 import { ImportGame } from './components/ImportGame';
+import './App.css'
 
 function App(): React.ReactElement {
   const showTestRoutes = import.meta.env.DEV
@@ -16,7 +17,11 @@ function App(): React.ReactElement {
   return (
     <WebSocketProvider>
       <Router basename={basePath}>
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+        <div style={{
+          minHeight: '100vh',
+          background: 'linear-gradient(135deg, #08111f 0%, #13263d 50%, #2d1711 100%)',
+        }}
+        >
           <Routes>
             <Route path="/" element={<Lobby />} />
             <Route path="/import" element={<ImportGame />} />

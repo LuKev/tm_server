@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
 import type { GameState } from '../types/game.types'
+import './Lobby.css'
 
 interface GameInfo {
   id: string
   name: string
+  host: string
   players: string[]
   maxPlayers: number
 }
@@ -14,6 +16,39 @@ interface GameInfo {
 interface LobbyMessage {
   type: string
   payload?: unknown
+}
+
+type LobbyErrorPayload = string | {
+  error?: string
+  gameId?: string
+}
+
+function formatLobbyError(payload: LobbyErrorPayload): string {
+  if (typeof payload === 'string') {
+    switch (payload) {
+      case 'not_in_game':
+        return 'You are not seated in that game.'
+      case 'game_not_found':
+        return 'That game no longer exists.'
+      default:
+        return payload
+    }
+  }
+
+  switch (payload.error) {
+    case 'already_in_game':
+      return payload.gameId ? `Leave game ${payload.gameId} before joining another open game.` : 'Leave your current open game before joining another.'
+    case 'game_full':
+      return 'That game is already full.'
+    case 'game_started':
+      return 'That game has already started.'
+    case 'game_not_found':
+      return 'That game no longer exists.'
+    case 'not_in_game':
+      return 'You are not seated in that game.'
+    default:
+      return 'Lobby action failed.'
+  }
 }
 
 export function Lobby(): React.ReactElement {
@@ -28,174 +63,210 @@ export function Lobby(): React.ReactElement {
   const [turnTimerEnabled, setTurnTimerEnabled] = useState(false)
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
+  const [lobbyError, setLobbyError] = useState<string | null>(null)
+
+  const trimmedPlayerName = playerName.trim()
+  const joinedGame = useMemo(
+    () => games.find((game) => trimmedPlayerName !== '' && game.players.includes(trimmedPlayerName)) ?? null,
+    [games, trimmedPlayerName],
+  )
+  const joinedGameId = joinedGame?.id ?? null
 
   useEffect(() => {
     if (lastMessage === null) return
 
-    // Handle lobby messages
     if (lastMessage && typeof lastMessage === 'object' && 'type' in lastMessage) {
       const msg = lastMessage as LobbyMessage
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload as GameInfo[] : [])
+        setLobbyError(null)
       } else if (msg.type === 'game_state_update') {
         const gameState = msg.payload as GameState | undefined
-        // If we are in this game AND it has started, navigate to it
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-        if (gameState?.id && gameState.players[playerName] && gameState.started) {
+        if (gameState?.id && gameState.players[trimmedPlayerName] && gameState.started) {
           void navigate(`/game/${gameState.id}`)
         }
+      } else if (msg.type === 'error') {
+        setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
+      } else if (msg.type === 'game_left') {
+        setLobbyError(null)
       }
     }
-  }, [lastMessage, navigate, playerName])
+  }, [lastMessage, navigate, trimmedPlayerName])
 
-  // Request games list on connect
   useEffect(() => {
     if (isConnected) {
       sendMessage({ type: 'list_games' })
     }
   }, [isConnected, sendMessage])
 
-  const getStatusColor = (): string => {
+  const getStatusColorClass = (): string => {
     switch (connectionStatus) {
-      case 'connected': return 'bg-green-500'
-      case 'connecting': return 'bg-yellow-500'
-      case 'error': return 'bg-red-500'
-      default: return 'bg-gray-500'
+      case 'connected':
+        return 'lobby-status-dot-connected'
+      case 'connecting':
+        return 'lobby-status-dot-connecting'
+      case 'error':
+        return 'lobby-status-dot-error'
+      default:
+        return 'lobby-status-dot-disconnected'
     }
   }
 
   const handleCreateGame = (): void => {
-    if (!playerName.trim() || !newGameName.trim()) return
-    useGameStore.getState().setLocalPlayerId(playerName.trim())
+    if (!trimmedPlayerName || !newGameName.trim() || joinedGameId) return
+    useGameStore.getState().setLocalPlayerId(trimmedPlayerName)
+    setLobbyError(null)
     sendMessage({
       type: 'create_game',
-      payload: { name: newGameName.trim(), maxPlayers: newGameMaxPlayers, creator: playerName.trim() },
+      payload: { name: newGameName.trim(), maxPlayers: newGameMaxPlayers, creator: trimmedPlayerName },
     })
     setNewGameName('')
   }
 
   const handleJoinGame = (id: string): void => {
-    if (!playerName.trim()) return
-    useGameStore.getState().setLocalPlayerId(playerName.trim())
-    sendMessage({ type: 'join_game', payload: { id, name: playerName.trim() } })
+    if (!trimmedPlayerName || joinedGameId) return
+    useGameStore.getState().setLocalPlayerId(trimmedPlayerName)
+    setLobbyError(null)
+    sendMessage({ type: 'join_game', payload: { id, name: trimmedPlayerName } })
+  }
+
+  const handleLeaveGame = (id: string): void => {
+    if (!trimmedPlayerName) return
+    setLobbyError(null)
+    sendMessage({ type: 'leave_game', payload: { id, name: trimmedPlayerName } })
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" data-testid="lobby-screen">
-      <div className="max-w-4xl w-full">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-white mb-2">Terra Mystica Online</h1>
-          <p className="text-gray-300">Multiplayer Strategy Board Game</p>
-
-          {/* Connection Status */}
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className={`w-3 h-3 rounded-full ${getStatusColor()} animate-pulse`}></div>
-            <span className="text-sm text-gray-300 capitalize">{connectionStatus}</span>
+    <div className="lobby-page" data-testid="lobby-screen">
+      <div className="lobby-shell">
+        <div className="lobby-header">
+          <p className="lobby-kicker">TM Lobby</p>
+          <h1 className="lobby-title">Terra Mystica Online</h1>
+          <p className="lobby-subtitle">Create an open table, fill the seats, then launch the game.</p>
+          <div className="lobby-status">
+            <span className={`lobby-status-dot ${getStatusColorClass()}`}></span>
+            <span className="lobby-status-label">{connectionStatus}</span>
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="bg-white/10 backdrop-blur-lg rounded-lg shadow-2xl p-8 border border-white/20">
-          <div className="space-y-6">
-            {/* Player Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-200 mb-2">Player Name</label>
-              <input
-                type="text"
-                data-testid="lobby-player-name"
-                value={playerName}
-                onChange={(e) => { setPlayerName(e.target.value); }}
-                className="w-full px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="Enter your name"
-              />
+        <div className="lobby-panel">
+          <div className="lobby-section">
+            <label className="lobby-label" htmlFor="lobby-player-name">Player Name</label>
+            <input
+              id="lobby-player-name"
+              type="text"
+              data-testid="lobby-player-name"
+              value={playerName}
+              onChange={(e) => { setPlayerName(e.target.value) }}
+              className="lobby-input"
+              placeholder="Enter your name"
+            />
+          </div>
+
+          {lobbyError && (
+            <div className="lobby-alert" role="alert">
+              {lobbyError}
+            </div>
+          )}
+
+          {joinedGame && (
+            <div className="lobby-banner">
+              <span className="lobby-banner-title">Current seat</span>
+              <span>You are seated in <strong>{joinedGame.name}</strong>.</span>
+              <span>Leave it before joining or creating another open game.</span>
+            </div>
+          )}
+
+          <div className="lobby-section lobby-section-split">
+            <div className="lobby-section-heading">
+              <div>
+                <h2>Create Game</h2>
+                <p>New tables automatically seat the creator as the host.</p>
+              </div>
+              <span className="lobby-note">IDs are generated automatically</span>
             </div>
 
-            {/* Create Game */}
-            <div className="border-t border-white/20 pt-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-xl font-semibold text-white">Create Game</h2>
-                <span className="text-xs text-gray-300">IDs are generated automatically</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-                <input
-                  type="text"
-                  data-testid="lobby-game-name"
-                  value={newGameName}
-                  onChange={(e) => { setNewGameName(e.target.value); }}
-                  className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Game Name"
-                  disabled={!isConnected}
-                />
-                <select
-                  data-testid="lobby-max-players"
-                  value={newGameMaxPlayers}
-                  onChange={(e) => { setNewGameMaxPlayers(Number(e.target.value)); }}
-                  className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  disabled={!isConnected}
-                >
-                  <option value={1}>1 player</option>
-                  <option value={2}>2 players</option>
-                  <option value={3}>3 players</option>
-                  <option value={4}>4 players</option>
-                  <option value={5}>5 players</option>
-                </select>
-                <button
-                  data-testid="lobby-create-game"
-                  onClick={handleCreateGame}
-                  disabled={!isConnected || !playerName.trim() || !newGameName.trim()}
-                  className="px-6 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
-                >
-                  Create
-                </button>
-                <button
-                  data-testid="lobby-refresh-games-top"
-                  onClick={() => { sendMessage({ type: 'list_games' }); }}
-                  disabled={!isConnected}
-                  className="px-6 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-lg font-medium transition-colors"
-                >
-                  Refresh
-                </button>
-              </div>
-              <label className="mt-3 inline-flex items-center gap-2 text-sm text-gray-200">
+            <div className="lobby-create-grid">
+              <input
+                type="text"
+                data-testid="lobby-game-name"
+                value={newGameName}
+                onChange={(e) => { setNewGameName(e.target.value) }}
+                className="lobby-input"
+                placeholder="Game Name"
+                disabled={!isConnected || joinedGameId !== null}
+              />
+              <select
+                data-testid="lobby-max-players"
+                value={newGameMaxPlayers}
+                onChange={(e) => { setNewGameMaxPlayers(Number(e.target.value)) }}
+                className="lobby-select"
+                disabled={!isConnected || joinedGameId !== null}
+              >
+                <option value={1}>1 player</option>
+                <option value={2}>2 players</option>
+                <option value={3}>3 players</option>
+                <option value={4}>4 players</option>
+                <option value={5}>5 players</option>
+              </select>
+              <button
+                data-testid="lobby-create-game"
+                onClick={handleCreateGame}
+                disabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null}
+                className="lobby-button lobby-button-primary"
+              >
+                Create
+              </button>
+              <button
+                data-testid="lobby-refresh-games-top"
+                onClick={() => { sendMessage({ type: 'list_games' }) }}
+                disabled={!isConnected}
+                className="lobby-button lobby-button-secondary"
+              >
+                Refresh
+              </button>
+            </div>
+
+            <div className="lobby-option-list">
+              <label className="lobby-checkbox-row">
                 <input
                   type="checkbox"
                   data-testid="lobby-randomize-turn-order"
                   checked={randomizeTurnOrder}
-                  onChange={(e) => { setRandomizeTurnOrder(e.target.checked); }}
-                  className="rounded border-white/30 bg-white/10"
+                  onChange={(e) => { setRandomizeTurnOrder(e.target.checked) }}
                 />
-                Randomize turn order on start
+                <span>Randomize turn order on start</span>
               </label>
-              <div className="mt-3">
-                <label className="block text-sm text-gray-200 mb-1">Setup mode</label>
+
+              <label className="lobby-field-stack">
+                <span className="lobby-label">Setup mode</span>
                 <select
                   data-testid="lobby-setup-mode"
                   value={setupMode}
                   onChange={(e) => { setSetupMode(e.target.value as 'snellman' | 'auction' | 'fast_auction') }}
-                  className="px-3 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="lobby-select"
                   disabled={!isConnected}
                 >
                   <option value="snellman">Snellman (Pick Factions)</option>
                   <option value="auction">Auction</option>
                   <option value="fast_auction">Fast Auction</option>
                 </select>
-              </div>
-              <div className="mt-3 rounded-lg border border-white/15 bg-white/5 p-3">
-                <label className="inline-flex items-center gap-2 text-sm text-gray-200">
+              </label>
+
+              <div className="lobby-timer-box">
+                <label className="lobby-checkbox-row">
                   <input
                     type="checkbox"
                     data-testid="lobby-turn-timer-enabled"
                     checked={turnTimerEnabled}
                     onChange={(e) => { setTurnTimerEnabled(e.target.checked) }}
-                    className="rounded border-white/30 bg-white/10"
                   />
-                  Enable turn timer
+                  <span>Enable turn timer</span>
                 </label>
                 {turnTimerEnabled && (
-                  <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <label className="text-sm text-gray-200">
-                      <span className="mb-1 block">Initial minutes</span>
+                  <div className="lobby-create-grid">
+                    <label className="lobby-field-stack">
+                      <span className="lobby-label">Initial minutes</span>
                       <input
                         type="number"
                         data-testid="lobby-turn-timer-minutes"
@@ -206,11 +277,11 @@ export function Lobby(): React.ReactElement {
                           const value = Number(e.target.value)
                           setTurnTimerMinutes(Number.isFinite(value) ? value : 25)
                         }}
-                        className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="lobby-input"
                       />
                     </label>
-                    <label className="text-sm text-gray-200">
-                      <span className="mb-1 block">Increment seconds</span>
+                    <label className="lobby-field-stack">
+                      <span className="lobby-label">Increment seconds</span>
                       <input
                         type="number"
                         data-testid="lobby-turn-timer-increment"
@@ -221,49 +292,82 @@ export function Lobby(): React.ReactElement {
                           const value = Number(e.target.value)
                           setTurnTimerIncrementSeconds(Number.isFinite(value) ? value : 0)
                         }}
-                        className="w-full rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="lobby-input"
                       />
                     </label>
                   </div>
                 )}
               </div>
             </div>
+          </div>
 
-            {/* Games List */}
-            <div className="border-t border-white/20 pt-6">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-xl font-semibold text-white">Open Games</h2>
-                <button
-                  data-testid="lobby-refresh-games-list"
-                  onClick={() => { sendMessage({ type: 'list_games' }); }}
-                  disabled={!isConnected}
-                  className="px-3 py-1 text-sm bg-white/20 hover:bg-white/30 text-white rounded-md"
-                >Refresh</button>
+          <div className="lobby-section lobby-section-split">
+            <div className="lobby-section-heading">
+              <div>
+                <h2>Open Games</h2>
+                <p>Only games that have not started are shown here.</p>
               </div>
-              {games.length === 0 ? (
-                <p className="text-gray-400 text-sm">No open games. Create one above.</p>
-              ) : (
-                <div className="space-y-2">
-                  {games.map((g) => {
-                    const isFull = g.players.length >= g.maxPlayers
-                    return (
-                      <div key={g.id} className="flex items-center justify-between bg-white/10 border border-white/20 rounded-md p-3">
-                        <div>
-                          <div className="text-white font-medium">{g.name} <span className="text-xs text-gray-300">({g.id})</span></div>
-                          <span className="text-sm text-gray-500">Players: {String(g.players.length)}/{String(g.maxPlayers)}</span>
+              <button
+                data-testid="lobby-refresh-games-list"
+                onClick={() => { sendMessage({ type: 'list_games' }) }}
+                disabled={!isConnected}
+                className="lobby-button lobby-button-secondary"
+              >
+                Refresh
+              </button>
+            </div>
+
+            {games.length === 0 ? (
+              <p className="lobby-empty">No open games. Create one above.</p>
+            ) : (
+              <div className="lobby-games">
+                {games.map((g) => {
+                  const isFull = g.players.length >= g.maxPlayers
+                  const isJoined = trimmedPlayerName !== '' && g.players.includes(trimmedPlayerName)
+                  const isHost = trimmedPlayerName !== '' && g.host === trimmedPlayerName
+                  const joinBlockedByOtherSeat = joinedGameId !== null && joinedGameId !== g.id
+                  return (
+                    <div key={g.id} className="lobby-game-card">
+                      <div className="lobby-game-meta">
+                        <div className="lobby-game-title-row">
+                          <div className="lobby-game-title">{g.name}</div>
+                          <div className="lobby-tag-row">
+                            <span className="lobby-tag">{g.id}</span>
+                            {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
+                          </div>
                         </div>
-                        <div className="flex gap-2">
+                        <div className="lobby-player-line">
+                          <span>Players {String(g.players.length)}/{String(g.maxPlayers)}</span>
+                          <span>{g.players.join(', ') || 'No players yet'}</span>
+                        </div>
+                      </div>
+
+                      <div className="lobby-game-actions">
+                        {isJoined ? (
+                          <button
+                            data-testid={`lobby-leave-${g.id}`}
+                            onClick={() => { handleLeaveGame(g.id) }}
+                            disabled={!isConnected}
+                            className="lobby-button lobby-button-danger"
+                          >
+                            Leave
+                          </button>
+                        ) : (
                           <button
                             data-testid={`lobby-join-${g.id}`}
-                            onClick={() => { handleJoinGame(g.id); }}
-                            disabled={!isConnected || !playerName.trim() || isFull}
-                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium"
-                          >Join</button>
-                          <button
-                            data-testid={`lobby-start-${g.id}`}
-                            onClick={() => {
-                              sendMessage({
-                                type: 'start_game',
+                            onClick={() => { handleJoinGame(g.id) }}
+                            disabled={!isConnected || !trimmedPlayerName || isFull || joinBlockedByOtherSeat}
+                            className="lobby-button lobby-button-accent"
+                          >
+                            {joinBlockedByOtherSeat ? 'Leave Current Game First' : 'Join'}
+                          </button>
+                        )}
+
+                        <button
+                          data-testid={`lobby-start-${g.id}`}
+                          onClick={() => {
+                            sendMessage({
+                              type: 'start_game',
                               payload: {
                                 gameID: g.id,
                                 randomizeTurnOrder,
@@ -274,28 +378,18 @@ export function Lobby(): React.ReactElement {
                               },
                             })
                           }}
-                            disabled={!isConnected || !isFull}
-                            className={`px-4 py-2 ${isFull
-                              ? 'bg-green-600 hover:bg-green-700'
-                              : 'bg-gray-600 cursor-not-allowed'
-                              } disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg font-medium`}
-                          >
-                            {isFull ? 'Start' : `Waiting (${String(g.players.length)}/${String(g.maxPlayers)})`}
-                          </button>
-                        </div>
+                          disabled={!isConnected || !isFull || !isHost}
+                          className="lobby-button lobby-button-success"
+                        >
+                          {isFull ? (isHost ? 'Start' : 'Host Starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
+                        </button>
                       </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
-        </div>
-
-        {/* Info Footer */}
-        <div className="mt-6 text-center text-sm text-gray-400">
-          <p>Phase 2: Lobby wired to server (list/create/join)</p>
-          <p className="mt-1">Server connected</p>
         </div>
       </div>
     </div>

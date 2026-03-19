@@ -402,6 +402,89 @@ func TestWebsocketE2E_StartGameWithTurnTimer(t *testing.T) {
 	}
 }
 
+func TestWebsocketE2E_LobbySingleSeatAndLeaveFlow(t *testing.T) {
+	hub := NewHub()
+	go hub.Run()
+
+	deps := ServerDeps{
+		Lobby: lobby.NewManager(),
+		Games: game.NewManager(),
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ServeWs(hub, deps, w, r)
+	}))
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+	host := dialWS(t, wsURL)
+	defer host.Close()
+	otherHost := dialWS(t, wsURL)
+	defer otherHost.Close()
+
+	sendJSON(t, host, map[string]any{
+		"type": "create_game",
+		"payload": map[string]any{
+			"name":       "alpha",
+			"maxPlayers": 2,
+			"creator":    "host",
+		},
+	})
+	created := readUntilType(t, host, "game_created", 4*time.Second)
+	firstGameID := asString(asMap(created["payload"])["gameId"])
+	_ = readUntilType(t, host, "lobby_state", 4*time.Second)
+
+	sendJSON(t, otherHost, map[string]any{
+		"type": "create_game",
+		"payload": map[string]any{
+			"name":       "beta",
+			"maxPlayers": 2,
+			"creator":    "other",
+		},
+	})
+	secondCreated := readUntilType(t, otherHost, "game_created", 4*time.Second)
+	secondGameID := asString(asMap(secondCreated["payload"])["gameId"])
+	_ = readUntilType(t, otherHost, "lobby_state", 4*time.Second)
+
+	sendJSON(t, host, map[string]any{
+		"type": "join_game",
+		"payload": map[string]any{
+			"id":   secondGameID,
+			"name": "host",
+		},
+	})
+	joinErr := asMap(readUntilType(t, host, "error", 4*time.Second)["payload"])
+	if asString(joinErr["error"]) != "already_in_game" {
+		t.Fatalf("expected already_in_game join error, got %v", joinErr)
+	}
+
+	sendJSON(t, host, map[string]any{
+		"type": "leave_game",
+		"payload": map[string]any{
+			"id":   firstGameID,
+			"name": "host",
+		},
+	})
+	_ = readUntilType(t, host, "game_left", 4*time.Second)
+	leaveState := readUntilType(t, host, "lobby_state", 4*time.Second)
+	leaveGames := leaveState["payload"].([]any)
+	if len(leaveGames) != 1 {
+		t.Fatalf("expected one remaining open game after leave, got %d", len(leaveGames))
+	}
+
+	sendJSON(t, host, map[string]any{
+		"type": "join_game",
+		"payload": map[string]any{
+			"id":   secondGameID,
+			"name": "host",
+		},
+	})
+	joined := readUntilType(t, host, "game_joined", 4*time.Second)
+	if asString(asMap(joined["payload"])["gameId"]) != secondGameID {
+		t.Fatalf("expected host to join second game, got %v", joined)
+	}
+}
+
 func setupWebsocketGameToAction(
 	t *testing.T,
 	playerIDs []string,
@@ -634,7 +717,7 @@ func readUntilType(t *testing.T, conn *gws.Conn, want string, timeout time.Durat
 		if asString(msg["type"]) == "action_rejected" && want != "action_rejected" {
 			t.Fatalf("unexpected action_rejected while waiting for %s: %v", want, msg["payload"])
 		}
-		if asString(msg["type"]) == "error" {
+		if asString(msg["type"]) == "error" && want != "error" {
 			t.Fatalf("unexpected error while waiting for %s: %v", want, msg["payload"])
 		}
 		if asString(msg["type"]) == want {

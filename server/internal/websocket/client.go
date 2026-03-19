@@ -4,6 +4,7 @@ package websocket
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -14,6 +15,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/lobby"
 	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
 )
@@ -57,6 +59,11 @@ type createGamePayload struct {
 type joinGamePayload struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+}
+
+type leaveGamePayload struct {
+	ID   string `json:"id"`
+	Name string `json:"name,omitempty"`
 }
 
 type startGamePayload struct {
@@ -143,6 +150,13 @@ func (c *Client) seatForGame(gameID string) string {
 	return c.seatsByGame[gameID]
 }
 
+func (c *Client) unbindSeat(gameID string) {
+	if c.seatsByGame == nil {
+		return
+	}
+	delete(c.seatsByGame, gameID)
+}
+
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
@@ -225,6 +239,9 @@ func (c *Client) handleInboundMessage(env inboundMsg) {
 
 	case "join_game":
 		c.handleJoinGame(env.Payload)
+
+	case "leave_game":
+		c.handleLeaveGame(env.Payload)
 
 	case "perform_action":
 		c.handlePerformAction(env.Payload)
@@ -601,6 +618,11 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		c.sendError("create_game_failed")
 		return
 	}
+	if err := c.deps.Lobby.StartGame(p.GameID); err != nil {
+		log.Printf("error marking game started: %v", err)
+		c.sendError("create_game_failed")
+		return
+	}
 
 	for _, playerID := range meta.Players {
 		if playerID == c.seatForGame(p.GameID) {
@@ -616,6 +638,10 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		})
 		c.hub.BroadcastToGame(p.GameID, gameStateMsg)
 	}
+
+	games := c.deps.Lobby.ListGames()
+	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
+	c.hub.BroadcastMessage(out)
 }
 
 func (c *Client) handleCreateGame(payload json.RawMessage) {
@@ -627,9 +653,12 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator)
+	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator)
+	if err != nil {
+		c.sendLobbyError(err)
+		return
+	}
 	if p.Creator != "" {
-		_ = c.deps.Lobby.JoinGame(meta.ID, p.Creator)
 		c.bindSeat(meta.ID, p.Creator)
 		c.hub.JoinGame(c, meta.ID)
 		createdMsg, _ := json.Marshal(map[string]any{
@@ -649,26 +678,9 @@ func (c *Client) handleJoinGame(payload json.RawMessage) {
 		log.Printf("join_game payload error: %v", err)
 		return
 	}
-	ok := c.deps.Lobby.JoinGame(p.ID, p.Name)
-	if !ok {
-		meta, exists := c.deps.Lobby.GetGame(p.ID)
-		if !exists {
-			out, _ := json.Marshal(map[string]any{"type": "error", "payload": "join_failed"})
-			c.send <- out
-			return
-		}
-		rejoinAllowed := false
-		for _, playerID := range meta.Players {
-			if playerID == p.Name {
-				rejoinAllowed = true
-				break
-			}
-		}
-		if !rejoinAllowed {
-			out, _ := json.Marshal(map[string]any{"type": "error", "payload": "join_failed"})
-			c.send <- out
-			return
-		}
+	if err := c.deps.Lobby.JoinGame(p.ID, p.Name); err != nil {
+		c.sendLobbyError(err)
+		return
 	}
 
 	c.bindSeat(p.ID, p.Name)
@@ -683,6 +695,44 @@ func (c *Client) handleJoinGame(payload json.RawMessage) {
 	games := c.deps.Lobby.ListGames()
 	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
 	c.hub.broadcast <- out
+}
+
+func (c *Client) handleLeaveGame(payload json.RawMessage) {
+	var p leaveGamePayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		log.Printf("leave_game payload error: %v", err)
+		return
+	}
+
+	playerID := strings.TrimSpace(p.Name)
+	if playerID == "" {
+		playerID = c.seatForGame(p.ID)
+	}
+	if playerID == "" {
+		c.sendLobbyError(lobby.ErrPlayerNotInGame)
+		return
+	}
+
+	if err := c.deps.Lobby.LeaveGame(p.ID, playerID); err != nil {
+		c.sendLobbyError(err)
+		return
+	}
+
+	c.unbindSeat(p.ID)
+	c.hub.LeaveGame(c, p.ID)
+
+	leftMsg, _ := json.Marshal(map[string]any{
+		"type": "game_left",
+		"payload": map[string]string{
+			"gameId":   p.ID,
+			"playerId": playerID,
+		},
+	})
+	c.send <- leftMsg
+
+	games := c.deps.Lobby.ListGames()
+	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
+	c.hub.BroadcastMessage(out)
 }
 
 func (c *Client) handlePerformAction(payload json.RawMessage) {
@@ -1662,6 +1712,34 @@ func (c *Client) sendError(code string) {
 	msg, _ := json.Marshal(map[string]any{
 		"type":    "error",
 		"payload": code,
+	})
+	c.send <- msg
+}
+
+func (c *Client) sendLobbyError(err error) {
+	payload := map[string]any{
+		"error": "lobby_error",
+	}
+	switch {
+	case errors.Is(err, lobby.ErrGameNotFound):
+		payload["error"] = "game_not_found"
+	case errors.Is(err, lobby.ErrGameAlreadyStarted):
+		payload["error"] = "game_started"
+	case errors.Is(err, lobby.ErrGameFull):
+		payload["error"] = "game_full"
+	case errors.Is(err, lobby.ErrAlreadyInOpenGame):
+		payload["error"] = "already_in_game"
+		if parts := strings.Split(err.Error(), ": "); len(parts) == 2 && strings.TrimSpace(parts[1]) != "" {
+			payload["gameId"] = strings.TrimSpace(parts[1])
+		}
+	case errors.Is(err, lobby.ErrPlayerNotInGame):
+		payload["error"] = "not_in_game"
+	default:
+		payload["error"] = "join_failed"
+	}
+	msg, _ := json.Marshal(map[string]any{
+		"type":    "error",
+		"payload": payload,
 	})
 	c.send <- msg
 }

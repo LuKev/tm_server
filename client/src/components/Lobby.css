@@ -1,0 +1,371 @@
+.lobby-page {
+  min-height: 100vh;
+  padding: 32px 16px;
+  color: #f7efe4;
+}
+
+.lobby-shell {
+  width: min(1120px, 100%);
+  margin: 0 auto;
+}
+
+.lobby-header {
+  margin-bottom: 24px;
+}
+
+.lobby-kicker {
+  margin: 0 0 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #e8ba7b;
+}
+
+.lobby-title {
+  margin: 0;
+  font-size: clamp(2.4rem, 5vw, 4.2rem);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+}
+
+.lobby-subtitle {
+  max-width: 46rem;
+  margin: 12px 0 0;
+  color: rgba(247, 239, 228, 0.76);
+  font-size: 1rem;
+}
+
+.lobby-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(14, 19, 28, 0.32);
+  backdrop-filter: blur(12px);
+}
+
+.lobby-status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.06);
+}
+
+.lobby-status-dot-connected {
+  background: #5dd39e;
+}
+
+.lobby-status-dot-connecting {
+  background: #f1b24a;
+}
+
+.lobby-status-dot-error {
+  background: #ef6b73;
+}
+
+.lobby-status-dot-disconnected {
+  background: #8591a5;
+}
+
+.lobby-status-label {
+  text-transform: capitalize;
+  color: rgba(247, 239, 228, 0.82);
+  font-size: 0.95rem;
+}
+
+.lobby-panel {
+  display: grid;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(11, 23, 37, 0.92), rgba(34, 19, 18, 0.72)),
+    radial-gradient(circle at top right, rgba(232, 186, 123, 0.18), transparent 30%);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
+}
+
+.lobby-section {
+  display: grid;
+  gap: 14px;
+}
+
+.lobby-section-split {
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lobby-section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.lobby-section-heading h2 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.lobby-section-heading p {
+  margin: 6px 0 0;
+  color: rgba(247, 239, 228, 0.66);
+}
+
+.lobby-note {
+  font-size: 0.85rem;
+  color: rgba(247, 239, 228, 0.56);
+}
+
+.lobby-label {
+  display: block;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(247, 239, 228, 0.8);
+}
+
+.lobby-input,
+.lobby-select,
+.lobby-button {
+  min-height: 48px;
+  border-radius: 14px;
+  font: inherit;
+}
+
+.lobby-input,
+.lobby-select {
+  width: 100%;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff7ec;
+}
+
+.lobby-input::placeholder {
+  color: rgba(247, 239, 228, 0.44);
+}
+
+.lobby-input:focus,
+.lobby-select:focus {
+  outline: 2px solid rgba(232, 186, 123, 0.7);
+  outline-offset: 2px;
+}
+
+.lobby-input:disabled,
+.lobby-select:disabled,
+.lobby-button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.lobby-create-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lobby-option-list {
+  display: grid;
+  gap: 14px;
+}
+
+.lobby-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(247, 239, 228, 0.82);
+}
+
+.lobby-field-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.lobby-timer-box {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.lobby-button {
+  border: 1px solid transparent;
+  padding: 0 16px;
+  font-weight: 700;
+  color: #fff8ef;
+  transition: transform 140ms ease, filter 140ms ease, background 140ms ease;
+}
+
+.lobby-button:not(:disabled):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.lobby-button-primary {
+  background: linear-gradient(135deg, #28795c, #1f9a69);
+}
+
+.lobby-button-secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.lobby-button-accent {
+  background: linear-gradient(135deg, #2e5bff, #4f7cff);
+}
+
+.lobby-button-danger {
+  background: linear-gradient(135deg, #7f2f3c, #cb475f);
+}
+
+.lobby-button-success {
+  background: linear-gradient(135deg, #8f6a1d, #d39b2a);
+}
+
+.lobby-banner,
+.lobby-alert {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-radius: 16px;
+}
+
+.lobby-banner {
+  border: 1px solid rgba(93, 211, 158, 0.22);
+  background: rgba(93, 211, 158, 0.08);
+}
+
+.lobby-banner-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7be0b2;
+}
+
+.lobby-alert {
+  border: 1px solid rgba(239, 107, 115, 0.28);
+  background: rgba(239, 107, 115, 0.1);
+  color: #ffd8dc;
+}
+
+.lobby-empty {
+  margin: 0;
+  color: rgba(247, 239, 228, 0.64);
+}
+
+.lobby-games {
+  display: grid;
+  gap: 14px;
+}
+
+.lobby-game-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)),
+    rgba(7, 11, 18, 0.42);
+}
+
+.lobby-game-meta {
+  display: grid;
+  gap: 10px;
+}
+
+.lobby-game-title-row {
+  display: grid;
+  gap: 10px;
+}
+
+.lobby-game-title {
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.lobby-tag-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lobby-tag {
+  padding: 5px 9px;
+  border-radius: 999px;
+  background: rgba(232, 186, 123, 0.14);
+  color: #ffdba8;
+  font-size: 0.78rem;
+}
+
+.lobby-tag-muted {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(247, 239, 228, 0.76);
+}
+
+.lobby-player-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: rgba(247, 239, 228, 0.72);
+  font-size: 0.95rem;
+}
+
+.lobby-game-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .lobby-create-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lobby-game-card {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-game-actions {
+    justify-content: stretch;
+  }
+
+  .lobby-game-actions .lobby-button {
+    flex: 1 1 180px;
+  }
+}
+
+@media (max-width: 640px) {
+  .lobby-page {
+    padding: 18px 12px;
+  }
+
+  .lobby-panel {
+    padding: 20px;
+    border-radius: 18px;
+  }
+
+  .lobby-section-heading {
+    display: grid;
+  }
+
+  .lobby-create-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .lobby-player-line {
+    display: grid;
+    gap: 4px;
+  }
+}

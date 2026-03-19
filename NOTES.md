@@ -2,6 +2,16 @@
 
 - Repo rule: use Bazel (workspace: `/Users/kevin/projects/tm_server/server`). Avoid `go test`.
 
+- 2026-03-19 TM lobby flow:
+  - Lobby open seats are now restricted to one unstarted game per player. Creating a game auto-seats the creator immediately, joining a second open game is rejected server-side, and `leave_game` is the explicit escape hatch before starting.
+  - Lobby metadata now keeps started games for reconnect authorization (`get_game_state` still checks `lobby.GetGame(...)`), but `ListGames()` only returns unstarted games so the lobby UI shows true open tables.
+  - Root cause of the "new game shows a greyed-out Join button" confusion was mostly UI semantics, not missing server state: `handleCreateGame` already auto-joined the creator on the server, but the lobby UI still rendered generic Join controls instead of treating the creator as already seated. The fix is to show `Leave` for the joined row, disable joining/creating other open games until leaving, and hide started games from the open-games list.
+  - Verification:
+    - `cd server && bazel test //internal/lobby:lobby_test --test_output=errors`
+    - `cd server && bazel test //internal/websocket:websocket_test --test_filter='TestWebsocketE2E_(StartGameWithTurnTimer|LobbySingleSeatAndLeaveFlow)' --test_output=errors`
+    - `cd server && bazel test //:client_build_test --test_output=errors`
+    - `cd server && bazel test //:client_playwright_test --test_env=TM_PLAYWRIGHT_SPEC=e2e/ui-action-contract.spec.ts --test_output=errors`
+
 - 2026-03-18 working/blocked split after Bazel Playwright wrapper work:
   - Verified client-side subset under Bazel:
     - `cd server && bazel test //:client_build_test --test_output=errors`

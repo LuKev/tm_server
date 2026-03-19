@@ -83,7 +83,7 @@ const openGameWithState = async (page: Page, state: GameState, localPlayerId = '
 }
 
 test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
-  test('lobby create/join/start emits correct websocket messages', async ({ page }) => {
+  test('lobby create/leave/start reflects single-seat behavior', async ({ page }) => {
     await installMockWebSocket(page, 'host')
     await page.goto('/')
 
@@ -112,22 +112,28 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await emitWs(page, {
       type: 'lobby_state',
-      payload: [{ id: 'g-ui', name: 'UI Contract Game', players: ['host', 'p2', 'p3', 'p4'], maxPlayers: 5 }],
+      payload: [
+        { id: 'g-ui', name: 'UI Contract Game', host: 'host', players: ['host', 'p2', 'p3', 'p4'], maxPlayers: 5 },
+        { id: 'g-other', name: 'Other Game', host: 'other', players: ['other'], maxPlayers: 5 },
+      ],
     })
 
-    await page.getByTestId('lobby-join-g-ui').click()
+    await expect(page.getByTestId('lobby-create-game')).toBeDisabled()
+    await expect(page.getByTestId('lobby-join-g-other')).toBeDisabled()
+
+    await page.getByTestId('lobby-leave-g-ui').click()
     await expect.poll(async () => {
       return page.evaluate(() => {
         const msgs = window.__tmE2E?.sent ?? []
-        const join = [...msgs]
+        const leave = [...msgs]
           .reverse()
-          .find((msg) => typeof msg === 'object' && msg !== null && (msg as Record<string, unknown>).type === 'join_game')
-        if (!join) return null
-        const parsed = join as Record<string, unknown>
+          .find((msg) => typeof msg === 'object' && msg !== null && (msg as Record<string, unknown>).type === 'leave_game')
+        if (!leave) return null
+        const parsed = leave as Record<string, unknown>
         return { type: parsed.type, payload: parsed.payload }
       })
     }).toMatchObject({
-      type: 'join_game',
+      type: 'leave_game',
       payload: {
         id: 'g-ui',
         name: 'host',
@@ -138,7 +144,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await page.getByTestId('lobby-setup-mode').selectOption('fast_auction')
     await emitWs(page, {
       type: 'lobby_state',
-      payload: [{ id: 'g-ui', name: 'UI Contract Game', players: ['host', 'p2', 'p3', 'p4', 'p5'], maxPlayers: 5 }],
+      payload: [{ id: 'g-ui', name: 'UI Contract Game', host: 'host', players: ['host', 'p2', 'p3', 'p4', 'p5'], maxPlayers: 5 }],
     })
     await page.getByTestId('lobby-start-g-ui').click()
 
@@ -158,6 +164,36 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
         gameID: 'g-ui',
         randomizeTurnOrder: false,
         setupMode: 'fast_auction',
+      },
+    })
+  })
+
+  test('lobby join emits join_game when player is not already seated', async ({ page }) => {
+    await installMockWebSocket(page, 'guest')
+    await page.goto('/')
+
+    await page.getByTestId('lobby-player-name').fill('guest')
+    await emitWs(page, {
+      type: 'lobby_state',
+      payload: [{ id: 'g-ui', name: 'Joinable', host: 'host', players: ['host'], maxPlayers: 5 }],
+    })
+
+    await page.getByTestId('lobby-join-g-ui').click()
+    await expect.poll(async () => {
+      return page.evaluate(() => {
+        const msgs = window.__tmE2E?.sent ?? []
+        const join = [...msgs]
+          .reverse()
+          .find((msg) => typeof msg === 'object' && msg !== null && (msg as Record<string, unknown>).type === 'join_game')
+        if (!join) return null
+        const parsed = join as Record<string, unknown>
+        return { type: parsed.type, payload: parsed.payload }
+      })
+    }).toMatchObject({
+      type: 'join_game',
+      payload: {
+        id: 'g-ui',
+        name: 'guest',
       },
     })
   })

@@ -1,9 +1,20 @@
 package lobby
 
 import (
+	"errors"
+	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
+)
+
+var (
+	ErrGameNotFound       = errors.New("game not found")
+	ErrGameAlreadyStarted = errors.New("game already started")
+	ErrGameFull           = errors.New("game full")
+	ErrAlreadyInOpenGame  = errors.New("player already seated in another open game")
+	ErrPlayerNotInGame    = errors.New("player not seated in this game")
 )
 
 type GameMeta struct {
@@ -12,6 +23,7 @@ type GameMeta struct {
 	Host       string    `json:"host"`
 	Players    []string  `json:"players"`
 	MaxPlayers int       `json:"maxPlayers"`
+	Started    bool      `json:"started"`
 	CreatedAt  time.Time `json:"createdAt"`
 }
 
@@ -19,13 +31,18 @@ type GameMeta struct {
 // This is separate from the game.Manager which holds full game state
 
 type Manager struct {
-	mu     sync.RWMutex
-	games  map[string]*GameMeta
-	nextID int
+	mu             sync.RWMutex
+	games          map[string]*GameMeta
+	openGameByUser map[string]string
+	nextID         int
 }
 
 func NewManager() *Manager {
-	return &Manager{games: make(map[string]*GameMeta), nextID: 1}
+	return &Manager{
+		games:          make(map[string]*GameMeta),
+		openGameByUser: make(map[string]string),
+		nextID:         1,
+	}
 }
 
 func cloneGameMeta(in *GameMeta) *GameMeta {
@@ -37,14 +54,31 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int, host string) *GameMeta {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string) (*GameMeta, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	host = strings.TrimSpace(host)
+	if existingID, ok := m.openGameByUser[host]; host != "" && ok {
+		return nil, fmt.Errorf("%w: %s", ErrAlreadyInOpenGame, existingID)
+	}
+
 	id := strconv.Itoa(m.nextID)
 	m.nextID++
-	g := &GameMeta{ID: id, Name: name, Host: host, MaxPlayers: maxPlayers, CreatedAt: time.Now(), Players: make([]string, 0, maxPlayers)}
+	g := &GameMeta{
+		ID:         id,
+		Name:       name,
+		Host:       host,
+		MaxPlayers: maxPlayers,
+		CreatedAt:  time.Now(),
+		Players:    make([]string, 0, maxPlayers),
+	}
 	m.games[id] = g
-	return cloneGameMeta(g)
+	if host != "" {
+		g.Players = append(g.Players, host)
+		m.openGameByUser[host] = id
+	}
+	return cloneGameMeta(g), nil
 }
 
 func (m *Manager) GetGame(id string) (*GameMeta, bool) {
@@ -57,41 +91,84 @@ func (m *Manager) GetGame(id string) (*GameMeta, bool) {
 	return cloneGameMeta(g), true
 }
 
-func (m *Manager) JoinGame(id string, playerName string) bool {
+func (m *Manager) JoinGame(id string, playerName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	playerName = strings.TrimSpace(playerName)
 	g, ok := m.games[id]
 	if !ok {
-		return false
+		return ErrGameNotFound
+	}
+	if g.Started {
+		return ErrGameAlreadyStarted
+	}
+	if existingID, alreadySeated := m.openGameByUser[playerName]; alreadySeated {
+		if existingID == id {
+			return nil
+		}
+		return fmt.Errorf("%w: %s", ErrAlreadyInOpenGame, existingID)
 	}
 	if len(g.Players) >= g.MaxPlayers {
-		return false
-	}
-	// prevent duplicate seats for the same player
-	for _, p := range g.Players {
-		if p == playerName {
-			return false
-		}
+		return ErrGameFull
 	}
 	g.Players = append(g.Players, playerName)
-	return true
+	m.openGameByUser[playerName] = id
+	return nil
 }
 
-func (m *Manager) LeaveGame(id string, playerName string) bool {
+func (m *Manager) LeaveGame(id string, playerName string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	playerName = strings.TrimSpace(playerName)
 	g, ok := m.games[id]
 	if !ok {
-		return false
+		return ErrGameNotFound
+	}
+	if g.Started {
+		return ErrGameAlreadyStarted
 	}
 	newPlayers := make([]string, 0, len(g.Players))
+	found := false
 	for _, p := range g.Players {
-		if p != playerName {
-			newPlayers = append(newPlayers, p)
+		if p == playerName {
+			found = true
+			continue
 		}
+		newPlayers = append(newPlayers, p)
+	}
+	if !found {
+		return ErrPlayerNotInGame
 	}
 	g.Players = newPlayers
-	return true
+	delete(m.openGameByUser, playerName)
+	if len(g.Players) == 0 {
+		delete(m.games, id)
+		return nil
+	}
+	if g.Host == playerName {
+		g.Host = g.Players[0]
+	}
+	return nil
+}
+
+func (m *Manager) StartGame(id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	g, ok := m.games[id]
+	if !ok {
+		return ErrGameNotFound
+	}
+	if g.Started {
+		return nil
+	}
+	g.Started = true
+	for _, playerID := range g.Players {
+		delete(m.openGameByUser, playerID)
+	}
+	return nil
 }
 
 func (m *Manager) ListGames() []*GameMeta {
@@ -99,6 +176,9 @@ func (m *Manager) ListGames() []*GameMeta {
 	defer m.mu.RUnlock()
 	out := make([]*GameMeta, 0, len(m.games))
 	for _, g := range m.games {
+		if g.Started {
+			continue
+		}
 		out = append(out, cloneGameMeta(g))
 	}
 	return out
