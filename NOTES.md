@@ -45,7 +45,7 @@
   - Railway root dir `client` means only `client/nixpacks.toml` is considered; `server/nixpacks.toml` / `server/railway.json` are expected to be ignored in that deploy.
   - A strict TypeScript `noUnusedLocals` failure in `client/src/components/CultTracks/CultTracks.tsx` (`tileSpacing`) blocked `tsc -b` during Railway build.
   - Added Bazel wrapper `//:client_build_test` (`server/tools/client_build_test.sh`) to cover the client production build path from the repo's Bazel workflow. It uses a temp copied client tree plus `vite build --configLoader native` to avoid Bazel-sandbox write issues while still catching real client build regressions.
-  - `tm-client` Railway production currently runs `npm run start` -> `npx serve dist -s -p $PORT`, so its public domain should use `VITE_BASE_PATH=/`. Setting `VITE_BASE_PATH=/tm` on that service breaks module asset loading because `/tm/assets/*` is not rewritten by `serve`.
+  - `tm-client` supports the `/tm` subpath by shipping `client/serve.json` and running `npx serve dist -c serve.json -p $PORT`; if Railway production needs to serve `kezilu.com/tm`, keep `VITE_BASE_PATH=/tm` on that service.
 
 - 2026-03-03 UI action-flow fixes (game screen + Playwright):
   - Root cause for sticky player-option toggles (`Auto Leech`, `Auto convert on pass`, `Show next income`) was server serialization: `SerializeStateWithRevision` did not include `players[*].options`. Fixed in `server/internal/game/manager.go` and covered by `server/internal/game/manager_serialize_options_test.go`.
