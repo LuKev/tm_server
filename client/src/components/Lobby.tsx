@@ -2,12 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
+import { DEFAULT_MAP_CATALOG } from '../data/mapCatalog'
+import type { MapSummary } from '../types/map.types'
 import './Lobby.css'
 
 interface GameInfo {
   id: string
   name: string
   host: string
+  mapId: string
   players: string[]
   maxPlayers: number
 }
@@ -45,6 +48,8 @@ function formatLobbyError(payload: LobbyErrorPayload): string {
       return 'That game no longer exists.'
     case 'not_in_game':
       return 'You are not seated in that game.'
+    case 'invalid_map':
+      return 'Select a valid map.'
     default:
       return 'Lobby action failed.'
   }
@@ -59,6 +64,8 @@ export function Lobby(): React.ReactElement {
   const [games, setGames] = useState<GameInfo[]>([])
   const [newGameName, setNewGameName] = useState('')
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
+  const [availableMaps, setAvailableMaps] = useState<MapSummary[]>(DEFAULT_MAP_CATALOG)
+  const [newGameMapId, setNewGameMapId] = useState('base')
   const [randomizeTurnOrder, setRandomizeTurnOrder] = useState(true)
   const [setupMode, setSetupMode] = useState<'snellman' | 'auction' | 'fast_auction'>('snellman')
   const [turnTimerEnabled, setTurnTimerEnabled] = useState(false)
@@ -88,6 +95,8 @@ export function Lobby(): React.ReactElement {
       if (msg.type === 'lobby_state') {
         setGames(Array.isArray(msg.payload) ? msg.payload as GameInfo[] : [])
         setLobbyError(null)
+      } else if (msg.type === 'available_maps') {
+        setAvailableMaps(Array.isArray(msg.payload) ? msg.payload as MapSummary[] : DEFAULT_MAP_CATALOG)
       } else if (msg.type === 'error') {
         setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
       } else if (msg.type === 'game_left') {
@@ -121,7 +130,12 @@ export function Lobby(): React.ReactElement {
     setLobbyError(null)
     sendMessage({
       type: 'create_game',
-      payload: { name: newGameName.trim(), maxPlayers: newGameMaxPlayers, creator: trimmedPlayerName },
+      payload: {
+        name: newGameName.trim(),
+        maxPlayers: newGameMaxPlayers,
+        creator: trimmedPlayerName,
+        mapId: newGameMapId,
+      },
     })
     setNewGameName('')
   }
@@ -199,6 +213,17 @@ export function Lobby(): React.ReactElement {
                 placeholder="Game Name"
                 disabled={!isConnected || joinedGameId !== null}
               />
+              <select
+                data-testid="lobby-map-id"
+                value={newGameMapId}
+                onChange={(e) => { setNewGameMapId(e.target.value) }}
+                className="lobby-select"
+                disabled={!isConnected || joinedGameId !== null}
+              >
+                {availableMaps.map((map) => (
+                  <option key={map.id} value={map.id}>{map.name}</option>
+                ))}
+              </select>
               <select
                 data-testid="lobby-max-players"
                 value={newGameMaxPlayers}
@@ -336,6 +361,9 @@ export function Lobby(): React.ReactElement {
                           <div className="lobby-game-title">{g.name}</div>
                           <div className="lobby-tag-row">
                             <span className="lobby-tag">{g.id}</span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              Map: {(availableMaps.find((map) => map.id === g.mapId)?.name) ?? g.mapId}
+                            </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>
                         </div>

@@ -7,6 +7,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/lukev/tm_server/internal/game/board"
 )
 
 var (
@@ -15,12 +17,14 @@ var (
 	ErrGameFull           = errors.New("game full")
 	ErrAlreadyInOpenGame  = errors.New("player already seated in another open game")
 	ErrPlayerNotInGame    = errors.New("player not seated in this game")
+	ErrInvalidMap         = errors.New("invalid map")
 )
 
 type GameMeta struct {
 	ID         string    `json:"id"`
 	Name       string    `json:"name"`
 	Host       string    `json:"host"`
+	MapID      string    `json:"mapId"`
 	Players    []string  `json:"players"`
 	MaxPlayers int       `json:"maxPlayers"`
 	Started    bool      `json:"started"`
@@ -54,7 +58,7 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int, host string) (*GameMeta, error) {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string) (*GameMeta, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -65,10 +69,15 @@ func (m *Manager) CreateGame(name string, maxPlayers int, host string) (*GameMet
 
 	id := strconv.Itoa(m.nextID)
 	m.nextID++
+	normalizedMapID := board.NormalizeMapID(mapID)
+	if _, ok := board.MapInfoByID(normalizedMapID); !ok {
+		return nil, fmt.Errorf("%w: %s", ErrInvalidMap, strings.TrimSpace(mapID))
+	}
 	g := &GameMeta{
 		ID:         id,
 		Name:       name,
 		Host:       host,
+		MapID:      string(normalizedMapID),
 		MaxPlayers: maxPlayers,
 		CreatedAt:  time.Now(),
 		Players:    make([]string, 0, maxPlayers),

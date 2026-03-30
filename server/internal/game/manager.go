@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -16,6 +17,7 @@ type CreateGameOptions struct {
 	RandomizeTurnOrder bool
 	SetupMode          SetupMode
 	TurnTimer          *TurnTimerConfig
+	MapID              board.MapID
 }
 
 // ActionMeta provides metadata for action execution.
@@ -685,7 +687,11 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 
 // CreateGame initializes a new game state with the given ID and players.
 func (m *Manager) CreateGame(id string, playerIDs []string) error {
-	return m.CreateGameWithOptions(id, playerIDs, CreateGameOptions{RandomizeTurnOrder: true, SetupMode: SetupModeSnellman})
+	return m.CreateGameWithOptions(id, playerIDs, CreateGameOptions{
+		RandomizeTurnOrder: true,
+		SetupMode:          SetupModeSnellman,
+		MapID:              board.MapBase,
+	})
 }
 
 // CreateGameWithOptions initializes a new game with explicit options.
@@ -697,7 +703,14 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 		return fmt.Errorf("game already exists")
 	}
 
-	gs := NewGameState()
+	mapID := opts.MapID
+	if mapID == "" {
+		mapID = board.MapBase
+	}
+	gs, err := NewGameStateWithMap(mapID)
+	if err != nil {
+		return fmt.Errorf("failed to initialize map %s: %w", mapID, err)
+	}
 	setupMode := opts.SetupMode
 	if setupMode == "" {
 		setupMode = SetupModeSnellman
@@ -870,6 +883,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 	return map[string]interface{}{
 		"id":                   gameID,
 		"revision":             revision,
+		"mapId":                gs.Map.ID,
 		"phase":                gs.Phase,
 		"setupMode":            gs.SetupMode,
 		"turnOrderPolicy":      gs.TurnOrderPolicy,
@@ -882,6 +896,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 		"currentTurn":          gs.CurrentPlayerIndex,
 		"players":              players,
 		"map": map[string]interface{}{
+			"id":      gs.Map.ID,
 			"hexes":   hexes,
 			"bridges": bridges,
 		},

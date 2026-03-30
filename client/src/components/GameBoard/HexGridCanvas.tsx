@@ -1,7 +1,7 @@
 // Canvas-based hex grid renderer - based on terra-mystica/stc/game.js
 import React, { useEffect, useRef, useCallback, useMemo } from 'react';
-import type { MapHexData } from '../../data/baseGameMap';
-import { getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
+import type { MapHexData } from '../../types/map.types';
+import { buildDisplayCoordinateMap, getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
 import type { Building, Bridge } from '../../types/game.types';
 import { BuildingType } from '../../types/game.types';
@@ -34,6 +34,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   testId,
 }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const displayCoordinates = useMemo(() => buildDisplayCoordinateMap(hexes), [hexes])
 
   // Calculate canvas dimensions
   const getDimensions = (): { width: number; height: number; offsetX: number; offsetY: number } => {
@@ -168,7 +169,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
 
     // Show coordinates when showCoords is true
     if (showCoords) {
-      const displayCoord = getDisplayCoordinate(hex.coord)
+      const displayCoord = getDisplayCoordinate(hex.coord, displayCoordinates)
       if (displayCoord === null) return
       ctx.save();
       ctx.fillStyle = getContrastColor(fillColor);
@@ -178,7 +179,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       ctx.fillText(displayCoord, center.x, center.y);
       ctx.restore();
     }
-  }, [showCoords]);
+  }, [displayCoordinates, showCoords]);
 
   // Draw highlight border on top of everything
   const drawHighlight = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {

@@ -1,9 +1,9 @@
 // GameBoard component - main container for the hex map
 import React, { useState } from 'react';
 import { HexGridCanvas } from './HexGridCanvas';
-import { BASE_GAME_MAP } from '../../data/baseGameMap';
 import { useGameStore } from '../../stores/gameStore';
-import type { Building } from '../../types/game.types';
+import { TerrainType, type Building } from '../../types/game.types';
+import type { MapHexData } from '../../types/map.types';
 import { PowerActions } from './PowerActions';
 
 import { type PowerActionType } from '../../types/game.types';
@@ -61,20 +61,18 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Merge dynamic terrain data from gameState
   const currentHexes = React.useMemo(() => {
-    if (!gameState?.map?.hexes) return BASE_GAME_MAP;
+    if (!gameState?.map?.hexes) return [] as MapHexData[]
 
-    return BASE_GAME_MAP.map(baseHex => {
-      const key = `${String(baseHex.coord.q)},${String(baseHex.coord.r)}`;
-      const dynamicHex = gameState.map.hexes[key];
-      // Check if dynamicHex exists and has a valid terrain (0 is a valid enum value)
-      if (dynamicHex?.terrain !== undefined) {
-        return {
-          ...baseHex,
-          terrain: dynamicHex.terrain
-        };
-      }
-      return baseHex;
-    });
+    return Object.values(gameState.map.hexes)
+      .map((hex): MapHexData => ({
+        coord: hex.coord,
+        terrain: hex.terrain,
+        isRiver: hex.terrain === TerrainType.River,
+      }))
+      .sort((left, right) => {
+        if (left.coord.r !== right.coord.r) return left.coord.r - right.coord.r
+        return left.coord.q - right.coord.q
+      })
   }, [gameState?.map?.hexes]);
 
   return (
