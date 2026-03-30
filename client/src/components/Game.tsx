@@ -34,7 +34,7 @@ import './Game.css'
 import { getCultPositions, resolveFaction } from '../utils/gameUtils'
 import { useGameLayout } from '../hooks/useGameLayout'
 import { Modal } from './shared/Modal'
-import { formatDisplayCoordinate } from '../utils/hexUtils'
+import { buildDisplayCoordinateMap, formatDisplayCoordinate } from '../utils/hexUtils'
 
 const ResponsiveGridLayout = WidthProvider(Responsive)
 
@@ -428,7 +428,14 @@ export const Game = () => {
     && pendingDecisionPlayerId !== localPlayerId
     && (pendingDecisionType === 'post_action_free_actions' || pendingDecisionType === 'turn_confirmation')
   const isBlockingPendingDecisionForMe = hasPendingDecisionForMe || isOtherPlayerTurnConfirmationWindow
-  const formatHexCoord = (coord: { q: number; r: number }): string => formatDisplayCoordinate(coord)
+  const displayCoordinates = useMemo(() => {
+    const hexes = Object.values(gameState?.map?.hexes ?? {}).map((hex) => ({
+      coord: hex.coord,
+      isRiver: hex.terrain === TerrainType.River,
+    }))
+    return buildDisplayCoordinateMap(hexes)
+  }, [gameState?.map?.hexes])
+  const formatHexCoord = (coord: { q: number; r: number }): string => formatDisplayCoordinate(coord, displayCoordinates)
   const canInitiateTurnAction = isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]

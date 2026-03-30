@@ -115,6 +115,7 @@ export interface MapHex {
 }
 
 export interface MapState {
+  id?: string
   // key: "q,r" string
   hexes: Record<string, MapHex>
   bridges: Bridge[];
@@ -238,6 +239,7 @@ export interface TownTileState {
 
 export interface GameState {
   id: string
+  mapId?: string
   revision?: number
   phase: GamePhase
   setupMode?: 'snellman' | 'auction' | 'fast_auction'

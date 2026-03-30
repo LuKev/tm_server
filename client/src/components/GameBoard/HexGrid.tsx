@@ -1,7 +1,7 @@
 // HexGrid component - renders all hexes in the game
 import React from 'react';
 import { Hex } from './Hex';
-import type { MapHexData } from '../../data/baseGameMap';
+import type { MapHexData } from '../../types/map.types';
 import { hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import type { Building } from '../../types/game.types';
 

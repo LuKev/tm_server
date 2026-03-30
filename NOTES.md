@@ -1,5 +1,62 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-03-30 Cloudflare worker landing page:
+  - `cloudflare-worker/tm-router/src/index.ts` owns the minimalist homepage HTML for `kezilu.com` root; unknown non-project routes now return `404` instead of the old generic fallback page.
+  - Keep the homepage blurb generic: `Software engineer.`
+  - Primary profile links on the homepage should include both LinkedIn and GitHub (`https://github.com/lukev`).
+  - Resume download is served as a static worker asset at `/kevin-lu-resume-feb-2026.pdf` using Wrangler `assets.directory = "./public"`.
+  - `cloudflare-worker/tm-router/public/index.html` was intentionally removed so `/` continues to be rendered by the worker code rather than being shadowed by static asset serving.
+
+- 2026-03-29 archipelago map groundwork:
+  - New map support is being prepared beyond the existing base map, starting with an `archipelago` map.
+  - In the reference `archipelago` image, some top-row and mid-row blue gaps are not hexes; they are river spaces between island groups.
+  - Confirmed example: row A has river spaces between `A6/A7` and `A9/A10`.
+  - Confirmed row D spacing, left-to-right: `river`, `D1`, `D2`, `river`, `river`, `river`, `D3`, `D4`, `river`, `D5`, `D6`, `river`.
+  - Specifically, there are 3 consecutive river spaces between `D2` and `D3`.
+  - Implementation landed:
+    - Server now uses a map registry keyed by `mapId` (`base`, `archipelago`) instead of hard-coding a single base layout.
+    - Lobby metadata persists the selected `mapId`, and `start_game` instantiates that specific server map.
+    - Client lobby exposes a map selector and shows each open table's map.
+    - Client board rendering now uses the authoritative `gameState.map.hexes` from the server, so future maps can vary in size/shape without depending on `BASE_GAME_MAP`.
+  - `archipelago` terrain was hand-transcribed from the provided image and should be visually verified before relying on it as canonical.
+
+- 2026-03-29 Fire & Ice map transcription:
+  - User provided a Fire & Ice map image and asked for a hand transcription only, with no external source lookup.
+  - Hand-transcribed terrain colors by row:
+    - A: `A1 brown`, `A2 brown`, `A3 dark gray`, `A4 yellow`, `A5 gray`, `A6 green`, `A7 red`, `A8 blue`, `A9 yellow`, `A10 blue`
+    - B: `B1 red`, `B2 yellow`, `B3 blue`, `B4 gray`, `B5 red`, `B6 yellow`, `B7 brown`, `B8 dark gray`, `B9 gray`
+    - C: `C1 green`, `C2 dark gray`, `C3 brown`, `C4 green`, `C5 yellow`
+    - D: `D1 yellow`, `D2 gray`, `D3 green`, `D4 yellow`, `D5 dark gray`, `D6 blue`, `D7 red`, `D8 brown`, `D9 green`, `D10 blue`, `D11 green`
+    - E: `E1 brown`, `E2 red`, `E3 dark gray`, `E4 green`, `E5 gray`, `E6 brown`, `E7 dark gray`
+    - F: `F1 green`, `F2 red`, `F3 green`, `F4 brown`, `F5 blue`, `F6 gray`, `F7 red`
+    - G: `G1 gray`, `G2 yellow`, `G3 gray`, `G4 blue`, `G5 red`, `G6 green`, `G7 red`, `G8 gray`, `G9 dark gray`
+    - H: `H1 dark gray`, `H2 blue`, `H3 dark gray`, `H4 brown`, `H5 gray`, `H6 blue`, `H7 yellow`, `H8 dark gray`, `H9 red`, `H10 blue`
+    - I: `I1 gray`, `I2 green`, `I3 red`, `I4 yellow`, `I5 dark gray`, `I6 yellow`, `I7 blue`, `I8 brown`, `I9 brown`
+  - River hexes in this image are unlabeled blue spaces; safest transcription is positional (for example row A appears as `A1, river, A2, A3, A4, river, A5, A6, A7, A8, A9, A10`).
+  - Full best-effort river-inclusive row transcription:
+    - A: `A1, river, A2, A3, A4, river, A5, A6, A7, A8, A9, A10`
+    - B: `B1, B2, river, B3, B4, B5, river, river, B6, B7, B8, B9`
+    - C: `C1, C2, river, river, C3, C4, C5`
+    - D: `D1, D2, D3, D4, D5, river, D6, D7, D8, river, river, D9, D10, D11`
+    - E: `E1, river, river, E2, E3, E4, E5, river, E6, E7`
+    - F: `F1, F2, river, river, F3, river, F4, F5, river, F6, F7`
+    - G: `G1, river, G2, G3, G4, G5, G6, river, G7, G8, river, G9`
+    - H: `H1, H2, river, H3, H4, H5, H6, river, H7, H8, river, H9, H10`
+    - I: `I1, I2, river, I3, I4, I5, I6, river, I7, I8, river, I9`
+  - Fire & Ice should now be treated as fully hand-transcribed for terrain plus best-effort positional river slots, pending user corrections if any river counts are off in a row.
+
+- 2026-03-30 Fjords map transcription:
+  - User provided a Fjords map image and asked for a hand transcription only, with no external source lookup.
+  - Best-effort river-inclusive row transcription:
+    - A: `A1, A2, river, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12`
+    - B: `B1, B2, river, B3, B4, B5, river, river, river, river, river, B6`
+    - C: `C1, C2, C3, river, river, C4, river, C5, C6, C7, C8, river, C9`
+    - D: `D1, river, river, D2, D3, D4, D5, D6`
+    - E: `E1, E2, E3, river, E4, E5, river, E6, E7, E8, E9, river, E10`
+    - F: `F1, F2, river, F3, F4, F5, river, F6, F7, F8, river, F9`
+    - G: `G1, G2, river, G3, G4, G5, G6, river, G7, G8, river, G9, G10`
+    - H: `H1, river, river, H2, H3, H4, H5, H6, river, river, H7, H8`
+    - I: `I1, river, river, I2, I3, I4, I5, river, I6, I7, I8, I9, I10`
 - Repo rule: use Bazel (workspace: `/Users/kevin/projects/tm_server/server`). Avoid `go test`.
 
 - 2026-03-19 round-start cult-spade / timer bug:

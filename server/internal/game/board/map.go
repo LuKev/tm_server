@@ -11,6 +11,7 @@ import (
 // TerraMysticaMap represents the game board
 // Terra Mystica uses a pointy-top hex grid with 9 rows alternating 13/12 hexagons
 type TerraMysticaMap struct {
+	ID         MapID
 	Hexes      map[Hex]*MapHex
 	Bridges    map[BridgeKey]string // Tracks built bridges between hexes (stores PlayerID)
 	RiverHexes map[Hex]bool         // Tracks which hexes are rivers
@@ -39,10 +40,12 @@ func (m *TerraMysticaMap) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(&struct {
+		ID         MapID              `json:"id"`
 		Hexes      map[string]*MapHex `json:"hexes"`
 		Bridges    map[string]string  `json:"bridges"`
 		RiverHexes map[string]bool    `json:"riverHexes"`
 	}{
+		ID:         m.ID,
 		Hexes:      hexes,
 		Bridges:    bridges,
 		RiverHexes: riverHexes,
@@ -72,22 +75,33 @@ func NewBridgeKey(h1, h2 Hex) BridgeKey {
 	return BridgeKey{H1: h2, H2: h1}
 }
 
-// NewTerraMysticaMap creates a new game map
+// NewTerraMysticaMap creates the default base game map.
 func NewTerraMysticaMap() *TerraMysticaMap {
+	m, err := NewTerraMysticaMapForID(MapBase)
+	if err != nil {
+		panic(err)
+	}
+	return m
+}
+
+// NewTerraMysticaMapForID creates a new game map for the selected map id.
+func NewTerraMysticaMapForID(mapID MapID) (*TerraMysticaMap, error) {
+	layout, err := LayoutForMap(mapID)
+	if err != nil {
+		return nil, err
+	}
+
 	m := &TerraMysticaMap{
+		ID:         mapID,
 		Hexes:      make(map[Hex]*MapHex),
 		Bridges:    make(map[BridgeKey]string),
 		RiverHexes: make(map[Hex]bool),
 	}
-	m.initializeBaseMap()
-	return m
+	m.initializeLayout(layout)
+	return m, nil
 }
 
-// initializeBaseMap sets up the standard Terra Mystica base game map
-// 9 rows alternating 13/12 hexagons, pointy-top orientation
-func (m *TerraMysticaMap) initializeBaseMap() {
-	// Load predefined layout
-	layout := BaseGameTerrainLayout()
+func (m *TerraMysticaMap) initializeLayout(layout map[Hex]models.TerrainType) {
 	m.RiverHexes = make(map[Hex]bool)
 	for h, t := range layout {
 		m.Hexes[h] = &MapHex{Coord: h, Terrain: t}

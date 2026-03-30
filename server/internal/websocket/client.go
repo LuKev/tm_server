@@ -54,6 +54,7 @@ type createGamePayload struct {
 	Name       string `json:"name"`
 	MaxPlayers int    `json:"maxPlayers"`
 	Creator    string `json:"creator"`
+	MapID      string `json:"mapId,omitempty"`
 }
 
 type joinGamePayload struct {
@@ -136,6 +137,23 @@ type testReplayActionsToIndexPayload struct {
 	Actions      []testReplayActionPayload `json:"actions"`
 }
 
+func (c *Client) sendLobbyState() {
+	games := c.deps.Lobby.ListGames()
+	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
+	c.send <- out
+}
+
+func (c *Client) broadcastLobbyState() {
+	games := c.deps.Lobby.ListGames()
+	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
+	c.hub.BroadcastMessage(out)
+}
+
+func (c *Client) sendAvailableMaps() {
+	out, _ := json.Marshal(lobbyStateMsg{Type: "available_maps", Payload: board.AvailableMaps()})
+	c.send <- out
+}
+
 func (c *Client) bindSeat(gameID, playerID string) {
 	if c.seatsByGame == nil {
 		c.seatsByGame = make(map[string]string)
@@ -192,9 +210,8 @@ func (c *Client) readPump() {
 func (c *Client) handleInboundMessage(env inboundMsg) {
 	switch env.Type {
 	case "list_games":
-		games := c.deps.Lobby.ListGames()
-		out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
-		c.send <- out
+		c.sendLobbyState()
+		c.sendAvailableMaps()
 
 	case "get_game_state":
 		var p struct {
@@ -612,6 +629,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		RandomizeTurnOrder: randomize,
 		SetupMode:          setupMode,
 		TurnTimer:          turnTimer,
+		MapID:              board.NormalizeMapID(meta.MapID),
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
 		log.Printf("error creating game: %v", err)
@@ -639,9 +657,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		c.hub.BroadcastToGame(p.GameID, gameStateMsg)
 	}
 
-	games := c.deps.Lobby.ListGames()
-	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
-	c.hub.BroadcastMessage(out)
+	c.broadcastLobbyState()
 }
 
 func (c *Client) handleCreateGame(payload json.RawMessage) {
@@ -653,7 +669,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator)
+	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID)
 	if err != nil {
 		c.sendLobbyError(err)
 		return
@@ -667,9 +683,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 		})
 		c.send <- createdMsg
 	}
-	games := c.deps.Lobby.ListGames()
-	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
-	c.hub.broadcast <- out
+	c.broadcastLobbyState()
 }
 
 func (c *Client) handleJoinGame(payload json.RawMessage) {
@@ -692,9 +706,7 @@ func (c *Client) handleJoinGame(payload json.RawMessage) {
 	})
 	c.send <- successMsg
 
-	games := c.deps.Lobby.ListGames()
-	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
-	c.hub.broadcast <- out
+	c.broadcastLobbyState()
 }
 
 func (c *Client) handleLeaveGame(payload json.RawMessage) {
@@ -730,9 +742,7 @@ func (c *Client) handleLeaveGame(payload json.RawMessage) {
 	})
 	c.send <- leftMsg
 
-	games := c.deps.Lobby.ListGames()
-	out, _ := json.Marshal(lobbyStateMsg{Type: "lobby_state", Payload: games})
-	c.hub.BroadcastMessage(out)
+	c.broadcastLobbyState()
 }
 
 func (c *Client) handlePerformAction(payload json.RawMessage) {
@@ -1734,6 +1744,8 @@ func (c *Client) sendLobbyError(err error) {
 		}
 	case errors.Is(err, lobby.ErrPlayerNotInGame):
 		payload["error"] = "not_in_game"
+	case errors.Is(err, lobby.ErrInvalidMap):
+		payload["error"] = "invalid_map"
 	default:
 		payload["error"] = "join_failed"
 	}

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "hex.go",
         "map.go",
+        "maps.go",
         "terrain.go",
     ],
     importpath = "github.com/lukev/tm_server/internal/game/board",
@@ -18,6 +19,7 @@ go_library(
 go_test(
     name = "board_test",
     srcs = [
+        "maps_test.go",
         "map_bridge_test.go",
         "map_indirect_test.go",
         "terraform_test.go",

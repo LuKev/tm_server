@@ -248,8 +248,22 @@ func defaultPlayerOptions() PlayerOptions {
 
 // NewGameState creates a new game state with an initialized map
 func NewGameState() *GameState {
+	gs, err := NewGameStateWithMap(board.MapBase)
+	if err != nil {
+		panic(err)
+	}
+	return gs
+}
+
+// NewGameStateWithMap creates a new game state for the selected map.
+func NewGameStateWithMap(mapID board.MapID) (*GameState, error) {
+	gameMap, err := board.NewTerraMysticaMapForID(mapID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &GameState{
-		Map:                       board.NewTerraMysticaMap(),
+		Map:                       gameMap,
 		Players:                   make(map[string]*Player),
 		Round:                     1,
 		Phase:                     PhaseSetup,
@@ -268,7 +282,7 @@ func NewGameState() *GameState {
 		PendingSpadeBuildAllowed:  make(map[string]bool),
 		SkipAbilityUsedThisAction: make(map[string][]board.Hex),
 		SetupPlacedDwellings:      make(map[string]int),
-	}
+	}, nil
 }
 
 // AddPlayer adds a player to the game

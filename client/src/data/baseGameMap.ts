@@ -2,13 +2,7 @@
 // Matches server/internal/game/terrain_layout.go
 
 import { TerrainType } from '../types/game.types';
-import type { AxialCoord } from '../utils/hexUtils';
-
-export interface MapHexData {
-  coord: AxialCoord;
-  terrain: TerrainType;
-  isRiver: boolean;
-}
+import type { MapHexData } from '../types/map.types';
 
 // Note: Backend uses (q, r) where q is column offset and r is row
 // River hexes have terrain type but are marked as isRiver
