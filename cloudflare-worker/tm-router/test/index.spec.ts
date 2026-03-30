@@ -2,40 +2,46 @@ import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloud
 import { describe, it, expect } from 'vitest';
 import worker from '../src';
 
-describe('Hello World user worker', () => {
-	describe('request for /message', () => {
-		it('/ responds with "Hello, World!" (unit style)', async () => {
-			const request = new Request<unknown, IncomingRequestCfProperties>('http://example.com/message');
-			// Create an empty context to pass to `worker.fetch()`.
+describe('tm-router worker', () => {
+	describe('request for /', () => {
+		it('renders the minimal landing page (unit style)', async () => {
+			const request = new Request<unknown, IncomingRequestCfProperties>('http://example.com/');
 			const ctx = createExecutionContext();
 			const response = await worker.fetch(request, env, ctx);
-			// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
 			await waitOnExecutionContext(ctx);
-			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Content-Type')).toContain('text/html');
+
+			const text = await response.text();
+			expect(text).toContain('Kevin Lu');
+			expect(text).toContain('linkedin.com/in/kevin-z-lu');
+			expect(text).toContain('/kevin-lu-resume-feb-2026.pdf');
+			expect(text).toContain('/tm/replay');
+			expect(text).toContain('/foodle');
+			expect(text).toContain('/chess_db');
 		});
 
-		it('responds with "Hello, World!" (integration style)', async () => {
-			const request = new Request('http://example.com/message');
+		it('renders the minimal landing page (integration style)', async () => {
+			const request = new Request('http://example.com/');
 			const response = await SELF.fetch(request);
-			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
+			expect(response.status).toBe(200);
+
+			const text = await response.text();
+			expect(text).toContain('Kevin Lu');
+			expect(text).toContain('LinkedIn');
+			expect(text).toContain('Resume');
 		});
 	});
 
-	describe('request for /random', () => {
-		it('/ responds with a random UUID (unit style)', async () => {
-			const request = new Request<unknown, IncomingRequestCfProperties>('http://example.com/random');
-			// Create an empty context to pass to `worker.fetch()`.
-			const ctx = createExecutionContext();
-			const response = await worker.fetch(request, env, ctx);
-			// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-			await waitOnExecutionContext(ctx);
-			expect(await response.text()).toMatch(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/);
-		});
-
-		it('responds with a random UUID (integration style)', async () => {
-			const request = new Request('http://example.com/random');
+	describe('request for the resume asset', () => {
+		it('serves the PDF from static assets (integration style)', async () => {
+			const request = new Request('http://example.com/kevin-lu-resume-feb-2026.pdf');
 			const response = await SELF.fetch(request);
-			expect(await response.text()).toMatch(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/);
+			expect(response.status).toBe(200);
+			expect(response.headers.get('Content-Type')).toContain('application/pdf');
+
+			const signature = new Uint8Array(await response.arrayBuffer()).slice(0, 4);
+			expect(Array.from(signature)).toEqual([37, 80, 68, 70]);
 		});
 	});
 });
