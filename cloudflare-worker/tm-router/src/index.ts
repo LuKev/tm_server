@@ -144,12 +144,13 @@ const landingPageHtml = `<!DOCTYPE html>
 <body>
   <main>
     <h1>Kevin Lu</h1>
-    <p>Software engineer building game tools and small web products.</p>
+    <p>Software engineer.</p>
 
     <section>
       <h2>Links</h2>
       <div class="links">
         <a href="https://linkedin.com/in/kevin-z-lu" target="_blank" rel="noreferrer">LinkedIn</a>
+        <a href="https://github.com/lukev" target="_blank" rel="noreferrer">GitHub</a>
         <a href="/kevin-lu-resume-feb-2026.pdf" target="_blank" rel="noreferrer">Resume</a>
       </div>
     </section>

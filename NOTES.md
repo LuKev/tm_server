@@ -2,6 +2,8 @@
 
 
 - 2026-03-30 Cloudflare worker landing page:
+  - Keep the homepage blurb generic: `Software engineer.`
+  - Primary profile links on the homepage should include both LinkedIn and GitHub (`https://github.com/lukev`).
   - `cloudflare-worker/tm-router/src/index.ts` owns the minimalist homepage HTML for `kezilu.com` root; unknown non-project routes now return `404` instead of the old generic fallback page.
   - `cloudflare-worker/tm-router/public/index.html` was intentionally removed so `/` continues to be rendered by the worker code rather than being shadowed by static asset serving.
   - Resume download is served as a static worker asset at `/kevin-lu-resume-feb-2026.pdf` using Wrangler `assets.directory = "./public"`.

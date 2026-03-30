@@ -15,6 +15,7 @@ describe('tm-router worker', () => {
 			const text = await response.text();
 			expect(text).toContain('Kevin Lu');
 			expect(text).toContain('linkedin.com/in/kevin-z-lu');
+			expect(text).toContain('github.com/lukev');
 			expect(text).toContain('/kevin-lu-resume-feb-2026.pdf');
 			expect(text).toContain('/tm/replay');
 			expect(text).toContain('/foodle');
@@ -29,6 +30,7 @@ describe('tm-router worker', () => {
 			const text = await response.text();
 			expect(text).toContain('Kevin Lu');
 			expect(text).toContain('LinkedIn');
+			expect(text).toContain('GitHub');
 			expect(text).toContain('Resume');
 		});
 	});
