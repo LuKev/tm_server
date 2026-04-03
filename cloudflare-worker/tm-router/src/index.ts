@@ -61,6 +61,26 @@ export default {
 			});
 		}
 
+		// Route /poker_solver/* to the poker solver frontend.
+		// Forward full path because the app is built with basePath=/poker_solver.
+		if (path.startsWith('/poker_solver')) {
+			const targetUrl = `https://proxy-production-311f.up.railway.app${path}${url.search}`;
+			const headers = new Headers(request.headers);
+			headers.delete('host');
+
+			const response = await fetch(targetUrl, {
+				method: request.method,
+				headers,
+				body: request.body,
+			});
+
+			return new Response(response.body, {
+				status: response.status,
+				statusText: response.statusText,
+				headers: response.headers,
+			});
+		}
+
 		// Route /api/* to the TM server (backend)
 		if (path.startsWith('/api')) {
 			const targetUrl = `https://tm-server-production.up.railway.app${path}${url.search}`;
@@ -105,6 +125,7 @@ export default {
     <li><a href="/tm">Terra Mystica Server</a></li>
     <li><a href="/foodle">Foodle</a></li>
     <li><a href="/chess_db">Chess DB</a></li>
+    <li><a href="/poker_solver">Poker Solver</a></li>
   </ul>
 </body>
 </html>`,
