@@ -1,5 +1,10 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 `scripts/format.sh` behavior:
+  - The script is mutating, not check-only: it runs `client` `eslint . --fix`, `tsc -b --noEmit`, then server-side `gofmt -w .`, optional `goimports -w .`, and optional `golangci-lint run --fix`.
+  - In the current repo state, the actual file edits from one clean run are small/mechanical formatter rewrites, but the command also fails on unrelated existing client lint/type-check issues.
+  - Client formatter path intentionally ignores `client/e2e/*`, `client/playwright.config.ts`, and `client/pw-no-server.config.ts` so `eslint . --fix` stays focused on the shipped app code instead of failing on out-of-project Playwright/test files.
+
 - 2026-04-03 TM landing page link:
   - `cloudflare-worker/tm-router/src/index.ts` landing page entry for Terra Mystica should link to `/tm`, not `/tm/replay`.
   - Homepage copy should describe it as the TM server, not only a replay viewer, because `/tm` is the main app entry point.

@@ -1,5 +1,5 @@
 import React from 'react';
-import { BonusCardType, FactionType, type GameState, type IncomePreview, type PlayerState } from '../../types/game.types';
+import { BonusCardType, FactionType, type GameState, type PlayerState } from '../../types/game.types';
 import { FACTIONS } from '../../data/factions';
 import { FACTION_COLORS } from '../../utils/colors';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerCircleIcon } from '../shared/Icons';
@@ -73,7 +73,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
         const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
         const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
         const vp = player.victoryPoints ?? player.VictoryPoints ?? 0;
-        const incomePreview = (gameState.nextRoundIncome?.[pid] ?? null) as IncomePreview | null
+        const incomePreview = gameState.nextRoundIncome?.[pid] ?? null
 
         return (
           <div
