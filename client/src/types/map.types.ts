@@ -5,6 +5,7 @@ export interface MapHexData {
   coord: AxialCoord
   terrain: TerrainType
   isRiver: boolean
+  displayCoord?: string
 }
 
 export interface MapSummary {

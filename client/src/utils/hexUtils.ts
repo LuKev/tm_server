@@ -13,12 +13,17 @@ export interface PixelCoord {
 interface DisplayCoordSource {
   coord: AxialCoord
   isRiver: boolean
+  displayCoord?: string
 }
 
 export function buildDisplayCoordinateMap(hexes: DisplayCoordSource[]): Map<string, string> {
   const byRow = new Map<number, number[]>()
+  const explicitLabels = new Map<string, string>()
   hexes.forEach((hex) => {
     if (hex.isRiver) return
+    if (hex.displayCoord) {
+      explicitLabels.set(`${String(hex.coord.q)},${String(hex.coord.r)}`, hex.displayCoord)
+    }
     const qValues = byRow.get(hex.coord.r)
     if (qValues) {
       qValues.push(hex.coord.q)
@@ -26,6 +31,10 @@ export function buildDisplayCoordinateMap(hexes: DisplayCoordSource[]): Map<stri
     }
     byRow.set(hex.coord.r, [hex.coord.q])
   })
+
+  if (explicitLabels.size > 0) {
+    return explicitLabels
+  }
 
   const labels = new Map<string, string>()
   byRow.forEach((qValues, row) => {

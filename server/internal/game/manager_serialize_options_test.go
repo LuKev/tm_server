@@ -62,3 +62,40 @@ func TestCreateGameWithOptions_UsesSelectedMapAndSerializesMapID(t *testing.T) {
 		t.Fatalf("map.id: got %v, want %q", got, board.MapArchipelago)
 	}
 }
+
+func TestSerializeStateWithRevision_IncludesMapDisplayCoordinates(t *testing.T) {
+	manager := NewManager()
+	if err := manager.CreateGameWithOptions("g1", []string{"p1", "p2"}, CreateGameOptions{
+		RandomizeTurnOrder: false,
+		SetupMode:          SetupModeSnellman,
+		MapID:              board.MapLakes,
+	}); err != nil {
+		t.Fatalf("create game: %v", err)
+	}
+
+	state := manager.SerializeGameState("g1")
+	mapRaw, ok := state["map"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("serialized map missing")
+	}
+	hexesRaw, ok := mapRaw["hexes"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("serialized hexes missing")
+	}
+
+	b1Raw, ok := hexesRaw["-1,1"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected serialized Lakes B1 at -1,1")
+	}
+	if got := b1Raw["displayCoord"]; got != "B1" {
+		t.Fatalf("serialized Lakes B1 display coord: got %v, want %q", got, "B1")
+	}
+
+	b2Raw, ok := hexesRaw["0,1"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected serialized Lakes B2 at 0,1")
+	}
+	if got := b2Raw["displayCoord"]; got != "B2" {
+		t.Fatalf("serialized Lakes B2 display coord: got %v, want %q", got, "B2")
+	}
+}

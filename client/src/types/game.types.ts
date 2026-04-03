@@ -111,6 +111,7 @@ export interface Bridge {
 export interface MapHex {
   coord: HexCoord
   terrain: TerrainType
+  displayCoord?: string
   building?: Building
 }
 

@@ -16,6 +16,9 @@
   - Axial layout correction:
     - Lakes uses alternating `12, 13, 12, 13, ...` rows rather than the base map's `13, 12, 13, 12, ...`.
     - Odd rows are staggered left relative to the row above, so `B1` should be bottom-left of `A1`.
+  - Display-coordinate fix:
+    - Coordinate labels are now generated from the server-side map row definitions and serialized with each hex, instead of being inferred separately on the client.
+    - This removes a remaining base-map-only assumption from map labeling and keeps future irregular maps aligned with the authoritative board definition.
     - Implemented by changing Lakes row start coordinates in the server map definition rather than special-casing the renderer.
 
 - 2026-04-03 app shell backgrounds:

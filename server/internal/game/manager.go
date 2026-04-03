@@ -847,6 +847,9 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			},
 			"terrain": mapHex.Terrain,
 		}
+		if displayCoord, ok := board.DisplayCoordinateForHex(gs.Map.ID, mapHex.Coord); ok {
+			hexData["displayCoord"] = displayCoord
+		}
 
 		if mapHex.Building != nil {
 			hexData["building"] = map[string]interface{}{

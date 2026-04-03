@@ -134,6 +134,32 @@ func TestLakesLayout_RowOffsetsUseLeftStagger(t *testing.T) {
 	}
 }
 
+func TestLakesDisplayCoordinates_RespectLeftStagger(t *testing.T) {
+	hex, ok := HexForDisplayCoordinate(MapLakes, "B1")
+	if !ok {
+		t.Fatalf("expected to resolve Lakes B1")
+	}
+	if hex != NewHex(-1, 1) {
+		t.Fatalf("Lakes B1: got %v, want %v", hex, NewHex(-1, 1))
+	}
+
+	display, ok := DisplayCoordinateForHex(MapLakes, NewHex(-1, 1))
+	if !ok {
+		t.Fatalf("expected display coordinate for Lakes (-1,1)")
+	}
+	if display != "B1" {
+		t.Fatalf("Lakes (-1,1): got %q, want %q", display, "B1")
+	}
+
+	display, ok = DisplayCoordinateForHex(MapLakes, NewHex(0, 1))
+	if !ok {
+		t.Fatalf("expected display coordinate for Lakes (0,1)")
+	}
+	if display != "B2" {
+		t.Fatalf("Lakes (0,1): got %q, want %q", display, "B2")
+	}
+}
+
 func TestArchipelagoLayout_TopAndFourthRows(t *testing.T) {
 	layout, err := LayoutForMap(MapArchipelago)
 	if err != nil {

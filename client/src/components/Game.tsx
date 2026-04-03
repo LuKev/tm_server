@@ -432,6 +432,7 @@ export const Game = () => {
     const hexes = Object.values(gameState?.map?.hexes ?? {}).map((hex) => ({
       coord: hex.coord,
       isRiver: hex.terrain === TerrainType.River,
+      displayCoord: hex.displayCoord,
     }))
     return buildDisplayCoordinateMap(hexes)
   }, [gameState?.map?.hexes])

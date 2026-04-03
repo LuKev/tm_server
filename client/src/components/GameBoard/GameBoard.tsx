@@ -68,6 +68,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         coord: hex.coord,
         terrain: hex.terrain,
         isRiver: hex.terrain === TerrainType.River,
+        displayCoord: hex.displayCoord,
       }))
       .sort((left, right) => {
         if (left.coord.r !== right.coord.r) return left.coord.r - right.coord.r

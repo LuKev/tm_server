@@ -34,6 +34,11 @@ type mapDefinition struct {
 	Rows []rowDefinition
 }
 
+type coordinateIndex struct {
+	displayByHex   map[Hex]string
+	hexByDisplayID map[string]Hex
+}
+
 func (d mapDefinition) Layout() map[Hex]models.TerrainType {
 	layout := make(map[Hex]models.TerrainType)
 	for _, row := range d.Rows {
@@ -369,6 +374,57 @@ var mapDefinitions = map[MapID]mapDefinition{
 	},
 }
 
+var mapCoordinateIndexes = buildMapCoordinateIndexes()
+
+func buildMapCoordinateIndexes() map[MapID]coordinateIndex {
+	indexes := make(map[MapID]coordinateIndex, len(mapDefinitions))
+	for id, def := range mapDefinitions {
+		indexes[id] = buildCoordinateIndex(def)
+	}
+	return indexes
+}
+
+func buildCoordinateIndex(def mapDefinition) coordinateIndex {
+	index := coordinateIndex{
+		displayByHex:   make(map[Hex]string),
+		hexByDisplayID: make(map[string]Hex),
+	}
+	for _, row := range def.Rows {
+		landIndex := 0
+		rowLabel := rowLabelForIndex(row.R)
+		for offset, terrain := range row.Terrains {
+			if terrain == models.TerrainRiver {
+				continue
+			}
+			landIndex++
+			hex := NewHex(row.StartQ+offset, row.R)
+			display := fmt.Sprintf("%s%d", rowLabel, landIndex)
+			index.displayByHex[hex] = display
+			index.hexByDisplayID[normalizeDisplayCoordinate(display)] = hex
+		}
+	}
+	return index
+}
+
+func rowLabelForIndex(index int) string {
+	if index < 0 {
+		return ""
+	}
+
+	label := ""
+	for {
+		label = string(rune('A'+(index%26))) + label
+		index = index/26 - 1
+		if index < 0 {
+			return label
+		}
+	}
+}
+
+func normalizeDisplayCoordinate(raw string) string {
+	return strings.ToUpper(strings.TrimSpace(raw))
+}
+
 func AvailableMaps() []MapInfo {
 	infos := make([]MapInfo, 0, len(mapDefinitions))
 	for _, def := range mapDefinitions {
@@ -402,4 +458,22 @@ func LayoutForMap(id MapID) (map[Hex]models.TerrainType, error) {
 		return nil, fmt.Errorf("unknown map id: %s", id)
 	}
 	return def.Layout(), nil
+}
+
+func DisplayCoordinateForHex(id MapID, hex Hex) (string, bool) {
+	index, ok := mapCoordinateIndexes[id]
+	if !ok {
+		return "", false
+	}
+	display, ok := index.displayByHex[hex]
+	return display, ok
+}
+
+func HexForDisplayCoordinate(id MapID, display string) (Hex, bool) {
+	index, ok := mapCoordinateIndexes[id]
+	if !ok {
+		return Hex{}, false
+	}
+	hex, ok := index.hexByDisplayID[normalizeDisplayCoordinate(display)]
+	return hex, ok
 }
