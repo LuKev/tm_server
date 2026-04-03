@@ -102,7 +102,7 @@ export default {
   <h1>kezilu.com - Worker Default</h1>
 	<p>Available apps:</p>
 	<ul>
-    <li><a href="/tm/replay">Terra Mystica Log Replayer</a></li>
+    <li><a href="/tm">Terra Mystica Server</a></li>
     <li><a href="/foodle">Foodle</a></li>
     <li><a href="/chess_db">Chess DB</a></li>
   </ul>

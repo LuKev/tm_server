@@ -1,5 +1,9 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 TM landing page link:
+  - `cloudflare-worker/tm-router/src/index.ts` landing page entry for Terra Mystica should link to `/tm`, not `/tm/replay`.
+  - Homepage copy should describe it as the TM server, not only a replay viewer, because `/tm` is the main app entry point.
+
 - 2026-04-03 revised base map:
   - Added a new selectable map id `revised-base` as a standalone map definition, not a base-plus-overrides transform.
   - The revised terrain layout was hand-transcribed from the user-provided image; if future discrepancies come up, compare against that image first rather than assuming official external map data.
