@@ -75,6 +75,18 @@
     - G: `G1, G2, river, G3, G4, G5, G6, river, G7, G8, river, G9, G10`
     - H: `H1, river, river, H2, H3, H4, H5, H6, river, river, H7, H8`
     - I: `I1, river, river, I2, I3, I4, I5, river, I6, I7, I8, I9, I10`
+  - Implementation landed on branch `codex/add-fjords-map` by adding a new selectable `fjords` map id to the server map registry and client fallback map catalog.
+  - Current implemented terrain colors:
+    - A: `A1 green`, `A2 dark gray`, `A3 brown`, `A4 yellow`, `A5 gray`, `A6 dark gray`, `A7 gray`, `A8 yellow`, `A9 red`, `A10 dark gray`, `A11 blue`, `A12 yellow`
+    - B: `B1 blue`, `B2 brown`, `B3 blue`, `B4 green`, `B5 red`, `B6 brown`
+    - C: `C1 gray`, `C2 green`, `C3 red`, `C4 brown`, `C5 dark gray`, `C6 gray`, `C7 brown`, `C8 yellow`, `C9 gray`
+    - D: `D1 gray`, `D2 green`, `D3 red`, `D4 blue`, `D5 green`, `D6 red`
+    - E: `E1 red`, `E2 gray`, `E3 yellow`, `E4 blue`, `E5 red`, `E6 brown`, `E7 yellow`, `E8 gray`, `E9 brown`, `E10 dark gray`
+    - F: `F1 dark gray`, `F2 brown`, `F3 green`, `F4 yellow`, `F5 green`, `F6 gray`, `F7 blue`, `F8 green`, `F9 gray`
+    - G: `G1 yellow`, `G2 blue`, `G3 dark gray`, `G4 gray`, `G5 dark gray`, `G6 blue`, `G7 brown`, `G8 dark gray`, `G9 green`, `G10 red`
+    - H: `H1 green`, `H2 brown`, `H3 red`, `H4 brown`, `H5 yellow`, `H6 red`, `H7 red`, `H8 blue`
+    - I: `I1 dark gray`, `I2 green`, `I3 blue`, `I4 gray`, `I5 blue`, `I6 green`, `I7 yellow`, `I8 dark gray`, `I9 brown`, `I10 yellow`
+  - This is still a hand transcription from the screenshot and should be visually validated in the app.
 - Repo rule: use Bazel (workspace: `/Users/kevin/projects/tm_server/server`). Avoid `go test`.
 
 - 2026-03-19 round-start cult-spade / timer bug:

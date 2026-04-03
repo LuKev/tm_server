@@ -8,8 +8,8 @@ import (
 
 func TestAvailableMaps_ContainsRegisteredMaps(t *testing.T) {
 	infos := AvailableMaps()
-	if len(infos) < 3 {
-		t.Fatalf("expected at least three maps, got %d", len(infos))
+	if len(infos) < 5 {
+		t.Fatalf("expected at least five maps, got %d", len(infos))
 	}
 
 	found := map[MapID]bool{}
@@ -22,6 +22,9 @@ func TestAvailableMaps_ContainsRegisteredMaps(t *testing.T) {
 	}
 	if !found[MapArchipelago] {
 		t.Fatalf("archipelago map missing from catalog")
+	}
+	if !found[MapFjords] {
+		t.Fatalf("fjords map missing from catalog")
 	}
 	if !found[MapLakes] {
 		t.Fatalf("lakes map missing from catalog")
@@ -157,6 +160,56 @@ func TestArchipelagoLayout_TopAndFourthRows(t *testing.T) {
 		got := layout[NewHex(i-1, 3)]
 		if got != want {
 			t.Fatalf("row D slot %d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+func TestFjordsLayout_TopAndFourthRows(t *testing.T) {
+	layout, err := LayoutForMap(MapFjords)
+	if err != nil {
+		t.Fatalf("load fjords: %v", err)
+	}
+
+	topRow := []models.TerrainType{
+		models.TerrainForest,
+		models.TerrainSwamp,
+		models.TerrainRiver,
+		models.TerrainPlains,
+		models.TerrainDesert,
+		models.TerrainMountain,
+		models.TerrainSwamp,
+		models.TerrainMountain,
+		models.TerrainDesert,
+		models.TerrainWasteland,
+		models.TerrainSwamp,
+		models.TerrainLake,
+		models.TerrainDesert,
+	}
+	for i, want := range topRow {
+		got := layout[NewHex(i, 0)]
+		if got != want {
+			t.Fatalf("fjords row A slot %d: got %v, want %v", i, got, want)
+		}
+	}
+
+	fourthRow := []models.TerrainType{
+		models.TerrainRiver,
+		models.TerrainRiver,
+		models.TerrainRiver,
+		models.TerrainMountain,
+		models.TerrainRiver,
+		models.TerrainForest,
+		models.TerrainWasteland,
+		models.TerrainLake,
+		models.TerrainForest,
+		models.TerrainWasteland,
+		models.TerrainRiver,
+		models.TerrainRiver,
+	}
+	for i, want := range fourthRow {
+		got := layout[NewHex(i-1, 3)]
+		if got != want {
+			t.Fatalf("fjords row D slot %d: got %v, want %v", i, got, want)
 		}
 	}
 }
