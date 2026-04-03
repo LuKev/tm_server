@@ -1,5 +1,15 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 revised base map:
+  - Added a new selectable map id `revised-base` as a standalone map definition, not a base-plus-overrides transform.
+  - The revised terrain layout was hand-transcribed from the user-provided image; if future discrepancies come up, compare against that image first rather than assuming official external map data.
+  - Key revised-base land changes relative to the old base layout are at: `A5 plains`, `A10 lake`, `A11 forest`, `B2 desert`, `B5 forest`, `C4 swamp`, `C5 wasteland`, `D7 mountain`, `E5 desert`, `E7 forest`, `E11 wasteland`, `F3 swamp`, `F4 mountain`, `F7 desert`, `G7 plains`, `H8 wasteland`, `I1 lake`, `I12 mountain`.
+
+- 2026-04-03 lakes map:
+  - Added a new selectable map id `lakes` from the user-provided image.
+  - Lakes is a best-effort hand transcription; row A was explicitly corrected by the user to include two consecutive river hexes between `A8` and `A9`, and row B was explicitly corrected to have 13 total hexes.
+  - Current implementation only treats rows A and B as user-confirmed; lower rows are best-effort visual transcription and should be rechecked against the source image if gameplay discrepancies show up.
+
 - 2026-04-03 app shell backgrounds:
   - `client/src/App.tsx` owns the route-level page background, not just the lobby component.
   - Keep `/game/:gameId` and `/replay/:gameId` on a plain white shell so the in-game UI stays light-themed and text contrast remains predictable; reserve the gradient shell for lobby-style routes.

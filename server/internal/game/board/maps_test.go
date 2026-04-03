@@ -6,10 +6,10 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-func TestAvailableMaps_ContainsBaseAndArchipelago(t *testing.T) {
+func TestAvailableMaps_ContainsRegisteredMaps(t *testing.T) {
 	infos := AvailableMaps()
-	if len(infos) < 2 {
-		t.Fatalf("expected at least two maps, got %d", len(infos))
+	if len(infos) < 3 {
+		t.Fatalf("expected at least three maps, got %d", len(infos))
 	}
 
 	found := map[MapID]bool{}
@@ -22,6 +22,92 @@ func TestAvailableMaps_ContainsBaseAndArchipelago(t *testing.T) {
 	}
 	if !found[MapArchipelago] {
 		t.Fatalf("archipelago map missing from catalog")
+	}
+	if !found[MapLakes] {
+		t.Fatalf("lakes map missing from catalog")
+	}
+	if !found[MapRevisedBase] {
+		t.Fatalf("revised base map missing from catalog")
+	}
+}
+
+func TestRevisedBaseLayout_KeyHexes(t *testing.T) {
+	layout, err := LayoutForMap(MapRevisedBase)
+	if err != nil {
+		t.Fatalf("load revised base: %v", err)
+	}
+
+	checks := map[Hex]models.TerrainType{
+		NewHex(4, 0):  models.TerrainPlains,
+		NewHex(9, 0):  models.TerrainLake,
+		NewHex(10, 0): models.TerrainForest,
+		NewHex(3, 1):  models.TerrainDesert,
+		NewHex(8, 1):  models.TerrainForest,
+		NewHex(7, 2):  models.TerrainSwamp,
+		NewHex(9, 2):  models.TerrainWasteland,
+		NewHex(9, 3):  models.TerrainMountain,
+		NewHex(4, 4):  models.TerrainForest,
+		NewHex(3, 5):  models.TerrainMountain,
+		NewHex(-4, 8): models.TerrainLake,
+		NewHex(8, 8):  models.TerrainMountain,
+		NewHex(1, 1):  models.TerrainRiver,
+		NewHex(6, 4):  models.TerrainRiver,
+	}
+
+	for hex, want := range checks {
+		if got := layout[hex]; got != want {
+			t.Fatalf("hex %v: got %v, want %v", hex, got, want)
+		}
+	}
+}
+
+func TestLakesLayout_TopRows(t *testing.T) {
+	layout, err := LayoutForMap(MapLakes)
+	if err != nil {
+		t.Fatalf("load lakes: %v", err)
+	}
+
+	topRow := []models.TerrainType{
+		models.TerrainMountain,
+		models.TerrainLake,
+		models.TerrainWasteland,
+		models.TerrainPlains,
+		models.TerrainDesert,
+		models.TerrainLake,
+		models.TerrainDesert,
+		models.TerrainWasteland,
+		models.TerrainRiver,
+		models.TerrainRiver,
+		models.TerrainForest,
+		models.TerrainLake,
+	}
+	for i, want := range topRow {
+		got := layout[NewHex(i, 0)]
+		if got != want {
+			t.Fatalf("lakes row A slot %d: got %v, want %v", i, got, want)
+		}
+	}
+
+	secondRow := []models.TerrainType{
+		models.TerrainDesert,
+		models.TerrainSwamp,
+		models.TerrainForest,
+		models.TerrainRiver,
+		models.TerrainSwamp,
+		models.TerrainPlains,
+		models.TerrainRiver,
+		models.TerrainForest,
+		models.TerrainMountain,
+		models.TerrainRiver,
+		models.TerrainPlains,
+		models.TerrainRiver,
+		models.TerrainSwamp,
+	}
+	for i, want := range secondRow {
+		got := layout[NewHex(i, 1)]
+		if got != want {
+			t.Fatalf("lakes row B slot %d: got %v, want %v", i, got, want)
+		}
 	}
 }
 
