@@ -4,6 +4,10 @@
   - `client/src/App.tsx` owns the route-level page background, not just the lobby component.
   - Keep `/game/:gameId` and `/replay/:gameId` on a plain white shell so the in-game UI stays light-themed and text contrast remains predictable; reserve the gradient shell for lobby-style routes.
 
+- 2026-04-03 faction upgrade button gating:
+  - `client/src/components/shared/ShippingDiggingDisplay.tsx` is the shared source of truth for which factions expose shipping vs digging tracks.
+  - Reuse those helpers for the adjacent `+Ship` / `+Dig` buttons in `client/src/components/GameBoard/PlayerBoards.tsx` so Darklings never see `+Dig`, and Dwarves/Fakirs never see `+Ship`.
+
 - 2026-03-30 Cloudflare worker landing page:
   - `cloudflare-worker/tm-router/src/index.ts` owns the minimalist homepage HTML for `kezilu.com` root; unknown non-project routes now return `404` instead of the old generic fallback page.
   - Keep the homepage blurb generic: `Software engineer.`

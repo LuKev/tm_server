@@ -528,6 +528,46 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await expect.poll(async () => page.evaluate(() => (window.__tmE2E?.sent ?? []).length)).toBe(0)
   })
 
+  test('faction-specific ship and dig upgrades are hidden when the faction has no track', async ({ page }) => {
+    const basePlayers = makeBaseGameState().players
+    const state = makeBaseGameState({
+      players: {
+        ...basePlayers,
+        p1: { ...basePlayers.p1, faction: FactionType.Darklings },
+      },
+    })
+
+    await openGameWithState(page, state)
+    await expect(page.getByTestId('player-p1-upgrade-shipping')).toBeVisible()
+    await expect(page.getByTestId('player-p1-upgrade-digging')).toHaveCount(0)
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        players: {
+          ...state.players,
+          p1: { ...state.players.p1, faction: FactionType.Dwarves },
+        },
+      },
+    })
+    await expect(page.getByTestId('player-p1-upgrade-shipping')).toHaveCount(0)
+    await expect(page.getByTestId('player-p1-upgrade-digging')).toBeVisible()
+
+    await emitWs(page, {
+      type: 'game_state_update',
+      payload: {
+        ...state,
+        players: {
+          ...state.players,
+          p1: { ...state.players.p1, faction: FactionType.Fakirs },
+        },
+      },
+    })
+    await expect(page.getByTestId('player-p1-upgrade-shipping')).toHaveCount(0)
+    await expect(page.getByTestId('player-p1-upgrade-digging')).toBeVisible()
+  })
+
   test('player options reflect state and emit set_player_options actions', async ({ page }) => {
     const state = makeBaseGameState({
       players: {

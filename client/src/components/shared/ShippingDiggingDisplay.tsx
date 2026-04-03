@@ -10,12 +10,12 @@ export type ShippingDiggingDisplayProps = {
   compact?: boolean;
 };
 
-const canShowShippingForFaction = (factionType: FactionType): boolean => {
+export const canShowShippingForFaction = (factionType: FactionType): boolean => {
   // Fakirs and Dwarves have no shipping track.
   return factionType !== FactionType.Fakirs && factionType !== FactionType.Dwarves;
 };
 
-const canShowDiggingForFaction = (factionType: FactionType): boolean => {
+export const canShowDiggingForFaction = (factionType: FactionType): boolean => {
   // Darklings have no digging upgrades (they pay priests instead).
   return factionType !== FactionType.Darklings;
 };

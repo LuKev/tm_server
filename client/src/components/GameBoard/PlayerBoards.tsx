@@ -7,7 +7,7 @@ import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingI
 import { FACTION_COLORS } from '../../utils/colors';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import { TownTileId } from '../../types/game.types';
-import { ShippingDiggingDisplay } from '../shared/ShippingDiggingDisplay';
+import { ShippingDiggingDisplay, canShowDiggingForFaction, canShowShippingForFaction } from '../shared/ShippingDiggingDisplay';
 import './PlayerBoards.css';
 import './FavorTiles.css';
 import './TownTiles.css';
@@ -313,6 +313,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
+    const showShippingUpgrade = canShowShippingForFaction(factionType);
+    const showDiggingUpgrade = canShowDiggingForFaction(factionType);
     const townTiles = player.townTiles ?? [];
     const displayedRemainingMs = getDisplayedRemainingMs(gameState?.turnTimer ?? null, playerId, displayNowMs);
     const timerIsActive = !!gameState?.turnTimer?.players?.[playerId]?.isActive;
@@ -398,28 +400,32 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 diggingLevel={diggingLevel}
                                 hasTempShippingBonus={hasTempShippingBonus}
                             />
-                            {!isReplayMode && isLocalPlayer && (
+                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade) && (
                                 <div style={{ display: 'flex', gap: '0.25em', marginLeft: '0.5em' }}>
-                                    <button
-                                        type="button"
-                                        data-testid={`player-${playerId}-upgrade-shipping`}
-                                        className="conversion-btn"
-                                        style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
-                                        onClick={() => { onAdvanceShipping?.(playerId); }}
-                                        disabled={!canUseTurnActions}
-                                    >
-                                        +Ship
-                                    </button>
-                                    <button
-                                        type="button"
-                                        data-testid={`player-${playerId}-upgrade-digging`}
-                                        className="conversion-btn"
-                                        style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
-                                        onClick={() => { onAdvanceDigging?.(playerId); }}
-                                        disabled={!canUseTurnActions}
-                                    >
-                                        +Dig
-                                    </button>
+                                    {showShippingUpgrade && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-upgrade-shipping`}
+                                            className="conversion-btn"
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onAdvanceShipping?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                        >
+                                            +Ship
+                                        </button>
+                                    )}
+                                    {showDiggingUpgrade && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-upgrade-digging`}
+                                            className="conversion-btn"
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onAdvanceDigging?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                        >
+                                            +Dig
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
