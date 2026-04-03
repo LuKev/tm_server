@@ -107,10 +107,30 @@ func TestLakesLayout_TopRows(t *testing.T) {
 		models.TerrainSwamp,
 	}
 	for i, want := range secondRow {
-		got := layout[NewHex(i, 1)]
+		got := layout[NewHex(i-1, 1)]
 		if got != want {
 			t.Fatalf("lakes row B slot %d: got %v, want %v", i, got, want)
 		}
+	}
+}
+
+func TestLakesLayout_RowOffsetsUseLeftStagger(t *testing.T) {
+	layout, err := LayoutForMap(MapLakes)
+	if err != nil {
+		t.Fatalf("load lakes: %v", err)
+	}
+
+	if got := layout[NewHex(0, 0)]; got != models.TerrainMountain {
+		t.Fatalf("expected A1 at (0,0), got %v", got)
+	}
+	if got := layout[NewHex(-1, 1)]; got != models.TerrainDesert {
+		t.Fatalf("expected B1 at (-1,1), got %v", got)
+	}
+	if got := layout[NewHex(-1, 2)]; got != models.TerrainPlains {
+		t.Fatalf("expected C1 at (-1,2), got %v", got)
+	}
+	if got := layout[NewHex(-2, 3)]; got != models.TerrainLake {
+		t.Fatalf("expected D1 at (-2,3), got %v", got)
 	}
 }
 
@@ -198,12 +218,12 @@ func TestFjordsLayout_TopAndFourthRows(t *testing.T) {
 		models.TerrainRiver,
 		models.TerrainMountain,
 		models.TerrainRiver,
+		models.TerrainRiver,
 		models.TerrainForest,
 		models.TerrainWasteland,
 		models.TerrainLake,
 		models.TerrainForest,
 		models.TerrainWasteland,
-		models.TerrainRiver,
 		models.TerrainRiver,
 	}
 	for i, want := range fourthRow {

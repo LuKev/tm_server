@@ -52,11 +52,26 @@ func baseRow(r int, terrains ...models.TerrainType) rowDefinition {
 	}
 }
 
+func lakesRow(r int, terrains ...models.TerrainType) rowDefinition {
+	return rowDefinition{
+		R:        r,
+		StartQ:   lakesStartQForRow(r),
+		Terrains: append([]models.TerrainType(nil), terrains...),
+	}
+}
+
 func mapStartQForRow(r int) int {
 	if r%2 == 0 {
 		return -(r / 2)
 	}
 	return -((r - 1) / 2)
+}
+
+func lakesStartQForRow(r int) int {
+	if r%2 == 0 {
+		return -(r / 2)
+	}
+	return -((r + 1) / 2)
 }
 
 func cloneRows(rows []rowDefinition) []rowDefinition {
@@ -178,51 +193,51 @@ var revisedBaseRows = []rowDefinition{
 }
 
 var lakesRows = []rowDefinition{
-	baseRow(0,
+	lakesRow(0,
 		models.TerrainMountain, models.TerrainLake, models.TerrainWasteland, models.TerrainPlains,
 		models.TerrainDesert, models.TerrainLake, models.TerrainDesert, models.TerrainWasteland,
 		models.TerrainRiver, models.TerrainRiver, models.TerrainForest, models.TerrainLake,
 	),
-	baseRow(1,
+	lakesRow(1,
 		models.TerrainDesert, models.TerrainSwamp, models.TerrainForest, models.TerrainRiver,
 		models.TerrainSwamp, models.TerrainPlains, models.TerrainRiver, models.TerrainForest,
 		models.TerrainMountain, models.TerrainRiver, models.TerrainPlains, models.TerrainRiver,
 		models.TerrainSwamp,
 	),
-	baseRow(2,
+	lakesRow(2,
 		models.TerrainPlains, models.TerrainRiver, models.TerrainForest, models.TerrainWasteland,
 		models.TerrainMountain, models.TerrainRiver, models.TerrainSwamp, models.TerrainLake,
 		models.TerrainWasteland, models.TerrainRiver, models.TerrainRiver, models.TerrainDesert,
 	),
-	baseRow(3,
+	lakesRow(3,
 		models.TerrainLake, models.TerrainWasteland, models.TerrainMountain, models.TerrainRiver,
 		models.TerrainDesert, models.TerrainPlains, models.TerrainForest, models.TerrainRiver,
 		models.TerrainRiver, models.TerrainDesert, models.TerrainRiver, models.TerrainSwamp,
 		models.TerrainWasteland,
 	),
-	baseRow(4,
+	lakesRow(4,
 		models.TerrainForest, models.TerrainDesert, models.TerrainRiver, models.TerrainSwamp,
 		models.TerrainLake, models.TerrainRiver, models.TerrainRiver, models.TerrainWasteland,
 		models.TerrainRiver, models.TerrainMountain, models.TerrainForest, models.TerrainPlains,
 	),
-	baseRow(5,
+	lakesRow(5,
 		models.TerrainMountain, models.TerrainRiver, models.TerrainPlains, models.TerrainMountain,
 		models.TerrainRiver, models.TerrainDesert, models.TerrainRiver, models.TerrainMountain,
 		models.TerrainRiver, models.TerrainPlains, models.TerrainSwamp, models.TerrainLake,
 		models.TerrainWasteland,
 	),
-	baseRow(6,
+	lakesRow(6,
 		models.TerrainWasteland, models.TerrainRiver, models.TerrainRiver, models.TerrainWasteland,
 		models.TerrainForest, models.TerrainPlains, models.TerrainSwamp, models.TerrainDesert,
 		models.TerrainRiver, models.TerrainRiver, models.TerrainMountain, models.TerrainRiver,
 	),
-	baseRow(7,
+	lakesRow(7,
 		models.TerrainDesert, models.TerrainLake, models.TerrainSwamp, models.TerrainRiver,
 		models.TerrainLake, models.TerrainMountain, models.TerrainLake, models.TerrainRiver,
 		models.TerrainRiver, models.TerrainMountain, models.TerrainForest, models.TerrainRiver,
 		models.TerrainLake,
 	),
-	baseRow(8,
+	lakesRow(8,
 		models.TerrainSwamp, models.TerrainPlains, models.TerrainRiver, models.TerrainForest,
 		models.TerrainRiver, models.TerrainRiver, models.TerrainRiver, models.TerrainForest,
 		models.TerrainWasteland, models.TerrainPlains, models.TerrainDesert, models.TerrainSwamp,
@@ -319,8 +334,8 @@ var mapDefinitions = map[MapID]mapDefinition{
 			),
 			baseRow(3,
 				models.TerrainRiver, models.TerrainRiver, models.TerrainRiver, models.TerrainMountain,
-				models.TerrainRiver, models.TerrainForest, models.TerrainWasteland, models.TerrainLake,
-				models.TerrainForest, models.TerrainWasteland, models.TerrainRiver, models.TerrainRiver,
+				models.TerrainRiver, models.TerrainRiver, models.TerrainForest, models.TerrainWasteland,
+				models.TerrainLake, models.TerrainForest, models.TerrainWasteland, models.TerrainRiver,
 			),
 			baseRow(4,
 				models.TerrainWasteland, models.TerrainMountain, models.TerrainDesert, models.TerrainRiver,
@@ -340,13 +355,13 @@ var mapDefinitions = map[MapID]mapDefinition{
 				models.TerrainWasteland,
 			),
 			baseRow(7,
-				models.TerrainForest, models.TerrainRiver, models.TerrainRiver, models.TerrainPlains,
-				models.TerrainWasteland, models.TerrainPlains, models.TerrainDesert, models.TerrainWasteland,
+				models.TerrainForest, models.TerrainRiver, models.TerrainPlains, models.TerrainWasteland,
+				models.TerrainPlains, models.TerrainDesert, models.TerrainWasteland, models.TerrainRiver,
 				models.TerrainRiver, models.TerrainRiver, models.TerrainWasteland, models.TerrainLake,
 			),
 			baseRow(8,
-				models.TerrainSwamp, models.TerrainRiver, models.TerrainRiver, models.TerrainForest,
-				models.TerrainLake, models.TerrainMountain, models.TerrainLake, models.TerrainRiver,
+				models.TerrainSwamp, models.TerrainRiver, models.TerrainForest, models.TerrainLake,
+				models.TerrainMountain, models.TerrainLake, models.TerrainRiver, models.TerrainRiver,
 				models.TerrainForest, models.TerrainDesert, models.TerrainSwamp, models.TerrainPlains,
 				models.TerrainDesert,
 			),

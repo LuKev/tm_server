@@ -9,6 +9,10 @@
   - Added a new selectable map id `lakes` from the user-provided image.
   - Lakes is a best-effort hand transcription; row A was explicitly corrected by the user to include two consecutive river hexes between `A8` and `A9`, and row B was explicitly corrected to have 13 total hexes.
   - Current implementation only treats rows A and B as user-confirmed; lower rows are best-effort visual transcription and should be rechecked against the source image if gameplay discrepancies show up.
+  - Axial layout correction:
+    - Lakes uses alternating `12, 13, 12, 13, ...` rows rather than the base map's `13, 12, 13, 12, ...`.
+    - Odd rows are staggered left relative to the row above, so `B1` should be bottom-left of `A1`.
+    - Implemented by changing Lakes row start coordinates in the server map definition rather than special-casing the renderer.
 
 - 2026-04-03 app shell backgrounds:
   - `client/src/App.tsx` owns the route-level page background, not just the lobby component.
