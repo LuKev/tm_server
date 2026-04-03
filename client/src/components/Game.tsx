@@ -1455,7 +1455,7 @@ export const Game = () => {
   }
 
   return (
-    <div className="min-h-screen p-4 bg-gray-100" data-testid="game-screen">
+    <div className="min-h-screen bg-white p-4 text-gray-900" data-testid="game-screen">
       <div className="max-w-[1800px] mx-auto">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-gray-800">Terra Mystica - Game {gameId}</h1>

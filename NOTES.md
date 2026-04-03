@@ -1,5 +1,9 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 app shell backgrounds:
+  - `client/src/App.tsx` owns the route-level page background, not just the lobby component.
+  - Keep `/game/:gameId` and `/replay/:gameId` on a plain white shell so the in-game UI stays light-themed and text contrast remains predictable; reserve the gradient shell for lobby-style routes.
+
 - 2026-03-30 Cloudflare worker landing page:
   - `cloudflare-worker/tm-router/src/index.ts` owns the minimalist homepage HTML for `kezilu.com` root; unknown non-project routes now return `404` instead of the old generic fallback page.
   - Keep the homepage blurb generic: `Software engineer.`
