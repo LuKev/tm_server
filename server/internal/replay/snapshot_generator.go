@@ -17,7 +17,11 @@ func GenerateSnapshot(gs *game.GameState) string {
 	// Header
 	sb.WriteString(fmt.Sprintf("Round: %d\n", gs.Round))
 	sb.WriteString(fmt.Sprintf("Phase: %s\n", phaseToString(gs.Phase)))
-	sb.WriteString("MapType: base\n") // Currently only base map supported
+	mapID := board.MapBase
+	if gs.Map != nil && gs.Map.ID != "" {
+		mapID = gs.Map.ID
+	}
+	sb.WriteString(fmt.Sprintf("MapType: %s\n", mapID))
 
 	// Turn info
 	if gs.CurrentPlayerIndex >= 0 && gs.CurrentPlayerIndex < len(gs.TurnOrder) {

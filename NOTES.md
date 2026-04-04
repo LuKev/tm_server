@@ -1,5 +1,24 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 custom map support:
+  - Live-game map creation now supports `mapId: custom` with an attached custom-map payload instead of relying on the static built-in map registry alone.
+  - Custom map shape is defined by exactly three structural fields plus row terrain data:
+    - `rowCount`
+    - `firstRowColumns`
+    - `firstRowLonger` (`true` for base/archipelago-style `13,12,13...`, `false` for lakes-style `12,13,12...`)
+  - Server-side coordinate labels for custom maps are generated from the per-game map definition stored on the `TerraMysticaMap`, not from the global `board.DisplayCoordinateForHex(mapId, ...)` registry.
+  - Lobby `create_game` / open-game metadata now carries an optional `customMap` payload; `start_game` reuses the stored lobby payload when instantiating the game.
+  - Custom-map import codes accepted by the client editor:
+    - `K` or `black` = Swamp
+    - `I` or `river` = River
+    - `B` or `blue` = Lake
+    - `R` or `red` = Wasteland
+    - `G` or `green` = Forest
+    - `S` or `silver` / `gray` / `grey` = Mountain
+    - `Y` or `yellow` = Desert
+    - `U` or `brown` / `plain` / `plains` = Plains
+  - The lobby custom map editor starts with an all-river grid and preserves overlapping painted cells when row-count / first-row-size / row-pattern settings are changed.
+
 - 2026-04-03 `scripts/format.sh` behavior:
   - The script is mutating, not check-only: it runs `client` `eslint . --fix`, `tsc -b --noEmit`, then server-side `gofmt -w .`, optional `goimports -w .`, and optional `golangci-lint run --fix`.
   - In the current repo state, the actual file edits from one clean run are small/mechanical formatter rewrites, but the command also fails on unrelated existing client lint/type-check issues.
@@ -78,6 +97,11 @@
     - H: `H1, H2, river, H3, H4, H5, H6, river, H7, H8, river, H9, H10`
     - I: `I1, I2, river, I3, I4, I5, I6, river, I7, I8, river, I9`
   - Fire & Ice should now be treated as fully hand-transcribed for terrain plus best-effort positional river slots, pending user corrections if any river counts are off in a row.
+  - Implementation status:
+    - As of 2026-04-03, Fire & Ice is now wired into the playable map registry with canonical map id `fire-and-ice`.
+    - `NormalizeMapID(...)` also accepts `fire_and_ice`, `fire and ice`, and `fire&ice` as aliases.
+    - Fire & Ice uses the same short-top-row axial staggering as Lakes: row A has 12 total hexes and rows alternate `12, 13, 12, 13, ...` from top to bottom.
+    - The implemented row model is still a best-effort hand transcription from the user-provided image. If gameplay visuals show a misplaced river, re-check the river-heavy rows `C`, `E`, and `F` first.
 
 - 2026-03-30 Fjords map transcription:
   - User provided a Fjords map image and asked for a hand transcription only, with no external source lookup.

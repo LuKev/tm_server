@@ -8,8 +8,8 @@ import (
 
 func TestAvailableMaps_ContainsRegisteredMaps(t *testing.T) {
 	infos := AvailableMaps()
-	if len(infos) < 5 {
-		t.Fatalf("expected at least five maps, got %d", len(infos))
+	if len(infos) < 6 {
+		t.Fatalf("expected at least six maps, got %d", len(infos))
 	}
 
 	found := map[MapID]bool{}
@@ -23,6 +23,9 @@ func TestAvailableMaps_ContainsRegisteredMaps(t *testing.T) {
 	if !found[MapArchipelago] {
 		t.Fatalf("archipelago map missing from catalog")
 	}
+	if !found[MapFireAndIce] {
+		t.Fatalf("fire & ice map missing from catalog")
+	}
 	if !found[MapFjords] {
 		t.Fatalf("fjords map missing from catalog")
 	}
@@ -31,6 +34,21 @@ func TestAvailableMaps_ContainsRegisteredMaps(t *testing.T) {
 	}
 	if !found[MapRevisedBase] {
 		t.Fatalf("revised base map missing from catalog")
+	}
+}
+
+func TestNormalizeMapID_FireAndIceAliases(t *testing.T) {
+	cases := []string{
+		"fire-and-ice",
+		"fire_and_ice",
+		"Fire and Ice",
+		"fire&ice",
+	}
+
+	for _, raw := range cases {
+		if got := NormalizeMapID(raw); got != MapFireAndIce {
+			t.Fatalf("NormalizeMapID(%q): got %q, want %q", raw, got, MapFireAndIce)
+		}
 	}
 }
 
@@ -96,6 +114,7 @@ func TestLakesLayout_TopRows(t *testing.T) {
 		models.TerrainSwamp,
 		models.TerrainForest,
 		models.TerrainRiver,
+		models.TerrainRiver,
 		models.TerrainSwamp,
 		models.TerrainPlains,
 		models.TerrainRiver,
@@ -103,7 +122,6 @@ func TestLakesLayout_TopRows(t *testing.T) {
 		models.TerrainMountain,
 		models.TerrainRiver,
 		models.TerrainPlains,
-		models.TerrainRiver,
 		models.TerrainSwamp,
 	}
 	for i, want := range secondRow {
@@ -206,6 +224,111 @@ func TestArchipelagoLayout_TopAndFourthRows(t *testing.T) {
 		got := layout[NewHex(i-1, 3)]
 		if got != want {
 			t.Fatalf("row D slot %d: got %v, want %v", i, got, want)
+		}
+	}
+}
+
+func TestFireAndIceLayout_RowCountsAndKeyRows(t *testing.T) {
+	layout, err := LayoutForMap(MapFireAndIce)
+	if err != nil {
+		t.Fatalf("load fire & ice: %v", err)
+	}
+
+	rowSpecs := []struct {
+		r          int
+		startQ     int
+		slotCount  int
+		riverCount int
+	}{
+		{r: 0, startQ: 0, slotCount: 12, riverCount: 2},
+		{r: 1, startQ: -1, slotCount: 13, riverCount: 4},
+		{r: 2, startQ: -1, slotCount: 12, riverCount: 7},
+		{r: 3, startQ: -2, slotCount: 13, riverCount: 2},
+		{r: 4, startQ: -2, slotCount: 12, riverCount: 5},
+		{r: 5, startQ: -3, slotCount: 13, riverCount: 6},
+		{r: 6, startQ: -3, slotCount: 12, riverCount: 3},
+		{r: 7, startQ: -4, slotCount: 13, riverCount: 3},
+		{r: 8, startQ: -4, slotCount: 12, riverCount: 3},
+	}
+
+	for _, spec := range rowSpecs {
+		rowRiverCount := 0
+		for i := 0; i < spec.slotCount; i++ {
+			hex := NewHex(spec.startQ+i, spec.r)
+			terrain, ok := layout[hex]
+			if !ok {
+				t.Fatalf("expected fire & ice hex at %v", hex)
+			}
+			if terrain == models.TerrainRiver {
+				rowRiverCount++
+			}
+		}
+		if rowRiverCount != spec.riverCount {
+			t.Fatalf("row %d river count: got %d, want %d", spec.r, rowRiverCount, spec.riverCount)
+		}
+	}
+
+	topRow := []models.TerrainType{
+		models.TerrainPlains,
+		models.TerrainRiver,
+		models.TerrainPlains,
+		models.TerrainSwamp,
+		models.TerrainDesert,
+		models.TerrainRiver,
+		models.TerrainMountain,
+		models.TerrainForest,
+		models.TerrainWasteland,
+		models.TerrainLake,
+		models.TerrainDesert,
+		models.TerrainLake,
+	}
+	for i, want := range topRow {
+		got := layout[NewHex(i, 0)]
+		if got != want {
+			t.Fatalf("fire & ice row A slot %d: got %v, want %v", i, got, want)
+		}
+	}
+
+	fourthRow := []models.TerrainType{
+		models.TerrainDesert,
+		models.TerrainMountain,
+		models.TerrainForest,
+		models.TerrainDesert,
+		models.TerrainSwamp,
+		models.TerrainRiver,
+		models.TerrainLake,
+		models.TerrainWasteland,
+		models.TerrainPlains,
+		models.TerrainRiver,
+		models.TerrainForest,
+		models.TerrainLake,
+		models.TerrainForest,
+	}
+	for i, want := range fourthRow {
+		got := layout[NewHex(i-2, 3)]
+		if got != want {
+			t.Fatalf("fire & ice row D slot %d: got %v, want %v", i, got, want)
+		}
+	}
+
+	bottomRow := []models.TerrainType{
+		models.TerrainMountain,
+		models.TerrainForest,
+		models.TerrainRiver,
+		models.TerrainWasteland,
+		models.TerrainDesert,
+		models.TerrainSwamp,
+		models.TerrainDesert,
+		models.TerrainRiver,
+		models.TerrainLake,
+		models.TerrainPlains,
+		models.TerrainRiver,
+		models.TerrainPlains,
+	}
+	for i, want := range bottomRow {
+		got := layout[NewHex(i-4, 8)]
+		if got != want {
+			t.Fatalf("fire & ice row I slot %d: got %v, want %v", i, got, want)
 		}
 	}
 }
