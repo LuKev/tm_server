@@ -1,41 +1,54 @@
-import { env, createExecutionContext, waitOnExecutionContext, SELF } from 'cloudflare:test';
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import worker from '../src';
 
-describe('Hello World user worker', () => {
-	describe('request for /message', () => {
-		it('/ responds with "Hello, World!" (unit style)', async () => {
-			const request = new Request<unknown, IncomingRequestCfProperties>('http://example.com/message');
-			// Create an empty context to pass to `worker.fetch()`.
-			const ctx = createExecutionContext();
-			const response = await worker.fetch(request, env, ctx);
-			// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-			await waitOnExecutionContext(ctx);
-			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
-		});
+afterEach(() => {
+	vi.restoreAllMocks();
+});
 
-		it('responds with "Hello, World!" (integration style)', async () => {
-			const request = new Request('http://example.com/message');
-			const response = await SELF.fetch(request);
-			expect(await response.text()).toMatchInlineSnapshot(`"Hello, World!"`);
-		});
+describe('tm-router worker', () => {
+	it('proxies the homepage to the standalone website project', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(
+			new Response('homepage', {
+				status: 200,
+				headers: { 'Content-Type': 'text/html; charset=UTF-8' },
+			}),
+		);
+		vi.stubGlobal('fetch', fetchMock);
+
+		const response = await worker.fetch(new Request('https://kezilu.com/'));
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://lukev.github.io/website/',
+			expect.objectContaining({ method: 'GET' }),
+		);
+		expect(await response.text()).toBe('homepage');
 	});
 
-	describe('request for /random', () => {
-		it('/ responds with a random UUID (unit style)', async () => {
-			const request = new Request<unknown, IncomingRequestCfProperties>('http://example.com/random');
-			// Create an empty context to pass to `worker.fetch()`.
-			const ctx = createExecutionContext();
-			const response = await worker.fetch(request, env, ctx);
-			// Wait for all `Promise`s passed to `ctx.waitUntil()` to settle before running test assertions
-			await waitOnExecutionContext(ctx);
-			expect(await response.text()).toMatch(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/);
-		});
+	it('strips the /tm prefix before proxying to the TM frontend', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(new Response('tm-client'));
+		vi.stubGlobal('fetch', fetchMock);
 
-		it('responds with a random UUID (integration style)', async () => {
-			const request = new Request('http://example.com/random');
-			const response = await SELF.fetch(request);
-			expect(await response.text()).toMatch(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/);
-		});
+		await worker.fetch(new Request('https://kezilu.com/tm/replay/123?view=full'));
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://tm-client-production.up.railway.app/replay/123?view=full',
+			expect.objectContaining({ method: 'GET' }),
+		);
+	});
+
+	it('proxies API requests with manual redirect handling', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(new Response('api'));
+		vi.stubGlobal('fetch', fetchMock);
+
+		await worker.fetch(new Request('https://kezilu.com/api/replay/start', { method: 'POST', body: 'x=1' }));
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://tm-server-production.up.railway.app/api/replay/start',
+			expect.objectContaining({
+				method: 'POST',
+				redirect: 'manual',
+			}),
+		);
 	});
 });
