@@ -1,5 +1,10 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 worker landing page restore:
+  - `main` had regressed to the old inline `kezilu.com - Worker Default` fallback HTML in `cloudflare-worker/tm-router/src/index.ts`, even though a styled landing page had already been implemented on `codex/minimal-worker-landing-page`.
+  - Keep `/` and `/index.html` on a dedicated styled landing page, and return `404` for unknown non-project routes instead of serving the generic fallback page.
+  - Current homepage project links should match the live worker routes: `/tm`, `/foodle`, `/chess_db`, and `/poker_solver`.
+
 - 2026-04-03 custom map support:
   - Live-game map creation now supports `mapId: custom` with an attached custom-map payload instead of relying on the static built-in map registry alone.
   - Custom map shape is defined by exactly three structural fields plus row terrain data:
