@@ -1,5 +1,16 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-03 hex-grid canvas resolution fix:
+  - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.
+  - This avoids intermittent blurry/off-looking board rendering when the game panel width differs from the canvas’s natural size or the display is high-DPI.
+  - Mouse hit-testing still converts browser event coordinates back into logical board space, so board clicks and bridge-edge clicks stay aligned after responsive resizing.
+  - If future Playwright or DOM helpers interact with the board canvas, use `data-logical-width` and `data-logical-height` rather than assuming `canvas.width`/`canvas.height` represent logical map units.
+
+- 2026-04-03 Bazel client wrapper repo-root behavior:
+  - `server/tools/client_build_test.sh` and `server/tools/client_playwright_test.sh` now derive `TM_REPO_ROOT` from their real script path instead of assuming `/Users/kevin/projects/tm_server`.
+  - `server/BUILD.bazel` no longer hardcodes `TM_REPO_ROOT`, so `bazel test //:client_build_test --test_output=errors` and `//:client_playwright_test` work correctly from detached worktrees.
+  - Worktree-local client verification still requires `client/node_modules` to exist under that worktree path; symlinking to the main checkout’s `node_modules` is sufficient.
+
 - 2026-04-03 worker landing page restore:
   - `main` had regressed to the old inline `kezilu.com - Worker Default` fallback HTML in `cloudflare-worker/tm-router/src/index.ts`, even though a styled landing page had already been implemented on `codex/minimal-worker-landing-page`.
   - Keep `/` and `/index.html` on a dedicated styled landing page, and return `404` for unknown non-project routes instead of serving the generic fallback page.
