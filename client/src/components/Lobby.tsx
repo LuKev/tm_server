@@ -252,7 +252,7 @@ export function Lobby(): React.ReactElement {
               </select>
               <button
                 data-testid="lobby-create-game"
-                onClick={handleCreateGame}
+                onClick={() => { handleCreateGame() }}
                 disabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null}
                 className="lobby-button lobby-button-primary"
               >

@@ -61,8 +61,10 @@ export async function clickHex(page: Page, q: number, r: number): Promise<void> 
         && parent.scrollHeight > parent.clientHeight
       if (scrollableX || scrollableY) {
         const rect = el.getBoundingClientRect()
-        const scaleX = rect.width / el.width
-        const scaleY = rect.height / el.height
+        const logicalWidth = Number(el.dataset.logicalWidth || el.width)
+        const logicalHeight = Number(el.dataset.logicalHeight || el.height)
+        const scaleX = rect.width / logicalWidth
+        const scaleY = rect.height / logicalHeight
         if (scrollableX) {
           const targetX = target.internalX * scaleX
           parent.scrollLeft = Math.max(0, targetX - parent.clientWidth / 2)
