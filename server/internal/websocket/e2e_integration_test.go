@@ -470,6 +470,91 @@ func TestWebsocketE2E_StartGameWithSelectedMap(t *testing.T) {
 	}
 }
 
+func TestWebsocketE2E_StartGameWithCustomMap(t *testing.T) {
+	hub := NewHub()
+	go hub.Run()
+
+	deps := ServerDeps{
+		Lobby: lobby.NewManager(),
+		Games: game.NewManager(),
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ServeWs(hub, deps, w, r)
+	}))
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+	host := dialWS(t, wsURL)
+	defer host.Close()
+	guest := dialWS(t, wsURL)
+	defer guest.Close()
+
+	sendJSON(t, host, map[string]any{
+		"type": "create_game",
+		"payload": map[string]any{
+			"name":       "custom",
+			"maxPlayers": 2,
+			"creator":    "host",
+			"mapId":      string(board.MapCustom),
+			"customMap": map[string]any{
+				"name":            "Tiny",
+				"rowCount":        2,
+				"firstRowColumns": 3,
+				"firstRowLonger":  true,
+				"rows": [][]int{
+					{int(models.TerrainPlains), int(models.TerrainRiver), int(models.TerrainForest)},
+					{int(models.TerrainLake), int(models.TerrainDesert)},
+				},
+			},
+		},
+	})
+	created := readUntilType(t, host, "game_created", 4*time.Second)
+	gameID := asString(asMap(created["payload"])["gameId"])
+	lobbyState := readUntilType(t, host, "lobby_state", 4*time.Second)
+	games := lobbyState["payload"].([]any)
+	if len(games) != 1 {
+		t.Fatalf("expected one lobby game, got %d", len(games))
+	}
+	if got := asString(asMap(games[0])["mapId"]); got != string(board.MapCustom) {
+		t.Fatalf("expected lobby mapId %q, got %q", board.MapCustom, got)
+	}
+	if got := asString(asMap(asMap(games[0])["customMap"])["name"]); got != "Tiny" {
+		t.Fatalf("expected lobby custom map name Tiny, got %q", got)
+	}
+
+	sendJSON(t, guest, map[string]any{
+		"type": "join_game",
+		"payload": map[string]any{
+			"id":   gameID,
+			"name": "guest",
+		},
+	})
+	_ = readUntilType(t, guest, "game_joined", 4*time.Second)
+
+	sendJSON(t, host, map[string]any{
+		"type": "start_game",
+		"payload": map[string]any{
+			"gameID":             gameID,
+			"randomizeTurnOrder": false,
+			"setupMode":          "snellman",
+		},
+	})
+
+	state := asMap(readUntilType(t, host, "game_state_update", 4*time.Second)["payload"])
+	if got := asString(state["mapId"]); got != string(board.MapCustom) {
+		t.Fatalf("expected game state mapId %q, got %q", board.MapCustom, got)
+	}
+	mapRaw := asMap(state["map"])
+	if got := asString(mapRaw["id"]); got != string(board.MapCustom) {
+		t.Fatalf("expected map.id %q, got %q", board.MapCustom, got)
+	}
+	hexesRaw := asMap(mapRaw["hexes"])
+	if got := asString(asMap(hexesRaw["0,0"])["displayCoord"]); got != "A1" {
+		t.Fatalf("expected custom hex 0,0 to serialize as A1, got %q", got)
+	}
+}
+
 func TestWebsocketE2E_LobbySingleSeatAndLeaveFlow(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()

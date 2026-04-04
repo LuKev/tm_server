@@ -55,6 +55,7 @@ type createGamePayload struct {
 	MaxPlayers int    `json:"maxPlayers"`
 	Creator    string `json:"creator"`
 	MapID      string `json:"mapId,omitempty"`
+	CustomMap  *board.CustomMapDefinition `json:"customMap,omitempty"`
 }
 
 type joinGamePayload struct {
@@ -630,6 +631,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		SetupMode:          setupMode,
 		TurnTimer:          turnTimer,
 		MapID:              board.NormalizeMapID(meta.MapID),
+		CustomMap:          board.CloneCustomMapDefinition(meta.CustomMap),
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
 		log.Printf("error creating game: %v", err)
@@ -669,7 +671,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID)
+	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID, p.CustomMap)
 	if err != nil {
 		c.sendLobbyError(err)
 		return

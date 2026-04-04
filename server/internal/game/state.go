@@ -262,6 +262,20 @@ func NewGameStateWithMap(mapID board.MapID) (*GameState, error) {
 		return nil, err
 	}
 
+	return newGameStateWithBoard(gameMap), nil
+}
+
+// NewGameStateWithCustomMap creates a new game state with a caller-supplied custom map.
+func NewGameStateWithCustomMap(definition *board.CustomMapDefinition) (*GameState, error) {
+	gameMap, err := board.NewTerraMysticaMapForCustom(definition)
+	if err != nil {
+		return nil, err
+	}
+
+	return newGameStateWithBoard(gameMap), nil
+}
+
+func newGameStateWithBoard(gameMap *board.TerraMysticaMap) *GameState {
 	return &GameState{
 		Map:                       gameMap,
 		Players:                   make(map[string]*Player),
@@ -282,7 +296,7 @@ func NewGameStateWithMap(mapID board.MapID) (*GameState, error) {
 		PendingSpadeBuildAllowed:  make(map[string]bool),
 		SkipAbilityUsedThisAction: make(map[string][]board.Hex),
 		SetupPlacedDwellings:      make(map[string]int),
-	}, nil
+	}
 }
 
 // AddPlayer adds a player to the game

@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 func TestManager_CreateJoinLeave_OpenSeatRestriction(t *testing.T) {
 	manager := NewManager()
 
-	first, err := manager.CreateGame("First", 3, "host", "")
+	first, err := manager.CreateGame("First", 3, "host", "", nil)
 	if err != nil {
 		t.Fatalf("create first game: %v", err)
 	}
@@ -18,11 +19,11 @@ func TestManager_CreateJoinLeave_OpenSeatRestriction(t *testing.T) {
 		t.Fatalf("expected creator to be auto-seated, got %+v", first.Players)
 	}
 
-	if _, err := manager.CreateGame("Second", 3, "host", ""); !errors.Is(err, ErrAlreadyInOpenGame) {
+	if _, err := manager.CreateGame("Second", 3, "host", "", nil); !errors.Is(err, ErrAlreadyInOpenGame) {
 		t.Fatalf("expected ErrAlreadyInOpenGame for duplicate create, got %v", err)
 	}
 
-	second, err := manager.CreateGame("Second", 3, "other-host", "")
+	second, err := manager.CreateGame("Second", 3, "other-host", "", nil)
 	if err != nil {
 		t.Fatalf("create second game: %v", err)
 	}
@@ -51,7 +52,7 @@ func TestManager_CreateJoinLeave_OpenSeatRestriction(t *testing.T) {
 func TestManager_StartGame_RemovesGameFromOpenListAndBlocksLeave(t *testing.T) {
 	manager := NewManager()
 
-	meta, err := manager.CreateGame("Table", 2, "host", "")
+	meta, err := manager.CreateGame("Table", 2, "host", "", nil)
 	if err != nil {
 		t.Fatalf("create game: %v", err)
 	}
@@ -81,7 +82,7 @@ func TestManager_StartGame_RemovesGameFromOpenListAndBlocksLeave(t *testing.T) {
 func TestManager_CreateGame_StoresSelectedMap(t *testing.T) {
 	manager := NewManager()
 
-	meta, err := manager.CreateGame("Archipelago Table", 3, "host", string(board.MapArchipelago))
+	meta, err := manager.CreateGame("Archipelago Table", 3, "host", string(board.MapArchipelago), nil)
 	if err != nil {
 		t.Fatalf("create game: %v", err)
 	}
@@ -93,7 +94,36 @@ func TestManager_CreateGame_StoresSelectedMap(t *testing.T) {
 func TestManager_CreateGame_InvalidMapRejected(t *testing.T) {
 	manager := NewManager()
 
-	if _, err := manager.CreateGame("Bad Table", 3, "host", "unknown-map"); !errors.Is(err, ErrInvalidMap) {
+	if _, err := manager.CreateGame("Bad Table", 3, "host", "unknown-map", nil); !errors.Is(err, ErrInvalidMap) {
 		t.Fatalf("expected ErrInvalidMap, got %v", err)
+	}
+}
+
+func TestManager_CreateGame_StoresCustomMap(t *testing.T) {
+	manager := NewManager()
+
+	custom := &board.CustomMapDefinition{
+		Name:            "Tiny",
+		RowCount:        2,
+		FirstRowColumns: 3,
+		FirstRowLonger:  true,
+		Rows: [][]models.TerrainType{
+			{models.TerrainPlains, models.TerrainRiver, models.TerrainForest},
+			{models.TerrainLake, models.TerrainDesert},
+		},
+	}
+
+	meta, err := manager.CreateGame("Custom Table", 3, "host", string(board.MapCustom), custom)
+	if err != nil {
+		t.Fatalf("create custom game: %v", err)
+	}
+	if meta.MapID != string(board.MapCustom) {
+		t.Fatalf("expected custom map id, got %q", meta.MapID)
+	}
+	if meta.CustomMap == nil {
+		t.Fatalf("expected custom map to be stored")
+	}
+	if meta.CustomMap.Name != "Tiny" {
+		t.Fatalf("expected custom name Tiny, got %q", meta.CustomMap.Name)
 	}
 }

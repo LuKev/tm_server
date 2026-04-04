@@ -11,10 +11,13 @@ import (
 // TerraMysticaMap represents the game board
 // Terra Mystica uses a pointy-top hex grid with 9 rows alternating 13/12 hexagons
 type TerraMysticaMap struct {
-	ID         MapID
-	Hexes      map[Hex]*MapHex
-	Bridges    map[BridgeKey]string // Tracks built bridges between hexes (stores PlayerID)
-	RiverHexes map[Hex]bool         // Tracks which hexes are rivers
+	ID               MapID
+	Hexes            map[Hex]*MapHex
+	Bridges          map[BridgeKey]string // Tracks built bridges between hexes (stores PlayerID)
+	RiverHexes       map[Hex]bool         // Tracks which hexes are rivers
+	displayByHex     map[Hex]string
+	hexByDisplayID   map[string]Hex
+	customDefinition *CustomMapDefinition
 }
 
 // MarshalJSON implements custom JSON marshaling for TerraMysticaMap
@@ -40,15 +43,17 @@ func (m *TerraMysticaMap) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(&struct {
-		ID         MapID              `json:"id"`
-		Hexes      map[string]*MapHex `json:"hexes"`
-		Bridges    map[string]string  `json:"bridges"`
-		RiverHexes map[string]bool    `json:"riverHexes"`
+		ID         MapID                `json:"id"`
+		Hexes      map[string]*MapHex   `json:"hexes"`
+		Bridges    map[string]string    `json:"bridges"`
+		RiverHexes map[string]bool      `json:"riverHexes"`
+		CustomMap  *CustomMapDefinition `json:"customMap,omitempty"`
 	}{
 		ID:         m.ID,
 		Hexes:      hexes,
 		Bridges:    bridges,
 		RiverHexes: riverHexes,
+		CustomMap:  CloneCustomMapDefinition(m.customDefinition),
 	})
 }
 
@@ -86,7 +91,7 @@ func NewTerraMysticaMap() *TerraMysticaMap {
 
 // NewTerraMysticaMapForID creates a new game map for the selected map id.
 func NewTerraMysticaMapForID(mapID MapID) (*TerraMysticaMap, error) {
-	layout, err := LayoutForMap(mapID)
+	def, err := definitionForBuiltInMap(mapID)
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +102,30 @@ func NewTerraMysticaMapForID(mapID MapID) (*TerraMysticaMap, error) {
 		Bridges:    make(map[BridgeKey]string),
 		RiverHexes: make(map[Hex]bool),
 	}
-	m.initializeLayout(layout)
+	m.initializeLayout(def.Layout())
+	m.applyCoordinateIndex(buildCoordinateIndex(def))
+	return m, nil
+}
+
+func NewTerraMysticaMapForCustom(definition *CustomMapDefinition) (*TerraMysticaMap, error) {
+	if definition == nil {
+		return nil, fmt.Errorf("custom map definition is required")
+	}
+
+	def, err := definition.toMapDefinition()
+	if err != nil {
+		return nil, err
+	}
+
+	m := &TerraMysticaMap{
+		ID:               MapCustom,
+		Hexes:            make(map[Hex]*MapHex),
+		Bridges:          make(map[BridgeKey]string),
+		RiverHexes:       make(map[Hex]bool),
+		customDefinition: CloneCustomMapDefinition(definition),
+	}
+	m.initializeLayout(def.Layout())
+	m.applyCoordinateIndex(buildCoordinateIndex(def))
 	return m, nil
 }
 
@@ -109,6 +137,37 @@ func (m *TerraMysticaMap) initializeLayout(layout map[Hex]models.TerrainType) {
 			m.RiverHexes[h] = true
 		}
 	}
+}
+
+func (m *TerraMysticaMap) applyCoordinateIndex(index coordinateIndex) {
+	m.displayByHex = make(map[Hex]string, len(index.displayByHex))
+	for hex, display := range index.displayByHex {
+		m.displayByHex[hex] = display
+	}
+	m.hexByDisplayID = make(map[string]Hex, len(index.hexByDisplayID))
+	for display, hex := range index.hexByDisplayID {
+		m.hexByDisplayID[display] = hex
+	}
+}
+
+func (m *TerraMysticaMap) DisplayCoordinateForHex(hex Hex) (string, bool) {
+	if m.displayByHex == nil {
+		return "", false
+	}
+	display, ok := m.displayByHex[hex]
+	return display, ok
+}
+
+func (m *TerraMysticaMap) HexForDisplayCoordinate(display string) (Hex, bool) {
+	if m.hexByDisplayID == nil {
+		return Hex{}, false
+	}
+	hex, ok := m.hexByDisplayID[normalizeDisplayCoordinate(display)]
+	return hex, ok
+}
+
+func (m *TerraMysticaMap) CustomDefinition() *CustomMapDefinition {
+	return CloneCustomMapDefinition(m.customDefinition)
 }
 
 // GetHex returns the MapHex at the given coordinates, or nil if not found

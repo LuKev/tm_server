@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
 import { DEFAULT_MAP_CATALOG } from '../data/mapCatalog'
-import type { MapSummary } from '../types/map.types'
+import type { CustomMapDefinition, MapSummary } from '../types/map.types'
+import { CustomMapEditor } from './CustomMapEditor'
+import { createEmptyCustomMapDefinition } from '../utils/customMapUtils'
 import './Lobby.css'
 
 interface GameInfo {
@@ -11,6 +13,7 @@ interface GameInfo {
   name: string
   host: string
   mapId: string
+  customMap?: CustomMapDefinition
   players: string[]
   maxPlayers: number
 }
@@ -66,6 +69,7 @@ export function Lobby(): React.ReactElement {
   const [newGameMaxPlayers, setNewGameMaxPlayers] = useState(5)
   const [availableMaps, setAvailableMaps] = useState<MapSummary[]>(DEFAULT_MAP_CATALOG)
   const [newGameMapId, setNewGameMapId] = useState('base')
+  const [customMapDefinition, setCustomMapDefinition] = useState<CustomMapDefinition>(() => createEmptyCustomMapDefinition())
   const [randomizeTurnOrder, setRandomizeTurnOrder] = useState(true)
   const [setupMode, setSetupMode] = useState<'snellman' | 'auction' | 'fast_auction'>('snellman')
   const [turnTimerEnabled, setTurnTimerEnabled] = useState(false)
@@ -135,6 +139,7 @@ export function Lobby(): React.ReactElement {
         maxPlayers: newGameMaxPlayers,
         creator: trimmedPlayerName,
         mapId: newGameMapId,
+        customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
       },
     })
     setNewGameName('')
@@ -255,6 +260,14 @@ export function Lobby(): React.ReactElement {
               </button>
             </div>
 
+            {newGameMapId === 'custom' && (
+              <CustomMapEditor
+                value={customMapDefinition}
+                onChange={setCustomMapDefinition}
+                disabled={!isConnected || joinedGameId !== null}
+              />
+            )}
+
             <div className="lobby-option-list">
               <label className="lobby-checkbox-row">
                 <input
@@ -354,6 +367,10 @@ export function Lobby(): React.ReactElement {
                   const isJoined = trimmedPlayerName !== '' && g.players.includes(trimmedPlayerName)
                   const isHost = trimmedPlayerName !== '' && g.host === trimmedPlayerName
                   const joinBlockedByOtherSeat = joinedGameId !== null && joinedGameId !== g.id
+                  const displayMapName =
+                    g.customMap?.name?.trim()
+                    || availableMaps.find((map) => map.id === g.mapId)?.name
+                    || (g.mapId === 'custom' ? 'Custom' : g.mapId)
                   return (
                     <div key={g.id} className="lobby-game-card">
                       <div className="lobby-game-meta">
@@ -362,7 +379,7 @@ export function Lobby(): React.ReactElement {
                           <div className="lobby-tag-row">
                             <span className="lobby-tag">{g.id}</span>
                             <span className="lobby-tag lobby-tag-muted">
-                              Map: {(availableMaps.find((map) => map.id === g.mapId)?.name) ?? g.mapId}
+                              Map: {displayMapName}
                             </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>

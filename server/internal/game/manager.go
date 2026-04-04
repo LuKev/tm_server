@@ -18,6 +18,7 @@ type CreateGameOptions struct {
 	SetupMode          SetupMode
 	TurnTimer          *TurnTimerConfig
 	MapID              board.MapID
+	CustomMap          *board.CustomMapDefinition
 }
 
 // ActionMeta provides metadata for action execution.
@@ -707,9 +708,23 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	if mapID == "" {
 		mapID = board.MapBase
 	}
-	gs, err := NewGameStateWithMap(mapID)
-	if err != nil {
-		return fmt.Errorf("failed to initialize map %s: %w", mapID, err)
+	var (
+		gs  *GameState
+		err error
+	)
+	if mapID == board.MapCustom {
+		gs, err = NewGameStateWithCustomMap(opts.CustomMap)
+		if err != nil {
+			return fmt.Errorf("failed to initialize custom map: %w", err)
+		}
+	} else {
+		if opts.CustomMap != nil {
+			return fmt.Errorf("custom map payload is only valid for map %s", board.MapCustom)
+		}
+		gs, err = NewGameStateWithMap(mapID)
+		if err != nil {
+			return fmt.Errorf("failed to initialize map %s: %w", mapID, err)
+		}
 	}
 	setupMode := opts.SetupMode
 	if setupMode == "" {
@@ -847,7 +862,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			},
 			"terrain": mapHex.Terrain,
 		}
-		if displayCoord, ok := board.DisplayCoordinateForHex(gs.Map.ID, mapHex.Coord); ok {
+		if displayCoord, ok := gs.Map.DisplayCoordinateForHex(mapHex.Coord); ok {
 			hexData["displayCoord"] = displayCoord
 		}
 

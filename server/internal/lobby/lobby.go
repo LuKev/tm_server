@@ -25,6 +25,7 @@ type GameMeta struct {
 	Name       string    `json:"name"`
 	Host       string    `json:"host"`
 	MapID      string    `json:"mapId"`
+	CustomMap  *board.CustomMapDefinition `json:"customMap,omitempty"`
 	Players    []string  `json:"players"`
 	MaxPlayers int       `json:"maxPlayers"`
 	Started    bool      `json:"started"`
@@ -55,10 +56,11 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	}
 	out := *in
 	out.Players = append([]string(nil), in.Players...)
+	out.CustomMap = board.CloneCustomMapDefinition(in.CustomMap)
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string) (*GameMeta, error) {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition) (*GameMeta, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -70,7 +72,19 @@ func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID str
 	id := strconv.Itoa(m.nextID)
 	m.nextID++
 	normalizedMapID := board.NormalizeMapID(mapID)
-	if _, ok := board.MapInfoByID(normalizedMapID); !ok {
+	if normalizedMapID == board.MapCustom {
+		if _, err := board.NewTerraMysticaMapForCustom(customMap); err != nil {
+			return nil, fmt.Errorf("%w: %v", ErrInvalidMap, err)
+		}
+	} else {
+		if customMap != nil {
+			return nil, fmt.Errorf("%w: custom map payload requires mapId=%s", ErrInvalidMap, board.MapCustom)
+		}
+		if _, ok := board.MapInfoByID(normalizedMapID); !ok {
+			return nil, fmt.Errorf("%w: %s", ErrInvalidMap, strings.TrimSpace(mapID))
+		}
+	}
+	if normalizedMapID == "" {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidMap, strings.TrimSpace(mapID))
 	}
 	g := &GameMeta{
@@ -78,6 +92,7 @@ func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID str
 		Name:       name,
 		Host:       host,
 		MapID:      string(normalizedMapID),
+		CustomMap:  board.CloneCustomMapDefinition(customMap),
 		MaxPlayers: maxPlayers,
 		CreatedAt:  time.Now(),
 		Players:    make([]string, 0, maxPlayers),

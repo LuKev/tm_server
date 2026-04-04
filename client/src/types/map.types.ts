@@ -8,6 +8,14 @@ export interface MapHexData {
   displayCoord?: string
 }
 
+export interface CustomMapDefinition {
+  name?: string
+  rowCount: number
+  firstRowColumns: number
+  firstRowLonger: boolean
+  rows: TerrainType[][]
+}
+
 export interface MapSummary {
   id: string
   name: string

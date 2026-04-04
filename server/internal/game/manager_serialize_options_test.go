@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 func TestSerializeStateWithRevision_IncludesPlayerOptions(t *testing.T) {
@@ -97,5 +98,58 @@ func TestSerializeStateWithRevision_IncludesMapDisplayCoordinates(t *testing.T) 
 	}
 	if got := b2Raw["displayCoord"]; got != "B2" {
 		t.Fatalf("serialized Lakes B2 display coord: got %v, want %q", got, "B2")
+	}
+}
+
+func TestCreateGameWithOptions_SerializesCustomMapDisplayCoordinates(t *testing.T) {
+	manager := NewManager()
+	custom := &board.CustomMapDefinition{
+		Name:            "Tiny",
+		RowCount:        2,
+		FirstRowColumns: 3,
+		FirstRowLonger:  true,
+		Rows: [][]models.TerrainType{
+			{models.TerrainPlains, models.TerrainRiver, models.TerrainForest},
+			{models.TerrainLake, models.TerrainDesert},
+		},
+	}
+
+	if err := manager.CreateGameWithOptions("g1", []string{"p1", "p2"}, CreateGameOptions{
+		RandomizeTurnOrder: false,
+		SetupMode:          SetupModeSnellman,
+		MapID:              board.MapCustom,
+		CustomMap:          custom,
+	}); err != nil {
+		t.Fatalf("create custom game: %v", err)
+	}
+
+	state := manager.SerializeGameState("g1")
+	if got := state["mapId"]; got != string(board.MapCustom) {
+		t.Fatalf("top-level mapId: got %v, want %q", got, board.MapCustom)
+	}
+
+	mapRaw, ok := state["map"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("serialized map missing")
+	}
+	hexesRaw, ok := mapRaw["hexes"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("serialized hexes missing")
+	}
+
+	a1Raw, ok := hexesRaw["0,0"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected custom A1 at 0,0")
+	}
+	if got := a1Raw["displayCoord"]; got != "A1" {
+		t.Fatalf("custom A1 display coord: got %v, want %q", got, "A1")
+	}
+
+	b1Raw, ok := hexesRaw["0,1"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected custom B1 at 0,1")
+	}
+	if got := b1Raw["displayCoord"]; got != "B1" {
+		t.Fatalf("custom B1 display coord: got %v, want %q", got, "B1")
 	}
 }
