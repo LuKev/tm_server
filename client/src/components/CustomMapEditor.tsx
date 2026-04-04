@@ -10,22 +10,37 @@ import {
   countLandHexes,
   parseCustomMapDefinition,
   resizeCustomMapDefinition,
+  serializeCustomMapDefinition,
 } from '../utils/customMapUtils'
 import './CustomMapEditor.css'
 
 interface CustomMapEditorProps {
   value: CustomMapDefinition
   onChange: (definition: CustomMapDefinition) => void
+  onCreateGame?: () => void
+  onStartGame?: () => void
+  createGameDisabled?: boolean
+  startGameDisabled?: boolean
   disabled?: boolean
 }
 
-export function CustomMapEditor({ value, onChange, disabled = false }: CustomMapEditorProps): React.ReactElement {
+export function CustomMapEditor({
+  value,
+  onChange,
+  onCreateGame,
+  onStartGame,
+  createGameDisabled = false,
+  startGameDisabled = false,
+  disabled = false,
+}: CustomMapEditorProps): React.ReactElement {
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainType>(TerrainType.Plains)
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState<string | null>(null)
+  const [saveStatus, setSaveStatus] = useState<string | null>(null)
 
   const hexes = useMemo(() => buildCustomMapHexes(value), [value])
   const landHexCount = useMemo(() => countLandHexes(value), [value])
+  const serializedMap = useMemo(() => serializeCustomMapDefinition(value), [value])
 
   const handleImport = (): void => {
     try {
@@ -38,6 +53,27 @@ export function CustomMapEditor({ value, onChange, disabled = false }: CustomMap
     } catch (error) {
       setImportError(error instanceof Error ? error.message : 'Failed to import map.')
     }
+  }
+
+  const handleCopy = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(serializedMap)
+      setSaveStatus('Copied map text to clipboard.')
+    } catch {
+      setSaveStatus('Could not copy automatically. Select the text and copy it manually.')
+    }
+  }
+
+  const handleDownload = (): void => {
+    const blob = new Blob([serializedMap], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    const name = value.name?.trim() || 'custom-map'
+    anchor.href = url
+    anchor.download = `${name}.txt`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    setSaveStatus('Downloaded map text file.')
   }
 
   return (
@@ -140,6 +176,67 @@ export function CustomMapEditor({ value, onChange, disabled = false }: CustomMap
             onChange(applyTerrainToHex(value, q, r, selectedTerrain))
           }}
         />
+      </div>
+
+      <div className="custom-map-editor-save">
+        <div className="custom-map-editor-import-header">
+          <h4>Save Map Grid</h4>
+          <p>Export the current board in the same comma-separated row format used for imports.</p>
+        </div>
+        <div className="custom-map-editor-import-actions">
+          <button
+            type="button"
+            className="custom-map-editor-import-button"
+            onClick={() => { void handleCopy() }}
+            disabled={disabled}
+            data-testid="custom-map-copy-button"
+          >
+            Copy map text
+          </button>
+          <button
+            type="button"
+            className="custom-map-editor-secondary-button"
+            onClick={handleDownload}
+            disabled={disabled}
+            data-testid="custom-map-download-button"
+          >
+            Download `.txt`
+          </button>
+        </div>
+        <textarea
+          value={serializedMap}
+          readOnly
+          className="custom-map-editor-textarea"
+          data-testid="custom-map-export-textarea"
+        />
+        {saveStatus && <div className="custom-map-editor-status">{saveStatus}</div>}
+      </div>
+
+      <div className="custom-map-editor-launch">
+        <div className="custom-map-editor-import-header">
+          <h4>Use This Map</h4>
+          <p>Create a normal lobby game with this map, or start a 1-player game immediately.</p>
+        </div>
+        <div className="custom-map-editor-import-actions">
+          <button
+            type="button"
+            className="custom-map-editor-import-button"
+            onClick={onCreateGame}
+            disabled={createGameDisabled}
+            data-testid="custom-map-create-game-button"
+          >
+            Create game with this map
+          </button>
+          <button
+            type="button"
+            className="custom-map-editor-secondary-button"
+            onClick={onStartGame}
+            disabled={startGameDisabled}
+            data-testid="custom-map-start-game-button"
+          >
+            Start 1-player game now
+          </button>
+        </div>
       </div>
 
       <div className="custom-map-editor-import">

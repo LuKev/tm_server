@@ -103,6 +103,12 @@
   gap: 12px;
 }
 
+.custom-map-editor-save,
+.custom-map-editor-launch {
+  display: grid;
+  gap: 12px;
+}
+
 .custom-map-editor-import-actions {
   display: flex;
   align-items: center;
@@ -128,6 +134,25 @@
   color: #fff8ef;
   font: inherit;
   font-weight: 700;
+}
+
+.custom-map-editor-secondary-button {
+  min-height: 46px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff8ef;
+  font: inherit;
+  font-weight: 700;
+}
+
+.custom-map-editor-status {
+  padding: 12px 14px;
+  border: 1px solid rgba(93, 211, 158, 0.22);
+  border-radius: 14px;
+  background: rgba(93, 211, 158, 0.08);
+  color: #d9ffeb;
 }
 
 .custom-map-editor-error {

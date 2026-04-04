@@ -76,6 +76,7 @@ export function Lobby(): React.ReactElement {
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
   const [lobbyError, setLobbyError] = useState<string | null>(null)
+  const [pendingAutoStartGame, setPendingAutoStartGame] = useState(false)
 
   const trimmedPlayerName = playerName.trim()
   const activePlayerName = trimmedPlayerName || storedLocalPlayerId?.trim() || ''
@@ -103,11 +104,30 @@ export function Lobby(): React.ReactElement {
         setAvailableMaps(Array.isArray(msg.payload) ? msg.payload as MapSummary[] : DEFAULT_MAP_CATALOG)
       } else if (msg.type === 'error') {
         setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
+        setPendingAutoStartGame(false)
+      } else if (msg.type === 'game_created') {
+        if (pendingAutoStartGame && msg.payload && typeof msg.payload === 'object' && 'gameId' in msg.payload) {
+          const payload = msg.payload as { gameId?: string }
+          if (payload.gameId) {
+            sendMessage({
+              type: 'start_game',
+              payload: {
+                gameID: payload.gameId,
+                randomizeTurnOrder,
+                setupMode,
+                turnTimerEnabled,
+                turnTimerSeconds: Math.max(1, Math.trunc(turnTimerMinutes * 60)),
+                turnTimerIncrementSeconds: Math.max(0, Math.trunc(turnTimerIncrementSeconds)),
+              },
+            })
+          }
+          setPendingAutoStartGame(false)
+        }
       } else if (msg.type === 'game_left') {
         setLobbyError(null)
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, pendingAutoStartGame, randomizeTurnOrder, sendMessage, setupMode, turnTimerEnabled, turnTimerIncrementSeconds, turnTimerMinutes])
 
   useEffect(() => {
     if (isConnected) {
@@ -128,21 +148,24 @@ export function Lobby(): React.ReactElement {
     }
   }
 
-  const handleCreateGame = (): void => {
+  const handleCreateGame = (overrides?: { maxPlayers?: number; autoStart?: boolean }): void => {
     if (!trimmedPlayerName || !newGameName.trim() || joinedGameId) return
     useGameStore.getState().setLocalPlayerId(trimmedPlayerName)
     setLobbyError(null)
+    setPendingAutoStartGame(overrides?.autoStart ?? false)
     sendMessage({
       type: 'create_game',
       payload: {
         name: newGameName.trim(),
-        maxPlayers: newGameMaxPlayers,
+        maxPlayers: overrides?.maxPlayers ?? newGameMaxPlayers,
         creator: trimmedPlayerName,
         mapId: newGameMapId,
         customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
       },
     })
-    setNewGameName('')
+    if (!overrides?.autoStart) {
+      setNewGameName('')
+    }
   }
 
   const handleJoinGame = (id: string): void => {
@@ -264,6 +287,10 @@ export function Lobby(): React.ReactElement {
               <CustomMapEditor
                 value={customMapDefinition}
                 onChange={setCustomMapDefinition}
+                onCreateGame={() => { handleCreateGame() }}
+                onStartGame={() => { handleCreateGame({ maxPlayers: 1, autoStart: true }) }}
+                createGameDisabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null}
+                startGameDisabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null}
                 disabled={!isConnected || joinedGameId !== null}
               />
             )}

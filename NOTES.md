@@ -23,6 +23,8 @@
     - `Y` or `yellow` = Desert
     - `U` or `brown` / `plain` / `plains` = Plains
   - The lobby custom map editor starts with an all-river grid and preserves overlapping painted cells when row-count / first-row-size / row-pattern settings are changed.
+  - The editor now also exports the painted map back into the compact row format (`K,B,R,...`) via copy/download controls.
+  - Immediate "start game with this map" behavior is implemented as `create_game` with `maxPlayers=1`, followed by auto-issuing `start_game` once the lobby confirms creation, because the websocket backend rejects `start_game` on non-full tables.
 
 - 2026-04-03 `scripts/format.sh` behavior:
   - The script is mutating, not check-only: it runs `client` `eslint . --fix`, `tsc -b --noEmit`, then server-side `gofmt -w .`, optional `goimports -w .`, and optional `golangci-lint run --fix`.

@@ -25,6 +25,17 @@ export const TERRAIN_BRUSH_OPTIONS: TerrainBrushOption[] = [
   { terrain: TerrainType.Desert, label: 'Desert', importCode: 'Y' },
 ]
 
+const EXPORT_CODE_MAP: Record<TerrainType, string> = {
+  [TerrainType.River]: 'I',
+  [TerrainType.Plains]: 'U',
+  [TerrainType.Swamp]: 'K',
+  [TerrainType.Lake]: 'B',
+  [TerrainType.Forest]: 'G',
+  [TerrainType.Mountain]: 'S',
+  [TerrainType.Wasteland]: 'R',
+  [TerrainType.Desert]: 'Y',
+}
+
 const IMPORT_TOKEN_MAP = new Map<string, TerrainType>([
   ['i', TerrainType.River],
   ['river', TerrainType.River],
@@ -191,4 +202,10 @@ export function countLandHexes(definition: CustomMapDefinition): number {
     (sum, row) => sum + row.filter((terrain) => terrain !== TerrainType.River).length,
     0,
   )
+}
+
+export function serializeCustomMapDefinition(definition: CustomMapDefinition): string {
+  return definition.rows
+    .map((row) => row.map((terrain) => EXPORT_CODE_MAP[terrain]).join(','))
+    .join('\n')
 }
