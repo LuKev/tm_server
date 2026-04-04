@@ -63,8 +63,12 @@ func TestManager_StartGame_RemovesGameFromOpenListAndBlocksLeave(t *testing.T) {
 		t.Fatalf("start game: %v", err)
 	}
 
-	if openGames := manager.ListGames(); len(openGames) != 0 {
-		t.Fatalf("expected started games to disappear from open list, got %d entries", len(openGames))
+	listedGames := manager.ListGames()
+	if len(listedGames) != 1 {
+		t.Fatalf("expected started game to remain visible in lobby list, got %d entries", len(listedGames))
+	}
+	if !listedGames[0].Started {
+		t.Fatalf("expected listed game to be marked started")
 	}
 	if err := manager.LeaveGame(meta.ID, "host"); !errors.Is(err, ErrGameAlreadyStarted) {
 		t.Fatalf("expected ErrGameAlreadyStarted after start, got %v", err)

@@ -200,9 +200,6 @@ func (m *Manager) ListGames() []*GameMeta {
 	defer m.mu.RUnlock()
 	out := make([]*GameMeta, 0, len(m.games))
 	for _, g := range m.games {
-		if g.Started {
-			continue
-		}
 		out = append(out, cloneGameMeta(g))
 	}
 	return out

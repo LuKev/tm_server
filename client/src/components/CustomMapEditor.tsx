@@ -18,9 +18,7 @@ interface CustomMapEditorProps {
   value: CustomMapDefinition
   onChange: (definition: CustomMapDefinition) => void
   onCreateGame?: () => void
-  onStartGame?: () => void
   createGameDisabled?: boolean
-  startGameDisabled?: boolean
   disabled?: boolean
 }
 
@@ -28,9 +26,7 @@ export function CustomMapEditor({
   value,
   onChange,
   onCreateGame,
-  onStartGame,
   createGameDisabled = false,
-  startGameDisabled = false,
   disabled = false,
 }: CustomMapEditorProps): React.ReactElement {
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainType>(TerrainType.Plains)
@@ -215,7 +211,7 @@ export function CustomMapEditor({
       <div className="custom-map-editor-launch">
         <div className="custom-map-editor-import-header">
           <h4>Use This Map</h4>
-          <p>Create a normal lobby game with this map, or start a 1-player game immediately.</p>
+          <p>Create a lobby game with this map, then use the normal lobby start flow.</p>
         </div>
         <div className="custom-map-editor-import-actions">
           <button
@@ -226,15 +222,6 @@ export function CustomMapEditor({
             data-testid="custom-map-create-game-button"
           >
             Create game with this map
-          </button>
-          <button
-            type="button"
-            className="custom-map-editor-secondary-button"
-            onClick={onStartGame}
-            disabled={startGameDisabled}
-            data-testid="custom-map-start-game-button"
-          >
-            Start 1-player game now
           </button>
         </div>
       </div>

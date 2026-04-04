@@ -266,7 +266,7 @@ export const Game = () => {
   } = useGameLayout(gameState, numCards, 'game')
 
   useEffect(() => {
-    if (isConnected && gameId && !gameState) {
+    if (isConnected && gameId && (!gameState || gameState.id !== gameId)) {
       sendMessage({ type: 'get_game_state', payload: { gameID: gameId, playerID: localPlayerId } })
     }
   }, [isConnected, gameId, gameState, localPlayerId, sendMessage])
@@ -363,6 +363,7 @@ export const Game = () => {
     if (!localPlayerId || !gameState?.players) return null
     return gameState.players[localPlayerId] ?? null
   }, [gameState?.players, localPlayerId])
+  const isSpectator = gameState != null && localPlayer == null
 
   const localPlayerOptions = useMemo((): PlayerOptions => {
     if (!localPlayer?.options) return DEFAULT_PLAYER_OPTIONS
@@ -1481,7 +1482,13 @@ export const Game = () => {
           </div>
         </div>
 
-        {localPlayerId && (
+        {isSpectator && (
+          <div className="mb-3 rounded border border-sky-300 bg-sky-50 px-4 py-2 text-sm text-sky-900" data-testid="spectator-banner">
+            Spectator mode. You can watch this game, but you cannot take actions.
+          </div>
+        )}
+
+        {localPlayer && (
           <div className="mb-3 rounded border border-slate-300 bg-white px-3 py-2" data-testid="player-options-panel">
             <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-600">Player Options</div>
             <div className="flex flex-wrap items-center gap-3">

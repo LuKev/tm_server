@@ -235,8 +235,11 @@ func (c *Client) handleInboundMessage(env inboundMsg) {
 				}
 			}
 			if c.seatForGame(p.GameID) == "" {
-				c.sendError("not_in_game")
-				return
+				meta, ok := c.deps.Lobby.GetGame(p.GameID)
+				if !ok || !meta.Started {
+					c.sendError("not_in_game")
+					return
+				}
 			}
 		}
 		c.hub.JoinGame(c, p.GameID)

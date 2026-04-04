@@ -5,7 +5,8 @@ import { useGameStore } from '../stores/gameStore'
 import { DEFAULT_MAP_CATALOG } from '../data/mapCatalog'
 import type { CustomMapDefinition, MapSummary } from '../types/map.types'
 import { CustomMapEditor } from './CustomMapEditor'
-import { createEmptyCustomMapDefinition } from '../utils/customMapUtils'
+import { buildCustomMapHexes, createEmptyCustomMapDefinition } from '../utils/customMapUtils'
+import { HexGridCanvas } from './GameBoard/HexGridCanvas'
 import './Lobby.css'
 
 interface GameInfo {
@@ -14,6 +15,7 @@ interface GameInfo {
   host: string
   mapId: string
   customMap?: CustomMapDefinition
+  started?: boolean
   players: string[]
   maxPlayers: number
 }
@@ -76,15 +78,16 @@ export function Lobby(): React.ReactElement {
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
   const [lobbyError, setLobbyError] = useState<string | null>(null)
-  const [pendingAutoStartGame, setPendingAutoStartGame] = useState(false)
 
   const trimmedPlayerName = playerName.trim()
   const activePlayerName = trimmedPlayerName || storedLocalPlayerId?.trim() || ''
   const joinedGame = useMemo(
-    () => games.find((game) => activePlayerName !== '' && game.players.includes(activePlayerName)) ?? null,
+    () => games.find((game) => activePlayerName !== '' && game.players.includes(activePlayerName) && !game.started) ?? null,
     [activePlayerName, games],
   )
   const joinedGameId = joinedGame?.id ?? null
+  const openGames = useMemo(() => games.filter((game) => !game.started), [games])
+  const startedGames = useMemo(() => games.filter((game) => !!game.started), [games])
 
   useEffect(() => {
     if (gameState?.id && activePlayerName !== '' && gameState.players[activePlayerName] && gameState.started) {
@@ -104,30 +107,11 @@ export function Lobby(): React.ReactElement {
         setAvailableMaps(Array.isArray(msg.payload) ? msg.payload as MapSummary[] : DEFAULT_MAP_CATALOG)
       } else if (msg.type === 'error') {
         setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
-        setPendingAutoStartGame(false)
-      } else if (msg.type === 'game_created') {
-        if (pendingAutoStartGame && msg.payload && typeof msg.payload === 'object' && 'gameId' in msg.payload) {
-          const payload = msg.payload as { gameId?: string }
-          if (payload.gameId) {
-            sendMessage({
-              type: 'start_game',
-              payload: {
-                gameID: payload.gameId,
-                randomizeTurnOrder,
-                setupMode,
-                turnTimerEnabled,
-                turnTimerSeconds: Math.max(1, Math.trunc(turnTimerMinutes * 60)),
-                turnTimerIncrementSeconds: Math.max(0, Math.trunc(turnTimerIncrementSeconds)),
-              },
-            })
-          }
-          setPendingAutoStartGame(false)
-        }
       } else if (msg.type === 'game_left') {
         setLobbyError(null)
       }
     }
-  }, [lastMessage, pendingAutoStartGame, randomizeTurnOrder, sendMessage, setupMode, turnTimerEnabled, turnTimerIncrementSeconds, turnTimerMinutes])
+  }, [lastMessage])
 
   useEffect(() => {
     if (isConnected) {
@@ -148,11 +132,10 @@ export function Lobby(): React.ReactElement {
     }
   }
 
-  const handleCreateGame = (overrides?: { maxPlayers?: number; autoStart?: boolean }): void => {
+  const handleCreateGame = (overrides?: { maxPlayers?: number }): void => {
     if (!trimmedPlayerName || !newGameName.trim() || joinedGameId) return
     useGameStore.getState().setLocalPlayerId(trimmedPlayerName)
     setLobbyError(null)
-    setPendingAutoStartGame(overrides?.autoStart ?? false)
     sendMessage({
       type: 'create_game',
       payload: {
@@ -163,9 +146,7 @@ export function Lobby(): React.ReactElement {
         customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
       },
     })
-    if (!overrides?.autoStart) {
-      setNewGameName('')
-    }
+    setNewGameName('')
   }
 
   const handleJoinGame = (id: string): void => {
@@ -179,6 +160,10 @@ export function Lobby(): React.ReactElement {
     if (!trimmedPlayerName) return
     setLobbyError(null)
     sendMessage({ type: 'leave_game', payload: { id, name: trimmedPlayerName } })
+  }
+
+  const handleSpectateGame = (id: string): void => {
+    void navigate(`/game/${id}`)
   }
 
   return (
@@ -288,9 +273,7 @@ export function Lobby(): React.ReactElement {
                 value={customMapDefinition}
                 onChange={setCustomMapDefinition}
                 onCreateGame={() => { handleCreateGame() }}
-                onStartGame={() => { handleCreateGame({ maxPlayers: 1, autoStart: true }) }}
                 createGameDisabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null}
-                startGameDisabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null}
                 disabled={!isConnected || joinedGameId !== null}
               />
             )}
@@ -385,11 +368,11 @@ export function Lobby(): React.ReactElement {
               </button>
             </div>
 
-            {games.length === 0 ? (
+            {openGames.length === 0 ? (
               <p className="lobby-empty">No open games. Create one above.</p>
             ) : (
               <div className="lobby-games">
-                {games.map((g) => {
+                {openGames.map((g) => {
                   const isFull = g.players.length >= g.maxPlayers
                   const isJoined = trimmedPlayerName !== '' && g.players.includes(trimmedPlayerName)
                   const isHost = trimmedPlayerName !== '' && g.host === trimmedPlayerName
@@ -415,6 +398,16 @@ export function Lobby(): React.ReactElement {
                           <span>Players {String(g.players.length)}/{String(g.maxPlayers)}</span>
                           <span>{g.players.join(', ') || 'No players yet'}</span>
                         </div>
+                        {g.mapId === 'custom' && g.customMap && (
+                          <div className="lobby-map-preview">
+                            <HexGridCanvas
+                              testId={`lobby-custom-map-preview-${g.id}`}
+                              hexes={buildCustomMapHexes(g.customMap)}
+                              showCoords={false}
+                              disableHover
+                            />
+                          </div>
+                        )}
                       </div>
 
                       <div className="lobby-game-actions">
@@ -457,6 +450,69 @@ export function Lobby(): React.ReactElement {
                           className="lobby-button lobby-button-success"
                         >
                           {isFull ? (isHost ? 'Start' : 'Host Starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="lobby-section lobby-section-split">
+            <div className="lobby-section-heading">
+              <div>
+                <h2>Started Games</h2>
+                <p>Started tables remain visible here and can be opened in read-only spectator mode.</p>
+              </div>
+            </div>
+
+            {startedGames.length === 0 ? (
+              <p className="lobby-empty">No started games yet.</p>
+            ) : (
+              <div className="lobby-games">
+                {startedGames.map((g) => {
+                  const isSeated = activePlayerName !== '' && g.players.includes(activePlayerName)
+                  const displayMapName =
+                    g.customMap?.name?.trim()
+                    || availableMaps.find((map) => map.id === g.mapId)?.name
+                    || (g.mapId === 'custom' ? 'Custom' : g.mapId)
+
+                  return (
+                    <div key={g.id} className="lobby-game-card">
+                      <div className="lobby-game-meta">
+                        <div className="lobby-game-title-row">
+                          <div className="lobby-game-title">{g.name}</div>
+                          <div className="lobby-tag-row">
+                            <span className="lobby-tag">{g.id}</span>
+                            <span className="lobby-tag lobby-tag-muted">Map: {displayMapName}</span>
+                            <span className="lobby-tag lobby-tag-muted">Started</span>
+                            {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
+                          </div>
+                        </div>
+                        <div className="lobby-player-line">
+                          <span>Players {String(g.players.length)}/{String(g.maxPlayers)}</span>
+                          <span>{g.players.join(', ') || 'No players listed'}</span>
+                        </div>
+                        {g.mapId === 'custom' && g.customMap && (
+                          <div className="lobby-map-preview">
+                            <HexGridCanvas
+                              testId={`lobby-custom-map-preview-started-${g.id}`}
+                              hexes={buildCustomMapHexes(g.customMap)}
+                              showCoords={false}
+                              disableHover
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="lobby-game-actions">
+                        <button
+                          data-testid={`lobby-spectate-${g.id}`}
+                          onClick={() => { handleSpectateGame(g.id) }}
+                          className="lobby-button lobby-button-secondary"
+                        >
+                          {isSeated ? 'Open' : 'Spectate'}
                         </button>
                       </div>
                     </div>

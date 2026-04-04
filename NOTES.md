@@ -24,7 +24,15 @@
     - `U` or `brown` / `plain` / `plains` = Plains
   - The lobby custom map editor starts with an all-river grid and preserves overlapping painted cells when row-count / first-row-size / row-pattern settings are changed.
   - The editor now also exports the painted map back into the compact row format (`K,B,R,...`) via copy/download controls.
-  - Immediate "start game with this map" behavior is implemented as `create_game` with `maxPlayers=1`, followed by auto-issuing `start_game` once the lobby confirms creation, because the websocket backend rejects `start_game` on non-full tables.
+  - Custom maps should follow the normal lobby lifecycle after creation; do not special-case auto-start from the editor. Existing 1-player lobbies already start correctly through the standard lobby controls.
+  - Lobby cards for custom maps should render a visual preview so non-host players can inspect the board before joining or spectating.
+
+- 2026-04-03 lobby started-game visibility / spectating:
+  - Lobby state now includes both open and started games; the client is responsible for splitting them into separate sections instead of assuming the server only returns open tables.
+  - Started games should expose a `Spectate` / `Open` action in the lobby that navigates to the normal `/game/:id` route.
+  - `get_game_state` should allow non-seated viewers for started games only; open games still require a seat.
+  - Spectators subscribe to live game updates through the normal websocket room but remain read-only; attempted actions are rejected server-side.
+  - The game screen should refetch state whenever the route game ID changes, even if Zustand still holds a different game's state from earlier navigation.
 
 - 2026-04-03 `scripts/format.sh` behavior:
   - The script is mutating, not check-only: it runs `client` `eslint . --fix`, `tsc -b --noEmit`, then server-side `gofmt -w .`, optional `goimports -w .`, and optional `golangci-lint run --fix`.

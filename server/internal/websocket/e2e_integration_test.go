@@ -555,6 +555,84 @@ func TestWebsocketE2E_StartGameWithCustomMap(t *testing.T) {
 	}
 }
 
+func TestWebsocketE2E_SpectatorCanViewStartedGame(t *testing.T) {
+	hub := NewHub()
+	go hub.Run()
+
+	deps := ServerDeps{
+		Lobby: lobby.NewManager(),
+		Games: game.NewManager(),
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ServeWs(hub, deps, w, r)
+	}))
+	defer server.Close()
+
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+	host := dialWS(t, wsURL)
+	defer host.Close()
+	guest := dialWS(t, wsURL)
+	defer guest.Close()
+	spectator := dialWS(t, wsURL)
+	defer spectator.Close()
+
+	sendJSON(t, host, map[string]any{
+		"type": "create_game",
+		"payload": map[string]any{
+			"name":       "spectate-me",
+			"maxPlayers": 2,
+			"creator":    "host",
+		},
+	})
+	created := readUntilType(t, host, "game_created", 4*time.Second)
+	gameID := asString(asMap(created["payload"])["gameId"])
+	_ = readUntilType(t, host, "lobby_state", 4*time.Second)
+
+	sendJSON(t, guest, map[string]any{
+		"type": "join_game",
+		"payload": map[string]any{
+			"id":   gameID,
+			"name": "guest",
+		},
+	})
+	_ = readUntilType(t, guest, "game_joined", 4*time.Second)
+
+	sendJSON(t, host, map[string]any{
+		"type": "start_game",
+		"payload": map[string]any{
+			"gameID":             gameID,
+			"randomizeTurnOrder": false,
+			"setupMode":          "snellman",
+		},
+	})
+	_ = readUntilType(t, host, "game_state_update", 4*time.Second)
+
+	sendJSON(t, spectator, map[string]any{
+		"type": "get_game_state",
+		"payload": map[string]any{
+			"gameID": gameID,
+		},
+	})
+	state := asMap(readUntilType(t, spectator, "game_state_update", 4*time.Second)["payload"])
+	if got := asString(state["id"]); got != gameID {
+		t.Fatalf("expected spectator game id %q, got %q", gameID, got)
+	}
+
+	sendJSON(t, spectator, map[string]any{
+		"type": "perform_action",
+		"payload": map[string]any{
+			"gameID":   gameID,
+			"actionId": "spectator-action",
+			"type":     "advance_shipping",
+		},
+	})
+	rejection := readUntilType(t, spectator, "action_rejected", 4*time.Second)
+	if got := asString(asMap(rejection["payload"])["error"]); got != "unauthorized" {
+		t.Fatalf("expected spectator action rejection unauthorized, got %q", got)
+	}
+}
+
 func TestWebsocketE2E_LobbySingleSeatAndLeaveFlow(t *testing.T) {
 	hub := NewHub()
 	go hub.Run()
