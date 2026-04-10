@@ -20,6 +20,7 @@ type GameState struct {
 	Round                            int                                `json:"round"`
 	Phase                            GamePhase                          `json:"phase"`
 	SetupMode                        SetupMode                          `json:"setupMode"`
+	EnableFanFactions                bool                               `json:"enableFanFactions"`
 	SetupSubphase                    SetupSubphase                      `json:"setupSubphase"`
 	AuctionState                     *AuctionState                      `json:"auctionState,omitempty"`
 	SetupDwellingOrder               []string                           `json:"setupDwellingOrder"`
@@ -167,22 +168,55 @@ const (
 
 // Player represents a player in the game
 type Player struct {
-	ID                   string                     `json:"id"`
-	Name                 string                     `json:"name"`
-	Faction              factions.Faction           `json:"faction"`
-	Options              PlayerOptions              `json:"options"`
-	Resources            *ResourcePool              `json:"resources"`
-	ShippingLevel        int                        `json:"shippingLevel"`
-	DiggingLevel         int                        `json:"diggingLevel"`
-	BridgesBuilt         int                        `json:"bridgesBuilt"`         // Number of bridges built (max 3)
-	CultPositions        map[CultTrack]int          `json:"cults"`                // Position on each cult track (0-10)
-	HasStrongholdAbility bool                       `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
-	SpecialActionsUsed   map[SpecialActionType]bool `json:"specialActionsUsed"`   // Track which special actions have been used this round
-	HasPassed            bool                       `json:"hasPassed"`
-	VictoryPoints        int                        `json:"victoryPoints"`
-	Keys                 int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
-	TownsFormed          int                        `json:"townsFormed"` // Number of towns formed
-	TownTiles            []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
+	ID                    string                     `json:"id"`
+	Name                  string                     `json:"name"`
+	Faction               factions.Faction           `json:"faction"`
+	Options               PlayerOptions              `json:"options"`
+	Resources             *ResourcePool              `json:"resources"`
+	ShippingLevel         int                        `json:"shippingLevel"`
+	DiggingLevel          int                        `json:"diggingLevel"`
+	BridgesBuilt          int                        `json:"bridgesBuilt"` // Number of bridges built (max 3)
+	ChashIncomeTrackLevel int                        `json:"chashIncomeTrackLevel"`
+	CultPositions         map[CultTrack]int          `json:"cults"`                // Position on each cult track (0-10)
+	HasStrongholdAbility  bool                       `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
+	SpecialActionsUsed    map[SpecialActionType]bool `json:"specialActionsUsed"`   // Track which special actions have been used this round
+	HasPassed             bool                       `json:"hasPassed"`
+	VictoryPoints         int                        `json:"victoryPoints"`
+	Keys                  int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
+	TownsFormed           int                        `json:"townsFormed"` // Number of towns formed
+	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
+}
+
+func getStructurePowerValue(player *Player, buildingType models.BuildingType) int {
+	if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionDynionGeifr {
+		return 2
+	}
+	return GetPowerValue(buildingType)
+}
+
+func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		return nil
+	}
+
+	switch player.Faction.GetType() {
+	case models.FactionDynionGeifr:
+		if gs.FavorTiles == nil {
+			return fmt.Errorf("favor tiles not initialized")
+		}
+		if gs.FavorTiles.HasTileType(playerID, FavorFire2) {
+			return nil
+		}
+		if err := gs.FavorTiles.TakeFavorTile(playerID, FavorFire2); err != nil {
+			return fmt.Errorf("failed to grant dynion geifr starting favor tile: %w", err)
+		}
+		if err := ApplyFavorTileImmediate(gs, playerID, FavorFire2); err != nil {
+			return fmt.Errorf("failed to apply dynion geifr starting favor tile: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // LeechAutoMode controls automatic accept/decline behavior for power leech offers.
@@ -333,13 +367,14 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	}
 
 	player := &Player{
-		ID:            playerID,
-		Faction:       faction,
-		Options:       defaultPlayerOptions(),
-		Resources:     NewResourcePool(startingResources),
-		ShippingLevel: startingShippingLevel,
-		DiggingLevel:  0,
-		BridgesBuilt:  0,
+		ID:                    playerID,
+		Faction:               faction,
+		Options:               defaultPlayerOptions(),
+		Resources:             NewResourcePool(startingResources),
+		ShippingLevel:         startingShippingLevel,
+		DiggingLevel:          0,
+		BridgesBuilt:          0,
+		ChashIncomeTrackLevel: 0,
 		CultPositions: map[CultTrack]int{
 			CultFire:  startingCultPositions.Fire,
 			CultWater: startingCultPositions.Water,
@@ -373,7 +408,7 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	// Initialize bonus cards for this player
 	gs.BonusCards.InitializePlayer(playerID)
 
-	return nil
+	return gs.applyFactionSpecificSetup(playerID)
 }
 
 // GetPlayer returns a player by ID
@@ -417,6 +452,29 @@ func (gs *GameState) AdvanceCultTrack(playerID string, track CultTrack, spaces i
 	player.CultPositions[track] = gs.CultTracks.GetPosition(playerID, track)
 
 	return spacesAdvanced, nil
+}
+
+func (gs *GameState) DecreaseCultTrack(playerID string, track CultTrack, spaces int) (int, error) {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return 0, fmt.Errorf("player not found: %s", playerID)
+	}
+	if gs.CultTracks == nil {
+		return 0, fmt.Errorf("cult tracks not initialized")
+	}
+
+	if player.CultPositions != nil {
+		if localPos, ok := player.CultPositions[track]; ok {
+			cultTrackPos := gs.CultTracks.GetPosition(playerID, track)
+			if localPos > cultTrackPos {
+				gs.CultTracks.PlayerPositions[playerID][track] = localPos
+			}
+		}
+	}
+
+	spacesMoved := gs.CultTracks.DecreasePlayer(playerID, track, spaces, player)
+	player.CultPositions[track] = gs.CultTracks.GetPosition(playerID, track)
+	return spacesMoved, nil
 }
 
 // SelectTownTile allows a player to select a town tile for their pending town formation
@@ -728,7 +786,7 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 		Type:       models.BuildingDwelling,
 		Faction:    player.Faction.GetType(),
 		PlayerID:   playerID,
-		PowerValue: 1, // Dwellings provide 1 power to neighbors
+		PowerValue: getStructurePowerValue(player, models.BuildingDwelling),
 	}
 	mapHex.Building = dwelling
 
@@ -1135,19 +1193,10 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Check faction-specific max digging level
 	factionType := player.Faction.GetType()
-	var maxLevel int
-	switch factionType {
-	case models.FactionDarklings:
-		// Darklings cannot advance digging at all (they use priests for spades)
-		return fmt.Errorf("darklings cannot advance digging level")
-	case models.FactionFakirs:
-		// Fakirs can only advance to level 1
-		maxLevel = 1
-	default:
-		// Most factions can advance to level 2
-		maxLevel = 2
+	maxLevel, err := maxDiggingLevelForFaction(factionType)
+	if err != nil {
+		return err
 	}
 
 	// Check if already at faction's max level
@@ -1169,34 +1218,21 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 
 // updateFactionDiggingLevel updates the faction-specific digging level to match the player's level
 func (gs *GameState) updateFactionDiggingLevel(player *Player) {
-	// Use type assertion to get the base faction and update its digging level
-	switch f := player.Faction.(type) {
-	case *factions.Giants:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Witches:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Auren:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Swarmlings:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Cultists:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Alchemists:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Halflings:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.ChaosMagicians:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Nomads:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Fakirs:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Dwarves:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Engineers:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Mermaids:
-		f.DiggingLevel = player.DiggingLevel
+	if setter, ok := player.Faction.(factions.SetDiggingLevel); ok {
+		setter.SetDiggingLevel(player.DiggingLevel)
+	}
+}
+
+func maxDiggingLevelForFaction(factionType models.FactionType) (int, error) {
+	switch factionType {
+	case models.FactionDarklings:
+		return 0, fmt.Errorf("darklings cannot advance digging level")
+	case models.FactionChashDallah:
+		return 0, fmt.Errorf("chash dallah cannot advance digging level")
+	case models.FactionFakirs:
+		return 1, nil
+	default:
+		return 2, nil
 	}
 }
 
@@ -1208,19 +1244,9 @@ func (gs *GameState) advanceDiggingLevelWithoutVP(playerID string) error {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Check faction-specific max digging level
-	factionType := player.Faction.GetType()
-	var maxLevel int
-	switch factionType {
-	case models.FactionDarklings:
-		// Darklings cannot advance digging at all
-		return fmt.Errorf("darklings cannot advance digging level")
-	case models.FactionFakirs:
-		// Fakirs can only advance to level 1
-		maxLevel = 1
-	default:
-		// Most factions can advance to level 2
-		maxLevel = 2
+	maxLevel, err := maxDiggingLevelForFaction(player.Faction.GetType())
+	if err != nil {
+		return err
 	}
 
 	// Check if already at faction's max level

@@ -142,6 +142,15 @@ func (rp *ResourcePool) ConvertWorkerToCoin(numCoins int) error {
 	return nil
 }
 
+func (rp *ResourcePool) ConvertCoinToPowerTokens(numTokens int) error {
+	if rp.Coins < numTokens {
+		return fmt.Errorf("need %d coins, only have %d", numTokens, rp.Coins)
+	}
+	rp.Coins -= numTokens
+	rp.Power.Bowl1 += numTokens
+	return nil
+}
+
 // BurnPower converts power from bowl 2 to bowl 3 at 2:1 ratio
 func (rp *ResourcePool) BurnPower(amount int) error {
 	return rp.Power.BurnPower(amount)
@@ -200,7 +209,7 @@ func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *Pow
 	}
 
 	return &PowerLeechOffer{
-		Amount:       buildingValue,
+		Amount: buildingValue,
 		// Snellman leech VP cost model: actualTaken - 1 (minimum 0).
 		// Note: this value is informational; actual VP cost is derived from the
 		// power actually gained at acceptance time (capacity can change).

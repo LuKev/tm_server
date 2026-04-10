@@ -32,7 +32,7 @@ func (a *AuctionNominateFactionAction) Validate(gs *GameState) error {
 	if !gs.AuctionState.NominationPhase {
 		return fmt.Errorf("auction nomination phase is complete")
 	}
-	if !isValidFaction(a.FactionType) {
+	if !isAllowedFaction(gs, a.FactionType) {
 		return fmt.Errorf("invalid faction type: %s", a.FactionType)
 	}
 	if current := gs.GetCurrentPlayer(); current == nil || current.ID != a.PlayerID {
@@ -80,7 +80,7 @@ func (a *AuctionPlaceBidAction) Validate(gs *GameState) error {
 	if gs.AuctionState.NominationPhase {
 		return fmt.Errorf("auction is still in nomination phase")
 	}
-	if !isValidFaction(a.FactionType) {
+	if !isAllowedFaction(gs, a.FactionType) {
 		return fmt.Errorf("invalid faction type: %s", a.FactionType)
 	}
 	if current := gs.GetCurrentPlayer(); current == nil || current.ID != a.PlayerID {

@@ -51,11 +51,12 @@ type inboundMsg struct {
 }
 
 type createGamePayload struct {
-	Name       string `json:"name"`
-	MaxPlayers int    `json:"maxPlayers"`
-	Creator    string `json:"creator"`
-	MapID      string `json:"mapId,omitempty"`
-	CustomMap  *board.CustomMapDefinition `json:"customMap,omitempty"`
+	Name              string                     `json:"name"`
+	MaxPlayers        int                        `json:"maxPlayers"`
+	Creator           string                     `json:"creator"`
+	MapID             string                     `json:"mapId,omitempty"`
+	EnableFanFactions bool                       `json:"enableFanFactions,omitempty"`
+	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
 }
 
 type joinGamePayload struct {
@@ -634,6 +635,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		SetupMode:          setupMode,
 		TurnTimer:          turnTimer,
 		MapID:              board.NormalizeMapID(meta.MapID),
+		EnableFanFactions:  meta.EnableFanFactions,
 		CustomMap:          board.CloneCustomMapDefinition(meta.CustomMap),
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
@@ -674,7 +676,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID, p.CustomMap)
+	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID, p.CustomMap, p.EnableFanFactions)
 	if err != nil {
 		c.sendLobbyError(err)
 		return
@@ -1044,6 +1046,9 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 	case "advance_digging":
 		return game.NewAdvanceDiggingAction(seatID), nil
 
+	case "advance_chash_track":
+		return game.NewAdvanceChashTrackAction(seatID), nil
+
 	case "send_priest":
 		track, err := parseCultTrack(getParam)
 		if err != nil {
@@ -1069,7 +1074,13 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			if err != nil {
 				return nil, err
 			}
-			return game.NewPowerActionWithBridge(seatID, hex1, hex2), nil
+			a := game.NewPowerActionWithBridge(seatID, hex1, hex2)
+			useCoins, err := parseBoolParam(false, "useCoins")
+			if err != nil {
+				return nil, err
+			}
+			a.UseCoins = useCoins
+			return a, nil
 		}
 		if actionType == game.PowerActionSpade1 || actionType == game.PowerActionSpade2 {
 			hex, err := parseHexParam("hex", "targetHex")
@@ -1086,16 +1097,33 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 				return nil, err
 			}
 			a.UseSkip = useSkip
+			useCoins, err := parseBoolParam(false, "useCoins")
+			if err != nil {
+				return nil, err
+			}
+			a.UseCoins = useCoins
 			return a, nil
 		}
-		return game.NewPowerAction(seatID, actionType), nil
+		a := game.NewPowerAction(seatID, actionType)
+		useCoins, err := parseBoolParam(false, "useCoins")
+		if err != nil {
+			return nil, err
+		}
+		a.UseCoins = useCoins
+		return a, nil
 
 	case "power_bridge_place":
 		hex1, hex2, err := parseBridgeEndpoints()
 		if err != nil {
 			return nil, err
 		}
-		return game.NewPowerActionWithBridge(seatID, hex1, hex2), nil
+		a := game.NewPowerActionWithBridge(seatID, hex1, hex2)
+		useCoins, err := parseBoolParam(false, "useCoins")
+		if err != nil {
+			return nil, err
+		}
+		a.UseCoins = useCoins
+		return a, nil
 
 	case "engineers_bridge":
 		hex1, hex2, err := parseBridgeEndpoints()
@@ -1491,6 +1519,26 @@ func buildSpecialAction(
 			return nil, err
 		}
 		return game.NewMermaidsRiverTownAction(seatID, riverHex), nil
+
+	case game.SpecialActionEnlightenedGainPower:
+		return game.NewEnlightenedGainPowerAction(seatID), nil
+
+	case game.SpecialActionConspiratorsSwapFavor:
+		returnTile, err := parseFavorTileType(func(keys ...string) (json.RawMessage, bool) {
+			more := append([]string{"returnTile"}, keys...)
+			return getParam(more...)
+		})
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid return favor tile: %w", err)
+		}
+		newTile, err := parseFavorTileType(func(keys ...string) (json.RawMessage, bool) {
+			more := append([]string{"newTile"}, keys...)
+			return getParam(more...)
+		})
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid new favor tile: %w", err)
+		}
+		return game.NewConspiratorsSwapFavorAction(seatID, returnTile, newTile), nil
 
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")

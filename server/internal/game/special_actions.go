@@ -85,6 +85,8 @@ const (
 	SpecialActionBonusCardSpade       // Bonus card: 1 free spade
 	SpecialActionBonusCardCultAdvance // Bonus card: Advance 1 on any cult track
 	SpecialActionMermaidsRiverTown    // Mermaids: Form town across river
+	SpecialActionEnlightenedGainPower // The Enlightened SH: gain 4 power
+	SpecialActionConspiratorsSwapFavor
 )
 
 // SpecialAction represents a faction-specific special action
@@ -107,6 +109,9 @@ type SpecialAction struct {
 	SecondAction Action
 	// For Bonus Card Spade with specific target terrain (e.g. Cult Bonus)
 	TargetTerrain *models.TerrainType
+	// For Conspirators swap favor
+	ReturnFavorTile *FavorTileType
+	NewFavorTile    *FavorTileType
 }
 
 // NewSpecialAction creates a new special action
@@ -249,6 +254,29 @@ func NewMermaidsRiverTownAction(playerID string, riverHex board.Hex) *SpecialAct
 	}
 }
 
+// NewEnlightenedGainPowerAction creates The Enlightened stronghold action.
+func NewEnlightenedGainPowerAction(playerID string) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionEnlightenedGainPower,
+	}
+}
+
+func NewConspiratorsSwapFavorAction(playerID string, returnTile, newTile FavorTileType) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:      SpecialActionConspiratorsSwapFavor,
+		ReturnFavorTile: &returnTile,
+		NewFavorTile:    &newTile,
+	}
+}
+
 func (a *SpecialAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -269,6 +297,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionChaosMagiciansDoubleTurn,
 		SpecialActionGiantsTransform,
 		SpecialActionNomadsSandstorm,
+		SpecialActionEnlightenedGainPower,
+		SpecialActionConspiratorsSwapFavor,
 	}
 
 	isStrongholdAction := false
@@ -304,9 +334,42 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateBonusCardCultAdvance(gs)
 	case SpecialActionMermaidsRiverTown:
 		return a.validateMermaidsRiverTown(gs, player)
+	case SpecialActionEnlightenedGainPower:
+		return a.validateEnlightenedGainPower(player)
+	case SpecialActionConspiratorsSwapFavor:
+		return a.validateConspiratorsSwapFavor(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
+}
+
+func (a *SpecialAction) validateEnlightenedGainPower(player *Player) error {
+	if player.Faction.GetType() != models.FactionTheEnlightened {
+		return fmt.Errorf("only The Enlightened can use this special action")
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateConspiratorsSwapFavor(gs *GameState, player *Player) error {
+	if player.Faction.GetType() != models.FactionConspirators {
+		return fmt.Errorf("only Conspirators can use this special action")
+	}
+	if a.ReturnFavorTile == nil || a.NewFavorTile == nil {
+		return fmt.Errorf("must choose both returned and new favor tiles")
+	}
+	if *a.ReturnFavorTile == *a.NewFavorTile {
+		return fmt.Errorf("must swap for a different favor tile")
+	}
+	if !gs.FavorTiles.HasTileType(player.ID, *a.ReturnFavorTile) {
+		return fmt.Errorf("player does not have favor tile %v", *a.ReturnFavorTile)
+	}
+	if !gs.FavorTiles.IsAvailable(*a.NewFavorTile) {
+		return fmt.Errorf("favor tile %v is not available", *a.NewFavorTile)
+	}
+	if gs.FavorTiles.HasTileType(player.ID, *a.NewFavorTile) {
+		return fmt.Errorf("player already has favor tile %v", *a.NewFavorTile)
+	}
+	return nil
 }
 
 func (a *SpecialAction) validateAurenCultAdvance(player *Player) error {
@@ -627,6 +690,14 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeMermaidsRiverTown(gs, player); err != nil {
 			return err
 		}
+	case SpecialActionEnlightenedGainPower:
+		if err := a.executeEnlightenedGainPower(player); err != nil {
+			return err
+		}
+	case SpecialActionConspiratorsSwapFavor:
+		if err := a.executeConspiratorsSwapFavor(gs, player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -802,10 +873,19 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	// Pay remaining workers if needed
 	if workersNeeded > 0 {
-		if player.Resources.Workers < workersNeeded {
-			return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+		if player.Faction.GetType() == models.FactionTheEnlightened {
+			if !player.Resources.Power.CanSpend(workersNeeded) {
+				return fmt.Errorf("not enough power: need %d, have %d", workersNeeded, player.Resources.Power.Bowl3)
+			}
+			if err := player.Resources.Power.SpendPower(workersNeeded); err != nil {
+				return err
+			}
+		} else {
+			if player.Resources.Workers < workersNeeded {
+				return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+			}
+			player.Resources.Workers -= workersNeeded
 		}
-		player.Resources.Workers -= workersNeeded
 	}
 
 	// Transform terrain
@@ -889,5 +969,34 @@ func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) 
 		return fmt.Errorf("no valid town formation found for river connection")
 	}
 
+	return nil
+}
+
+func (a *SpecialAction) executeEnlightenedGainPower(player *Player) error {
+	player.Resources.GainPower(4)
+	return nil
+}
+
+func (a *SpecialAction) executeConspiratorsSwapFavor(gs *GameState, player *Player) error {
+	allTiles := GetAllFavorTiles()
+	returnedTile, ok := allTiles[*a.ReturnFavorTile]
+	if !ok {
+		return fmt.Errorf("invalid returned favor tile: %v", *a.ReturnFavorTile)
+	}
+	if returnedTile.CultAdvance > 0 {
+		if _, err := gs.DecreaseCultTrack(player.ID, returnedTile.CultTrack, returnedTile.CultAdvance); err != nil {
+			return err
+		}
+	}
+	if err := gs.FavorTiles.ReturnFavorTile(player.ID, *a.ReturnFavorTile); err != nil {
+		return err
+	}
+	if err := gs.FavorTiles.TakeFavorTile(player.ID, *a.NewFavorTile); err != nil {
+		return err
+	}
+	gs.CheckAllTownFormations(player.ID)
+	if err := ApplyFavorTileImmediate(gs, player.ID, *a.NewFavorTile); err != nil {
+		return err
+	}
 	return nil
 }

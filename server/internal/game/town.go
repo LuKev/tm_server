@@ -179,14 +179,22 @@ func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	buildingCount := 0
 	totalPower := 0
 	hasSanctuary := false
+	hasStronghold := false
 
 	for _, h := range hexes {
 		mapHex := gs.Map.GetHex(h)
 		if mapHex != nil && mapHex.Building != nil {
 			buildingCount++
-			totalPower += GetPowerValue(mapHex.Building.Type)
+			if mapHex.Building.PowerValue > 0 {
+				totalPower += mapHex.Building.PowerValue
+			} else {
+				totalPower += GetPowerValue(mapHex.Building.Type)
+			}
 			if mapHex.Building.Type == models.BuildingSanctuary {
 				hasSanctuary = true
+			}
+			if mapHex.Building.Type == models.BuildingStronghold {
+				hasStronghold = true
 			}
 		}
 	}
@@ -195,6 +203,9 @@ func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	minBuildings := 4
 	if hasSanctuary {
 		minBuildings = 3 // Sanctuary allows town with 3 buildings
+	}
+	if player.Faction.GetType() == models.FactionDynionGeifr && hasStronghold {
+		minBuildings = 3
 	}
 
 	if buildingCount < minBuildings {

@@ -16,6 +16,7 @@ go_library(
         "action_setup_dwelling.go",
         "action_setup_bonus_card.go",
         "action_conversion.go",
+        "action_chash_track.go",
         "turn_confirmation.go",
         "turn_timer.go",
         "state_clone.go",
@@ -60,6 +61,8 @@ go_test(
     srcs = [
         "faction_integration_test.go",
         "action_conversion_test.go",
+        "fan_faction_grey_test.go",
+        "fan_faction_green_test.go",
         "action_scoring_test.go",
         "action_select_favor_tile_test.go",
         "action_select_faction_test.go",

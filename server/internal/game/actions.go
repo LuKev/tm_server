@@ -17,6 +17,7 @@ const (
 	ActionUpgradeBuilding
 	ActionAdvanceShipping
 	ActionAdvanceDigging
+	ActionAdvanceChashTrack
 	ActionSendPriestToCult
 	ActionPowerAction
 	ActionSpecialAction
@@ -148,7 +149,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		return err
 	}
 
-	totalWorkersNeeded, totalPriestsNeeded, err := a.calculateCosts(gs, player, mapHex)
+	totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, err := a.calculateCosts(gs, player, mapHex)
 	if err != nil {
 		return err
 	}
@@ -161,6 +162,9 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	// Check total priests needed (Darklings terraform cost)
 	if player.Resources.Priests < totalPriestsNeeded {
 		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
+	}
+	if totalPowerNeeded > 0 && !player.Resources.Power.CanSpend(totalPowerNeeded) {
+		return fmt.Errorf("not enough power for terraform: need %d, have %d", totalPowerNeeded, player.Resources.Power.Bowl3)
 	}
 
 	return nil
@@ -193,7 +197,7 @@ func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Playe
 	return nil
 }
 
-func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, error) {
+func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, int, error) {
 	// Check if terrain needs transformation to target terrain (default: home terrain)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	if a.TargetTerrain != models.TerrainTypeUnknown {
@@ -203,12 +207,13 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 
 	totalWorkersNeeded := 0
 	totalPriestsNeeded := 0
+	totalPowerNeeded := 0
 
 	if needsTransform {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 		if distance == 0 {
-			return 0, 0, fmt.Errorf("terrain distance calculation failed")
+			return 0, 0, 0, fmt.Errorf("terrain distance calculation failed")
 		}
 		requiredSpades := distance
 		if player.Faction.GetType() == models.FactionGiants {
@@ -241,6 +246,8 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 		if remainingSpades > 0 {
 			if player.Faction.GetType() == models.FactionDarklings {
 				totalPriestsNeeded = remainingSpades
+			} else if player.Faction.GetType() == models.FactionTheEnlightened {
+				totalPowerNeeded = player.Faction.GetTerraformCost(remainingSpades)
 			} else {
 				// Other factions pay workers
 				totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
@@ -262,13 +269,13 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
 		if err := a.validateDwelling(gs, player, mapHex, needsTransform, targetTerrain); err != nil {
-			return 0, 0, err
+			return 0, 0, 0, err
 		}
 		dwellingCost := player.Faction.GetDwellingCost()
 		totalWorkersNeeded += dwellingCost.Workers
 	}
 
-	return totalWorkersNeeded, totalPriestsNeeded, nil
+	return totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, nil
 }
 
 func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player, mapHex *board.MapHex, needsTransform bool, targetTerrain models.TerrainType) error {
@@ -443,6 +450,11 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
 			vpBonus := remainingSpades * 2
 			player.VictoryPoints += vpBonus
+		} else if player.Faction.GetType() == models.FactionTheEnlightened {
+			powerCost := player.Faction.GetTerraformCost(remainingSpades)
+			if err := player.Resources.Power.SpendPower(powerCost); err != nil {
+				return fmt.Errorf("failed to spend power for terraform: %w", err)
+			}
 		} else {
 			// Other factions pay workers
 			totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
@@ -579,7 +591,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		Type:       a.NewBuildingType,
 		Faction:    player.Faction.GetType(),
 		PlayerID:   a.PlayerID,
-		PowerValue: GetPowerValue(a.NewBuildingType),
+		PowerValue: getStructurePowerValue(player, a.NewBuildingType),
 	}
 
 	// Handle special rewards based on upgrade type
@@ -720,6 +732,14 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 			gs.PendingDarklingsPriestOrdination = &PendingDarklingsPriestOrdination{
 				PlayerID: a.PlayerID,
 			}
+		}
+	case models.FactionDynionGeifr:
+		gs.GainPriests(a.PlayerID, 2)
+	case models.FactionConspirators:
+		gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+			PlayerID:      a.PlayerID,
+			Count:         1,
+			SelectedTiles: []FavorTileType{},
 		}
 
 	case models.FactionGiants:
@@ -895,19 +915,10 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 		return err
 	}
 
-	// Check faction-specific max digging level
 	factionType := player.Faction.GetType()
-	var maxLevel int
-	switch factionType {
-	case models.FactionDarklings:
-		// Darklings cannot advance digging at all (they use priests for spades)
-		return fmt.Errorf("darklings cannot advance digging level")
-	case models.FactionFakirs:
-		// Fakirs can only advance to level 1
-		maxLevel = 1
-	default:
-		// Most factions can advance to level 2
-		maxLevel = 2
+	maxLevel, err := maxDiggingLevelForFaction(factionType)
+	if err != nil {
+		return err
 	}
 
 	// Check if already at faction's max level

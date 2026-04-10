@@ -27,6 +27,20 @@ export enum FactionType {
   Darklings = 12,
   Engineers = 13,
   Dwarves = 14,
+  Architects = 15,
+  Archivists = 16,
+  Atlanteans = 17,
+  ChashDallah = 18,
+  ChildrenOfTheWyrm = 19,
+  Conspirators = 20,
+  Djinni = 21,
+  DynionGeifr = 22,
+  Goblins = 23,
+  Prospectors = 24,
+  TheEnlightened = 25,
+  TimeTravelers = 26,
+  Treasurers = 27,
+  Wisps = 28,
 }
 
 export enum BuildingType {
@@ -131,6 +145,7 @@ export interface PlayerState {
   resources: Resources
   shipping: number
   digging: number
+  chashIncomeTrackLevel?: number
   cults: Partial<Record<CultType, number>>
   buildings: Record<string, Building>
   victoryPoints?: number
@@ -172,6 +187,8 @@ export enum SpecialActionType {
   BonusCardSpade = 8,
   BonusCardCultAdvance = 9,
   MermaidsRiverTown = 10,
+  EnlightenedGainPower = 11,
+  ConspiratorsSwapFavor = 12,
 }
 
 export interface CultTrackState {
@@ -241,6 +258,7 @@ export interface TownTileState {
 export interface GameState {
   id: string
   mapId?: string
+  enableFanFactions?: boolean
   revision?: number
   phase: GamePhase
   setupMode?: 'snellman' | 'auction' | 'fast_auction'

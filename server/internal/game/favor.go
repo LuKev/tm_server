@@ -264,6 +264,29 @@ func (fts *FavorTileState) TakeFavorTile(playerID string, tileType FavorTileType
 	return nil
 }
 
+// ReturnFavorTile puts a favor tile back into the available supply.
+func (fts *FavorTileState) ReturnFavorTile(playerID string, tileType FavorTileType) error {
+	tiles, ok := fts.PlayerTiles[playerID]
+	if !ok {
+		return fmt.Errorf("player %s has no favor tiles", playerID)
+	}
+
+	index := -1
+	for i, t := range tiles {
+		if t == tileType {
+			index = i
+			break
+		}
+	}
+	if index < 0 {
+		return fmt.Errorf("player does not have favor tile %v", tileType)
+	}
+
+	fts.PlayerTiles[playerID] = append(tiles[:index], tiles[index+1:]...)
+	fts.Available[tileType]++
+	return nil
+}
+
 // GetPlayerTiles returns all favor tiles a player has
 func (fts *FavorTileState) GetPlayerTiles(playerID string) []FavorTileType {
 	return fts.PlayerTiles[playerID]
@@ -291,6 +314,9 @@ func ApplyFavorTileImmediate(gs *GameState, playerID string, tileType FavorTileT
 
 	// Note: Ongoing abilities are applied during income phase or relevant actions
 	// No additional immediate effects for these tiles
+	if player.Faction.GetType() == models.FactionConspirators {
+		player.Resources.Coins += 2
+	}
 
 	return nil
 }

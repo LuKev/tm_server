@@ -217,7 +217,7 @@ func TestManager_PostActionFreeWindow_PendingResolutionAdvancesTurnAndKeepsFreeW
 	if err := gs.AddPlayer("actor", factions.NewAuren()); err != nil {
 		t.Fatalf("add actor: %v", err)
 	}
-	if err := gs.AddPlayer("next", factions.NewWitches()); err != nil {
+	if err := gs.AddPlayer("next", factions.NewNomads()); err != nil {
 		t.Fatalf("add next: %v", err)
 	}
 	gs.TurnOrder = []string{"actor", "next"}
@@ -229,6 +229,7 @@ func TestManager_PostActionFreeWindow_PendingResolutionAdvancesTurnAndKeepsFreeW
 		SelectedTiles: []FavorTileType{},
 	}
 	gs.PendingFreeActionsPlayerID = "actor"
+	gs.BeginPendingTurnConfirmation("actor", gs.CloneForUndo())
 
 	actor := gs.GetPlayer("actor")
 	next := gs.GetPlayer("next")

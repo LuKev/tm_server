@@ -104,7 +104,7 @@ func (a *SetupDwellingAction) Execute(gs *GameState) error {
 		Type:       models.BuildingDwelling,
 		PlayerID:   a.PlayerID,
 		Faction:    player.Faction.GetType(),
-		PowerValue: 1, // Dwellings have power value of 1
+		PowerValue: getStructurePowerValue(player, models.BuildingDwelling),
 	}
 
 	if gs.SetupPlacedDwellings == nil {

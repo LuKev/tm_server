@@ -18,6 +18,7 @@ type CreateGameOptions struct {
 	SetupMode          SetupMode
 	TurnTimer          *TurnTimerConfig
 	MapID              board.MapID
+	EnableFanFactions  bool
 	CustomMap          *board.CustomMapDefinition
 }
 
@@ -619,6 +620,7 @@ func opensPendingFreeActionsWindow(action Action) bool {
 		ActionUpgradeBuilding,
 		ActionAdvanceShipping,
 		ActionAdvanceDigging,
+		ActionAdvanceChashTrack,
 		ActionSendPriestToCult,
 		ActionPowerAction,
 		ActionSpecialAction,
@@ -736,6 +738,7 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 		return fmt.Errorf("invalid setup mode: %s", setupMode)
 	}
 	gs.SetupMode = setupMode
+	gs.EnableFanFactions = opts.EnableFanFactions
 
 	if err := gs.ScoringTiles.InitializeForGame(); err != nil {
 		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
@@ -834,15 +837,16 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 					"powerIII": player.Resources.Power.Bowl3,
 				},
 			},
-			"shipping":             player.ShippingLevel,
-			"digging":              player.DiggingLevel,
-			"hasPassed":            player.HasPassed,
-			"hasStrongholdAbility": player.HasStrongholdAbility,
-			"victoryPoints":        player.VictoryPoints,
-			"keys":                 player.Keys,
-			"townsFormed":          player.TownsFormed,
-			"townTiles":            player.TownTiles,
-			"specialActionsUsed":   player.SpecialActionsUsed,
+			"shipping":              player.ShippingLevel,
+			"digging":               player.DiggingLevel,
+			"chashIncomeTrackLevel": player.ChashIncomeTrackLevel,
+			"hasPassed":             player.HasPassed,
+			"hasStrongholdAbility":  player.HasStrongholdAbility,
+			"victoryPoints":         player.VictoryPoints,
+			"keys":                  player.Keys,
+			"townsFormed":           player.TownsFormed,
+			"townTiles":             player.TownTiles,
+			"specialActionsUsed":    player.SpecialActionsUsed,
 			"cults": map[string]interface{}{
 				"0": player.CultPositions[CultFire],
 				"1": player.CultPositions[CultWater],
@@ -902,6 +906,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 		"id":                   gameID,
 		"revision":             revision,
 		"mapId":                gs.Map.ID,
+		"enableFanFactions":    gs.EnableFanFactions,
 		"phase":                gs.Phase,
 		"setupMode":            gs.SetupMode,
 		"turnOrderPolicy":      gs.TurnOrderPolicy,

@@ -538,6 +538,8 @@ func getStrongholdActionType(f models.FactionType) game.SpecialActionType {
 		return game.SpecialActionGiantsTransform
 	case models.FactionNomads:
 		return game.SpecialActionNomadsSandstorm
+	case models.FactionTheEnlightened:
+		return game.SpecialActionEnlightenedGainPower
 	default:
 		return game.SpecialActionType(-1) // Unknown/None
 	}

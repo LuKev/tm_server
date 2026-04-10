@@ -35,6 +35,11 @@ type Faction interface {
 	GetStrongholdIncome() Income
 }
 
+// SetDiggingLevel keeps faction-local digging cost calculations in sync with player state.
+type SetDiggingLevel interface {
+	SetDiggingLevel(level int)
+}
+
 // BaseFaction provides default implementations for common faction behavior
 type BaseFaction struct {
 	Type         models.FactionType
@@ -145,6 +150,11 @@ func StandardDiggingCost(currentLevel int) Cost {
 // GetType returns the faction type
 func (f *BaseFaction) GetType() models.FactionType {
 	return f.Type
+}
+
+// SetDiggingLevel updates the faction's internal digging level used by GetTerraformCost.
+func (f *BaseFaction) SetDiggingLevel(level int) {
+	f.DiggingLevel = level
 }
 
 // GetHomeTerrain returns the faction's home terrain

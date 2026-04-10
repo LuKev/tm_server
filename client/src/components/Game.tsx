@@ -41,7 +41,13 @@ const ResponsiveGridLayout = WidthProvider(Responsive)
 type ConfirmDialog = {
   title: string
   message: string
-  onConfirm: () => void
+  onConfirm?: () => void
+  actions?: Array<{
+    label: string
+    onClick: () => void
+    testId?: string
+    className?: string
+  }>
 }
 
 const DEFAULT_PLAYER_OPTIONS: PlayerOptions = {
@@ -69,8 +75,8 @@ const STRONGHOLD_TARGET_ACTION_TYPES: SpecialActionType[] = [
 ]
 
 type PendingPowerMode =
-  | { type: 'power_spade'; actionType: PowerActionType }
-  | { type: 'power_bridge'; source: 'power' | 'engineers'; firstHex: { q: number; r: number } | null }
+  | { type: 'power_spade'; actionType: PowerActionType; useCoins?: boolean }
+  | { type: 'power_bridge'; source: 'power' | 'engineers'; firstHex: { q: number; r: number } | null; useCoins?: boolean }
   | {
     type: 'special_action_target'
     actionType: SpecialActionType
@@ -98,6 +104,7 @@ const CHAOS_ACTION_TYPES = [
   'upgrade_building',
   'advance_shipping',
   'advance_digging',
+  'advance_chash_track',
   'send_priest',
   'power_action_claim',
   'special_action_use',
@@ -111,12 +118,48 @@ const CHAOS_PARAM_TEMPLATES: Record<string, string> = {
   upgrade_building: '{\n  "targetHex": { "q": 0, "r": 0 },\n  "newBuildingType": 2\n}',
   advance_shipping: '{}',
   advance_digging: '{}',
+  advance_chash_track: '{}',
   send_priest: '{\n  "cultTrack": 0,\n  "spacesToClimb": 1\n}',
   power_action_claim: '{\n  "actionType": 1\n}',
   special_action_use: '{\n  "specialActionType": 0\n}',
   pass: '{\n  "bonusCard": 0\n}',
   conversion: '{\n  "conversionType": "worker_to_coin",\n  "amount": 1\n}',
   burn_power: '{\n  "amount": 1\n}',
+}
+
+const getPowerActionCost = (action: PowerActionType): number => {
+  switch (action) {
+    case PowerActionType.Bridge:
+    case PowerActionType.Priest:
+      return 3
+    case PowerActionType.Workers:
+    case PowerActionType.Coins:
+    case PowerActionType.Spade:
+      return 4
+    case PowerActionType.DoubleSpade:
+      return 6
+    default:
+      return 0
+  }
+}
+
+const canPayPowerActionWithPower = (player: PlayerState | null, action: PowerActionType): boolean => {
+  if (!player) return false
+  const cost = getPowerActionCost(action)
+  const bowl3 = player.resources.power.powerIII ?? 0
+  const bowl2 = player.resources.power.powerII ?? 0
+  return bowl3 + Math.floor(bowl2 / 2) >= cost
+}
+
+const shouldAutoUseChashCoins = (player: PlayerState | null, action: PowerActionType): boolean => {
+  if (!player || player.faction !== FactionType.ChashDallah || !player.hasStrongholdAbility) return false
+  const cost = getPowerActionCost(action)
+  return !canPayPowerActionWithPower(player, action) && (player.resources.coins ?? 0) >= cost
+}
+
+const canPayPowerActionWithCoins = (player: PlayerState | null, action: PowerActionType): boolean => {
+  if (!player || player.faction !== FactionType.ChashDallah || !player.hasStrongholdAbility) return false
+  return (player.resources.coins ?? 0) >= getPowerActionCost(action)
 }
 
 const townTileLabel = (id: number): string => {
@@ -213,6 +256,9 @@ export const Game = () => {
   const [selectedTownCultTracks, setSelectedTownCultTracks] = useState<CultType[]>([])
   const [auctionBidInputs, setAuctionBidInputs] = useState<Record<string, number>>({})
   const [fastAuctionBidInputs, setFastAuctionBidInputs] = useState<Record<string, number>>({})
+  const [conspiratorsSwapModalOpen, setConspiratorsSwapModalOpen] = useState(false)
+  const [conspiratorsReturnTile, setConspiratorsReturnTile] = useState<number | ''>('')
+  const [conspiratorsNewTile, setConspiratorsNewTile] = useState<number | ''>('')
   const [cultChoiceContext, setCultChoiceContext] = useState<
     | 'cultists'
     | 'water2'
@@ -340,6 +386,14 @@ export const Game = () => {
     setConfirmDialog({ title, message, onConfirm })
   }
 
+  const openChoiceDialog = (
+    title: string,
+    message: string,
+    actions: ConfirmDialog['actions'],
+  ): void => {
+    setConfirmDialog({ title, message, actions })
+  }
+
   const performAction = (type: string, params: Record<string, unknown> = {}): void => {
     if (!gameId) return
     submitAction(gameId, type, params)
@@ -364,6 +418,17 @@ export const Game = () => {
     return gameState.players[localPlayerId] ?? null
   }, [gameState?.players, localPlayerId])
   const isSpectator = gameState != null && localPlayer == null
+  const localPlayerFavorTiles = useMemo(() => {
+    if (!localPlayerId) return [] as FavorTileType[]
+    return (gameState?.favorTiles?.playerTiles?.[localPlayerId] ?? []) as FavorTileType[]
+  }, [gameState?.favorTiles?.playerTiles, localPlayerId])
+  const availableFavorTileTypes = useMemo(() => {
+    return Object.entries(gameState?.favorTiles?.available ?? {})
+      .map(([tileId, count]) => ({ tileId: Number(tileId), count }))
+      .filter(({ tileId, count }) => Number.isInteger(tileId) && count > 0)
+      .map(({ tileId }) => tileId as FavorTileType)
+      .sort((a, b) => a - b)
+  }, [gameState?.favorTiles?.available])
 
   const localPlayerOptions = useMemo((): PlayerOptions => {
     if (!localPlayer?.options) return DEFAULT_PLAYER_OPTIONS
@@ -668,6 +733,12 @@ export const Game = () => {
       case FactionType.Nomads:
         hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.NomadsSandstorm]
         break
+      case FactionType.TheEnlightened:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.EnlightenedGainPower]
+        break
+      case FactionType.Conspirators:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.ConspiratorsSwapFavor]
+        break
       default:
         hasUnusedStronghold = false
         break
@@ -751,9 +822,10 @@ export const Game = () => {
     )
 
     return FACTIONS
+      .filter((faction) => (gameState?.enableFanFactions ?? false) || !faction.isFanFaction)
       .filter((faction) => !nominated.has(faction.type) && !nominatedColors.has(faction.color))
       .map((faction) => faction.type)
-  }, [auctionState?.nominationOrder, setupMode])
+  }, [auctionState?.nominationOrder, gameState?.enableFanFactions, setupMode])
 
   const currentPlayerPosition = useMemo(() => {
     if (!gameState?.turnOrder || !localPlayerId) return 1
@@ -946,7 +1018,11 @@ export const Game = () => {
       'Confirm Bridge',
       `Build bridge from ${formatHexCoord(from)} to ${formatHexCoord(to)}?`,
       () => {
-        performAction(powerMode.source === 'engineers' ? 'engineers_bridge' : 'power_bridge_place', { bridgeHex1: from, bridgeHex2: to })
+        performAction(powerMode.source === 'engineers' ? 'engineers_bridge' : 'power_bridge_place', {
+          bridgeHex1: from,
+          bridgeHex2: to,
+          useCoins: powerMode.useCoins,
+        })
         setPowerMode(null)
         setConfirmDialog(null)
       },
@@ -991,21 +1067,51 @@ export const Game = () => {
 
   const handlePowerActionClick = (action: PowerActionType): void => {
     if (!canInitiateTurnAction) return
+    const canUseCoins = canPayPowerActionWithCoins(localPlayer, action)
+    const canUsePower = canPayPowerActionWithPower(localPlayer, action)
+    const choosePayment = (useCoins: boolean): void => {
+      if (action === PowerActionType.Bridge) {
+        setPowerMode({ type: 'power_bridge', source: 'power', firstHex: null, useCoins })
+        return
+      }
 
-    if (action === PowerActionType.Bridge) {
-      setPowerMode({ type: 'power_bridge', source: 'power', firstHex: null })
+      if (action === PowerActionType.Spade || action === PowerActionType.DoubleSpade) {
+        setPowerMode({ type: 'power_spade', actionType: action, useCoins })
+        return
+      }
+
+      performAction('power_action_claim', { actionType: action, useCoins })
+    }
+
+    if (canUseCoins && canUsePower) {
+      openChoiceDialog(
+        'Choose Payment',
+        `Pay for ${PowerActionType[action]} with coins or power?`,
+        [
+          {
+            label: 'Coins',
+            testId: 'confirm-action-choice-coins',
+            className: 'rounded bg-amber-500 px-3 py-1 text-sm text-slate-950',
+            onClick: () => {
+              setConfirmDialog(null)
+              choosePayment(true)
+            },
+          },
+          {
+            label: 'Power',
+            testId: 'confirm-action-choice-power',
+            className: 'rounded bg-blue-600 px-3 py-1 text-sm text-white',
+            onClick: () => {
+              setConfirmDialog(null)
+              choosePayment(false)
+            },
+          },
+        ],
+      )
       return
     }
 
-    if (action === PowerActionType.Spade || action === PowerActionType.DoubleSpade) {
-      setPowerMode({ type: 'power_spade', actionType: action })
-      return
-    }
-
-    queueConfirm('Confirm Power Action', `Use power action ${PowerActionType[action]}?`, () => {
-      performAction('power_action_claim', { actionType: action })
-      setConfirmDialog(null)
-    })
+    choosePayment(shouldAutoUseChashCoins(localPlayer, action))
   }
 
   const handleCultSpotClick = (cult: CultType, tileIndex: number): void => {
@@ -1058,14 +1164,29 @@ export const Game = () => {
     })
   }
 
+  const handleAdvanceChashTrack = (playerId: string): void => {
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
+
+    queueConfirm('Confirm Chash Track', 'Advance the Chash Dallah income track for 2 workers and 2 coins?', () => {
+      performAction('advance_chash_track')
+      setConfirmDialog(null)
+    })
+  }
+
   const handleEngineersBridgeAction = (playerId: string): void => {
     if (playerId !== localPlayerId || !canInitiateTurnAction) return
-    setPowerMode({ type: 'power_bridge', source: 'engineers', firstHex: null })
+    setPowerMode({ type: 'power_bridge', source: 'engineers', firstHex: null, useCoins: false })
   }
 
   const handleMermaidsConnectAction = (playerId: string): void => {
     if (playerId !== localPlayerId || !canInitiateTurnAction) return
     setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.MermaidsRiverTown })
+  }
+
+  const closeConspiratorsSwapModal = (): void => {
+    setConspiratorsSwapModalOpen(false)
+    setConspiratorsReturnTile('')
+    setConspiratorsNewTile('')
   }
 
   const handleStrongholdAction = (_playerId: string, actionType: SpecialActionType): void => {
@@ -1092,10 +1213,55 @@ export const Game = () => {
       return
     }
 
+    if (actionType === SpecialActionType.ConspiratorsSwapFavor) {
+      const returnTile = localPlayerFavorTiles[0]
+      const newTile = availableFavorTileTypes.find((tile) => tile !== returnTile && !localPlayerFavorTiles.includes(tile))
+      setConspiratorsReturnTile(returnTile ?? '')
+      setConspiratorsNewTile(newTile ?? '')
+      setConspiratorsSwapModalOpen(true)
+      return
+    }
+
     queueConfirm('Confirm Special Action', `Use special action ${SpecialActionType[actionType]}?`, () => {
       performAction('special_action_use', { specialActionType: actionType })
       setConfirmDialog(null)
     })
+  }
+
+  const conspiratorsNewTileOptions = useMemo(() => {
+    if (conspiratorsReturnTile === '') return [] as FavorTileType[]
+    return availableFavorTileTypes.filter((tile) => tile !== conspiratorsReturnTile && !localPlayerFavorTiles.includes(tile))
+  }, [availableFavorTileTypes, conspiratorsReturnTile, localPlayerFavorTiles])
+
+  useEffect(() => {
+    if (!conspiratorsSwapModalOpen) return
+    if (conspiratorsReturnTile === '' || !localPlayerFavorTiles.includes(conspiratorsReturnTile as FavorTileType)) {
+      const nextReturn = localPlayerFavorTiles[0]
+      setConspiratorsReturnTile(nextReturn ?? '')
+      return
+    }
+    if (
+      conspiratorsNewTile === ''
+      || !conspiratorsNewTileOptions.includes(conspiratorsNewTile as FavorTileType)
+    ) {
+      setConspiratorsNewTile(conspiratorsNewTileOptions[0] ?? '')
+    }
+  }, [
+    conspiratorsNewTile,
+    conspiratorsNewTileOptions,
+    conspiratorsReturnTile,
+    conspiratorsSwapModalOpen,
+    localPlayerFavorTiles,
+  ])
+
+  const submitConspiratorsSwap = (): void => {
+    if (conspiratorsReturnTile === '' || conspiratorsNewTile === '') return
+    performAction('special_action_use', {
+      specialActionType: SpecialActionType.ConspiratorsSwapFavor,
+      returnTile: conspiratorsReturnTile,
+      newTile: conspiratorsNewTile,
+    })
+    closeConspiratorsSwapModal()
   }
 
   const handleWater2Action = (_playerId: string): void => {
@@ -1312,8 +1478,9 @@ export const Game = () => {
     }
     if (cultChoiceContext === 'auren_sh') return SpecialActionType.AurenCultAdvance
     if (chaosModalOpen) return SpecialActionType.ChaosMagiciansDoubleTurn
+    if (conspiratorsSwapModalOpen) return SpecialActionType.ConspiratorsSwapFavor
     return null
-  }, [chaosModalOpen, cultChoiceContext, powerMode])
+  }, [chaosModalOpen, conspiratorsSwapModalOpen, cultChoiceContext, powerMode])
   const activeBonusCardActionType = useMemo((): SpecialActionType | null => {
     if (powerMode?.type === 'special_action_target' && powerMode.actionType === SpecialActionType.BonusCardSpade) {
       return SpecialActionType.BonusCardSpade
@@ -1376,6 +1543,7 @@ export const Game = () => {
         targetHex: pendingHex,
         buildDwelling,
         targetTerrain: selectedTerrain,
+        useCoins: powerMode.useCoins,
       })
       setPowerMode(null)
       closeHexModal()
@@ -1552,16 +1720,29 @@ export const Game = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
-                <button
-                  data-testid="confirm-action-confirm"
-                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-                  onClick={() => {
-                    if (!confirmDialog) return
-                    confirmDialog.onConfirm()
-                  }}
-                >
-                  Confirm
-                </button>
+                {confirmDialog.actions ? confirmDialog.actions.map((action) => (
+                  <button
+                    key={action.testId ?? action.label}
+                    data-testid={action.testId}
+                    className={action.className ?? 'rounded bg-blue-600 px-3 py-1 text-sm text-white'}
+                    onClick={() => {
+                      action.onClick()
+                    }}
+                  >
+                    {action.label}
+                  </button>
+                )) : (
+                  <button
+                    data-testid="confirm-action-confirm"
+                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+                    onClick={() => {
+                      if (!confirmDialog?.onConfirm) return
+                      confirmDialog.onConfirm()
+                    }}
+                  >
+                    Confirm
+                  </button>
+                )}
               </div>
             </div>
           ) : pendingHex ? (
@@ -1969,6 +2150,7 @@ export const Game = () => {
             onSelect={handleFactionSelect}
             isMyTurn={isMyTurn}
             currentPlayerPosition={currentPlayerPosition}
+            enableFanFactions={gameState?.enableFanFactions ?? false}
           />
         )}
 
@@ -2211,6 +2393,7 @@ export const Game = () => {
                 onBurnPower={handleBurnPower}
                 onAdvanceShipping={handleAdvanceShipping}
                 onAdvanceDigging={handleAdvanceDigging}
+                onAdvanceChashTrack={handleAdvanceChashTrack}
                 onStrongholdAction={handleStrongholdAction}
                 onEngineersBridgeAction={handleEngineersBridgeAction}
                 onMermaidsConnectAction={handleMermaidsConnectAction}
@@ -2336,6 +2519,66 @@ export const Game = () => {
               )}
             </div>
             <textarea data-testid="chaos-double-turn-second-params" className="w-full rounded border px-2 py-1 font-mono text-xs" rows={4} value={chaosSecondParams} onChange={(e) => { setChaosSecondParams(e.target.value) }} />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={conspiratorsSwapModalOpen}
+        onClose={closeConspiratorsSwapModal}
+        title="Conspirators Swap Favor"
+        testId="conspirators-swap-favor-modal"
+        footer={(
+          <>
+            <button
+              data-testid="conspirators-swap-favor-cancel"
+              className="px-4 py-2 rounded bg-gray-200 text-gray-800"
+              onClick={closeConspiratorsSwapModal}
+            >
+              Cancel
+            </button>
+            <button
+              data-testid="conspirators-swap-favor-submit"
+              className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
+              onClick={submitConspiratorsSwap}
+              disabled={conspiratorsReturnTile === '' || conspiratorsNewTile === ''}
+            >
+              Swap
+            </button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">Return one of your favor tiles to take a different favor tile from the supply.</p>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="conspirators-return-tile">Return tile</label>
+            <select
+              id="conspirators-return-tile"
+              data-testid="conspirators-return-tile"
+              className="w-full rounded border px-2 py-1"
+              value={conspiratorsReturnTile}
+              onChange={(e) => { setConspiratorsReturnTile(e.target.value === '' ? '' : Number(e.target.value)) }}
+            >
+              <option value="">Select a favor tile</option>
+              {localPlayerFavorTiles.map((tile) => (
+                <option key={tile} value={tile}>{favorTileLabel(tile)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="conspirators-new-tile">Take tile</label>
+            <select
+              id="conspirators-new-tile"
+              data-testid="conspirators-new-tile"
+              className="w-full rounded border px-2 py-1"
+              value={conspiratorsNewTile}
+              onChange={(e) => { setConspiratorsNewTile(e.target.value === '' ? '' : Number(e.target.value)) }}
+            >
+              <option value="">Select a favor tile</option>
+              {conspiratorsNewTileOptions.map((tile) => (
+                <option key={tile} value={tile}>{favorTileLabel(tile)}</option>
+              ))}
+            </select>
           </div>
         </div>
       </Modal>

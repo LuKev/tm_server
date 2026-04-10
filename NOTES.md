@@ -1,5 +1,95 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-07 fan factions research sources:
+  - Official English rulebook for the published fan-factions expansion is on Capstone's CDN: `https://capstone-games.com/cdn/shop/files/TM_FF_Rules_EN_V1-1_web.pdf?v=266320294850540117`.
+  - The official 20-faction list from that rulebook is:
+    - Architects
+    - Archivists
+    - Atlanteans
+    - Chash Dallah
+    - Changelings
+    - Children of the Wyrm
+    - Conspirators
+    - Djinn
+    - Dynion Geifr
+    - The Enlightened
+    - Firewalkers
+    - Geologists
+    - Goblins
+    - Kingdom of Ember
+    - Prospectors
+    - Selkies
+    - Snow Shamans
+    - Time Travelers
+    - Treasurers
+    - Wisps
+  - Capstone's product-page summary currently appears incomplete and inconsistent with the rulebook:
+    - it omits `Djinn`
+    - it uses `Cash Dallah`, while the official English v1.1 rulebook text says `Chash Dallah`
+  - For exact faction-board costs / starting resources / income tracks for the original 16 print-and-play factions, the best accessible source found so far is the Unknowns thread `https://unknowns.de/forum/thread/21078-terra-mystica-fan-factions/`, which links directly to BGG-hosted board images (`cf.geekdo-images.com/.../pic*.jpg`).
+  - Downloaded local reference images for those 16 print-and-play faction boards were saved under `/tmp/tm_fan_boards` during this session.
+  - Current requested implementation subset excludes these factions:
+    - `Changelings`
+    - `Firewalkers`
+    - `Geologists`
+    - `Kingdom of Ember`
+    - `Selkies`
+    - `Snow Shamans`
+  - For the remaining set, the published `Prospectors` faction appears to be the renamed successor to the older `Gold Diggers` print-and-play faction:
+    - the published rulebook text for `Prospectors` matches the older thread description for `Gold Diggers` on golden spades, priests from normal spades, 4-coin golden spades reduced to 3 after Stronghold, and the Stronghold special action granting 1 coin per other players' Trading Posts.
+  - User-confirmed fan-faction transcription corrections for the implementation subset:
+    - use `Djinni` spelling, not `Djinn`
+    - `Archivists`: base worker income is `2W`; dwelling incomes are `1W, 1W, 1W, 0, 1W, 1W, 1W, 0`
+    - `Dynion Geifr`: base worker income is `2W`; dwelling incomes are otherwise standard
+    - `The Enlightened`:
+      - base income is `3PW`
+      - dwelling incomes alternate `2PW`, `3PW`, `2PW`, `3PW`, `2PW`, `3PW`, `2PW`, `3PW`
+      - Stronghold gives no recurring income
+      - Sanctuary income is standard
+      - Stronghold unlocks doubled power conversion instead of giving recurring income
+      - Stronghold cost is `1P + 4C`
+    - `Chash Dallah` Stronghold income is `4C`
+    - `Children of the Wyrm` Sanctuary / Stronghold costs are `4W + 5C` / `4W + 10C`
+    - `Goblins`: Temple cost is `2W + 6C`; Sanctuary / Stronghold costs are `4W + 6C`
+    - `Time Travelers` Sanctuary / Stronghold costs are `4W + 8C`
+    - `Treasurers`:
+      - no base worker income
+      - worker-income dwelling sequence from the earlier board transcription was correct
+      - temples are `1P`, `4PW`, `1P`
+      - Stronghold income is `4PW`
+    - `Prospectors` dwelling income sequence is `[1W, 1W, 1W, 0, 1W, 0, 1W, 0]`
+    - `Dynion Geifr` Stronghold income is `4PW`
+    - `Conspirators` Stronghold gives no recurring income; it only unlocks the Stronghold ability
+  - Important implementation note: `client/src/data/factionBoards.ts` explicitly says the current board data is only `approximate for most factions`; do not reuse that pattern for fan factions. Use per-faction board transcriptions from the actual board images instead.
+  - Table-host option added for fan factions:
+    - lobby/game creation now stores `enableFanFactions`
+    - default is `false`
+    - client faction-pick and auction nomination UIs filter fan factions when disabled
+    - server faction selection / auction nomination validation also rejects fan factions when disabled
+  - Green-faction mechanic clarifications implemented:
+    - `Chash Dallah` start on income-track level `0`, which grants `+2 coins` at income time
+    - `Chash Dallah` track advancements cost `2 workers + 2 coins`
+    - `Chash Dallah` track advancement VP is `1 / 2 / 3 / 4`
+    - `Chash Dallah` current track income alternates `2C, 1W, 2C, 1W, 2C` by level `0..4`
+    - `Chash Dallah` cannot upgrade digging and always pays `3 workers per spade`
+    - `Chash Dallah` stronghold allows paying coins instead of power for board power actions
+    - current UI/engine behavior defaults to normal power payment when both power and coins can pay a Chash power action, and auto-falls back to coins when power cannot cover the action
+    - `The Enlightened` may convert `1 coin -> 1 power token in bowl I`
+    - `The Enlightened` terraform with power instead of workers, using the normal `3 -> 2 -> 1` digging track progression
+    - `The Enlightened` stronghold action is `gain 4 power`
+    - after building stronghold, `The Enlightened` get doubled power conversions:
+      - `1 power -> 2 coins`
+      - `3 power -> 2 workers`
+      - `5 power -> 2 priests`
+    - `The Enlightened` gain cult-track power normally; there is no doubled cult power effect
+  - Grey-faction mechanic clarifications implemented:
+    - `Dynion Geifr` start with `Fire +2` from the normal favor-tile supply on both direct-add and faction-selection paths
+    - `Dynion Geifr` priest conversion is `1 priest -> 2 workers + 2 coins`
+    - `Dynion Geifr` structures all count as power value `2`, and towns including the stronghold only need `3` structures
+    - `Conspirators` gain `+2 coins` whenever they take a favor tile
+    - `Conspirators` stronghold immediately creates a normal favor-tile selection
+    - `Conspirators` stronghold swap action now returns the old favor tile to supply, moves cult down without milestone side effects, frees cult-10 occupancy, refunds the key, rechecks town formation, and then applies the new favor tile normally
+
 - 2026-04-03 hex-grid canvas resolution fix:
   - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.
   - This avoids intermittent blurry/off-looking board rendering when the game panel width differs from the canvas’s natural size or the display is high-DPI.

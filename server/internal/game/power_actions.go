@@ -87,6 +87,7 @@ func GetPowerCost(actionType PowerActionType) int {
 type PowerAction struct {
 	BaseAction
 	ActionType PowerActionType
+	UseCoins   bool
 	// For spade actions, these fields specify the transform details
 	TargetHex     *board.Hex // Optional: for spade actions
 	BuildDwelling bool       // Optional: for spade actions
@@ -147,11 +148,19 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		return fmt.Errorf("power action %v has already been taken this round", a.ActionType)
 	}
 
-	// Check if player has enough power in Bowl III
 	powerCost := GetPowerCost(a.ActionType)
-	requiredBurn := a.requiredAutoBurn(player)
-	if requiredBurn > 0 && !player.Resources.Power.CanBurn(requiredBurn) {
-		return fmt.Errorf("not enough power for action: need %d in Bowl III, have %d and cannot auto-burn %d more from Bowl II", powerCost, player.Resources.Power.Bowl3, requiredBurn)
+	if a.shouldPayWithCoins(player) {
+		if !isChashUsingCoinPowerActions(player) {
+			return fmt.Errorf("only Chash Dallah with stronghold may pay coins for power actions")
+		}
+		if player.Resources.Coins < powerCost {
+			return fmt.Errorf("not enough coins for power action: need %d, have %d", powerCost, player.Resources.Coins)
+		}
+	} else {
+		requiredBurn := a.requiredAutoBurn(player)
+		if requiredBurn > 0 && !player.Resources.Power.CanBurn(requiredBurn) {
+			return fmt.Errorf("not enough power for action: need %d in Bowl III, have %d and cannot auto-burn %d more from Bowl II", powerCost, player.Resources.Power.Bowl3, requiredBurn)
+		}
 	}
 
 	// Validate spade actions
@@ -243,15 +252,19 @@ func (a *PowerAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	powerCost := GetPowerCost(a.ActionType)
-	if requiredBurn := a.requiredAutoBurn(player); requiredBurn > 0 {
-		if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
-			return fmt.Errorf("failed to auto-burn power for action: %w", err)
+	if a.shouldPayWithCoins(player) {
+		player.Resources.Coins -= powerCost
+	} else {
+		if requiredBurn := a.requiredAutoBurn(player); requiredBurn > 0 {
+			if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
+				return fmt.Errorf("failed to auto-burn power for action: %w", err)
+			}
 		}
-	}
 
-	// Move power from Bowl III to Bowl I
-	if err := player.Resources.Power.SpendPower(powerCost); err != nil {
-		return err
+		// Move power from Bowl III to Bowl I
+		if err := player.Resources.Power.SpendPower(powerCost); err != nil {
+			return err
+		}
 	}
 
 	// Mark action as used
@@ -338,12 +351,44 @@ func (a *PowerAction) requiredAutoBurn(player *Player) int {
 	if player == nil || player.Resources == nil || player.Resources.Power == nil {
 		return 0
 	}
+	if a.shouldPayWithCoins(player) {
+		return 0
+	}
 
 	powerCost := GetPowerCost(a.ActionType)
 	if player.Resources.Power.Bowl3 >= powerCost {
 		return 0
 	}
 
+	return powerCost - player.Resources.Power.Bowl3
+}
+
+func isChashUsingCoinPowerActions(player *Player) bool {
+	return player != nil &&
+		player.Faction != nil &&
+		player.Faction.GetType() == models.FactionChashDallah &&
+		player.HasStrongholdAbility
+}
+
+func (a *PowerAction) shouldPayWithCoins(player *Player) bool {
+	if !isChashUsingCoinPowerActions(player) {
+		return false
+	}
+	if a.UseCoins {
+		return true
+	}
+	powerCost := GetPowerCost(a.ActionType)
+	return a.requiredAutoBurnWithoutCoins(player) > 0 && player.Resources.Coins >= powerCost
+}
+
+func (a *PowerAction) requiredAutoBurnWithoutCoins(player *Player) int {
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return 0
+	}
+	powerCost := GetPowerCost(a.ActionType)
+	if player.Resources.Power.Bowl3 >= powerCost {
+		return 0
+	}
 	return powerCost - player.Resources.Power.Bowl3
 }
 
@@ -436,6 +481,14 @@ func (a *PowerAction) paySpadeCosts(player *Player, remainingSpades int) error {
 			// Award Darklings VP bonus (+2 VP per remaining spade)
 			vpBonus := remainingSpades * 2
 			player.VictoryPoints += vpBonus
+		} else if player.Faction.GetType() == models.FactionTheEnlightened {
+			powerNeeded := player.Faction.GetTerraformCost(remainingSpades)
+			if !player.Resources.Power.CanSpend(powerNeeded) {
+				return fmt.Errorf("not enough power: need %d, have %d", powerNeeded, player.Resources.Power.Bowl3)
+			}
+			if err := player.Resources.Power.SpendPower(powerNeeded); err != nil {
+				return err
+			}
 		} else {
 			// Other factions pay workers
 			workersNeeded := player.Faction.GetTerraformCost(remainingSpades)

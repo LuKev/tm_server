@@ -21,6 +21,8 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
         case FactionType.ChaosMagicians: return SpecialActionType.ChaosMagiciansDoubleTurn;
         case FactionType.Giants: return SpecialActionType.GiantsTransform;
         case FactionType.Nomads: return SpecialActionType.NomadsSandstorm;
+        case FactionType.TheEnlightened: return SpecialActionType.EnlightenedGainPower;
+        case FactionType.Conspirators: return SpecialActionType.ConspiratorsSwapFavor;
         default: return null;
     }
 };
@@ -119,28 +121,63 @@ const StrongholdSquare: React.FC<{ isActive?: boolean; onClick?: () => void; dis
     </button>
 );
 
-const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
+const renderIncomeIcons = (income: BuildingSlot['income'], compact?: boolean): React.ReactNode => {
     if (!income) return null;
     const scale = compact ? 0.8 : 1;
     const style = { transform: `scale(${String(scale)})` };
 
     return (
-        <div className="income-reveal" style={compact ? { gap: '0' } : undefined}>
+        <>
             {income.workers && <WorkerIcon style={style}>{income.workers}</WorkerIcon>}
             {income.coins && <CoinIcon style={style}>{income.coins}</CoinIcon>}
             {income.priests && <PriestIcon style={{ width: '1.5em', height: '1.5em', ...style }}>{income.priests}</PriestIcon>}
             {income.power && <PowerIcon amount={income.power} style={style} />}
+        </>
+    );
+};
 
+const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
+    if (!income) return null;
+    return (
+        <div className="income-reveal" style={compact ? { gap: '0' } : undefined}>
+            {renderIncomeIcons(income, compact)}
         </div>
     );
 };
 
-const CostIndicator: React.FC<{ workers?: number; coins?: number }> = ({ workers, coins }) => {
-    if (!workers && !coins) return null;
+const InlineIncomeDisplay: React.FC<{ income: BuildingSlot['income'] }> = ({ income }) => {
+    if (!income) return null;
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.125em' }}>
+            {renderIncomeIcons(income)}
+        </div>
+    );
+};
+
+const getBaseIncome = (faction: FactionType): BuildingSlot['income'] => {
+    switch (faction) {
+        case FactionType.Engineers:
+        case FactionType.Treasurers:
+            return null;
+        case FactionType.Swarmlings:
+        case FactionType.Archivists:
+        case FactionType.DynionGeifr:
+            return { workers: 2 };
+        case FactionType.TheEnlightened:
+            return { power: 3 };
+        default:
+            return { workers: 1 };
+    }
+};
+
+const CostIndicator: React.FC<{ workers?: number; coins?: number; priests?: number; power?: number }> = ({ workers, coins, priests, power }) => {
+    if (!workers && !coins && !priests && !power) return null;
     return (
         <div className="cost-indicator">
-            {workers && <div className="cost-worker">{workers}</div>}
-            {coins && <div className="cost-coin">{coins}</div>}
+            {workers && <WorkerIcon style={{ width: '1.25em', height: '1.25em' }}>{workers}</WorkerIcon>}
+            {coins && <CoinIcon style={{ width: '1.25em', height: '1.25em' }}>{coins}</CoinIcon>}
+            {priests && <PriestIcon style={{ width: '1.25em', height: '1.25em' }}>{priests}</PriestIcon>}
+            {power && <PowerIcon amount={power} style={{ width: '1.25em', height: '1.25em' }} />}
         </div>
     );
 };
@@ -207,6 +244,7 @@ interface PlayerBoardProps {
     onBurnPower?: (playerId: string, amount: number) => void;
     onAdvanceShipping?: (playerId: string) => void;
     onAdvanceDigging?: (playerId: string) => void;
+    onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
@@ -229,6 +267,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     onBurnPower,
     onAdvanceShipping,
     onAdvanceDigging,
+    onAdvanceChashTrack,
     onStrongholdAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
@@ -314,7 +353,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
     const showShippingUpgrade = canShowShippingForFaction(factionType);
-    const showDiggingUpgrade = canShowDiggingForFaction(factionType);
+    const showDiggingUpgrade = canShowDiggingForFaction(factionType) && factionType !== FactionType.ChashDallah;
+    const showChashTrackUpgrade = factionType === FactionType.ChashDallah;
+    const chashTrackLevel = player.chashIncomeTrackLevel ?? 0;
     const townTiles = player.townTiles ?? [];
     const displayedRemainingMs = getDisplayedRemainingMs(gameState?.turnTimer ?? null, playerId, displayNowMs);
     const timerIsActive = !!gameState?.turnTimer?.players?.[playerId]?.isActive;
@@ -400,7 +441,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 diggingLevel={diggingLevel}
                                 hasTempShippingBonus={hasTempShippingBonus}
                             />
-                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade) && (
+                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade || showChashTrackUpgrade) && (
                                 <div style={{ display: 'flex', gap: '0.25em', marginLeft: '0.5em' }}>
                                     {showShippingUpgrade && (
                                         <button
@@ -424,6 +465,19 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                             disabled={!canUseTurnActions}
                                         >
                                             +Dig
+                                        </button>
+                                    )}
+                                    {showChashTrackUpgrade && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-advance-chash-track`}
+                                            className="conversion-btn"
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onAdvanceChashTrack?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                            title={`Chash income track ${String(chashTrackLevel)}/4`}
+                                        >
+                                            +Track {String(chashTrackLevel)}/4
                                         </button>
                                     )}
                                 </div>
@@ -450,6 +504,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.stronghold.cost.workers}
                                         coins={boardLayout.stronghold.cost.coins}
+                                        priests={boardLayout.stronghold.cost.priests}
+                                        power={boardLayout.stronghold.cost.power}
                                     />
                                     <div className="pb-slot-sh-sa" style={{ position: 'relative' }}>
                                         <BuildingTrackSlot
@@ -500,6 +556,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.tradingHouses[0].cost.workers}
                                         coins={boardLayout.tradingHouses[0].cost.coins}
+                                        priests={boardLayout.tradingHouses[0].cost.priests}
+                                        power={boardLayout.tradingHouses[0].cost.power}
                                     />
                                     {boardLayout.tradingHouses.map((slot, i) => (
                                         <div key={`tp-${String(i)}`} className="pb-slot-tp-temple">
@@ -521,6 +579,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.sanctuary.cost.workers}
                                         coins={boardLayout.sanctuary.cost.coins}
+                                        priests={boardLayout.sanctuary.cost.priests}
+                                        power={boardLayout.sanctuary.cost.power}
                                     />
                                     <div className="pb-slot-sh-sa">
                                         <BuildingTrackSlot
@@ -537,6 +597,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.temples[0].cost.workers}
                                         coins={boardLayout.temples[0].cost.coins}
+                                        priests={boardLayout.temples[0].cost.priests}
+                                        power={boardLayout.temples[0].cost.power}
                                     />
                                     {boardLayout.temples.map((slot, i) => (
                                         <div key={`temple-${String(i)}`} className="pb-slot-tp-temple">
@@ -558,14 +620,13 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 <CostIndicator
                                     workers={boardLayout.dwellings[0].cost.workers}
                                     coins={boardLayout.dwellings[0].cost.coins}
+                                    priests={boardLayout.dwellings[0].cost.priests}
+                                    power={boardLayout.dwellings[0].cost.power}
                                 />
 
                                 {/* Base Income Display */}
                                 <div style={{ display: 'flex', alignItems: 'center', marginRight: '0.5em' }}>
-                                    <WorkerIcon style={{ width: '1.2em', height: '1.2em' }}>
-                                        {factionType === FactionType.Swarmlings ? 2 :
-                                            (factionType === FactionType.Engineers) ? 0 : 1}
-                                    </WorkerIcon>
+                                    <InlineIncomeDisplay income={getBaseIncome(factionType)} />
                                 </div>
 
                                 {boardLayout.dwellings.map((slot, i) => (
@@ -597,9 +658,12 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 <div className="conversion-area">
                                     <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Priest → 1 Worker</button>
                                     <button data-testid={`player-${playerId}-conversion-worker_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'worker_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Worker → 1 Coin</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>5 PW → 1 Priest</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>3 PW → 1 Worker</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 PW → 1 Coin</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>5 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Priests' : '1 Priest'}</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>3 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Workers' : '1 Worker'}</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Coins' : '1 Coin'}</button>
+                                    {factionType === FactionType.TheEnlightened && (
+                                        <button data-testid={`player-${playerId}-conversion-coin_to_power`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'coin_to_power'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Coin → 1 PW Token</button>
+                                    )}
                                     <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>Burn 2PW → +1 Bowl III</button>
                                     {factionType === FactionType.Alchemists && (
                                         <button data-testid={`player-${playerId}-conversion-alchemists_vp_to_coin`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 VP → 1 Coin</button>
@@ -713,6 +777,7 @@ interface PlayerBoardsProps {
     onBurnPower?: (playerId: string, amount: number) => void;
     onAdvanceShipping?: (playerId: string) => void;
     onAdvanceDigging?: (playerId: string) => void;
+    onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
@@ -731,6 +796,7 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
     onBurnPower,
     onAdvanceShipping,
     onAdvanceDigging,
+    onAdvanceChashTrack,
     onStrongholdAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
@@ -819,6 +885,7 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
                             onBurnPower={onBurnPower}
                             onAdvanceShipping={onAdvanceShipping}
                             onAdvanceDigging={onAdvanceDigging}
+                            onAdvanceChashTrack={onAdvanceChashTrack}
                             onStrongholdAction={onStrongholdAction}
                             onEngineersBridgeAction={onEngineersBridgeAction}
                             onMermaidsConnectAction={onMermaidsConnectAction}

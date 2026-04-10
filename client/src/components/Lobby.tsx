@@ -14,6 +14,7 @@ interface GameInfo {
   name: string
   host: string
   mapId: string
+  enableFanFactions?: boolean
   customMap?: CustomMapDefinition
   started?: boolean
   players: string[]
@@ -77,6 +78,7 @@ export function Lobby(): React.ReactElement {
   const [turnTimerEnabled, setTurnTimerEnabled] = useState(false)
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
+  const [enableFanFactions, setEnableFanFactions] = useState(false)
   const [lobbyError, setLobbyError] = useState<string | null>(null)
 
   const trimmedPlayerName = playerName.trim()
@@ -143,6 +145,7 @@ export function Lobby(): React.ReactElement {
         maxPlayers: overrides?.maxPlayers ?? newGameMaxPlayers,
         creator: trimmedPlayerName,
         mapId: newGameMapId,
+        enableFanFactions,
         customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
       },
     })
@@ -304,6 +307,16 @@ export function Lobby(): React.ReactElement {
                 </select>
               </label>
 
+              <label className="lobby-checkbox-row">
+                <input
+                  type="checkbox"
+                  data-testid="lobby-enable-fan-factions"
+                  checked={enableFanFactions}
+                  onChange={(e) => { setEnableFanFactions(e.target.checked) }}
+                />
+                <span>Enable fan factions</span>
+              </label>
+
               <div className="lobby-timer-box">
                 <label className="lobby-checkbox-row">
                   <input
@@ -390,6 +403,9 @@ export function Lobby(): React.ReactElement {
                             <span className="lobby-tag">{g.id}</span>
                             <span className="lobby-tag lobby-tag-muted">
                               Map: {displayMapName}
+                            </span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              Fan Factions: {g.enableFanFactions ? 'On' : 'Off'}
                             </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>

@@ -95,6 +95,20 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
       [FactionType.Darklings]: 'D',
       [FactionType.Engineers]: 'E',
       [FactionType.Dwarves]: 'D',
+      [FactionType.Architects]: 'R',
+      [FactionType.Archivists]: 'V',
+      [FactionType.Atlanteans]: 'T',
+      [FactionType.ChashDallah]: 'L',
+      [FactionType.ChildrenOfTheWyrm]: 'Y',
+      [FactionType.Conspirators]: 'O',
+      [FactionType.Djinni]: 'J',
+      [FactionType.DynionGeifr]: 'Y',
+      [FactionType.Goblins]: 'B',
+      [FactionType.Prospectors]: 'P',
+      [FactionType.TheEnlightened]: 'I',
+      [FactionType.TimeTravelers]: 'T',
+      [FactionType.Treasurers]: 'R',
+      [FactionType.Wisps]: 'W',
     };
     return names[faction];
   }, []);

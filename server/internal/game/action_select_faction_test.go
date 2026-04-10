@@ -47,3 +47,41 @@ func TestSelectFaction_SetsStartingCultPositions(t *testing.T) {
 		t.Fatalf("cult track state air mismatch: got %d want 2", got)
 	}
 }
+
+func TestSelectFaction_RejectsFanFactionWhenDisabled(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", nil); err != nil {
+		t.Fatalf("add p1: %v", err)
+	}
+	gs.Phase = PhaseFactionSelection
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.EnableFanFactions = false
+
+	action := &SelectFactionAction{
+		PlayerID:    "p1",
+		FactionType: models.FactionChashDallah,
+	}
+	if err := action.Validate(gs); err == nil {
+		t.Fatalf("expected fan faction to be rejected when disabled")
+	}
+}
+
+func TestSelectFaction_AllowsFanFactionWhenEnabled(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", nil); err != nil {
+		t.Fatalf("add p1: %v", err)
+	}
+	gs.Phase = PhaseFactionSelection
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.EnableFanFactions = true
+
+	action := &SelectFactionAction{
+		PlayerID:    "p1",
+		FactionType: models.FactionChashDallah,
+	}
+	if err := action.Validate(gs); err != nil {
+		t.Fatalf("expected fan faction to be allowed when enabled: %v", err)
+	}
+}

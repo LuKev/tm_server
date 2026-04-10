@@ -23,6 +23,19 @@ type BaseIncome struct {
 	Power   int // Power cycles through bowls using GainPower()
 }
 
+func chashIncomeTrackIncome(level int) BaseIncome {
+	switch level {
+	case 0:
+		return BaseIncome{Coins: 2}
+	case 1, 3:
+		return BaseIncome{Workers: 1}
+	case 2, 4:
+		return BaseIncome{Coins: 2}
+	default:
+		return BaseIncome{}
+	}
+}
+
 // GrantIncome grants income to all players at the start of a round
 func (gs *GameState) GrantIncome() {
 	// Note: We do NOT clear PendingSpades here
@@ -49,6 +62,11 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Workers += baseIncome.Workers
 	income.Priests += baseIncome.Priests
 	income.Power += baseIncome.Power
+	if faction.GetType() == models.FactionChashDallah {
+		trackIncome := chashIncomeTrackIncome(player.ChashIncomeTrackLevel)
+		income.Coins += trackIncome.Coins
+		income.Workers += trackIncome.Workers
+	}
 
 	// 2. Income from buildings on the map (uses faction methods)
 	buildingIncome := calculateBuildingIncome(gs, player)
