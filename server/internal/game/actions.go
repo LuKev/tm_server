@@ -30,6 +30,7 @@ const (
 	ActionApplyHalflingsSpade          // Apply one of 3 stronghold spades (Halflings only)
 	ActionBuildHalflingsDwelling       // Build dwelling on transformed hex (Halflings optional)
 	ActionSkipHalflingsDwelling        // Skip optional dwelling (Halflings)
+	ActionBuildWispsStrongholdDwelling // Build the free Wisps stronghold lake dwelling
 	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
 	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
 	ActionSelectFaction                // Select faction at start of game
@@ -141,6 +142,24 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		if a.BuildDwelling {
 			if allowed, ok := gs.PendingSpadeBuildAllowed[a.PlayerID]; ok && !allowed {
 				return fmt.Errorf("cannot build dwelling on remaining pending spade follow-up")
+			}
+		}
+		if sourceHex, ok := gs.PendingWispsTradingPostSpade[a.PlayerID]; ok {
+			if a.BuildDwelling {
+				return fmt.Errorf("wisps trading post spade cannot build a dwelling")
+			}
+			if requiredSpades != 1 {
+				return fmt.Errorf("wisps trading post spade must transform exactly 1 directly adjacent terrain")
+			}
+			isDirectNeighbor := false
+			for _, neighbor := range gs.Map.GetDirectNeighbors(sourceHex) {
+				if neighbor == a.TargetHex {
+					isDirectNeighbor = true
+					break
+				}
+			}
+			if !isDirectNeighbor {
+				return fmt.Errorf("wisps trading post spade must target terrain directly adjacent to the new trading post")
 			}
 		}
 	}
@@ -395,6 +414,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 				if gs.PendingSpades[a.PlayerID] == 0 {
 					delete(gs.PendingSpades, a.PlayerID)
 					delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+					gs.clearPendingWispsTradingPostSpade(a.PlayerID)
 				}
 				remainingToConsume -= vpEligibleFreeSpades
 			}
@@ -420,6 +440,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			if gs.PendingSpades[a.PlayerID] == 0 {
 				delete(gs.PendingSpades, a.PlayerID)
 				delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+				gs.clearPendingWispsTradingPostSpade(a.PlayerID)
 			}
 		}
 
@@ -606,6 +627,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	if a.NewBuildingType != models.BuildingTemple && a.NewBuildingType != models.BuildingSanctuary {
 		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
 	}
+	gs.updateAtlanteansStrongholdTown(a.PlayerID)
 
 	// Advance turn (unless pending actions exist, checked by NextTurn)
 	gs.NextTurn()
@@ -624,6 +646,20 @@ func (a *UpgradeBuildingAction) handleUpgradeRewards(gs *GameState, player *Play
 
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionTradingHouse)
+		if player.Faction.GetType() == models.FactionWisps {
+			if gs.PendingSpades == nil {
+				gs.PendingSpades = make(map[string]int)
+			}
+			if gs.PendingSpadeBuildAllowed == nil {
+				gs.PendingSpadeBuildAllowed = make(map[string]bool)
+			}
+			if gs.PendingWispsTradingPostSpade == nil {
+				gs.PendingWispsTradingPostSpade = make(map[string]board.Hex)
+			}
+			gs.PendingSpades[a.PlayerID] = 1
+			gs.PendingSpadeBuildAllowed[a.PlayerID] = false
+			gs.PendingWispsTradingPostSpade[a.PlayerID] = a.TargetHex
+		}
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
 		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
@@ -740,6 +776,13 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 			PlayerID:      a.PlayerID,
 			Count:         1,
 			SelectedTiles: []FavorTileType{},
+		}
+	case models.FactionWisps:
+		player.VictoryPoints += 7
+		if gs.hasAvailableWispsStrongholdLake() {
+			gs.PendingWispsStrongholdDwelling = &PendingWispsStrongholdDwelling{
+				PlayerID: a.PlayerID,
+			}
 		}
 
 	case models.FactionGiants:

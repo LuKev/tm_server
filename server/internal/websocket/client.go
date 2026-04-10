@@ -1132,6 +1132,13 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}
 		return game.NewEngineersBridgeAction(seatID, hex1, hex2), nil
 
+	case "wisps_stronghold_dwelling":
+		targetHex, err := parseHexParam("hex", "targetHex")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewBuildWispsStrongholdDwellingAction(seatID, targetHex), nil
+
 	case "special_action_use":
 		specialType, err := parseSpecialActionType(getParam)
 		if err != nil {

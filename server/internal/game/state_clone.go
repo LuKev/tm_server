@@ -33,6 +33,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 		PendingFreeActionsPlayerID:      gs.PendingFreeActionsPlayerID,
 		PendingCultistsLeech:            clonePendingCultistsLeech(gs.PendingCultistsLeech),
 		SkipAbilityUsedThisAction:       cloneSkipAbilityUsedThisAction(gs.SkipAbilityUsedThisAction),
+		PendingWispsTradingPostSpade:    cloneHexMap(gs.PendingWispsTradingPostSpade),
 		ReplayMode:                      cloneStringBoolMap(gs.ReplayMode),
 		SuppressTurnAdvance:             gs.SuppressTurnAdvance,
 		PendingTurnConfirmationPlayerID: "",
@@ -52,6 +53,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingCultistsLeech = clonePendingCultistsLeech(gs.PendingCultistsLeech)
 	clone.PendingFavorTileSelection = clonePendingFavorTileSelection(gs.PendingFavorTileSelection)
 	clone.PendingHalflingsSpades = clonePendingHalflingsSpades(gs.PendingHalflingsSpades)
+	clone.PendingWispsStrongholdDwelling = clonePendingWispsStrongholdDwelling(gs.PendingWispsStrongholdDwelling)
 	clone.PendingDarklingsPriestOrdination = clonePendingDarklingsPriestOrdination(gs.PendingDarklingsPriestOrdination)
 	clone.PendingCultistsCultSelection = clonePendingCultistsCultSelection(gs.PendingCultistsCultSelection)
 	clone.PendingTownCultTopChoice = clonePendingTownCultTopChoice(gs.PendingTownCultTopChoice)
@@ -104,7 +106,27 @@ func clonePlayer(src *Player) *Player {
 	if src.TownTiles != nil {
 		dst.TownTiles = append([]models.TownTileType(nil), src.TownTiles...)
 	}
+	if src.AtlanteansTownHexes != nil {
+		dst.AtlanteansTownHexes = append([]board.Hex(nil), src.AtlanteansTownHexes...)
+	}
+	if src.AtlanteansTownRewards != nil {
+		dst.AtlanteansTownRewards = make(map[int]bool, len(src.AtlanteansTownRewards))
+		for threshold, claimed := range src.AtlanteansTownRewards {
+			dst.AtlanteansTownRewards[threshold] = claimed
+		}
+	}
 	return &dst
+}
+
+func cloneHexMap(src map[string]board.Hex) map[string]board.Hex {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]board.Hex, len(src))
+	for playerID, hex := range src {
+		dst[playerID] = hex
+	}
+	return dst
 }
 
 func cloneMap(src *board.TerraMysticaMap) *board.TerraMysticaMap {
@@ -393,6 +415,14 @@ func clonePendingHalflingsSpades(src *PendingHalflingsSpades) *PendingHalflingsS
 	}
 	dst := *src
 	dst.TransformedHexes = append([]board.Hex(nil), src.TransformedHexes...)
+	return &dst
+}
+
+func clonePendingWispsStrongholdDwelling(src *PendingWispsStrongholdDwelling) *PendingWispsStrongholdDwelling {
+	if src == nil {
+		return nil
+	}
+	dst := *src
 	return &dst
 }
 

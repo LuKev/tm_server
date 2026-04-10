@@ -59,6 +59,7 @@ func (a *DiscardPendingSpadeAction) Execute(gs *GameState) error {
 		if gs.PendingSpades[a.PlayerID] <= 0 {
 			delete(gs.PendingSpades, a.PlayerID)
 			delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+			gs.clearPendingWispsTradingPostSpade(a.PlayerID)
 		}
 		gs.NextTurn()
 		return nil

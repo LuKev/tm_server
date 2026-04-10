@@ -89,6 +89,19 @@
     - `Conspirators` gain `+2 coins` whenever they take a favor tile
     - `Conspirators` stronghold immediately creates a normal favor-tile selection
     - `Conspirators` stronghold swap action now returns the old favor tile to supply, moves cult down without milestone side effects, frees cult-10 occupancy, refunds the key, rechecks town formation, and then applies the new favor tile normally
+  - Blue-faction mechanic clarifications implemented:
+    - `Atlanteans` place a starting `Stronghold` during setup instead of two dwellings
+    - Atlanteans place after all normal setup dwellings are finished; if `Chaos Magicians` are present, Atlanteans place immediately before or after Chaos based on relative turn order
+    - the starting Atlanteans stronghold is immediately a town; the player must choose the starting town tile during setup and gains its rewards immediately
+    - the Atlanteans stronghold-town never takes a second town tile; instead it tracks one persistent town rooted at the starting stronghold and can grow as connected non-town structures are added
+    - Atlanteans may use the reusable `build a bridge for 2 workers` faction action
+    - Atlanteans stronghold-town threshold rewards trigger once each at `7 / 10 / 16` power, including when multiple thresholds are crossed at once:
+      - `7`: advance shipping by 1 for free and gain the normal shipping VP
+      - `10`: advance 2 on all 4 cult tracks
+      - `16`: gain `20 VP`
+    - `Wisps` gain an optional pending `1 free spade` immediately after building a `Trading Post`; it must target a directly adjacent hex, must use exactly one spade, and may not place a dwelling on that hex as part of the follow-up
+    - `Wisps` stronghold gives `7 VP` immediately, then creates a mandatory pending placement of `1 free dwelling` on any unoccupied lake hex
+    - the client/server pending-decision protocol now has a dedicated `wisps_stronghold_dwelling` step so the lake dwelling resolves before play continues
 
 - 2026-04-03 hex-grid canvas resolution fix:
   - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.

@@ -342,7 +342,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
         && pendingDecision?.playerId === playerId
         && pendingDecision?.type === 'post_action_free_actions';
     const conversionActionsEnabled = canUseConversions || isLocalPostActionFreeWindow;
-    const isEngineersSquareAction = factionType === FactionType.Engineers;
+    const hasReusableBridgeAction = factionType === FactionType.Engineers || factionType === FactionType.Atlanteans;
     const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
     const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
     const isLocalEngineersBridgeActive = !!isEngineersBridgeActive && isLocalPlayer;
@@ -526,7 +526,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                 />
                                             </div>
                                         )}
-                                        {isEngineersSquareAction && (
+                                        {hasReusableBridgeAction && (
                                             <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdSquare
                                                     isActive={isLocalEngineersBridgeActive}
@@ -656,7 +656,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                             <>
                                 <div className="pb-section-title">Conversions</div>
                                 <div className="conversion-area">
-                                    <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Priest → 1 Worker</button>
+                                    <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>{factionType === FactionType.DynionGeifr ? '1 Priest → 2 Workers + 2 Coins' : '1 Priest → 1 Worker'}</button>
                                     <button data-testid={`player-${playerId}-conversion-worker_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'worker_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Worker → 1 Coin</button>
                                     <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>5 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Priests' : '1 Priest'}</button>
                                     <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>3 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Workers' : '1 Worker'}</button>

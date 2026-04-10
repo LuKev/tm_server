@@ -331,6 +331,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
+	if gs.PendingWispsStrongholdDwelling != nil {
+		if playerID != gs.PendingWispsStrongholdDwelling.PlayerID {
+			return fmt.Errorf("wisps stronghold dwelling required from player %s", gs.PendingWispsStrongholdDwelling.PlayerID)
+		}
+		if actionType != ActionBuildWispsStrongholdDwelling {
+			return fmt.Errorf("wisps stronghold dwelling pending for player %s", gs.PendingWispsStrongholdDwelling.PlayerID)
+		}
+		return nil
+	}
+
 	if requiredPlayer, _ := gs.GetPendingSpadeFollowupPlayer(); requiredPlayer != "" {
 		if playerID != requiredPlayer {
 			return fmt.Errorf("spade follow-up required from player %s", requiredPlayer)
@@ -412,7 +422,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -653,6 +663,7 @@ func isPendingResolutionActionType(actionType ActionType) bool {
 		ActionApplyHalflingsSpade,
 		ActionBuildHalflingsDwelling,
 		ActionSkipHalflingsDwelling,
+		ActionBuildWispsStrongholdDwelling,
 		ActionSelectCultistsCultTrack,
 		ActionUseCultSpade,
 		ActionDiscardPendingSpade,
@@ -675,6 +686,7 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionApplyHalflingsSpade,
 		ActionBuildHalflingsDwelling,
 		ActionSkipHalflingsDwelling,
+		ActionBuildWispsStrongholdDwelling,
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
 		ActionDiscardPendingSpade,
@@ -1110,6 +1122,13 @@ func serializePendingDecision(gs *GameState) interface{} {
 			"type":            "halflings_spades",
 			"playerId":        gs.PendingHalflingsSpades.PlayerID,
 			"spadesRemaining": gs.PendingHalflingsSpades.SpadesRemaining,
+		}
+	}
+
+	if gs.PendingWispsStrongholdDwelling != nil {
+		return map[string]interface{}{
+			"type":     "wisps_stronghold_dwelling",
+			"playerId": gs.PendingWispsStrongholdDwelling.PlayerID,
 		}
 	}
 

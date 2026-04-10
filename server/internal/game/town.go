@@ -419,6 +419,92 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 	}
 }
 
+func (gs *GameState) updateAtlanteansStrongholdTown(playerID string) {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionAtlanteans {
+		return
+	}
+	if len(player.AtlanteansTownHexes) == 0 {
+		return
+	}
+	if player.AtlanteansTownRewards == nil {
+		player.AtlanteansTownRewards = make(map[int]bool)
+	}
+
+	known := make(map[board.Hex]bool, len(player.AtlanteansTownHexes))
+	queue := make([]board.Hex, 0, len(player.AtlanteansTownHexes))
+	for _, hex := range player.AtlanteansTownHexes {
+		known[hex] = true
+		queue = append(queue, hex)
+	}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		for _, neighbor := range gs.atlanteansTownTraversalNeighbors(current) {
+			if known[neighbor] {
+				continue
+			}
+			mapHex := gs.Map.GetHex(neighbor)
+			if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+				continue
+			}
+			if mapHex.PartOfTown {
+				// Do not merge other existing towns into the stronghold town.
+				continue
+			}
+			known[neighbor] = true
+			player.AtlanteansTownHexes = append(player.AtlanteansTownHexes, neighbor)
+			queue = append(queue, neighbor)
+		}
+	}
+
+	totalPower := 0
+	for _, hex := range player.AtlanteansTownHexes {
+		mapHex := gs.Map.GetHex(hex)
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+			continue
+		}
+		mapHex.PartOfTown = true
+		if mapHex.Building.PowerValue > 0 {
+			totalPower += mapHex.Building.PowerValue
+		} else {
+			totalPower += GetPowerValue(mapHex.Building.Type)
+		}
+	}
+
+	if totalPower >= 7 && !player.AtlanteansTownRewards[7] {
+		player.AtlanteansTownRewards[7] = true
+		_ = gs.AdvanceShippingLevel(playerID)
+	}
+	if totalPower >= 10 && !player.AtlanteansTownRewards[10] {
+		player.AtlanteansTownRewards[10] = true
+		for _, track := range []CultTrack{CultFire, CultWater, CultEarth, CultAir} {
+			_, _ = gs.AdvanceCultTrack(playerID, track, 2)
+		}
+	}
+	if totalPower >= 16 && !player.AtlanteansTownRewards[16] {
+		player.AtlanteansTownRewards[16] = true
+		player.VictoryPoints += 20
+	}
+}
+
+func (gs *GameState) atlanteansTownTraversalNeighbors(current board.Hex) []board.Hex {
+	neighbors := gs.Map.GetDirectNeighbors(current)
+	for bridgeKey, owner := range gs.Map.Bridges {
+		if owner == "" {
+			continue
+		}
+		if bridgeKey.H1 == current {
+			neighbors = append(neighbors, bridgeKey.H2)
+		} else if bridgeKey.H2 == current {
+			neighbors = append(neighbors, bridgeKey.H1)
+		}
+	}
+	return neighbors
+}
+
 // CheckAllTownFormations checks for town formation for all of a player's buildings
 // This is useful when a condition changes (e.g. Fire+2 favor tile) that might allow
 // existing clusters to form towns

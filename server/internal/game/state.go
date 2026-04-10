@@ -48,12 +48,14 @@ type GameState struct {
 	SkipAbilityUsedThisAction        map[string][]board.Hex             `json:"skipAbilityUsedThisAction"`
 	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
 	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
+	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling    `json:"pendingWispsStrongholdDwelling,omitempty"`
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
 	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
 	PendingTownCultTopChoice         *PendingTownCultTopChoice          `json:"pendingTownCultTopChoice"`
 	PendingFreeActionsPlayerID       string                             `json:"pendingFreeActionsPlayerId"`
 	PendingTurnConfirmationPlayerID  string                             `json:"pendingTurnConfirmationPlayerId"`
 	PendingTurnConfirmationSnapshot  *GameState                         `json:"-"`
+	PendingWispsTradingPostSpade     map[string]board.Hex               `json:"-"`
 	TurnTimer                        *TurnTimerState                    `json:"turnTimer,omitempty"`
 	ReplayMode                       map[string]bool                    `json:"replayMode"`
 	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
@@ -92,6 +94,12 @@ type PendingHalflingsSpades struct {
 	PlayerID         string
 	SpadesRemaining  int         // Number of spades left to apply (starts at 3)
 	TransformedHexes []board.Hex // Hexes that have been transformed
+}
+
+// PendingWispsStrongholdDwelling represents the mandatory free lake dwelling
+// after the Wisps build their stronghold.
+type PendingWispsStrongholdDwelling struct {
+	PlayerID string
 }
 
 // PendingDarklingsPriestOrdination represents Darklings player who needs to convert workers to priests
@@ -185,6 +193,8 @@ type Player struct {
 	Keys                  int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
 	TownsFormed           int                        `json:"townsFormed"` // Number of towns formed
 	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
+	AtlanteansTownHexes   []board.Hex                `json:"-"`
+	AtlanteansTownRewards map[int]bool               `json:"-"`
 }
 
 func getStructurePowerValue(player *Player, buildingType models.BuildingType) int {
@@ -311,25 +321,26 @@ func NewGameStateWithCustomMap(definition *board.CustomMapDefinition) (*GameStat
 
 func newGameStateWithBoard(gameMap *board.TerraMysticaMap) *GameState {
 	return &GameState{
-		Map:                       gameMap,
-		Players:                   make(map[string]*Player),
-		Round:                     1,
-		Phase:                     PhaseSetup,
-		SetupMode:                 SetupModeSnellman,
-		SetupSubphase:             SetupSubphaseNone,
-		TurnOrderPolicy:           TurnOrderPolicyPassOrder,
-		PowerActions:              NewPowerActionState(),
-		CultTracks:                NewCultTrackState(),
-		FavorTiles:                NewFavorTileState(),
-		BonusCards:                NewBonusCardState(),
-		TownTiles:                 NewTownTileState(),
-		ScoringTiles:              NewScoringTileState(),
-		PendingLeechOffers:        make(map[string][]*PowerLeechOffer),
-		PendingTownFormations:     make(map[string][]*PendingTownFormation),
-		PendingSpades:             make(map[string]int),
-		PendingSpadeBuildAllowed:  make(map[string]bool),
-		SkipAbilityUsedThisAction: make(map[string][]board.Hex),
-		SetupPlacedDwellings:      make(map[string]int),
+		Map:                          gameMap,
+		Players:                      make(map[string]*Player),
+		Round:                        1,
+		Phase:                        PhaseSetup,
+		SetupMode:                    SetupModeSnellman,
+		SetupSubphase:                SetupSubphaseNone,
+		TurnOrderPolicy:              TurnOrderPolicyPassOrder,
+		PowerActions:                 NewPowerActionState(),
+		CultTracks:                   NewCultTrackState(),
+		FavorTiles:                   NewFavorTileState(),
+		BonusCards:                   NewBonusCardState(),
+		TownTiles:                    NewTownTileState(),
+		ScoringTiles:                 NewScoringTileState(),
+		PendingLeechOffers:           make(map[string][]*PowerLeechOffer),
+		PendingTownFormations:        make(map[string][]*PendingTownFormation),
+		PendingSpades:                make(map[string]int),
+		PendingSpadeBuildAllowed:     make(map[string]bool),
+		SkipAbilityUsedThisAction:    make(map[string][]board.Hex),
+		PendingWispsTradingPostSpade: make(map[string]board.Hex),
+		SetupPlacedDwellings:         make(map[string]int),
 	}
 }
 
@@ -381,13 +392,14 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 			CultEarth: startingCultPositions.Earth,
 			CultAir:   startingCultPositions.Air,
 		},
-		HasStrongholdAbility: false,
-		SpecialActionsUsed:   make(map[SpecialActionType]bool),
-		HasPassed:            false,
-		VictoryPoints:        20, // Starting VP
-		Keys:                 0,
-		TownsFormed:          0,
-		TownTiles:            []models.TownTileType{},
+		HasStrongholdAbility:  false,
+		SpecialActionsUsed:    make(map[SpecialActionType]bool),
+		HasPassed:             false,
+		VictoryPoints:         20, // Starting VP
+		Keys:                  0,
+		TownsFormed:           0,
+		TownTiles:             []models.TownTileType{},
+		AtlanteansTownRewards: make(map[int]bool),
 	}
 
 	gs.Players[playerID] = player
@@ -804,6 +816,7 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 
 	// Check for town formation
 	gs.CheckForTownFormation(playerID, targetHex)
+	gs.updateAtlanteansStrongholdTown(playerID)
 
 	return nil
 }
@@ -848,9 +861,28 @@ func (gs *GameState) InitializeSetupSequence() {
 	gs.SetupBonusIndex = 0
 	gs.SetupPlacedDwellings = make(map[string]int)
 
+	chaosIndex := -1
+	atlanteansIndex := -1
+	for i, playerID := range gs.TurnOrder {
+		player := gs.GetPlayer(playerID)
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		switch player.Faction.GetType() {
+		case models.FactionChaosMagicians:
+			chaosIndex = i
+		case models.FactionAtlanteans:
+			atlanteansIndex = i
+		}
+	}
+
 	for _, playerID := range gs.TurnOrder {
 		player := gs.GetPlayer(playerID)
-		if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionChaosMagicians {
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		factionType := player.Faction.GetType()
+		if factionType != models.FactionChaosMagicians && factionType != models.FactionAtlanteans {
 			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
 		}
 	}
@@ -858,7 +890,11 @@ func (gs *GameState) InitializeSetupSequence() {
 	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
 		playerID := gs.TurnOrder[i]
 		player := gs.GetPlayer(playerID)
-		if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionChaosMagicians {
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		factionType := player.Faction.GetType()
+		if factionType != models.FactionChaosMagicians && factionType != models.FactionAtlanteans {
 			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
 		}
 	}
@@ -871,12 +907,20 @@ func (gs *GameState) InitializeSetupSequence() {
 		}
 	}
 
+	if atlanteansIndex >= 0 && (chaosIndex == -1 || atlanteansIndex < chaosIndex) {
+		gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, gs.TurnOrder[atlanteansIndex])
+	}
+
 	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
 		playerID := gs.TurnOrder[i]
 		player := gs.GetPlayer(playerID)
 		if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionChaosMagicians {
 			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
 		}
+	}
+
+	if atlanteansIndex >= 0 && chaosIndex >= 0 && atlanteansIndex > chaosIndex {
+		gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, gs.TurnOrder[atlanteansIndex])
 	}
 
 	if current := gs.currentSetupDwellingPlayerID(); current != "" {
@@ -915,6 +959,22 @@ func (gs *GameState) AdvanceSetupAfterBonusSelection() {
 
 	gs.SetupSubphase = SetupSubphaseComplete
 	gs.CompleteSetupAndStartRoundOne()
+}
+
+func (gs *GameState) clearPendingWispsTradingPostSpade(playerID string) {
+	if gs.PendingWispsTradingPostSpade == nil {
+		return
+	}
+	delete(gs.PendingWispsTradingPostSpade, playerID)
+}
+
+func (gs *GameState) hasAvailableWispsStrongholdLake() bool {
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex != nil && mapHex.Terrain == models.TerrainLake && mapHex.Building == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func (gs *GameState) CompleteSetupAndStartRoundOne() {

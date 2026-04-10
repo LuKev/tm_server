@@ -597,6 +597,8 @@ export const Game = () => {
         const remaining = Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0)
         return actorText([pendingDecisionPlayerId ?? ''], remaining === 0 ? 'must decide whether to build a dwelling.' : 'must use Halflings spades.')
       }
+      case 'wisps_stronghold_dwelling':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must place the free Wisps dwelling.')
       case 'auction_nomination':
         return actorText([pendingDecisionPlayerId ?? auctionState?.currentBidder ?? ''], 'must nominate a faction.')
       case 'auction_bid':
@@ -908,6 +910,14 @@ export const Game = () => {
       setPendingHex({ q, r })
       setHexActionMode('transform_only')
       setSelectedTerrain(localHomeTerrain)
+      return
+    }
+
+    if (hasPendingDecisionForMe && pendingDecisionType === 'wisps_stronghold_dwelling') {
+      queueConfirm('Confirm Wisps Dwelling', `Place the free Wisps dwelling at ${formatHexCoord({ q, r })}?`, () => {
+        performAction('wisps_stronghold_dwelling', { targetHex: { q, r } })
+        setConfirmDialog(null)
+      })
       return
     }
 

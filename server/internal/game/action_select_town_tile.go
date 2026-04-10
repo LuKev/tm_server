@@ -48,6 +48,7 @@ func (a *SelectTownTileAction) Execute(gs *GameState) error {
 	if err := gs.SelectTownTile(a.PlayerID, a.TileType); err != nil {
 		return err
 	}
+	gs.updateAtlanteansStrongholdTown(a.PlayerID)
 
 	if pendingTowns, ok := gs.PendingTownFormations[a.PlayerID]; !ok || len(pendingTowns) == 0 {
 		if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID {
