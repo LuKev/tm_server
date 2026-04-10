@@ -127,6 +127,7 @@ export interface MapHex {
   terrain: TerrainType
   displayCoord?: string
   building?: Building
+  powerTokenOwnerPlayerId?: string
 }
 
 export interface MapState {
@@ -153,6 +154,7 @@ export interface PlayerState {
   keys?: number
   townsFormed?: number
   townTiles?: number[] // Array of TownTileType IDs
+  goblinTreasureTokens?: number
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
   options?: PlayerOptions
@@ -189,6 +191,7 @@ export enum SpecialActionType {
   MermaidsRiverTown = 10,
   EnlightenedGainPower = 11,
   ConspiratorsSwapFavor = 12,
+  ChildrenPlacePowerTokens = 13,
 }
 
 export interface CultTrackState {

@@ -1139,6 +1139,24 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}
 		return game.NewBuildWispsStrongholdDwellingAction(seatID, targetHex), nil
 
+	case "goblins_treasure":
+		rawReward, ok := getParam("rewardType")
+		if !ok {
+			return nil, fmt.Errorf("missing rewardType")
+		}
+		var rewardType string
+		if err := json.Unmarshal(rawReward, &rewardType); err != nil {
+			return nil, fmt.Errorf("invalid rewardType: %w", err)
+		}
+		return game.NewUseGoblinsTreasureAction(seatID, game.GoblinsTreasureRewardType(rewardType)), nil
+
+	case "select_goblins_cult_track":
+		track, err := parseCultTrackFromParams(getParam)()
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectGoblinsCultTrackAction(seatID, track), nil
+
 	case "special_action_use":
 		specialType, err := parseSpecialActionType(getParam)
 		if err != nil {
@@ -1546,6 +1564,28 @@ func buildSpecialAction(
 			return nil, fmt.Errorf("missing or invalid new favor tile: %w", err)
 		}
 		return game.NewConspiratorsSwapFavorAction(seatID, returnTile, newTile), nil
+
+	case game.SpecialActionChildrenPlacePowerTokens:
+		rawHexes, ok := getParam("targetHexes")
+		if !ok {
+			return nil, fmt.Errorf("missing targetHexes payload")
+		}
+		var coords []struct {
+			Q int `json:"q"`
+			R int `json:"r"`
+		}
+		if err := json.Unmarshal(rawHexes, &coords); err != nil {
+			return nil, fmt.Errorf("invalid targetHexes payload: %w", err)
+		}
+		targetHexes := make([]board.Hex, 0, len(coords))
+		for _, coord := range coords {
+			targetHexes = append(targetHexes, board.NewHex(coord.Q, coord.R))
+		}
+		confirmSpendBowl3, err := parseBoolParam(false, "confirmSpendBowl3")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewChildrenPlacePowerTokensAction(seatID, targetHexes, confirmSpendBowl3), nil
 
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")

@@ -115,6 +115,26 @@ func (ps *PowerSystem) CanBurn(amount int) bool {
 	return ps.Bowl2 >= (amount * 2)
 }
 
+// BurnPowerChildren converts Bowl II power for Children of the Wyrm.
+// Each sacrificed token moves 2 other tokens from Bowl II to Bowl III:
+// bowl II -3, bowl III +2.
+func (ps *PowerSystem) BurnPowerChildren(sacrifices int) error {
+	if sacrifices < 0 {
+		return fmt.Errorf("cannot burn negative power")
+	}
+	cost := sacrifices * 3
+	if cost > ps.Bowl2 {
+		return fmt.Errorf("cannot burn %d children sacrifices, need %d in Bowl 2 but only have %d", sacrifices, cost, ps.Bowl2)
+	}
+	ps.Bowl2 -= cost
+	ps.Bowl3 += sacrifices * 2
+	return nil
+}
+
+func (ps *PowerSystem) CanBurnChildren(sacrifices int) bool {
+	return sacrifices >= 0 && ps.Bowl2 >= sacrifices*3
+}
+
 // Clone creates a deep copy of the power system
 func (ps *PowerSystem) Clone() *PowerSystem {
 	return &PowerSystem{

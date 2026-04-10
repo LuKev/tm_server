@@ -23,6 +23,7 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
         case FactionType.Nomads: return SpecialActionType.NomadsSandstorm;
         case FactionType.TheEnlightened: return SpecialActionType.EnlightenedGainPower;
         case FactionType.Conspirators: return SpecialActionType.ConspiratorsSwapFavor;
+        case FactionType.ChildrenOfTheWyrm: return SpecialActionType.ChildrenPlacePowerTokens;
         default: return null;
     }
 };
@@ -246,6 +247,7 @@ interface PlayerBoardProps {
     onAdvanceDigging?: (playerId: string) => void;
     onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
+    onGoblinsTreasureAction?: (playerId: string) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
@@ -269,6 +271,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     onAdvanceDigging,
     onAdvanceChashTrack,
     onStrongholdAction,
+    onGoblinsTreasureAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
     onWater2Action,
@@ -327,6 +330,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const buildings = Object.values(gameState?.map.hexes ?? {})
         .map(h => h.building)
         .filter(b => b && b.ownerPlayerId === playerId);
+    const childrenBoardPowerTokens = Object.values(gameState?.map.hexes ?? {}).filter(h => h.powerTokenOwnerPlayerId === playerId).length;
+    const goblinTreasureTokens = player.goblinTreasureTokens ?? 0;
 
     const dwellingCount = buildings.filter(b => b?.type === BuildingType.Dwelling).length;
     const tradingHouseCount = buildings.filter(b => b?.type === BuildingType.TradingHouse).length;
@@ -434,6 +439,16 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 <span>{player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}</span>
                             </div>
                         </div>
+                        {factionType === FactionType.Goblins && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Treasure {goblinTreasureTokens}</span>
+                            </div>
+                        )}
+                        {factionType === FactionType.ChildrenOfTheWyrm && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Board PW {childrenBoardPowerTokens}</span>
+                            </div>
+                        )}
                         <div className="resource-item">
                             <ShippingDiggingDisplay
                                 factionType={factionType}
@@ -664,9 +679,12 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     {factionType === FactionType.TheEnlightened && (
                                         <button data-testid={`player-${playerId}-conversion-coin_to_power`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'coin_to_power'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Coin → 1 PW Token</button>
                                     )}
-                                    <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>Burn 2PW → +1 Bowl III</button>
+                                    <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>{factionType === FactionType.ChildrenOfTheWyrm ? 'Burn 3PW → +2 Bowl III' : 'Burn 2PW → +1 Bowl III'}</button>
                                     {factionType === FactionType.Alchemists && (
                                         <button data-testid={`player-${playerId}-conversion-alchemists_vp_to_coin`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 VP → 1 Coin</button>
+                                    )}
+                                    {factionType === FactionType.Goblins && (
+                                        <button data-testid={`player-${playerId}-goblins-treasure`} className="conversion-btn special" onClick={() => { onGoblinsTreasureAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || goblinTreasureTokens <= 0}>Use 1 Treasure</button>
                                     )}
                                 </div>
                                 <div className="pb-section-title">Towns</div>

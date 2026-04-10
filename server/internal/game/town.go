@@ -83,6 +83,8 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 
 	if player.Faction.GetType() == models.FactionMermaids {
 		connected, skippedRiver = gs.Map.GetConnectedBuildingsForMermaids(hex, playerID)
+	} else if player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		connected = gs.getConnectedBuildingsForPlayer(playerID, hex)
 	} else {
 		connected = gs.Map.GetConnectedBuildingsIncludingBridges(hex, playerID)
 	}
@@ -416,6 +418,10 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 	case models.FactionSwarmlings:
 		// Swarmlings get +3 workers per town formed
 		player.Resources.Workers += 3
+	case models.FactionGoblins:
+		if player.HasStrongholdAbility {
+			player.GoblinTreasureTokens++
+		}
 	}
 }
 

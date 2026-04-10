@@ -102,6 +102,28 @@
     - `Wisps` gain an optional pending `1 free spade` immediately after building a `Trading Post`; it must target a directly adjacent hex, must use exactly one spade, and may not place a dwelling on that hex as part of the follow-up
     - `Wisps` stronghold gives `7 VP` immediately, then creates a mandatory pending placement of `1 free dwelling` on any unoccupied lake hex
     - the client/server pending-decision protocol now has a dedicated `wisps_stronghold_dwelling` step so the lake dwelling resolves before play continues
+  - Black-faction mechanic clarifications implemented:
+    - `Children of the Wyrm` start with `12 coins`
+    - `Children of the Wyrm` use a non-standard burn: `3` power from bowl II -> `2` power to bowl III
+    - `Children of the Wyrm` leech costs `1 VP` less than normal
+    - `Children of the Wyrm` adjacency-based coin discounts apply to all structures:
+      - dwellings are `1C` adjacent / `2C` otherwise
+      - temples are `5C` adjacent / `10C` otherwise
+      - sanctuary and stronghold are `5C` adjacent / `10C` otherwise
+    - `Children of the Wyrm` stronghold special action places `1-2` power tokens on river hexes
+    - the special action removes tokens from bowl I first, then bowl II, then bowl III
+    - if bowl III must be used, the client should prompt before submitting so the player can convert those tokens to coins first if desired
+    - placed Children river power tokens extend direct-adjacency checks and connected-building grouping for town formation
+    - building the `Children of the Wyrm` stronghold restores removed power tokens to bowl I
+    - `Goblins` start with exactly `1` treasure token
+    - `Goblins` gain `1` treasure when building a temple or sanctuary
+    - after Goblins build their stronghold, each town founded grants `1` treasure
+    - Goblins treasure action choices are:
+      - dwellings: `+1 power` per dwelling
+      - trading posts: `+2 coins` per trading post
+      - temples: `+1 worker` per temple
+      - big structures: `+1 cult step` for stronghold and `+2 cult steps` for sanctuary
+    - Goblins big-structure treasure rewards resolve through a dedicated pending cult-step selection flow
 
 - 2026-04-03 hex-grid canvas resolution fix:
   - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.

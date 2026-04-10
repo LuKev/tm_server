@@ -87,6 +87,7 @@ const (
 	SpecialActionMermaidsRiverTown    // Mermaids: Form town across river
 	SpecialActionEnlightenedGainPower // The Enlightened SH: gain 4 power
 	SpecialActionConspiratorsSwapFavor
+	SpecialActionChildrenPlacePowerTokens
 )
 
 // SpecialAction represents a faction-specific special action
@@ -112,6 +113,9 @@ type SpecialAction struct {
 	// For Conspirators swap favor
 	ReturnFavorTile *FavorTileType
 	NewFavorTile    *FavorTileType
+	// For Children of the Wyrm stronghold action
+	TargetHexes       []board.Hex
+	ConfirmSpendBowl3 bool
 }
 
 // NewSpecialAction creates a new special action
@@ -277,6 +281,18 @@ func NewConspiratorsSwapFavorAction(playerID string, returnTile, newTile FavorTi
 	}
 }
 
+func NewChildrenPlacePowerTokensAction(playerID string, targetHexes []board.Hex, confirmSpendBowl3 bool) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:        SpecialActionChildrenPlacePowerTokens,
+		TargetHexes:       append([]board.Hex(nil), targetHexes...),
+		ConfirmSpendBowl3: confirmSpendBowl3,
+	}
+}
+
 func (a *SpecialAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -299,6 +315,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionNomadsSandstorm,
 		SpecialActionEnlightenedGainPower,
 		SpecialActionConspiratorsSwapFavor,
+		SpecialActionChildrenPlacePowerTokens,
 	}
 
 	isStrongholdAction := false
@@ -338,9 +355,41 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateEnlightenedGainPower(player)
 	case SpecialActionConspiratorsSwapFavor:
 		return a.validateConspiratorsSwapFavor(gs, player)
+	case SpecialActionChildrenPlacePowerTokens:
+		return a.validateChildrenPlacePowerTokens(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
+}
+
+func (a *SpecialAction) validateChildrenPlacePowerTokens(gs *GameState, player *Player) error {
+	if player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return fmt.Errorf("only Children of the Wyrm can use this special action")
+	}
+	if len(a.TargetHexes) == 0 || len(a.TargetHexes) > 2 {
+		return fmt.Errorf("children of the wyrm must place 1 or 2 power tokens")
+	}
+	if player.Resources == nil || player.Resources.Power == nil || player.Resources.Power.TotalPower() < len(a.TargetHexes) {
+		return fmt.Errorf("not enough power tokens available")
+	}
+	if gs.childrenNeedsBowl3ForBoardTokens(a.PlayerID, len(a.TargetHexes)) && !a.ConfirmSpendBowl3 {
+		return fmt.Errorf("placing these power tokens would consume Bowl III power; confirmation required")
+	}
+
+	seen := make(map[board.Hex]bool, len(a.TargetHexes))
+	planned := make(map[board.Hex]bool, len(a.TargetHexes))
+	for _, targetHex := range a.TargetHexes {
+		if seen[targetHex] {
+			return fmt.Errorf("duplicate power-token placement at %v", targetHex)
+		}
+		seen[targetHex] = true
+		if !gs.canPlaceChildrenPowerTokenAt(a.PlayerID, targetHex, planned) {
+			return fmt.Errorf("cannot place children of the wyrm power token at %v", targetHex)
+		}
+		planned[targetHex] = true
+	}
+
+	return nil
 }
 
 func (a *SpecialAction) validateEnlightenedGainPower(player *Player) error {
@@ -698,6 +747,10 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeConspiratorsSwapFavor(gs, player); err != nil {
 			return err
 		}
+	case SpecialActionChildrenPlacePowerTokens:
+		if err := a.executeChildrenPlacePowerTokens(gs, player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -706,6 +759,21 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		gs.NextTurn()
 	}
 
+	return nil
+}
+
+func (a *SpecialAction) executeChildrenPlacePowerTokens(gs *GameState, player *Player) error {
+	if err := gs.removeChildrenPowerTokensForBoard(a.PlayerID, len(a.TargetHexes)); err != nil {
+		return err
+	}
+	for _, targetHex := range a.TargetHexes {
+		mapHex := gs.Map.GetHex(targetHex)
+		if mapHex == nil {
+			return fmt.Errorf("hex does not exist: %v", targetHex)
+		}
+		mapHex.PowerTokenOwnerPlayerID = a.PlayerID
+	}
+	gs.CheckAllTownFormations(a.PlayerID)
 	return nil
 }
 
@@ -801,7 +869,7 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
@@ -824,7 +892,7 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
@@ -908,7 +976,7 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	// Optionally build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}

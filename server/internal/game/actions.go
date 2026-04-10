@@ -31,6 +31,8 @@ const (
 	ActionBuildHalflingsDwelling       // Build dwelling on transformed hex (Halflings optional)
 	ActionSkipHalflingsDwelling        // Skip optional dwelling (Halflings)
 	ActionBuildWispsStrongholdDwelling // Build the free Wisps stronghold lake dwelling
+	ActionUseGoblinsTreasure           // Spend one Goblins treasure token for a reward
+	ActionSelectGoblinsCultTrack       // Resolve Goblins treasure cult-step reward
 	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
 	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
 	ActionSelectFaction                // Select faction at start of game
@@ -290,7 +292,7 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 		if err := a.validateDwelling(gs, player, mapHex, needsTransform, targetTerrain); err != nil {
 			return 0, 0, 0, err
 		}
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 		totalWorkersNeeded += dwellingCost.Workers
 	}
 
@@ -314,7 +316,7 @@ func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player
 	}
 
 	// Check if player can afford dwelling (coins and priests)
-	dwellingCost := player.Faction.GetDwellingCost()
+	dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 	if !player.Resources.CanAfford(dwellingCost) {
 		return fmt.Errorf("not enough resources for dwelling: need %v, have %v", dwellingCost, player.Resources)
 	}
@@ -520,7 +522,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 
 func (a *TransformAndBuildAction) handleBuildDwelling(gs *GameState, player *Player) error {
 	// Pay for dwelling
-	dwellingCost := player.Faction.GetDwellingCost()
+	dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 	if err := player.Resources.Spend(dwellingCost); err != nil {
 		return fmt.Errorf("failed to pay for dwelling: %w", err)
 	}
@@ -679,8 +681,14 @@ func (a *UpgradeBuildingAction) handleUpgradeRewards(gs *GameState, player *Play
 		if a.NewBuildingType == models.BuildingTemple {
 			// SCORE5 (Temple+Priest): 4 VP per temple + 2 coins per priest at end of round
 			gs.AwardActionVP(a.PlayerID, ScoringActionTemple)
+			if player.Faction.GetType() == models.FactionGoblins {
+				player.GoblinTreasureTokens++
+			}
 		} else if a.NewBuildingType == models.BuildingSanctuary {
 			gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
+			if player.Faction.GetType() == models.FactionGoblins {
+				player.GoblinTreasureTokens++
+			}
 		}
 	case models.BuildingStronghold:
 		// Grant stronghold special ability
@@ -784,6 +792,8 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 				PlayerID: a.PlayerID,
 			}
 		}
+	case models.FactionChildrenOfTheWyrm:
+		player.Resources.Power.Bowl1 += gs.childrenRemovedPowerTokenCount(a.PlayerID)
 
 	case models.FactionGiants:
 		// Giants: Mark stronghold as built so ACTG special action becomes available
@@ -834,6 +844,22 @@ func isValidUpgrade(from, to models.BuildingType) bool {
 	return false
 }
 
+func getDwellingBuildCost(gs *GameState, player *Player, targetHex board.Hex) factions.Cost {
+	if player == nil || player.Faction == nil {
+		return factions.Cost{}
+	}
+	baseCost := player.Faction.GetDwellingCost()
+	if player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return baseCost
+	}
+	if hasAdjacentOpponent(gs, player, targetHex) {
+		baseCost.Coins = 1
+	} else {
+		baseCost.Coins = 2
+	}
+	return baseCost
+}
+
 // getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent
 func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuildingType models.BuildingType) factions.Cost {
 	var baseCost factions.Cost
@@ -851,23 +877,35 @@ func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuil
 		return baseCost
 	}
 
-	// Apply discount for Trading House if adjacent to opponent
-	if newBuildingType == models.BuildingTradingHouse {
-		if hasAdjacentOpponent(gs, mapHex.Coord, player.ID) {
-			// Reduce coin cost by half (6 -> 3 for most factions)
-			baseCost.Coins /= 2
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		if hasAdjacentOpponent(gs, player, mapHex.Coord) {
+			if newBuildingType == models.BuildingSanctuary || newBuildingType == models.BuildingStronghold {
+				baseCost.Coins = 5
+			}
+		} else if newBuildingType == models.BuildingTemple {
+			baseCost.Coins = 10
+		} else if newBuildingType == models.BuildingSanctuary || newBuildingType == models.BuildingStronghold {
+			baseCost.Coins = 10
 		}
+		return baseCost
+	}
+
+	// Apply discount for Trading House if adjacent to opponent
+	if newBuildingType == models.BuildingTradingHouse && hasAdjacentOpponent(gs, player, mapHex.Coord) {
+		// Reduce coin cost by half (6 -> 3 for most factions)
+		baseCost.Coins /= 2
 	}
 
 	return baseCost
 }
 
 // hasAdjacentOpponent checks if there's an opponent building adjacent to the hex
-func hasAdjacentOpponent(gs *GameState, hex board.Hex, playerID string) bool {
-	neighbors := hex.Neighbors()
-	for _, neighbor := range neighbors {
-		mapHex := gs.Map.GetHex(neighbor)
-		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID != playerID {
+func hasAdjacentOpponent(gs *GameState, player *Player, hex board.Hex) bool {
+	if player == nil {
+		return false
+	}
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID != player.ID && gs.areHexesDirectlyAdjacentForPlayer(player.ID, hex, mapHex.Coord) {
 			return true
 		}
 	}
@@ -1121,7 +1159,7 @@ func (gs *GameState) HasLateRoundPendingDecisions() bool {
 	if gs == nil {
 		return false
 	}
-	return gs.HasPendingLeechOffers() || gs.PendingCultistsCultSelection != nil
+	return gs.HasPendingLeechOffers() || gs.PendingCultistsCultSelection != nil || gs.PendingGoblinsCultSteps != nil
 }
 
 func advanceAfterRoundComplete(gs *GameState) {

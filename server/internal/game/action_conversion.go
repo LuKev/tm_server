@@ -143,6 +143,12 @@ func (a *BurnPowerAction) Validate(gs *GameState) error {
 	if a.Amount <= 0 {
 		return fmt.Errorf("burn amount must be positive")
 	}
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		if !player.Resources.Power.CanBurnChildren(a.Amount) {
+			return fmt.Errorf("cannot burn %d power", a.Amount)
+		}
+		return nil
+	}
 	if !player.Resources.Power.CanBurn(a.Amount) {
 		return fmt.Errorf("cannot burn %d power", a.Amount)
 	}
@@ -161,5 +167,8 @@ func (a *BurnPowerAction) Execute(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		return player.Resources.Power.BurnPowerChildren(a.Amount)
+	}
 	return player.Resources.BurnPower(a.Amount)
 }

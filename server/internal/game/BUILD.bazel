@@ -7,6 +7,8 @@ go_library(
         "action_cultists_cult_selection.go",
         "action_darklings_ordination.go",
         "action_engineers_bridge.go",
+        "action_goblins_cult_track.go",
+        "action_goblins_treasure.go",
         "action_halflings_spades.go",
         "action_power_leech.go",
         "action_select_faction.go",
@@ -62,6 +64,7 @@ go_test(
     srcs = [
         "faction_integration_test.go",
         "action_conversion_test.go",
+        "fan_faction_black_test.go",
         "fan_faction_blue_test.go",
         "fan_faction_grey_test.go",
         "fan_faction_green_test.go",

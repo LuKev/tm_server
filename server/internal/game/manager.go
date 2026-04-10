@@ -303,12 +303,24 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 
 	if gs.PendingCultistsCultSelection != nil {
 		pendingPlayer := strings.TrimSpace(gs.PendingCultistsCultSelection.PlayerID)
-		if strings.TrimSpace(playerID) == pendingPlayer {
-			if actionType != ActionSelectCultistsCultTrack {
-				return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
-			}
-			return nil
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("cultists cult selection required from player %s", gs.PendingCultistsCultSelection.PlayerID)
 		}
+		if actionType != ActionSelectCultistsCultTrack {
+			return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingGoblinsCultSteps != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingGoblinsCultSteps.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("goblins cult-step selection required from player %s", gs.PendingGoblinsCultSteps.PlayerID)
+		}
+		if actionType != ActionSelectGoblinsCultTrack {
+			return fmt.Errorf("goblins cult-step selection pending for player %s", gs.PendingGoblinsCultSteps.PlayerID)
+		}
+		return nil
 	}
 
 	if gs.PendingFavorTileSelection != nil {
@@ -422,7 +434,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectGoblinsCultTrack || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -665,6 +677,7 @@ func isPendingResolutionActionType(actionType ActionType) bool {
 		ActionSkipHalflingsDwelling,
 		ActionBuildWispsStrongholdDwelling,
 		ActionSelectCultistsCultTrack,
+		ActionSelectGoblinsCultTrack,
 		ActionUseCultSpade,
 		ActionDiscardPendingSpade,
 		ActionSetupBonusCard,
@@ -689,6 +702,7 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionBuildWispsStrongholdDwelling,
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
+		ActionSelectGoblinsCultTrack,
 		ActionDiscardPendingSpade,
 		ActionSetPlayerOptions,
 		ActionConfirmTurn,
@@ -858,6 +872,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			"keys":                  player.Keys,
 			"townsFormed":           player.TownsFormed,
 			"townTiles":             player.TownTiles,
+			"goblinTreasureTokens":  player.GoblinTreasureTokens,
 			"specialActionsUsed":    player.SpecialActionsUsed,
 			"cults": map[string]interface{}{
 				"0": player.CultPositions[CultFire],
@@ -888,6 +903,9 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 				"faction":       mapHex.Building.Faction,
 				"type":          mapHex.Building.Type,
 			}
+		}
+		if mapHex.PowerTokenOwnerPlayerID != "" {
+			hexData["powerTokenOwnerPlayerId"] = mapHex.PowerTokenOwnerPlayerID
 		}
 
 		hexes[key] = hexData
@@ -1122,6 +1140,14 @@ func serializePendingDecision(gs *GameState) interface{} {
 			"type":            "halflings_spades",
 			"playerId":        gs.PendingHalflingsSpades.PlayerID,
 			"spadesRemaining": gs.PendingHalflingsSpades.SpadesRemaining,
+		}
+	}
+
+	if gs.PendingGoblinsCultSteps != nil {
+		return map[string]interface{}{
+			"type":           "goblins_cult_steps",
+			"playerId":       gs.PendingGoblinsCultSteps.PlayerID,
+			"stepsRemaining": gs.PendingGoblinsCultSteps.StepsRemaining,
 		}
 	}
 

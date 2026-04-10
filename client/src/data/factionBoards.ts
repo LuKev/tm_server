@@ -309,7 +309,7 @@ const CHILDREN_OF_THE_WYRM_BOARD: FactionBoardLayout = {
     tradingHouses: STANDARD_TRADING_HOUSES,
     temples: STANDARD_TEMPLES,
     sanctuary: { cost: { workers: 4, coins: 5 }, income: { priests: 1 } },
-    stronghold: { cost: { workers: 4, coins: 10 }, income: { power: 4 } },
+    stronghold: { cost: { workers: 4, coins: 5 }, income: { power: 4 } },
 };
 
 const CONSPIRATORS_BOARD: FactionBoardLayout = {

@@ -158,7 +158,11 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		}
 	} else {
 		requiredBurn := a.requiredAutoBurn(player)
-		if requiredBurn > 0 && !player.Resources.Power.CanBurn(requiredBurn) {
+		canBurn := player.Resources.Power.CanBurn(requiredBurn)
+		if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+			canBurn = player.Resources.Power.CanBurnChildren(requiredBurn)
+		}
+		if requiredBurn > 0 && !canBurn {
 			return fmt.Errorf("not enough power for action: need %d in Bowl III, have %d and cannot auto-burn %d more from Bowl II", powerCost, player.Resources.Power.Bowl3, requiredBurn)
 		}
 	}
@@ -256,7 +260,13 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		player.Resources.Coins -= powerCost
 	} else {
 		if requiredBurn := a.requiredAutoBurn(player); requiredBurn > 0 {
-			if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
+			var err error
+			if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+				err = player.Resources.Power.BurnPowerChildren(requiredBurn)
+			} else {
+				err = player.Resources.Power.BurnPower(requiredBurn)
+			}
+			if err != nil {
 				return fmt.Errorf("failed to auto-burn power for action: %w", err)
 			}
 		}
@@ -358,6 +368,10 @@ func (a *PowerAction) requiredAutoBurn(player *Player) int {
 	powerCost := GetPowerCost(a.ActionType)
 	if player.Resources.Power.Bowl3 >= powerCost {
 		return 0
+	}
+
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		return (powerCost - player.Resources.Power.Bowl3 + 1) / 2
 	}
 
 	return powerCost - player.Resources.Power.Bowl3
@@ -526,7 +540,7 @@ func (a *PowerAction) buildDwelling(gs *GameState, player *Player) error {
 	}
 
 	// Pay for dwelling
-	dwellingCost := player.Faction.GetDwellingCost()
+	dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 	if err := player.Resources.Spend(dwellingCost); err != nil {
 		return fmt.Errorf("failed to pay for dwelling: %w", err)
 	}

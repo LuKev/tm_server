@@ -22,6 +22,7 @@ import {
   BonusCardType,
   FactionType,
   type LeechAutoMode,
+  type PlayerState,
   type PlayerOptions,
   type FavorTileType,
   type TownTileId,
@@ -80,6 +81,10 @@ type PendingPowerMode =
   | {
     type: 'special_action_target'
     actionType: SpecialActionType
+  }
+  | {
+    type: 'children_place_power_tokens'
+    targetHexes: Array<{ q: number; r: number }>
   }
 
 const TERRAIN_CHOICES: Array<{ id: TerrainType; name: string }> = [
@@ -593,6 +598,10 @@ export const Game = () => {
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a Darklings ordination.')
       case 'cultists_cult_choice':
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a cult track.')
+      case 'goblins_cult_steps': {
+        const remaining = Number(pendingDecision?.stepsRemaining ?? 0)
+        return actorText([pendingDecisionPlayerId ?? ''], remaining === 1 ? 'must choose 1 Goblins cult step.' : `must choose ${String(remaining)} Goblins cult steps.`)
+      }
       case 'halflings_spades': {
         const remaining = Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0)
         return actorText([pendingDecisionPlayerId ?? ''], remaining === 0 ? 'must decide whether to build a dwelling.' : 'must use Halflings spades.')
@@ -906,6 +915,27 @@ export const Game = () => {
 
     if (isOtherPlayerTurnConfirmationWindow) return
 
+    if (powerMode?.type === 'children_place_power_tokens') {
+      const mapHex = gameState.map?.hexes?.[`${String(q)},${String(r)}`]
+      if (!mapHex || mapHex.terrain !== TerrainType.River) return
+      setPowerMode((current) => {
+        if (current?.type !== 'children_place_power_tokens') return current
+        const alreadySelected = current.targetHexes.some((hex) => hex.q === q && hex.r === r)
+        if (alreadySelected) {
+          return {
+            ...current,
+            targetHexes: current.targetHexes.filter((hex) => hex.q !== q || hex.r !== r),
+          }
+        }
+        if (current.targetHexes.length >= 2) return current
+        return {
+          ...current,
+          targetHexes: [...current.targetHexes, { q, r }],
+        }
+      })
+      return
+    }
+
     if (hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades') {
       setPendingHex({ q, r })
       setHexActionMode('transform_only')
@@ -1188,6 +1218,48 @@ export const Game = () => {
     setPowerMode({ type: 'power_bridge', source: 'engineers', firstHex: null, useCoins: false })
   }
 
+  const handleGoblinsTreasureAction = (playerId: string): void => {
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
+    openChoiceDialog(
+      'Use Goblin Treasure',
+      'Choose which Goblins treasure reward to take.',
+      [
+        {
+          label: 'Dwellings',
+          testId: 'goblins-treasure-dwellings',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'dwellings' })
+            setConfirmDialog(null)
+          },
+        },
+        {
+          label: 'Trading Posts',
+          testId: 'goblins-treasure-trading-posts',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'trading_posts' })
+            setConfirmDialog(null)
+          },
+        },
+        {
+          label: 'Temples',
+          testId: 'goblins-treasure-temples',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'temples' })
+            setConfirmDialog(null)
+          },
+        },
+        {
+          label: 'Big Structures',
+          testId: 'goblins-treasure-big-structures',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'big_structures' })
+            setConfirmDialog(null)
+          },
+        },
+      ],
+    )
+  }
+
   const handleMermaidsConnectAction = (playerId: string): void => {
     if (playerId !== localPlayerId || !canInitiateTurnAction) return
     setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.MermaidsRiverTown })
@@ -1229,6 +1301,11 @@ export const Game = () => {
       setConspiratorsReturnTile(returnTile ?? '')
       setConspiratorsNewTile(newTile ?? '')
       setConspiratorsSwapModalOpen(true)
+      return
+    }
+
+    if (actionType === SpecialActionType.ChildrenPlacePowerTokens) {
+      setPowerMode({ type: 'children_place_power_tokens', targetHexes: [] })
       return
     }
 
@@ -1486,6 +1563,7 @@ export const Game = () => {
     if (powerMode?.type === 'special_action_target' && STRONGHOLD_TARGET_ACTION_TYPES.includes(powerMode.actionType)) {
       return powerMode.actionType
     }
+    if (powerMode?.type === 'children_place_power_tokens') return SpecialActionType.ChildrenPlacePowerTokens
     if (cultChoiceContext === 'auren_sh') return SpecialActionType.AurenCultAdvance
     if (chaosModalOpen) return SpecialActionType.ChaosMagiciansDoubleTurn
     if (conspiratorsSwapModalOpen) return SpecialActionType.ConspiratorsSwapFavor
@@ -1507,9 +1585,46 @@ export const Game = () => {
 
   const cancelHexAction = (): void => {
     closeHexModal()
-    if (powerMode?.type === 'power_spade' || powerMode?.type === 'special_action_target') {
+    if (
+      powerMode?.type === 'power_spade'
+      || powerMode?.type === 'special_action_target'
+      || powerMode?.type === 'children_place_power_tokens'
+    ) {
       setPowerMode(null)
     }
+  }
+
+  const selectedChildrenTokenHexes = powerMode?.type === 'children_place_power_tokens' ? powerMode.targetHexes : []
+  const childrenNeedsBowl3Confirmation = useMemo(() => {
+    if (powerMode?.type !== 'children_place_power_tokens' || !localPlayer) return false
+    const bowl1 = localPlayer.resources.power.powerI ?? 0
+    const bowl2 = localPlayer.resources.power.powerII ?? 0
+    return selectedChildrenTokenHexes.length > bowl1 + bowl2
+  }, [localPlayer, powerMode, selectedChildrenTokenHexes.length])
+
+  const submitChildrenPowerTokenAction = (): void => {
+    if (powerMode?.type !== 'children_place_power_tokens' || selectedChildrenTokenHexes.length === 0) return
+
+    const submit = (confirmSpendBowl3: boolean): void => {
+      performAction('special_action_use', {
+        specialActionType: SpecialActionType.ChildrenPlacePowerTokens,
+        targetHexes: selectedChildrenTokenHexes,
+        confirmSpendBowl3,
+      })
+      setPowerMode(null)
+      setConfirmDialog(null)
+    }
+
+    if (childrenNeedsBowl3Confirmation) {
+      setConfirmDialog({
+        title: 'Spend Bowl III Tokens?',
+        message: 'This placement will remove power tokens from Bowl III. Cancel if you want to convert those tokens to coins first, or confirm to continue.',
+        onConfirm: () => { submit(true) },
+      })
+      return
+    }
+
+    submit(false)
   }
 
   const submitHexModalAction = (): void => {
@@ -1753,6 +1868,28 @@ export const Game = () => {
                     Confirm
                   </button>
                 )}
+              </div>
+            </div>
+          ) : powerMode?.type === 'children_place_power_tokens' ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">Children of the Wyrm: Place River Power Tokens</div>
+                  <div className="text-sm text-slate-700">
+                    Select 1 or 2 river hexes adjacent to your network. Selected:
+                    {' '}
+                    {selectedChildrenTokenHexes.length === 0
+                      ? 'none'
+                      : selectedChildrenTokenHexes.map((hex) => formatHexCoord(hex)).join(', ')}
+                  </div>
+                  {childrenNeedsBowl3Confirmation && (
+                    <div className="text-sm text-amber-700">This will use Bowl III power tokens.</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button data-testid="children-power-token-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={cancelHexAction}>Cancel</button>
+                  <button data-testid="children-power-token-submit" className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:bg-blue-300" onClick={submitChildrenPowerTokenAction} disabled={selectedChildrenTokenHexes.length === 0}>Submit</button>
+                </div>
               </div>
             </div>
           ) : pendingHex ? (
@@ -1999,6 +2136,26 @@ export const Game = () => {
                 ))}
               </div>
             </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'goblins_cult_steps' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Goblins: Choose Cult Track</div>
+                <div className="text-sm text-slate-700">Select a cult track for each remaining Goblins cult step. Remaining: {String(Number(pendingDecision?.stepsRemaining ?? 0))}.</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {CULT_CHOICES.map((choice) => (
+                  <button
+                    key={choice.track}
+                    type="button"
+                    data-testid={`goblins-cult-choice-${String(choice.track)}`}
+                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                    onClick={() => { performAction('select_goblins_cult_track', { cultTrack: choice.track }) }}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades' && Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0) === 0 ? (
             <div className="space-y-3">
               <div>
@@ -2031,7 +2188,7 @@ export const Game = () => {
               <div className="text-sm font-semibold text-slate-900">Leech Offer</div>
               {pendingLeechOffersForMe.map((offer, idx) => {
                 const amount = Number(offer.Amount ?? offer.amount ?? 0)
-                const vpCost = Math.max(0, amount - 1)
+                const vpCost = Number(offer.VPCost ?? offer.vpCost ?? Math.max(0, amount - 1))
                 return (
                   <div key={idx} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2">
                     <span className="text-sm text-slate-800">Accept {String(amount)} power for {String(vpCost)} VP?</span>
@@ -2405,6 +2562,7 @@ export const Game = () => {
                 onAdvanceDigging={handleAdvanceDigging}
                 onAdvanceChashTrack={handleAdvanceChashTrack}
                 onStrongholdAction={handleStrongholdAction}
+                onGoblinsTreasureAction={handleGoblinsTreasureAction}
                 onEngineersBridgeAction={handleEngineersBridgeAction}
                 onMermaidsConnectAction={handleMermaidsConnectAction}
                 onWater2Action={handleWater2Action}

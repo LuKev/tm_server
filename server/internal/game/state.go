@@ -48,6 +48,7 @@ type GameState struct {
 	SkipAbilityUsedThisAction        map[string][]board.Hex             `json:"skipAbilityUsedThisAction"`
 	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
 	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
+	PendingGoblinsCultSteps          *PendingGoblinsCultSteps           `json:"pendingGoblinsCultSteps,omitempty"`
 	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling    `json:"pendingWispsStrongholdDwelling,omitempty"`
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
 	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
@@ -94,6 +95,12 @@ type PendingHalflingsSpades struct {
 	PlayerID         string
 	SpadesRemaining  int         // Number of spades left to apply (starts at 3)
 	TransformedHexes []board.Hex // Hexes that have been transformed
+}
+
+// PendingGoblinsCultSteps represents Goblins choosing cult tracks for treasure rewards.
+type PendingGoblinsCultSteps struct {
+	PlayerID       string
+	StepsRemaining int
 }
 
 // PendingWispsStrongholdDwelling represents the mandatory free lake dwelling
@@ -193,6 +200,7 @@ type Player struct {
 	Keys                  int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
 	TownsFormed           int                        `json:"townsFormed"` // Number of towns formed
 	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
+	GoblinTreasureTokens  int                        `json:"goblinTreasureTokens"`
 	AtlanteansTownHexes   []board.Hex                `json:"-"`
 	AtlanteansTownRewards map[int]bool               `json:"-"`
 }
@@ -224,6 +232,8 @@ func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
 		if err := ApplyFavorTileImmediate(gs, playerID, FavorFire2); err != nil {
 			return fmt.Errorf("failed to apply dynion geifr starting favor tile: %w", err)
 		}
+	case models.FactionGoblins:
+		player.GoblinTreasureTokens = 1
 	}
 
 	return nil
@@ -524,6 +534,232 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 	return nil
 }
 
+func (gs *GameState) playerHasAnyBuilding(playerID string) bool {
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			return true
+		}
+	}
+	return false
+}
+
+func (gs *GameState) getPlayerBuildingHexes(playerID string) []board.Hex {
+	hexes := make([]board.Hex, 0, 16)
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			hexes = append(hexes, mapHex.Coord)
+		}
+	}
+	return hexes
+}
+
+func (gs *GameState) effectiveShippingLevel(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		return 0
+	}
+	effectiveShipping := player.ShippingLevel
+	if bonusCard, hasCard := gs.BonusCards.GetPlayerCard(playerID); hasCard {
+		effectiveShipping += GetBonusCardShippingBonus(bonusCard, player.Faction.GetType())
+	}
+	return effectiveShipping
+}
+
+func (gs *GameState) childrenTokenComponentsForPlayer(playerID string) (map[board.Hex]int, map[int]bool) {
+	componentByHex := make(map[board.Hex]int)
+	componentTouchesStructure := make(map[int]bool)
+	nextComponent := 0
+
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || mapHex.PowerTokenOwnerPlayerID != playerID || mapHex.Terrain != models.TerrainRiver {
+			continue
+		}
+		if _, seen := componentByHex[mapHex.Coord]; seen {
+			continue
+		}
+
+		queue := []board.Hex{mapHex.Coord}
+		componentByHex[mapHex.Coord] = nextComponent
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
+			for _, neighbor := range current.Neighbors() {
+				neighborHex := gs.Map.GetHex(neighbor)
+				if neighborHex == nil || neighborHex.Terrain != models.TerrainRiver || neighborHex.PowerTokenOwnerPlayerID != playerID {
+					continue
+				}
+				if _, seen := componentByHex[neighbor]; seen {
+					continue
+				}
+				componentByHex[neighbor] = nextComponent
+				queue = append(queue, neighbor)
+			}
+		}
+		nextComponent++
+	}
+
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		for _, neighbor := range buildingHex.Neighbors() {
+			componentID, ok := componentByHex[neighbor]
+			if ok {
+				componentTouchesStructure[componentID] = true
+			}
+		}
+	}
+
+	return componentByHex, componentTouchesStructure
+}
+
+func (gs *GameState) hexTouchesChildrenTokenComponent(playerID string, hex board.Hex, componentByHex map[board.Hex]int) map[int]bool {
+	touched := make(map[int]bool)
+	for _, neighbor := range hex.Neighbors() {
+		componentID, ok := componentByHex[neighbor]
+		if ok {
+			touched[componentID] = true
+		}
+	}
+	return touched
+}
+
+func (gs *GameState) areHexesDirectlyAdjacentForPlayer(playerID string, h1, h2 board.Hex) bool {
+	if gs.Map.IsDirectlyAdjacent(h1, h2) {
+		return true
+	}
+
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return false
+	}
+
+	componentByHex, componentTouchesStructure := gs.childrenTokenComponentsForPlayer(playerID)
+	touched1 := gs.hexTouchesChildrenTokenComponent(playerID, h1, componentByHex)
+	if len(touched1) == 0 {
+		return false
+	}
+	touched2 := gs.hexTouchesChildrenTokenComponent(playerID, h2, componentByHex)
+	for componentID := range touched1 {
+		if touched2[componentID] && componentTouchesStructure[componentID] {
+			return true
+		}
+	}
+	return false
+}
+
+func (gs *GameState) getConnectedBuildingsForPlayer(playerID string, start board.Hex) []board.Hex {
+	buildingHexes := gs.getPlayerBuildingHexes(playerID)
+	if len(buildingHexes) == 0 {
+		return nil
+	}
+
+	connected := []board.Hex{}
+	visited := make(map[board.Hex]bool, len(buildingHexes))
+	queue := []board.Hex{start}
+	visited[start] = true
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		connected = append(connected, current)
+		for _, candidate := range buildingHexes {
+			if visited[candidate] || candidate == current {
+				continue
+			}
+			if gs.areHexesDirectlyAdjacentForPlayer(playerID, current, candidate) {
+				visited[candidate] = true
+				queue = append(queue, candidate)
+			}
+		}
+	}
+
+	return connected
+}
+
+func (gs *GameState) canPlaceChildrenPowerTokenAt(playerID string, targetHex board.Hex, planned map[board.Hex]bool) bool {
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex == nil || mapHex.Terrain != models.TerrainRiver || mapHex.PowerTokenOwnerPlayerID != "" {
+		return false
+	}
+
+	for _, neighbor := range targetHex.Neighbors() {
+		neighborHex := gs.Map.GetHex(neighbor)
+		if neighborHex == nil {
+			continue
+		}
+		if neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
+			return true
+		}
+		if neighborHex.PowerTokenOwnerPlayerID == playerID || planned[neighbor] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (gs *GameState) childrenBoardPowerTokenCount(playerID string) int {
+	count := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex != nil && mapHex.PowerTokenOwnerPlayerID == playerID {
+			count++
+		}
+	}
+	return count
+}
+
+func (gs *GameState) childrenRemovedPowerTokenCount(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return 0
+	}
+	totalInCirculation := player.Resources.Power.TotalPower() + gs.childrenBoardPowerTokenCount(playerID)
+	if totalInCirculation >= 12 {
+		return 0
+	}
+	return 12 - totalInCirculation
+}
+
+func (gs *GameState) childrenNeedsBowl3ForBoardTokens(playerID string, count int) bool {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return false
+	}
+	return player.Resources.Power.Bowl1+player.Resources.Power.Bowl2 < count
+}
+
+func (gs *GameState) removeChildrenPowerTokensForBoard(playerID string, count int) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+	if count < 0 {
+		return fmt.Errorf("cannot remove negative power tokens")
+	}
+	if player.Resources.Power.TotalPower() < count {
+		return fmt.Errorf("not enough power tokens available")
+	}
+
+	remaining := count
+	if player.Resources.Power.Bowl1 >= remaining {
+		player.Resources.Power.Bowl1 -= remaining
+		return nil
+	}
+	remaining -= player.Resources.Power.Bowl1
+	player.Resources.Power.Bowl1 = 0
+
+	if player.Resources.Power.Bowl2 >= remaining {
+		player.Resources.Power.Bowl2 -= remaining
+		return nil
+	}
+	remaining -= player.Resources.Power.Bowl2
+	player.Resources.Power.Bowl2 = 0
+
+	if player.Resources.Power.Bowl3 < remaining {
+		return fmt.Errorf("not enough power tokens available")
+	}
+	player.Resources.Power.Bowl3 -= remaining
+	return nil
+}
+
 // IsAdjacentToPlayerBuilding checks if a hex is adjacent to any of the player's buildings
 // According to Terra Mystica rules, adjacency can be:
 // 1. Direct adjacency (shared edge or connected via bridge)
@@ -535,47 +771,28 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex board.Hex, playerID st
 	}
 
 	// Check if player has any buildings at all (for first dwelling placement)
-	hasAnyBuilding := false
-	for _, mapHex := range gs.Map.Hexes {
-		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-			hasAnyBuilding = true
-			break
-		}
-	}
-
-	// If player has no buildings yet, allow placement anywhere (first dwelling)
-	if !hasAnyBuilding {
+	if !gs.playerHasAnyBuilding(playerID) {
 		return true
 	}
 
-	// Calculate effective shipping level (base + bonus card bonus)
-	effectiveShipping := player.ShippingLevel
-	if bonusCard, hasCard := gs.BonusCards.GetPlayerCard(playerID); hasCard {
-		shippingBonus := GetBonusCardShippingBonus(bonusCard, player.Faction.GetType())
-		effectiveShipping += shippingBonus
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		if gs.areHexesDirectlyAdjacentForPlayer(playerID, targetHex, buildingHex) {
+			return true
+		}
 	}
 
-	// Check adjacency to each of the player's buildings
-	for _, mapHex := range gs.Map.Hexes {
-		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-			buildingHex := mapHex.Coord
+	effectiveShipping := gs.effectiveShippingLevel(playerID)
+	if effectiveShipping <= 0 {
+		return false
+	}
 
-			// Check direct adjacency (includes bridges)
-			if gs.Map.IsDirectlyAdjacent(targetHex, buildingHex) {
-				return true
-			}
-
-			// Check indirect adjacency via shipping (river navigation)
-			if effectiveShipping > 0 {
-				if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, effectiveShipping) {
-					return true
-				}
-			}
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, effectiveShipping) {
+			return true
 		}
 	}
 
 	// Special abilities (Witches flying, Fakirs carpet, Dwarves tunneling) are handled by special actions
-
 	return false
 }
 
@@ -615,6 +832,9 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 		// Create offer based on TOTAL power from all adjacent buildings
 		offer := NewPowerLeechOffer(totalPower, buildingPlayerID, neighborPlayer.Resources.Power)
 		if offer != nil {
+			if neighborPlayer.Faction != nil && neighborPlayer.Faction.GetType() == models.FactionChildrenOfTheWyrm && offer.VPCost > 0 {
+				offer.VPCost--
+			}
 			offer.EventID = eventID
 			// Store offer for player to accept/decline
 			if gs.PendingLeechOffers[neighborPlayerID] == nil {
@@ -699,6 +919,9 @@ func (gs *GameState) AcceptLeechOffer(playerID string, offerIndex int) error {
 
 	// Gain power and lose VP based on the amount actually gained.
 	vpCost := player.Resources.AcceptPowerLeech(offer)
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && vpCost > 0 {
+		vpCost--
+	}
 	player.VictoryPoints -= vpCost
 
 	// Remove the offer

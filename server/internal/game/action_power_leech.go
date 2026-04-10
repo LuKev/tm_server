@@ -100,6 +100,9 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 
 	if accepted {
 		vpCost := player.Resources.AcceptPowerLeech(offer)
+		if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && vpCost > 0 {
+			vpCost--
+		}
 		player.VictoryPoints -= vpCost
 	} else {
 		player.Resources.DeclinePowerLeech(offer)

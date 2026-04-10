@@ -53,6 +53,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingCultistsLeech = clonePendingCultistsLeech(gs.PendingCultistsLeech)
 	clone.PendingFavorTileSelection = clonePendingFavorTileSelection(gs.PendingFavorTileSelection)
 	clone.PendingHalflingsSpades = clonePendingHalflingsSpades(gs.PendingHalflingsSpades)
+	clone.PendingGoblinsCultSteps = clonePendingGoblinsCultSteps(gs.PendingGoblinsCultSteps)
 	clone.PendingWispsStrongholdDwelling = clonePendingWispsStrongholdDwelling(gs.PendingWispsStrongholdDwelling)
 	clone.PendingDarklingsPriestOrdination = clonePendingDarklingsPriestOrdination(gs.PendingDarklingsPriestOrdination)
 	clone.PendingCultistsCultSelection = clonePendingCultistsCultSelection(gs.PendingCultistsCultSelection)
@@ -419,6 +420,14 @@ func clonePendingHalflingsSpades(src *PendingHalflingsSpades) *PendingHalflingsS
 }
 
 func clonePendingWispsStrongholdDwelling(src *PendingWispsStrongholdDwelling) *PendingWispsStrongholdDwelling {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
+func clonePendingGoblinsCultSteps(src *PendingGoblinsCultSteps) *PendingGoblinsCultSteps {
 	if src == nil {
 		return nil
 	}
