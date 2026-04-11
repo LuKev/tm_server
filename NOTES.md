@@ -266,6 +266,10 @@
       - `Mermaids`: `CT` after stronghold
       - `Goblins`: `Treasure`
     - `Time Travelers`, `Chash Dallah`, and `Prospectors` should not show a `+Dig` upgrade button because their digging tracks are not upgradable in this implementation
+- 2026-04-10 in-game decision strip placement:
+  - `client/src/components/Game.tsx` now renders the shared `game-decision-strip` before the game title, spectator banner, and player options panel so the strip is visible immediately on load and remains the first sticky element during scroll.
+  - Keep the action/confirmation strip above other page-level chrome in the game route; if new top-of-page panels are added later, place them below the strip unless they must permanently outrank turn-flow controls.
+  - Regression coverage lives in `client/e2e/ui-action-contract.spec.ts` and checks both that the strip starts above the layout controls and that it remains pinned near the viewport top after scrolling.
 
 - 2026-04-03 hex-grid canvas resolution fix:
   - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.

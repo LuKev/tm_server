@@ -495,6 +495,40 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await waitForPerformAction(page, 'confirm_turn')
   })
 
+  test('decision strip stays above the page controls and pinned near the viewport top while scrolling', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 720 })
+
+    const state = makeBaseGameState({
+      currentTurn: 1,
+      pendingDecision: {
+        type: 'turn_confirmation',
+        playerId: 'p1',
+      },
+    })
+
+    await openGameWithState(page, state)
+
+    const strip = page.getByTestId('game-decision-strip')
+    const layoutToggle = page.getByTestId('layout-lock-toggle')
+    await expect(strip).toBeVisible()
+    await expect(layoutToggle).toBeVisible()
+
+    const initialStripBox = await strip.boundingBox()
+    const layoutToggleBox = await layoutToggle.boundingBox()
+    expect(initialStripBox).not.toBeNull()
+    expect(layoutToggleBox).not.toBeNull()
+    expect(initialStripBox!.y).toBeLessThan(layoutToggleBox!.y)
+
+    await page.evaluate(() => {
+      window.scrollTo(0, document.body.scrollHeight)
+    })
+    await expect.poll(async () => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+
+    const scrolledStripBox = await strip.boundingBox()
+    expect(scrolledStripBox).not.toBeNull()
+    expect(scrolledStripBox!.y).toBeLessThan(32)
+  })
+
   test('display coordinates use server-style board labels', () => {
     expect(formatDisplayCoordinate({ q: 0, r: 0 })).toBe('A1')
     expect(formatDisplayCoordinate({ q: 3, r: 4 })).toBe('E6')

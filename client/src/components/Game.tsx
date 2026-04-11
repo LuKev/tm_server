@@ -1984,9 +1984,375 @@ export const Game = () => {
     setUpgradeHex(null)
   }
 
+  const decisionStrip = (
+    <div className="mb-3 sticky top-2 z-50 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px] shadow-sm" data-testid="game-decision-strip">
+      <div className="mb-3">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Action</div>
+        <div className="text-sm font-semibold text-slate-900">{decisionStripStatus}</div>
+      </div>
+      {confirmDialog ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
+            <div className="text-sm text-slate-700">{confirmDialog.message}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
+            <button
+              data-testid="confirm-action-confirm"
+              className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+              onClick={() => {
+                if (!confirmDialog) return
+                confirmDialog.onConfirm()
+              }}
+            >
+              Confirm
+            </button>
+          </div>
+        </div>
+      ) : pendingHex ? (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-slate-900">
+                {isHalflingsSpadeDecision ? 'Apply Halflings Spade' : isCultSpadeDecision ? 'Use Cult Spade' : 'Hex Action'}
+              </div>
+              <div className="text-sm text-slate-700">Selected hex: {formatHexCoord(pendingHex)}</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button data-testid="hex-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={cancelHexAction}>Cancel</button>
+              <button data-testid="hex-action-submit" className="rounded bg-blue-600 px-3 py-1 text-sm text-white" onClick={submitHexModalAction}>Submit</button>
+            </div>
+          </div>
+
+          {isHalflingsSpadeDecision && (
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="text-sm text-slate-700">Choose terrain to transform to.</span>
+              <select
+                data-testid="hex-action-terrain-halflings"
+                value={selectedTerrain}
+                onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
+                className="rounded border px-2 py-1 text-sm"
+              >
+                {TERRAIN_CHOICES.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {isCultSpadeDecision && (
+            <div className="flex flex-wrap items-end gap-4">
+              <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+                This action uses one cult reward spade and cannot build a dwelling.
+              </div>
+              <label className="flex flex-col gap-1 text-sm text-slate-800">
+                <span className="font-medium">Target terrain</span>
+                <select
+                  data-testid="hex-action-target-terrain"
+                  value={selectedTerrain}
+                  onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
+                  className="rounded border px-2 py-1"
+                >
+                  {TERRAIN_CHOICES.map((t) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          )}
+
+          {!isHalflingsSpadeDecision && !isCultSpadeDecision && (
+            <div className="flex flex-wrap items-end gap-4">
+              {isPendingSpadeDecision && !canBuildWithPendingSpadeForMe ? (
+                <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                  This follow-up spade can only transform terrain (no dwelling build allowed).
+                </div>
+              ) : (
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span className="font-medium">Action</span>
+                  <select
+                    data-testid="hex-action-mode"
+                    value={hexActionMode ?? 'build'}
+                    onChange={(e) => { setHexActionMode(e.target.value as 'build' | 'transform_build' | 'transform_only') }}
+                    className="rounded border px-2 py-1"
+                  >
+                    <option value="build">Build dwelling</option>
+                    <option value="transform_build">Transform and build</option>
+                    <option value="transform_only">Transform only</option>
+                  </select>
+                </label>
+              )}
+
+              {(hexActionMode === 'transform_build' || hexActionMode === 'transform_only') && (
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span className="font-medium">Target terrain</span>
+                  <select
+                    data-testid="hex-action-target-terrain"
+                    value={selectedTerrain}
+                    onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
+                    className="rounded border px-2 py-1"
+                  >
+                    {TERRAIN_CHOICES.map((t) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+        </div>
+      ) : upgradeHex ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Upgrade Building</div>
+            <div className="text-sm text-slate-700">Select an upgrade for {formatHexCoord(upgradeHex)}.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {upgradeOptions.length === 0 && <span className="text-sm text-slate-700">No legal upgrades for this building.</span>}
+            {upgradeOptions.map((opt) => (
+              <button
+                key={opt.type}
+                type="button"
+                data-testid={`upgrade-option-${String(opt.type)}`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                onClick={() => { selectUpgrade(opt.type) }}
+              >
+                {opt.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              data-testid="upgrade-building-cancel"
+              className="rounded bg-gray-200 px-3 py-2 text-sm text-gray-800"
+              onClick={() => { setUpgradeHex(null) }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : cultChoiceContext !== null ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Choose Cult Track</div>
+            <div className="text-sm text-slate-700">Select the cult track for this action.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {CULT_CHOICES.map((choice) => (
+              <button
+                key={choice.track}
+                type="button"
+                data-testid={`cult-choice-${String(choice.track)}`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                onClick={() => { submitCultChoice(choice.track) }}
+              >
+                {choice.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              data-testid="cult-choice-cancel"
+              className="rounded bg-gray-200 px-3 py-2 text-sm text-gray-800"
+              onClick={() => { setCultChoiceContext(null) }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'town_cult_top_choice' ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Choose Cults To Top</div>
+            <div className="text-sm text-slate-700">Choose {String(pendingTownCultTopMaxSelections)} track(s) to advance to 10.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {pendingTownCultTopCandidates.map((track) => (
+              <button
+                key={track}
+                type="button"
+                data-testid={`town-cult-top-choice-${String(track)}`}
+                className={`rounded border px-3 py-2 text-sm ${selectedTownCultTracks.includes(track) ? 'border-blue-400 bg-blue-100 text-blue-900' : 'border-slate-300 text-slate-800 hover:bg-slate-100'}`}
+                onClick={() => { toggleTownCultTrack(track) }}
+              >
+                {CULT_CHOICES.find((choice) => choice.track === track)?.label ?? `Cult ${String(track)}`}
+              </button>
+            ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              data-testid="town-cult-top-choice-confirm"
+              className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:bg-blue-300"
+              disabled={selectedTownCultTracks.length !== pendingTownCultTopMaxSelections}
+              onClick={() => {
+                performAction('select_town_cult_top', { tracks: selectedTownCultTracks })
+              }}
+            >
+              Confirm selection
+            </button>
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'setup_bonus_card' ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Choose Setup Bonus Card</div>
+            <div className="text-sm text-slate-700">Select your starting bonus card.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {setupBonusCards.map((cardId) => (
+              <button
+                key={cardId}
+                type="button"
+                data-testid={`setup-bonus-card-${String(cardId)}`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                onClick={() => { performAction('setup_bonus_card', { bonusCard: cardId }) }}
+              >
+                {bonusCardLabel(cardId)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'darklings_ordination' ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Darklings Ordination</div>
+            <div className="text-sm text-slate-700">
+              Darklings can only convert workers to priests when a player just upgraded to a stronghold.
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {[0, 1, 2, 3].map((count) => (
+              <button
+                key={count}
+                type="button"
+                data-testid={`darklings-ordination-${count}`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                onClick={() => { performAction('darklings_ordination', { workersToConvert: count }) }}
+              >
+                {count}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'cultists_cult_choice' ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Cultists: Choose Cult Track</div>
+            <div className="text-sm text-slate-700">Select the cult track to advance.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {CULT_CHOICES.map((choice) => (
+              <button
+                key={choice.track}
+                type="button"
+                data-testid={`cultists-cult-choice-${String(choice.track)}`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                onClick={() => { performAction('select_cultists_track', { cultTrack: choice.track }) }}
+              >
+                {choice.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades' && Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0) === 0 ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Halflings Optional Dwelling</div>
+            <div className="text-sm text-slate-700">All spades used. Build one dwelling on a transformed hex or skip.</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {transformedHalflingsHexes.map((h) => (
+              <button
+                key={`${String(h.q)},${String(h.r)}`}
+                type="button"
+                data-testid={`halflings-build-${String(h.q)}-${String(h.r)}`}
+                className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                onClick={() => { performAction('halflings_build_dwelling', { targetHex: h }) }}
+              >
+                Build at {formatHexCoord(h)}
+              </button>
+            ))}
+            <button
+              data-testid="halflings-skip-dwelling"
+              className="rounded bg-gray-600 px-3 py-2 text-sm text-white"
+              onClick={() => { performAction('halflings_skip_dwelling') }}
+            >
+              Skip dwelling
+            </button>
+          </div>
+        </div>
+      ) : pendingLeechOffersForMe.length > 0 ? (
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-slate-900">Leech Offer</div>
+          {pendingLeechOffersForMe.map((offer, idx) => {
+            const amount = Number(offer.Amount ?? offer.amount ?? 0)
+            const vpCost = Math.max(0, amount - 1)
+            return (
+              <div key={idx} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2">
+                <span className="text-sm text-slate-800">Accept {String(amount)} power for {String(vpCost)} VP?</span>
+                <div className="flex items-center gap-2">
+                  <button data-testid={`leech-offer-${idx}-accept`} className="rounded bg-green-600 px-3 py-1 text-sm text-white" onClick={() => { performAction('accept_leech', { offerIndex: idx }) }}>Accept</button>
+                  <button data-testid={`leech-offer-${idx}-decline`} className="rounded bg-gray-600 px-3 py-1 text-sm text-white" onClick={() => { performAction('decline_leech', { offerIndex: idx }) }}>Decline</button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : waitingOnOtherLeechResponses > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Waiting On Leech Responses</div>
+            <div className="text-sm text-slate-700">
+              Waiting for {pendingLeechResponderList} to accept or decline leech.
+            </div>
+          </div>
+        </div>
+      ) : hasFavorSelectionForMe ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Please select a favor tile</div>
+            <div className="text-sm text-slate-700">A favor tile is required before your turn can continue.</div>
+          </div>
+        </div>
+      ) : hasTownSelectionForMe ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Please select a town tile</div>
+            <div className="text-sm text-slate-700">A town tile selection is required.</div>
+          </div>
+        </div>
+      ) : isTurnConfirmationWindowForMe ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Confirm Turn</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              data-testid="turn-end-undo"
+              className="rounded bg-amber-600 px-3 py-1 text-sm text-white"
+              onClick={() => { performAction('undo_turn') }}
+            >
+              Undo
+            </button>
+            <button
+              data-testid="turn-end-confirm"
+              className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
+              onClick={() => { performAction('confirm_turn') }}
+            >
+              Confirm turn
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="text-sm text-slate-500">No pending follow-up controls.</div>
+      )}
+    </div>
+  )
+
   return (
     <div className="min-h-screen bg-white p-4 text-gray-900" data-testid="game-screen">
       <div className="max-w-[1800px] mx-auto">
+        {decisionStrip}
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-3xl font-bold text-gray-800">Terra Mystica - Game {gameId}</h1>
           <div className="flex gap-2">
@@ -2066,560 +2432,6 @@ export const Game = () => {
             </div>
           </div>
         )}
-
-        <div className="mb-3 sticky top-2 z-40 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px] shadow-sm" data-testid="game-decision-strip">
-          <div className="mb-3">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Action</div>
-            <div className="text-sm font-semibold text-slate-900">{decisionStripStatus}</div>
-          </div>
-          {confirmDialog ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
-                <div className="text-sm text-slate-700">{confirmDialog.message}</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
-                {confirmDialog.actions ? confirmDialog.actions.map((action) => (
-                  <button
-                    key={action.testId ?? action.label}
-                    data-testid={action.testId}
-                    className={action.className ?? 'rounded bg-blue-600 px-3 py-1 text-sm text-white'}
-                    onClick={() => {
-                      action.onClick()
-                    }}
-                  >
-                    {action.label}
-                  </button>
-                )) : (
-                  <button
-                    data-testid="confirm-action-confirm"
-                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-                    onClick={() => {
-                      if (!confirmDialog?.onConfirm) return
-                      confirmDialog.onConfirm()
-                    }}
-                  >
-                    Confirm
-                  </button>
-                )}
-              </div>
-            </div>
-          ) : powerMode?.type === 'children_place_power_tokens' ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">Children of the Wyrm: Place River Power Tokens</div>
-                  <div className="text-sm text-slate-700">
-                    Select 1 or 2 river hexes adjacent to your network. Selected:
-                    {' '}
-                    {selectedChildrenTokenHexes.length === 0
-                      ? 'none'
-                      : selectedChildrenTokenHexes.map((hex) => formatHexCoord(hex)).join(', ')}
-                  </div>
-                  {childrenNeedsBowl3Confirmation && (
-                    <div className="text-sm text-amber-700">This will use Bowl III power tokens.</div>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  <button data-testid="children-power-token-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={cancelHexAction}>Cancel</button>
-                  <button data-testid="children-power-token-submit" className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:bg-blue-300" onClick={submitChildrenPowerTokenAction} disabled={selectedChildrenTokenHexes.length === 0}>Submit</button>
-                </div>
-              </div>
-            </div>
-          ) : pendingHex ? (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-slate-900">
-                    {isHalflingsSpadeDecision ? 'Apply Halflings Spade' : isCultSpadeDecision ? 'Use Cult Spade' : 'Hex Action'}
-                  </div>
-                  <div className="text-sm text-slate-700">Selected hex: {formatHexCoord(pendingHex)}</div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button data-testid="hex-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={cancelHexAction}>Cancel</button>
-                  <button data-testid="hex-action-submit" className="rounded bg-blue-600 px-3 py-1 text-sm text-white" onClick={submitHexModalAction}>Submit</button>
-                </div>
-              </div>
-
-              {isHalflingsSpadeDecision && (
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="text-sm text-slate-700">Choose terrain to transform to.</span>
-                  <select
-                    data-testid="hex-action-terrain-halflings"
-                    value={selectedTerrain}
-                    onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
-                    className="rounded border px-2 py-1 text-sm"
-                  >
-                    {TERRAIN_CHOICES.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {isCultSpadeDecision && (
-                <div className="flex flex-wrap items-end gap-4">
-                  <div className="rounded border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
-                    This action uses one cult reward spade and cannot build a dwelling.
-                  </div>
-                  <label className="flex flex-col gap-1 text-sm text-slate-800">
-                    <span className="font-medium">Target terrain</span>
-                    <select
-                      data-testid="hex-action-target-terrain"
-                      value={selectedTerrain}
-                      onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
-                      className="rounded border px-2 py-1"
-                    >
-                      {TERRAIN_CHOICES.map((t) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
-              )}
-
-              {!isHalflingsSpadeDecision && !isCultSpadeDecision && (
-                <div className="flex flex-wrap items-end gap-4">
-                  {isPendingSpadeDecision && !canBuildWithPendingSpadeForMe ? (
-                    <div className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      This follow-up spade can only transform terrain (no dwelling build allowed).
-                    </div>
-                  ) : (
-                    <label className="flex flex-col gap-1 text-sm text-slate-800">
-                      <span className="font-medium">Action</span>
-                      <select
-                        data-testid="hex-action-mode"
-                        value={hexActionMode ?? 'build'}
-                        onChange={(e) => { setHexActionMode(e.target.value as 'build' | 'transform_build' | 'transform_only') }}
-                        className="rounded border px-2 py-1"
-                      >
-                        <option value="build">Build dwelling</option>
-                        <option value="transform_build">Transform and build</option>
-                        <option value="transform_only">Transform only</option>
-                      </select>
-                    </label>
-                  )}
-
-                  {(hexActionMode === 'transform_build' || hexActionMode === 'transform_only') && (
-                    <label className="flex flex-col gap-1 text-sm text-slate-800">
-                      <span className="font-medium">Target terrain</span>
-                      <select
-                        data-testid="hex-action-target-terrain"
-                        value={selectedTerrain}
-                        onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
-                        className="rounded border px-2 py-1"
-                      >
-                        {TERRAIN_CHOICES.map((t) => (
-                          <option key={t.id} value={t.id}>{t.name}</option>
-                        ))}
-                      </select>
-                    </label>
-                  )}
-                </div>
-              )}
-            </div>
-          ) : upgradeHex ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Upgrade Building</div>
-                <div className="text-sm text-slate-700">Select an upgrade for {formatHexCoord(upgradeHex)}.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {upgradeOptions.length === 0 && <span className="text-sm text-slate-700">No legal upgrades for this building.</span>}
-                {upgradeOptions.map((opt) => (
-                  <button
-                    key={opt.type}
-                    type="button"
-                    data-testid={`upgrade-option-${String(opt.type)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { selectUpgrade(opt.type) }}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  data-testid="upgrade-building-cancel"
-                  className="rounded bg-gray-200 px-3 py-2 text-sm text-gray-800"
-                  onClick={() => { setUpgradeHex(null) }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : cultChoiceContext !== null ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Choose Cult Track</div>
-                <div className="text-sm text-slate-700">Select the cult track for this action.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {CULT_CHOICES.map((choice) => (
-                  <button
-                    key={choice.track}
-                    type="button"
-                    data-testid={`cult-choice-${String(choice.track)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { submitCultChoice(choice.track) }}
-                  >
-                    {choice.label}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  data-testid="cult-choice-cancel"
-                  className="rounded bg-gray-200 px-3 py-2 text-sm text-gray-800"
-                  onClick={() => { setCultChoiceContext(null) }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'town_cult_top_choice' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Choose Cults To Top</div>
-                <div className="text-sm text-slate-700">Choose {String(pendingTownCultTopMaxSelections)} track(s) to advance to 10.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {pendingTownCultTopCandidates.map((track) => (
-                  <button
-                    key={track}
-                    type="button"
-                    data-testid={`town-cult-top-choice-${String(track)}`}
-                    className={`rounded border px-3 py-2 text-sm ${selectedTownCultTracks.includes(track) ? 'border-blue-400 bg-blue-100 text-blue-900' : 'border-slate-300 text-slate-800 hover:bg-slate-100'}`}
-                    onClick={() => { toggleTownCultTrack(track) }}
-                  >
-                    {CULT_CHOICES.find((choice) => choice.track === track)?.label ?? `Cult ${String(track)}`}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  data-testid="town-cult-top-choice-confirm"
-                  className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:bg-blue-300"
-                  disabled={selectedTownCultTracks.length !== pendingTownCultTopMaxSelections}
-                  onClick={() => {
-                    performAction('select_town_cult_top', { tracks: selectedTownCultTracks })
-                  }}
-                >
-                  Confirm selection
-                </button>
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'setup_bonus_card' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Choose Setup Bonus Card</div>
-                <div className="text-sm text-slate-700">Select your starting bonus card.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {setupBonusCards.map((cardId) => (
-                  <button
-                    key={cardId}
-                    type="button"
-                    data-testid={`setup-bonus-card-${String(cardId)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { performAction('setup_bonus_card', { bonusCard: cardId }) }}
-                  >
-                    {bonusCardLabel(cardId)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'archivists_bonus_card' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Choose Archivists Bonus Card</div>
-                <div className="text-sm text-slate-700">Select your second bonus card. You cannot retake a card you just returned.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {availableCards
-                  .filter((cardId) => !pendingArchivistsReturnedCards.includes(cardId as BonusCardType) && !bonusCardOwners[String(cardId)])
-                  .map((cardId) => (
-                    <button
-                      key={cardId}
-                      type="button"
-                      data-testid={`archivists-bonus-card-${String(cardId)}`}
-                      className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                      onClick={() => { performAction('select_archivists_bonus_card', { bonusCard: cardId }) }}
-                    >
-                      {bonusCardLabel(cardId)}
-                    </button>
-                  ))}
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'darklings_ordination' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Darklings Ordination</div>
-                <div className="text-sm text-slate-700">
-                  Darklings can only convert workers to priests when a player just upgraded to a stronghold.
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {[0, 1, 2, 3].map((count) => (
-                  <button
-                    key={count}
-                    type="button"
-                    data-testid={`darklings-ordination-${count}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { performAction('darklings_ordination', { workersToConvert: count }) }}
-                  >
-                    {count}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'cultists_cult_choice' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Cultists: Choose Cult Track</div>
-                <div className="text-sm text-slate-700">Select the cult track to advance.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {CULT_CHOICES.map((choice) => (
-                  <button
-                    key={choice.track}
-                    type="button"
-                    data-testid={`cultists-cult-choice-${String(choice.track)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { performAction('select_cultists_track', { cultTrack: choice.track }) }}
-                  >
-                    {choice.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'djinni_start_cult_choice' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Djinni: Choose Starting Cult</div>
-                <div className="text-sm text-slate-700">Advance 2 steps on one cult track.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {CULT_CHOICES.map((choice) => (
-                  <button
-                    key={choice.track}
-                    type="button"
-                    data-testid={`djinni-start-cult-choice-${String(choice.track)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { performAction('select_djinni_start_cult_track', { cultTrack: choice.track }) }}
-                  >
-                    {choice.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'treasurers_deposit' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Treasurers: Bank Resources</div>
-                <div className="text-sm text-slate-700">
-                  Choose how many of the newly received resources to move into the Treasury.
-                  {pendingDecision?.reason === 'income' ? ' These will double at the start of your next income phase.' : ''}
-                  {pendingDecision?.reason === 'conversion' ? ' This conversion can be banked immediately instead of staying on board.' : ''}
-                </div>
-              </div>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <label className="flex flex-col gap-1 text-sm text-slate-800">
-                  <span>Coins</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={treasurersDepositAvailability.coins}
-                    value={treasurersDepositCoins}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.coins, Math.floor(value))) : 0
-                      setTreasurersDepositCoins(normalized)
-                    }}
-                    className="rounded border border-slate-300 px-2 py-1"
-                    data-testid="treasurers-deposit-coins"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-slate-800">
-                  <span>Workers</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={treasurersDepositAvailability.workers}
-                    value={treasurersDepositWorkers}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.workers, Math.floor(value))) : 0
-                      setTreasurersDepositWorkers(normalized)
-                    }}
-                    className="rounded border border-slate-300 px-2 py-1"
-                    data-testid="treasurers-deposit-workers"
-                  />
-                </label>
-                <label className="flex flex-col gap-1 text-sm text-slate-800">
-                  <span>Priests</span>
-                  <input
-                    type="number"
-                    min={0}
-                    max={treasurersDepositAvailability.priests}
-                    value={treasurersDepositPriests}
-                    onChange={(e) => {
-                      const value = Number(e.target.value)
-                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.priests, Math.floor(value))) : 0
-                      setTreasurersDepositPriests(normalized)
-                    }}
-                    className="rounded border border-slate-300 px-2 py-1"
-                    data-testid="treasurers-deposit-priests"
-                  />
-                </label>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  data-testid="treasurers-deposit-confirm"
-                  className="rounded bg-blue-600 px-3 py-2 text-sm text-white"
-                  onClick={() => {
-                    performAction('select_treasurers_deposit', {
-                      coinsToTreasury: treasurersDepositCoins,
-                      workersToTreasury: treasurersDepositWorkers,
-                      priestsToTreasury: treasurersDepositPriests,
-                    })
-                  }}
-                >
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  data-testid="treasurers-deposit-none"
-                  className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                  onClick={() => {
-                    setTreasurersDepositCoins(0)
-                    setTreasurersDepositWorkers(0)
-                    setTreasurersDepositPriests(0)
-                    performAction('select_treasurers_deposit', {
-                      coinsToTreasury: 0,
-                      workersToTreasury: 0,
-                      priestsToTreasury: 0,
-                    })
-                  }}
-                >
-                  Keep all on board
-                </button>
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'goblins_cult_steps' ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Goblins Treasure: Assign Cult Steps</div>
-                <div className="text-sm text-slate-700">Spend each remaining Goblins big-structure cult step on any cult track. Remaining: {String(Number(pendingDecision?.stepsRemaining ?? 0))}.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {CULT_CHOICES.map((choice) => (
-                  <button
-                    key={choice.track}
-                    type="button"
-                    data-testid={`goblins-cult-choice-${String(choice.track)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { performAction('select_goblins_cult_track', { cultTrack: choice.track }) }}
-                  >
-                    {choice.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          ) : hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades' && Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0) === 0 ? (
-            <div className="space-y-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Halflings Optional Dwelling</div>
-                <div className="text-sm text-slate-700">All spades used. Build one dwelling on a transformed hex or skip.</div>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                {transformedHalflingsHexes.map((h) => (
-                  <button
-                    key={`${String(h.q)},${String(h.r)}`}
-                    type="button"
-                    data-testid={`halflings-build-${String(h.q)}-${String(h.r)}`}
-                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
-                    onClick={() => { performAction('halflings_build_dwelling', { targetHex: h }) }}
-                  >
-                    Build at {formatHexCoord(h)}
-                  </button>
-                ))}
-                <button
-                  data-testid="halflings-skip-dwelling"
-                  className="rounded bg-gray-600 px-3 py-2 text-sm text-white"
-                  onClick={() => { performAction('halflings_skip_dwelling') }}
-                >
-                  Skip dwelling
-                </button>
-              </div>
-            </div>
-          ) : pendingLeechOffersForMe.length > 0 ? (
-            <div className="space-y-2">
-              <div className="text-sm font-semibold text-slate-900">Leech Offer</div>
-              {pendingLeechOffersForMe.map((offer, idx) => {
-                const amount = Number(offer.Amount ?? offer.amount ?? 0)
-                const vpCost = Number(offer.VPCost ?? offer.vpCost ?? Math.max(0, amount - 1))
-                return (
-                  <div key={idx} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span className="text-sm text-slate-800">Accept {String(amount)} power for {String(vpCost)} VP?</span>
-                    <div className="flex items-center gap-2">
-                      <button data-testid={`leech-offer-${idx}-accept`} className="rounded bg-green-600 px-3 py-1 text-sm text-white" onClick={() => { performAction('accept_leech', { offerIndex: idx }) }}>Accept</button>
-                      <button data-testid={`leech-offer-${idx}-decline`} className="rounded bg-gray-600 px-3 py-1 text-sm text-white" onClick={() => { performAction('decline_leech', { offerIndex: idx }) }}>Decline</button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : waitingOnOtherLeechResponses > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Waiting On Leech Responses</div>
-                <div className="text-sm text-slate-700">
-                  Waiting for {pendingLeechResponderList} to accept or decline leech.
-                </div>
-              </div>
-            </div>
-          ) : hasFavorSelectionForMe ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Please select a favor tile</div>
-                <div className="text-sm text-slate-700">A favor tile is required before your turn can continue.</div>
-              </div>
-            </div>
-          ) : hasTownSelectionForMe ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Please select a town tile</div>
-                <div className="text-sm text-slate-700">A town tile selection is required.</div>
-              </div>
-            </div>
-          ) : isTurnConfirmationWindowForMe ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-slate-900">Confirm Turn</div>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  data-testid="turn-end-undo"
-                  className="rounded bg-amber-600 px-3 py-1 text-sm text-white"
-                  onClick={() => { performAction('undo_turn') }}
-                >
-                  Undo
-                </button>
-                <button
-                  data-testid="turn-end-confirm"
-                  className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
-                  onClick={() => { performAction('confirm_turn') }}
-                >
-                  Confirm turn
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="text-sm text-slate-500">No pending follow-up controls.</div>
-          )}
-        </div>
 
         {errorMessage && (
           <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-800" data-testid="action-error-message">
