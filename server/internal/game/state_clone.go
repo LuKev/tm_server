@@ -34,6 +34,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 		PendingCultistsLeech:            clonePendingCultistsLeech(gs.PendingCultistsLeech),
 		SkipAbilityUsedThisAction:       cloneSkipAbilityUsedThisAction(gs.SkipAbilityUsedThisAction),
 		PendingWispsTradingPostSpade:    cloneHexMap(gs.PendingWispsTradingPostSpade),
+		PendingPostActionSpecialActions: clonePendingPostActionSpecialActions(gs.PendingPostActionSpecialActions),
 		ReplayMode:                      cloneStringBoolMap(gs.ReplayMode),
 		SuppressTurnAdvance:             gs.SuppressTurnAdvance,
 		PendingTurnConfirmationPlayerID: "",
@@ -126,6 +127,25 @@ func cloneHexMap(src map[string]board.Hex) map[string]board.Hex {
 	dst := make(map[string]board.Hex, len(src))
 	for playerID, hex := range src {
 		dst[playerID] = hex
+	}
+	return dst
+}
+
+func clonePendingPostActionSpecialActions(src map[string]map[SpecialActionType]bool) map[string]map[SpecialActionType]bool {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]map[SpecialActionType]bool, len(src))
+	for playerID, actions := range src {
+		if actions == nil {
+			dst[playerID] = nil
+			continue
+		}
+		actionCopy := make(map[SpecialActionType]bool, len(actions))
+		for actionType, allowed := range actions {
+			actionCopy[actionType] = allowed
+		}
+		dst[playerID] = actionCopy
 	}
 	return dst
 }

@@ -750,6 +750,12 @@ export const Game = () => {
       case FactionType.Conspirators:
         hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.ConspiratorsSwapFavor]
         break
+      case FactionType.Prospectors:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.ProspectorsGainCoins]
+        break
+      case FactionType.TimeTravelers:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.TimeTravelersPowerShift]
+        break
       default:
         hasUnusedStronghold = false
         break
@@ -1116,6 +1122,10 @@ export const Game = () => {
       }
 
       if (action === PowerActionType.Spade || action === PowerActionType.DoubleSpade) {
+        if (localFactionType === FactionType.Prospectors) {
+          performAction('power_action_claim', { actionType: action, useCoins })
+          return
+        }
         setPowerMode({ type: 'power_spade', actionType: action, useCoins })
         return
       }
@@ -1309,6 +1319,33 @@ export const Game = () => {
       return
     }
 
+    if (actionType === SpecialActionType.TimeTravelersPowerShift) {
+      const available = Math.min(4, localPlayer?.resources.power.powerI ?? 0)
+      if (available <= 0) {
+        setErrorMessage('No power tokens in Bowl I to move.')
+        return
+      }
+      openChoiceDialog(
+        'Time Travelers Power Shift',
+        'Choose how many power tokens to move from Bowl I to Bowl III.',
+        Array.from({ length: available }, (_, index) => {
+          const amount = index + 1
+          return {
+            label: String(amount),
+            testId: `time-travelers-power-shift-${String(amount)}`,
+            onClick: () => {
+              performAction('special_action_use', {
+                specialActionType: actionType,
+                amount,
+              })
+              setConfirmDialog(null)
+            },
+          }
+        }),
+      )
+      return
+    }
+
     queueConfirm('Confirm Special Action', `Use special action ${SpecialActionType[actionType]}?`, () => {
       performAction('special_action_use', { specialActionType: actionType })
       setConfirmDialog(null)
@@ -1372,6 +1409,13 @@ export const Game = () => {
 
     if (isOwnedByMe && canInitiateTurnAction) {
       if (cardType === BonusCardType.Spade) {
+        if (localFactionType === FactionType.Prospectors) {
+          queueConfirm('Confirm Bonus Spade', 'Use the bonus spade to gain 1 priest?', () => {
+            performAction('special_action_use', { specialActionType: SpecialActionType.BonusCardSpade })
+            setConfirmDialog(null)
+          })
+          return
+        }
         setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.BonusCardSpade })
         return
       }

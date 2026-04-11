@@ -88,6 +88,8 @@ const (
 	SpecialActionEnlightenedGainPower // The Enlightened SH: gain 4 power
 	SpecialActionConspiratorsSwapFavor
 	SpecialActionChildrenPlacePowerTokens
+	SpecialActionProspectorsGainCoins
+	SpecialActionTimeTravelersPowerShift
 )
 
 // SpecialAction represents a faction-specific special action
@@ -258,6 +260,27 @@ func NewMermaidsRiverTownAction(playerID string, riverHex board.Hex) *SpecialAct
 	}
 }
 
+func NewProspectorsGainCoinsAction(playerID string) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionProspectorsGainCoins,
+	}
+}
+
+func NewTimeTravelersPowerShiftAction(playerID string, amount int) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionTimeTravelersPowerShift,
+		Amount:     amount,
+	}
+}
+
 // NewEnlightenedGainPowerAction creates The Enlightened stronghold action.
 func NewEnlightenedGainPowerAction(playerID string) *SpecialAction {
 	return &SpecialAction{
@@ -316,6 +339,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionEnlightenedGainPower,
 		SpecialActionConspiratorsSwapFavor,
 		SpecialActionChildrenPlacePowerTokens,
+		SpecialActionProspectorsGainCoins,
+		SpecialActionTimeTravelersPowerShift,
 	}
 
 	isStrongholdAction := false
@@ -357,6 +382,10 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateConspiratorsSwapFavor(gs, player)
 	case SpecialActionChildrenPlacePowerTokens:
 		return a.validateChildrenPlacePowerTokens(gs, player)
+	case SpecialActionProspectorsGainCoins:
+		return a.validateProspectorsGainCoins(player)
+	case SpecialActionTimeTravelersPowerShift:
+		return a.validateTimeTravelersPowerShift(player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -389,6 +418,26 @@ func (a *SpecialAction) validateChildrenPlacePowerTokens(gs *GameState, player *
 		planned[targetHex] = true
 	}
 
+	return nil
+}
+
+func (a *SpecialAction) validateProspectorsGainCoins(player *Player) error {
+	if player.Faction.GetType() != models.FactionProspectors {
+		return fmt.Errorf("only Prospectors can use this special action")
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateTimeTravelersPowerShift(player *Player) error {
+	if player.Faction.GetType() != models.FactionTimeTravelers {
+		return fmt.Errorf("only Time Travelers can use this special action")
+	}
+	if a.Amount <= 0 || a.Amount > 4 {
+		return fmt.Errorf("time travelers must move between 1 and 4 power tokens")
+	}
+	if player.Resources == nil || player.Resources.Power == nil || player.Resources.Power.Bowl1 < a.Amount {
+		return fmt.Errorf("not enough power tokens in Bowl I")
+	}
 	return nil
 }
 
@@ -637,6 +686,10 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 		}
 	}
 
+	if isProspectors(player) {
+		return nil
+	}
+
 	// Validate the transform action (hex must exist, be empty or transformable, etc.)
 	if a.TargetHex == nil {
 		return fmt.Errorf("target hex must be specified")
@@ -696,6 +749,7 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 	}
 
 	player := gs.GetPlayer(a.PlayerID)
+	suppressTurnAdvance := gs.consumePendingPostActionSpecialAction(a.PlayerID, a.ActionType)
 
 	// Mark this specific special action as used
 	player.SpecialActionsUsed[a.ActionType] = true
@@ -751,11 +805,19 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeChildrenPlacePowerTokens(gs, player); err != nil {
 			return err
 		}
+	case SpecialActionProspectorsGainCoins:
+		if err := a.executeProspectorsGainCoins(gs, player); err != nil {
+			return err
+		}
+	case SpecialActionTimeTravelersPowerShift:
+		if err := a.executeTimeTravelersPowerShift(player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
 
-	if a.ActionType != SpecialActionMermaidsRiverTown {
+	if a.ActionType != SpecialActionMermaidsRiverTown && !suppressTurnAdvance {
 		gs.NextTurn()
 	}
 
@@ -774,6 +836,26 @@ func (a *SpecialAction) executeChildrenPlacePowerTokens(gs *GameState, player *P
 		mapHex.PowerTokenOwnerPlayerID = a.PlayerID
 	}
 	gs.CheckAllTownFormations(a.PlayerID)
+	return nil
+}
+
+func (a *SpecialAction) executeProspectorsGainCoins(gs *GameState, player *Player) error {
+	coins := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID == player.ID {
+			continue
+		}
+		if mapHex.Building.Type == models.BuildingTradingHouse {
+			coins++
+		}
+	}
+	player.Resources.Coins += coins
+	return nil
+}
+
+func (a *SpecialAction) executeTimeTravelersPowerShift(player *Player) error {
+	player.Resources.Power.Bowl1 -= a.Amount
+	player.Resources.Power.Bowl3 += a.Amount
 	return nil
 }
 
@@ -907,6 +989,12 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 }
 
 func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) error {
+	if isProspectors(player) {
+		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		gs.GainPriests(a.PlayerID, 1)
+		return nil
+	}
+
 	mapHex := gs.Map.GetHex(*a.TargetHex)
 
 	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)

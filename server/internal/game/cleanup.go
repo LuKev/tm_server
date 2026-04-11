@@ -77,6 +77,7 @@ func (gs *GameState) ResetRoundState() {
 	}
 	gs.PendingTownFormations = retainedTownFormations
 	gs.PendingFreeActionsPlayerID = ""
+	gs.PendingPostActionSpecialActions = nil
 	gs.ClearPendingTurnConfirmation()
 
 	// Note: PendingSpades will be cleared at the start of the next income phase

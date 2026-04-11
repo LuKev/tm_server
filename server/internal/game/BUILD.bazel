@@ -65,6 +65,7 @@ go_test(
         "faction_integration_test.go",
         "action_conversion_test.go",
         "fan_faction_black_test.go",
+        "fan_faction_brown_test.go",
         "fan_faction_blue_test.go",
         "fan_faction_grey_test.go",
         "fan_faction_green_test.go",

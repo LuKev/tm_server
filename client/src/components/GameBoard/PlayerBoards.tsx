@@ -24,6 +24,8 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
         case FactionType.TheEnlightened: return SpecialActionType.EnlightenedGainPower;
         case FactionType.Conspirators: return SpecialActionType.ConspiratorsSwapFavor;
         case FactionType.ChildrenOfTheWyrm: return SpecialActionType.ChildrenPlacePowerTokens;
+        case FactionType.Prospectors: return SpecialActionType.ProspectorsGainCoins;
+        case FactionType.TimeTravelers: return SpecialActionType.TimeTravelersPowerShift;
         default: return null;
     }
 };

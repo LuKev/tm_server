@@ -1524,9 +1524,16 @@ func buildSpecialAction(
 		return game.NewNomadsSandstormAction(seatID, hex, build), nil
 
 	case game.SpecialActionBonusCardSpade:
-		hex, build, err := parseTransformHexAndBuild()
-		if err != nil {
-			return nil, err
+		var (
+			hex   board.Hex
+			build bool
+			err   error
+		)
+		if _, ok := getParam("hex", "targetHex"); ok {
+			hex, build, err = parseTransformHexAndBuild()
+			if err != nil {
+				return nil, err
+			}
 		}
 		targetTerrain := models.TerrainTypeUnknown
 		if raw, ok := getParam("targetTerrain"); ok {
@@ -1586,6 +1593,16 @@ func buildSpecialAction(
 			return nil, err
 		}
 		return game.NewChildrenPlacePowerTokensAction(seatID, targetHexes, confirmSpendBowl3), nil
+
+	case game.SpecialActionProspectorsGainCoins:
+		return game.NewProspectorsGainCoinsAction(seatID), nil
+
+	case game.SpecialActionTimeTravelersPowerShift:
+		amount, err := parseIntParam("amount")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid amount for time travelers action: %w", err)
+		}
+		return game.NewTimeTravelersPowerShiftAction(seatID, amount), nil
 
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")

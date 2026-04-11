@@ -192,6 +192,8 @@ export enum SpecialActionType {
   EnlightenedGainPower = 11,
   ConspiratorsSwapFavor = 12,
   ChildrenPlacePowerTokens = 13,
+  ProspectorsGainCoins = 14,
+  TimeTravelersPowerShift = 15,
 }
 
 export interface CultTrackState {

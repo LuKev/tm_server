@@ -488,6 +488,12 @@ func canPlayerUsePendingFreeActionsWindow(gs *GameState, action Action) bool {
 	switch action.GetType() {
 	case ActionConversion, ActionBurnPower:
 		return true
+	case ActionSpecialAction:
+		specialAction, ok := action.(*SpecialAction)
+		if !ok {
+			return false
+		}
+		return gs.hasPendingPostActionSpecialAction(pendingPlayerID, specialAction.ActionType)
 	default:
 		return false
 	}
@@ -540,7 +546,7 @@ func updatePendingFreeActionsWindow(gs *GameState, action Action) {
 	if opensPendingFreeActionsWindow(action) {
 		playerID := strings.TrimSpace(action.GetPlayerID())
 		player := gs.GetPlayer(playerID)
-		if player != nil && !player.HasPassed && playerUsesTurnConfirmation(gs, playerID) {
+		if player != nil && !player.HasPassed && playerNeedsPostActionConfirmation(gs, playerID) {
 			gs.PendingFreeActionsPlayerID = playerID
 			return
 		}
@@ -584,7 +590,7 @@ func stageTurnConfirmation(gs *GameState, action Action, before turnProgress, sn
 	if before.phase != PhaseAction {
 		return
 	}
-	if shouldBeginTurnConfirmation(action) && playerUsesTurnConfirmation(gs, action.GetPlayerID()) && !gs.HasPendingTurnConfirmation() {
+	if shouldBeginTurnConfirmation(action) && playerNeedsPostActionConfirmation(gs, action.GetPlayerID()) && !gs.HasPendingTurnConfirmation() {
 		gs.BeginPendingTurnConfirmation(action.GetPlayerID(), snapshot)
 	}
 }
@@ -594,7 +600,7 @@ func syncTurnConfirmationPreferences(gs *GameState, action Action) {
 		return
 	}
 	playerID := strings.TrimSpace(action.GetPlayerID())
-	if playerID == "" || playerUsesTurnConfirmation(gs, playerID) {
+	if playerID == "" || playerNeedsPostActionConfirmation(gs, playerID) {
 		return
 	}
 	if strings.TrimSpace(gs.PendingFreeActionsPlayerID) == playerID {
@@ -662,6 +668,10 @@ func playerUsesTurnConfirmation(gs *GameState, playerID string) bool {
 		return false
 	}
 	return player.Options.ConfirmActions
+}
+
+func playerNeedsPostActionConfirmation(gs *GameState, playerID string) bool {
+	return playerUsesTurnConfirmation(gs, playerID) || gs.hasAnyPendingPostActionSpecialAction(playerID)
 }
 
 func isPendingResolutionActionType(actionType ActionType) bool {

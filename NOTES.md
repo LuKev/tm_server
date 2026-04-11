@@ -124,6 +124,22 @@
       - temples: `+1 worker` per temple
       - big structures: `+1 cult step` for stronghold and `+2 cult steps` for sanctuary
     - Goblins big-structure treasure rewards resolve through a dedicated pending cult-step selection flow
+  - Brown-faction mechanic clarifications implemented:
+    - `Prospectors` cannot use regular spades to transform terrain
+    - any regular spades they would gain instead become priests:
+      - cult spade rewards
+      - power-action spades
+      - bonus-card spade
+    - `Prospectors` normal Golden-Spade terraforming does not count for round spade/dig scoring
+    - `Prospectors` power-action spades and bonus-card spade still do count for round spade/dig scoring, even though they resolve as priests instead of terrain transforms
+    - `Prospectors` buy Golden Spades for each transform step during normal terraforming
+    - a Golden Spade costs `4C`, or `3C` after building the stronghold
+    - each bought Golden Spade also grants `+1 VP` and `+1 power`
+    - `Prospectors` stronghold special action grants `+1 coin` per other player's trading post on the map
+    - `Time Travelers` action-scoring VP ignores the current round and instead scores from the previous and next round tiles, with round-1/round-6 wraparound
+    - `Time Travelers` still use the current round tile for cult bonuses; only action VP scoring is shifted
+    - `Time Travelers` stronghold special action moves `1-4` power tokens directly from bowl I to bowl III
+    - both `Prospectors` and `Time Travelers` may use their stronghold special action on the same turn that the stronghold is built; the engine now opens a forced post-action confirmation window for that specific immediate follow-up even if the player has normal turn confirmation disabled
 
 - 2026-04-03 hex-grid canvas resolution fix:
   - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.

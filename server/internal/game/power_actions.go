@@ -168,7 +168,7 @@ func (a *PowerAction) Validate(gs *GameState) error {
 	}
 
 	// Validate spade actions
-	if a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2 {
+	if (a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2) && !isProspectors(player) {
 		if err := a.validateSpadeAction(gs, player); err != nil {
 			return err
 		}
@@ -310,6 +310,20 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		player.Resources.Coins += 7
 
 	case PowerActionSpade1, PowerActionSpade2:
+		if isProspectors(player) {
+			priests := 1
+			spades := 1
+			if a.ActionType == PowerActionSpade2 {
+				priests = 2
+				spades = 2
+			}
+			for i := 0; i < spades; i++ {
+				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+			}
+			gs.GainPriests(a.PlayerID, priests)
+			break
+		}
+
 		// The spade action gives free spades for a transform
 		// The actual transform happens as part of this action
 		if a.TargetHex == nil {

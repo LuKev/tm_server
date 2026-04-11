@@ -170,7 +170,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		return err
 	}
 
-	totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, err := a.calculateCosts(gs, player, mapHex)
+	totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, totalCoinsNeeded, err := a.calculateCosts(gs, player, mapHex)
 	if err != nil {
 		return err
 	}
@@ -186,6 +186,9 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	}
 	if totalPowerNeeded > 0 && !player.Resources.Power.CanSpend(totalPowerNeeded) {
 		return fmt.Errorf("not enough power for terraform: need %d, have %d", totalPowerNeeded, player.Resources.Power.Bowl3)
+	}
+	if player.Resources.Coins < totalCoinsNeeded {
+		return fmt.Errorf("not enough coins: need %d, have %d", totalCoinsNeeded, player.Resources.Coins)
 	}
 
 	return nil
@@ -218,7 +221,7 @@ func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Playe
 	return nil
 }
 
-func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, int, error) {
+func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, int, int, error) {
 	// Check if terrain needs transformation to target terrain (default: home terrain)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	if a.TargetTerrain != models.TerrainTypeUnknown {
@@ -229,12 +232,13 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 	totalWorkersNeeded := 0
 	totalPriestsNeeded := 0
 	totalPowerNeeded := 0
+	totalCoinsNeeded := 0
 
 	if needsTransform {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 		if distance == 0 {
-			return 0, 0, 0, fmt.Errorf("terrain distance calculation failed")
+			return 0, 0, 0, 0, fmt.Errorf("terrain distance calculation failed")
 		}
 		requiredSpades := distance
 		if player.Faction.GetType() == models.FactionGiants {
@@ -244,11 +248,13 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 
 		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
 		freeSpades := 0
-		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-			freeSpades += gs.PendingSpades[a.PlayerID]
-		}
-		if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
-			freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+		if !isProspectors(player) {
+			if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+				freeSpades += gs.PendingSpades[a.PlayerID]
+			}
+			if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+				freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+			}
 		}
 		if player.Faction.GetType() == models.FactionGiants {
 			// Giants cannot use a single free spade; only a full pair is usable.
@@ -267,6 +273,8 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 		if remainingSpades > 0 {
 			if player.Faction.GetType() == models.FactionDarklings {
 				totalPriestsNeeded = remainingSpades
+			} else if isProspectors(player) {
+				totalCoinsNeeded += remainingSpades * getProspectorsGoldenSpadeCost(player)
 			} else if player.Faction.GetType() == models.FactionTheEnlightened {
 				totalPowerNeeded = player.Faction.GetTerraformCost(remainingSpades)
 			} else {
@@ -290,13 +298,14 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
 		if err := a.validateDwelling(gs, player, mapHex, needsTransform, targetTerrain); err != nil {
-			return 0, 0, 0, err
+			return 0, 0, 0, 0, err
 		}
 		dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 		totalWorkersNeeded += dwellingCost.Workers
+		totalCoinsNeeded += dwellingCost.Coins
 	}
 
-	return totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, nil
+	return totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, totalCoinsNeeded, nil
 }
 
 func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player, mapHex *board.MapHex, needsTransform bool, targetTerrain models.TerrainType) error {
@@ -398,11 +407,11 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 	cultRewardSpades := 0
 	if player.Faction.GetType() == models.FactionGiants {
 		pending := 0
-		if gs.PendingSpades != nil {
+		if !isProspectors(player) && gs.PendingSpades != nil {
 			pending = gs.PendingSpades[a.PlayerID]
 		}
 		cultPending := 0
-		if gs.PendingCultRewardSpades != nil {
+		if !isProspectors(player) && gs.PendingCultRewardSpades != nil {
 			cultPending = gs.PendingCultRewardSpades[a.PlayerID]
 		}
 		if pending+cultPending >= 2 {
@@ -432,7 +441,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			}
 		}
 	} else {
-		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		if !isProspectors(player) && gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
 			vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
 			if vpEligibleFreeSpades > requiredSpades {
 				vpEligibleFreeSpades = requiredSpades // Only use what we need
@@ -447,7 +456,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		}
 
 		remainingRequired := requiredSpades - vpEligibleFreeSpades
-		if remainingRequired > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+		if !isProspectors(player) && remainingRequired > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
 			cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
 			if cultRewardSpades > remainingRequired {
 				cultRewardSpades = remainingRequired // Only use what we need
@@ -473,6 +482,10 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
 			vpBonus := remainingSpades * 2
 			player.VictoryPoints += vpBonus
+		} else if isProspectors(player) {
+			player.Resources.Coins -= remainingSpades * getProspectorsGoldenSpadeCost(player)
+			player.Resources.GainPower(remainingSpades)
+			player.VictoryPoints += remainingSpades
 		} else if player.Faction.GetType() == models.FactionTheEnlightened {
 			powerCost := player.Faction.GetTerraformCost(remainingSpades)
 			if err := player.Resources.Power.SpendPower(powerCost); err != nil {
@@ -499,9 +512,11 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			spadesForVP = 2
 		}
 
-		// Award scoring tile VP for ALL factions including Darklings
-		for i := 0; i < spadesForVP; i++ {
-			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		// Prospectors' Golden Spades do not count for round spade scoring.
+		if !isProspectors(player) {
+			for i := 0; i < spadesForVP; i++ {
+				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+			}
 		}
 
 		// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
@@ -794,6 +809,10 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 		}
 	case models.FactionChildrenOfTheWyrm:
 		player.Resources.Power.Bowl1 += gs.childrenRemovedPowerTokenCount(a.PlayerID)
+	case models.FactionProspectors:
+		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionProspectorsGainCoins)
+	case models.FactionTimeTravelers:
+		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionTimeTravelersPowerShift)
 
 	case models.FactionGiants:
 		// Giants: Mark stronghold as built so ACTG special action becomes available
@@ -858,6 +877,17 @@ func getDwellingBuildCost(gs *GameState, player *Player, targetHex board.Hex) fa
 		baseCost.Coins = 2
 	}
 	return baseCost
+}
+
+func isProspectors(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionProspectors
+}
+
+func getProspectorsGoldenSpadeCost(player *Player) int {
+	if player != nil && player.HasStrongholdAbility {
+		return 3
+	}
+	return 4
 }
 
 // getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent

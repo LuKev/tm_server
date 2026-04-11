@@ -3,6 +3,8 @@ package game
 import (
 	"fmt"
 	"math/rand"
+
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // ScoringTileType represents the type of scoring tile
@@ -266,18 +268,33 @@ func (gs *GameState) AwardActionVP(playerID string, actionType ScoringActionType
 		return
 	}
 
-	tile := gs.ScoringTiles.GetTileForRound(gs.Round)
-	if tile == nil {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
 		return
 	}
 
-	// Check if this action matches the scoring tile
-	if tile.ActionType == actionType {
-		player := gs.GetPlayer(playerID)
-		if player != nil {
+	for _, round := range gs.getScoringRoundsForPlayerActionVP(player) {
+		tile := gs.ScoringTiles.GetTileForRound(round)
+		if tile == nil {
+			continue
+		}
+		if tile.ActionType == actionType {
 			player.VictoryPoints += tile.ActionVP
 		}
 	}
+}
+
+func (gs *GameState) getScoringRoundsForPlayerActionVP(player *Player) []int {
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionTimeTravelers {
+		return []int{gs.Round}
+	}
+	totalRounds := len(gs.ScoringTiles.Tiles)
+	if totalRounds == 0 {
+		return nil
+	}
+	prev := ((gs.Round + totalRounds - 2) % totalRounds) + 1
+	next := (gs.Round % totalRounds) + 1
+	return []int{prev, next}
 }
 
 // AwardCultRewards awards cult rewards at the end of the round
@@ -347,6 +364,10 @@ func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType
 	case CultRewardPower:
 		player.Resources.Power.GainPower(amount)
 	case CultRewardSpade:
+		if player.Faction != nil && player.Faction.GetType() == models.FactionProspectors {
+			gs.GainPriests(playerID, amount)
+			return
+		}
 		// Spades must be used immediately - track as pending
 		// Cult reward spades don't count for VP (unlike BON1 or paid spades)
 		// Faction bonuses (e.g., Alchemists +2 power) are granted when spades are USED

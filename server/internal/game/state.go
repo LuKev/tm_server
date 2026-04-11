@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
@@ -15,53 +16,54 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map                              *board.TerraMysticaMap             `json:"map"`
-	Players                          map[string]*Player                 `json:"players"`
-	Round                            int                                `json:"round"`
-	Phase                            GamePhase                          `json:"phase"`
-	SetupMode                        SetupMode                          `json:"setupMode"`
-	EnableFanFactions                bool                               `json:"enableFanFactions"`
-	SetupSubphase                    SetupSubphase                      `json:"setupSubphase"`
-	AuctionState                     *AuctionState                      `json:"auctionState,omitempty"`
-	SetupDwellingOrder               []string                           `json:"setupDwellingOrder"`
-	SetupDwellingIndex               int                                `json:"setupDwellingIndex"`
-	SetupBonusOrder                  []string                           `json:"setupBonusOrder"`
-	SetupBonusIndex                  int                                `json:"setupBonusIndex"`
-	SetupPlacedDwellings             map[string]int                     `json:"setupPlacedDwellings"`
-	TurnOrderPolicy                  TurnOrderPolicy                    `json:"turnOrderPolicy"`
-	TurnOrder                        []string                           `json:"turnOrder"`
-	CurrentPlayerIndex               int                                `json:"currentPlayerIndex"`
-	PassOrder                        []string                           `json:"passOrder"`
-	PowerActions                     *PowerActionState                  `json:"powerActions"`
-	CultTracks                       *CultTrackState                    `json:"cultTracks"`
-	FavorTiles                       *FavorTileState                    `json:"favorTiles"`
-	BonusCards                       *BonusCardState                    `json:"bonusCards"`
-	TownTiles                        *TownTileState                     `json:"townTiles"`
-	ScoringTiles                     *ScoringTileState                  `json:"scoringTiles"`
-	PendingLeechOffers               map[string][]*PowerLeechOffer      `json:"pendingLeechOffers"`
-	PendingTownFormations            map[string][]*PendingTownFormation `json:"pendingTownFormations"`
-	PendingSpades                    map[string]int                     `json:"pendingSpades"`
-	PendingSpadeBuildAllowed         map[string]bool                    `json:"pendingSpadeBuildAllowed"`
-	PendingCultRewardSpades          map[string]int                     `json:"pendingCultRewardSpades"`
-	PendingCultistsLeech             map[int]*CultistsLeechBonus        `json:"pendingCultistsLeech"`
-	NextLeechEventID                 int                                `json:"-"`
-	SkipAbilityUsedThisAction        map[string][]board.Hex             `json:"skipAbilityUsedThisAction"`
-	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
-	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
-	PendingGoblinsCultSteps          *PendingGoblinsCultSteps           `json:"pendingGoblinsCultSteps,omitempty"`
-	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling    `json:"pendingWispsStrongholdDwelling,omitempty"`
-	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
-	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
-	PendingTownCultTopChoice         *PendingTownCultTopChoice          `json:"pendingTownCultTopChoice"`
-	PendingFreeActionsPlayerID       string                             `json:"pendingFreeActionsPlayerId"`
-	PendingTurnConfirmationPlayerID  string                             `json:"pendingTurnConfirmationPlayerId"`
-	PendingTurnConfirmationSnapshot  *GameState                         `json:"-"`
-	PendingWispsTradingPostSpade     map[string]board.Hex               `json:"-"`
-	TurnTimer                        *TurnTimerState                    `json:"turnTimer,omitempty"`
-	ReplayMode                       map[string]bool                    `json:"replayMode"`
-	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
-	SuppressTurnAdvance              bool                               `json:"-"`
-	RiverTownHex                     *board.Hex                         `json:"-"` // For Mermaids river town formation
+	Map                              *board.TerraMysticaMap                `json:"map"`
+	Players                          map[string]*Player                    `json:"players"`
+	Round                            int                                   `json:"round"`
+	Phase                            GamePhase                             `json:"phase"`
+	SetupMode                        SetupMode                             `json:"setupMode"`
+	EnableFanFactions                bool                                  `json:"enableFanFactions"`
+	SetupSubphase                    SetupSubphase                         `json:"setupSubphase"`
+	AuctionState                     *AuctionState                         `json:"auctionState,omitempty"`
+	SetupDwellingOrder               []string                              `json:"setupDwellingOrder"`
+	SetupDwellingIndex               int                                   `json:"setupDwellingIndex"`
+	SetupBonusOrder                  []string                              `json:"setupBonusOrder"`
+	SetupBonusIndex                  int                                   `json:"setupBonusIndex"`
+	SetupPlacedDwellings             map[string]int                        `json:"setupPlacedDwellings"`
+	TurnOrderPolicy                  TurnOrderPolicy                       `json:"turnOrderPolicy"`
+	TurnOrder                        []string                              `json:"turnOrder"`
+	CurrentPlayerIndex               int                                   `json:"currentPlayerIndex"`
+	PassOrder                        []string                              `json:"passOrder"`
+	PowerActions                     *PowerActionState                     `json:"powerActions"`
+	CultTracks                       *CultTrackState                       `json:"cultTracks"`
+	FavorTiles                       *FavorTileState                       `json:"favorTiles"`
+	BonusCards                       *BonusCardState                       `json:"bonusCards"`
+	TownTiles                        *TownTileState                        `json:"townTiles"`
+	ScoringTiles                     *ScoringTileState                     `json:"scoringTiles"`
+	PendingLeechOffers               map[string][]*PowerLeechOffer         `json:"pendingLeechOffers"`
+	PendingTownFormations            map[string][]*PendingTownFormation    `json:"pendingTownFormations"`
+	PendingSpades                    map[string]int                        `json:"pendingSpades"`
+	PendingSpadeBuildAllowed         map[string]bool                       `json:"pendingSpadeBuildAllowed"`
+	PendingCultRewardSpades          map[string]int                        `json:"pendingCultRewardSpades"`
+	PendingCultistsLeech             map[int]*CultistsLeechBonus           `json:"pendingCultistsLeech"`
+	NextLeechEventID                 int                                   `json:"-"`
+	SkipAbilityUsedThisAction        map[string][]board.Hex                `json:"skipAbilityUsedThisAction"`
+	PendingFavorTileSelection        *PendingFavorTileSelection            `json:"pendingFavorTileSelection"`
+	PendingHalflingsSpades           *PendingHalflingsSpades               `json:"pendingHalflingsSpades"`
+	PendingGoblinsCultSteps          *PendingGoblinsCultSteps              `json:"pendingGoblinsCultSteps,omitempty"`
+	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling       `json:"pendingWispsStrongholdDwelling,omitempty"`
+	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination     `json:"pendingDarklingsPriestOrdination"`
+	PendingCultistsCultSelection     *PendingCultistsCultSelection         `json:"pendingCultistsCultSelection"`
+	PendingTownCultTopChoice         *PendingTownCultTopChoice             `json:"pendingTownCultTopChoice"`
+	PendingFreeActionsPlayerID       string                                `json:"pendingFreeActionsPlayerId"`
+	PendingTurnConfirmationPlayerID  string                                `json:"pendingTurnConfirmationPlayerId"`
+	PendingTurnConfirmationSnapshot  *GameState                            `json:"-"`
+	PendingWispsTradingPostSpade     map[string]board.Hex                  `json:"-"`
+	PendingPostActionSpecialActions  map[string]map[SpecialActionType]bool `json:"-"`
+	TurnTimer                        *TurnTimerState                       `json:"turnTimer,omitempty"`
+	ReplayMode                       map[string]bool                       `json:"replayMode"`
+	FinalScoring                     map[string]*PlayerFinalScore          `json:"finalScoring"`
+	SuppressTurnAdvance              bool                                  `json:"-"`
+	RiverTownHex                     *board.Hex                            `json:"-"` // For Mermaids river town formation
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -210,6 +212,70 @@ func getStructurePowerValue(player *Player, buildingType models.BuildingType) in
 		return 2
 	}
 	return GetPowerValue(buildingType)
+}
+
+func (gs *GameState) grantPendingPostActionSpecialAction(playerID string, actionType SpecialActionType) {
+	if gs == nil {
+		return
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return
+	}
+	if gs.PendingPostActionSpecialActions == nil {
+		gs.PendingPostActionSpecialActions = make(map[string]map[SpecialActionType]bool)
+	}
+	if gs.PendingPostActionSpecialActions[playerID] == nil {
+		gs.PendingPostActionSpecialActions[playerID] = make(map[SpecialActionType]bool)
+	}
+	gs.PendingPostActionSpecialActions[playerID][actionType] = true
+}
+
+func (gs *GameState) hasPendingPostActionSpecialAction(playerID string, actionType SpecialActionType) bool {
+	if gs == nil || gs.PendingPostActionSpecialActions == nil {
+		return false
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return false
+	}
+	return gs.PendingPostActionSpecialActions[playerID][actionType]
+}
+
+func (gs *GameState) hasAnyPendingPostActionSpecialAction(playerID string) bool {
+	if gs == nil || gs.PendingPostActionSpecialActions == nil {
+		return false
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return false
+	}
+	return len(gs.PendingPostActionSpecialActions[playerID]) > 0
+}
+
+func (gs *GameState) consumePendingPostActionSpecialAction(playerID string, actionType SpecialActionType) bool {
+	if !gs.hasPendingPostActionSpecialAction(playerID, actionType) {
+		return false
+	}
+	delete(gs.PendingPostActionSpecialActions[playerID], actionType)
+	if len(gs.PendingPostActionSpecialActions[playerID]) == 0 {
+		delete(gs.PendingPostActionSpecialActions, playerID)
+	}
+	return true
+}
+
+func (gs *GameState) clearPendingPostActionSpecialActions(playerID string) {
+	if gs == nil || gs.PendingPostActionSpecialActions == nil {
+		return
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return
+	}
+	delete(gs.PendingPostActionSpecialActions, playerID)
+	if len(gs.PendingPostActionSpecialActions) == 0 {
+		gs.PendingPostActionSpecialActions = nil
+	}
 }
 
 func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
