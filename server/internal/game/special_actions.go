@@ -90,6 +90,7 @@ const (
 	SpecialActionChildrenPlacePowerTokens
 	SpecialActionProspectorsGainCoins
 	SpecialActionTimeTravelersPowerShift
+	SpecialActionDjinniSwapCults
 )
 
 // SpecialAction represents a faction-specific special action
@@ -98,6 +99,8 @@ type SpecialAction struct {
 	ActionType SpecialActionType
 	// For Auren cult advance
 	CultTrack *CultTrack
+	// For Djinni cult swap
+	SecondCultTrack *CultTrack
 	// For Witches' Ride, Giants, Nomads, Bonus Card Spade
 	TargetHex     *board.Hex
 	BuildDwelling bool // For Giants and Nomads - whether to build dwelling after transform
@@ -152,6 +155,18 @@ func NewWater2CultAdvanceAction(playerID string, cultTrack CultTrack) *SpecialAc
 		},
 		ActionType: SpecialActionWater2CultAdvance,
 		CultTrack:  &cultTrack,
+	}
+}
+
+func NewDjinniSwapCultsAction(playerID string, firstTrack, secondTrack CultTrack) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:      SpecialActionDjinniSwapCults,
+		CultTrack:       &firstTrack,
+		SecondCultTrack: &secondTrack,
 	}
 }
 
@@ -324,7 +339,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 
 	// Check if this specific special action has already been used this round
 	// Skip this check for Mermaids river town - it's a passive ability, not a limited action
-	if a.ActionType != SpecialActionMermaidsRiverTown && player.SpecialActionsUsed[a.ActionType] {
+	if tracksSpecialActionUsage(a.ActionType) && player.SpecialActionsUsed[a.ActionType] {
 		return fmt.Errorf("special action %v already used this round", a.ActionType)
 	}
 
@@ -386,9 +401,46 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateProspectorsGainCoins(player)
 	case SpecialActionTimeTravelersPowerShift:
 		return a.validateTimeTravelersPowerShift(player)
+	case SpecialActionDjinniSwapCults:
+		return a.validateDjinniSwapCults(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
+}
+
+func tracksSpecialActionUsage(actionType SpecialActionType) bool {
+	return actionType != SpecialActionMermaidsRiverTown && actionType != SpecialActionDjinniSwapCults
+}
+
+func (a *SpecialAction) validateDjinniSwapCults(gs *GameState, player *Player) error {
+	if !isDjinni(player) {
+		return fmt.Errorf("only Djinni can use this special action")
+	}
+	if player.DjinniLampTokens <= 0 {
+		return fmt.Errorf("no magic lamp tokens remaining")
+	}
+	if a.CultTrack == nil || a.SecondCultTrack == nil {
+		return fmt.Errorf("must choose two cult tracks")
+	}
+	if *a.CultTrack == *a.SecondCultTrack {
+		return fmt.Errorf("must choose two different cult tracks")
+	}
+	firstLevel := gs.CultTracks.GetPosition(a.PlayerID, *a.CultTrack)
+	secondLevel := gs.CultTracks.GetPosition(a.PlayerID, *a.SecondCultTrack)
+	if firstLevel == secondLevel {
+		return fmt.Errorf("cult tracks are already at the same level")
+	}
+	if secondLevel == 10 {
+		if occupier, occupied := gs.CultTracks.Position10Occupied[*a.CultTrack]; occupied && occupier != a.PlayerID {
+			return fmt.Errorf("cannot move to occupied level 10 on %v", *a.CultTrack)
+		}
+	}
+	if firstLevel == 10 {
+		if occupier, occupied := gs.CultTracks.Position10Occupied[*a.SecondCultTrack]; occupied && occupier != a.PlayerID {
+			return fmt.Errorf("cannot move to occupied level 10 on %v", *a.SecondCultTrack)
+		}
+	}
+	return nil
 }
 
 func (a *SpecialAction) validateChildrenPlacePowerTokens(gs *GameState, player *Player) error {
@@ -681,7 +733,14 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 	// Maybe we should rename it or add a flag?
 	// For simplicity, let's allow it if TargetTerrain is set (implying explicit override).
 	if a.TargetTerrain == nil {
-		if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardSpade {
+		hasSpadeCard := false
+		for _, bonusCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+			if bonusCard == BonusCardSpade {
+				hasSpadeCard = true
+				break
+			}
+		}
+		if !hasSpadeCard {
 			return fmt.Errorf("player does not have the spade bonus card")
 		}
 	}
@@ -731,7 +790,14 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 
 func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState) error {
 	// Check if player has the cult advance bonus card
-	if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardCultAdvance {
+	hasCultCard := false
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+		if bonusCard == BonusCardCultAdvance {
+			hasCultCard = true
+			break
+		}
+	}
+	if !hasCultCard {
 		return fmt.Errorf("player does not have the cult advance bonus card")
 	}
 
@@ -752,7 +818,9 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 	suppressTurnAdvance := gs.consumePendingPostActionSpecialAction(a.PlayerID, a.ActionType)
 
 	// Mark this specific special action as used
-	player.SpecialActionsUsed[a.ActionType] = true
+	if tracksSpecialActionUsage(a.ActionType) {
+		player.SpecialActionsUsed[a.ActionType] = true
+	}
 
 	switch a.ActionType {
 	case SpecialActionAurenCultAdvance:
@@ -813,6 +881,10 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeTimeTravelersPowerShift(player); err != nil {
 			return err
 		}
+	case SpecialActionDjinniSwapCults:
+		if err := a.executeDjinniSwapCults(gs, player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -856,6 +928,34 @@ func (a *SpecialAction) executeProspectorsGainCoins(gs *GameState, player *Playe
 func (a *SpecialAction) executeTimeTravelersPowerShift(player *Player) error {
 	player.Resources.Power.Bowl1 -= a.Amount
 	player.Resources.Power.Bowl3 += a.Amount
+	return nil
+}
+
+func (a *SpecialAction) executeDjinniSwapCults(gs *GameState, player *Player) error {
+	firstTrack := *a.CultTrack
+	secondTrack := *a.SecondCultTrack
+	firstLevel := gs.CultTracks.GetPosition(a.PlayerID, firstTrack)
+	secondLevel := gs.CultTracks.GetPosition(a.PlayerID, secondTrack)
+
+	gs.CultTracks.PlayerPositions[a.PlayerID][firstTrack] = secondLevel
+	gs.CultTracks.PlayerPositions[a.PlayerID][secondTrack] = firstLevel
+	player.CultPositions[firstTrack] = secondLevel
+	player.CultPositions[secondTrack] = firstLevel
+
+	if firstLevel == 10 {
+		delete(gs.CultTracks.Position10Occupied, firstTrack)
+	}
+	if secondLevel == 10 {
+		delete(gs.CultTracks.Position10Occupied, secondTrack)
+	}
+	if secondLevel == 10 {
+		gs.CultTracks.Position10Occupied[firstTrack] = a.PlayerID
+	}
+	if firstLevel == 10 {
+		gs.CultTracks.Position10Occupied[secondTrack] = a.PlayerID
+	}
+
+	player.DjinniLampTokens--
 	return nil
 }
 

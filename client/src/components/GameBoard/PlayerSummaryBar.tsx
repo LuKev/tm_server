@@ -69,7 +69,11 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
         const isCurrent = pid === currentPlayerId;
         const isLocal = !!localPlayerId && pid === localPlayerId;
 
-        const hasTempShippingBonus = gameState.bonusCards?.playerCards?.[pid] === BonusCardType.Shipping;
+        const heldBonusCards = [
+          ...(gameState.bonusCards?.playerCards?.[pid] !== undefined ? [gameState.bonusCards.playerCards[pid]] : []),
+          ...((gameState.bonusCards?.playerExtraCards?.[pid] ?? []) as BonusCardType[]),
+        ];
+        const hasTempShippingBonus = heldBonusCards.includes(BonusCardType.Shipping);
         const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
         const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
         const vp = player.victoryPoints ?? player.VictoryPoints ?? 0;

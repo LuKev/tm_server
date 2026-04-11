@@ -302,7 +302,9 @@ export const Game = () => {
   const numCards = useMemo(() => {
     if (!gameState?.bonusCards) return 9
     const available = Object.keys(gameState.bonusCards.available ?? {}).length
-    const taken = Object.keys(gameState.bonusCards.playerCards ?? {}).length
+    const takenPrimary = Object.keys(gameState.bonusCards.playerCards ?? {}).length
+    const takenExtra = Object.values(gameState.bonusCards.playerExtraCards ?? {}).reduce((sum, cards) => sum + cards.length, 0)
+    const taken = takenPrimary + takenExtra
     return available + taken
   }, [gameState?.bonusCards])
 
@@ -520,6 +522,12 @@ export const Game = () => {
     if (pendingDecisionType !== 'town_cult_top_choice') return 0
     return Number(pendingDecision?.maxSelections ?? 0)
   }, [pendingDecision, pendingDecisionType])
+  const pendingArchivistsReturnedCards = useMemo(() => {
+    if (pendingDecisionType !== 'archivists_bonus_card') return [] as BonusCardType[]
+    return ((pendingDecision?.returnedCards as unknown[]) ?? [])
+      .map((value) => Number(value))
+      .filter((value): value is BonusCardType => Number.isInteger(value) && value >= 0 && value <= 9)
+  }, [pendingDecision, pendingDecisionType])
   const pendingLeechOffersForMe = useMemo(() => {
     if (!localPlayerId) return [] as Array<Record<string, unknown>>
     const pending = gameState?.pendingLeechOffers ?? {}
@@ -598,6 +606,8 @@ export const Game = () => {
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a Darklings ordination.')
       case 'cultists_cult_choice':
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a cult track.')
+      case 'djinni_start_cult_choice':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose a starting cult track.')
       case 'goblins_cult_steps': {
         const remaining = Number(pendingDecision?.stepsRemaining ?? 0)
         return actorText([pendingDecisionPlayerId ?? ''], remaining === 1 ? 'must choose 1 Goblins cult step.' : `must choose ${String(remaining)} Goblins cult steps.`)
@@ -608,6 +618,8 @@ export const Game = () => {
       }
       case 'wisps_stronghold_dwelling':
         return actorText([pendingDecisionPlayerId ?? ''], 'must place the free Wisps dwelling.')
+      case 'archivists_bonus_card':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose an Archivists bonus card.')
       case 'auction_nomination':
         return actorText([pendingDecisionPlayerId ?? auctionState?.currentBidder ?? ''], 'must nominate a faction.')
       case 'auction_bid':
@@ -720,9 +732,12 @@ export const Game = () => {
   const hasUnspentOptionalActions = useMemo(() => {
     if (!localPlayer || !localPlayerId) return false
     const used = localPlayer.specialActionsUsed ?? {}
-    const card = gameState?.bonusCards?.playerCards?.[localPlayerId]
-    const hasUnusedBonusSpade = card === BonusCardType.Spade && !used[SpecialActionType.BonusCardSpade]
-    const hasUnusedBonusCult = card === BonusCardType.CultAdvance && !used[SpecialActionType.BonusCardCultAdvance]
+    const heldCards = [
+      ...(gameState?.bonusCards?.playerCards?.[localPlayerId] !== undefined ? [gameState.bonusCards.playerCards[localPlayerId]] : []),
+      ...((gameState?.bonusCards?.playerExtraCards?.[localPlayerId] ?? []) as BonusCardType[]),
+    ]
+    const hasUnusedBonusSpade = heldCards.includes(BonusCardType.Spade) && !used[SpecialActionType.BonusCardSpade]
+    const hasUnusedBonusCult = heldCards.includes(BonusCardType.CultAdvance) && !used[SpecialActionType.BonusCardCultAdvance]
 
     let hasUnusedStronghold = false
     switch (localFactionType) {
@@ -762,7 +777,7 @@ export const Game = () => {
     }
 
     return hasUnusedStronghold || hasUnusedBonusSpade || hasUnusedBonusCult || hasPendingSpadesForMe > 0 || hasPendingCultSpadesForMe > 0
-  }, [gameState?.bonusCards?.playerCards, hasPendingCultSpadesForMe, hasPendingSpadesForMe, localFactionType, localPlayer, localPlayerId])
+  }, [gameState?.bonusCards?.playerCards, gameState?.bonusCards?.playerExtraCards, hasPendingCultSpadesForMe, hasPendingSpadesForMe, localFactionType, localPlayer, localPlayerId])
 
   const bonusCardOwners = useMemo(() => {
     const out: Record<string, string> = {}
@@ -770,8 +785,13 @@ export const Game = () => {
     Object.entries(playerCards).forEach(([playerID, card]) => {
       out[String(card)] = playerID
     })
+    Object.entries(gameState?.bonusCards?.playerExtraCards ?? {}).forEach(([playerID, cards]) => {
+      cards.forEach((card) => {
+        out[String(card)] = playerID
+      })
+    })
     return out
-  }, [gameState?.bonusCards?.playerCards])
+  }, [gameState?.bonusCards?.playerCards, gameState?.bonusCards?.playerExtraCards])
 
   const availableCards = useMemo(() => {
     const cardSet = new Set<number>()
@@ -790,8 +810,17 @@ export const Game = () => {
       }
     })
 
+    Object.values(gameState?.bonusCards?.playerExtraCards ?? {}).forEach((cards) => {
+      cards.forEach((cardRaw) => {
+        const card = Number(cardRaw)
+        if (Number.isInteger(card) && card >= 0) {
+          cardSet.add(card)
+        }
+      })
+    })
+
     return [...cardSet].sort((a, b) => a - b)
-  }, [gameState?.bonusCards?.available, gameState?.bonusCards?.playerCards])
+  }, [gameState?.bonusCards?.available, gameState?.bonusCards?.playerCards, gameState?.bonusCards?.playerExtraCards])
 
   const passedPlayers = useMemo(() => {
     const passed = new Set<string>()
@@ -1275,6 +1304,38 @@ export const Game = () => {
     setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.MermaidsRiverTown })
   }
 
+  const handleDjinniLampAction = (playerId: string): void => {
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
+    openChoiceDialog(
+      'Djinni Lamp',
+      'Choose the first cult track to swap.',
+      CULT_CHOICES.map((choice) => ({
+        label: choice.label,
+        testId: `djinni-first-track-${String(choice.track)}`,
+        onClick: () => {
+          openChoiceDialog(
+            'Djinni Lamp',
+            `Swap ${choice.label} with which cult track?`,
+            CULT_CHOICES
+              .filter((other) => other.track !== choice.track)
+              .map((other) => ({
+                label: other.label,
+                testId: `djinni-second-track-${String(other.track)}`,
+                onClick: () => {
+                  performAction('special_action_use', {
+                    specialActionType: SpecialActionType.DjinniSwapCults,
+                    cultTrack: choice.track,
+                    secondTrack: other.track,
+                  })
+                  setConfirmDialog(null)
+                },
+              })),
+          )
+        },
+      })),
+    )
+  }
+
   const closeConspiratorsSwapModal = (): void => {
     setConspiratorsSwapModalOpen(false)
     setConspiratorsReturnTile('')
@@ -1399,6 +1460,15 @@ export const Game = () => {
     const owner = bonusCardOwners[String(cardType)]
     const isOwnedByMe = owner === localPlayerId
 
+    if (pendingDecisionType === 'archivists_bonus_card' && hasPendingDecisionForMe) {
+      if (pendingArchivistsReturnedCards.includes(cardType) || owner) return
+      queueConfirm('Confirm Archivists Bonus Card', `Take ${bonusCardLabel(cardType)} as your second bonus card?`, () => {
+        performAction('select_archivists_bonus_card', { bonusCard: cardType })
+        setConfirmDialog(null)
+      })
+      return
+    }
+
     if (pendingDecisionType === 'setup_bonus_card' && hasPendingDecisionForMe) {
       queueConfirm('Confirm Setup Bonus Card', `Take ${bonusCardLabel(cardType)}?`, () => {
         performAction('setup_bonus_card', { bonusCard: cardType })
@@ -1440,6 +1510,10 @@ export const Game = () => {
   const isPassingCardClickable = (cardType: BonusCardType): boolean => {
     if (!gameState || !localPlayerId) return false
     const owner = bonusCardOwners[String(cardType)]
+
+    if (pendingDecisionType === 'archivists_bonus_card') {
+      return hasPendingDecisionForMe && !owner && !pendingArchivistsReturnedCards.includes(cardType)
+    }
 
     if (pendingDecisionType === 'setup_bonus_card') {
       return hasPendingDecisionForMe && !owner
@@ -1536,6 +1610,7 @@ export const Game = () => {
         cultTrack: track,
       })
       setCultChoiceContext(null)
+      return
     }
   }
 
@@ -2138,6 +2213,28 @@ export const Game = () => {
                 ))}
               </div>
             </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'archivists_bonus_card' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Choose Archivists Bonus Card</div>
+                <div className="text-sm text-slate-700">Select your second bonus card. You cannot retake a card you just returned.</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {availableCards
+                  .filter((cardId) => !pendingArchivistsReturnedCards.includes(cardId as BonusCardType) && !bonusCardOwners[String(cardId)])
+                  .map((cardId) => (
+                    <button
+                      key={cardId}
+                      type="button"
+                      data-testid={`archivists-bonus-card-${String(cardId)}`}
+                      className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                      onClick={() => { performAction('select_archivists_bonus_card', { bonusCard: cardId }) }}
+                    >
+                      {bonusCardLabel(cardId)}
+                    </button>
+                  ))}
+              </div>
+            </div>
           ) : hasPendingDecisionForMe && pendingDecisionType === 'darklings_ordination' ? (
             <div className="space-y-3">
               <div>
@@ -2174,6 +2271,26 @@ export const Game = () => {
                     data-testid={`cultists-cult-choice-${String(choice.track)}`}
                     className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
                     onClick={() => { performAction('select_cultists_track', { cultTrack: choice.track }) }}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'djinni_start_cult_choice' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Djinni: Choose Starting Cult</div>
+                <div className="text-sm text-slate-700">Advance 2 steps on one cult track.</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {CULT_CHOICES.map((choice) => (
+                  <button
+                    key={choice.track}
+                    type="button"
+                    data-testid={`djinni-start-cult-choice-${String(choice.track)}`}
+                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                    onClick={() => { performAction('select_djinni_start_cult_track', { cultTrack: choice.track }) }}
                   >
                     {choice.label}
                   </button>
@@ -2607,6 +2724,7 @@ export const Game = () => {
                 onAdvanceChashTrack={handleAdvanceChashTrack}
                 onStrongholdAction={handleStrongholdAction}
                 onGoblinsTreasureAction={handleGoblinsTreasureAction}
+                onDjinniLampAction={handleDjinniLampAction}
                 onEngineersBridgeAction={handleEngineersBridgeAction}
                 onMermaidsConnectAction={handleMermaidsConnectAction}
                 onWater2Action={handleWater2Action}

@@ -329,6 +329,9 @@ func (gs *GameState) awardSpecialCultRewards(tile *ScoringTile) {
 	for playerID, priestCount := range gs.ScoringTiles.PriestsSent {
 		player := gs.GetPlayer(playerID)
 		if player != nil {
+			if isArchivists(player) {
+				continue
+			}
 			coins := priestCount * tile.CultRewardAmount
 			player.Resources.Coins += coins
 		}
@@ -340,6 +343,9 @@ func (gs *GameState) awardRegularCultRewards(tile *ScoringTile) {
 	// Award rewards based on how many thresholds the player has crossed
 	// e.g., "2 steps = 1 worker" means position 8 gives 4 workers (8/2 = 4)
 	for playerID, player := range gs.Players {
+		if isArchivists(player) {
+			continue
+		}
 		position := gs.CultTracks.GetPosition(playerID, tile.CultTrack)
 
 		if tile.CultThreshold == 0 {

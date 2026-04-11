@@ -155,6 +155,7 @@ export interface PlayerState {
   townsFormed?: number
   townTiles?: number[] // Array of TownTileType IDs
   goblinTreasureTokens?: number
+  djinniLampTokens?: number
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
   options?: PlayerOptions
@@ -194,6 +195,7 @@ export enum SpecialActionType {
   ChildrenPlacePowerTokens = 13,
   ProspectorsGainCoins = 14,
   TimeTravelersPowerShift = 15,
+  DjinniSwapCults = 16,
 }
 
 export interface CultTrackState {
@@ -233,6 +235,7 @@ export enum BonusCardType {
 export interface BonusCardState {
   available: Record<BonusCardType, number>
   playerCards: Record<string, BonusCardType>
+  playerExtraCards?: Record<string, BonusCardType[]>
   playerHasCard: Record<string, boolean>
 }
 

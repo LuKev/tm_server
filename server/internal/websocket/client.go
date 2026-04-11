@@ -1242,6 +1242,20 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}
 		return game.NewSelectCultistsCultTrackAction(seatID, track), nil
 
+	case "select_djinni_start_cult_track":
+		track, err := parseCultTrack(getParam)
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectDjinniStartingCultTrackAction(seatID, track), nil
+
+	case "select_archivists_bonus_card":
+		bonusCard, err := parseBonusCardType(getParam)
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectArchivistsBonusCardAction(seatID, bonusCard), nil
+
 	case "halflings_apply_spade":
 		hex, err := parseHexParam("hex", "targetHex")
 		if err != nil {
@@ -1603,6 +1617,20 @@ func buildSpecialAction(
 			return nil, fmt.Errorf("missing or invalid amount for time travelers action: %w", err)
 		}
 		return game.NewTimeTravelersPowerShiftAction(seatID, amount), nil
+
+	case game.SpecialActionDjinniSwapCults:
+		firstTrack, err := parseCultTrack()
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid first cult track: %w", err)
+		}
+		secondTrack, err := parseCultTrackFromParams(func(keys ...string) (json.RawMessage, bool) {
+			more := append([]string{"secondTrack"}, keys...)
+			return getParam(more...)
+		})()
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid second cult track: %w", err)
+		}
+		return game.NewDjinniSwapCultsAction(seatID, firstTrack, secondTrack), nil
 
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")

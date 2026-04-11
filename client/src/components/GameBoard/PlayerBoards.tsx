@@ -250,6 +250,7 @@ interface PlayerBoardProps {
     onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
     onGoblinsTreasureAction?: (playerId: string) => void;
+    onDjinniLampAction?: (playerId: string) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
@@ -274,6 +275,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     onAdvanceChashTrack,
     onStrongholdAction,
     onGoblinsTreasureAction,
+    onDjinniLampAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
     onWater2Action,
@@ -334,6 +336,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
         .filter(b => b && b.ownerPlayerId === playerId);
     const childrenBoardPowerTokens = Object.values(gameState?.map.hexes ?? {}).filter(h => h.powerTokenOwnerPlayerId === playerId).length;
     const goblinTreasureTokens = player.goblinTreasureTokens ?? 0;
+    const djinniLampTokens = player.djinniLampTokens ?? 0;
 
     const dwellingCount = buildings.filter(b => b?.type === BuildingType.Dwelling).length;
     const tradingHouseCount = buildings.filter(b => b?.type === BuildingType.TradingHouse).length;
@@ -356,7 +359,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const isLocalMermaidsConnectActive = !!isMermaidsConnectActive && isLocalPlayer;
     const isLocalWater2Active = !!isWater2Active && isLocalPlayer;
 
-    const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
+    const heldBonusCards = [
+        ...(gameState?.bonusCards?.playerCards?.[playerId] !== undefined ? [gameState.bonusCards.playerCards[playerId]] : []),
+        ...((gameState?.bonusCards?.playerExtraCards?.[playerId] ?? []) as BonusCardType[]),
+    ];
+    const hasTempShippingBonus = heldBonusCards.includes(BonusCardType.Shipping);
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
     const showShippingUpgrade = canShowShippingForFaction(factionType);
@@ -449,6 +456,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                         {factionType === FactionType.ChildrenOfTheWyrm && (
                             <div className="resource-item">
                                 <span style={{ fontWeight: 600 }}>Board PW {childrenBoardPowerTokens}</span>
+                            </div>
+                        )}
+                        {factionType === FactionType.Djinni && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Lamps {djinniLampTokens}</span>
                             </div>
                         )}
                         <div className="resource-item">
@@ -688,6 +700,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     {factionType === FactionType.Goblins && (
                                         <button data-testid={`player-${playerId}-goblins-treasure`} className="conversion-btn special" onClick={() => { onGoblinsTreasureAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || goblinTreasureTokens <= 0}>Use 1 Treasure</button>
                                     )}
+                                    {factionType === FactionType.Djinni && (
+                                        <button data-testid={`player-${playerId}-djinni-lamp`} className="conversion-btn special" onClick={() => { onDjinniLampAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || djinniLampTokens <= 0}>Use 1 Lamp</button>
+                                    )}
                                 </div>
                                 <div className="pb-section-title">Towns</div>
                                 <div className="pb-towns-area">
@@ -799,6 +814,8 @@ interface PlayerBoardsProps {
     onAdvanceDigging?: (playerId: string) => void;
     onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
+    onGoblinsTreasureAction?: (playerId: string) => void;
+    onDjinniLampAction?: (playerId: string) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
@@ -818,6 +835,8 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
     onAdvanceDigging,
     onAdvanceChashTrack,
     onStrongholdAction,
+    onGoblinsTreasureAction,
+    onDjinniLampAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
     onWater2Action,
@@ -907,6 +926,8 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
                             onAdvanceDigging={onAdvanceDigging}
                             onAdvanceChashTrack={onAdvanceChashTrack}
                             onStrongholdAction={onStrongholdAction}
+                            onGoblinsTreasureAction={onGoblinsTreasureAction}
+                            onDjinniLampAction={onDjinniLampAction}
                             onEngineersBridgeAction={onEngineersBridgeAction}
                             onMermaidsConnectAction={onMermaidsConnectAction}
                             onWater2Action={onWater2Action}

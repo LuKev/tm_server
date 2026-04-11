@@ -22,33 +22,35 @@ const (
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
-	ActionSetupDwelling                // Place initial dwelling during setup (no cost, no adjacency)
-	ActionUseCultSpade                 // Use a spade from cult track reward (cleanup phase)
-	ActionAcceptPowerLeech             // Accept a power leech offer
-	ActionDeclinePowerLeech            // Decline a power leech offer
-	ActionSelectFavorTile              // Select a favor tile after Temple/Sanctuary/Auren Stronghold
-	ActionApplyHalflingsSpade          // Apply one of 3 stronghold spades (Halflings only)
-	ActionBuildHalflingsDwelling       // Build dwelling on transformed hex (Halflings optional)
-	ActionSkipHalflingsDwelling        // Skip optional dwelling (Halflings)
-	ActionBuildWispsStrongholdDwelling // Build the free Wisps stronghold lake dwelling
-	ActionUseGoblinsTreasure           // Spend one Goblins treasure token for a reward
-	ActionSelectGoblinsCultTrack       // Resolve Goblins treasure cult-step reward
-	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
-	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
-	ActionSelectFaction                // Select faction at start of game
-	ActionAuctionNominateFaction       // Nominate faction in regular/fast auction setup modes
-	ActionAuctionPlaceBid              // Place bid in regular auction mode
-	ActionFastAuctionSubmitBids        // Submit sealed bid vector in fast auction mode
-	ActionSetupBonusCard               // Select bonus card during setup
-	ActionSelectTownTile               // Select town tile from pending town formation
-	ActionSelectTownCultTop            // Resolve key-limited town cult top choice
-	ActionDiscardPendingSpade          // Discard one pending free spade from a follow-up chain
-	ActionConversion                   // Free conversion action (does not consume main action)
-	ActionBurnPower                    // Free burn action (does not consume main action)
-	ActionEngineersBridge              // Engineers SH special action: build bridge for workers
-	ActionSetPlayerOptions             // Update player UX/automation options
-	ActionConfirmTurn                  // Confirm the current turn before the next player may act
-	ActionUndoTurn                     // Undo the current turn back to the last snapshot
+	ActionSetupDwelling                 // Place initial dwelling during setup (no cost, no adjacency)
+	ActionUseCultSpade                  // Use a spade from cult track reward (cleanup phase)
+	ActionAcceptPowerLeech              // Accept a power leech offer
+	ActionDeclinePowerLeech             // Decline a power leech offer
+	ActionSelectFavorTile               // Select a favor tile after Temple/Sanctuary/Auren Stronghold
+	ActionApplyHalflingsSpade           // Apply one of 3 stronghold spades (Halflings only)
+	ActionBuildHalflingsDwelling        // Build dwelling on transformed hex (Halflings optional)
+	ActionSkipHalflingsDwelling         // Skip optional dwelling (Halflings)
+	ActionBuildWispsStrongholdDwelling  // Build the free Wisps stronghold lake dwelling
+	ActionUseGoblinsTreasure            // Spend one Goblins treasure token for a reward
+	ActionSelectGoblinsCultTrack        // Resolve Goblins treasure cult-step reward
+	ActionUseDarklingsPriestOrdination  // Convert 0-3 workers to priests (Darklings stronghold, one-time)
+	ActionSelectCultistsCultTrack       // Select cult track for power leech bonus (Cultists only)
+	ActionSelectDjinniStartingCultTrack // Select Djinni starting cult track during setup
+	ActionSelectArchivistsBonusCard     // Select Archivists' second bonus card after passing with stronghold
+	ActionSelectFaction                 // Select faction at start of game
+	ActionAuctionNominateFaction        // Nominate faction in regular/fast auction setup modes
+	ActionAuctionPlaceBid               // Place bid in regular auction mode
+	ActionFastAuctionSubmitBids         // Submit sealed bid vector in fast auction mode
+	ActionSetupBonusCard                // Select bonus card during setup
+	ActionSelectTownTile                // Select town tile from pending town formation
+	ActionSelectTownCultTop             // Resolve key-limited town cult top choice
+	ActionDiscardPendingSpade           // Discard one pending free spade from a follow-up chain
+	ActionConversion                    // Free conversion action (does not consume main action)
+	ActionBurnPower                     // Free burn action (does not consume main action)
+	ActionEngineersBridge               // Engineers SH special action: build bridge for workers
+	ActionSetPlayerOptions              // Update player UX/automation options
+	ActionConfirmTurn                   // Confirm the current turn before the next player may act
+	ActionUndoTurn                      // Undo the current turn back to the last snapshot
 )
 
 // Action represents a player action
@@ -1086,6 +1088,14 @@ func NewPassAction(playerID string, bonusCard *BonusCardType) *PassAction {
 	}
 }
 
+func isArchivists(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionArchivists
+}
+
+func isDjinni(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionDjinni
+}
+
 // Validate checks if the pass action is valid
 func (a *PassAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
@@ -1113,6 +1123,13 @@ func (a *PassAction) Validate(gs *GameState) error {
 		}
 		return fmt.Errorf("bonus card %v is not available. Available: %v", *a.BonusCard, availableCards)
 	}
+	if isArchivists(player) && player.HasStrongholdAbility && a.BonusCard != nil {
+		for _, oldCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+			if oldCard == *a.BonusCard {
+				return fmt.Errorf("archivists cannot take a bonus card they just returned")
+			}
+		}
+	}
 
 	return nil
 }
@@ -1123,26 +1140,46 @@ func (a *PassAction) Execute(gs *GameState) error {
 		return err
 	}
 
+	prePassSnapshot := gs.CloneForUndo()
 	player := gs.GetPlayer(a.PlayerID)
 	player.HasPassed = true
 
 	// Record pass order (determines turn order for next round)
 	gs.PassOrder = append(gs.PassOrder, a.PlayerID)
 
-	// Award VP from OLD bonus card being returned (if player has one)
-	// In Terra Mystica, pass VP is awarded when you RETURN the card, not when you take it
-	if oldCard, hasOldCard := gs.BonusCards.GetPlayerCard(a.PlayerID); hasOldCard {
-		bonusVP := GetBonusCardPassVP(oldCard, gs, a.PlayerID)
-		player.VictoryPoints += bonusVP
+	// Award VP from OLD bonus card(s) being returned.
+	for _, oldCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+		player.VictoryPoints += GetBonusCardPassVP(oldCard, gs, a.PlayerID)
+	}
+	if isDjinni(player) && player.HasStrongholdAbility {
+		player.VictoryPoints += gs.CultTracks.GetTotalPriestsOnCultTracks(a.PlayerID)
 	}
 
 	// Take bonus card and get coins from it (unless it's the final round)
 	if a.BonusCard != nil {
+		if isArchivists(player) && player.HasStrongholdAbility {
+			returnedCards := gs.BonusCards.ReturnAllBonusCards(a.PlayerID)
+			coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
+			if err != nil {
+				return fmt.Errorf("failed to take archivists first bonus card: %w", err)
+			}
+			player.Resources.Coins += coins
+			player.Resources.Power.GainPower(coins * 2)
+			gs.PendingArchivistsBonusSelection = &PendingArchivistsBonusSelection{
+				PlayerID:      a.PlayerID,
+				ReturnedCards: returnedCards,
+				UndoSnapshot:  prePassSnapshot,
+			}
+			return nil
+		}
 		coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
 		if err != nil {
 			return fmt.Errorf("failed to take bonus card: %w", err)
 		}
 		player.Resources.Coins += coins
+		if isArchivists(player) {
+			player.Resources.Power.GainPower(coins * 2)
+		}
 	}
 
 	gs.ApplyAutoConvertOnPass(a.PlayerID)
@@ -1172,9 +1209,13 @@ func (a *PassAction) Execute(gs *GameState) error {
 		player.VictoryPoints += bridgeVP
 	}
 
-	// Replay simulator applies cleanup/round transitions at explicit RoundStart log items.
-	// Suppress immediate round transition here when running in replay mode to avoid
-	// double-processing round boundaries.
+	return advanceAfterCompletedPass(gs)
+}
+
+func advanceAfterCompletedPass(gs *GameState) error {
+	if gs == nil {
+		return nil
+	}
 	isReplaySimulation := gs.ReplayMode != nil && gs.ReplayMode["__replay__"]
 	if roundComplete := gs.NextTurn(); roundComplete && !isReplaySimulation {
 		if gs.HasLateRoundPendingDecisions() {

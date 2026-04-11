@@ -83,7 +83,7 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Power += favorPower
 
 	// 4. Income from bonus cards
-	if bonusCard, ok := gs.BonusCards.GetPlayerCard(player.ID); ok {
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(player.ID) {
 		bonusCoins, bonusWorkers, bonusPriests, bonusPower := GetBonusCardIncomeBonus(bonusCard)
 		income.Coins += bonusCoins
 		income.Workers += bonusWorkers

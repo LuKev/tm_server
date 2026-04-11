@@ -1211,3 +1211,11 @@
   - Fast auction bidding is asynchronous after nomination: any unsubmitted player may submit out of seat order, and the pending decision includes `playerIds` for all remaining submitters.
   - Optional turn timers are configured by the lobby host when starting the game; only the host may start a lobby game.
   - Timer state is server-authoritative and serialized as `turnTimer` with `serverNowMs`, per-player `remainingMs`, and `activePlayerIds`; the client animates locally from those snapshots instead of relying on periodic websocket ticks.
+
+- 2026-04-10 yellow fan factions (`Archivists`, `Djinni`):
+  - `Archivists` add one extra bonus card to the game when the faction is present, skip all round cult-income rewards, gain `2 PW` per coin on bonus cards they take, and after building the stronghold they pass by taking one card immediately plus a second card through a dedicated pending decision (`archivists_bonus_card`).
+  - Archivists can hold two bonus cards at once; server/client bonus-card logic that checks ownership, income, special actions, shipping bonus, and pass-card rendering must account for both `playerCards` and `playerExtraCards`.
+  - Archivists stronghold passing now defers pass finalization until the second bonus card is chosen so both bonus-card coin pickups contribute to the power gain before the post-pass conversion/confirm window opens.
+  - `Djinni` start with `3` lamp tokens and use them via a normal turn action (`SpecialActionDjinniSwapCults`) that swaps two cult-track levels, is not once-per-round, and still must respect occupied level-10 spaces.
+  - Djinni also have a mandatory setup decision (`djinni_start_cult_choice`) to choose which cult gets their starting `+2` steps.
+  - Djinni stronghold scoring is passive on pass: they gain `1 VP` per priest on cult-track action spaces (`CultTracks.PriestsOnActionSpaces` total), not per cult level.

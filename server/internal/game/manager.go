@@ -312,6 +312,28 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
+	if gs.PendingDjinniStartingCultChoice != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingDjinniStartingCultChoice.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("djinni starting cult choice required from player %s", gs.PendingDjinniStartingCultChoice.PlayerID)
+		}
+		if actionType != ActionSelectDjinniStartingCultTrack {
+			return fmt.Errorf("djinni starting cult choice pending for player %s", gs.PendingDjinniStartingCultChoice.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingArchivistsBonusSelection != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingArchivistsBonusSelection.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("archivists bonus card selection required from player %s", gs.PendingArchivistsBonusSelection.PlayerID)
+		}
+		if actionType != ActionSelectArchivistsBonusCard {
+			return fmt.Errorf("archivists bonus card selection pending for player %s", gs.PendingArchivistsBonusSelection.PlayerID)
+		}
+		return nil
+	}
+
 	if gs.PendingGoblinsCultSteps != nil {
 		pendingPlayer := strings.TrimSpace(gs.PendingGoblinsCultSteps.PlayerID)
 		if strings.TrimSpace(playerID) != pendingPlayer {
@@ -434,7 +456,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectGoblinsCultTrack || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectDjinniStartingCultTrack || actionType == ActionSelectGoblinsCultTrack || actionType == ActionSelectArchivistsBonusCard || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -687,7 +709,9 @@ func isPendingResolutionActionType(actionType ActionType) bool {
 		ActionSkipHalflingsDwelling,
 		ActionBuildWispsStrongholdDwelling,
 		ActionSelectCultistsCultTrack,
+		ActionSelectDjinniStartingCultTrack,
 		ActionSelectGoblinsCultTrack,
+		ActionSelectArchivistsBonusCard,
 		ActionUseCultSpade,
 		ActionDiscardPendingSpade,
 		ActionSetupBonusCard,
@@ -712,7 +736,9 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionBuildWispsStrongholdDwelling,
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
+		ActionSelectDjinniStartingCultTrack,
 		ActionSelectGoblinsCultTrack,
+		ActionSelectArchivistsBonusCard,
 		ActionDiscardPendingSpade,
 		ActionSetPlayerOptions,
 		ActionConfirmTurn,
@@ -883,6 +909,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			"townsFormed":           player.TownsFormed,
 			"townTiles":             player.TownTiles,
 			"goblinTreasureTokens":  player.GoblinTreasureTokens,
+			"djinniLampTokens":      player.DjinniLampTokens,
 			"specialActionsUsed":    player.SpecialActionsUsed,
 			"cults": map[string]interface{}{
 				"0": player.CultPositions[CultFire],
@@ -1134,6 +1161,21 @@ func serializePendingDecision(gs *GameState) interface{} {
 		return map[string]interface{}{
 			"type":     "cultists_cult_choice",
 			"playerId": gs.PendingCultistsCultSelection.PlayerID,
+		}
+	}
+
+	if gs.PendingDjinniStartingCultChoice != nil {
+		return map[string]interface{}{
+			"type":     "djinni_start_cult_choice",
+			"playerId": gs.PendingDjinniStartingCultChoice.PlayerID,
+		}
+	}
+
+	if gs.PendingArchivistsBonusSelection != nil {
+		return map[string]interface{}{
+			"type":          "archivists_bonus_card",
+			"playerId":      gs.PendingArchivistsBonusSelection.PlayerID,
+			"returnedCards": gs.PendingArchivistsBonusSelection.ReturnedCards,
 		}
 	}
 

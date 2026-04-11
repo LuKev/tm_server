@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game/board"
@@ -53,6 +54,8 @@ type GameState struct {
 	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling       `json:"pendingWispsStrongholdDwelling,omitempty"`
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination     `json:"pendingDarklingsPriestOrdination"`
 	PendingCultistsCultSelection     *PendingCultistsCultSelection         `json:"pendingCultistsCultSelection"`
+	PendingDjinniStartingCultChoice  *PendingDjinniStartingCultChoice      `json:"pendingDjinniStartingCultChoice,omitempty"`
+	PendingArchivistsBonusSelection  *PendingArchivistsBonusSelection      `json:"pendingArchivistsBonusSelection,omitempty"`
 	PendingTownCultTopChoice         *PendingTownCultTopChoice             `json:"pendingTownCultTopChoice"`
 	PendingFreeActionsPlayerID       string                                `json:"pendingFreeActionsPlayerId"`
 	PendingTurnConfirmationPlayerID  string                                `json:"pendingTurnConfirmationPlayerId"`
@@ -111,6 +114,14 @@ type PendingWispsStrongholdDwelling struct {
 	PlayerID string
 }
 
+// PendingArchivistsBonusSelection represents Archivists choosing the second
+// bonus card after passing with the stronghold ability.
+type PendingArchivistsBonusSelection struct {
+	PlayerID      string
+	ReturnedCards []BonusCardType
+	UndoSnapshot  *GameState `json:"-"`
+}
+
 // PendingDarklingsPriestOrdination represents Darklings player who needs to convert workers to priests
 // Triggered by: Building Stronghold (one-time only, immediate)
 type PendingDarklingsPriestOrdination struct {
@@ -120,6 +131,12 @@ type PendingDarklingsPriestOrdination struct {
 // PendingCultistsCultSelection represents Cultists player who needs to select a cult track
 // Triggered by: Power leech bonus (when at least one opponent accepts power)
 type PendingCultistsCultSelection struct {
+	PlayerID string
+}
+
+// PendingDjinniStartingCultChoice represents Djinni choosing which cult
+// receives their starting two cult steps.
+type PendingDjinniStartingCultChoice struct {
 	PlayerID string
 }
 
@@ -203,6 +220,7 @@ type Player struct {
 	TownsFormed           int                        `json:"townsFormed"` // Number of towns formed
 	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
 	GoblinTreasureTokens  int                        `json:"goblinTreasureTokens"`
+	DjinniLampTokens      int                        `json:"djinniLampTokens"`
 	AtlanteansTownHexes   []board.Hex                `json:"-"`
 	AtlanteansTownRewards map[int]bool               `json:"-"`
 }
@@ -285,6 +303,8 @@ func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
 	}
 
 	switch player.Faction.GetType() {
+	case models.FactionArchivists:
+		gs.ensureArchivistsBonusCardAvailable()
 	case models.FactionDynionGeifr:
 		if gs.FavorTiles == nil {
 			return fmt.Errorf("favor tiles not initialized")
@@ -300,9 +320,37 @@ func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
 		}
 	case models.FactionGoblins:
 		player.GoblinTreasureTokens = 1
+	case models.FactionDjinni:
+		player.DjinniLampTokens = 3
+		gs.PendingDjinniStartingCultChoice = &PendingDjinniStartingCultChoice{PlayerID: playerID}
 	}
 
 	return nil
+}
+
+func (gs *GameState) ensureArchivistsBonusCardAvailable() {
+	if gs == nil || gs.BonusCards == nil {
+		return
+	}
+	if len(gs.BonusCards.Available) >= len(gs.Players)+4 {
+		return
+	}
+	allCards := GetAllBonusCards()
+	candidates := make([]BonusCardType, 0, len(allCards))
+	for cardType := range allCards {
+		if gs.BonusCards.IsAvailable(cardType) {
+			continue
+		}
+		if gs.BonusCards.PlayerHasCardType(cardType) {
+			continue
+		}
+		candidates = append(candidates, cardType)
+	}
+	if len(candidates) == 0 {
+		return
+	}
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i] < candidates[j] })
+	gs.BonusCards.Available[candidates[0]] = 0
 }
 
 // LeechAutoMode controls automatic accept/decline behavior for power leech offers.
@@ -625,7 +673,7 @@ func (gs *GameState) effectiveShippingLevel(playerID string) int {
 		return 0
 	}
 	effectiveShipping := player.ShippingLevel
-	if bonusCard, hasCard := gs.BonusCards.GetPlayerCard(playerID); hasCard {
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(playerID) {
 		effectiveShipping += GetBonusCardShippingBonus(bonusCard, player.Faction.GetType())
 	}
 	return effectiveShipping
