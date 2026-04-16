@@ -989,16 +989,21 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			hexData["displayCoord"] = displayCoord
 		}
 
-		if mapHex.Building != nil {
-			hexData["building"] = map[string]interface{}{
-				"ownerPlayerId": mapHex.Building.PlayerID,
-				"faction":       mapHex.Building.Faction,
-				"type":          mapHex.Building.Type,
+			if mapHex.Building != nil {
+				hexData["building"] = map[string]interface{}{
+					"ownerPlayerId": mapHex.Building.PlayerID,
+					"faction":       mapHex.Building.Faction,
+					"type":          mapHex.Building.Type,
+				}
 			}
-		}
-		if mapHex.PowerTokenOwnerPlayerID != "" {
-			hexData["powerTokenOwnerPlayerId"] = mapHex.PowerTokenOwnerPlayerID
-		}
+			if mapHex.HasTownTile {
+				hexData["hasTownTile"] = true
+				hexData["townTileType"] = mapHex.TownTileType
+				hexData["townTileOwnerPlayerId"] = mapHex.TownTileOwnerPlayerID
+			}
+			if mapHex.PowerTokenOwnerPlayerID != "" {
+				hexData["powerTokenOwnerPlayerId"] = mapHex.PowerTokenOwnerPlayerID
+			}
 
 		hexes[key] = hexData
 	}

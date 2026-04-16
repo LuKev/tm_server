@@ -127,6 +127,9 @@ export interface MapHex {
   terrain: TerrainType
   displayCoord?: string
   building?: Building
+  hasTownTile?: boolean
+  townTileType?: TownTileId
+  townTileOwnerPlayerId?: string
   powerTokenOwnerPlayerId?: string
 }
 

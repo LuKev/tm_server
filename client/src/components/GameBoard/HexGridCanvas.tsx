@@ -4,11 +4,12 @@ import type { MapHexData } from '../../types/map.types';
 import { buildDisplayCoordinateMap, getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
 import type { Building, Bridge } from '../../types/game.types';
-import { BuildingType } from '../../types/game.types';
+import { BuildingType, FactionType, TownTileId } from '../../types/game.types';
 
 interface HexGridCanvasProps {
   hexes: MapHexData[];
   buildings?: Map<string, Building>;
+  playerFactions?: Map<string, FactionType>;
   bridges?: Bridge[];
   highlightedHexes?: Set<string>;
   onHexClick?: (q: number, r: number) => void;
@@ -20,9 +21,55 @@ interface HexGridCanvasProps {
   testId?: string;
 }
 
+const drawRoundedRect = (
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void => {
+  const r = Math.min(radius, width / 2, height / 2);
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + width - r, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+  ctx.lineTo(x + width, y + height - r);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+  ctx.lineTo(x + r, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+};
+
+const getTownTileMarker = (tileType: TownTileId): { vp: string; reward: string } => {
+  switch (tileType) {
+    case TownTileId.Vp5Coins6:
+      return { vp: '5 VP', reward: '6C' };
+    case TownTileId.Vp6Power8:
+      return { vp: '6 VP', reward: '8PW' };
+    case TownTileId.Vp7Workers2:
+      return { vp: '7 VP', reward: '2W' };
+    case TownTileId.Vp4Ship1:
+      return { vp: '4 VP', reward: 'SHIP' };
+    case TownTileId.Vp8Cult1:
+      return { vp: '8 VP', reward: 'CULT' };
+    case TownTileId.Vp9Priest1:
+      return { vp: '9 VP', reward: '1P' };
+    case TownTileId.Vp11:
+      return { vp: '11 VP', reward: '' };
+    case TownTileId.Vp2Cult2:
+      return { vp: '2 VP', reward: '2 CULT' };
+    default:
+      return { vp: 'TOWN', reward: '' };
+  }
+};
+
 export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   hexes,
   buildings = new Map<string, Building>(),
+  playerFactions = new Map<string, FactionType>(),
   bridges = [],
   highlightedHexes = new Set(),
   onHexClick,
@@ -435,6 +482,80 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.restore();
   }, []);
 
+  const drawTownTileMarker = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
+    if (!hex.hasTownTile || hex.townTileType == null) return;
+
+    const center = hexCenter(hex.coord.r, hex.coord.q);
+    const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
+    const hasBuilding = buildings.has(key);
+    const marker = getTownTileMarker(hex.townTileType);
+    const ownerFaction = hex.townTileOwnerPlayerId ? playerFactions.get(hex.townTileOwnerPlayerId) : undefined;
+    const borderColor = ownerFaction != null ? FACTION_COLORS[ownerFaction] : '#5C4033';
+    const width = 34;
+    const height = 22;
+    const x = center.x - width / 2;
+    const y = center.y + (hasBuilding ? 10 : 3);
+
+    ctx.save();
+
+    drawRoundedRect(ctx, x, y, width, height, 5);
+    ctx.fillStyle = '#f8eed1';
+    ctx.fill();
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(x + 3, y + 11);
+    ctx.lineTo(x + width - 3, y + 11);
+    ctx.strokeStyle = 'rgba(92, 64, 51, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#5C4033';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 7px sans-serif';
+    ctx.fillText(marker.vp, center.x, y + 6.5);
+
+    if (marker.reward !== '') {
+      ctx.font = marker.reward.length > 4 ? '600 5.5px sans-serif' : '600 6px sans-serif';
+      ctx.fillText(marker.reward, center.x, y + 16.5);
+    }
+
+    ctx.restore();
+  }, [buildings, playerFactions]);
+
+  const drawChildrenRiverToken = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
+    if (!hex.powerTokenOwnerPlayerId) return;
+
+    const center = hexCenter(hex.coord.r, hex.coord.q);
+    const y = center.y + (hex.hasTownTile ? -8 : -2);
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.arc(center.x, y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = '#2c2c2c';
+    ctx.fill();
+    ctx.strokeStyle = '#0f172a';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(center.x, y, 5.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#7C3AED';
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 5.5px sans-serif';
+    ctx.fillText('PW', center.x, y + 0.2);
+
+    ctx.restore();
+  }, []);
+
   // Render the canvas
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -457,7 +578,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       dims.offsetY * canvasMetrics.backingScale,
     );
 
-    // Z-order: River hexes → Bridges → Land hexes → Buildings → Highlights
+    // Z-order: River hexes → Bridges → Land hexes → Town tiles → Children tokens → Buildings → Highlights
 
     // 1. Draw river hexes first
     hexes.forEach(hex => {
@@ -478,13 +599,27 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       }
     });
 
-    // 4. Draw buildings
+    // 4. Draw town tile markers
+    hexes.forEach(hex => {
+      if (hex.hasTownTile) {
+        drawTownTileMarker(ctx, hex);
+      }
+    });
+
+    // 5. Draw Children of the Wyrm river power tokens
+    hexes.forEach(hex => {
+      if (hex.powerTokenOwnerPlayerId) {
+        drawChildrenRiverToken(ctx, hex);
+      }
+    });
+
+    // 6. Draw buildings
     buildings.forEach((building, key) => {
       const [q, r] = key.split(',').map(Number);
       drawBuilding(ctx, building, r, q);
     });
 
-    // 5. Draw highlights on top of everything
+    // 7. Draw highlights on top of everything
     hexes.forEach(hex => {
       const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
       if (highlightedHexes.has(key)) {
@@ -503,6 +638,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     canvasMetrics.backingScale,
     drawHex,
     drawBridge,
+    drawTownTileMarker,
+    drawChildrenRiverToken,
     drawBuilding,
     drawHighlight,
   ]);

@@ -1,4 +1,5 @@
 import { TerrainType } from './game.types'
+import { TownTileId } from './game.types'
 import type { AxialCoord } from '../utils/hexUtils'
 
 export interface MapHexData {
@@ -6,6 +7,10 @@ export interface MapHexData {
   terrain: TerrainType
   isRiver: boolean
   displayCoord?: string
+  hasTownTile?: boolean
+  townTileType?: TownTileId
+  townTileOwnerPlayerId?: string
+  powerTokenOwnerPlayerId?: string
 }
 
 export interface CustomMapDefinition {

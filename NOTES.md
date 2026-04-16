@@ -122,6 +122,7 @@
     - if bowl III must be used, the client should prompt before submitting so the player can convert those tokens to coins first if desired
     - placed Children river power tokens extend direct-adjacency checks and connected-building grouping for town formation
     - building the `Children of the Wyrm` stronghold restores removed power tokens to bowl I
+    - current UI implementation tracks and submits Children river-token placements, shows the aggregate `Board PW` count on the player board, and now renders both Children river power-token markers and formed town-tile markers directly on the board canvas
     - `Goblins` start with exactly `1` treasure token
     - `Goblins` gain `1` treasure when building a temple or sanctuary
     - after Goblins build their stronghold, each town founded grants `1` treasure

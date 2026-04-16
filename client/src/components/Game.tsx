@@ -253,9 +253,9 @@ export const Game = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [powerMode, setPowerMode] = useState<PendingPowerMode | null>(null)
-  const [treasurersDepositCoins, setTreasurersDepositCoins] = useState(0)
-  const [treasurersDepositWorkers, setTreasurersDepositWorkers] = useState(0)
-  const [treasurersDepositPriests, setTreasurersDepositPriests] = useState(0)
+  const [, setTreasurersDepositCoins] = useState(0)
+  const [, setTreasurersDepositWorkers] = useState(0)
+  const [, setTreasurersDepositPriests] = useState(0)
 
   const [pendingHex, setPendingHex] = useState<{ q: number; r: number } | null>(null)
   const [hexActionMode, setHexActionMode] = useState<'build' | 'transform_build' | 'transform_only' | null>(null)
@@ -1990,28 +1990,57 @@ export const Game = () => {
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Action</div>
         <div className="text-sm font-semibold text-slate-900">{decisionStripStatus}</div>
       </div>
-      {confirmDialog ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
-            <div className="text-sm text-slate-700">{confirmDialog.message}</div>
+	      {confirmDialog ? (
+	        <div className="flex flex-wrap items-center justify-between gap-3">
+	          <div>
+	            <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
+	            <div className="text-sm text-slate-700">{confirmDialog.message}</div>
           </div>
           <div className="flex items-center gap-2">
             <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
-            <button
-              data-testid="confirm-action-confirm"
-              className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-              onClick={() => {
-                if (!confirmDialog) return
-                confirmDialog.onConfirm()
-              }}
-            >
-              Confirm
-            </button>
-          </div>
-        </div>
-      ) : pendingHex ? (
-        <div className="space-y-3">
+	            <button
+	              data-testid="confirm-action-confirm"
+	              className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+	              onClick={() => {
+	                const onConfirm = confirmDialog?.onConfirm
+	                if (!onConfirm) return
+	                onConfirm()
+	              }}
+	            >
+	              Confirm
+	            </button>
+	          </div>
+	        </div>
+	      ) : powerMode?.type === 'children_place_power_tokens' ? (
+	        <div className="flex flex-wrap items-center justify-between gap-3">
+	          <div>
+	            <div className="text-sm font-semibold text-slate-900">Place Children River Tokens</div>
+	            <div className="text-sm text-slate-700">
+	              {selectedChildrenTokenHexes.length === 0
+	                ? 'Select 1 or 2 empty river hexes connected to your buildings or existing river network.'
+	                : `Selected: ${selectedChildrenTokenHexes.map((hex) => formatHexCoord(hex)).join(', ')}`}
+	            </div>
+	          </div>
+	          <div className="flex items-center gap-2">
+	            <button
+	              data-testid="children-river-token-cancel"
+	              className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800"
+	              onClick={() => { setPowerMode(null) }}
+	            >
+	              Cancel
+	            </button>
+	            <button
+	              data-testid="children-river-token-submit"
+	              className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:bg-blue-300"
+	              onClick={submitChildrenPowerTokenAction}
+	              disabled={selectedChildrenTokenHexes.length === 0}
+	            >
+	              Submit
+	            </button>
+	          </div>
+	        </div>
+	      ) : pendingHex ? (
+	        <div className="space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold text-slate-900">

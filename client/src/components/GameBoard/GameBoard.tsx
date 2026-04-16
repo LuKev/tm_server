@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { HexGridCanvas } from './HexGridCanvas';
 import { useGameStore } from '../../stores/gameStore';
-import { TerrainType, type Building } from '../../types/game.types';
+import { FactionType, TerrainType, type Building } from '../../types/game.types';
 import type { MapHexData } from '../../types/map.types';
 import { PowerActions } from './PowerActions';
 
@@ -37,11 +37,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   // Get buildings from game state
   const buildings = new Map<string, Building>();
+  const playerFactions = new Map<string, FactionType>();
   if (gameState?.map?.hexes) {
     Object.entries(gameState.map.hexes).forEach(([key, hex]) => {
       if (hex.building) {
         buildings.set(key, hex.building);
       }
+    });
+  }
+  if (gameState?.players) {
+    Object.entries(gameState.players).forEach(([playerId, player]) => {
+      playerFactions.set(playerId, player.faction);
     });
   }
 
@@ -69,6 +75,10 @@ export const GameBoard: React.FC<GameBoardProps> = ({
         terrain: hex.terrain,
         isRiver: hex.terrain === TerrainType.River,
         displayCoord: hex.displayCoord,
+        hasTownTile: hex.hasTownTile,
+        townTileType: hex.townTileType,
+        townTileOwnerPlayerId: hex.townTileOwnerPlayerId,
+        powerTokenOwnerPlayerId: hex.powerTokenOwnerPlayerId,
       }))
       .sort((left, right) => {
         if (left.coord.r !== right.coord.r) return left.coord.r - right.coord.r
@@ -83,6 +93,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           testId="hex-grid-canvas"
           hexes={currentHexes}
           buildings={buildings}
+          playerFactions={playerFactions}
           bridges={gameState?.map?.bridges || []}
           highlightedHexes={highlightedHexes}
           onHexClick={handleHexClick}
