@@ -96,35 +96,6 @@ const StrongholdOctagon: React.FC<{ isUsed?: boolean; isActive?: boolean; onClic
     </button>
 );
 
-const StrongholdSquare: React.FC<{ isActive?: boolean; onClick?: () => void; disabled?: boolean; label?: string; testId?: string }> = ({ isActive, onClick, disabled, label, testId }) => (
-    <button
-        type="button"
-        data-testid={testId}
-        onClick={onClick}
-        disabled={disabled}
-        title={label}
-        className={isActive ? 'pb-special-action-active' : 'pb-special-action-hover'}
-        style={{
-            width: '2.4rem',
-            height: '2.4rem',
-            borderRadius: '0.3rem',
-            border: '2px solid #c2410c',
-            background: '#f97316',
-            color: '#111827',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            opacity: disabled ? 0.6 : 1,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.15)',
-        }}
-    >
-        {label ?? 'ACT'}
-    </button>
-);
-
 const renderIncomeIcons = (income: BuildingSlot['income'], compact?: boolean): React.ReactNode => {
     if (!income) return null;
     const scale = compact ? 0.8 : 1;
