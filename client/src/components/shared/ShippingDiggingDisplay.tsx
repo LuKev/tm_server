@@ -16,8 +16,11 @@ export const canShowShippingForFaction = (factionType: FactionType): boolean => 
 };
 
 export const canShowDiggingForFaction = (factionType: FactionType): boolean => {
-  // Darklings have no digging upgrades (they pay priests instead).
-  return factionType !== FactionType.Darklings;
+  // Darklings pay priests instead, and these fan factions do not upgrade digging.
+  return factionType !== FactionType.Darklings
+    && factionType !== FactionType.ChashDallah
+    && factionType !== FactionType.Prospectors
+    && factionType !== FactionType.TimeTravelers;
 };
 
 export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
@@ -37,7 +40,8 @@ export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
 
   // Digging is stored as digging upgrade level (0..2 for most factions, 0..1 for Fakirs).
   // Display as the number of workers required per spade: 3 -> 2 -> 1.
-  const workersPerSpade = Math.max(1, Math.min(3, 3 - diggingLevel));
+  const terraformCost = Math.max(1, Math.min(3, 3 - diggingLevel));
+  const terraformUsesPower = factionType === FactionType.TheEnlightened;
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: compact ? '0.5em' : '0.75em' }}>
@@ -55,7 +59,7 @@ export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
           <span style={{ width: iconSize, height: iconSize, display: 'inline-flex' }}>
             <SpadeIcon />
           </span>
-          <span>{workersPerSpade}</span>
+          <span>{terraformCost}{terraformUsesPower ? ' PW' : ''}</span>
         </div>
       )}
     </div>

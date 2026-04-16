@@ -17,34 +17,41 @@ const (
 	ActionUpgradeBuilding
 	ActionAdvanceShipping
 	ActionAdvanceDigging
+	ActionAdvanceChashTrack
 	ActionSendPriestToCult
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
-	ActionSetupDwelling                // Place initial dwelling during setup (no cost, no adjacency)
-	ActionUseCultSpade                 // Use a spade from cult track reward (cleanup phase)
-	ActionAcceptPowerLeech             // Accept a power leech offer
-	ActionDeclinePowerLeech            // Decline a power leech offer
-	ActionSelectFavorTile              // Select a favor tile after Temple/Sanctuary/Auren Stronghold
-	ActionApplyHalflingsSpade          // Apply one of 3 stronghold spades (Halflings only)
-	ActionBuildHalflingsDwelling       // Build dwelling on transformed hex (Halflings optional)
-	ActionSkipHalflingsDwelling        // Skip optional dwelling (Halflings)
-	ActionUseDarklingsPriestOrdination // Convert 0-3 workers to priests (Darklings stronghold, one-time)
-	ActionSelectCultistsCultTrack      // Select cult track for power leech bonus (Cultists only)
-	ActionSelectFaction                // Select faction at start of game
-	ActionAuctionNominateFaction       // Nominate faction in regular/fast auction setup modes
-	ActionAuctionPlaceBid              // Place bid in regular auction mode
-	ActionFastAuctionSubmitBids        // Submit sealed bid vector in fast auction mode
-	ActionSetupBonusCard               // Select bonus card during setup
-	ActionSelectTownTile               // Select town tile from pending town formation
-	ActionSelectTownCultTop            // Resolve key-limited town cult top choice
-	ActionDiscardPendingSpade          // Discard one pending free spade from a follow-up chain
-	ActionConversion                   // Free conversion action (does not consume main action)
-	ActionBurnPower                    // Free burn action (does not consume main action)
-	ActionEngineersBridge              // Engineers SH special action: build bridge for workers
-	ActionSetPlayerOptions             // Update player UX/automation options
-	ActionConfirmTurn                  // Confirm the current turn before the next player may act
-	ActionUndoTurn                     // Undo the current turn back to the last snapshot
+	ActionSetupDwelling                 // Place initial dwelling during setup (no cost, no adjacency)
+	ActionUseCultSpade                  // Use a spade from cult track reward (cleanup phase)
+	ActionAcceptPowerLeech              // Accept a power leech offer
+	ActionDeclinePowerLeech             // Decline a power leech offer
+	ActionSelectFavorTile               // Select a favor tile after Temple/Sanctuary/Auren Stronghold
+	ActionApplyHalflingsSpade           // Apply one of 3 stronghold spades (Halflings only)
+	ActionBuildHalflingsDwelling        // Build dwelling on transformed hex (Halflings optional)
+	ActionSkipHalflingsDwelling         // Skip optional dwelling (Halflings)
+	ActionBuildWispsStrongholdDwelling  // Build the free Wisps stronghold lake dwelling
+	ActionUseGoblinsTreasure            // Spend one Goblins treasure token for a reward
+	ActionSelectGoblinsCultTrack        // Resolve Goblins treasure cult-step reward
+	ActionUseDarklingsPriestOrdination  // Convert 0-3 workers to priests (Darklings stronghold, one-time)
+	ActionSelectCultistsCultTrack       // Select cult track for power leech bonus (Cultists only)
+	ActionSelectDjinniStartingCultTrack // Select Djinni starting cult track during setup
+	ActionSelectTreasurersDeposit       // Select how many newly gained resources Treasurers bank
+	ActionSelectArchivistsBonusCard     // Select Archivists' second bonus card after passing with stronghold
+	ActionSelectFaction                 // Select faction at start of game
+	ActionAuctionNominateFaction        // Nominate faction in regular/fast auction setup modes
+	ActionAuctionPlaceBid               // Place bid in regular auction mode
+	ActionFastAuctionSubmitBids         // Submit sealed bid vector in fast auction mode
+	ActionSetupBonusCard                // Select bonus card during setup
+	ActionSelectTownTile                // Select town tile from pending town formation
+	ActionSelectTownCultTop             // Resolve key-limited town cult top choice
+	ActionDiscardPendingSpade           // Discard one pending free spade from a follow-up chain
+	ActionConversion                    // Free conversion action (does not consume main action)
+	ActionBurnPower                     // Free burn action (does not consume main action)
+	ActionEngineersBridge               // Engineers SH special action: build bridge for workers
+	ActionSetPlayerOptions              // Update player UX/automation options
+	ActionConfirmTurn                   // Confirm the current turn before the next player may act
+	ActionUndoTurn                      // Undo the current turn back to the last snapshot
 )
 
 // Action represents a player action
@@ -142,13 +149,31 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 				return fmt.Errorf("cannot build dwelling on remaining pending spade follow-up")
 			}
 		}
+		if sourceHex, ok := gs.PendingWispsTradingPostSpade[a.PlayerID]; ok {
+			if a.BuildDwelling {
+				return fmt.Errorf("wisps trading post spade cannot build a dwelling")
+			}
+			if requiredSpades != 1 {
+				return fmt.Errorf("wisps trading post spade must transform exactly 1 directly adjacent terrain")
+			}
+			isDirectNeighbor := false
+			for _, neighbor := range gs.Map.GetDirectNeighbors(sourceHex) {
+				if neighbor == a.TargetHex {
+					isDirectNeighbor = true
+					break
+				}
+			}
+			if !isDirectNeighbor {
+				return fmt.Errorf("wisps trading post spade must target terrain directly adjacent to the new trading post")
+			}
+		}
 	}
 
 	if err := a.validateAdjacency(gs, player); err != nil {
 		return err
 	}
 
-	totalWorkersNeeded, totalPriestsNeeded, err := a.calculateCosts(gs, player, mapHex)
+	totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, totalCoinsNeeded, err := a.calculateCosts(gs, player, mapHex)
 	if err != nil {
 		return err
 	}
@@ -161,6 +186,12 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	// Check total priests needed (Darklings terraform cost)
 	if player.Resources.Priests < totalPriestsNeeded {
 		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
+	}
+	if totalPowerNeeded > 0 && !player.Resources.Power.CanSpend(totalPowerNeeded) {
+		return fmt.Errorf("not enough power for terraform: need %d, have %d", totalPowerNeeded, player.Resources.Power.Bowl3)
+	}
+	if player.Resources.Coins < totalCoinsNeeded {
+		return fmt.Errorf("not enough coins: need %d, have %d", totalCoinsNeeded, player.Resources.Coins)
 	}
 
 	return nil
@@ -193,7 +224,7 @@ func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Playe
 	return nil
 }
 
-func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, error) {
+func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, int, int, error) {
 	// Check if terrain needs transformation to target terrain (default: home terrain)
 	targetTerrain := player.Faction.GetHomeTerrain()
 	if a.TargetTerrain != models.TerrainTypeUnknown {
@@ -203,26 +234,31 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 
 	totalWorkersNeeded := 0
 	totalPriestsNeeded := 0
+	totalPowerNeeded := 0
+	totalCoinsNeeded := 0
 
 	if needsTransform {
 		// Calculate terraform cost
 		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 		if distance == 0 {
-			return 0, 0, fmt.Errorf("terrain distance calculation failed")
+			return 0, 0, 0, 0, fmt.Errorf("terrain distance calculation failed")
 		}
 		requiredSpades := distance
 		if player.Faction.GetType() == models.FactionGiants {
 			// Giants always require exactly 2 spades for a terrain transform.
 			requiredSpades = 2
 		}
+		requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
 		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
 		freeSpades := 0
-		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-			freeSpades += gs.PendingSpades[a.PlayerID]
-		}
-		if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
-			freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+		if !isProspectors(player) {
+			if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+				freeSpades += gs.PendingSpades[a.PlayerID]
+			}
+			if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+				freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+			}
 		}
 		if player.Faction.GetType() == models.FactionGiants {
 			// Giants cannot use a single free spade; only a full pair is usable.
@@ -241,6 +277,10 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 		if remainingSpades > 0 {
 			if player.Faction.GetType() == models.FactionDarklings {
 				totalPriestsNeeded = remainingSpades
+			} else if isProspectors(player) {
+				totalCoinsNeeded += remainingSpades * getProspectorsGoldenSpadeCost(player)
+			} else if player.Faction.GetType() == models.FactionTheEnlightened {
+				totalPowerNeeded = player.Faction.GetTerraformCost(remainingSpades)
 			} else {
 				// Other factions pay workers
 				totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
@@ -262,13 +302,14 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 	// If building a dwelling, check requirements
 	if a.BuildDwelling {
 		if err := a.validateDwelling(gs, player, mapHex, needsTransform, targetTerrain); err != nil {
-			return 0, 0, err
+			return 0, 0, 0, 0, err
 		}
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 		totalWorkersNeeded += dwellingCost.Workers
+		totalCoinsNeeded += dwellingCost.Coins
 	}
 
-	return totalWorkersNeeded, totalPriestsNeeded, nil
+	return totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, totalCoinsNeeded, nil
 }
 
 func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player, mapHex *board.MapHex, needsTransform bool, targetTerrain models.TerrainType) error {
@@ -288,7 +329,7 @@ func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player
 	}
 
 	// Check if player can afford dwelling (coins and priests)
-	dwellingCost := player.Faction.GetDwellingCost()
+	dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 	if !player.Resources.CanAfford(dwellingCost) {
 		return fmt.Errorf("not enough resources for dwelling: need %v, have %v", dwellingCost, player.Resources)
 	}
@@ -363,6 +404,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		// Giants always require exactly 2 spades for a terrain transform.
 		requiredSpades = 2
 	}
+	requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
 	// Check for free spades from BON1 (count for VP when used)
 	vpEligibleFreeSpades := 0
@@ -370,11 +412,11 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 	cultRewardSpades := 0
 	if player.Faction.GetType() == models.FactionGiants {
 		pending := 0
-		if gs.PendingSpades != nil {
+		if !isProspectors(player) && gs.PendingSpades != nil {
 			pending = gs.PendingSpades[a.PlayerID]
 		}
 		cultPending := 0
-		if gs.PendingCultRewardSpades != nil {
+		if !isProspectors(player) && gs.PendingCultRewardSpades != nil {
 			cultPending = gs.PendingCultRewardSpades[a.PlayerID]
 		}
 		if pending+cultPending >= 2 {
@@ -388,6 +430,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 				if gs.PendingSpades[a.PlayerID] == 0 {
 					delete(gs.PendingSpades, a.PlayerID)
 					delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+					gs.clearPendingWispsTradingPostSpade(a.PlayerID)
 				}
 				remainingToConsume -= vpEligibleFreeSpades
 			}
@@ -403,7 +446,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			}
 		}
 	} else {
-		if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		if !isProspectors(player) && gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
 			vpEligibleFreeSpades = gs.PendingSpades[a.PlayerID]
 			if vpEligibleFreeSpades > requiredSpades {
 				vpEligibleFreeSpades = requiredSpades // Only use what we need
@@ -413,11 +456,12 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			if gs.PendingSpades[a.PlayerID] == 0 {
 				delete(gs.PendingSpades, a.PlayerID)
 				delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+				gs.clearPendingWispsTradingPostSpade(a.PlayerID)
 			}
 		}
 
 		remainingRequired := requiredSpades - vpEligibleFreeSpades
-		if remainingRequired > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+		if !isProspectors(player) && remainingRequired > 0 && gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
 			cultRewardSpades = gs.PendingCultRewardSpades[a.PlayerID]
 			if cultRewardSpades > remainingRequired {
 				cultRewardSpades = remainingRequired // Only use what we need
@@ -443,6 +487,15 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			// Award Darklings VP bonus (+2 VP per remaining spade, not free spades)
 			vpBonus := remainingSpades * 2
 			player.VictoryPoints += vpBonus
+		} else if isProspectors(player) {
+			player.Resources.Coins -= remainingSpades * getProspectorsGoldenSpadeCost(player)
+			player.Resources.GainPower(remainingSpades)
+			player.VictoryPoints += remainingSpades
+		} else if player.Faction.GetType() == models.FactionTheEnlightened {
+			powerCost := player.Faction.GetTerraformCost(remainingSpades)
+			if err := player.Resources.Power.SpendPower(powerCost); err != nil {
+				return fmt.Errorf("failed to spend power for terraform: %w", err)
+			}
 		} else {
 			// Other factions pay workers
 			totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
@@ -464,9 +517,11 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			spadesForVP = 2
 		}
 
-		// Award scoring tile VP for ALL factions including Darklings
-		for i := 0; i < spadesForVP; i++ {
-			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		// Prospectors' Golden Spades do not count for round spade scoring.
+		if !isProspectors(player) {
+			for i := 0; i < spadesForVP; i++ {
+				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+			}
 		}
 
 		// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
@@ -485,9 +540,23 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 	return nil
 }
 
+func adjustRequiredSpadesForArchitects(gs *GameState, player *Player, targetHex board.Hex, requiredSpades int, buildDwelling bool) int {
+	if gs == nil || !buildDwelling || requiredSpades <= 0 || !isArchitects(player) {
+		return requiredSpades
+	}
+	bridgeReduction := gs.Map.CountPlayerBridgesIncidentToHex(targetHex, player.ID)
+	if bridgeReduction <= 0 {
+		return requiredSpades
+	}
+	if bridgeReduction >= requiredSpades {
+		return 0
+	}
+	return requiredSpades - bridgeReduction
+}
+
 func (a *TransformAndBuildAction) handleBuildDwelling(gs *GameState, player *Player) error {
 	// Pay for dwelling
-	dwellingCost := player.Faction.GetDwellingCost()
+	dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
 	if err := player.Resources.Spend(dwellingCost); err != nil {
 		return fmt.Errorf("failed to pay for dwelling: %w", err)
 	}
@@ -579,7 +648,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 		Type:       a.NewBuildingType,
 		Faction:    player.Faction.GetType(),
 		PlayerID:   a.PlayerID,
-		PowerValue: GetPowerValue(a.NewBuildingType),
+		PowerValue: getStructurePowerValue(player, a.NewBuildingType),
 	}
 
 	// Handle special rewards based on upgrade type
@@ -594,6 +663,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	if a.NewBuildingType != models.BuildingTemple && a.NewBuildingType != models.BuildingSanctuary {
 		gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
 	}
+	gs.updateAtlanteansStrongholdTown(a.PlayerID)
 
 	// Advance turn (unless pending actions exist, checked by NextTurn)
 	gs.NextTurn()
@@ -612,6 +682,20 @@ func (a *UpgradeBuildingAction) handleUpgradeRewards(gs *GameState, player *Play
 
 		// Award VP from scoring tile
 		gs.AwardActionVP(a.PlayerID, ScoringActionTradingHouse)
+		if player.Faction.GetType() == models.FactionWisps {
+			if gs.PendingSpades == nil {
+				gs.PendingSpades = make(map[string]int)
+			}
+			if gs.PendingSpadeBuildAllowed == nil {
+				gs.PendingSpadeBuildAllowed = make(map[string]bool)
+			}
+			if gs.PendingWispsTradingPostSpade == nil {
+				gs.PendingWispsTradingPostSpade = make(map[string]board.Hex)
+			}
+			gs.PendingSpades[a.PlayerID] = 1
+			gs.PendingSpadeBuildAllowed[a.PlayerID] = false
+			gs.PendingWispsTradingPostSpade[a.PlayerID] = a.TargetHex
+		}
 	case models.BuildingTemple, models.BuildingSanctuary:
 		// Player must select a Favor tile
 		// Chaos Magicians get 2 tiles instead of 1 (special passive ability)
@@ -631,8 +715,14 @@ func (a *UpgradeBuildingAction) handleUpgradeRewards(gs *GameState, player *Play
 		if a.NewBuildingType == models.BuildingTemple {
 			// SCORE5 (Temple+Priest): 4 VP per temple + 2 coins per priest at end of round
 			gs.AwardActionVP(a.PlayerID, ScoringActionTemple)
+			if player.Faction.GetType() == models.FactionGoblins {
+				player.GoblinTreasureTokens++
+			}
 		} else if a.NewBuildingType == models.BuildingSanctuary {
 			gs.AwardActionVP(a.PlayerID, ScoringActionStronghold)
+			if player.Faction.GetType() == models.FactionGoblins {
+				player.GoblinTreasureTokens++
+			}
 		}
 	case models.BuildingStronghold:
 		// Grant stronghold special ability
@@ -721,6 +811,29 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 				PlayerID: a.PlayerID,
 			}
 		}
+	case models.FactionDynionGeifr:
+		gs.GainPriests(a.PlayerID, 2)
+	case models.FactionConspirators:
+		gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+			PlayerID:      a.PlayerID,
+			Count:         1,
+			SelectedTiles: []FavorTileType{},
+		}
+	case models.FactionWisps:
+		player.VictoryPoints += 7
+		if gs.hasAvailableWispsStrongholdLake() {
+			gs.PendingWispsStrongholdDwelling = &PendingWispsStrongholdDwelling{
+				PlayerID: a.PlayerID,
+			}
+		}
+	case models.FactionChildrenOfTheWyrm:
+		player.Resources.Power.Bowl1 += gs.childrenRemovedPowerTokenCount(a.PlayerID)
+	case models.FactionProspectors:
+		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionProspectorsGainCoins)
+	case models.FactionTimeTravelers:
+		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionTimeTravelersPowerShift)
+	case models.FactionArchitects:
+		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionArchitectsMoveBridge)
 
 	case models.FactionGiants:
 		// Giants: Mark stronghold as built so ACTG special action becomes available
@@ -771,6 +884,33 @@ func isValidUpgrade(from, to models.BuildingType) bool {
 	return false
 }
 
+func getDwellingBuildCost(gs *GameState, player *Player, targetHex board.Hex) factions.Cost {
+	if player == nil || player.Faction == nil {
+		return factions.Cost{}
+	}
+	baseCost := player.Faction.GetDwellingCost()
+	if player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return baseCost
+	}
+	if hasAdjacentOpponent(gs, player, targetHex) {
+		baseCost.Coins = 1
+	} else {
+		baseCost.Coins = 2
+	}
+	return baseCost
+}
+
+func isProspectors(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionProspectors
+}
+
+func getProspectorsGoldenSpadeCost(player *Player) int {
+	if player != nil && player.HasStrongholdAbility {
+		return 3
+	}
+	return 4
+}
+
 // getUpgradeCost calculates the upgrade cost, applying discount if adjacent to opponent
 func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuildingType models.BuildingType) factions.Cost {
 	var baseCost factions.Cost
@@ -788,23 +928,35 @@ func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuil
 		return baseCost
 	}
 
-	// Apply discount for Trading House if adjacent to opponent
-	if newBuildingType == models.BuildingTradingHouse {
-		if hasAdjacentOpponent(gs, mapHex.Coord, player.ID) {
-			// Reduce coin cost by half (6 -> 3 for most factions)
-			baseCost.Coins /= 2
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		if hasAdjacentOpponent(gs, player, mapHex.Coord) {
+			if newBuildingType == models.BuildingSanctuary || newBuildingType == models.BuildingStronghold {
+				baseCost.Coins = 5
+			}
+		} else if newBuildingType == models.BuildingTemple {
+			baseCost.Coins = 10
+		} else if newBuildingType == models.BuildingSanctuary || newBuildingType == models.BuildingStronghold {
+			baseCost.Coins = 10
 		}
+		return baseCost
+	}
+
+	// Apply discount for Trading House if adjacent to opponent
+	if newBuildingType == models.BuildingTradingHouse && hasAdjacentOpponent(gs, player, mapHex.Coord) {
+		// Reduce coin cost by half (6 -> 3 for most factions)
+		baseCost.Coins /= 2
 	}
 
 	return baseCost
 }
 
 // hasAdjacentOpponent checks if there's an opponent building adjacent to the hex
-func hasAdjacentOpponent(gs *GameState, hex board.Hex, playerID string) bool {
-	neighbors := hex.Neighbors()
-	for _, neighbor := range neighbors {
-		mapHex := gs.Map.GetHex(neighbor)
-		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID != playerID {
+func hasAdjacentOpponent(gs *GameState, player *Player, hex board.Hex) bool {
+	if player == nil {
+		return false
+	}
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID != player.ID && gs.areHexesDirectlyAdjacentForPlayer(player.ID, hex, mapHex.Coord) {
 			return true
 		}
 	}
@@ -895,19 +1047,10 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 		return err
 	}
 
-	// Check faction-specific max digging level
 	factionType := player.Faction.GetType()
-	var maxLevel int
-	switch factionType {
-	case models.FactionDarklings:
-		// Darklings cannot advance digging at all (they use priests for spades)
-		return fmt.Errorf("darklings cannot advance digging level")
-	case models.FactionFakirs:
-		// Fakirs can only advance to level 1
-		maxLevel = 1
-	default:
-		// Most factions can advance to level 2
-		maxLevel = 2
+	maxLevel, err := maxDiggingLevelForFaction(factionType)
+	if err != nil {
+		return err
 	}
 
 	// Check if already at faction's max level
@@ -964,6 +1107,14 @@ func NewPassAction(playerID string, bonusCard *BonusCardType) *PassAction {
 	}
 }
 
+func isArchivists(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionArchivists
+}
+
+func isDjinni(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionDjinni
+}
+
 // Validate checks if the pass action is valid
 func (a *PassAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
@@ -991,6 +1142,13 @@ func (a *PassAction) Validate(gs *GameState) error {
 		}
 		return fmt.Errorf("bonus card %v is not available. Available: %v", *a.BonusCard, availableCards)
 	}
+	if isArchivists(player) && player.HasStrongholdAbility && a.BonusCard != nil {
+		for _, oldCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+			if oldCard == *a.BonusCard {
+				return fmt.Errorf("archivists cannot take a bonus card they just returned")
+			}
+		}
+	}
 
 	return nil
 }
@@ -1001,26 +1159,46 @@ func (a *PassAction) Execute(gs *GameState) error {
 		return err
 	}
 
+	prePassSnapshot := gs.CloneForUndo()
 	player := gs.GetPlayer(a.PlayerID)
 	player.HasPassed = true
 
 	// Record pass order (determines turn order for next round)
 	gs.PassOrder = append(gs.PassOrder, a.PlayerID)
 
-	// Award VP from OLD bonus card being returned (if player has one)
-	// In Terra Mystica, pass VP is awarded when you RETURN the card, not when you take it
-	if oldCard, hasOldCard := gs.BonusCards.GetPlayerCard(a.PlayerID); hasOldCard {
-		bonusVP := GetBonusCardPassVP(oldCard, gs, a.PlayerID)
-		player.VictoryPoints += bonusVP
+	// Award VP from OLD bonus card(s) being returned.
+	for _, oldCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+		player.VictoryPoints += GetBonusCardPassVP(oldCard, gs, a.PlayerID)
+	}
+	if isDjinni(player) && player.HasStrongholdAbility {
+		player.VictoryPoints += gs.CultTracks.GetTotalPriestsOnCultTracks(a.PlayerID)
 	}
 
 	// Take bonus card and get coins from it (unless it's the final round)
 	if a.BonusCard != nil {
+		if isArchivists(player) && player.HasStrongholdAbility {
+			returnedCards := gs.BonusCards.ReturnAllBonusCards(a.PlayerID)
+			coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
+			if err != nil {
+				return fmt.Errorf("failed to take archivists first bonus card: %w", err)
+			}
+			player.Resources.Coins += coins
+			player.Resources.Power.GainPower(coins * 2)
+			gs.PendingArchivistsBonusSelection = &PendingArchivistsBonusSelection{
+				PlayerID:      a.PlayerID,
+				ReturnedCards: returnedCards,
+				UndoSnapshot:  prePassSnapshot,
+			}
+			return nil
+		}
 		coins, err := gs.BonusCards.TakeBonusCard(a.PlayerID, *a.BonusCard)
 		if err != nil {
 			return fmt.Errorf("failed to take bonus card: %w", err)
 		}
 		player.Resources.Coins += coins
+		if isArchivists(player) {
+			player.Resources.Power.GainPower(coins * 2)
+		}
 	}
 
 	gs.ApplyAutoConvertOnPass(a.PlayerID)
@@ -1050,9 +1228,13 @@ func (a *PassAction) Execute(gs *GameState) error {
 		player.VictoryPoints += bridgeVP
 	}
 
-	// Replay simulator applies cleanup/round transitions at explicit RoundStart log items.
-	// Suppress immediate round transition here when running in replay mode to avoid
-	// double-processing round boundaries.
+	return advanceAfterCompletedPass(gs)
+}
+
+func advanceAfterCompletedPass(gs *GameState) error {
+	if gs == nil {
+		return nil
+	}
 	isReplaySimulation := gs.ReplayMode != nil && gs.ReplayMode["__replay__"]
 	if roundComplete := gs.NextTurn(); roundComplete && !isReplaySimulation {
 		if gs.HasLateRoundPendingDecisions() {
@@ -1067,7 +1249,7 @@ func (gs *GameState) HasLateRoundPendingDecisions() bool {
 	if gs == nil {
 		return false
 	}
-	return gs.HasPendingLeechOffers() || gs.PendingCultistsCultSelection != nil
+	return gs.HasPendingLeechOffers() || gs.PendingCultistsCultSelection != nil || gs.PendingGoblinsCultSteps != nil
 }
 
 func advanceAfterRoundComplete(gs *GameState) {
@@ -1080,7 +1262,9 @@ func advanceAfterRoundComplete(gs *GameState) {
 		gs.AwardCultRewardsForRound(justCompletedRound)
 		if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
 			gs.GrantIncome()
-			gs.StartActionPhase()
+			if gs.PendingTreasurersDeposit == nil {
+				gs.StartActionPhase()
+			}
 		}
 	}
 }

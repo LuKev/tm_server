@@ -21,6 +21,12 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
         case FactionType.ChaosMagicians: return SpecialActionType.ChaosMagiciansDoubleTurn;
         case FactionType.Giants: return SpecialActionType.GiantsTransform;
         case FactionType.Nomads: return SpecialActionType.NomadsSandstorm;
+        case FactionType.TheEnlightened: return SpecialActionType.EnlightenedGainPower;
+        case FactionType.Conspirators: return SpecialActionType.ConspiratorsSwapFavor;
+        case FactionType.ChildrenOfTheWyrm: return SpecialActionType.ChildrenPlacePowerTokens;
+        case FactionType.Prospectors: return SpecialActionType.ProspectorsGainCoins;
+        case FactionType.TimeTravelers: return SpecialActionType.TimeTravelersPowerShift;
+        case FactionType.Architects: return SpecialActionType.ArchitectsMoveBridge;
         default: return null;
     }
 };
@@ -119,28 +125,63 @@ const StrongholdSquare: React.FC<{ isActive?: boolean; onClick?: () => void; dis
     </button>
 );
 
-const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
+const renderIncomeIcons = (income: BuildingSlot['income'], compact?: boolean): React.ReactNode => {
     if (!income) return null;
     const scale = compact ? 0.8 : 1;
     const style = { transform: `scale(${String(scale)})` };
 
     return (
-        <div className="income-reveal" style={compact ? { gap: '0' } : undefined}>
+        <>
             {income.workers && <WorkerIcon style={style}>{income.workers}</WorkerIcon>}
             {income.coins && <CoinIcon style={style}>{income.coins}</CoinIcon>}
             {income.priests && <PriestIcon style={{ width: '1.5em', height: '1.5em', ...style }}>{income.priests}</PriestIcon>}
             {income.power && <PowerIcon amount={income.power} style={style} />}
+        </>
+    );
+};
 
+const IncomeDisplay: React.FC<{ income: BuildingSlot['income']; compact?: boolean }> = ({ income, compact }) => {
+    if (!income) return null;
+    return (
+        <div className="income-reveal" style={compact ? { gap: '0' } : undefined}>
+            {renderIncomeIcons(income, compact)}
         </div>
     );
 };
 
-const CostIndicator: React.FC<{ workers?: number; coins?: number }> = ({ workers, coins }) => {
-    if (!workers && !coins) return null;
+const InlineIncomeDisplay: React.FC<{ income: BuildingSlot['income'] }> = ({ income }) => {
+    if (!income) return null;
+    return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.125em' }}>
+            {renderIncomeIcons(income)}
+        </div>
+    );
+};
+
+const getBaseIncome = (faction: FactionType): BuildingSlot['income'] => {
+    switch (faction) {
+        case FactionType.Engineers:
+        case FactionType.Treasurers:
+            return null;
+        case FactionType.Swarmlings:
+        case FactionType.Archivists:
+        case FactionType.DynionGeifr:
+            return { workers: 2 };
+        case FactionType.TheEnlightened:
+            return { power: 3 };
+        default:
+            return { workers: 1 };
+    }
+};
+
+const CostIndicator: React.FC<{ workers?: number; coins?: number; priests?: number; power?: number }> = ({ workers, coins, priests, power }) => {
+    if (!workers && !coins && !priests && !power) return null;
     return (
         <div className="cost-indicator">
-            {workers && <div className="cost-worker">{workers}</div>}
-            {coins && <div className="cost-coin">{coins}</div>}
+            {workers && <WorkerIcon style={{ width: '1.25em', height: '1.25em' }}>{workers}</WorkerIcon>}
+            {coins && <CoinIcon style={{ width: '1.25em', height: '1.25em' }}>{coins}</CoinIcon>}
+            {priests && <PriestIcon style={{ width: '1.25em', height: '1.25em' }}>{priests}</PriestIcon>}
+            {power && <PowerIcon amount={power} style={{ width: '1.25em', height: '1.25em' }} />}
         </div>
     );
 };
@@ -207,7 +248,10 @@ interface PlayerBoardProps {
     onBurnPower?: (playerId: string, amount: number) => void;
     onAdvanceShipping?: (playerId: string) => void;
     onAdvanceDigging?: (playerId: string) => void;
+    onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
+    onGoblinsTreasureAction?: (playerId: string) => void;
+    onDjinniLampAction?: (playerId: string) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
@@ -229,7 +273,10 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     onBurnPower,
     onAdvanceShipping,
     onAdvanceDigging,
+    onAdvanceChashTrack,
     onStrongholdAction,
+    onGoblinsTreasureAction,
+    onDjinniLampAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
     onWater2Action,
@@ -288,6 +335,12 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const buildings = Object.values(gameState?.map.hexes ?? {})
         .map(h => h.building)
         .filter(b => b && b.ownerPlayerId === playerId);
+    const childrenBoardPowerTokens = Object.values(gameState?.map.hexes ?? {}).filter(h => h.powerTokenOwnerPlayerId === playerId).length;
+    const goblinTreasureTokens = player.goblinTreasureTokens ?? 0;
+    const djinniLampTokens = player.djinniLampTokens ?? 0;
+    const treasuryCoins = player.treasuryCoins ?? 0;
+    const treasuryWorkers = player.treasuryWorkers ?? 0;
+    const treasuryPriests = player.treasuryPriests ?? 0;
 
     const dwellingCount = buildings.filter(b => b?.type === BuildingType.Dwelling).length;
     const tradingHouseCount = buildings.filter(b => b?.type === BuildingType.TradingHouse).length;
@@ -303,18 +356,25 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
         && pendingDecision?.playerId === playerId
         && pendingDecision?.type === 'post_action_free_actions';
     const conversionActionsEnabled = canUseConversions || isLocalPostActionFreeWindow;
-    const isEngineersSquareAction = factionType === FactionType.Engineers;
-    const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
+    const hasReusableBridgeAction = factionType === FactionType.Engineers || factionType === FactionType.Atlanteans || factionType === FactionType.Architects;
+    const hasMermaidsConnectAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
+    const hasGoblinsTreasureAction = factionType === FactionType.Goblins;
     const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
     const isLocalEngineersBridgeActive = !!isEngineersBridgeActive && isLocalPlayer;
     const isLocalMermaidsConnectActive = !!isMermaidsConnectActive && isLocalPlayer;
     const isLocalWater2Active = !!isWater2Active && isLocalPlayer;
 
-    const hasTempShippingBonus = gameState?.bonusCards?.playerCards?.[playerId] === BonusCardType.Shipping;
+    const heldBonusCards = [
+        ...(gameState?.bonusCards?.playerCards?.[playerId] !== undefined ? [gameState.bonusCards.playerCards[playerId]] : []),
+        ...((gameState?.bonusCards?.playerExtraCards?.[playerId] ?? []) as BonusCardType[]),
+    ];
+    const hasTempShippingBonus = heldBonusCards.includes(BonusCardType.Shipping);
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
     const showShippingUpgrade = canShowShippingForFaction(factionType);
     const showDiggingUpgrade = canShowDiggingForFaction(factionType);
+    const showChashTrackUpgrade = factionType === FactionType.ChashDallah;
+    const chashTrackLevel = player.chashIncomeTrackLevel ?? 0;
     const townTiles = player.townTiles ?? [];
     const displayedRemainingMs = getDisplayedRemainingMs(gameState?.turnTimer ?? null, playerId, displayNowMs);
     const timerIsActive = !!gameState?.turnTimer?.players?.[playerId]?.isActive;
@@ -393,6 +453,26 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 <span>{player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}</span>
                             </div>
                         </div>
+                        {factionType === FactionType.Goblins && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Treasure {goblinTreasureTokens}</span>
+                            </div>
+                        )}
+                        {factionType === FactionType.ChildrenOfTheWyrm && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Board PW {childrenBoardPowerTokens}</span>
+                            </div>
+                        )}
+                        {factionType === FactionType.Djinni && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Lamps {djinniLampTokens}</span>
+                            </div>
+                        )}
+                        {factionType === FactionType.Treasurers && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Treasury {treasuryCoins}/{treasuryWorkers}/{treasuryPriests}</span>
+                            </div>
+                        )}
                         <div className="resource-item">
                             <ShippingDiggingDisplay
                                 factionType={factionType}
@@ -400,7 +480,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 diggingLevel={diggingLevel}
                                 hasTempShippingBonus={hasTempShippingBonus}
                             />
-                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade) && (
+                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade || showChashTrackUpgrade || hasReusableBridgeAction || hasMermaidsConnectAction || hasGoblinsTreasureAction) && (
                                 <div style={{ display: 'flex', gap: '0.25em', marginLeft: '0.5em' }}>
                                     {showShippingUpgrade && (
                                         <button
@@ -424,6 +504,58 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                             disabled={!canUseTurnActions}
                                         >
                                             +Dig
+                                        </button>
+                                    )}
+                                    {showChashTrackUpgrade && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-advance-chash-track`}
+                                            className="conversion-btn"
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onAdvanceChashTrack?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                            title={`Chash income track ${String(chashTrackLevel)}/4`}
+                                        >
+                                            +Track {String(chashTrackLevel)}/4
+                                        </button>
+                                    )}
+                                    {hasReusableBridgeAction && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-bridge-action`}
+                                            className={`conversion-btn ${isLocalEngineersBridgeActive ? 'special' : ''}`}
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onEngineersBridgeAction?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                            title={factionType === FactionType.Architects ? 'Build a bridge for 1 priest' : factionType === FactionType.Atlanteans ? 'Build a bridge for 2 workers' : 'Build a bridge for 2 workers'}
+                                        >
+                                            BR
+                                        </button>
+                                    )}
+                                    {hasMermaidsConnectAction && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-mermaids-connect`}
+                                            className={`conversion-btn ${isLocalMermaidsConnectActive ? 'special' : ''}`}
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onMermaidsConnectAction?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                            title="Mermaids stronghold: connect across one river"
+                                        >
+                                            CT
+                                        </button>
+                                    )}
+                                    {hasGoblinsTreasureAction && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-goblins-treasure`}
+                                            className="conversion-btn special"
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onGoblinsTreasureAction?.(playerId); }}
+                                            disabled={!canUseTurnActions || goblinTreasureTokens <= 0}
+                                            title="Spend 1 Goblins treasure"
+                                        >
+                                            Treasure
                                         </button>
                                     )}
                                 </div>
@@ -450,6 +582,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.stronghold.cost.workers}
                                         coins={boardLayout.stronghold.cost.coins}
+                                        priests={boardLayout.stronghold.cost.priests}
+                                        power={boardLayout.stronghold.cost.power}
                                     />
                                     <div className="pb-slot-sh-sa" style={{ position: 'relative' }}>
                                         <BuildingTrackSlot
@@ -470,28 +604,6 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                 />
                                             </div>
                                         )}
-                                        {isEngineersSquareAction && (
-                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
-                                                <StrongholdSquare
-                                                    isActive={isLocalEngineersBridgeActive}
-                                                    label="BR"
-                                                    onClick={() => { onEngineersBridgeAction?.(playerId); }}
-                                                    disabled={!isLocalPlayer || !canUseTurnActions}
-                                                    testId={`player-${playerId}-engineers-bridge`}
-                                                />
-                                            </div>
-                                        )}
-                                        {isMermaidsSquareAction && (
-                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
-                                                <StrongholdSquare
-                                                    isActive={isLocalMermaidsConnectActive}
-                                                    label="CT"
-                                                    onClick={() => { onMermaidsConnectAction?.(playerId); }}
-                                                    disabled={!isLocalPlayer || !canUseTurnActions}
-                                                    testId={`player-${playerId}-mermaids-connect`}
-                                                />
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
 
@@ -500,6 +612,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.tradingHouses[0].cost.workers}
                                         coins={boardLayout.tradingHouses[0].cost.coins}
+                                        priests={boardLayout.tradingHouses[0].cost.priests}
+                                        power={boardLayout.tradingHouses[0].cost.power}
                                     />
                                     {boardLayout.tradingHouses.map((slot, i) => (
                                         <div key={`tp-${String(i)}`} className="pb-slot-tp-temple">
@@ -521,6 +635,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.sanctuary.cost.workers}
                                         coins={boardLayout.sanctuary.cost.coins}
+                                        priests={boardLayout.sanctuary.cost.priests}
+                                        power={boardLayout.sanctuary.cost.power}
                                     />
                                     <div className="pb-slot-sh-sa">
                                         <BuildingTrackSlot
@@ -537,6 +653,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <CostIndicator
                                         workers={boardLayout.temples[0].cost.workers}
                                         coins={boardLayout.temples[0].cost.coins}
+                                        priests={boardLayout.temples[0].cost.priests}
+                                        power={boardLayout.temples[0].cost.power}
                                     />
                                     {boardLayout.temples.map((slot, i) => (
                                         <div key={`temple-${String(i)}`} className="pb-slot-tp-temple">
@@ -558,14 +676,13 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 <CostIndicator
                                     workers={boardLayout.dwellings[0].cost.workers}
                                     coins={boardLayout.dwellings[0].cost.coins}
+                                    priests={boardLayout.dwellings[0].cost.priests}
+                                    power={boardLayout.dwellings[0].cost.power}
                                 />
 
                                 {/* Base Income Display */}
                                 <div style={{ display: 'flex', alignItems: 'center', marginRight: '0.5em' }}>
-                                    <WorkerIcon style={{ width: '1.2em', height: '1.2em' }}>
-                                        {factionType === FactionType.Swarmlings ? 2 :
-                                            (factionType === FactionType.Engineers) ? 0 : 1}
-                                    </WorkerIcon>
+                                    <InlineIncomeDisplay income={getBaseIncome(factionType)} />
                                 </div>
 
                                 {boardLayout.dwellings.map((slot, i) => (
@@ -595,14 +712,20 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                             <>
                                 <div className="pb-section-title">Conversions</div>
                                 <div className="conversion-area">
-                                    <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Priest → 1 Worker</button>
+                                    <button data-testid={`player-${playerId}-conversion-priest_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'priest_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>{factionType === FactionType.DynionGeifr ? '1 Priest → 2 Workers + 2 Coins' : '1 Priest → 1 Worker'}</button>
                                     <button data-testid={`player-${playerId}-conversion-worker_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'worker_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Worker → 1 Coin</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>5 PW → 1 Priest</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>3 PW → 1 Worker</button>
-                                    <button data-testid={`player-${playerId}-conversion-power_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 PW → 1 Coin</button>
-                                    <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>Burn 2PW → +1 Bowl III</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_priest`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_priest'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>5 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Priests' : '1 Priest'}</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_worker`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_worker'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>3 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Workers' : '1 Worker'}</button>
+                                    <button data-testid={`player-${playerId}-conversion-power_to_coin`} className="conversion-btn" onClick={() => { onConversion?.(playerId, 'power_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 PW → {factionType === FactionType.TheEnlightened && player.hasStrongholdAbility ? '2 Coins' : '1 Coin'}</button>
+                                    {factionType === FactionType.TheEnlightened && (
+                                        <button data-testid={`player-${playerId}-conversion-coin_to_power`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'coin_to_power'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 Coin → 1 PW Token</button>
+                                    )}
+                                    <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>{factionType === FactionType.ChildrenOfTheWyrm ? 'Burn 3PW → +2 Bowl III' : 'Burn 2PW → +1 Bowl III'}</button>
                                     {factionType === FactionType.Alchemists && (
                                         <button data-testid={`player-${playerId}-conversion-alchemists_vp_to_coin`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 VP → 1 Coin</button>
+                                    )}
+                                    {factionType === FactionType.Djinni && (
+                                        <button data-testid={`player-${playerId}-djinni-lamp`} className="conversion-btn special" onClick={() => { onDjinniLampAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || djinniLampTokens <= 0}>Use 1 Lamp</button>
                                     )}
                                 </div>
                                 <div className="pb-section-title">Towns</div>
@@ -713,7 +836,10 @@ interface PlayerBoardsProps {
     onBurnPower?: (playerId: string, amount: number) => void;
     onAdvanceShipping?: (playerId: string) => void;
     onAdvanceDigging?: (playerId: string) => void;
+    onAdvanceChashTrack?: (playerId: string) => void;
     onStrongholdAction?: (playerId: string, actionType: SpecialActionType) => void;
+    onGoblinsTreasureAction?: (playerId: string) => void;
+    onDjinniLampAction?: (playerId: string) => void;
     onEngineersBridgeAction?: (playerId: string) => void;
     onMermaidsConnectAction?: (playerId: string) => void;
     onWater2Action?: (playerId: string) => void;
@@ -731,7 +857,10 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
     onBurnPower,
     onAdvanceShipping,
     onAdvanceDigging,
+    onAdvanceChashTrack,
     onStrongholdAction,
+    onGoblinsTreasureAction,
+    onDjinniLampAction,
     onEngineersBridgeAction,
     onMermaidsConnectAction,
     onWater2Action,
@@ -819,7 +948,10 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
                             onBurnPower={onBurnPower}
                             onAdvanceShipping={onAdvanceShipping}
                             onAdvanceDigging={onAdvanceDigging}
+                            onAdvanceChashTrack={onAdvanceChashTrack}
                             onStrongholdAction={onStrongholdAction}
+                            onGoblinsTreasureAction={onGoblinsTreasureAction}
+                            onDjinniLampAction={onDjinniLampAction}
                             onEngineersBridgeAction={onEngineersBridgeAction}
                             onMermaidsConnectAction={onMermaidsConnectAction}
                             onWater2Action={onWater2Action}

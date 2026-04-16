@@ -83,6 +83,8 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 
 	if player.Faction.GetType() == models.FactionMermaids {
 		connected, skippedRiver = gs.Map.GetConnectedBuildingsForMermaids(hex, playerID)
+	} else if player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		connected = gs.getConnectedBuildingsForPlayer(playerID, hex)
 	} else {
 		connected = gs.Map.GetConnectedBuildingsIncludingBridges(hex, playerID)
 	}
@@ -179,22 +181,39 @@ func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	buildingCount := 0
 	totalPower := 0
 	hasSanctuary := false
+	hasStronghold := false
+	hexSet := make(map[board.Hex]bool, len(hexes))
 
 	for _, h := range hexes {
+		hexSet[h] = true
 		mapHex := gs.Map.GetHex(h)
 		if mapHex != nil && mapHex.Building != nil {
 			buildingCount++
-			totalPower += GetPowerValue(mapHex.Building.Type)
+			if mapHex.Building.PowerValue > 0 {
+				totalPower += mapHex.Building.PowerValue
+			} else {
+				totalPower += GetPowerValue(mapHex.Building.Type)
+			}
 			if mapHex.Building.Type == models.BuildingSanctuary {
 				hasSanctuary = true
 			}
+			if mapHex.Building.Type == models.BuildingStronghold {
+				hasStronghold = true
+			}
 		}
+	}
+
+	if isArchitects(player) {
+		totalPower += gs.Map.CountPlayerBridgesWithinHexSet(playerID, hexSet)
 	}
 
 	// Check building count requirement
 	minBuildings := 4
 	if hasSanctuary {
 		minBuildings = 3 // Sanctuary allows town with 3 buildings
+	}
+	if player.Faction.GetType() == models.FactionDynionGeifr && hasStronghold {
+		minBuildings = 3
 	}
 
 	if buildingCount < minBuildings {
@@ -205,6 +224,57 @@ func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	minPower := gs.GetTownPowerRequirement(playerID)
 
 	return totalPower >= minPower
+}
+
+func (gs *GameState) anchoredTownsRemainValid(playerID string) bool {
+	for _, anchorHex := range gs.getTownAnchorHexes(playerID) {
+		mapHex := gs.Map.GetHex(anchorHex)
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID || !mapHex.PartOfTown {
+			return false
+		}
+		component := gs.Map.GetConnectedBuildingsIncludingBridges(anchorHex, playerID)
+		townComponent := make([]board.Hex, 0, len(component))
+		for _, hex := range component {
+			componentHex := gs.Map.GetHex(hex)
+			if componentHex == nil || componentHex.Building == nil || componentHex.Building.PlayerID != playerID || !componentHex.PartOfTown {
+				continue
+			}
+			townComponent = append(townComponent, hex)
+		}
+		if !gs.CanFormTown(playerID, townComponent) {
+			return false
+		}
+	}
+	return true
+}
+
+func (gs *GameState) getTownAnchorHexes(playerID string) []board.Hex {
+	anchors := make([]board.Hex, 0)
+	for hex, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || !mapHex.HasTownTile || mapHex.TownTileOwnerPlayerID != playerID {
+			continue
+		}
+		anchors = append(anchors, hex)
+	}
+	return anchors
+}
+
+func (gs *GameState) defaultTownAnchorHex(playerID string, pending *PendingTownFormation) *board.Hex {
+	if pending == nil {
+		return nil
+	}
+	if pending.SkippedRiverHex != nil {
+		anchor := *pending.SkippedRiverHex
+		return &anchor
+	}
+	for _, hex := range pending.Hexes {
+		mapHex := gs.Map.GetHex(hex)
+		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			anchor := hex
+			return &anchor
+		}
+	}
+	return nil
 }
 
 func GetPowerValue(buildingType models.BuildingType) int {
@@ -237,14 +307,21 @@ func (gs *GameState) GetTownPowerRequirement(playerID string) int {
 	return 7
 }
 
-// FormTown marks the buildings as part of a town and applies town tile benefits
-// For Mermaids: if skippedRiverHex is provided, places the town tile on that river hex
 func (gs *GameState) FormTown(playerID string, hexes []board.Hex, tileType models.TownTileType, skippedRiverHex *board.Hex) error {
+	return gs.FormTownWithAnchor(playerID, hexes, tileType, skippedRiverHex, gs.defaultTownAnchorHex(playerID, &PendingTownFormation{
+		PlayerID:        playerID,
+		Hexes:           hexes,
+		SkippedRiverHex: skippedRiverHex,
+	}))
+}
+
+// FormTownWithAnchor marks the buildings as part of a town, stores the chosen town
+// anchor hex, and applies town tile benefits.
+func (gs *GameState) FormTownWithAnchor(playerID string, hexes []board.Hex, tileType models.TownTileType, skippedRiverHex *board.Hex, anchorHex *board.Hex) error {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
-
 	// Check if tile is available
 	if !gs.TownTiles.IsAvailable(tileType) {
 		return fmt.Errorf("town tile %v is not available", tileType)
@@ -258,15 +335,39 @@ func (gs *GameState) FormTown(playerID string, hexes []board.Hex, tileType model
 		}
 	}
 
-	// For Mermaids: Place town tile on the skipped river hex
+	townTileHex := anchorHex
 	if skippedRiverHex != nil {
-		riverMapHex := gs.Map.GetHex(*skippedRiverHex)
-		if riverMapHex != nil {
-			riverMapHex.HasTownTile = true
-			riverMapHex.TownTileType = tileType
+		townTileHex = skippedRiverHex
+	} else {
+		if anchorHex == nil {
+			return fmt.Errorf("town anchor hex is required")
+		}
+		isValidAnchor := false
+		for _, hex := range hexes {
+			if hex != *anchorHex {
+				continue
+			}
+			mapHex := gs.Map.GetHex(hex)
+			if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+				isValidAnchor = true
+			}
+			break
+		}
+		if !isValidAnchor {
+			return fmt.Errorf("town anchor must be one of the town's building hexes")
 		}
 	}
-	// For other factions: Town tile placement is tracked per player, not on the map
+
+	if townTileHex == nil {
+		return fmt.Errorf("town tile hex is required")
+	}
+	townTileMapHex := gs.Map.GetHex(*townTileHex)
+	if townTileMapHex == nil {
+		return fmt.Errorf("town tile hex does not exist")
+	}
+	townTileMapHex.HasTownTile = true
+	townTileMapHex.TownTileType = tileType
+	townTileMapHex.TownTileOwnerPlayerID = playerID
 
 	// Take the tile
 	if err := gs.TownTiles.TakeTile(tileType); err != nil {
@@ -405,7 +506,97 @@ func (gs *GameState) ApplyFactionTownBonus(playerID string) {
 	case models.FactionSwarmlings:
 		// Swarmlings get +3 workers per town formed
 		player.Resources.Workers += 3
+	case models.FactionGoblins:
+		if player.HasStrongholdAbility {
+			player.GoblinTreasureTokens++
+		}
 	}
+}
+
+func (gs *GameState) updateAtlanteansStrongholdTown(playerID string) {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionAtlanteans {
+		return
+	}
+	if len(player.AtlanteansTownHexes) == 0 {
+		return
+	}
+	if player.AtlanteansTownRewards == nil {
+		player.AtlanteansTownRewards = make(map[int]bool)
+	}
+
+	known := make(map[board.Hex]bool, len(player.AtlanteansTownHexes))
+	queue := make([]board.Hex, 0, len(player.AtlanteansTownHexes))
+	for _, hex := range player.AtlanteansTownHexes {
+		known[hex] = true
+		queue = append(queue, hex)
+	}
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+
+		for _, neighbor := range gs.atlanteansTownTraversalNeighbors(current) {
+			if known[neighbor] {
+				continue
+			}
+			mapHex := gs.Map.GetHex(neighbor)
+			if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+				continue
+			}
+			if mapHex.PartOfTown {
+				// Do not merge other existing towns into the stronghold town.
+				continue
+			}
+			known[neighbor] = true
+			player.AtlanteansTownHexes = append(player.AtlanteansTownHexes, neighbor)
+			queue = append(queue, neighbor)
+		}
+	}
+
+	totalPower := 0
+	for _, hex := range player.AtlanteansTownHexes {
+		mapHex := gs.Map.GetHex(hex)
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+			continue
+		}
+		mapHex.PartOfTown = true
+		if mapHex.Building.PowerValue > 0 {
+			totalPower += mapHex.Building.PowerValue
+		} else {
+			totalPower += GetPowerValue(mapHex.Building.Type)
+		}
+	}
+
+	if totalPower >= 7 && !player.AtlanteansTownRewards[7] {
+		player.AtlanteansTownRewards[7] = true
+		_ = gs.AdvanceShippingLevel(playerID)
+	}
+	if totalPower >= 10 && !player.AtlanteansTownRewards[10] {
+		player.AtlanteansTownRewards[10] = true
+		for _, track := range []CultTrack{CultFire, CultWater, CultEarth, CultAir} {
+			_, _ = gs.AdvanceCultTrack(playerID, track, 2)
+		}
+	}
+	if totalPower >= 16 && !player.AtlanteansTownRewards[16] {
+		player.AtlanteansTownRewards[16] = true
+		player.VictoryPoints += 20
+	}
+}
+
+func (gs *GameState) atlanteansTownTraversalNeighbors(current board.Hex) []board.Hex {
+	neighbors := gs.Map.GetDirectNeighbors(current)
+	for bridgeKey, owner := range gs.Map.Bridges {
+		if owner == "" {
+			continue
+		}
+		if bridgeKey.H1 == current {
+			neighbors = append(neighbors, bridgeKey.H2)
+		} else if bridgeKey.H2 == current {
+			neighbors = append(neighbors, bridgeKey.H1)
+		}
+	}
+	return neighbors
 }
 
 // CheckAllTownFormations checks for town formation for all of a player's buildings

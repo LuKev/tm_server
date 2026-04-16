@@ -8,9 +8,10 @@ import (
 )
 
 const engineersBridgeWorkerCost = 2
+const architectsBridgePriestCost = 1
 
-// EngineersBridgeAction represents the Engineers stronghold bridge action.
-// It is a main action, costs 2 workers, and is reusable whenever legal.
+// EngineersBridgeAction represents the reusable bridge action used by
+// Engineers, Atlanteans, and Architects.
 type EngineersBridgeAction struct {
 	BaseAction
 	BridgeHex1 board.Hex
@@ -34,17 +35,21 @@ func (a *EngineersBridgeAction) GetType() ActionType {
 	return ActionEngineersBridge
 }
 
-// Validate checks whether the Engineers bridge action is legal.
+// Validate checks whether the bridge action is legal.
 func (a *EngineersBridgeAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
 		return err
 	}
 
-	if player.Faction == nil || player.Faction.GetType() != models.FactionEngineers {
-		return fmt.Errorf("only Engineers can use this action")
+	if player.Faction == nil || (player.Faction.GetType() != models.FactionEngineers && player.Faction.GetType() != models.FactionAtlanteans && player.Faction.GetType() != models.FactionArchitects) {
+		return fmt.Errorf("only Engineers, Atlanteans, or Architects can use this action")
 	}
-	if player.Resources.Workers < engineersBridgeWorkerCost {
+	if player.Faction.GetType() == models.FactionArchitects {
+		if player.Resources.Priests < architectsBridgePriestCost {
+			return fmt.Errorf("not enough priests: need %d, have %d", architectsBridgePriestCost, player.Resources.Priests)
+		}
+	} else if player.Resources.Workers < engineersBridgeWorkerCost {
 		return fmt.Errorf("not enough workers: need %d, have %d", engineersBridgeWorkerCost, player.Resources.Workers)
 	}
 	if player.BridgesBuilt >= 3 {
@@ -75,23 +80,32 @@ func (a *EngineersBridgeAction) Validate(gs *GameState) error {
 	return nil
 }
 
-// Execute performs the Engineers bridge action.
+// Execute performs the bridge action.
 func (a *EngineersBridgeAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
 	}
 
 	player := gs.GetPlayer(a.PlayerID)
-	player.Resources.Workers -= engineersBridgeWorkerCost
+	if player.Faction.GetType() == models.FactionArchitects {
+		player.Resources.Priests -= architectsBridgePriestCost
+	} else {
+		player.Resources.Workers -= engineersBridgeWorkerCost
+	}
 
 	if err := gs.Map.BuildBridge(a.BridgeHex1, a.BridgeHex2, a.PlayerID); err != nil {
-		player.Resources.Workers += engineersBridgeWorkerCost
+		if player.Faction.GetType() == models.FactionArchitects {
+			player.Resources.Priests += architectsBridgePriestCost
+		} else {
+			player.Resources.Workers += engineersBridgeWorkerCost
+		}
 		return fmt.Errorf("failed to build bridge: %w", err)
 	}
 
 	player.BridgesBuilt++
 	gs.CheckForTownFormation(a.PlayerID, a.BridgeHex1)
 	gs.CheckForTownFormation(a.PlayerID, a.BridgeHex2)
+	gs.updateAtlanteansStrongholdTown(a.PlayerID)
 	gs.NextTurn()
 	return nil
 }

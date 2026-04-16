@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+resolve_script_path() {
+  local source_path="$1"
+  while [[ -L "${source_path}" ]]; do
+    local dir
+    dir="$(cd "$(dirname "${source_path}")" && pwd)"
+    source_path="$(readlink "${source_path}")"
+    [[ "${source_path}" == /* ]] || source_path="${dir}/${source_path}"
+  done
+  cd "$(dirname "${source_path}")" && pwd
+}
+
 if [[ $# -lt 1 ]]; then
   echo "usage: $0 <server-binary>" >&2
   exit 1
@@ -10,7 +21,9 @@ SERVER_BIN="$1"
 if [[ "${SERVER_BIN}" != /* ]]; then
   SERVER_BIN="$(pwd)/${SERVER_BIN}"
 fi
-REPO_ROOT="${TM_REPO_ROOT:-/Users/kevin/projects/tm_server}"
+SCRIPT_DIR="$(resolve_script_path "${BASH_SOURCE[0]}")"
+DEFAULT_REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+REPO_ROOT="${TM_REPO_ROOT:-${DEFAULT_REPO_ROOT}}"
 CLIENT_DIR="${REPO_ROOT}/client"
 SERVER_DIR="${REPO_ROOT}/server"
 

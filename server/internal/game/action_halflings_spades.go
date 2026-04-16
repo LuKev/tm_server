@@ -207,7 +207,7 @@ func (a *BuildHalflingsDwellingAction) Validate(gs *GameState) error {
 	}
 
 	// Check if player can afford dwelling
-	cost := player.Faction.GetDwellingCost()
+	cost := getDwellingBuildCost(gs, player, a.TargetHex)
 	if !player.Resources.CanAfford(cost) {
 		return fmt.Errorf("cannot afford dwelling")
 	}
@@ -224,7 +224,7 @@ func (a *BuildHalflingsDwellingAction) Execute(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 
 	// Pay for dwelling
-	cost := player.Faction.GetDwellingCost()
+	cost := getDwellingBuildCost(gs, player, a.TargetHex)
 	if err := player.Resources.Spend(cost); err != nil {
 		return fmt.Errorf("failed to pay for dwelling: %w", err)
 	}

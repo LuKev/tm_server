@@ -85,6 +85,13 @@ const (
 	SpecialActionBonusCardSpade       // Bonus card: 1 free spade
 	SpecialActionBonusCardCultAdvance // Bonus card: Advance 1 on any cult track
 	SpecialActionMermaidsRiverTown    // Mermaids: Form town across river
+	SpecialActionEnlightenedGainPower // The Enlightened SH: gain 4 power
+	SpecialActionConspiratorsSwapFavor
+	SpecialActionChildrenPlacePowerTokens
+	SpecialActionProspectorsGainCoins
+	SpecialActionTimeTravelersPowerShift
+	SpecialActionDjinniSwapCults
+	SpecialActionArchitectsMoveBridge
 )
 
 // SpecialAction represents a faction-specific special action
@@ -93,6 +100,8 @@ type SpecialAction struct {
 	ActionType SpecialActionType
 	// For Auren cult advance
 	CultTrack *CultTrack
+	// For Djinni cult swap
+	SecondCultTrack *CultTrack
 	// For Witches' Ride, Giants, Nomads, Bonus Card Spade
 	TargetHex     *board.Hex
 	BuildDwelling bool // For Giants and Nomads - whether to build dwelling after transform
@@ -107,6 +116,15 @@ type SpecialAction struct {
 	SecondAction Action
 	// For Bonus Card Spade with specific target terrain (e.g. Cult Bonus)
 	TargetTerrain *models.TerrainType
+	// For Conspirators swap favor
+	ReturnFavorTile *FavorTileType
+	NewFavorTile    *FavorTileType
+	// For Children of the Wyrm stronghold action
+	TargetHexes       []board.Hex
+	ConfirmSpendBowl3 bool
+	// For Architects bridge move
+	BridgeHex1 *board.Hex
+	BridgeHex2 *board.Hex
 }
 
 // NewSpecialAction creates a new special action
@@ -141,6 +159,18 @@ func NewWater2CultAdvanceAction(playerID string, cultTrack CultTrack) *SpecialAc
 		},
 		ActionType: SpecialActionWater2CultAdvance,
 		CultTrack:  &cultTrack,
+	}
+}
+
+func NewDjinniSwapCultsAction(playerID string, firstTrack, secondTrack CultTrack) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:      SpecialActionDjinniSwapCults,
+		CultTrack:       &firstTrack,
+		SecondCultTrack: &secondTrack,
 	}
 }
 
@@ -249,6 +279,76 @@ func NewMermaidsRiverTownAction(playerID string, riverHex board.Hex) *SpecialAct
 	}
 }
 
+func NewProspectorsGainCoinsAction(playerID string) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionProspectorsGainCoins,
+	}
+}
+
+func NewTimeTravelersPowerShiftAction(playerID string, amount int) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionTimeTravelersPowerShift,
+		Amount:     amount,
+	}
+}
+
+func NewArchitectsMoveBridgeAction(playerID string, fromHex1, fromHex2, toHex1, toHex2 board.Hex) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionArchitectsMoveBridge,
+		BridgeHex1: &fromHex1,
+		BridgeHex2: &fromHex2,
+		TargetHex:  &toHex1,
+		UpgradeHex: &toHex2,
+	}
+}
+
+// NewEnlightenedGainPowerAction creates The Enlightened stronghold action.
+func NewEnlightenedGainPowerAction(playerID string) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionEnlightenedGainPower,
+	}
+}
+
+func NewConspiratorsSwapFavorAction(playerID string, returnTile, newTile FavorTileType) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:      SpecialActionConspiratorsSwapFavor,
+		ReturnFavorTile: &returnTile,
+		NewFavorTile:    &newTile,
+	}
+}
+
+func NewChildrenPlacePowerTokensAction(playerID string, targetHexes []board.Hex, confirmSpendBowl3 bool) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:        SpecialActionChildrenPlacePowerTokens,
+		TargetHexes:       append([]board.Hex(nil), targetHexes...),
+		ConfirmSpendBowl3: confirmSpendBowl3,
+	}
+}
+
 func (a *SpecialAction) Validate(gs *GameState) error {
 	player, err := gs.ValidatePlayer(a.PlayerID)
 	if err != nil {
@@ -257,7 +357,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 
 	// Check if this specific special action has already been used this round
 	// Skip this check for Mermaids river town - it's a passive ability, not a limited action
-	if a.ActionType != SpecialActionMermaidsRiverTown && player.SpecialActionsUsed[a.ActionType] {
+	if tracksSpecialActionUsage(a.ActionType) && player.SpecialActionsUsed[a.ActionType] {
 		return fmt.Errorf("special action %v already used this round", a.ActionType)
 	}
 
@@ -269,6 +369,12 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionChaosMagiciansDoubleTurn,
 		SpecialActionGiantsTransform,
 		SpecialActionNomadsSandstorm,
+		SpecialActionEnlightenedGainPower,
+		SpecialActionConspiratorsSwapFavor,
+		SpecialActionChildrenPlacePowerTokens,
+		SpecialActionProspectorsGainCoins,
+		SpecialActionTimeTravelersPowerShift,
+		SpecialActionArchitectsMoveBridge,
 	}
 
 	isStrongholdAction := false
@@ -304,9 +410,187 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateBonusCardCultAdvance(gs)
 	case SpecialActionMermaidsRiverTown:
 		return a.validateMermaidsRiverTown(gs, player)
+	case SpecialActionEnlightenedGainPower:
+		return a.validateEnlightenedGainPower(player)
+	case SpecialActionConspiratorsSwapFavor:
+		return a.validateConspiratorsSwapFavor(gs, player)
+	case SpecialActionChildrenPlacePowerTokens:
+		return a.validateChildrenPlacePowerTokens(gs, player)
+	case SpecialActionProspectorsGainCoins:
+		return a.validateProspectorsGainCoins(player)
+	case SpecialActionTimeTravelersPowerShift:
+		return a.validateTimeTravelersPowerShift(player)
+	case SpecialActionDjinniSwapCults:
+		return a.validateDjinniSwapCults(gs, player)
+	case SpecialActionArchitectsMoveBridge:
+		return a.validateArchitectsMoveBridge(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
+}
+
+func tracksSpecialActionUsage(actionType SpecialActionType) bool {
+	return actionType != SpecialActionMermaidsRiverTown && actionType != SpecialActionDjinniSwapCults
+}
+
+func (a *SpecialAction) validateDjinniSwapCults(gs *GameState, player *Player) error {
+	if !isDjinni(player) {
+		return fmt.Errorf("only Djinni can use this special action")
+	}
+	if player.DjinniLampTokens <= 0 {
+		return fmt.Errorf("no magic lamp tokens remaining")
+	}
+	if a.CultTrack == nil || a.SecondCultTrack == nil {
+		return fmt.Errorf("must choose two cult tracks")
+	}
+	if *a.CultTrack == *a.SecondCultTrack {
+		return fmt.Errorf("must choose two different cult tracks")
+	}
+	firstLevel := gs.CultTracks.GetPosition(a.PlayerID, *a.CultTrack)
+	secondLevel := gs.CultTracks.GetPosition(a.PlayerID, *a.SecondCultTrack)
+	if firstLevel == secondLevel {
+		return fmt.Errorf("cult tracks are already at the same level")
+	}
+	if secondLevel == 10 {
+		if occupier, occupied := gs.CultTracks.Position10Occupied[*a.CultTrack]; occupied && occupier != a.PlayerID {
+			return fmt.Errorf("cannot move to occupied level 10 on %v", *a.CultTrack)
+		}
+	}
+	if firstLevel == 10 {
+		if occupier, occupied := gs.CultTracks.Position10Occupied[*a.SecondCultTrack]; occupied && occupier != a.PlayerID {
+			return fmt.Errorf("cannot move to occupied level 10 on %v", *a.SecondCultTrack)
+		}
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateChildrenPlacePowerTokens(gs *GameState, player *Player) error {
+	if player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return fmt.Errorf("only Children of the Wyrm can use this special action")
+	}
+	if len(a.TargetHexes) == 0 || len(a.TargetHexes) > 2 {
+		return fmt.Errorf("children of the wyrm must place 1 or 2 power tokens")
+	}
+	if player.Resources == nil || player.Resources.Power == nil || player.Resources.Power.TotalPower() < len(a.TargetHexes) {
+		return fmt.Errorf("not enough power tokens available")
+	}
+	if gs.childrenNeedsBowl3ForBoardTokens(a.PlayerID, len(a.TargetHexes)) && !a.ConfirmSpendBowl3 {
+		return fmt.Errorf("placing these power tokens would consume Bowl III power; confirmation required")
+	}
+
+	seen := make(map[board.Hex]bool, len(a.TargetHexes))
+	planned := make(map[board.Hex]bool, len(a.TargetHexes))
+	for _, targetHex := range a.TargetHexes {
+		if seen[targetHex] {
+			return fmt.Errorf("duplicate power-token placement at %v", targetHex)
+		}
+		seen[targetHex] = true
+		if !gs.canPlaceChildrenPowerTokenAt(a.PlayerID, targetHex, planned) {
+			return fmt.Errorf("cannot place children of the wyrm power token at %v", targetHex)
+		}
+		planned[targetHex] = true
+	}
+
+	return nil
+}
+
+func (a *SpecialAction) validateProspectorsGainCoins(player *Player) error {
+	if player.Faction.GetType() != models.FactionProspectors {
+		return fmt.Errorf("only Prospectors can use this special action")
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateTimeTravelersPowerShift(player *Player) error {
+	if player.Faction.GetType() != models.FactionTimeTravelers {
+		return fmt.Errorf("only Time Travelers can use this special action")
+	}
+	if a.Amount <= 0 || a.Amount > 4 {
+		return fmt.Errorf("time travelers must move between 1 and 4 power tokens")
+	}
+	if player.Resources == nil || player.Resources.Power == nil || player.Resources.Power.Bowl1 < a.Amount {
+		return fmt.Errorf("not enough power tokens in Bowl I")
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateEnlightenedGainPower(player *Player) error {
+	if player.Faction.GetType() != models.FactionTheEnlightened {
+		return fmt.Errorf("only The Enlightened can use this special action")
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateConspiratorsSwapFavor(gs *GameState, player *Player) error {
+	if player.Faction.GetType() != models.FactionConspirators {
+		return fmt.Errorf("only Conspirators can use this special action")
+	}
+	if a.ReturnFavorTile == nil || a.NewFavorTile == nil {
+		return fmt.Errorf("must choose both returned and new favor tiles")
+	}
+	if *a.ReturnFavorTile == *a.NewFavorTile {
+		return fmt.Errorf("must swap for a different favor tile")
+	}
+	if !gs.FavorTiles.HasTileType(player.ID, *a.ReturnFavorTile) {
+		return fmt.Errorf("player does not have favor tile %v", *a.ReturnFavorTile)
+	}
+	if !gs.FavorTiles.IsAvailable(*a.NewFavorTile) {
+		return fmt.Errorf("favor tile %v is not available", *a.NewFavorTile)
+	}
+	if gs.FavorTiles.HasTileType(player.ID, *a.NewFavorTile) {
+		return fmt.Errorf("player already has favor tile %v", *a.NewFavorTile)
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateArchitectsMoveBridge(gs *GameState, player *Player) error {
+	if !isArchitects(player) {
+		return fmt.Errorf("only Architects can use this special action")
+	}
+	if a.BridgeHex1 == nil || a.BridgeHex2 == nil || a.TargetHex == nil || a.UpgradeHex == nil {
+		return fmt.Errorf("must choose both the bridge to move and the new bridge location")
+	}
+	oldKey := board.NewBridgeKey(*a.BridgeHex1, *a.BridgeHex2)
+	owner, exists := gs.Map.Bridges[oldKey]
+	if !exists {
+		return fmt.Errorf("selected bridge does not exist")
+	}
+	if owner != a.PlayerID {
+		return fmt.Errorf("selected bridge does not belong to player")
+	}
+	newKey := board.NewBridgeKey(*a.TargetHex, *a.UpgradeHex)
+	if newKey == oldKey {
+		return fmt.Errorf("must move bridge to a different location")
+	}
+
+	endpoint1Owned := false
+	if hex := gs.Map.GetHex(*a.TargetHex); hex != nil && hex.Building != nil && hex.Building.PlayerID == a.PlayerID {
+		endpoint1Owned = true
+	}
+	endpoint2Owned := false
+	if hex := gs.Map.GetHex(*a.UpgradeHex); hex != nil && hex.Building != nil && hex.Building.PlayerID == a.PlayerID {
+		endpoint2Owned = true
+	}
+	if !endpoint1Owned && !endpoint2Owned {
+		return fmt.Errorf("bridge must connect to at least one of your structures")
+	}
+
+	clonedMap := cloneMap(gs.Map)
+	if err := clonedMap.RemoveBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+		return err
+	}
+	if err := clonedMap.BuildBridge(*a.TargetHex, *a.UpgradeHex, a.PlayerID); err != nil {
+		return err
+	}
+	originalMap := gs.Map
+	gs.Map = clonedMap
+	defer func() {
+		gs.Map = originalMap
+	}()
+	if !gs.anchoredTownsRemainValid(a.PlayerID) {
+		return fmt.Errorf("bridge move would invalidate an existing town")
+	}
+	return nil
 }
 
 func (a *SpecialAction) validateAurenCultAdvance(player *Player) error {
@@ -520,9 +804,23 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 	// Maybe we should rename it or add a flag?
 	// For simplicity, let's allow it if TargetTerrain is set (implying explicit override).
 	if a.TargetTerrain == nil {
-		if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardSpade {
+		hasSpadeCard := false
+		for _, bonusCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+			if bonusCard == BonusCardSpade {
+				hasSpadeCard = true
+				break
+			}
+		}
+		if !hasSpadeCard {
 			return fmt.Errorf("player does not have the spade bonus card")
 		}
+	}
+
+	if isProspectors(player) {
+		if gs.RemainingPriestCapacity(a.PlayerID) < 1 {
+			return fmt.Errorf("not enough priest capacity for prospectors bonus card spade")
+		}
+		return nil
 	}
 
 	// Validate the transform action (hex must exist, be empty or transformable, etc.)
@@ -566,7 +864,14 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 
 func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState) error {
 	// Check if player has the cult advance bonus card
-	if bonusCard, ok := gs.BonusCards.GetPlayerCard(a.PlayerID); !ok || bonusCard != BonusCardCultAdvance {
+	hasCultCard := false
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+		if bonusCard == BonusCardCultAdvance {
+			hasCultCard = true
+			break
+		}
+	}
+	if !hasCultCard {
 		return fmt.Errorf("player does not have the cult advance bonus card")
 	}
 
@@ -584,9 +889,12 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 	}
 
 	player := gs.GetPlayer(a.PlayerID)
+	suppressTurnAdvance := gs.consumePendingPostActionSpecialAction(a.PlayerID, a.ActionType)
 
 	// Mark this specific special action as used
-	player.SpecialActionsUsed[a.ActionType] = true
+	if tracksSpecialActionUsage(a.ActionType) {
+		player.SpecialActionsUsed[a.ActionType] = true
+	}
 
 	switch a.ActionType {
 	case SpecialActionAurenCultAdvance:
@@ -627,14 +935,119 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeMermaidsRiverTown(gs, player); err != nil {
 			return err
 		}
+	case SpecialActionEnlightenedGainPower:
+		if err := a.executeEnlightenedGainPower(player); err != nil {
+			return err
+		}
+	case SpecialActionConspiratorsSwapFavor:
+		if err := a.executeConspiratorsSwapFavor(gs, player); err != nil {
+			return err
+		}
+	case SpecialActionChildrenPlacePowerTokens:
+		if err := a.executeChildrenPlacePowerTokens(gs, player); err != nil {
+			return err
+		}
+	case SpecialActionProspectorsGainCoins:
+		if err := a.executeProspectorsGainCoins(gs, player); err != nil {
+			return err
+		}
+	case SpecialActionTimeTravelersPowerShift:
+		if err := a.executeTimeTravelersPowerShift(player); err != nil {
+			return err
+		}
+	case SpecialActionDjinniSwapCults:
+		if err := a.executeDjinniSwapCults(gs, player); err != nil {
+			return err
+		}
+	case SpecialActionArchitectsMoveBridge:
+		if err := a.executeArchitectsMoveBridge(gs, player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
 
-	if a.ActionType != SpecialActionMermaidsRiverTown {
+	if a.ActionType != SpecialActionMermaidsRiverTown && !suppressTurnAdvance {
 		gs.NextTurn()
 	}
 
+	return nil
+}
+
+func (a *SpecialAction) executeChildrenPlacePowerTokens(gs *GameState, player *Player) error {
+	if err := gs.removeChildrenPowerTokensForBoard(a.PlayerID, len(a.TargetHexes)); err != nil {
+		return err
+	}
+	for _, targetHex := range a.TargetHexes {
+		mapHex := gs.Map.GetHex(targetHex)
+		if mapHex == nil {
+			return fmt.Errorf("hex does not exist: %v", targetHex)
+		}
+		mapHex.PowerTokenOwnerPlayerID = a.PlayerID
+	}
+	gs.CheckAllTownFormations(a.PlayerID)
+	return nil
+}
+
+func (a *SpecialAction) executeProspectorsGainCoins(gs *GameState, player *Player) error {
+	coins := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID == player.ID {
+			continue
+		}
+		if mapHex.Building.Type == models.BuildingTradingHouse {
+			coins++
+		}
+	}
+	player.Resources.Coins += coins
+	return nil
+}
+
+func (a *SpecialAction) executeTimeTravelersPowerShift(player *Player) error {
+	player.Resources.Power.Bowl1 -= a.Amount
+	player.Resources.Power.Bowl3 += a.Amount
+	return nil
+}
+
+func (a *SpecialAction) executeDjinniSwapCults(gs *GameState, player *Player) error {
+	firstTrack := *a.CultTrack
+	secondTrack := *a.SecondCultTrack
+	firstLevel := gs.CultTracks.GetPosition(a.PlayerID, firstTrack)
+	secondLevel := gs.CultTracks.GetPosition(a.PlayerID, secondTrack)
+
+	gs.CultTracks.PlayerPositions[a.PlayerID][firstTrack] = secondLevel
+	gs.CultTracks.PlayerPositions[a.PlayerID][secondTrack] = firstLevel
+	player.CultPositions[firstTrack] = secondLevel
+	player.CultPositions[secondTrack] = firstLevel
+
+	if firstLevel == 10 {
+		delete(gs.CultTracks.Position10Occupied, firstTrack)
+	}
+	if secondLevel == 10 {
+		delete(gs.CultTracks.Position10Occupied, secondTrack)
+	}
+	if secondLevel == 10 {
+		gs.CultTracks.Position10Occupied[firstTrack] = a.PlayerID
+	}
+	if firstLevel == 10 {
+		gs.CultTracks.Position10Occupied[secondTrack] = a.PlayerID
+	}
+
+	player.DjinniLampTokens--
+	return nil
+}
+
+func (a *SpecialAction) executeArchitectsMoveBridge(gs *GameState, player *Player) error {
+	if err := gs.Map.RemoveBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+		return err
+	}
+	if err := gs.Map.BuildBridge(*a.TargetHex, *a.UpgradeHex, a.PlayerID); err != nil {
+		_ = gs.Map.BuildBridge(*a.BridgeHex1, *a.BridgeHex2, a.PlayerID)
+		return err
+	}
+	player.VictoryPoints += 3
+	gs.CheckForTownFormation(a.PlayerID, *a.TargetHex)
+	gs.CheckForTownFormation(a.PlayerID, *a.UpgradeHex)
 	return nil
 }
 
@@ -730,7 +1143,7 @@ func (a *SpecialAction) executeGiantsTransform(gs *GameState, player *Player) er
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
@@ -753,7 +1166,7 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 
 	// Build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
@@ -768,6 +1181,12 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 }
 
 func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) error {
+	if isProspectors(player) {
+		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
+		gs.GainPriests(a.PlayerID, 1)
+		return nil
+	}
+
 	mapHex := gs.Map.GetHex(*a.TargetHex)
 
 	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
@@ -802,10 +1221,19 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	// Pay remaining workers if needed
 	if workersNeeded > 0 {
-		if player.Resources.Workers < workersNeeded {
-			return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+		if player.Faction.GetType() == models.FactionTheEnlightened {
+			if !player.Resources.Power.CanSpend(workersNeeded) {
+				return fmt.Errorf("not enough power: need %d, have %d", workersNeeded, player.Resources.Power.Bowl3)
+			}
+			if err := player.Resources.Power.SpendPower(workersNeeded); err != nil {
+				return err
+			}
+		} else {
+			if player.Resources.Workers < workersNeeded {
+				return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
+			}
+			player.Resources.Workers -= workersNeeded
 		}
-		player.Resources.Workers -= workersNeeded
 	}
 
 	// Transform terrain
@@ -828,7 +1256,7 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 
 	// Optionally build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := player.Faction.GetDwellingCost()
+		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
 		if err := player.Resources.Spend(dwellingCost); err != nil {
 			return fmt.Errorf("failed to pay for dwelling: %w", err)
 		}
@@ -889,5 +1317,34 @@ func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) 
 		return fmt.Errorf("no valid town formation found for river connection")
 	}
 
+	return nil
+}
+
+func (a *SpecialAction) executeEnlightenedGainPower(player *Player) error {
+	player.Resources.GainPower(4)
+	return nil
+}
+
+func (a *SpecialAction) executeConspiratorsSwapFavor(gs *GameState, player *Player) error {
+	allTiles := GetAllFavorTiles()
+	returnedTile, ok := allTiles[*a.ReturnFavorTile]
+	if !ok {
+		return fmt.Errorf("invalid returned favor tile: %v", *a.ReturnFavorTile)
+	}
+	if returnedTile.CultAdvance > 0 {
+		if _, err := gs.DecreaseCultTrack(player.ID, returnedTile.CultTrack, returnedTile.CultAdvance); err != nil {
+			return err
+		}
+	}
+	if err := gs.FavorTiles.ReturnFavorTile(player.ID, *a.ReturnFavorTile); err != nil {
+		return err
+	}
+	if err := gs.FavorTiles.TakeFavorTile(player.ID, *a.NewFavorTile); err != nil {
+		return err
+	}
+	gs.CheckAllTownFormations(player.ID)
+	if err := ApplyFavorTileImmediate(gs, player.ID, *a.NewFavorTile); err != nil {
+		return err
+	}
 	return nil
 }

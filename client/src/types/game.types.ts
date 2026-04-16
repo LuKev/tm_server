@@ -27,6 +27,20 @@ export enum FactionType {
   Darklings = 12,
   Engineers = 13,
   Dwarves = 14,
+  Architects = 15,
+  Archivists = 16,
+  Atlanteans = 17,
+  ChashDallah = 18,
+  ChildrenOfTheWyrm = 19,
+  Conspirators = 20,
+  Djinni = 21,
+  DynionGeifr = 22,
+  Goblins = 23,
+  Prospectors = 24,
+  TheEnlightened = 25,
+  TimeTravelers = 26,
+  Treasurers = 27,
+  Wisps = 28,
 }
 
 export enum BuildingType {
@@ -113,6 +127,7 @@ export interface MapHex {
   terrain: TerrainType
   displayCoord?: string
   building?: Building
+  powerTokenOwnerPlayerId?: string
 }
 
 export interface MapState {
@@ -131,6 +146,7 @@ export interface PlayerState {
   resources: Resources
   shipping: number
   digging: number
+  chashIncomeTrackLevel?: number
   cults: Partial<Record<CultType, number>>
   buildings: Record<string, Building>
   victoryPoints?: number
@@ -138,6 +154,11 @@ export interface PlayerState {
   keys?: number
   townsFormed?: number
   townTiles?: number[] // Array of TownTileType IDs
+  goblinTreasureTokens?: number
+  djinniLampTokens?: number
+  treasuryCoins?: number
+  treasuryWorkers?: number
+  treasuryPriests?: number
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
   options?: PlayerOptions
@@ -172,6 +193,13 @@ export enum SpecialActionType {
   BonusCardSpade = 8,
   BonusCardCultAdvance = 9,
   MermaidsRiverTown = 10,
+  EnlightenedGainPower = 11,
+  ConspiratorsSwapFavor = 12,
+  ChildrenPlacePowerTokens = 13,
+  ProspectorsGainCoins = 14,
+  TimeTravelersPowerShift = 15,
+  DjinniSwapCults = 16,
+  ArchitectsMoveBridge = 17,
 }
 
 export interface CultTrackState {
@@ -211,6 +239,7 @@ export enum BonusCardType {
 export interface BonusCardState {
   available: Record<BonusCardType, number>
   playerCards: Record<string, BonusCardType>
+  playerExtraCards?: Record<string, BonusCardType[]>
   playerHasCard: Record<string, boolean>
 }
 
@@ -241,6 +270,7 @@ export interface TownTileState {
 export interface GameState {
   id: string
   mapId?: string
+  enableFanFactions?: boolean
   revision?: number
   phase: GamePhase
   setupMode?: 'snellman' | 'auction' | 'fast_auction'

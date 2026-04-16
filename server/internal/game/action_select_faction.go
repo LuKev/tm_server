@@ -39,7 +39,7 @@ func (a *SelectFactionAction) Validate(gs *GameState) error {
 	}
 
 	// Check if faction is valid
-	if !isValidFaction(a.FactionType) {
+	if !isAllowedFaction(gs, a.FactionType) {
 		return fmt.Errorf("invalid faction type: %s", a.FactionType)
 	}
 
@@ -72,12 +72,49 @@ func (a *SelectFactionAction) Execute(gs *GameState) error {
 	return nil
 }
 
-func isValidFaction(f models.FactionType) bool {
+func isKnownFaction(f models.FactionType) bool {
 	switch f {
-	case models.FactionNomads, models.FactionWitches, models.FactionHalflings, models.FactionMermaids, models.FactionGiants, models.FactionChaosMagicians, models.FactionEngineers, models.FactionDarklings, models.FactionAlchemists, models.FactionCultists, models.FactionAuren, models.FactionSwarmlings, models.FactionDwarves, models.FactionFakirs:
+	case models.FactionNomads,
+		models.FactionWitches,
+		models.FactionHalflings,
+		models.FactionMermaids,
+		models.FactionGiants,
+		models.FactionChaosMagicians,
+		models.FactionEngineers,
+		models.FactionDarklings,
+		models.FactionAlchemists,
+		models.FactionCultists,
+		models.FactionAuren,
+		models.FactionSwarmlings,
+		models.FactionDwarves,
+		models.FactionFakirs,
+		models.FactionArchitects,
+		models.FactionArchivists,
+		models.FactionAtlanteans,
+		models.FactionChashDallah,
+		models.FactionChildrenOfTheWyrm,
+		models.FactionConspirators,
+		models.FactionDjinni,
+		models.FactionDynionGeifr,
+		models.FactionGoblins,
+		models.FactionProspectors,
+		models.FactionTheEnlightened,
+		models.FactionTimeTravelers,
+		models.FactionTreasurers,
+		models.FactionWisps:
 		return true
 	}
 	return false
+}
+
+func isAllowedFaction(gs *GameState, f models.FactionType) bool {
+	if !isKnownFaction(f) {
+		return false
+	}
+	if gs != nil && !gs.EnableFanFactions && f.IsFanFaction() {
+		return false
+	}
+	return true
 }
 
 func allPlayersHaveFactions(gs *GameState) bool {
@@ -99,6 +136,7 @@ func assignFactionToPlayer(gs *GameState, playerID string, factionType models.Fa
 	player.Faction = faction
 	player.Resources = NewResourcePool(faction.GetStartingResources())
 	player.VictoryPoints = startingVP
+	player.ChashIncomeTrackLevel = 0
 
 	startingCult := faction.GetStartingCultPositions()
 	if player.CultPositions == nil {
@@ -121,6 +159,6 @@ func assignFactionToPlayer(gs *GameState, playerID string, factionType models.Fa
 	if shippingFaction, ok := faction.(interface{ GetShippingLevel() int }); ok {
 		player.ShippingLevel = shippingFaction.GetShippingLevel()
 	}
-
-	return nil
+	gs.updateFactionDiggingLevel(player)
+	return gs.applyFactionSpecificSetup(playerID)
 }

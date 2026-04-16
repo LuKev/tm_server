@@ -18,6 +18,7 @@ type CreateGameOptions struct {
 	SetupMode          SetupMode
 	TurnTimer          *TurnTimerConfig
 	MapID              board.MapID
+	EnableFanFactions  bool
 	CustomMap          *board.CustomMapDefinition
 }
 
@@ -132,6 +133,13 @@ func (m *Manager) ApplyConversionWithoutTurnCheck(gameID, playerID string, conve
 		ConversionType: conversionType,
 		Amount:         amount,
 	}
+	player := gs.GetPlayer(playerID)
+	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+	if player != nil && player.Resources != nil {
+		beforeCoins = player.Resources.Coins
+		beforeWorkers = player.Resources.Workers
+		beforePriests = player.Resources.Priests
+	}
 
 	if err := action.Validate(gs); err != nil {
 		return 0, fmt.Errorf("conversion validation failed: %w", err)
@@ -144,6 +152,7 @@ func (m *Manager) ApplyConversionWithoutTurnCheck(gameID, playerID string, conve
 	if err := gs.ResolveAutoLeechOffers(); err != nil {
 		return 0, fmt.Errorf("auto leech resolution failed: %w", err)
 	}
+	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
 
 	currentRevision := m.revisions[gameID]
 	nextRevision := currentRevision + 1
@@ -185,6 +194,12 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	currentRevision := m.revisions[gameID]
 	beforeTurn := captureTurnProgress(gs)
 	undoSnapshot := gs.CloneForUndo()
+	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+	if player := gs.GetPlayer(action.GetPlayerID()); player != nil && player.Resources != nil {
+		beforeCoins = player.Resources.Coins
+		beforeWorkers = player.Resources.Workers
+		beforePriests = player.Resources.Priests
+	}
 	if meta.ActionID != "" {
 		if _, exists := m.appliedActionID[gameID][meta.ActionID]; exists {
 			return &ActionResult{Revision: currentRevision, Duplicate: true}, nil
@@ -211,6 +226,7 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if err := gs.ResolveAutoLeechOffers(); err != nil {
 		return nil, fmt.Errorf("auto leech resolution failed: %w", err)
 	}
+	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
 	updatePendingFreeActionsWindow(gs, action)
 	stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
 	syncTurnConfirmationPreferences(gs, action)
@@ -229,6 +245,30 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	return &ActionResult{Revision: currentRevision, Duplicate: false}, nil
+}
+
+func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, beforeCoins, beforeWorkers, beforePriests int) {
+	if gs == nil || action == nil {
+		return
+	}
+	if gs.Phase != PhaseAction {
+		return
+	}
+	if action.GetType() == ActionSelectTreasurersDeposit {
+		return
+	}
+	player := gs.GetPlayer(action.GetPlayerID())
+	if !isTreasurers(player) || !player.HasStrongholdAbility || player.Resources == nil {
+		return
+	}
+	coinGain := player.Resources.Coins - beforeCoins
+	workerGain := player.Resources.Workers - beforeWorkers
+	priestGain := player.Resources.Priests - beforePriests
+	reason := "received"
+	if action.GetType() == ActionConversion {
+		reason = "conversion"
+	}
+	gs.queueTreasurersDeposit(player.ID, coinGain, workerGain, priestGain, reason)
 }
 
 func validateActionTurnAndPendingState(gs *GameState, action Action) error {
@@ -302,12 +342,57 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 
 	if gs.PendingCultistsCultSelection != nil {
 		pendingPlayer := strings.TrimSpace(gs.PendingCultistsCultSelection.PlayerID)
-		if strings.TrimSpace(playerID) == pendingPlayer {
-			if actionType != ActionSelectCultistsCultTrack {
-				return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
-			}
-			return nil
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("cultists cult selection required from player %s", gs.PendingCultistsCultSelection.PlayerID)
 		}
+		if actionType != ActionSelectCultistsCultTrack {
+			return fmt.Errorf("cultists cult selection pending for player %s", gs.PendingCultistsCultSelection.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingDjinniStartingCultChoice != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingDjinniStartingCultChoice.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("djinni starting cult choice required from player %s", gs.PendingDjinniStartingCultChoice.PlayerID)
+		}
+		if actionType != ActionSelectDjinniStartingCultTrack {
+			return fmt.Errorf("djinni starting cult choice pending for player %s", gs.PendingDjinniStartingCultChoice.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingTreasurersDeposit != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingTreasurersDeposit.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("treasurers deposit choice required from player %s", gs.PendingTreasurersDeposit.PlayerID)
+		}
+		if actionType != ActionSelectTreasurersDeposit {
+			return fmt.Errorf("treasurers deposit choice pending for player %s", gs.PendingTreasurersDeposit.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingArchivistsBonusSelection != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingArchivistsBonusSelection.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("archivists bonus card selection required from player %s", gs.PendingArchivistsBonusSelection.PlayerID)
+		}
+		if actionType != ActionSelectArchivistsBonusCard {
+			return fmt.Errorf("archivists bonus card selection pending for player %s", gs.PendingArchivistsBonusSelection.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingGoblinsCultSteps != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingGoblinsCultSteps.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("goblins cult-step selection required from player %s", gs.PendingGoblinsCultSteps.PlayerID)
+		}
+		if actionType != ActionSelectGoblinsCultTrack {
+			return fmt.Errorf("goblins cult-step selection pending for player %s", gs.PendingGoblinsCultSteps.PlayerID)
+		}
+		return nil
 	}
 
 	if gs.PendingFavorTileSelection != nil {
@@ -326,6 +411,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		}
 		if actionType != ActionApplyHalflingsSpade && actionType != ActionBuildHalflingsDwelling && actionType != ActionSkipHalflingsDwelling {
 			return fmt.Errorf("halflings spade follow-up pending for player %s", gs.PendingHalflingsSpades.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingWispsStrongholdDwelling != nil {
+		if playerID != gs.PendingWispsStrongholdDwelling.PlayerID {
+			return fmt.Errorf("wisps stronghold dwelling required from player %s", gs.PendingWispsStrongholdDwelling.PlayerID)
+		}
+		if actionType != ActionBuildWispsStrongholdDwelling {
+			return fmt.Errorf("wisps stronghold dwelling pending for player %s", gs.PendingWispsStrongholdDwelling.PlayerID)
 		}
 		return nil
 	}
@@ -411,7 +506,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectDjinniStartingCultTrack || actionType == ActionSelectTreasurersDeposit || actionType == ActionSelectGoblinsCultTrack || actionType == ActionSelectArchivistsBonusCard || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -465,6 +560,12 @@ func canPlayerUsePendingFreeActionsWindow(gs *GameState, action Action) bool {
 	switch action.GetType() {
 	case ActionConversion, ActionBurnPower:
 		return true
+	case ActionSpecialAction:
+		specialAction, ok := action.(*SpecialAction)
+		if !ok {
+			return false
+		}
+		return gs.hasPendingPostActionSpecialAction(pendingPlayerID, specialAction.ActionType)
 	default:
 		return false
 	}
@@ -517,7 +618,7 @@ func updatePendingFreeActionsWindow(gs *GameState, action Action) {
 	if opensPendingFreeActionsWindow(action) {
 		playerID := strings.TrimSpace(action.GetPlayerID())
 		player := gs.GetPlayer(playerID)
-		if player != nil && !player.HasPassed && playerUsesTurnConfirmation(gs, playerID) {
+		if player != nil && !player.HasPassed && playerNeedsPostActionConfirmation(gs, playerID) {
 			gs.PendingFreeActionsPlayerID = playerID
 			return
 		}
@@ -561,7 +662,7 @@ func stageTurnConfirmation(gs *GameState, action Action, before turnProgress, sn
 	if before.phase != PhaseAction {
 		return
 	}
-	if shouldBeginTurnConfirmation(action) && playerUsesTurnConfirmation(gs, action.GetPlayerID()) && !gs.HasPendingTurnConfirmation() {
+	if shouldBeginTurnConfirmation(action) && playerNeedsPostActionConfirmation(gs, action.GetPlayerID()) && !gs.HasPendingTurnConfirmation() {
 		gs.BeginPendingTurnConfirmation(action.GetPlayerID(), snapshot)
 	}
 }
@@ -571,7 +672,7 @@ func syncTurnConfirmationPreferences(gs *GameState, action Action) {
 		return
 	}
 	playerID := strings.TrimSpace(action.GetPlayerID())
-	if playerID == "" || playerUsesTurnConfirmation(gs, playerID) {
+	if playerID == "" || playerNeedsPostActionConfirmation(gs, playerID) {
 		return
 	}
 	if strings.TrimSpace(gs.PendingFreeActionsPlayerID) == playerID {
@@ -619,6 +720,7 @@ func opensPendingFreeActionsWindow(action Action) bool {
 		ActionUpgradeBuilding,
 		ActionAdvanceShipping,
 		ActionAdvanceDigging,
+		ActionAdvanceChashTrack,
 		ActionSendPriestToCult,
 		ActionPowerAction,
 		ActionSpecialAction,
@@ -640,6 +742,10 @@ func playerUsesTurnConfirmation(gs *GameState, playerID string) bool {
 	return player.Options.ConfirmActions
 }
 
+func playerNeedsPostActionConfirmation(gs *GameState, playerID string) bool {
+	return playerUsesTurnConfirmation(gs, playerID) || gs.hasAnyPendingPostActionSpecialAction(playerID)
+}
+
 func isPendingResolutionActionType(actionType ActionType) bool {
 	switch actionType {
 	case ActionAcceptPowerLeech,
@@ -651,7 +757,12 @@ func isPendingResolutionActionType(actionType ActionType) bool {
 		ActionApplyHalflingsSpade,
 		ActionBuildHalflingsDwelling,
 		ActionSkipHalflingsDwelling,
+		ActionBuildWispsStrongholdDwelling,
 		ActionSelectCultistsCultTrack,
+		ActionSelectDjinniStartingCultTrack,
+		ActionSelectTreasurersDeposit,
+		ActionSelectGoblinsCultTrack,
+		ActionSelectArchivistsBonusCard,
 		ActionUseCultSpade,
 		ActionDiscardPendingSpade,
 		ActionSetupBonusCard,
@@ -673,8 +784,13 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionApplyHalflingsSpade,
 		ActionBuildHalflingsDwelling,
 		ActionSkipHalflingsDwelling,
+		ActionBuildWispsStrongholdDwelling,
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
+		ActionSelectDjinniStartingCultTrack,
+		ActionSelectTreasurersDeposit,
+		ActionSelectGoblinsCultTrack,
+		ActionSelectArchivistsBonusCard,
 		ActionDiscardPendingSpade,
 		ActionSetPlayerOptions,
 		ActionConfirmTurn,
@@ -736,6 +852,7 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 		return fmt.Errorf("invalid setup mode: %s", setupMode)
 	}
 	gs.SetupMode = setupMode
+	gs.EnableFanFactions = opts.EnableFanFactions
 
 	if err := gs.ScoringTiles.InitializeForGame(); err != nil {
 		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
@@ -834,15 +951,21 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 					"powerIII": player.Resources.Power.Bowl3,
 				},
 			},
-			"shipping":             player.ShippingLevel,
-			"digging":              player.DiggingLevel,
-			"hasPassed":            player.HasPassed,
-			"hasStrongholdAbility": player.HasStrongholdAbility,
-			"victoryPoints":        player.VictoryPoints,
-			"keys":                 player.Keys,
-			"townsFormed":          player.TownsFormed,
-			"townTiles":            player.TownTiles,
-			"specialActionsUsed":   player.SpecialActionsUsed,
+			"shipping":              player.ShippingLevel,
+			"digging":               player.DiggingLevel,
+			"chashIncomeTrackLevel": player.ChashIncomeTrackLevel,
+			"hasPassed":             player.HasPassed,
+			"hasStrongholdAbility":  player.HasStrongholdAbility,
+			"victoryPoints":         player.VictoryPoints,
+			"keys":                  player.Keys,
+			"townsFormed":           player.TownsFormed,
+			"townTiles":             player.TownTiles,
+			"goblinTreasureTokens":  player.GoblinTreasureTokens,
+			"djinniLampTokens":      player.DjinniLampTokens,
+			"treasuryCoins":         player.TreasuryCoins,
+			"treasuryWorkers":       player.TreasuryWorkers,
+			"treasuryPriests":       player.TreasuryPriests,
+			"specialActionsUsed":    player.SpecialActionsUsed,
 			"cults": map[string]interface{}{
 				"0": player.CultPositions[CultFire],
 				"1": player.CultPositions[CultWater],
@@ -873,6 +996,9 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 				"type":          mapHex.Building.Type,
 			}
 		}
+		if mapHex.PowerTokenOwnerPlayerID != "" {
+			hexData["powerTokenOwnerPlayerId"] = mapHex.PowerTokenOwnerPlayerID
+		}
 
 		hexes[key] = hexData
 	}
@@ -902,6 +1028,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 		"id":                   gameID,
 		"revision":             revision,
 		"mapId":                gs.Map.ID,
+		"enableFanFactions":    gs.EnableFanFactions,
 		"phase":                gs.Phase,
 		"setupMode":            gs.SetupMode,
 		"turnOrderPolicy":      gs.TurnOrderPolicy,
@@ -1092,6 +1219,32 @@ func serializePendingDecision(gs *GameState) interface{} {
 		}
 	}
 
+	if gs.PendingDjinniStartingCultChoice != nil {
+		return map[string]interface{}{
+			"type":     "djinni_start_cult_choice",
+			"playerId": gs.PendingDjinniStartingCultChoice.PlayerID,
+		}
+	}
+
+	if gs.PendingTreasurersDeposit != nil {
+		return map[string]interface{}{
+			"type":             "treasurers_deposit",
+			"playerId":         gs.PendingTreasurersDeposit.PlayerID,
+			"availableCoins":   gs.PendingTreasurersDeposit.AvailableCoins,
+			"availableWorkers": gs.PendingTreasurersDeposit.AvailableWorkers,
+			"availablePriests": gs.PendingTreasurersDeposit.AvailablePriests,
+			"reason":           gs.PendingTreasurersDeposit.Reason,
+		}
+	}
+
+	if gs.PendingArchivistsBonusSelection != nil {
+		return map[string]interface{}{
+			"type":          "archivists_bonus_card",
+			"playerId":      gs.PendingArchivistsBonusSelection.PlayerID,
+			"returnedCards": gs.PendingArchivistsBonusSelection.ReturnedCards,
+		}
+	}
+
 	if gs.PendingFavorTileSelection != nil {
 		return map[string]interface{}{
 			"type":     "favor_tile_selection",
@@ -1105,6 +1258,21 @@ func serializePendingDecision(gs *GameState) interface{} {
 			"type":            "halflings_spades",
 			"playerId":        gs.PendingHalflingsSpades.PlayerID,
 			"spadesRemaining": gs.PendingHalflingsSpades.SpadesRemaining,
+		}
+	}
+
+	if gs.PendingGoblinsCultSteps != nil {
+		return map[string]interface{}{
+			"type":           "goblins_cult_steps",
+			"playerId":       gs.PendingGoblinsCultSteps.PlayerID,
+			"stepsRemaining": gs.PendingGoblinsCultSteps.StepsRemaining,
+		}
+	}
+
+	if gs.PendingWispsStrongholdDwelling != nil {
+		return map[string]interface{}{
+			"type":     "wisps_stronghold_dwelling",
+			"playerId": gs.PendingWispsStrongholdDwelling.PlayerID,
 		}
 	}
 

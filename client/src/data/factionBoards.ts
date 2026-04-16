@@ -4,6 +4,8 @@ export interface BuildingSlot {
     cost: {
         workers?: number;
         coins?: number;
+        priests?: number;
+        power?: number;
     };
     income: {
         workers?: number;
@@ -261,6 +263,127 @@ const ALCHEMISTS_BOARD: FactionBoardLayout = {
     stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { coins: 6 } },
 };
 
+const withDwellingIncome = (incomes: Array<BuildingSlot['income']>, cost: BuildingSlot['cost'] = DEFAULT_DWELLING_COST): BuildingSlot[] =>
+    incomes.map((income) => ({ cost, income }));
+
+const withTradingIncome = (incomes: Array<BuildingSlot['income']>, cost: BuildingSlot['cost'] = DEFAULT_TRADING_HOUSE_COST): BuildingSlot[] =>
+    incomes.map((income) => ({ cost, income }));
+
+const withTempleIncome = (incomes: Array<BuildingSlot['income']>, cost: BuildingSlot['cost'] = DEFAULT_TEMPLE_COST): BuildingSlot[] =>
+    incomes.map((income) => ({ cost, income }));
+
+const ARCHIVISTS_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ workers: 1 }, { workers: 1 }, { workers: 1 }, null, { workers: 1 }, { workers: 1 }, { workers: 1 }, null]),
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { power: 2 } },
+};
+
+const ATLANTEANS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: { cost: { workers: 4, coins: 8 }, income: { priests: 1 } },
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { power: 6 } },
+};
+
+const ARCHITECTS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { power: 4 } },
+};
+
+const CHASH_DALLAH_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: NOMADS_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: { workers: 4, coins: 4 }, income: { coins: 4 } },
+};
+
+const CHILDREN_OF_THE_WYRM_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: { cost: { workers: 4, coins: 5 }, income: { priests: 1 } },
+    stronghold: { cost: { workers: 4, coins: 5 }, income: { power: 4 } },
+};
+
+const CONSPIRATORS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: DWARVES_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: null },
+};
+
+const DJINNI_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: { workers: 3, coins: 6 }, income: { power: 4 } },
+};
+
+const DYNION_GEIFR_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, null], { workers: 2, coins: 2 }),
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: withTempleIncome([{ priests: 1 }, { power: 5 }, { priests: 1 }]),
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { power: 4 } },
+};
+
+const GOBLINS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: withTempleIncome([{ priests: 1 }, { priests: 1 }, { priests: 1 }], { workers: 2, coins: 6 }),
+    sanctuary: { cost: { workers: 4, coins: 6 }, income: { priests: 1 } },
+    stronghold: { cost: { workers: 4, coins: 6 }, income: { power: 4 } },
+};
+
+const PROSPECTORS_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ workers: 1 }, { workers: 1 }, { workers: 1 }, null, { workers: 1 }, null, { workers: 1 }, null]),
+    tradingHouses: withTradingIncome([{ coins: 4, power: 1 }, { coins: 3, power: 1 }, { coins: 2, power: 2 }, { coins: 1, power: 2 }]),
+    temples: withTempleIncome([{ coins: 3 }, { priests: 1 }, { coins: 4 }]),
+    sanctuary: { cost: { workers: 4, coins: 8 }, income: { priests: 1 } },
+    stronghold: { cost: { workers: 4, coins: 11 }, income: { power: 3 } },
+};
+
+const THE_ENLIGHTENED_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ power: 2 }, { power: 3 }, { power: 2 }, { power: 3 }, { power: 2 }, { power: 3 }, { power: 2 }, { power: 3 }]),
+    tradingHouses: NOMADS_TRADING_HOUSES,
+    temples: withTempleIncome([{ priests: 1 }, { priests: 1 }, { priests: 1 }], { priests: 1, coins: 5 }),
+    sanctuary: { cost: { priests: 2, coins: 6 }, income: { priests: 1 } },
+    stronghold: { cost: { priests: 1, coins: 4 }, income: null },
+};
+
+const TIME_TRAVELERS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: { cost: { workers: 4, coins: 8 }, income: { priests: 1 } },
+    stronghold: { cost: { workers: 4, coins: 8 }, income: { power: 2 } },
+};
+
+const TREASURERS_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ workers: 1 }, { workers: 1 }, null, { workers: 1 }, null, { workers: 1 }, { workers: 1 }, null]),
+    tradingHouses: withTradingIncome([{ coins: 2, power: 1 }, null, { coins: 2, power: 2 }, { coins: 2, power: 2 }]),
+    temples: withTempleIncome([{ priests: 1 }, { power: 4 }, { priests: 1 }]),
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: DEFAULT_STRONGHOLD_COST, income: { power: 4 } },
+};
+
+const WISPS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: { workers: 4, coins: 4 }, income: { power: 3 } },
+};
+
 export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
     [FactionType.Unknown]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
     [FactionType.ChaosMagicians]: CHAOS_MAGICIAN_BOARD,
@@ -276,6 +399,20 @@ export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
     [FactionType.Swarmlings]: SWARMLINGS_BOARD,
     [FactionType.Alchemists]: ALCHEMISTS_BOARD,
     [FactionType.Dwarves]: DWARVES_BOARD,
+    [FactionType.Architects]: ARCHITECTS_BOARD,
+    [FactionType.Archivists]: ARCHIVISTS_BOARD,
+    [FactionType.Atlanteans]: ATLANTEANS_BOARD,
+    [FactionType.ChashDallah]: CHASH_DALLAH_BOARD,
+    [FactionType.ChildrenOfTheWyrm]: CHILDREN_OF_THE_WYRM_BOARD,
+    [FactionType.Conspirators]: CONSPIRATORS_BOARD,
+    [FactionType.Djinni]: DJINNI_BOARD,
+    [FactionType.DynionGeifr]: DYNION_GEIFR_BOARD,
+    [FactionType.Goblins]: GOBLINS_BOARD,
+    [FactionType.Prospectors]: PROSPECTORS_BOARD,
+    [FactionType.TheEnlightened]: THE_ENLIGHTENED_BOARD,
+    [FactionType.TimeTravelers]: TIME_TRAVELERS_BOARD,
+    [FactionType.Treasurers]: TREASURERS_BOARD,
+    [FactionType.Wisps]: WISPS_BOARD,
 
     // Defaults for others
     [FactionType.Witches]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },

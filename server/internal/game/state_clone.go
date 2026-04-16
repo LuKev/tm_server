@@ -33,6 +33,8 @@ func (gs *GameState) CloneForUndo() *GameState {
 		PendingFreeActionsPlayerID:      gs.PendingFreeActionsPlayerID,
 		PendingCultistsLeech:            clonePendingCultistsLeech(gs.PendingCultistsLeech),
 		SkipAbilityUsedThisAction:       cloneSkipAbilityUsedThisAction(gs.SkipAbilityUsedThisAction),
+		PendingWispsTradingPostSpade:    cloneHexMap(gs.PendingWispsTradingPostSpade),
+		PendingPostActionSpecialActions: clonePendingPostActionSpecialActions(gs.PendingPostActionSpecialActions),
 		ReplayMode:                      cloneStringBoolMap(gs.ReplayMode),
 		SuppressTurnAdvance:             gs.SuppressTurnAdvance,
 		PendingTurnConfirmationPlayerID: "",
@@ -52,8 +54,14 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingCultistsLeech = clonePendingCultistsLeech(gs.PendingCultistsLeech)
 	clone.PendingFavorTileSelection = clonePendingFavorTileSelection(gs.PendingFavorTileSelection)
 	clone.PendingHalflingsSpades = clonePendingHalflingsSpades(gs.PendingHalflingsSpades)
+	clone.PendingGoblinsCultSteps = clonePendingGoblinsCultSteps(gs.PendingGoblinsCultSteps)
+	clone.PendingWispsStrongholdDwelling = clonePendingWispsStrongholdDwelling(gs.PendingWispsStrongholdDwelling)
 	clone.PendingDarklingsPriestOrdination = clonePendingDarklingsPriestOrdination(gs.PendingDarklingsPriestOrdination)
 	clone.PendingCultistsCultSelection = clonePendingCultistsCultSelection(gs.PendingCultistsCultSelection)
+	clone.PendingDjinniStartingCultChoice = clonePendingDjinniStartingCultChoice(gs.PendingDjinniStartingCultChoice)
+	clone.PendingArchivistsBonusSelection = clonePendingArchivistsBonusSelection(gs.PendingArchivistsBonusSelection)
+	clone.PendingTreasurersDeposit = clonePendingTreasurersDeposit(gs.PendingTreasurersDeposit)
+	clone.PendingTreasurersDepositQueue = clonePendingTreasurersDepositQueue(gs.PendingTreasurersDepositQueue)
 	clone.PendingTownCultTopChoice = clonePendingTownCultTopChoice(gs.PendingTownCultTopChoice)
 	clone.FinalScoring = cloneFinalScoring(gs.FinalScoring)
 	clone.TurnTimer = cloneTurnTimerState(gs.TurnTimer)
@@ -104,7 +112,46 @@ func clonePlayer(src *Player) *Player {
 	if src.TownTiles != nil {
 		dst.TownTiles = append([]models.TownTileType(nil), src.TownTiles...)
 	}
+	if src.AtlanteansTownHexes != nil {
+		dst.AtlanteansTownHexes = append([]board.Hex(nil), src.AtlanteansTownHexes...)
+	}
+	if src.AtlanteansTownRewards != nil {
+		dst.AtlanteansTownRewards = make(map[int]bool, len(src.AtlanteansTownRewards))
+		for threshold, claimed := range src.AtlanteansTownRewards {
+			dst.AtlanteansTownRewards[threshold] = claimed
+		}
+	}
 	return &dst
+}
+
+func cloneHexMap(src map[string]board.Hex) map[string]board.Hex {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]board.Hex, len(src))
+	for playerID, hex := range src {
+		dst[playerID] = hex
+	}
+	return dst
+}
+
+func clonePendingPostActionSpecialActions(src map[string]map[SpecialActionType]bool) map[string]map[SpecialActionType]bool {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]map[SpecialActionType]bool, len(src))
+	for playerID, actions := range src {
+		if actions == nil {
+			dst[playerID] = nil
+			continue
+		}
+		actionCopy := make(map[SpecialActionType]bool, len(actions))
+		for actionType, allowed := range actions {
+			actionCopy[actionType] = allowed
+		}
+		dst[playerID] = actionCopy
+	}
+	return dst
 }
 
 func cloneMap(src *board.TerraMysticaMap) *board.TerraMysticaMap {
@@ -274,15 +321,19 @@ func cloneBonusCardState(src *BonusCardState) *BonusCardState {
 		return nil
 	}
 	dst := &BonusCardState{
-		Available:     make(map[BonusCardType]int, len(src.Available)),
-		PlayerCards:   make(map[string]BonusCardType, len(src.PlayerCards)),
-		PlayerHasCard: make(map[string]bool, len(src.PlayerHasCard)),
+		Available:        make(map[BonusCardType]int, len(src.Available)),
+		PlayerCards:      make(map[string]BonusCardType, len(src.PlayerCards)),
+		PlayerExtraCards: make(map[string][]BonusCardType, len(src.PlayerExtraCards)),
+		PlayerHasCard:    make(map[string]bool, len(src.PlayerHasCard)),
 	}
 	for cardType, count := range src.Available {
 		dst.Available[cardType] = count
 	}
 	for playerID, cardType := range src.PlayerCards {
 		dst.PlayerCards[playerID] = cardType
+	}
+	for playerID, cards := range src.PlayerExtraCards {
+		dst.PlayerExtraCards[playerID] = append([]BonusCardType(nil), cards...)
 	}
 	for playerID, hasCard := range src.PlayerHasCard {
 		dst.PlayerHasCard[playerID] = hasCard
@@ -396,6 +447,40 @@ func clonePendingHalflingsSpades(src *PendingHalflingsSpades) *PendingHalflingsS
 	return &dst
 }
 
+func clonePendingWispsStrongholdDwelling(src *PendingWispsStrongholdDwelling) *PendingWispsStrongholdDwelling {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
+func clonePendingArchivistsBonusSelection(src *PendingArchivistsBonusSelection) *PendingArchivistsBonusSelection {
+	if src == nil {
+		return nil
+	}
+	return &PendingArchivistsBonusSelection{
+		PlayerID:      src.PlayerID,
+		ReturnedCards: append([]BonusCardType(nil), src.ReturnedCards...),
+		UndoSnapshot:  cloneGameStateForUndo(src.UndoSnapshot),
+	}
+}
+
+func cloneGameStateForUndo(src *GameState) *GameState {
+	if src == nil {
+		return nil
+	}
+	return src.CloneForUndo()
+}
+
+func clonePendingGoblinsCultSteps(src *PendingGoblinsCultSteps) *PendingGoblinsCultSteps {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
 func clonePendingDarklingsPriestOrdination(src *PendingDarklingsPriestOrdination) *PendingDarklingsPriestOrdination {
 	if src == nil {
 		return nil
@@ -410,6 +495,33 @@ func clonePendingCultistsCultSelection(src *PendingCultistsCultSelection) *Pendi
 	}
 	dst := *src
 	return &dst
+}
+
+func clonePendingDjinniStartingCultChoice(src *PendingDjinniStartingCultChoice) *PendingDjinniStartingCultChoice {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
+func clonePendingTreasurersDeposit(src *PendingTreasurersDeposit) *PendingTreasurersDeposit {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
+func clonePendingTreasurersDepositQueue(src []*PendingTreasurersDeposit) []*PendingTreasurersDeposit {
+	if src == nil {
+		return nil
+	}
+	dst := make([]*PendingTreasurersDeposit, 0, len(src))
+	for _, item := range src {
+		dst = append(dst, clonePendingTreasurersDeposit(item))
+	}
+	return dst
 }
 
 func clonePendingTownCultTopChoice(src *PendingTownCultTopChoice) *PendingTownCultTopChoice {

@@ -23,6 +23,19 @@ type BaseIncome struct {
 	Power   int // Power cycles through bowls using GainPower()
 }
 
+func chashIncomeTrackIncome(level int) BaseIncome {
+	switch level {
+	case 0:
+		return BaseIncome{Coins: 2}
+	case 1, 3:
+		return BaseIncome{Workers: 1}
+	case 2, 4:
+		return BaseIncome{Coins: 2}
+	default:
+		return BaseIncome{}
+	}
+}
+
 // GrantIncome grants income to all players at the start of a round
 func (gs *GameState) GrantIncome() {
 	// Note: We do NOT clear PendingSpades here
@@ -32,9 +45,10 @@ func (gs *GameState) GrantIncome() {
 	// gets 1 spade reward, and can use it in round 6
 
 	for _, player := range gs.Players {
+		gs.releaseTreasuryBeforeIncome(player.ID)
 		income := calculatePlayerIncome(gs, player)
-
-		applyIncome(gs, player, income)
+		applied := applyIncome(gs, player, income)
+		gs.queueTreasurersDeposit(player.ID, applied.Coins, applied.Workers, applied.Priests, "income")
 	}
 }
 
@@ -49,6 +63,11 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Workers += baseIncome.Workers
 	income.Priests += baseIncome.Priests
 	income.Power += baseIncome.Power
+	if faction.GetType() == models.FactionChashDallah {
+		trackIncome := chashIncomeTrackIncome(player.ChashIncomeTrackLevel)
+		income.Coins += trackIncome.Coins
+		income.Workers += trackIncome.Workers
+	}
 
 	// 2. Income from buildings on the map (uses faction methods)
 	buildingIncome := calculateBuildingIncome(gs, player)
@@ -65,7 +84,7 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Power += favorPower
 
 	// 4. Income from bonus cards
-	if bonusCard, ok := gs.BonusCards.GetPlayerCard(player.ID); ok {
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(player.ID) {
 		bonusCoins, bonusWorkers, bonusPriests, bonusPower := GetBonusCardIncomeBonus(bonusCard)
 		income.Coins += bonusCoins
 		income.Workers += bonusWorkers
@@ -138,18 +157,23 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	return income
 }
 
-// applyIncome applies the calculated income to a player's resources
-func applyIncome(gs *GameState, player *Player, income BaseIncome) {
+// applyIncome applies the calculated income to a player's resources and
+// returns the actual coin/worker/priest gains applied.
+func applyIncome(gs *GameState, player *Player, income BaseIncome) BaseIncome {
+	applied := BaseIncome{}
 	player.Resources.Coins += income.Coins
+	applied.Coins = income.Coins
 	player.Resources.Workers += income.Workers
+	applied.Workers = income.Workers
 
 	// Apply priest income with 7-priest limit enforcement
 	if income.Priests > 0 {
-		gs.GainPriests(player.ID, income.Priests)
+		applied.Priests = gs.GainPriests(player.ID, income.Priests)
 	}
 
 	// Use GainPower to properly cycle power through bowls
 	if income.Power > 0 {
 		player.Resources.Power.GainPower(income.Power)
 	}
+	return applied
 }

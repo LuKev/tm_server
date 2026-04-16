@@ -211,8 +211,11 @@ type BonusCardState struct {
 	// Available cards (type -> coins accumulated on the card)
 	Available map[BonusCardType]int `json:"available"`
 
-	// Player selections (playerID -> bonus card type for this round)
+	// Primary player selections (playerID -> bonus card type for this round)
 	PlayerCards map[string]BonusCardType `json:"playerCards"`
+
+	// Additional bonus cards held by Archivists after building the stronghold.
+	PlayerExtraCards map[string][]BonusCardType `json:"playerExtraCards,omitempty"`
 
 	// Track which players have selected a card this round
 	PlayerHasCard map[string]bool `json:"playerHasCard"`
@@ -222,9 +225,10 @@ type BonusCardState struct {
 // Note: Cards should be selected via SelectRandomBonusCards during setup
 func NewBonusCardState() *BonusCardState {
 	return &BonusCardState{
-		Available:     make(map[BonusCardType]int),
-		PlayerCards:   make(map[string]BonusCardType),
-		PlayerHasCard: make(map[string]bool),
+		Available:        make(map[BonusCardType]int),
+		PlayerCards:      make(map[string]BonusCardType),
+		PlayerExtraCards: make(map[string][]BonusCardType),
+		PlayerHasCard:    make(map[string]bool),
 	}
 }
 
@@ -297,16 +301,21 @@ func (bcs *BonusCardState) TakeBonusCard(playerID string, cardType BonusCardType
 	// If player has a card from a previous round, allow them to re-take the same card
 	// when passing (they return it and may select it again). Snellman logs can record
 	// this as "pass BONx" even though the card wasn't in the available pool until returned.
-	oldCard, hasOldCard := bcs.PlayerCards[playerID]
-	if !bcs.IsAvailable(cardType) && !(hasOldCard && oldCard == cardType) {
+	oldCards := bcs.GetPlayerCards(playerID)
+	hasOldCard := len(oldCards) > 0
+	canRetakeReturned := false
+	for _, oldCard := range oldCards {
+		if oldCard == cardType {
+			canRetakeReturned = true
+			break
+		}
+	}
+	if !bcs.IsAvailable(cardType) && !canRetakeReturned {
 		return 0, fmt.Errorf("bonus card %v is not available", cardType)
 	}
 
-	// If player has a card from a previous round, return it first
-	// This happens when passing in Round N+1 after having selected a card in Round N
 	if hasOldCard {
-		bcs.Available[oldCard] = 0
-		delete(bcs.PlayerCards, playerID)
+		bcs.ReturnAllBonusCards(playerID)
 	}
 
 	// Get coins from the card
@@ -315,19 +324,48 @@ func (bcs *BonusCardState) TakeBonusCard(playerID string, cardType BonusCardType
 	// Remove from available and assign to player
 	delete(bcs.Available, cardType)
 	bcs.PlayerCards[playerID] = cardType
+	delete(bcs.PlayerExtraCards, playerID)
 	bcs.PlayerHasCard[playerID] = true
 
 	return coins, nil
 }
 
+// TakeAdditionalBonusCard assigns an extra bonus card to a player who already
+// holds at least one bonus card.
+func (bcs *BonusCardState) TakeAdditionalBonusCard(playerID string, cardType BonusCardType) (int, error) {
+	if !bcs.IsAvailable(cardType) {
+		return 0, fmt.Errorf("bonus card %v is not available", cardType)
+	}
+	if _, ok := bcs.PlayerCards[playerID]; !ok {
+		return 0, fmt.Errorf("player must already have a bonus card")
+	}
+	for _, existing := range bcs.GetPlayerCards(playerID) {
+		if existing == cardType {
+			return 0, fmt.Errorf("player already has bonus card %v", cardType)
+		}
+	}
+
+	coins := bcs.Available[cardType]
+	delete(bcs.Available, cardType)
+	bcs.PlayerExtraCards[playerID] = append(bcs.PlayerExtraCards[playerID], cardType)
+	bcs.PlayerHasCard[playerID] = true
+	return coins, nil
+}
+
 // ReturnBonusCard returns a player's bonus card at the end of the round
 func (bcs *BonusCardState) ReturnBonusCard(playerID string) {
-	if cardType, ok := bcs.PlayerCards[playerID]; ok {
-		// Return card to available pool with 0 coins
+	bcs.ReturnAllBonusCards(playerID)
+}
+
+func (bcs *BonusCardState) ReturnAllBonusCards(playerID string) []BonusCardType {
+	cards := bcs.GetPlayerCards(playerID)
+	for _, cardType := range cards {
 		bcs.Available[cardType] = 0
-		delete(bcs.PlayerCards, playerID)
-		bcs.PlayerHasCard[playerID] = false
 	}
+	delete(bcs.PlayerCards, playerID)
+	delete(bcs.PlayerExtraCards, playerID)
+	bcs.PlayerHasCard[playerID] = false
+	return cards
 }
 
 // AddCoinsToLeftoverCards adds 1 coin to each leftover (unselected) bonus card
@@ -342,6 +380,32 @@ func (bcs *BonusCardState) AddCoinsToLeftoverCards() {
 func (bcs *BonusCardState) GetPlayerCard(playerID string) (BonusCardType, bool) {
 	cardType, ok := bcs.PlayerCards[playerID]
 	return cardType, ok
+}
+
+func (bcs *BonusCardState) GetPlayerCards(playerID string) []BonusCardType {
+	if bcs == nil {
+		return nil
+	}
+	cards := make([]BonusCardType, 0, 1+len(bcs.PlayerExtraCards[playerID]))
+	if cardType, ok := bcs.PlayerCards[playerID]; ok {
+		cards = append(cards, cardType)
+	}
+	cards = append(cards, bcs.PlayerExtraCards[playerID]...)
+	return cards
+}
+
+func (bcs *BonusCardState) PlayerHasCardType(cardType BonusCardType) bool {
+	if bcs == nil {
+		return false
+	}
+	for playerID := range bcs.PlayerHasCard {
+		for _, held := range bcs.GetPlayerCards(playerID) {
+			if held == cardType {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // GetBonusCardIncomeBonus returns the income bonus from a player's bonus card

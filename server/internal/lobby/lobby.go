@@ -21,15 +21,16 @@ var (
 )
 
 type GameMeta struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Host       string    `json:"host"`
-	MapID      string    `json:"mapId"`
-	CustomMap  *board.CustomMapDefinition `json:"customMap,omitempty"`
-	Players    []string  `json:"players"`
-	MaxPlayers int       `json:"maxPlayers"`
-	Started    bool      `json:"started"`
-	CreatedAt  time.Time `json:"createdAt"`
+	ID                string                     `json:"id"`
+	Name              string                     `json:"name"`
+	Host              string                     `json:"host"`
+	MapID             string                     `json:"mapId"`
+	EnableFanFactions bool                       `json:"enableFanFactions"`
+	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
+	Players           []string                   `json:"players"`
+	MaxPlayers        int                        `json:"maxPlayers"`
+	Started           bool                       `json:"started"`
+	CreatedAt         time.Time                  `json:"createdAt"`
 }
 
 // Manager maintains a list of open games for joining
@@ -60,7 +61,7 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition) (*GameMeta, error) {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition, enableFanFactions bool) (*GameMeta, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -88,14 +89,15 @@ func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID str
 		return nil, fmt.Errorf("%w: %s", ErrInvalidMap, strings.TrimSpace(mapID))
 	}
 	g := &GameMeta{
-		ID:         id,
-		Name:       name,
-		Host:       host,
-		MapID:      string(normalizedMapID),
-		CustomMap:  board.CloneCustomMapDefinition(customMap),
-		MaxPlayers: maxPlayers,
-		CreatedAt:  time.Now(),
-		Players:    make([]string, 0, maxPlayers),
+		ID:                id,
+		Name:              name,
+		Host:              host,
+		MapID:             string(normalizedMapID),
+		EnableFanFactions: enableFanFactions,
+		CustomMap:         board.CloneCustomMapDefinition(customMap),
+		MaxPlayers:        maxPlayers,
+		CreatedAt:         time.Now(),
+		Players:           make([]string, 0, maxPlayers),
 	}
 	m.games[id] = g
 	if host != "" {

@@ -84,6 +84,15 @@ func (c *ConversionComponent) Execute(gs *game.GameState, playerID string) error
 	case ConvPowerToPriests:
 		return player.Resources.ConvertPowerToPriests(c.Amount)
 	case ConvPriestToWorker:
+		if player.Faction != nil && player.Faction.GetType() == models.FactionDynionGeifr {
+			if player.Resources.Priests < c.Amount {
+				return fmt.Errorf("need %d priests, only have %d", c.Amount, player.Resources.Priests)
+			}
+			player.Resources.Priests -= c.Amount
+			player.Resources.Workers += 2 * c.Amount
+			player.Resources.Coins += 2 * c.Amount
+			return nil
+		}
 		return player.Resources.ConvertPriestToWorker(c.Amount)
 	case ConvWorkerToCoin:
 		return player.Resources.ConvertWorkerToCoin(c.Amount)
@@ -555,7 +564,7 @@ func (a *AuxiliaryComponent) Execute(gs *game.GameState, playerID string) error 
 			return fmt.Errorf("failed to parse town tile: %w", err)
 		}
 		// Use GameState method directly
-		return gs.SelectTownTile(playerID, tileType)
+		return gs.SelectTownTile(playerID, tileType, nil)
 	case AuxConnect:
 		// Mermaids river-skip town formation: "connect r16"
 		// This triggers a check for town formation using river-skip

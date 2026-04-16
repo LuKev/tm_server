@@ -64,6 +64,22 @@ func TestCreateGameWithOptions_UsesSelectedMapAndSerializesMapID(t *testing.T) {
 	}
 }
 
+func TestCreateGameWithOptions_SerializesFanFactionToggle(t *testing.T) {
+	manager := NewManager()
+	if err := manager.CreateGameWithOptions("g1", []string{"p1", "p2"}, CreateGameOptions{
+		RandomizeTurnOrder: false,
+		SetupMode:          SetupModeSnellman,
+		EnableFanFactions:  true,
+	}); err != nil {
+		t.Fatalf("create game: %v", err)
+	}
+
+	state := manager.SerializeGameState("g1")
+	if got := state["enableFanFactions"]; got != true {
+		t.Fatalf("enableFanFactions: got %v, want true", got)
+	}
+}
+
 func TestSerializeStateWithRevision_IncludesMapDisplayCoordinates(t *testing.T) {
 	manager := NewManager()
 	if err := manager.CreateGameWithOptions("g1", []string{"p1", "p2"}, CreateGameOptions{

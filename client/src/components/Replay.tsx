@@ -45,7 +45,10 @@ export const Replay = (): React.ReactElement => {
         if (!gameState?.bonusCards) return [];
         // Extract available and taken cards
         const available = Object.keys(gameState.bonusCards.available).map(Number);
-        const taken = Object.values(gameState.bonusCards.playerCards).map(Number);
+        const taken = [
+            ...Object.values(gameState.bonusCards.playerCards).map(Number),
+            ...Object.values(gameState.bonusCards.playerExtraCards ?? {}).flatMap((cards) => cards.map(Number)),
+        ];
         // Combine and deduplicate
         const allIds = Array.from(new Set([...available, ...taken]));
 
@@ -519,15 +522,21 @@ export const Replay = (): React.ReactElement => {
                                     gameState?.bonusCards
                                         ? Array.from(new Set([
                                             ...Object.keys(gameState.bonusCards.available).map(Number),
-                                            ...Object.values(gameState.bonusCards.playerCards).map(Number)
+                                            ...Object.values(gameState.bonusCards.playerCards).map(Number),
+                                            ...Object.values(gameState.bonusCards.playerExtraCards ?? {}).flatMap((cards) => cards.map(Number)),
                                         ])).sort((a, b) => a - b)
                                         : []
                                 }
                                 bonusCardCoins={gameState?.bonusCards?.available}
                                 bonusCardOwners={
                                     gameState?.bonusCards?.playerCards
-                                        ? Object.entries(gameState.bonusCards.playerCards).reduce<Record<string, string>>((acc, [pid, card]) => {
-                                            acc[String(card)] = pid;
+                                        ? [
+                                            ...Object.entries(gameState.bonusCards.playerCards).map(([pid, card]) => [pid, [card]] as const),
+                                            ...Object.entries(gameState.bonusCards.playerExtraCards ?? {}),
+                                        ].reduce<Record<string, string>>((acc, [pid, cards]) => {
+                                            cards.forEach((card) => {
+                                                acc[String(card)] = pid;
+                                            });
                                             return acc;
                                         }, {})
                                         : {}

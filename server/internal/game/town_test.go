@@ -688,7 +688,8 @@ func TestSelectTownTile(t *testing.T) {
 	}
 
 	// Select town tile
-	err := gs.SelectTownTile("player1", models.TownTile7Points)
+	anchor := hexes[1]
+	err := gs.SelectTownTile("player1", models.TownTile7Points, &anchor)
 	if err != nil {
 		t.Fatalf("failed to select town tile: %v", err)
 	}
@@ -707,6 +708,12 @@ func TestSelectTownTile(t *testing.T) {
 	if gs.TownTiles.Available[models.TownTile7Points] != 1 {
 		t.Errorf("expected 1 copy of 7 points tile remaining, got %d", gs.TownTiles.Available[models.TownTile7Points])
 	}
+	if !gs.Map.GetHex(anchor).HasTownTile {
+		t.Fatalf("expected selected anchor hex to hold the town tile")
+	}
+	if got := gs.Map.GetHex(anchor).TownTileOwnerPlayerID; got != "player1" {
+		t.Fatalf("town tile owner = %q, want player1", got)
+	}
 }
 
 func TestSelectTownTile_NoPendingTown(t *testing.T) {
@@ -715,7 +722,7 @@ func TestSelectTownTile_NoPendingTown(t *testing.T) {
 	gs.AddPlayer("player1", faction)
 
 	// Try to select town tile without pending town
-	err := gs.SelectTownTile("player1", models.TownTile5Points)
+	err := gs.SelectTownTile("player1", models.TownTile5Points, nil)
 	if err == nil {
 		t.Error("expected error when no pending town formation")
 	}

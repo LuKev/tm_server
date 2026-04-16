@@ -22,6 +22,7 @@ import {
   BonusCardType,
   FactionType,
   type LeechAutoMode,
+  type PlayerState,
   type PlayerOptions,
   type FavorTileType,
   type TownTileId,
@@ -41,8 +42,16 @@ const ResponsiveGridLayout = WidthProvider(Responsive)
 type ConfirmDialog = {
   title: string
   message: string
-  onConfirm: () => void
+  onConfirm?: () => void
+  actions?: Array<{
+    label: string
+    onClick: () => void
+    testId?: string
+    className?: string
+  }>
 }
+
+type HexCoord = { q: number; r: number }
 
 const DEFAULT_PLAYER_OPTIONS: PlayerOptions = {
   autoLeechMode: 'off',
@@ -69,11 +78,19 @@ const STRONGHOLD_TARGET_ACTION_TYPES: SpecialActionType[] = [
 ]
 
 type PendingPowerMode =
-  | { type: 'power_spade'; actionType: PowerActionType }
-  | { type: 'power_bridge'; source: 'power' | 'engineers'; firstHex: { q: number; r: number } | null }
+  | { type: 'power_spade'; actionType: PowerActionType; useCoins?: boolean }
+  | { type: 'power_bridge'; source: 'power' | 'engineers'; firstHex: { q: number; r: number } | null; useCoins?: boolean }
+  | {
+    type: 'architects_move_bridge'
+    oldBridge: { from: { q: number; r: number }; to: { q: number; r: number } } | null
+  }
   | {
     type: 'special_action_target'
     actionType: SpecialActionType
+  }
+  | {
+    type: 'children_place_power_tokens'
+    targetHexes: Array<{ q: number; r: number }>
   }
 
 const TERRAIN_CHOICES: Array<{ id: TerrainType; name: string }> = [
@@ -98,6 +115,7 @@ const CHAOS_ACTION_TYPES = [
   'upgrade_building',
   'advance_shipping',
   'advance_digging',
+  'advance_chash_track',
   'send_priest',
   'power_action_claim',
   'special_action_use',
@@ -111,12 +129,48 @@ const CHAOS_PARAM_TEMPLATES: Record<string, string> = {
   upgrade_building: '{\n  "targetHex": { "q": 0, "r": 0 },\n  "newBuildingType": 2\n}',
   advance_shipping: '{}',
   advance_digging: '{}',
+  advance_chash_track: '{}',
   send_priest: '{\n  "cultTrack": 0,\n  "spacesToClimb": 1\n}',
   power_action_claim: '{\n  "actionType": 1\n}',
   special_action_use: '{\n  "specialActionType": 0\n}',
   pass: '{\n  "bonusCard": 0\n}',
   conversion: '{\n  "conversionType": "worker_to_coin",\n  "amount": 1\n}',
   burn_power: '{\n  "amount": 1\n}',
+}
+
+const getPowerActionCost = (action: PowerActionType): number => {
+  switch (action) {
+    case PowerActionType.Bridge:
+    case PowerActionType.Priest:
+      return 3
+    case PowerActionType.Workers:
+    case PowerActionType.Coins:
+    case PowerActionType.Spade:
+      return 4
+    case PowerActionType.DoubleSpade:
+      return 6
+    default:
+      return 0
+  }
+}
+
+const canPayPowerActionWithPower = (player: PlayerState | null, action: PowerActionType): boolean => {
+  if (!player) return false
+  const cost = getPowerActionCost(action)
+  const bowl3 = player.resources.power.powerIII ?? 0
+  const bowl2 = player.resources.power.powerII ?? 0
+  return bowl3 + Math.floor(bowl2 / 2) >= cost
+}
+
+const shouldAutoUseChashCoins = (player: PlayerState | null, action: PowerActionType): boolean => {
+  if (!player || player.faction !== FactionType.ChashDallah || !player.hasStrongholdAbility) return false
+  const cost = getPowerActionCost(action)
+  return !canPayPowerActionWithPower(player, action) && (player.resources.coins ?? 0) >= cost
+}
+
+const canPayPowerActionWithCoins = (player: PlayerState | null, action: PowerActionType): boolean => {
+  if (!player || player.faction !== FactionType.ChashDallah || !player.hasStrongholdAbility) return false
+  return (player.resources.coins ?? 0) >= getPowerActionCost(action)
 }
 
 const townTileLabel = (id: number): string => {
@@ -199,6 +253,9 @@ export const Game = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [powerMode, setPowerMode] = useState<PendingPowerMode | null>(null)
+  const [treasurersDepositCoins, setTreasurersDepositCoins] = useState(0)
+  const [treasurersDepositWorkers, setTreasurersDepositWorkers] = useState(0)
+  const [treasurersDepositPriests, setTreasurersDepositPriests] = useState(0)
 
   const [pendingHex, setPendingHex] = useState<{ q: number; r: number } | null>(null)
   const [hexActionMode, setHexActionMode] = useState<'build' | 'transform_build' | 'transform_only' | null>(null)
@@ -213,6 +270,9 @@ export const Game = () => {
   const [selectedTownCultTracks, setSelectedTownCultTracks] = useState<CultType[]>([])
   const [auctionBidInputs, setAuctionBidInputs] = useState<Record<string, number>>({})
   const [fastAuctionBidInputs, setFastAuctionBidInputs] = useState<Record<string, number>>({})
+  const [conspiratorsSwapModalOpen, setConspiratorsSwapModalOpen] = useState(false)
+  const [conspiratorsReturnTile, setConspiratorsReturnTile] = useState<number | ''>('')
+  const [conspiratorsNewTile, setConspiratorsNewTile] = useState<number | ''>('')
   const [cultChoiceContext, setCultChoiceContext] = useState<
     | 'cultists'
     | 'water2'
@@ -251,7 +311,9 @@ export const Game = () => {
   const numCards = useMemo(() => {
     if (!gameState?.bonusCards) return 9
     const available = Object.keys(gameState.bonusCards.available ?? {}).length
-    const taken = Object.keys(gameState.bonusCards.playerCards ?? {}).length
+    const takenPrimary = Object.keys(gameState.bonusCards.playerCards ?? {}).length
+    const takenExtra = Object.values(gameState.bonusCards.playerExtraCards ?? {}).reduce((sum, cards) => sum + cards.length, 0)
+    const taken = takenPrimary + takenExtra
     return available + taken
   }, [gameState?.bonusCards])
 
@@ -340,6 +402,14 @@ export const Game = () => {
     setConfirmDialog({ title, message, onConfirm })
   }
 
+  const openChoiceDialog = (
+    title: string,
+    message: string,
+    actions: ConfirmDialog['actions'],
+  ): void => {
+    setConfirmDialog({ title, message, actions })
+  }
+
   const performAction = (type: string, params: Record<string, unknown> = {}): void => {
     if (!gameId) return
     submitAction(gameId, type, params)
@@ -364,6 +434,17 @@ export const Game = () => {
     return gameState.players[localPlayerId] ?? null
   }, [gameState?.players, localPlayerId])
   const isSpectator = gameState != null && localPlayer == null
+  const localPlayerFavorTiles = useMemo(() => {
+    if (!localPlayerId) return [] as FavorTileType[]
+    return (gameState?.favorTiles?.playerTiles?.[localPlayerId] ?? []) as FavorTileType[]
+  }, [gameState?.favorTiles?.playerTiles, localPlayerId])
+  const availableFavorTileTypes = useMemo(() => {
+    return Object.entries(gameState?.favorTiles?.available ?? {})
+      .map(([tileId, count]) => ({ tileId: Number(tileId), count }))
+      .filter(({ tileId, count }) => Number.isInteger(tileId) && count > 0)
+      .map(({ tileId }) => tileId as FavorTileType)
+      .sort((a, b) => a - b)
+  }, [gameState?.favorTiles?.available])
 
   const localPlayerOptions = useMemo((): PlayerOptions => {
     if (!localPlayer?.options) return DEFAULT_PLAYER_OPTIONS
@@ -438,6 +519,15 @@ export const Game = () => {
     return buildDisplayCoordinateMap(hexes)
   }, [gameState?.map?.hexes])
   const formatHexCoord = (coord: { q: number; r: number }): string => formatDisplayCoordinate(coord, displayCoordinates)
+
+  const parseHexCoord = (value: unknown): HexCoord | null => {
+    if (value == null || typeof value !== 'object') return null
+    const record = value as Record<string, unknown>
+    const q = typeof record.q === 'number' ? record.q : typeof record.Q === 'number' ? record.Q : null
+    const r = typeof record.r === 'number' ? record.r : typeof record.R === 'number' ? record.R : null
+    if (q == null || r == null) return null
+    return { q, r }
+  }
   const canInitiateTurnAction = isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]
@@ -449,6 +539,22 @@ export const Game = () => {
   const pendingTownCultTopMaxSelections = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return 0
     return Number(pendingDecision?.maxSelections ?? 0)
+  }, [pendingDecision, pendingDecisionType])
+  const pendingArchivistsReturnedCards = useMemo(() => {
+    if (pendingDecisionType !== 'archivists_bonus_card') return [] as BonusCardType[]
+    return ((pendingDecision?.returnedCards as unknown[]) ?? [])
+      .map((value) => Number(value))
+      .filter((value): value is BonusCardType => Number.isInteger(value) && value >= 0 && value <= 9)
+  }, [pendingDecision, pendingDecisionType])
+  const treasurersDepositAvailability = useMemo(() => {
+    if (pendingDecisionType !== 'treasurers_deposit') {
+      return { coins: 0, workers: 0, priests: 0 }
+    }
+    return {
+      coins: Number(pendingDecision?.availableCoins ?? 0),
+      workers: Number(pendingDecision?.availableWorkers ?? 0),
+      priests: Number(pendingDecision?.availablePriests ?? 0),
+    }
   }, [pendingDecision, pendingDecisionType])
   const pendingLeechOffersForMe = useMemo(() => {
     if (!localPlayerId) return [] as Array<Record<string, unknown>>
@@ -528,10 +634,22 @@ export const Game = () => {
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a Darklings ordination.')
       case 'cultists_cult_choice':
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a cult track.')
+      case 'djinni_start_cult_choice':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose a starting cult track.')
+      case 'treasurers_deposit':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose which resources to bank in the Treasury.')
+      case 'goblins_cult_steps': {
+        const remaining = Number(pendingDecision?.stepsRemaining ?? 0)
+        return actorText([pendingDecisionPlayerId ?? ''], remaining === 1 ? 'must choose 1 Goblins cult step.' : `must choose ${String(remaining)} Goblins cult steps.`)
+      }
       case 'halflings_spades': {
         const remaining = Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0)
         return actorText([pendingDecisionPlayerId ?? ''], remaining === 0 ? 'must decide whether to build a dwelling.' : 'must use Halflings spades.')
       }
+      case 'wisps_stronghold_dwelling':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must place the free Wisps dwelling.')
+      case 'archivists_bonus_card':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose an Archivists bonus card.')
       case 'auction_nomination':
         return actorText([pendingDecisionPlayerId ?? auctionState?.currentBidder ?? ''], 'must nominate a faction.')
       case 'auction_bid':
@@ -590,6 +708,13 @@ export const Game = () => {
   }, [hasPendingDecisionForMe, pendingDecisionType, pendingTownCultTopCandidates])
 
   useEffect(() => {
+    if (pendingDecisionType !== 'treasurers_deposit') return
+    setTreasurersDepositCoins(0)
+    setTreasurersDepositWorkers(0)
+    setTreasurersDepositPriests(0)
+  }, [pendingDecisionType, treasurersDepositAvailability.coins, treasurersDepositAvailability.workers, treasurersDepositAvailability.priests])
+
+  useEffect(() => {
     if (pendingDecisionType !== 'auction_bid') return
     if (pendingAuctionFactions.length === 0) return
     setAuctionBidInputs((current) => {
@@ -644,9 +769,12 @@ export const Game = () => {
   const hasUnspentOptionalActions = useMemo(() => {
     if (!localPlayer || !localPlayerId) return false
     const used = localPlayer.specialActionsUsed ?? {}
-    const card = gameState?.bonusCards?.playerCards?.[localPlayerId]
-    const hasUnusedBonusSpade = card === BonusCardType.Spade && !used[SpecialActionType.BonusCardSpade]
-    const hasUnusedBonusCult = card === BonusCardType.CultAdvance && !used[SpecialActionType.BonusCardCultAdvance]
+    const heldCards = [
+      ...(gameState?.bonusCards?.playerCards?.[localPlayerId] !== undefined ? [gameState.bonusCards.playerCards[localPlayerId]] : []),
+      ...((gameState?.bonusCards?.playerExtraCards?.[localPlayerId] ?? []) as BonusCardType[]),
+    ]
+    const hasUnusedBonusSpade = heldCards.includes(BonusCardType.Spade) && !used[SpecialActionType.BonusCardSpade]
+    const hasUnusedBonusCult = heldCards.includes(BonusCardType.CultAdvance) && !used[SpecialActionType.BonusCardCultAdvance]
 
     let hasUnusedStronghold = false
     switch (localFactionType) {
@@ -668,13 +796,25 @@ export const Game = () => {
       case FactionType.Nomads:
         hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.NomadsSandstorm]
         break
+      case FactionType.TheEnlightened:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.EnlightenedGainPower]
+        break
+      case FactionType.Conspirators:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.ConspiratorsSwapFavor]
+        break
+      case FactionType.Prospectors:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.ProspectorsGainCoins]
+        break
+      case FactionType.TimeTravelers:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.TimeTravelersPowerShift]
+        break
       default:
         hasUnusedStronghold = false
         break
     }
 
     return hasUnusedStronghold || hasUnusedBonusSpade || hasUnusedBonusCult || hasPendingSpadesForMe > 0 || hasPendingCultSpadesForMe > 0
-  }, [gameState?.bonusCards?.playerCards, hasPendingCultSpadesForMe, hasPendingSpadesForMe, localFactionType, localPlayer, localPlayerId])
+  }, [gameState?.bonusCards?.playerCards, gameState?.bonusCards?.playerExtraCards, hasPendingCultSpadesForMe, hasPendingSpadesForMe, localFactionType, localPlayer, localPlayerId])
 
   const bonusCardOwners = useMemo(() => {
     const out: Record<string, string> = {}
@@ -682,8 +822,13 @@ export const Game = () => {
     Object.entries(playerCards).forEach(([playerID, card]) => {
       out[String(card)] = playerID
     })
+    Object.entries(gameState?.bonusCards?.playerExtraCards ?? {}).forEach(([playerID, cards]) => {
+      cards.forEach((card) => {
+        out[String(card)] = playerID
+      })
+    })
     return out
-  }, [gameState?.bonusCards?.playerCards])
+  }, [gameState?.bonusCards?.playerCards, gameState?.bonusCards?.playerExtraCards])
 
   const availableCards = useMemo(() => {
     const cardSet = new Set<number>()
@@ -702,8 +847,17 @@ export const Game = () => {
       }
     })
 
+    Object.values(gameState?.bonusCards?.playerExtraCards ?? {}).forEach((cards) => {
+      cards.forEach((cardRaw) => {
+        const card = Number(cardRaw)
+        if (Number.isInteger(card) && card >= 0) {
+          cardSet.add(card)
+        }
+      })
+    })
+
     return [...cardSet].sort((a, b) => a - b)
-  }, [gameState?.bonusCards?.available, gameState?.bonusCards?.playerCards])
+  }, [gameState?.bonusCards?.available, gameState?.bonusCards?.playerCards, gameState?.bonusCards?.playerExtraCards])
 
   const passedPlayers = useMemo(() => {
     const passed = new Set<string>()
@@ -751,9 +905,10 @@ export const Game = () => {
     )
 
     return FACTIONS
+      .filter((faction) => (gameState?.enableFanFactions ?? false) || !faction.isFanFaction)
       .filter((faction) => !nominated.has(faction.type) && !nominatedColors.has(faction.color))
       .map((faction) => faction.type)
-  }, [auctionState?.nominationOrder, setupMode])
+  }, [auctionState?.nominationOrder, gameState?.enableFanFactions, setupMode])
 
   const currentPlayerPosition = useMemo(() => {
     if (!gameState?.turnOrder || !localPlayerId) return 1
@@ -832,10 +987,39 @@ export const Game = () => {
 
     if (isOtherPlayerTurnConfirmationWindow) return
 
+    if (powerMode?.type === 'children_place_power_tokens') {
+      const mapHex = gameState.map?.hexes?.[`${String(q)},${String(r)}`]
+      if (!mapHex || mapHex.terrain !== TerrainType.River) return
+      setPowerMode((current) => {
+        if (current?.type !== 'children_place_power_tokens') return current
+        const alreadySelected = current.targetHexes.some((hex) => hex.q === q && hex.r === r)
+        if (alreadySelected) {
+          return {
+            ...current,
+            targetHexes: current.targetHexes.filter((hex) => hex.q !== q || hex.r !== r),
+          }
+        }
+        if (current.targetHexes.length >= 2) return current
+        return {
+          ...current,
+          targetHexes: [...current.targetHexes, { q, r }],
+        }
+      })
+      return
+    }
+
     if (hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades') {
       setPendingHex({ q, r })
       setHexActionMode('transform_only')
       setSelectedTerrain(localHomeTerrain)
+      return
+    }
+
+    if (hasPendingDecisionForMe && pendingDecisionType === 'wisps_stronghold_dwelling') {
+      queueConfirm('Confirm Wisps Dwelling', `Place the free Wisps dwelling at ${formatHexCoord({ q, r })}?`, () => {
+        performAction('wisps_stronghold_dwelling', { targetHex: { q, r } })
+        setConfirmDialog(null)
+      })
       return
     }
 
@@ -876,6 +1060,10 @@ export const Game = () => {
           setConfirmDialog(null)
         },
       )
+      return
+    }
+
+    if (powerMode?.type === 'architects_move_bridge') {
       return
     }
 
@@ -940,13 +1128,44 @@ export const Game = () => {
 
   const handleBridgeEdgeClick = (from: { q: number; r: number }, to: { q: number; r: number }): void => {
     if (isOtherPlayerTurnConfirmationWindow) return
+    if (powerMode?.type === 'architects_move_bridge') {
+      if (powerMode.oldBridge == null) {
+        setPowerMode({
+          type: 'architects_move_bridge',
+          oldBridge: { from, to },
+        })
+        return
+      }
+
+      const oldBridge = powerMode.oldBridge
+      queueConfirm(
+        'Confirm Architects Bridge Move',
+        `Move bridge from ${formatHexCoord(oldBridge.from)}-${formatHexCoord(oldBridge.to)} to ${formatHexCoord(from)}-${formatHexCoord(to)}?`,
+        () => {
+          performAction('special_action_use', {
+            specialActionType: SpecialActionType.ArchitectsMoveBridge,
+            bridgeHex1: oldBridge.from,
+            bridgeHex2: oldBridge.to,
+            targetHex: from,
+            upgradeHex: to,
+          })
+          setPowerMode(null)
+          setConfirmDialog(null)
+        },
+      )
+      return
+    }
     if (powerMode?.type !== 'power_bridge') return
 
     queueConfirm(
       'Confirm Bridge',
       `Build bridge from ${formatHexCoord(from)} to ${formatHexCoord(to)}?`,
       () => {
-        performAction(powerMode.source === 'engineers' ? 'engineers_bridge' : 'power_bridge_place', { bridgeHex1: from, bridgeHex2: to })
+        performAction(powerMode.source === 'engineers' ? 'engineers_bridge' : 'power_bridge_place', {
+          bridgeHex1: from,
+          bridgeHex2: to,
+          useCoins: powerMode.useCoins,
+        })
         setPowerMode(null)
         setConfirmDialog(null)
       },
@@ -991,21 +1210,55 @@ export const Game = () => {
 
   const handlePowerActionClick = (action: PowerActionType): void => {
     if (!canInitiateTurnAction) return
+    const canUseCoins = canPayPowerActionWithCoins(localPlayer, action)
+    const canUsePower = canPayPowerActionWithPower(localPlayer, action)
+    const choosePayment = (useCoins: boolean): void => {
+      if (action === PowerActionType.Bridge) {
+        setPowerMode({ type: 'power_bridge', source: 'power', firstHex: null, useCoins })
+        return
+      }
 
-    if (action === PowerActionType.Bridge) {
-      setPowerMode({ type: 'power_bridge', source: 'power', firstHex: null })
+      if (action === PowerActionType.Spade || action === PowerActionType.DoubleSpade) {
+        if (localFactionType === FactionType.Prospectors) {
+          performAction('power_action_claim', { actionType: action, useCoins })
+          return
+        }
+        setPowerMode({ type: 'power_spade', actionType: action, useCoins })
+        return
+      }
+
+      performAction('power_action_claim', { actionType: action, useCoins })
+    }
+
+    if (canUseCoins && canUsePower) {
+      openChoiceDialog(
+        'Choose Payment',
+        `Pay for ${PowerActionType[action]} with coins or power?`,
+        [
+          {
+            label: 'Coins',
+            testId: 'confirm-action-choice-coins',
+            className: 'rounded bg-amber-500 px-3 py-1 text-sm text-slate-950',
+            onClick: () => {
+              setConfirmDialog(null)
+              choosePayment(true)
+            },
+          },
+          {
+            label: 'Power',
+            testId: 'confirm-action-choice-power',
+            className: 'rounded bg-blue-600 px-3 py-1 text-sm text-white',
+            onClick: () => {
+              setConfirmDialog(null)
+              choosePayment(false)
+            },
+          },
+        ],
+      )
       return
     }
 
-    if (action === PowerActionType.Spade || action === PowerActionType.DoubleSpade) {
-      setPowerMode({ type: 'power_spade', actionType: action })
-      return
-    }
-
-    queueConfirm('Confirm Power Action', `Use power action ${PowerActionType[action]}?`, () => {
-      performAction('power_action_claim', { actionType: action })
-      setConfirmDialog(null)
-    })
+    choosePayment(shouldAutoUseChashCoins(localPlayer, action))
   }
 
   const handleCultSpotClick = (cult: CultType, tileIndex: number): void => {
@@ -1058,14 +1311,103 @@ export const Game = () => {
     })
   }
 
+  const handleAdvanceChashTrack = (playerId: string): void => {
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
+
+    queueConfirm('Confirm Chash Track', 'Advance the Chash Dallah income track for 2 workers and 2 coins?', () => {
+      performAction('advance_chash_track')
+      setConfirmDialog(null)
+    })
+  }
+
   const handleEngineersBridgeAction = (playerId: string): void => {
     if (playerId !== localPlayerId || !canInitiateTurnAction) return
-    setPowerMode({ type: 'power_bridge', source: 'engineers', firstHex: null })
+    setPowerMode({ type: 'power_bridge', source: 'engineers', firstHex: null, useCoins: false })
+  }
+
+  const handleGoblinsTreasureAction = (playerId: string): void => {
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
+    openChoiceDialog(
+      'Use Goblin Treasure',
+      'Choose which Goblins treasure reward to take.',
+      [
+        {
+          label: 'Dwellings (+PW)',
+          testId: 'goblins-treasure-dwellings',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'dwellings' })
+            setConfirmDialog(null)
+          },
+        },
+        {
+          label: 'Trading Posts (+2C)',
+          testId: 'goblins-treasure-trading-posts',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'trading_posts' })
+            setConfirmDialog(null)
+          },
+        },
+        {
+          label: 'Temples (+W)',
+          testId: 'goblins-treasure-temples',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'temples' })
+            setConfirmDialog(null)
+          },
+        },
+        {
+          label: 'Big Structures (+cult)',
+          testId: 'goblins-treasure-big-structures',
+          onClick: () => {
+            performAction('goblins_treasure', { rewardType: 'big_structures' })
+            setConfirmDialog(null)
+          },
+        },
+      ],
+    )
   }
 
   const handleMermaidsConnectAction = (playerId: string): void => {
     if (playerId !== localPlayerId || !canInitiateTurnAction) return
     setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.MermaidsRiverTown })
+  }
+
+  const handleDjinniLampAction = (playerId: string): void => {
+    if (playerId !== localPlayerId || !canInitiateTurnAction) return
+    openChoiceDialog(
+      'Djinni Lamp',
+      'Choose the first cult track to swap.',
+      CULT_CHOICES.map((choice) => ({
+        label: choice.label,
+        testId: `djinni-first-track-${String(choice.track)}`,
+        onClick: () => {
+          openChoiceDialog(
+            'Djinni Lamp',
+            `Swap ${choice.label} with which cult track?`,
+            CULT_CHOICES
+              .filter((other) => other.track !== choice.track)
+              .map((other) => ({
+                label: other.label,
+                testId: `djinni-second-track-${String(other.track)}`,
+                onClick: () => {
+                  performAction('special_action_use', {
+                    specialActionType: SpecialActionType.DjinniSwapCults,
+                    cultTrack: choice.track,
+                    secondTrack: other.track,
+                  })
+                  setConfirmDialog(null)
+                },
+              })),
+          )
+        },
+      })),
+    )
+  }
+
+  const closeConspiratorsSwapModal = (): void => {
+    setConspiratorsSwapModalOpen(false)
+    setConspiratorsReturnTile('')
+    setConspiratorsNewTile('')
   }
 
   const handleStrongholdAction = (_playerId: string, actionType: SpecialActionType): void => {
@@ -1092,10 +1434,92 @@ export const Game = () => {
       return
     }
 
+    if (actionType === SpecialActionType.ConspiratorsSwapFavor) {
+      const returnTile = localPlayerFavorTiles[0]
+      const newTile = availableFavorTileTypes.find((tile) => tile !== returnTile && !localPlayerFavorTiles.includes(tile))
+      setConspiratorsReturnTile(returnTile ?? '')
+      setConspiratorsNewTile(newTile ?? '')
+      setConspiratorsSwapModalOpen(true)
+      return
+    }
+
+    if (actionType === SpecialActionType.ChildrenPlacePowerTokens) {
+      setPowerMode({ type: 'children_place_power_tokens', targetHexes: [] })
+      return
+    }
+
+    if (actionType === SpecialActionType.ArchitectsMoveBridge) {
+      setPowerMode({ type: 'architects_move_bridge', oldBridge: null })
+      return
+    }
+
+    if (actionType === SpecialActionType.TimeTravelersPowerShift) {
+      const available = Math.min(4, localPlayer?.resources.power.powerI ?? 0)
+      if (available <= 0) {
+        setErrorMessage('No power tokens in Bowl I to move.')
+        return
+      }
+      openChoiceDialog(
+        'Time Travelers Power Shift',
+        'Choose how many power tokens to move from Bowl I to Bowl III.',
+        Array.from({ length: available }, (_, index) => {
+          const amount = index + 1
+          return {
+            label: String(amount),
+            testId: `time-travelers-power-shift-${String(amount)}`,
+            onClick: () => {
+              performAction('special_action_use', {
+                specialActionType: actionType,
+                amount,
+              })
+              setConfirmDialog(null)
+            },
+          }
+        }),
+      )
+      return
+    }
+
     queueConfirm('Confirm Special Action', `Use special action ${SpecialActionType[actionType]}?`, () => {
       performAction('special_action_use', { specialActionType: actionType })
       setConfirmDialog(null)
     })
+  }
+
+  const conspiratorsNewTileOptions = useMemo(() => {
+    if (conspiratorsReturnTile === '') return [] as FavorTileType[]
+    return availableFavorTileTypes.filter((tile) => tile !== conspiratorsReturnTile && !localPlayerFavorTiles.includes(tile))
+  }, [availableFavorTileTypes, conspiratorsReturnTile, localPlayerFavorTiles])
+
+  useEffect(() => {
+    if (!conspiratorsSwapModalOpen) return
+    if (conspiratorsReturnTile === '' || !localPlayerFavorTiles.includes(conspiratorsReturnTile as FavorTileType)) {
+      const nextReturn = localPlayerFavorTiles[0]
+      setConspiratorsReturnTile(nextReturn ?? '')
+      return
+    }
+    if (
+      conspiratorsNewTile === ''
+      || !conspiratorsNewTileOptions.includes(conspiratorsNewTile as FavorTileType)
+    ) {
+      setConspiratorsNewTile(conspiratorsNewTileOptions[0] ?? '')
+    }
+  }, [
+    conspiratorsNewTile,
+    conspiratorsNewTileOptions,
+    conspiratorsReturnTile,
+    conspiratorsSwapModalOpen,
+    localPlayerFavorTiles,
+  ])
+
+  const submitConspiratorsSwap = (): void => {
+    if (conspiratorsReturnTile === '' || conspiratorsNewTile === '') return
+    performAction('special_action_use', {
+      specialActionType: SpecialActionType.ConspiratorsSwapFavor,
+      returnTile: conspiratorsReturnTile,
+      newTile: conspiratorsNewTile,
+    })
+    closeConspiratorsSwapModal()
   }
 
   const handleWater2Action = (_playerId: string): void => {
@@ -1109,6 +1533,15 @@ export const Game = () => {
     const owner = bonusCardOwners[String(cardType)]
     const isOwnedByMe = owner === localPlayerId
 
+    if (pendingDecisionType === 'archivists_bonus_card' && hasPendingDecisionForMe) {
+      if (pendingArchivistsReturnedCards.includes(cardType) || owner) return
+      queueConfirm('Confirm Archivists Bonus Card', `Take ${bonusCardLabel(cardType)} as your second bonus card?`, () => {
+        performAction('select_archivists_bonus_card', { bonusCard: cardType })
+        setConfirmDialog(null)
+      })
+      return
+    }
+
     if (pendingDecisionType === 'setup_bonus_card' && hasPendingDecisionForMe) {
       queueConfirm('Confirm Setup Bonus Card', `Take ${bonusCardLabel(cardType)}?`, () => {
         performAction('setup_bonus_card', { bonusCard: cardType })
@@ -1119,6 +1552,13 @@ export const Game = () => {
 
     if (isOwnedByMe && canInitiateTurnAction) {
       if (cardType === BonusCardType.Spade) {
+        if (localFactionType === FactionType.Prospectors) {
+          queueConfirm('Confirm Bonus Spade', 'Use the bonus spade to gain 1 priest?', () => {
+            performAction('special_action_use', { specialActionType: SpecialActionType.BonusCardSpade })
+            setConfirmDialog(null)
+          })
+          return
+        }
         setPowerMode({ type: 'special_action_target', actionType: SpecialActionType.BonusCardSpade })
         return
       }
@@ -1143,6 +1583,10 @@ export const Game = () => {
   const isPassingCardClickable = (cardType: BonusCardType): boolean => {
     if (!gameState || !localPlayerId) return false
     const owner = bonusCardOwners[String(cardType)]
+
+    if (pendingDecisionType === 'archivists_bonus_card') {
+      return hasPendingDecisionForMe && !owner && !pendingArchivistsReturnedCards.includes(cardType)
+    }
 
     if (pendingDecisionType === 'setup_bonus_card') {
       return hasPendingDecisionForMe && !owner
@@ -1190,15 +1634,56 @@ export const Game = () => {
     return list.length > 0
   }, [gameState?.pendingTownFormations, localPlayerId])
 
+  const pendingTownAnchorOptions = useMemo((): HexCoord[] => {
+    if (!localPlayerId) return []
+    const pending = gameState?.pendingTownFormations as Record<string, unknown[] | undefined> | undefined
+    const list = pending?.[localPlayerId] ?? []
+    if (list.length === 0) return []
+    const firstTown = list[0]
+    if (firstTown == null || typeof firstTown !== 'object') return []
+    const record = firstTown as Record<string, unknown>
+    const rawHexes = (Array.isArray(record.hexes) ? record.hexes : Array.isArray(record.Hexes) ? record.Hexes : []) as unknown[]
+    return rawHexes.map(parseHexCoord).filter((hex): hex is HexCoord => hex != null)
+  }, [gameState?.pendingTownFormations, localPlayerId])
+
+  const pendingTownSkippedRiverHex = useMemo((): HexCoord | null => {
+    if (!localPlayerId) return null
+    const pending = gameState?.pendingTownFormations as Record<string, unknown[] | undefined> | undefined
+    const list = pending?.[localPlayerId] ?? []
+    if (list.length === 0) return null
+    const firstTown = list[0]
+    if (firstTown == null || typeof firstTown !== 'object') return null
+    const record = firstTown as Record<string, unknown>
+    return parseHexCoord(record.skippedRiverHex ?? record.SkippedRiverHex)
+  }, [gameState?.pendingTownFormations, localPlayerId])
+
   const handleTownTileClick = (tileId: TownTileId): void => {
     const isMandatoryTownSelection = hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection'
     const isOptionalDelayedTownSelection = !!localPlayerId && hasPendingTownFormationForMe
     if (!isMandatoryTownSelection && !isOptionalDelayedTownSelection) return
 
-    queueConfirm('Confirm Town Tile', `Take ${townTileLabel(tileId)}?`, () => {
-      performAction('select_town_tile', { tileType: tileId })
-      setConfirmDialog(null)
-    })
+    if (pendingTownSkippedRiverHex != null) {
+      queueConfirm('Confirm Town Tile', `Take ${townTileLabel(tileId)}?`, () => {
+        performAction('select_town_tile', { tileType: tileId, anchorHex: pendingTownSkippedRiverHex })
+        setConfirmDialog(null)
+      })
+      return
+    }
+
+    if (pendingTownAnchorOptions.length === 0) return
+
+    openChoiceDialog(
+      'Choose Town Anchor',
+      `Place ${townTileLabel(tileId)} under which building?`,
+      pendingTownAnchorOptions.map((anchor) => ({
+        label: formatHexCoord(anchor),
+        onClick: () => {
+          performAction('select_town_tile', { tileType: tileId, anchorHex: anchor })
+          setConfirmDialog(null)
+        },
+        testId: `town-anchor-${String(anchor.q)}-${String(anchor.r)}`,
+      })),
+    )
   }
 
   const isTownTileClickable = (_tileId: TownTileId, count: number): boolean => {
@@ -1239,6 +1724,7 @@ export const Game = () => {
         cultTrack: track,
       })
       setCultChoiceContext(null)
+      return
     }
   }
 
@@ -1310,10 +1796,13 @@ export const Game = () => {
     if (powerMode?.type === 'special_action_target' && STRONGHOLD_TARGET_ACTION_TYPES.includes(powerMode.actionType)) {
       return powerMode.actionType
     }
+    if (powerMode?.type === 'children_place_power_tokens') return SpecialActionType.ChildrenPlacePowerTokens
+    if (powerMode?.type === 'architects_move_bridge') return SpecialActionType.ArchitectsMoveBridge
     if (cultChoiceContext === 'auren_sh') return SpecialActionType.AurenCultAdvance
     if (chaosModalOpen) return SpecialActionType.ChaosMagiciansDoubleTurn
+    if (conspiratorsSwapModalOpen) return SpecialActionType.ConspiratorsSwapFavor
     return null
-  }, [chaosModalOpen, cultChoiceContext, powerMode])
+  }, [chaosModalOpen, conspiratorsSwapModalOpen, cultChoiceContext, powerMode])
   const activeBonusCardActionType = useMemo((): SpecialActionType | null => {
     if (powerMode?.type === 'special_action_target' && powerMode.actionType === SpecialActionType.BonusCardSpade) {
       return SpecialActionType.BonusCardSpade
@@ -1330,9 +1819,47 @@ export const Game = () => {
 
   const cancelHexAction = (): void => {
     closeHexModal()
-    if (powerMode?.type === 'power_spade' || powerMode?.type === 'special_action_target') {
+    if (
+      powerMode?.type === 'power_spade'
+      || powerMode?.type === 'special_action_target'
+      || powerMode?.type === 'children_place_power_tokens'
+      || powerMode?.type === 'architects_move_bridge'
+    ) {
       setPowerMode(null)
     }
+  }
+
+  const selectedChildrenTokenHexes = powerMode?.type === 'children_place_power_tokens' ? powerMode.targetHexes : []
+  const childrenNeedsBowl3Confirmation = useMemo(() => {
+    if (powerMode?.type !== 'children_place_power_tokens' || !localPlayer) return false
+    const bowl1 = localPlayer.resources.power.powerI ?? 0
+    const bowl2 = localPlayer.resources.power.powerII ?? 0
+    return selectedChildrenTokenHexes.length > bowl1 + bowl2
+  }, [localPlayer, powerMode, selectedChildrenTokenHexes.length])
+
+  const submitChildrenPowerTokenAction = (): void => {
+    if (powerMode?.type !== 'children_place_power_tokens' || selectedChildrenTokenHexes.length === 0) return
+
+    const submit = (confirmSpendBowl3: boolean): void => {
+      performAction('special_action_use', {
+        specialActionType: SpecialActionType.ChildrenPlacePowerTokens,
+        targetHexes: selectedChildrenTokenHexes,
+        confirmSpendBowl3,
+      })
+      setPowerMode(null)
+      setConfirmDialog(null)
+    }
+
+    if (childrenNeedsBowl3Confirmation) {
+      setConfirmDialog({
+        title: 'Spend Bowl III Tokens?',
+        message: 'This placement will remove power tokens from Bowl III. Cancel if you want to convert those tokens to coins first, or confirm to continue.',
+        onConfirm: () => { submit(true) },
+      })
+      return
+    }
+
+    submit(false)
   }
 
   const submitHexModalAction = (): void => {
@@ -1376,6 +1903,7 @@ export const Game = () => {
         targetHex: pendingHex,
         buildDwelling,
         targetTerrain: selectedTerrain,
+        useCoins: powerMode.useCoins,
       })
       setPowerMode(null)
       closeHexModal()
@@ -1552,16 +2080,51 @@ export const Game = () => {
               </div>
               <div className="flex items-center gap-2">
                 <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
-                <button
-                  data-testid="confirm-action-confirm"
-                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-                  onClick={() => {
-                    if (!confirmDialog) return
-                    confirmDialog.onConfirm()
-                  }}
-                >
-                  Confirm
-                </button>
+                {confirmDialog.actions ? confirmDialog.actions.map((action) => (
+                  <button
+                    key={action.testId ?? action.label}
+                    data-testid={action.testId}
+                    className={action.className ?? 'rounded bg-blue-600 px-3 py-1 text-sm text-white'}
+                    onClick={() => {
+                      action.onClick()
+                    }}
+                  >
+                    {action.label}
+                  </button>
+                )) : (
+                  <button
+                    data-testid="confirm-action-confirm"
+                    className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+                    onClick={() => {
+                      if (!confirmDialog?.onConfirm) return
+                      confirmDialog.onConfirm()
+                    }}
+                  >
+                    Confirm
+                  </button>
+                )}
+              </div>
+            </div>
+          ) : powerMode?.type === 'children_place_power_tokens' ? (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900">Children of the Wyrm: Place River Power Tokens</div>
+                  <div className="text-sm text-slate-700">
+                    Select 1 or 2 river hexes adjacent to your network. Selected:
+                    {' '}
+                    {selectedChildrenTokenHexes.length === 0
+                      ? 'none'
+                      : selectedChildrenTokenHexes.map((hex) => formatHexCoord(hex)).join(', ')}
+                  </div>
+                  {childrenNeedsBowl3Confirmation && (
+                    <div className="text-sm text-amber-700">This will use Bowl III power tokens.</div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button data-testid="children-power-token-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={cancelHexAction}>Cancel</button>
+                  <button data-testid="children-power-token-submit" className="rounded bg-blue-600 px-3 py-1 text-sm text-white disabled:bg-blue-300" onClick={submitChildrenPowerTokenAction} disabled={selectedChildrenTokenHexes.length === 0}>Submit</button>
+                </div>
               </div>
             </div>
           ) : pendingHex ? (
@@ -1766,6 +2329,28 @@ export const Game = () => {
                 ))}
               </div>
             </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'archivists_bonus_card' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Choose Archivists Bonus Card</div>
+                <div className="text-sm text-slate-700">Select your second bonus card. You cannot retake a card you just returned.</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {availableCards
+                  .filter((cardId) => !pendingArchivistsReturnedCards.includes(cardId as BonusCardType) && !bonusCardOwners[String(cardId)])
+                  .map((cardId) => (
+                    <button
+                      key={cardId}
+                      type="button"
+                      data-testid={`archivists-bonus-card-${String(cardId)}`}
+                      className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                      onClick={() => { performAction('select_archivists_bonus_card', { bonusCard: cardId }) }}
+                    >
+                      {bonusCardLabel(cardId)}
+                    </button>
+                  ))}
+              </div>
+            </div>
           ) : hasPendingDecisionForMe && pendingDecisionType === 'darklings_ordination' ? (
             <div className="space-y-3">
               <div>
@@ -1808,6 +2393,140 @@ export const Game = () => {
                 ))}
               </div>
             </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'djinni_start_cult_choice' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Djinni: Choose Starting Cult</div>
+                <div className="text-sm text-slate-700">Advance 2 steps on one cult track.</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {CULT_CHOICES.map((choice) => (
+                  <button
+                    key={choice.track}
+                    type="button"
+                    data-testid={`djinni-start-cult-choice-${String(choice.track)}`}
+                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                    onClick={() => { performAction('select_djinni_start_cult_track', { cultTrack: choice.track }) }}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'treasurers_deposit' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Treasurers: Bank Resources</div>
+                <div className="text-sm text-slate-700">
+                  Choose how many of the newly received resources to move into the Treasury.
+                  {pendingDecision?.reason === 'income' ? ' These will double at the start of your next income phase.' : ''}
+                  {pendingDecision?.reason === 'conversion' ? ' This conversion can be banked immediately instead of staying on board.' : ''}
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span>Coins</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={treasurersDepositAvailability.coins}
+                    value={treasurersDepositCoins}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.coins, Math.floor(value))) : 0
+                      setTreasurersDepositCoins(normalized)
+                    }}
+                    className="rounded border border-slate-300 px-2 py-1"
+                    data-testid="treasurers-deposit-coins"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span>Workers</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={treasurersDepositAvailability.workers}
+                    value={treasurersDepositWorkers}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.workers, Math.floor(value))) : 0
+                      setTreasurersDepositWorkers(normalized)
+                    }}
+                    className="rounded border border-slate-300 px-2 py-1"
+                    data-testid="treasurers-deposit-workers"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span>Priests</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={treasurersDepositAvailability.priests}
+                    value={treasurersDepositPriests}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.priests, Math.floor(value))) : 0
+                      setTreasurersDepositPriests(normalized)
+                    }}
+                    className="rounded border border-slate-300 px-2 py-1"
+                    data-testid="treasurers-deposit-priests"
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="treasurers-deposit-confirm"
+                  className="rounded bg-blue-600 px-3 py-2 text-sm text-white"
+                  onClick={() => {
+                    performAction('select_treasurers_deposit', {
+                      coinsToTreasury: treasurersDepositCoins,
+                      workersToTreasury: treasurersDepositWorkers,
+                      priestsToTreasury: treasurersDepositPriests,
+                    })
+                  }}
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  data-testid="treasurers-deposit-none"
+                  className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                  onClick={() => {
+                    setTreasurersDepositCoins(0)
+                    setTreasurersDepositWorkers(0)
+                    setTreasurersDepositPriests(0)
+                    performAction('select_treasurers_deposit', {
+                      coinsToTreasury: 0,
+                      workersToTreasury: 0,
+                      priestsToTreasury: 0,
+                    })
+                  }}
+                >
+                  Keep all on board
+                </button>
+              </div>
+            </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'goblins_cult_steps' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Goblins Treasure: Assign Cult Steps</div>
+                <div className="text-sm text-slate-700">Spend each remaining Goblins big-structure cult step on any cult track. Remaining: {String(Number(pendingDecision?.stepsRemaining ?? 0))}.</div>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {CULT_CHOICES.map((choice) => (
+                  <button
+                    key={choice.track}
+                    type="button"
+                    data-testid={`goblins-cult-choice-${String(choice.track)}`}
+                    className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                    onClick={() => { performAction('select_goblins_cult_track', { cultTrack: choice.track }) }}
+                  >
+                    {choice.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ) : hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades' && Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0) === 0 ? (
             <div className="space-y-3">
               <div>
@@ -1840,7 +2559,7 @@ export const Game = () => {
               <div className="text-sm font-semibold text-slate-900">Leech Offer</div>
               {pendingLeechOffersForMe.map((offer, idx) => {
                 const amount = Number(offer.Amount ?? offer.amount ?? 0)
-                const vpCost = Math.max(0, amount - 1)
+                const vpCost = Number(offer.VPCost ?? offer.vpCost ?? Math.max(0, amount - 1))
                 return (
                   <div key={idx} className="flex flex-wrap items-center justify-between gap-2 rounded border border-slate-200 bg-slate-50 px-3 py-2">
                     <span className="text-sm text-slate-800">Accept {String(amount)} power for {String(vpCost)} VP?</span>
@@ -1920,6 +2639,18 @@ export const Game = () => {
           </div>
         )}
 
+        {(powerMode?.type === 'architects_move_bridge' && powerMode.oldBridge == null) && (
+          <div className="mb-3 rounded border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-800">
+            Architects stronghold action: click the bridge edge you want to move.
+          </div>
+        )}
+
+        {(powerMode?.type === 'architects_move_bridge' && powerMode.oldBridge != null) && (
+          <div className="mb-3 rounded border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-800">
+            Architects stronghold action: selected {formatHexCoord(powerMode.oldBridge.from)}-{formatHexCoord(powerMode.oldBridge.to)}. Click the new bridge edge.
+          </div>
+        )}
+
         {(powerMode?.type === 'power_spade' || powerMode?.type === 'special_action_target') && (
           <div className="mb-3 rounded border border-blue-300 bg-blue-50 px-4 py-2 text-sm text-blue-800">
             {powerMode?.type === 'special_action_target' && STRONGHOLD_TARGET_ACTION_TYPES.includes(powerMode.actionType)
@@ -1969,6 +2700,7 @@ export const Game = () => {
             onSelect={handleFactionSelect}
             isMyTurn={isMyTurn}
             currentPlayerPosition={currentPlayerPosition}
+            enableFanFactions={gameState?.enableFanFactions ?? false}
           />
         )}
 
@@ -2151,7 +2883,7 @@ export const Game = () => {
               <GameBoard
                 onHexClick={handleHexClick}
                 onBridgeEdgeClick={handleBridgeEdgeClick}
-                bridgeEdgeSelectionEnabled={powerMode?.type === 'power_bridge'}
+                bridgeEdgeSelectionEnabled={powerMode?.type === 'power_bridge' || powerMode?.type === 'architects_move_bridge'}
                 onPowerActionClick={handlePowerActionClick}
                 disablePowerActions={!canInitiateTurnAction}
               />
@@ -2211,7 +2943,10 @@ export const Game = () => {
                 onBurnPower={handleBurnPower}
                 onAdvanceShipping={handleAdvanceShipping}
                 onAdvanceDigging={handleAdvanceDigging}
+                onAdvanceChashTrack={handleAdvanceChashTrack}
                 onStrongholdAction={handleStrongholdAction}
+                onGoblinsTreasureAction={handleGoblinsTreasureAction}
+                onDjinniLampAction={handleDjinniLampAction}
                 onEngineersBridgeAction={handleEngineersBridgeAction}
                 onMermaidsConnectAction={handleMermaidsConnectAction}
                 onWater2Action={handleWater2Action}
@@ -2336,6 +3071,66 @@ export const Game = () => {
               )}
             </div>
             <textarea data-testid="chaos-double-turn-second-params" className="w-full rounded border px-2 py-1 font-mono text-xs" rows={4} value={chaosSecondParams} onChange={(e) => { setChaosSecondParams(e.target.value) }} />
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={conspiratorsSwapModalOpen}
+        onClose={closeConspiratorsSwapModal}
+        title="Conspirators Swap Favor"
+        testId="conspirators-swap-favor-modal"
+        footer={(
+          <>
+            <button
+              data-testid="conspirators-swap-favor-cancel"
+              className="px-4 py-2 rounded bg-gray-200 text-gray-800"
+              onClick={closeConspiratorsSwapModal}
+            >
+              Cancel
+            </button>
+            <button
+              data-testid="conspirators-swap-favor-submit"
+              className="px-4 py-2 rounded bg-blue-600 text-white disabled:bg-blue-300"
+              onClick={submitConspiratorsSwap}
+              disabled={conspiratorsReturnTile === '' || conspiratorsNewTile === ''}
+            >
+              Swap
+            </button>
+          </>
+        )}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-gray-700">Return one of your favor tiles to take a different favor tile from the supply.</p>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="conspirators-return-tile">Return tile</label>
+            <select
+              id="conspirators-return-tile"
+              data-testid="conspirators-return-tile"
+              className="w-full rounded border px-2 py-1"
+              value={conspiratorsReturnTile}
+              onChange={(e) => { setConspiratorsReturnTile(e.target.value === '' ? '' : Number(e.target.value)) }}
+            >
+              <option value="">Select a favor tile</option>
+              {localPlayerFavorTiles.map((tile) => (
+                <option key={tile} value={tile}>{favorTileLabel(tile)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium" htmlFor="conspirators-new-tile">Take tile</label>
+            <select
+              id="conspirators-new-tile"
+              data-testid="conspirators-new-tile"
+              className="w-full rounded border px-2 py-1"
+              value={conspiratorsNewTile}
+              onChange={(e) => { setConspiratorsNewTile(e.target.value === '' ? '' : Number(e.target.value)) }}
+            >
+              <option value="">Select a favor tile</option>
+              {conspiratorsNewTileOptions.map((tile) => (
+                <option key={tile} value={tile}>{favorTileLabel(tile)}</option>
+              ))}
+            </select>
           </div>
         </div>
       </Modal>

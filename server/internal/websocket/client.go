@@ -51,11 +51,12 @@ type inboundMsg struct {
 }
 
 type createGamePayload struct {
-	Name       string `json:"name"`
-	MaxPlayers int    `json:"maxPlayers"`
-	Creator    string `json:"creator"`
-	MapID      string `json:"mapId,omitempty"`
-	CustomMap  *board.CustomMapDefinition `json:"customMap,omitempty"`
+	Name              string                     `json:"name"`
+	MaxPlayers        int                        `json:"maxPlayers"`
+	Creator           string                     `json:"creator"`
+	MapID             string                     `json:"mapId,omitempty"`
+	EnableFanFactions bool                       `json:"enableFanFactions,omitempty"`
+	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
 }
 
 type joinGamePayload struct {
@@ -634,6 +635,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		SetupMode:          setupMode,
 		TurnTimer:          turnTimer,
 		MapID:              board.NormalizeMapID(meta.MapID),
+		EnableFanFactions:  meta.EnableFanFactions,
 		CustomMap:          board.CloneCustomMapDefinition(meta.CustomMap),
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
@@ -674,7 +676,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID, p.CustomMap)
+	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID, p.CustomMap, p.EnableFanFactions)
 	if err != nil {
 		c.sendLobbyError(err)
 		return
@@ -882,6 +884,26 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return 0, fmt.Errorf("invalid integer parameter")
 	}
 
+	parseOptionalIntParam := func(defaultValue int, keys ...string) (int, error) {
+		raw, ok := getParam(keys...)
+		if !ok {
+			return defaultValue, nil
+		}
+		var val int
+		if err := json.Unmarshal(raw, &val); err == nil {
+			return val, nil
+		}
+		var s string
+		if err := json.Unmarshal(raw, &s); err == nil {
+			parsed, err := strconv.Atoi(s)
+			if err != nil {
+				return 0, fmt.Errorf("invalid integer parameter: %s", s)
+			}
+			return parsed, nil
+		}
+		return 0, fmt.Errorf("invalid integer parameter")
+	}
+
 	parseBoolParam := func(defaultValue bool, keys ...string) (bool, error) {
 		raw, ok := getParam(keys...)
 		if !ok {
@@ -1044,6 +1066,9 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 	case "advance_digging":
 		return game.NewAdvanceDiggingAction(seatID), nil
 
+	case "advance_chash_track":
+		return game.NewAdvanceChashTrackAction(seatID), nil
+
 	case "send_priest":
 		track, err := parseCultTrack(getParam)
 		if err != nil {
@@ -1069,7 +1094,13 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			if err != nil {
 				return nil, err
 			}
-			return game.NewPowerActionWithBridge(seatID, hex1, hex2), nil
+			a := game.NewPowerActionWithBridge(seatID, hex1, hex2)
+			useCoins, err := parseBoolParam(false, "useCoins")
+			if err != nil {
+				return nil, err
+			}
+			a.UseCoins = useCoins
+			return a, nil
 		}
 		if actionType == game.PowerActionSpade1 || actionType == game.PowerActionSpade2 {
 			hex, err := parseHexParam("hex", "targetHex")
@@ -1086,16 +1117,33 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 				return nil, err
 			}
 			a.UseSkip = useSkip
+			useCoins, err := parseBoolParam(false, "useCoins")
+			if err != nil {
+				return nil, err
+			}
+			a.UseCoins = useCoins
 			return a, nil
 		}
-		return game.NewPowerAction(seatID, actionType), nil
+		a := game.NewPowerAction(seatID, actionType)
+		useCoins, err := parseBoolParam(false, "useCoins")
+		if err != nil {
+			return nil, err
+		}
+		a.UseCoins = useCoins
+		return a, nil
 
 	case "power_bridge_place":
 		hex1, hex2, err := parseBridgeEndpoints()
 		if err != nil {
 			return nil, err
 		}
-		return game.NewPowerActionWithBridge(seatID, hex1, hex2), nil
+		a := game.NewPowerActionWithBridge(seatID, hex1, hex2)
+		useCoins, err := parseBoolParam(false, "useCoins")
+		if err != nil {
+			return nil, err
+		}
+		a.UseCoins = useCoins
+		return a, nil
 
 	case "engineers_bridge":
 		hex1, hex2, err := parseBridgeEndpoints()
@@ -1103,6 +1151,31 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			return nil, err
 		}
 		return game.NewEngineersBridgeAction(seatID, hex1, hex2), nil
+
+	case "wisps_stronghold_dwelling":
+		targetHex, err := parseHexParam("hex", "targetHex")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewBuildWispsStrongholdDwellingAction(seatID, targetHex), nil
+
+	case "goblins_treasure":
+		rawReward, ok := getParam("rewardType")
+		if !ok {
+			return nil, fmt.Errorf("missing rewardType")
+		}
+		var rewardType string
+		if err := json.Unmarshal(rawReward, &rewardType); err != nil {
+			return nil, fmt.Errorf("invalid rewardType: %w", err)
+		}
+		return game.NewUseGoblinsTreasureAction(seatID, game.GoblinsTreasureRewardType(rewardType)), nil
+
+	case "select_goblins_cult_track":
+		track, err := parseCultTrackFromParams(getParam)()
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectGoblinsCultTrackAction(seatID, track), nil
 
 	case "special_action_use":
 		specialType, err := parseSpecialActionType(getParam)
@@ -1153,9 +1226,14 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
+		var anchorHex *board.Hex
+		if hex, err := parseHexParam("anchorHex", "townHex"); err == nil {
+			anchorHex = &hex
+		}
 		return &game.SelectTownTileAction{
 			BaseAction: game.BaseAction{Type: game.ActionSelectTownTile, PlayerID: seatID},
 			TileType:   tileType,
+			AnchorHex:  anchorHex,
 		}, nil
 
 	case "select_town_cult_top":
@@ -1188,6 +1266,35 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			return nil, err
 		}
 		return game.NewSelectCultistsCultTrackAction(seatID, track), nil
+
+	case "select_djinni_start_cult_track":
+		track, err := parseCultTrack(getParam)
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectDjinniStartingCultTrackAction(seatID, track), nil
+
+	case "select_treasurers_deposit":
+		coins, err := parseOptionalIntParam(getParam, 0, "coinsToTreasury")
+		if err != nil {
+			return nil, err
+		}
+		workers, err := parseOptionalIntParam(getParam, 0, "workersToTreasury")
+		if err != nil {
+			return nil, err
+		}
+		priests, err := parseOptionalIntParam(getParam, 0, "priestsToTreasury")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectTreasurersDepositAction(seatID, coins, workers, priests), nil
+
+	case "select_archivists_bonus_card":
+		bonusCard, err := parseBonusCardType(getParam)
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectArchivistsBonusCardAction(seatID, bonusCard), nil
 
 	case "halflings_apply_spade":
 		hex, err := parseHexParam("hex", "targetHex")
@@ -1471,9 +1578,16 @@ func buildSpecialAction(
 		return game.NewNomadsSandstormAction(seatID, hex, build), nil
 
 	case game.SpecialActionBonusCardSpade:
-		hex, build, err := parseTransformHexAndBuild()
-		if err != nil {
-			return nil, err
+		var (
+			hex   board.Hex
+			build bool
+			err   error
+		)
+		if _, ok := getParam("hex", "targetHex"); ok {
+			hex, build, err = parseTransformHexAndBuild()
+			if err != nil {
+				return nil, err
+			}
 		}
 		targetTerrain := models.TerrainTypeUnknown
 		if raw, ok := getParam("targetTerrain"); ok {
@@ -1491,6 +1605,87 @@ func buildSpecialAction(
 			return nil, err
 		}
 		return game.NewMermaidsRiverTownAction(seatID, riverHex), nil
+
+	case game.SpecialActionEnlightenedGainPower:
+		return game.NewEnlightenedGainPowerAction(seatID), nil
+
+	case game.SpecialActionConspiratorsSwapFavor:
+		returnTile, err := parseFavorTileType(func(keys ...string) (json.RawMessage, bool) {
+			more := append([]string{"returnTile"}, keys...)
+			return getParam(more...)
+		})
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid return favor tile: %w", err)
+		}
+		newTile, err := parseFavorTileType(func(keys ...string) (json.RawMessage, bool) {
+			more := append([]string{"newTile"}, keys...)
+			return getParam(more...)
+		})
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid new favor tile: %w", err)
+		}
+		return game.NewConspiratorsSwapFavorAction(seatID, returnTile, newTile), nil
+
+	case game.SpecialActionChildrenPlacePowerTokens:
+		rawHexes, ok := getParam("targetHexes")
+		if !ok {
+			return nil, fmt.Errorf("missing targetHexes payload")
+		}
+		var coords []struct {
+			Q int `json:"q"`
+			R int `json:"r"`
+		}
+		if err := json.Unmarshal(rawHexes, &coords); err != nil {
+			return nil, fmt.Errorf("invalid targetHexes payload: %w", err)
+		}
+		targetHexes := make([]board.Hex, 0, len(coords))
+		for _, coord := range coords {
+			targetHexes = append(targetHexes, board.NewHex(coord.Q, coord.R))
+		}
+		confirmSpendBowl3, err := parseBoolParam(false, "confirmSpendBowl3")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewChildrenPlacePowerTokensAction(seatID, targetHexes, confirmSpendBowl3), nil
+
+	case game.SpecialActionProspectorsGainCoins:
+		return game.NewProspectorsGainCoinsAction(seatID), nil
+
+	case game.SpecialActionTimeTravelersPowerShift:
+		amount, err := parseIntParam("amount")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid amount for time travelers action: %w", err)
+		}
+		return game.NewTimeTravelersPowerShiftAction(seatID, amount), nil
+
+	case game.SpecialActionDjinniSwapCults:
+		firstTrack, err := parseCultTrack()
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid first cult track: %w", err)
+		}
+		secondTrack, err := parseCultTrackFromParams(func(keys ...string) (json.RawMessage, bool) {
+			more := append([]string{"secondTrack"}, keys...)
+			return getParam(more...)
+		})()
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid second cult track: %w", err)
+		}
+		return game.NewDjinniSwapCultsAction(seatID, firstTrack, secondTrack), nil
+
+	case game.SpecialActionArchitectsMoveBridge:
+		oldHex1, oldHex2, err := parseBridgeEndpoints()
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid bridge to move: %w", err)
+		}
+		newHex1, err := parseHexParam("targetHex", "newBridgeHex1")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid new bridge endpoint: %w", err)
+		}
+		newHex2, err := parseHexParam("upgradeHex", "newBridgeHex2")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid new bridge endpoint: %w", err)
+		}
+		return game.NewArchitectsMoveBridgeAction(seatID, oldHex1, oldHex2, newHex1, newHex2), nil
 
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")

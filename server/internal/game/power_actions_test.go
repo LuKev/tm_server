@@ -834,20 +834,18 @@ func Test7PriestLimit_PowerAction(t *testing.T) {
 		ActionType: PowerActionPriest,
 	}
 
-	// Action should succeed (power is spent) but no priest is gained
+	// Action should fail at the priest limit
 	err = action2.Execute(gs2)
-	if err != nil {
-		t.Fatalf("power action should succeed even at 7-priest limit (but no priest gained), got error: %v", err)
+	if err == nil {
+		t.Fatalf("power action should fail at the 7-priest limit")
 	}
 
-	// Verify no priest was gained
+	// Verify no priest was gained and power was not spent
 	if player2.Resources.Priests != 4 {
 		t.Errorf("expected 4 priests in hand (no change at limit), got %d", player2.Resources.Priests)
 	}
-
-	// Verify power was still spent
-	if player2.Resources.Power.Bowl3 != 7 {
-		t.Errorf("expected power to be spent (10 - 3 = 7), got %d", player2.Resources.Power.Bowl3)
+	if player2.Resources.Power.Bowl3 != 10 {
+		t.Errorf("expected power to remain unspent, got %d", player2.Resources.Power.Bowl3)
 	}
 }
 

@@ -6,21 +6,19 @@ interface FactionSelectorProps {
     onSelect: (factionType: string) => void
     isMyTurn: boolean
     currentPlayerPosition: number
+    enableFanFactions: boolean
 }
 
 export function FactionSelector({
     selectedFactions,
     onSelect,
     isMyTurn,
-    currentPlayerPosition
+    currentPlayerPosition,
+    enableFanFactions,
 }: FactionSelectorProps): React.ReactElement {
-    // Get all factions in order (14 total) - 2 rows of 7
-    // Row 1: Auren, Mermaids, Alchemists, Halflings, Fakirs, Giants, Dwarves
-    // Row 2: Witches, Swarmlings, Darklings, Cultists, Nomads, Chaos Magicians, Engineers
-    const allFactions = [
-        'Auren', 'Mermaids', 'Alchemists', 'Halflings', 'Fakirs', 'Giants', 'Dwarves',
-        'Witches', 'Swarmlings', 'Darklings', 'Cultists', 'Nomads', 'ChaosMagicians', 'Engineers'
-    ]
+    const allFactions = FACTIONS
+        .filter((faction) => enableFanFactions || !faction.isFanFaction)
+        .map((faction) => faction.type)
 
     // Get colors of selected factions to disable same-color factions
     const selectedColors = new Set(
@@ -69,8 +67,7 @@ export function FactionSelector({
                     </h1>
                 </div>
 
-                {/* Faction Grid - 2 rows x 7 columns */}
-                <div className="grid gap-4 w-full" style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', width: '100%' }}>
+                <div className="grid gap-4 w-full" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', width: '100%' }}>
                     {allFactions.map((factionType) => {
                         const faction = getFactionData(factionType)
                         const isSelected = selectedFactions.has(factionType)

@@ -98,13 +98,30 @@ func (a *SetupDwellingAction) Execute(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	// Place the dwelling on the map
+	buildingType := models.BuildingDwelling
+	if player.Faction.GetType() == models.FactionAtlanteans {
+		if gs.SetupPlacedDwellings[a.PlayerID] > 0 {
+			return fmt.Errorf("atlanteans only place their starting stronghold once during setup")
+		}
+		buildingType = models.BuildingStronghold
+	}
+
+	// Place the starting structure on the map
 	hexData := gs.Map.GetHex(a.Hex)
 	hexData.Building = &models.Building{
-		Type:       models.BuildingDwelling,
+		Type:       buildingType,
 		PlayerID:   a.PlayerID,
 		Faction:    player.Faction.GetType(),
-		PowerValue: 1, // Dwellings have power value of 1
+		PowerValue: getStructurePowerValue(player, buildingType),
+	}
+
+	if buildingType == models.BuildingStronghold && player.Faction.GetType() == models.FactionAtlanteans {
+		player.AtlanteansTownHexes = []board.Hex{a.Hex}
+		player.AtlanteansTownRewards = make(map[int]bool)
+		gs.PendingTownFormations[a.PlayerID] = append(gs.PendingTownFormations[a.PlayerID], &PendingTownFormation{
+			PlayerID: a.PlayerID,
+			Hexes:    []board.Hex{a.Hex},
+		})
 	}
 
 	if gs.SetupPlacedDwellings == nil {

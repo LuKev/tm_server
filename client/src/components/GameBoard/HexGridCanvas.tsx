@@ -1,5 +1,5 @@
 // Canvas-based hex grid renderer - based on terra-mystica/stc/game.js
-import React, { useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useCallback, useMemo, useLayoutEffect, useState } from 'react';
 import type { MapHexData } from '../../types/map.types';
 import { buildDisplayCoordinateMap, getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
@@ -34,10 +34,26 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   testId,
 }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [canvasMetrics, setCanvasMetrics] = useState(() => ({
+    cssWidth: 1,
+    cssHeight: 1,
+    backingWidth: 1,
+    backingHeight: 1,
+    backingScale: 1,
+  }));
   const displayCoordinates = useMemo(() => buildDisplayCoordinateMap(hexes), [hexes])
 
   // Calculate canvas dimensions
-  const getDimensions = (): { width: number; height: number; offsetX: number; offsetY: number } => {
+  const dims = useMemo((): { width: number; height: number; offsetX: number; offsetY: number } => {
+    if (hexes.length === 0) {
+      return {
+        width: 1,
+        height: 1,
+        offsetX: 0,
+        offsetY: 0,
+      };
+    }
+
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
 
@@ -58,9 +74,56 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       offsetX: -minX + paddingX,
       offsetY: -minY + paddingY,
     };
-  };
+  }, [hexes]);
 
-  const dims = getDimensions();
+  useLayoutEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const host = canvas.parentElement ?? canvas;
+
+    const syncCanvasMetrics = (): void => {
+      const nextCssWidth = Math.max(host.clientWidth || dims.width, 1);
+      const nextCssHeight = Math.max((nextCssWidth / dims.width) * dims.height, 1);
+      const pixelRatio = window.devicePixelRatio || 1;
+      const nextBackingWidth = Math.max(1, Math.round(nextCssWidth * pixelRatio));
+      const nextBackingHeight = Math.max(1, Math.round(nextCssHeight * pixelRatio));
+      const nextBackingScale = nextBackingWidth / dims.width;
+
+      setCanvasMetrics((current) => {
+        if (
+          current.cssWidth === nextCssWidth
+          && current.cssHeight === nextCssHeight
+          && current.backingWidth === nextBackingWidth
+          && current.backingHeight === nextBackingHeight
+          && current.backingScale === nextBackingScale
+        ) {
+          return current;
+        }
+
+        return {
+          cssWidth: nextCssWidth,
+          cssHeight: nextCssHeight,
+          backingWidth: nextBackingWidth,
+          backingHeight: nextBackingHeight,
+          backingScale: nextBackingScale,
+        };
+      });
+    };
+
+    syncCanvasMetrics();
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncCanvasMetrics();
+    });
+    resizeObserver.observe(host);
+    window.addEventListener('resize', syncCanvasMetrics);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', syncCanvasMetrics);
+    };
+  }, [dims.height, dims.width]);
 
   const rotate60 = (coord: { q: number; r: number }, turns: number): { q: number; r: number } => {
     let x = coord.q;
@@ -380,12 +443,19 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Clear canvas
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Apply transform
+    // Draw in logical board units, then scale to the rendered CSS size and DPR.
     ctx.save();
-    ctx.translate(dims.offsetX, dims.offsetY);
+    ctx.setTransform(
+      canvasMetrics.backingScale,
+      0,
+      0,
+      canvasMetrics.backingScale,
+      dims.offsetX * canvasMetrics.backingScale,
+      dims.offsetY * canvasMetrics.backingScale,
+    );
 
     // Z-order: River hexes → Bridges → Land hexes → Buildings → Highlights
 
@@ -423,7 +493,19 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     });
 
     ctx.restore();
-  }, [hexes, buildings, bridges, highlightedHexes, dims.offsetX, dims.offsetY, drawHex, drawBridge, drawBuilding, drawHighlight]);
+  }, [
+    hexes,
+    buildings,
+    bridges,
+    highlightedHexes,
+    dims.offsetX,
+    dims.offsetY,
+    canvasMetrics.backingScale,
+    drawHex,
+    drawBridge,
+    drawBuilding,
+    drawHighlight,
+  ]);
 
   const pointToSegmentDistance = (
     px: number,
@@ -457,14 +539,11 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
 
-    // Calculate scaling factor between CSS size (rect) and internal canvas size (dims)
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    // Apply scaling to mouse coordinates
-    const x = (e.clientX - rect.left) * scaleX - dims.offsetX;
-    const y = (e.clientY - rect.top) * scaleY - dims.offsetY;
+    // Convert browser event coordinates back into the logical board space.
+    const x = ((e.clientX - rect.left) / rect.width) * dims.width - dims.offsetX;
+    const y = ((e.clientY - rect.top) / rect.height) * dims.height - dims.offsetY;
 
     if (isClick && bridgeEdgeSelectionEnabled && onBridgeEdgeClick) {
       let bestFrom: { q: number; r: number } | null = null;
@@ -525,17 +604,18 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     <canvas
       ref={canvasRef}
       data-testid={testId}
-      width={dims.width}
-      height={dims.height}
+      data-logical-width={dims.width}
+      data-logical-height={dims.height}
+      width={canvasMetrics.backingWidth}
+      height={canvasMetrics.backingHeight}
       style={{
-        width: '100%',
-        height: 'auto', // Maintain aspect ratio
-        maxWidth: '100%',
-        maxHeight: '100%',
+        width: `${String(canvasMetrics.cssWidth)}px`,
+        height: `${String(canvasMetrics.cssHeight)}px`,
         border: '1px solid #ccc',
         backgroundColor: '#f0f0f0',
         cursor: 'pointer',
-        display: 'block' // Remove inline spacing
+        display: 'block',
+        boxSizing: 'border-box',
       }}
       onClick={(e) => { handleMouseEvent(e, true); }}
       onMouseMove={(e) => { handleMouseEvent(e, false); }}

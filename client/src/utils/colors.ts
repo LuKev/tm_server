@@ -31,6 +31,20 @@ export const FACTION_COLORS: Record<FactionType, string> = {
   [FactionType.Darklings]: '#2c2c2c',   // Black
   [FactionType.Engineers]: '#95a5a6',   // Gray
   [FactionType.Dwarves]: '#95a5a6',     // Gray
+  [FactionType.Architects]: '#e74c3c',
+  [FactionType.Archivists]: '#f4d03f',
+  [FactionType.Atlanteans]: '#5dade2',
+  [FactionType.ChashDallah]: '#52b788',
+  [FactionType.ChildrenOfTheWyrm]: '#2c2c2c',
+  [FactionType.Conspirators]: '#95a5a6',
+  [FactionType.Djinni]: '#f4d03f',
+  [FactionType.DynionGeifr]: '#95a5a6',
+  [FactionType.Goblins]: '#2c2c2c',
+  [FactionType.Prospectors]: '#c8956b',
+  [FactionType.TheEnlightened]: '#52b788',
+  [FactionType.TimeTravelers]: '#c8956b',
+  [FactionType.Treasurers]: '#e74c3c',
+  [FactionType.Wisps]: '#5dade2',
 };
 
 // Contrast colors for text/borders

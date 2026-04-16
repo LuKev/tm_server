@@ -1,6 +1,6 @@
 package models
 
-// FactionType enumerates the 14 base game factions
+// FactionType enumerates the base game factions plus supported fan factions.
 // Note: Exact abilities to be implemented in the game engine layer
 
 type FactionType int
@@ -21,6 +21,20 @@ const (
 	FactionDarklings
 	FactionEngineers
 	FactionDwarves
+	FactionArchitects
+	FactionArchivists
+	FactionAtlanteans
+	FactionChashDallah
+	FactionChildrenOfTheWyrm
+	FactionConspirators
+	FactionDjinni
+	FactionDynionGeifr
+	FactionGoblins
+	FactionProspectors
+	FactionTheEnlightened
+	FactionTimeTravelers
+	FactionTreasurers
+	FactionWisps
 )
 
 func (f FactionType) String() string {
@@ -55,6 +69,34 @@ func (f FactionType) String() string {
 		return "Engineers"
 	case FactionDwarves:
 		return "Dwarves"
+	case FactionArchitects:
+		return "Architects"
+	case FactionArchivists:
+		return "Archivists"
+	case FactionAtlanteans:
+		return "Atlanteans"
+	case FactionChashDallah:
+		return "ChashDallah"
+	case FactionChildrenOfTheWyrm:
+		return "ChildrenOfTheWyrm"
+	case FactionConspirators:
+		return "Conspirators"
+	case FactionDjinni:
+		return "Djinni"
+	case FactionDynionGeifr:
+		return "DynionGeifr"
+	case FactionGoblins:
+		return "Goblins"
+	case FactionProspectors:
+		return "Prospectors"
+	case FactionTheEnlightened:
+		return "TheEnlightened"
+	case FactionTimeTravelers:
+		return "TimeTravelers"
+	case FactionTreasurers:
+		return "Treasurers"
+	case FactionWisps:
+		return "Wisps"
 	default:
 		return "Unknown"
 	}
@@ -90,8 +132,44 @@ func (f FactionType) GetFactionColor() FactionColor {
 		return ColorBlack // Swamp
 	case FactionEngineers, FactionDwarves:
 		return ColorGray // Mountain
+	case FactionArchitects, FactionTreasurers:
+		return ColorRed // Wasteland
+	case FactionArchivists, FactionDjinni:
+		return ColorYellow // Desert
+	case FactionAtlanteans, FactionWisps:
+		return ColorBlue // Lake
+	case FactionChashDallah, FactionTheEnlightened:
+		return ColorGreen // Forest
+	case FactionChildrenOfTheWyrm, FactionGoblins:
+		return ColorBlack // Swamp
+	case FactionConspirators, FactionDynionGeifr:
+		return ColorGray // Mountain
+	case FactionProspectors, FactionTimeTravelers:
+		return ColorBrown // Plains
 	default:
 		return ColorYellow // Default
+	}
+}
+
+func (f FactionType) IsFanFaction() bool {
+	switch f {
+	case FactionArchitects,
+		FactionArchivists,
+		FactionAtlanteans,
+		FactionChashDallah,
+		FactionChildrenOfTheWyrm,
+		FactionConspirators,
+		FactionDjinni,
+		FactionDynionGeifr,
+		FactionGoblins,
+		FactionProspectors,
+		FactionTheEnlightened,
+		FactionTimeTravelers,
+		FactionTreasurers,
+		FactionWisps:
+		return true
+	default:
+		return false
 	}
 }
 
@@ -126,6 +204,34 @@ func FactionTypeFromString(s string) FactionType {
 		return FactionEngineers
 	case "Dwarves":
 		return FactionDwarves
+	case "Architects":
+		return FactionArchitects
+	case "Archivists":
+		return FactionArchivists
+	case "Atlanteans":
+		return FactionAtlanteans
+	case "ChashDallah", "Chash Dallah", "CashDallah", "Cash Dallah":
+		return FactionChashDallah
+	case "ChildrenOfTheWyrm", "Children of the Wyrm":
+		return FactionChildrenOfTheWyrm
+	case "Conspirators":
+		return FactionConspirators
+	case "Djinni", "Djinn":
+		return FactionDjinni
+	case "DynionGeifr", "Dynion Geifr":
+		return FactionDynionGeifr
+	case "Goblins":
+		return FactionGoblins
+	case "Prospectors", "GoldDiggers", "Gold Diggers":
+		return FactionProspectors
+	case "TheEnlightened", "The Enlightened":
+		return FactionTheEnlightened
+	case "TimeTravelers", "Time Travelers", "TimeTravellers", "Time Travellers":
+		return FactionTimeTravelers
+	case "Treasurers":
+		return FactionTreasurers
+	case "Wisps":
+		return FactionWisps
 	default:
 		return FactionUnknown
 	}

@@ -110,6 +110,33 @@ func (cts *CultTrackState) GetPosition(playerID string, track CultTrack) int {
 	return 0
 }
 
+// DecreasePlayer moves a player down on a cult track without applying milestone effects.
+// Leaving position 10 frees the spot and refunds the spent key.
+func (cts *CultTrackState) DecreasePlayer(playerID string, track CultTrack, spaces int, player *Player) int {
+	if spaces <= 0 {
+		return 0
+	}
+	currentPos := cts.GetPosition(playerID, track)
+	if currentPos <= 0 {
+		return 0
+	}
+	targetPos := currentPos - spaces
+	if targetPos < 0 {
+		targetPos = 0
+	}
+	if currentPos == 10 && targetPos < 10 {
+		delete(cts.Position10Occupied, track)
+		if player != nil {
+			player.Keys++
+		}
+	}
+	cts.PlayerPositions[playerID][track] = targetPos
+	if player != nil {
+		player.CultPositions[track] = targetPos
+	}
+	return currentPos - targetPos
+}
+
 // GetTotalPriestsOnCultTracks returns the total number of priests a player has on cult track action spaces
 // Each cult track has 4 action spaces below it (one 3-step, three 2-step)
 // Priests placed on these spaces stay permanently and count toward the 7-priest limit

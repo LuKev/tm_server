@@ -3,6 +3,8 @@ package game
 import (
 	"fmt"
 	"math/rand"
+
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // ScoringTileType represents the type of scoring tile
@@ -266,18 +268,33 @@ func (gs *GameState) AwardActionVP(playerID string, actionType ScoringActionType
 		return
 	}
 
-	tile := gs.ScoringTiles.GetTileForRound(gs.Round)
-	if tile == nil {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
 		return
 	}
 
-	// Check if this action matches the scoring tile
-	if tile.ActionType == actionType {
-		player := gs.GetPlayer(playerID)
-		if player != nil {
+	for _, round := range gs.getScoringRoundsForPlayerActionVP(player) {
+		tile := gs.ScoringTiles.GetTileForRound(round)
+		if tile == nil {
+			continue
+		}
+		if tile.ActionType == actionType {
 			player.VictoryPoints += tile.ActionVP
 		}
 	}
+}
+
+func (gs *GameState) getScoringRoundsForPlayerActionVP(player *Player) []int {
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionTimeTravelers {
+		return []int{gs.Round}
+	}
+	totalRounds := len(gs.ScoringTiles.Tiles)
+	if totalRounds == 0 {
+		return nil
+	}
+	prev := ((gs.Round + totalRounds - 2) % totalRounds) + 1
+	next := (gs.Round % totalRounds) + 1
+	return []int{prev, next}
 }
 
 // AwardCultRewards awards cult rewards at the end of the round
@@ -312,8 +329,10 @@ func (gs *GameState) awardSpecialCultRewards(tile *ScoringTile) {
 	for playerID, priestCount := range gs.ScoringTiles.PriestsSent {
 		player := gs.GetPlayer(playerID)
 		if player != nil {
-			coins := priestCount * tile.CultRewardAmount
-			player.Resources.Coins += coins
+			if isArchivists(player) {
+				continue
+			}
+			gs.grantCultReward(playerID, player, CultRewardCoin, priestCount*tile.CultRewardAmount)
 		}
 	}
 	gs.ScoringTiles.ResetPriestsSent()
@@ -323,6 +342,9 @@ func (gs *GameState) awardRegularCultRewards(tile *ScoringTile) {
 	// Award rewards based on how many thresholds the player has crossed
 	// e.g., "2 steps = 1 worker" means position 8 gives 4 workers (8/2 = 4)
 	for playerID, player := range gs.Players {
+		if isArchivists(player) {
+			continue
+		}
 		position := gs.CultTracks.GetPosition(playerID, tile.CultTrack)
 
 		if tile.CultThreshold == 0 {
@@ -341,12 +363,17 @@ func (gs *GameState) awardRegularCultRewards(tile *ScoringTile) {
 }
 
 func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType CultRewardType, amount int) {
+	amount = adjustCultRewardAmount(player, rewardType, amount)
 	switch rewardType {
 	case CultRewardPriest:
 		gs.GainPriests(playerID, amount)
 	case CultRewardPower:
 		player.Resources.Power.GainPower(amount)
 	case CultRewardSpade:
+		if player.Faction != nil && player.Faction.GetType() == models.FactionProspectors {
+			gs.GainPriests(playerID, amount)
+			return
+		}
 		// Spades must be used immediately - track as pending
 		// Cult reward spades don't count for VP (unlike BON1 or paid spades)
 		// Faction bonuses (e.g., Alchemists +2 power) are granted when spades are USED
@@ -358,5 +385,20 @@ func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType
 		player.Resources.Workers += amount
 	case CultRewardCoin:
 		player.Resources.Coins += amount
+	}
+}
+
+func adjustCultRewardAmount(player *Player, rewardType CultRewardType, amount int) int {
+	if amount <= 0 || player == nil || player.Faction == nil {
+		return amount
+	}
+	if player.Faction.GetType() != models.FactionTreasurers || !player.HasStrongholdAbility {
+		return amount
+	}
+	switch rewardType {
+	case CultRewardPriest, CultRewardWorker, CultRewardCoin:
+		return amount * 2
+	default:
+		return amount
 	}
 }

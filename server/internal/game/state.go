@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+	"sort"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
@@ -15,49 +17,58 @@ type State = models.GameState
 
 // GameState represents the complete game state
 type GameState struct {
-	Map                              *board.TerraMysticaMap             `json:"map"`
-	Players                          map[string]*Player                 `json:"players"`
-	Round                            int                                `json:"round"`
-	Phase                            GamePhase                          `json:"phase"`
-	SetupMode                        SetupMode                          `json:"setupMode"`
-	SetupSubphase                    SetupSubphase                      `json:"setupSubphase"`
-	AuctionState                     *AuctionState                      `json:"auctionState,omitempty"`
-	SetupDwellingOrder               []string                           `json:"setupDwellingOrder"`
-	SetupDwellingIndex               int                                `json:"setupDwellingIndex"`
-	SetupBonusOrder                  []string                           `json:"setupBonusOrder"`
-	SetupBonusIndex                  int                                `json:"setupBonusIndex"`
-	SetupPlacedDwellings             map[string]int                     `json:"setupPlacedDwellings"`
-	TurnOrderPolicy                  TurnOrderPolicy                    `json:"turnOrderPolicy"`
-	TurnOrder                        []string                           `json:"turnOrder"`
-	CurrentPlayerIndex               int                                `json:"currentPlayerIndex"`
-	PassOrder                        []string                           `json:"passOrder"`
-	PowerActions                     *PowerActionState                  `json:"powerActions"`
-	CultTracks                       *CultTrackState                    `json:"cultTracks"`
-	FavorTiles                       *FavorTileState                    `json:"favorTiles"`
-	BonusCards                       *BonusCardState                    `json:"bonusCards"`
-	TownTiles                        *TownTileState                     `json:"townTiles"`
-	ScoringTiles                     *ScoringTileState                  `json:"scoringTiles"`
-	PendingLeechOffers               map[string][]*PowerLeechOffer      `json:"pendingLeechOffers"`
-	PendingTownFormations            map[string][]*PendingTownFormation `json:"pendingTownFormations"`
-	PendingSpades                    map[string]int                     `json:"pendingSpades"`
-	PendingSpadeBuildAllowed         map[string]bool                    `json:"pendingSpadeBuildAllowed"`
-	PendingCultRewardSpades          map[string]int                     `json:"pendingCultRewardSpades"`
-	PendingCultistsLeech             map[int]*CultistsLeechBonus        `json:"pendingCultistsLeech"`
-	NextLeechEventID                 int                                `json:"-"`
-	SkipAbilityUsedThisAction        map[string][]board.Hex             `json:"skipAbilityUsedThisAction"`
-	PendingFavorTileSelection        *PendingFavorTileSelection         `json:"pendingFavorTileSelection"`
-	PendingHalflingsSpades           *PendingHalflingsSpades            `json:"pendingHalflingsSpades"`
-	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination  `json:"pendingDarklingsPriestOrdination"`
-	PendingCultistsCultSelection     *PendingCultistsCultSelection      `json:"pendingCultistsCultSelection"`
-	PendingTownCultTopChoice         *PendingTownCultTopChoice          `json:"pendingTownCultTopChoice"`
-	PendingFreeActionsPlayerID       string                             `json:"pendingFreeActionsPlayerId"`
-	PendingTurnConfirmationPlayerID  string                             `json:"pendingTurnConfirmationPlayerId"`
-	PendingTurnConfirmationSnapshot  *GameState                         `json:"-"`
-	TurnTimer                        *TurnTimerState                    `json:"turnTimer,omitempty"`
-	ReplayMode                       map[string]bool                    `json:"replayMode"`
-	FinalScoring                     map[string]*PlayerFinalScore       `json:"finalScoring"`
-	SuppressTurnAdvance              bool                               `json:"-"`
-	RiverTownHex                     *board.Hex                         `json:"-"` // For Mermaids river town formation
+	Map                              *board.TerraMysticaMap                `json:"map"`
+	Players                          map[string]*Player                    `json:"players"`
+	Round                            int                                   `json:"round"`
+	Phase                            GamePhase                             `json:"phase"`
+	SetupMode                        SetupMode                             `json:"setupMode"`
+	EnableFanFactions                bool                                  `json:"enableFanFactions"`
+	SetupSubphase                    SetupSubphase                         `json:"setupSubphase"`
+	AuctionState                     *AuctionState                         `json:"auctionState,omitempty"`
+	SetupDwellingOrder               []string                              `json:"setupDwellingOrder"`
+	SetupDwellingIndex               int                                   `json:"setupDwellingIndex"`
+	SetupBonusOrder                  []string                              `json:"setupBonusOrder"`
+	SetupBonusIndex                  int                                   `json:"setupBonusIndex"`
+	SetupPlacedDwellings             map[string]int                        `json:"setupPlacedDwellings"`
+	TurnOrderPolicy                  TurnOrderPolicy                       `json:"turnOrderPolicy"`
+	TurnOrder                        []string                              `json:"turnOrder"`
+	CurrentPlayerIndex               int                                   `json:"currentPlayerIndex"`
+	PassOrder                        []string                              `json:"passOrder"`
+	PowerActions                     *PowerActionState                     `json:"powerActions"`
+	CultTracks                       *CultTrackState                       `json:"cultTracks"`
+	FavorTiles                       *FavorTileState                       `json:"favorTiles"`
+	BonusCards                       *BonusCardState                       `json:"bonusCards"`
+	TownTiles                        *TownTileState                        `json:"townTiles"`
+	ScoringTiles                     *ScoringTileState                     `json:"scoringTiles"`
+	PendingLeechOffers               map[string][]*PowerLeechOffer         `json:"pendingLeechOffers"`
+	PendingTownFormations            map[string][]*PendingTownFormation    `json:"pendingTownFormations"`
+	PendingSpades                    map[string]int                        `json:"pendingSpades"`
+	PendingSpadeBuildAllowed         map[string]bool                       `json:"pendingSpadeBuildAllowed"`
+	PendingCultRewardSpades          map[string]int                        `json:"pendingCultRewardSpades"`
+	PendingCultistsLeech             map[int]*CultistsLeechBonus           `json:"pendingCultistsLeech"`
+	NextLeechEventID                 int                                   `json:"-"`
+	SkipAbilityUsedThisAction        map[string][]board.Hex                `json:"skipAbilityUsedThisAction"`
+	PendingFavorTileSelection        *PendingFavorTileSelection            `json:"pendingFavorTileSelection"`
+	PendingHalflingsSpades           *PendingHalflingsSpades               `json:"pendingHalflingsSpades"`
+	PendingGoblinsCultSteps          *PendingGoblinsCultSteps              `json:"pendingGoblinsCultSteps,omitempty"`
+	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling       `json:"pendingWispsStrongholdDwelling,omitempty"`
+	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination     `json:"pendingDarklingsPriestOrdination"`
+	PendingCultistsCultSelection     *PendingCultistsCultSelection         `json:"pendingCultistsCultSelection"`
+	PendingDjinniStartingCultChoice  *PendingDjinniStartingCultChoice      `json:"pendingDjinniStartingCultChoice,omitempty"`
+	PendingArchivistsBonusSelection  *PendingArchivistsBonusSelection      `json:"pendingArchivistsBonusSelection,omitempty"`
+	PendingTreasurersDeposit         *PendingTreasurersDeposit             `json:"pendingTreasurersDeposit,omitempty"`
+	PendingTreasurersDepositQueue    []*PendingTreasurersDeposit           `json:"-"`
+	PendingTownCultTopChoice         *PendingTownCultTopChoice             `json:"pendingTownCultTopChoice"`
+	PendingFreeActionsPlayerID       string                                `json:"pendingFreeActionsPlayerId"`
+	PendingTurnConfirmationPlayerID  string                                `json:"pendingTurnConfirmationPlayerId"`
+	PendingTurnConfirmationSnapshot  *GameState                            `json:"-"`
+	PendingWispsTradingPostSpade     map[string]board.Hex                  `json:"-"`
+	PendingPostActionSpecialActions  map[string]map[SpecialActionType]bool `json:"-"`
+	TurnTimer                        *TurnTimerState                       `json:"turnTimer,omitempty"`
+	ReplayMode                       map[string]bool                       `json:"replayMode"`
+	FinalScoring                     map[string]*PlayerFinalScore          `json:"finalScoring"`
+	SuppressTurnAdvance              bool                                  `json:"-"`
+	RiverTownHex                     *board.Hex                            `json:"-"` // For Mermaids river town formation
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -93,6 +104,26 @@ type PendingHalflingsSpades struct {
 	TransformedHexes []board.Hex // Hexes that have been transformed
 }
 
+// PendingGoblinsCultSteps represents Goblins choosing cult tracks for treasure rewards.
+type PendingGoblinsCultSteps struct {
+	PlayerID       string
+	StepsRemaining int
+}
+
+// PendingWispsStrongholdDwelling represents the mandatory free lake dwelling
+// after the Wisps build their stronghold.
+type PendingWispsStrongholdDwelling struct {
+	PlayerID string
+}
+
+// PendingArchivistsBonusSelection represents Archivists choosing the second
+// bonus card after passing with the stronghold ability.
+type PendingArchivistsBonusSelection struct {
+	PlayerID      string
+	ReturnedCards []BonusCardType
+	UndoSnapshot  *GameState `json:"-"`
+}
+
 // PendingDarklingsPriestOrdination represents Darklings player who needs to convert workers to priests
 // Triggered by: Building Stronghold (one-time only, immediate)
 type PendingDarklingsPriestOrdination struct {
@@ -103,6 +134,22 @@ type PendingDarklingsPriestOrdination struct {
 // Triggered by: Power leech bonus (when at least one opponent accepts power)
 type PendingCultistsCultSelection struct {
 	PlayerID string
+}
+
+// PendingDjinniStartingCultChoice represents Djinni choosing which cult
+// receives their starting two cult steps.
+type PendingDjinniStartingCultChoice struct {
+	PlayerID string
+}
+
+// PendingTreasurersDeposit represents a Treasurers choice to move some of the
+// newly gained resources into the treasury.
+type PendingTreasurersDeposit struct {
+	PlayerID         string
+	AvailableCoins   int
+	AvailableWorkers int
+	AvailablePriests int
+	Reason           string
 }
 
 // PendingTownCultTopChoice represents a key-limited cult-top choice from town tile cult bonuses.
@@ -167,22 +214,226 @@ const (
 
 // Player represents a player in the game
 type Player struct {
-	ID                   string                     `json:"id"`
-	Name                 string                     `json:"name"`
-	Faction              factions.Faction           `json:"faction"`
-	Options              PlayerOptions              `json:"options"`
-	Resources            *ResourcePool              `json:"resources"`
-	ShippingLevel        int                        `json:"shippingLevel"`
-	DiggingLevel         int                        `json:"diggingLevel"`
-	BridgesBuilt         int                        `json:"bridgesBuilt"`         // Number of bridges built (max 3)
-	CultPositions        map[CultTrack]int          `json:"cults"`                // Position on each cult track (0-10)
-	HasStrongholdAbility bool                       `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
-	SpecialActionsUsed   map[SpecialActionType]bool `json:"specialActionsUsed"`   // Track which special actions have been used this round
-	HasPassed            bool                       `json:"hasPassed"`
-	VictoryPoints        int                        `json:"victoryPoints"`
-	Keys                 int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
-	TownsFormed          int                        `json:"townsFormed"` // Number of towns formed
-	TownTiles            []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
+	ID                    string                     `json:"id"`
+	Name                  string                     `json:"name"`
+	Faction               factions.Faction           `json:"faction"`
+	Options               PlayerOptions              `json:"options"`
+	Resources             *ResourcePool              `json:"resources"`
+	ShippingLevel         int                        `json:"shippingLevel"`
+	DiggingLevel          int                        `json:"diggingLevel"`
+	BridgesBuilt          int                        `json:"bridgesBuilt"` // Number of bridges built (max 3)
+	ChashIncomeTrackLevel int                        `json:"chashIncomeTrackLevel"`
+	CultPositions         map[CultTrack]int          `json:"cults"`                // Position on each cult track (0-10)
+	HasStrongholdAbility  bool                       `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
+	SpecialActionsUsed    map[SpecialActionType]bool `json:"specialActionsUsed"`   // Track which special actions have been used this round
+	HasPassed             bool                       `json:"hasPassed"`
+	VictoryPoints         int                        `json:"victoryPoints"`
+	Keys                  int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
+	TownsFormed           int                        `json:"townsFormed"` // Number of towns formed
+	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
+	GoblinTreasureTokens  int                        `json:"goblinTreasureTokens"`
+	DjinniLampTokens      int                        `json:"djinniLampTokens"`
+	TreasuryCoins         int                        `json:"treasuryCoins"`
+	TreasuryWorkers       int                        `json:"treasuryWorkers"`
+	TreasuryPriests       int                        `json:"treasuryPriests"`
+	AtlanteansTownHexes   []board.Hex                `json:"-"`
+	AtlanteansTownRewards map[int]bool               `json:"-"`
+}
+
+func getStructurePowerValue(player *Player, buildingType models.BuildingType) int {
+	if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionDynionGeifr {
+		return 2
+	}
+	return GetPowerValue(buildingType)
+}
+
+func (gs *GameState) grantPendingPostActionSpecialAction(playerID string, actionType SpecialActionType) {
+	if gs == nil {
+		return
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return
+	}
+	if gs.PendingPostActionSpecialActions == nil {
+		gs.PendingPostActionSpecialActions = make(map[string]map[SpecialActionType]bool)
+	}
+	if gs.PendingPostActionSpecialActions[playerID] == nil {
+		gs.PendingPostActionSpecialActions[playerID] = make(map[SpecialActionType]bool)
+	}
+	gs.PendingPostActionSpecialActions[playerID][actionType] = true
+}
+
+func (gs *GameState) hasPendingPostActionSpecialAction(playerID string, actionType SpecialActionType) bool {
+	if gs == nil || gs.PendingPostActionSpecialActions == nil {
+		return false
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return false
+	}
+	return gs.PendingPostActionSpecialActions[playerID][actionType]
+}
+
+func (gs *GameState) hasAnyPendingPostActionSpecialAction(playerID string) bool {
+	if gs == nil || gs.PendingPostActionSpecialActions == nil {
+		return false
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return false
+	}
+	return len(gs.PendingPostActionSpecialActions[playerID]) > 0
+}
+
+func (gs *GameState) consumePendingPostActionSpecialAction(playerID string, actionType SpecialActionType) bool {
+	if !gs.hasPendingPostActionSpecialAction(playerID, actionType) {
+		return false
+	}
+	delete(gs.PendingPostActionSpecialActions[playerID], actionType)
+	if len(gs.PendingPostActionSpecialActions[playerID]) == 0 {
+		delete(gs.PendingPostActionSpecialActions, playerID)
+	}
+	return true
+}
+
+func (gs *GameState) clearPendingPostActionSpecialActions(playerID string) {
+	if gs == nil || gs.PendingPostActionSpecialActions == nil {
+		return
+	}
+	playerID = strings.TrimSpace(playerID)
+	if playerID == "" {
+		return
+	}
+	delete(gs.PendingPostActionSpecialActions, playerID)
+	if len(gs.PendingPostActionSpecialActions) == 0 {
+		gs.PendingPostActionSpecialActions = nil
+	}
+}
+
+func isArchitects(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionArchitects
+}
+
+func isTreasurers(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionTreasurers
+}
+
+func (gs *GameState) queueTreasurersDeposit(playerID string, coins, workers, priests int, reason string) {
+	if gs == nil {
+		return
+	}
+	player := gs.GetPlayer(playerID)
+	if !isTreasurers(player) {
+		return
+	}
+	if reason != "income" && !player.HasStrongholdAbility {
+		return
+	}
+	if coins <= 0 && workers <= 0 && priests <= 0 {
+		return
+	}
+	entry := &PendingTreasurersDeposit{
+		PlayerID:         playerID,
+		AvailableCoins:   maxInt(0, coins),
+		AvailableWorkers: maxInt(0, workers),
+		AvailablePriests: maxInt(0, priests),
+		Reason:           reason,
+	}
+	if gs.PendingTreasurersDeposit == nil {
+		gs.PendingTreasurersDeposit = entry
+		return
+	}
+	gs.PendingTreasurersDepositQueue = append(gs.PendingTreasurersDepositQueue, entry)
+}
+
+func (gs *GameState) advanceTreasurersDepositQueue() {
+	if gs == nil {
+		return
+	}
+	if len(gs.PendingTreasurersDepositQueue) == 0 {
+		gs.PendingTreasurersDeposit = nil
+		return
+	}
+	gs.PendingTreasurersDeposit = gs.PendingTreasurersDepositQueue[0]
+	gs.PendingTreasurersDepositQueue = gs.PendingTreasurersDepositQueue[1:]
+}
+
+func (gs *GameState) releaseTreasuryBeforeIncome(playerID string) {
+	player := gs.GetPlayer(playerID)
+	if !isTreasurers(player) {
+		return
+	}
+	if player.TreasuryCoins > 0 {
+		player.Resources.Coins += player.TreasuryCoins * 2
+		player.TreasuryCoins = 0
+	}
+	if player.TreasuryWorkers > 0 {
+		player.Resources.Workers += player.TreasuryWorkers * 2
+		player.TreasuryWorkers = 0
+	}
+	if player.TreasuryPriests > 0 {
+		treasuryPriests := player.TreasuryPriests
+		player.TreasuryPriests = 0
+		gs.GainPriests(playerID, treasuryPriests*2)
+	}
+}
+
+func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		return nil
+	}
+
+	switch player.Faction.GetType() {
+	case models.FactionArchivists:
+		gs.ensureArchivistsBonusCardAvailable()
+	case models.FactionDynionGeifr:
+		if gs.FavorTiles == nil {
+			return fmt.Errorf("favor tiles not initialized")
+		}
+		if gs.FavorTiles.HasTileType(playerID, FavorFire2) {
+			return nil
+		}
+		if err := gs.FavorTiles.TakeFavorTile(playerID, FavorFire2); err != nil {
+			return fmt.Errorf("failed to grant dynion geifr starting favor tile: %w", err)
+		}
+		if err := ApplyFavorTileImmediate(gs, playerID, FavorFire2); err != nil {
+			return fmt.Errorf("failed to apply dynion geifr starting favor tile: %w", err)
+		}
+	case models.FactionGoblins:
+		player.GoblinTreasureTokens = 1
+	case models.FactionDjinni:
+		player.DjinniLampTokens = 3
+		gs.PendingDjinniStartingCultChoice = &PendingDjinniStartingCultChoice{PlayerID: playerID}
+	}
+
+	return nil
+}
+
+func (gs *GameState) ensureArchivistsBonusCardAvailable() {
+	if gs == nil || gs.BonusCards == nil {
+		return
+	}
+	if len(gs.BonusCards.Available) >= len(gs.Players)+4 {
+		return
+	}
+	allCards := GetAllBonusCards()
+	candidates := make([]BonusCardType, 0, len(allCards))
+	for cardType := range allCards {
+		if gs.BonusCards.IsAvailable(cardType) {
+			continue
+		}
+		if gs.BonusCards.PlayerHasCardType(cardType) {
+			continue
+		}
+		candidates = append(candidates, cardType)
+	}
+	if len(candidates) == 0 {
+		return
+	}
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i] < candidates[j] })
+	gs.BonusCards.Available[candidates[0]] = 0
 }
 
 // LeechAutoMode controls automatic accept/decline behavior for power leech offers.
@@ -277,25 +528,26 @@ func NewGameStateWithCustomMap(definition *board.CustomMapDefinition) (*GameStat
 
 func newGameStateWithBoard(gameMap *board.TerraMysticaMap) *GameState {
 	return &GameState{
-		Map:                       gameMap,
-		Players:                   make(map[string]*Player),
-		Round:                     1,
-		Phase:                     PhaseSetup,
-		SetupMode:                 SetupModeSnellman,
-		SetupSubphase:             SetupSubphaseNone,
-		TurnOrderPolicy:           TurnOrderPolicyPassOrder,
-		PowerActions:              NewPowerActionState(),
-		CultTracks:                NewCultTrackState(),
-		FavorTiles:                NewFavorTileState(),
-		BonusCards:                NewBonusCardState(),
-		TownTiles:                 NewTownTileState(),
-		ScoringTiles:              NewScoringTileState(),
-		PendingLeechOffers:        make(map[string][]*PowerLeechOffer),
-		PendingTownFormations:     make(map[string][]*PendingTownFormation),
-		PendingSpades:             make(map[string]int),
-		PendingSpadeBuildAllowed:  make(map[string]bool),
-		SkipAbilityUsedThisAction: make(map[string][]board.Hex),
-		SetupPlacedDwellings:      make(map[string]int),
+		Map:                          gameMap,
+		Players:                      make(map[string]*Player),
+		Round:                        1,
+		Phase:                        PhaseSetup,
+		SetupMode:                    SetupModeSnellman,
+		SetupSubphase:                SetupSubphaseNone,
+		TurnOrderPolicy:              TurnOrderPolicyPassOrder,
+		PowerActions:                 NewPowerActionState(),
+		CultTracks:                   NewCultTrackState(),
+		FavorTiles:                   NewFavorTileState(),
+		BonusCards:                   NewBonusCardState(),
+		TownTiles:                    NewTownTileState(),
+		ScoringTiles:                 NewScoringTileState(),
+		PendingLeechOffers:           make(map[string][]*PowerLeechOffer),
+		PendingTownFormations:        make(map[string][]*PendingTownFormation),
+		PendingSpades:                make(map[string]int),
+		PendingSpadeBuildAllowed:     make(map[string]bool),
+		SkipAbilityUsedThisAction:    make(map[string][]board.Hex),
+		PendingWispsTradingPostSpade: make(map[string]board.Hex),
+		SetupPlacedDwellings:         make(map[string]int),
 	}
 }
 
@@ -333,26 +585,28 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	}
 
 	player := &Player{
-		ID:            playerID,
-		Faction:       faction,
-		Options:       defaultPlayerOptions(),
-		Resources:     NewResourcePool(startingResources),
-		ShippingLevel: startingShippingLevel,
-		DiggingLevel:  0,
-		BridgesBuilt:  0,
+		ID:                    playerID,
+		Faction:               faction,
+		Options:               defaultPlayerOptions(),
+		Resources:             NewResourcePool(startingResources),
+		ShippingLevel:         startingShippingLevel,
+		DiggingLevel:          0,
+		BridgesBuilt:          0,
+		ChashIncomeTrackLevel: 0,
 		CultPositions: map[CultTrack]int{
 			CultFire:  startingCultPositions.Fire,
 			CultWater: startingCultPositions.Water,
 			CultEarth: startingCultPositions.Earth,
 			CultAir:   startingCultPositions.Air,
 		},
-		HasStrongholdAbility: false,
-		SpecialActionsUsed:   make(map[SpecialActionType]bool),
-		HasPassed:            false,
-		VictoryPoints:        20, // Starting VP
-		Keys:                 0,
-		TownsFormed:          0,
-		TownTiles:            []models.TownTileType{},
+		HasStrongholdAbility:  false,
+		SpecialActionsUsed:    make(map[SpecialActionType]bool),
+		HasPassed:             false,
+		VictoryPoints:         20, // Starting VP
+		Keys:                  0,
+		TownsFormed:           0,
+		TownTiles:             []models.TownTileType{},
+		AtlanteansTownRewards: make(map[int]bool),
 	}
 
 	gs.Players[playerID] = player
@@ -373,7 +627,7 @@ func (gs *GameState) AddPlayer(playerID string, faction factions.Faction) error 
 	// Initialize bonus cards for this player
 	gs.BonusCards.InitializePlayer(playerID)
 
-	return nil
+	return gs.applyFactionSpecificSetup(playerID)
 }
 
 // GetPlayer returns a player by ID
@@ -419,8 +673,31 @@ func (gs *GameState) AdvanceCultTrack(playerID string, track CultTrack, spaces i
 	return spacesAdvanced, nil
 }
 
-// SelectTownTile allows a player to select a town tile for their pending town formation
-func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileType) error {
+func (gs *GameState) DecreaseCultTrack(playerID string, track CultTrack, spaces int) (int, error) {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return 0, fmt.Errorf("player not found: %s", playerID)
+	}
+	if gs.CultTracks == nil {
+		return 0, fmt.Errorf("cult tracks not initialized")
+	}
+
+	if player.CultPositions != nil {
+		if localPos, ok := player.CultPositions[track]; ok {
+			cultTrackPos := gs.CultTracks.GetPosition(playerID, track)
+			if localPos > cultTrackPos {
+				gs.CultTracks.PlayerPositions[playerID][track] = localPos
+			}
+		}
+	}
+
+	spacesMoved := gs.CultTracks.DecreasePlayer(playerID, track, spaces, player)
+	player.CultPositions[track] = gs.CultTracks.GetPosition(playerID, track)
+	return spacesMoved, nil
+}
+
+// SelectTownTile allows a player to select a town tile and anchor hex for their pending town formation.
+func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileType, anchorHex *board.Hex) error {
 	// Check if player has any pending town formations
 	pendingTowns, ok := gs.PendingTownFormations[playerID]
 	if !ok || len(pendingTowns) == 0 {
@@ -434,6 +711,9 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 	if !gs.TownTiles.IsAvailable(tileType) {
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
+	if anchorHex == nil {
+		anchorHex = gs.defaultTownAnchorHex(playerID, pending)
+	}
 
 	// Remove the first pending town formation before applying town benefits so
 	// cult position-10 key checks don't treat the current town as unclaimed credit.
@@ -444,13 +724,239 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 		gs.PendingTownFormations[playerID] = remaining
 	}
 
-	// Form the town with the selected tile (and skipped river hex for Mermaids)
-	if err := gs.FormTown(playerID, pending.Hexes, tileType, pending.SkippedRiverHex); err != nil {
+	// Form the town with the selected tile and anchor hex.
+	if err := gs.FormTownWithAnchor(playerID, pending.Hexes, tileType, pending.SkippedRiverHex, anchorHex); err != nil {
 		// Restore pending state on failure.
 		gs.PendingTownFormations[playerID] = pendingTowns
 		return err
 	}
 
+	return nil
+}
+
+func (gs *GameState) playerHasAnyBuilding(playerID string) bool {
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			return true
+		}
+	}
+	return false
+}
+
+func (gs *GameState) getPlayerBuildingHexes(playerID string) []board.Hex {
+	hexes := make([]board.Hex, 0, 16)
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			hexes = append(hexes, mapHex.Coord)
+		}
+	}
+	return hexes
+}
+
+func (gs *GameState) effectiveShippingLevel(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		return 0
+	}
+	effectiveShipping := player.ShippingLevel
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(playerID) {
+		effectiveShipping += GetBonusCardShippingBonus(bonusCard, player.Faction.GetType())
+	}
+	return effectiveShipping
+}
+
+func (gs *GameState) childrenTokenComponentsForPlayer(playerID string) (map[board.Hex]int, map[int]bool) {
+	componentByHex := make(map[board.Hex]int)
+	componentTouchesStructure := make(map[int]bool)
+	nextComponent := 0
+
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || mapHex.PowerTokenOwnerPlayerID != playerID || mapHex.Terrain != models.TerrainRiver {
+			continue
+		}
+		if _, seen := componentByHex[mapHex.Coord]; seen {
+			continue
+		}
+
+		queue := []board.Hex{mapHex.Coord}
+		componentByHex[mapHex.Coord] = nextComponent
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
+			for _, neighbor := range current.Neighbors() {
+				neighborHex := gs.Map.GetHex(neighbor)
+				if neighborHex == nil || neighborHex.Terrain != models.TerrainRiver || neighborHex.PowerTokenOwnerPlayerID != playerID {
+					continue
+				}
+				if _, seen := componentByHex[neighbor]; seen {
+					continue
+				}
+				componentByHex[neighbor] = nextComponent
+				queue = append(queue, neighbor)
+			}
+		}
+		nextComponent++
+	}
+
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		for _, neighbor := range buildingHex.Neighbors() {
+			componentID, ok := componentByHex[neighbor]
+			if ok {
+				componentTouchesStructure[componentID] = true
+			}
+		}
+	}
+
+	return componentByHex, componentTouchesStructure
+}
+
+func (gs *GameState) hexTouchesChildrenTokenComponent(playerID string, hex board.Hex, componentByHex map[board.Hex]int) map[int]bool {
+	touched := make(map[int]bool)
+	for _, neighbor := range hex.Neighbors() {
+		componentID, ok := componentByHex[neighbor]
+		if ok {
+			touched[componentID] = true
+		}
+	}
+	return touched
+}
+
+func (gs *GameState) areHexesDirectlyAdjacentForPlayer(playerID string, h1, h2 board.Hex) bool {
+	if gs.Map.IsDirectlyAdjacent(h1, h2) {
+		return true
+	}
+
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return false
+	}
+
+	componentByHex, componentTouchesStructure := gs.childrenTokenComponentsForPlayer(playerID)
+	touched1 := gs.hexTouchesChildrenTokenComponent(playerID, h1, componentByHex)
+	if len(touched1) == 0 {
+		return false
+	}
+	touched2 := gs.hexTouchesChildrenTokenComponent(playerID, h2, componentByHex)
+	for componentID := range touched1 {
+		if touched2[componentID] && componentTouchesStructure[componentID] {
+			return true
+		}
+	}
+	return false
+}
+
+func (gs *GameState) getConnectedBuildingsForPlayer(playerID string, start board.Hex) []board.Hex {
+	buildingHexes := gs.getPlayerBuildingHexes(playerID)
+	if len(buildingHexes) == 0 {
+		return nil
+	}
+
+	connected := []board.Hex{}
+	visited := make(map[board.Hex]bool, len(buildingHexes))
+	queue := []board.Hex{start}
+	visited[start] = true
+
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		connected = append(connected, current)
+		for _, candidate := range buildingHexes {
+			if visited[candidate] || candidate == current {
+				continue
+			}
+			if gs.areHexesDirectlyAdjacentForPlayer(playerID, current, candidate) {
+				visited[candidate] = true
+				queue = append(queue, candidate)
+			}
+		}
+	}
+
+	return connected
+}
+
+func (gs *GameState) canPlaceChildrenPowerTokenAt(playerID string, targetHex board.Hex, planned map[board.Hex]bool) bool {
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex == nil || mapHex.Terrain != models.TerrainRiver || mapHex.PowerTokenOwnerPlayerID != "" {
+		return false
+	}
+
+	for _, neighbor := range targetHex.Neighbors() {
+		neighborHex := gs.Map.GetHex(neighbor)
+		if neighborHex == nil {
+			continue
+		}
+		if neighborHex.Building != nil && neighborHex.Building.PlayerID == playerID {
+			return true
+		}
+		if neighborHex.PowerTokenOwnerPlayerID == playerID || planned[neighbor] {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (gs *GameState) childrenBoardPowerTokenCount(playerID string) int {
+	count := 0
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex != nil && mapHex.PowerTokenOwnerPlayerID == playerID {
+			count++
+		}
+	}
+	return count
+}
+
+func (gs *GameState) childrenRemovedPowerTokenCount(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return 0
+	}
+	totalInCirculation := player.Resources.Power.TotalPower() + gs.childrenBoardPowerTokenCount(playerID)
+	if totalInCirculation >= 12 {
+		return 0
+	}
+	return 12 - totalInCirculation
+}
+
+func (gs *GameState) childrenNeedsBowl3ForBoardTokens(playerID string, count int) bool {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return false
+	}
+	return player.Resources.Power.Bowl1+player.Resources.Power.Bowl2 < count
+}
+
+func (gs *GameState) removeChildrenPowerTokensForBoard(playerID string, count int) error {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return fmt.Errorf("player not found: %s", playerID)
+	}
+	if count < 0 {
+		return fmt.Errorf("cannot remove negative power tokens")
+	}
+	if player.Resources.Power.TotalPower() < count {
+		return fmt.Errorf("not enough power tokens available")
+	}
+
+	remaining := count
+	if player.Resources.Power.Bowl1 >= remaining {
+		player.Resources.Power.Bowl1 -= remaining
+		return nil
+	}
+	remaining -= player.Resources.Power.Bowl1
+	player.Resources.Power.Bowl1 = 0
+
+	if player.Resources.Power.Bowl2 >= remaining {
+		player.Resources.Power.Bowl2 -= remaining
+		return nil
+	}
+	remaining -= player.Resources.Power.Bowl2
+	player.Resources.Power.Bowl2 = 0
+
+	if player.Resources.Power.Bowl3 < remaining {
+		return fmt.Errorf("not enough power tokens available")
+	}
+	player.Resources.Power.Bowl3 -= remaining
 	return nil
 }
 
@@ -465,47 +971,28 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex board.Hex, playerID st
 	}
 
 	// Check if player has any buildings at all (for first dwelling placement)
-	hasAnyBuilding := false
-	for _, mapHex := range gs.Map.Hexes {
-		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-			hasAnyBuilding = true
-			break
-		}
-	}
-
-	// If player has no buildings yet, allow placement anywhere (first dwelling)
-	if !hasAnyBuilding {
+	if !gs.playerHasAnyBuilding(playerID) {
 		return true
 	}
 
-	// Calculate effective shipping level (base + bonus card bonus)
-	effectiveShipping := player.ShippingLevel
-	if bonusCard, hasCard := gs.BonusCards.GetPlayerCard(playerID); hasCard {
-		shippingBonus := GetBonusCardShippingBonus(bonusCard, player.Faction.GetType())
-		effectiveShipping += shippingBonus
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		if gs.areHexesDirectlyAdjacentForPlayer(playerID, targetHex, buildingHex) {
+			return true
+		}
 	}
 
-	// Check adjacency to each of the player's buildings
-	for _, mapHex := range gs.Map.Hexes {
-		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
-			buildingHex := mapHex.Coord
+	effectiveShipping := gs.effectiveShippingLevel(playerID)
+	if effectiveShipping <= 0 {
+		return false
+	}
 
-			// Check direct adjacency (includes bridges)
-			if gs.Map.IsDirectlyAdjacent(targetHex, buildingHex) {
-				return true
-			}
-
-			// Check indirect adjacency via shipping (river navigation)
-			if effectiveShipping > 0 {
-				if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, effectiveShipping) {
-					return true
-				}
-			}
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		if gs.Map.IsIndirectlyAdjacent(targetHex, buildingHex, effectiveShipping) {
+			return true
 		}
 	}
 
 	// Special abilities (Witches flying, Fakirs carpet, Dwarves tunneling) are handled by special actions
-
 	return false
 }
 
@@ -545,6 +1032,9 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 		// Create offer based on TOTAL power from all adjacent buildings
 		offer := NewPowerLeechOffer(totalPower, buildingPlayerID, neighborPlayer.Resources.Power)
 		if offer != nil {
+			if neighborPlayer.Faction != nil && neighborPlayer.Faction.GetType() == models.FactionChildrenOfTheWyrm && offer.VPCost > 0 {
+				offer.VPCost--
+			}
 			offer.EventID = eventID
 			// Store offer for player to accept/decline
 			if gs.PendingLeechOffers[neighborPlayerID] == nil {
@@ -629,6 +1119,9 @@ func (gs *GameState) AcceptLeechOffer(playerID string, offerIndex int) error {
 
 	// Gain power and lose VP based on the amount actually gained.
 	vpCost := player.Resources.AcceptPowerLeech(offer)
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && vpCost > 0 {
+		vpCost--
+	}
 	player.VictoryPoints -= vpCost
 
 	// Remove the offer
@@ -728,7 +1221,7 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 		Type:       models.BuildingDwelling,
 		Faction:    player.Faction.GetType(),
 		PlayerID:   playerID,
-		PowerValue: 1, // Dwellings provide 1 power to neighbors
+		PowerValue: getStructurePowerValue(player, models.BuildingDwelling),
 	}
 	mapHex.Building = dwelling
 
@@ -746,6 +1239,7 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 
 	// Check for town formation
 	gs.CheckForTownFormation(playerID, targetHex)
+	gs.updateAtlanteansStrongholdTown(playerID)
 
 	return nil
 }
@@ -790,9 +1284,28 @@ func (gs *GameState) InitializeSetupSequence() {
 	gs.SetupBonusIndex = 0
 	gs.SetupPlacedDwellings = make(map[string]int)
 
+	chaosIndex := -1
+	atlanteansIndex := -1
+	for i, playerID := range gs.TurnOrder {
+		player := gs.GetPlayer(playerID)
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		switch player.Faction.GetType() {
+		case models.FactionChaosMagicians:
+			chaosIndex = i
+		case models.FactionAtlanteans:
+			atlanteansIndex = i
+		}
+	}
+
 	for _, playerID := range gs.TurnOrder {
 		player := gs.GetPlayer(playerID)
-		if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionChaosMagicians {
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		factionType := player.Faction.GetType()
+		if factionType != models.FactionChaosMagicians && factionType != models.FactionAtlanteans {
 			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
 		}
 	}
@@ -800,7 +1313,11 @@ func (gs *GameState) InitializeSetupSequence() {
 	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
 		playerID := gs.TurnOrder[i]
 		player := gs.GetPlayer(playerID)
-		if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionChaosMagicians {
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		factionType := player.Faction.GetType()
+		if factionType != models.FactionChaosMagicians && factionType != models.FactionAtlanteans {
 			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
 		}
 	}
@@ -813,12 +1330,20 @@ func (gs *GameState) InitializeSetupSequence() {
 		}
 	}
 
+	if atlanteansIndex >= 0 && (chaosIndex == -1 || atlanteansIndex < chaosIndex) {
+		gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, gs.TurnOrder[atlanteansIndex])
+	}
+
 	for i := len(gs.TurnOrder) - 1; i >= 0; i-- {
 		playerID := gs.TurnOrder[i]
 		player := gs.GetPlayer(playerID)
 		if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionChaosMagicians {
 			gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, playerID)
 		}
+	}
+
+	if atlanteansIndex >= 0 && chaosIndex >= 0 && atlanteansIndex > chaosIndex {
+		gs.SetupDwellingOrder = append(gs.SetupDwellingOrder, gs.TurnOrder[atlanteansIndex])
 	}
 
 	if current := gs.currentSetupDwellingPlayerID(); current != "" {
@@ -859,6 +1384,22 @@ func (gs *GameState) AdvanceSetupAfterBonusSelection() {
 	gs.CompleteSetupAndStartRoundOne()
 }
 
+func (gs *GameState) clearPendingWispsTradingPostSpade(playerID string) {
+	if gs.PendingWispsTradingPostSpade == nil {
+		return
+	}
+	delete(gs.PendingWispsTradingPostSpade, playerID)
+}
+
+func (gs *GameState) hasAvailableWispsStrongholdLake() bool {
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex != nil && mapHex.Terrain == models.TerrainLake && mapHex.Building == nil {
+			return true
+		}
+	}
+	return false
+}
+
 func (gs *GameState) CompleteSetupAndStartRoundOne() {
 	if gs.BonusCards != nil {
 		gs.BonusCards.AddCoinsToLeftoverCards()
@@ -874,7 +1415,9 @@ func (gs *GameState) CompleteSetupAndStartRoundOne() {
 
 	gs.Phase = PhaseIncome
 	gs.GrantIncome()
-	gs.Phase = PhaseAction
+	if gs.PendingTreasurersDeposit == nil {
+		gs.Phase = PhaseAction
+	}
 	gs.CurrentPlayerIndex = 0
 	gs.SetupSubphase = SetupSubphaseComplete
 }
@@ -1038,8 +1581,9 @@ func (gs *GameState) AllPlayersPassed() bool {
 	return true
 }
 
-// GainPriests grants priests to a player while enforcing the 7-priest limit
-// Terra Mystica rule: priests in hand + priests on cult tracks <= 7
+// GainPriests grants priests to a player while enforcing the 7-priest limit.
+// Terra Mystica rule: priests in hand + priests on cult action spaces +
+// priests in Treasury <= 7.
 // Returns the actual number of priests gained (may be less than requested)
 func (gs *GameState) GainPriests(playerID string, amount int) int {
 	if amount <= 0 {
@@ -1051,9 +1595,7 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 		return 0
 	}
 
-	priestsInHand := player.Resources.Priests
-	priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(playerID)
-	totalPriests := priestsInHand + priestsOnCult
+	totalPriests := gs.GetTotalOwnedPriests(playerID)
 	maxNewPriests := 7 - totalPriests
 
 	if maxNewPriests <= 0 {
@@ -1069,6 +1611,29 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 
 	player.Resources.Priests += priestsToGain
 	return priestsToGain
+}
+
+func (gs *GameState) GetTotalOwnedPriests(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil {
+		return 0
+	}
+
+	priestsInHand := player.Resources.Priests
+	priestsInTreasury := player.TreasuryPriests
+	priestsOnCult := 0
+	if gs != nil && gs.CultTracks != nil {
+		priestsOnCult = gs.CultTracks.GetTotalPriestsOnCultTracks(playerID)
+	}
+	return priestsInHand + priestsOnCult + priestsInTreasury
+}
+
+func (gs *GameState) RemainingPriestCapacity(playerID string) int {
+	remaining := 7 - gs.GetTotalOwnedPriests(playerID)
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
 }
 
 // IsGameOver checks if the game has ended (after round 6)
@@ -1135,19 +1700,10 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Check faction-specific max digging level
 	factionType := player.Faction.GetType()
-	var maxLevel int
-	switch factionType {
-	case models.FactionDarklings:
-		// Darklings cannot advance digging at all (they use priests for spades)
-		return fmt.Errorf("darklings cannot advance digging level")
-	case models.FactionFakirs:
-		// Fakirs can only advance to level 1
-		maxLevel = 1
-	default:
-		// Most factions can advance to level 2
-		maxLevel = 2
+	maxLevel, err := maxDiggingLevelForFaction(factionType)
+	if err != nil {
+		return err
 	}
 
 	// Check if already at faction's max level
@@ -1169,34 +1725,21 @@ func (gs *GameState) AdvanceDiggingLevel(playerID string) error {
 
 // updateFactionDiggingLevel updates the faction-specific digging level to match the player's level
 func (gs *GameState) updateFactionDiggingLevel(player *Player) {
-	// Use type assertion to get the base faction and update its digging level
-	switch f := player.Faction.(type) {
-	case *factions.Giants:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Witches:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Auren:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Swarmlings:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Cultists:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Alchemists:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Halflings:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.ChaosMagicians:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Nomads:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Fakirs:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Dwarves:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Engineers:
-		f.DiggingLevel = player.DiggingLevel
-	case *factions.Mermaids:
-		f.DiggingLevel = player.DiggingLevel
+	if setter, ok := player.Faction.(factions.SetDiggingLevel); ok {
+		setter.SetDiggingLevel(player.DiggingLevel)
+	}
+}
+
+func maxDiggingLevelForFaction(factionType models.FactionType) (int, error) {
+	switch factionType {
+	case models.FactionDarklings:
+		return 0, fmt.Errorf("darklings cannot advance digging level")
+	case models.FactionChashDallah:
+		return 0, fmt.Errorf("chash dallah cannot advance digging level")
+	case models.FactionFakirs:
+		return 1, nil
+	default:
+		return 2, nil
 	}
 }
 
@@ -1208,19 +1751,9 @@ func (gs *GameState) advanceDiggingLevelWithoutVP(playerID string) error {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
 
-	// Check faction-specific max digging level
-	factionType := player.Faction.GetType()
-	var maxLevel int
-	switch factionType {
-	case models.FactionDarklings:
-		// Darklings cannot advance digging at all
-		return fmt.Errorf("darklings cannot advance digging level")
-	case models.FactionFakirs:
-		// Fakirs can only advance to level 1
-		maxLevel = 1
-	default:
-		// Most factions can advance to level 2
-		maxLevel = 2
+	maxLevel, err := maxDiggingLevelForFaction(player.Faction.GetType())
+	if err != nil {
+		return err
 	}
 
 	// Check if already at faction's max level

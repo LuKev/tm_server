@@ -51,6 +51,7 @@ func (gs *GameState) ConfirmPendingTurn(playerID string) error {
 		return fmt.Errorf("turn confirmation pending for player %s", pendingPlayerID)
 	}
 
+	gs.clearPendingPostActionSpecialActions(playerID)
 	gs.PendingFreeActionsPlayerID = ""
 	gs.ClearPendingTurnConfirmation()
 	return nil
