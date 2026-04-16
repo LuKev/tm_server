@@ -1219,3 +1219,17 @@
   - `Djinni` start with `3` lamp tokens and use them via a normal turn action (`SpecialActionDjinniSwapCults`) that swaps two cult-track levels, is not once-per-round, and still must respect occupied level-10 spaces.
   - Djinni also have a mandatory setup decision (`djinni_start_cult_choice`) to choose which cult gets their starting `+2` steps.
   - Djinni stronghold scoring is passive on pass: they gain `1 VP` per priest on cult-track action spaces (`CultTracks.PriestsOnActionSpaces` total), not per cult level.
+- 2026-04-14 red fan factions (`Architects`, `Treasurers`):
+  - `Architects` reusable bridge action is wired through the existing `engineers_bridge` path, but it costs `1 priest` for Architects instead of `2 workers`.
+  - `Architects` bridges contribute `+1` town power while still not counting as structures; this applies both when founding towns and when validating whether a moved bridge would invalidate an existing town marker.
+  - `Architects` only get the bridge-based spade discount on `Transform and Build` actions that end with a dwelling on the target hex; the reduction is `1 spade` per owned bridge incident to that target hex.
+  - `Architects` stronghold action is implemented as a dedicated special action that moves one owned bridge to a new legal edge and grants `3 VP`; the client uses a two-step bridge-edge picker (old edge, then new edge).
+  - `Treasurers` now track off-board resources via `treasuryCoins`, `treasuryWorkers`, and `treasuryPriests` on the player state and surface them on the player board header.
+  - At the start of income, Treasurers release Treasury resources to the faction board doubled, then may bank newly received income resources through a pending `treasurers_deposit` decision before action phase begins.
+  - After the stronghold is built, the same `treasurers_deposit` pending-decision flow is reused for action-phase resource gains; current implementation queues the bankable amounts from the acting player's post-action resource delta.
+- 2026-04-15 town-anchor model:
+  - Town founding now records a specific town-marker hex for all standard towns, and live `select_town_tile` actions must send an explicit `anchorHex`; the client now prompts the player to choose which building gets the town tile.
+  - `GameState.SelectTownTile` still accepts a nil anchor for replay / notation compatibility and deterministically falls back to the skipped Mermaids river hex or the first owned building in the pending town.
+  - Mermaids river-skip towns remain anchored on the skipped river hex, not under a building.
+  - Architects bridge-move validation now checks existing towns by recorded marker hexes instead of raw `PartOfTown` connected components, so moving a bridge can be rejected based on which exact building previously received each town tile.
+  - Extra Bazel checks on `//internal/notation:notation_test`, `//internal/replay:replay_test`, and `//internal/websocket:websocket_test` currently surface unrelated pre-existing failures outside this anchor change; required `game_test`, `factions_test`, and `client_build_test` still pass.

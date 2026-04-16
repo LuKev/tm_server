@@ -884,6 +884,26 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return 0, fmt.Errorf("invalid integer parameter")
 	}
 
+	parseOptionalIntParam := func(defaultValue int, keys ...string) (int, error) {
+		raw, ok := getParam(keys...)
+		if !ok {
+			return defaultValue, nil
+		}
+		var val int
+		if err := json.Unmarshal(raw, &val); err == nil {
+			return val, nil
+		}
+		var s string
+		if err := json.Unmarshal(raw, &s); err == nil {
+			parsed, err := strconv.Atoi(s)
+			if err != nil {
+				return 0, fmt.Errorf("invalid integer parameter: %s", s)
+			}
+			return parsed, nil
+		}
+		return 0, fmt.Errorf("invalid integer parameter")
+	}
+
 	parseBoolParam := func(defaultValue bool, keys ...string) (bool, error) {
 		raw, ok := getParam(keys...)
 		if !ok {
@@ -1206,9 +1226,14 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
+		var anchorHex *board.Hex
+		if hex, err := parseHexParam("anchorHex", "townHex"); err == nil {
+			anchorHex = &hex
+		}
 		return &game.SelectTownTileAction{
 			BaseAction: game.BaseAction{Type: game.ActionSelectTownTile, PlayerID: seatID},
 			TileType:   tileType,
+			AnchorHex:  anchorHex,
 		}, nil
 
 	case "select_town_cult_top":
@@ -1248,6 +1273,21 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			return nil, err
 		}
 		return game.NewSelectDjinniStartingCultTrackAction(seatID, track), nil
+
+	case "select_treasurers_deposit":
+		coins, err := parseOptionalIntParam(getParam, 0, "coinsToTreasury")
+		if err != nil {
+			return nil, err
+		}
+		workers, err := parseOptionalIntParam(getParam, 0, "workersToTreasury")
+		if err != nil {
+			return nil, err
+		}
+		priests, err := parseOptionalIntParam(getParam, 0, "priestsToTreasury")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewSelectTreasurersDepositAction(seatID, coins, workers, priests), nil
 
 	case "select_archivists_bonus_card":
 		bonusCard, err := parseBonusCardType(getParam)
@@ -1631,6 +1671,21 @@ func buildSpecialAction(
 			return nil, fmt.Errorf("missing or invalid second cult track: %w", err)
 		}
 		return game.NewDjinniSwapCultsAction(seatID, firstTrack, secondTrack), nil
+
+	case game.SpecialActionArchitectsMoveBridge:
+		oldHex1, oldHex2, err := parseBridgeEndpoints()
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid bridge to move: %w", err)
+		}
+		newHex1, err := parseHexParam("targetHex", "newBridgeHex1")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid new bridge endpoint: %w", err)
+		}
+		newHex2, err := parseHexParam("upgradeHex", "newBridgeHex2")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid new bridge endpoint: %w", err)
+		}
+		return game.NewArchitectsMoveBridgeAction(seatID, oldHex1, oldHex2, newHex1, newHex2), nil
 
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")

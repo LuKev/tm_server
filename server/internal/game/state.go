@@ -56,6 +56,8 @@ type GameState struct {
 	PendingCultistsCultSelection     *PendingCultistsCultSelection         `json:"pendingCultistsCultSelection"`
 	PendingDjinniStartingCultChoice  *PendingDjinniStartingCultChoice      `json:"pendingDjinniStartingCultChoice,omitempty"`
 	PendingArchivistsBonusSelection  *PendingArchivistsBonusSelection      `json:"pendingArchivistsBonusSelection,omitempty"`
+	PendingTreasurersDeposit         *PendingTreasurersDeposit             `json:"pendingTreasurersDeposit,omitempty"`
+	PendingTreasurersDepositQueue    []*PendingTreasurersDeposit           `json:"-"`
 	PendingTownCultTopChoice         *PendingTownCultTopChoice             `json:"pendingTownCultTopChoice"`
 	PendingFreeActionsPlayerID       string                                `json:"pendingFreeActionsPlayerId"`
 	PendingTurnConfirmationPlayerID  string                                `json:"pendingTurnConfirmationPlayerId"`
@@ -140,6 +142,16 @@ type PendingDjinniStartingCultChoice struct {
 	PlayerID string
 }
 
+// PendingTreasurersDeposit represents a Treasurers choice to move some of the
+// newly gained resources into the treasury.
+type PendingTreasurersDeposit struct {
+	PlayerID         string
+	AvailableCoins   int
+	AvailableWorkers int
+	AvailablePriests int
+	Reason           string
+}
+
 // PendingTownCultTopChoice represents a key-limited cult-top choice from town tile cult bonuses.
 // Triggered when TW8/TW2 would top multiple cult tracks but player lacks enough keys.
 type PendingTownCultTopChoice struct {
@@ -221,6 +233,9 @@ type Player struct {
 	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
 	GoblinTreasureTokens  int                        `json:"goblinTreasureTokens"`
 	DjinniLampTokens      int                        `json:"djinniLampTokens"`
+	TreasuryCoins         int                        `json:"treasuryCoins"`
+	TreasuryWorkers       int                        `json:"treasuryWorkers"`
+	TreasuryPriests       int                        `json:"treasuryPriests"`
 	AtlanteansTownHexes   []board.Hex                `json:"-"`
 	AtlanteansTownRewards map[int]bool               `json:"-"`
 }
@@ -293,6 +308,74 @@ func (gs *GameState) clearPendingPostActionSpecialActions(playerID string) {
 	delete(gs.PendingPostActionSpecialActions, playerID)
 	if len(gs.PendingPostActionSpecialActions) == 0 {
 		gs.PendingPostActionSpecialActions = nil
+	}
+}
+
+func isArchitects(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionArchitects
+}
+
+func isTreasurers(player *Player) bool {
+	return player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionTreasurers
+}
+
+func (gs *GameState) queueTreasurersDeposit(playerID string, coins, workers, priests int, reason string) {
+	if gs == nil {
+		return
+	}
+	player := gs.GetPlayer(playerID)
+	if !isTreasurers(player) {
+		return
+	}
+	if reason != "income" && !player.HasStrongholdAbility {
+		return
+	}
+	if coins <= 0 && workers <= 0 && priests <= 0 {
+		return
+	}
+	entry := &PendingTreasurersDeposit{
+		PlayerID:         playerID,
+		AvailableCoins:   maxInt(0, coins),
+		AvailableWorkers: maxInt(0, workers),
+		AvailablePriests: maxInt(0, priests),
+		Reason:           reason,
+	}
+	if gs.PendingTreasurersDeposit == nil {
+		gs.PendingTreasurersDeposit = entry
+		return
+	}
+	gs.PendingTreasurersDepositQueue = append(gs.PendingTreasurersDepositQueue, entry)
+}
+
+func (gs *GameState) advanceTreasurersDepositQueue() {
+	if gs == nil {
+		return
+	}
+	if len(gs.PendingTreasurersDepositQueue) == 0 {
+		gs.PendingTreasurersDeposit = nil
+		return
+	}
+	gs.PendingTreasurersDeposit = gs.PendingTreasurersDepositQueue[0]
+	gs.PendingTreasurersDepositQueue = gs.PendingTreasurersDepositQueue[1:]
+}
+
+func (gs *GameState) releaseTreasuryBeforeIncome(playerID string) {
+	player := gs.GetPlayer(playerID)
+	if !isTreasurers(player) {
+		return
+	}
+	if player.TreasuryCoins > 0 {
+		player.Resources.Coins += player.TreasuryCoins * 2
+		player.TreasuryCoins = 0
+	}
+	if player.TreasuryWorkers > 0 {
+		player.Resources.Workers += player.TreasuryWorkers * 2
+		player.TreasuryWorkers = 0
+	}
+	if player.TreasuryPriests > 0 {
+		treasuryPriests := player.TreasuryPriests
+		player.TreasuryPriests = 0
+		gs.GainPriests(playerID, treasuryPriests*2)
 	}
 }
 
@@ -613,8 +696,8 @@ func (gs *GameState) DecreaseCultTrack(playerID string, track CultTrack, spaces 
 	return spacesMoved, nil
 }
 
-// SelectTownTile allows a player to select a town tile for their pending town formation
-func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileType) error {
+// SelectTownTile allows a player to select a town tile and anchor hex for their pending town formation.
+func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileType, anchorHex *board.Hex) error {
 	// Check if player has any pending town formations
 	pendingTowns, ok := gs.PendingTownFormations[playerID]
 	if !ok || len(pendingTowns) == 0 {
@@ -628,6 +711,9 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 	if !gs.TownTiles.IsAvailable(tileType) {
 		return fmt.Errorf("town tile %v is not available", tileType)
 	}
+	if anchorHex == nil {
+		anchorHex = gs.defaultTownAnchorHex(playerID, pending)
+	}
 
 	// Remove the first pending town formation before applying town benefits so
 	// cult position-10 key checks don't treat the current town as unclaimed credit.
@@ -638,8 +724,8 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 		gs.PendingTownFormations[playerID] = remaining
 	}
 
-	// Form the town with the selected tile (and skipped river hex for Mermaids)
-	if err := gs.FormTown(playerID, pending.Hexes, tileType, pending.SkippedRiverHex); err != nil {
+	// Form the town with the selected tile and anchor hex.
+	if err := gs.FormTownWithAnchor(playerID, pending.Hexes, tileType, pending.SkippedRiverHex, anchorHex); err != nil {
 		// Restore pending state on failure.
 		gs.PendingTownFormations[playerID] = pendingTowns
 		return err
@@ -1329,7 +1415,9 @@ func (gs *GameState) CompleteSetupAndStartRoundOne() {
 
 	gs.Phase = PhaseIncome
 	gs.GrantIncome()
-	gs.Phase = PhaseAction
+	if gs.PendingTreasurersDeposit == nil {
+		gs.Phase = PhaseAction
+	}
 	gs.CurrentPlayerIndex = 0
 	gs.SetupSubphase = SetupSubphaseComplete
 }
@@ -1493,8 +1581,9 @@ func (gs *GameState) AllPlayersPassed() bool {
 	return true
 }
 
-// GainPriests grants priests to a player while enforcing the 7-priest limit
-// Terra Mystica rule: priests in hand + priests on cult tracks <= 7
+// GainPriests grants priests to a player while enforcing the 7-priest limit.
+// Terra Mystica rule: priests in hand + priests on cult action spaces +
+// priests in Treasury <= 7.
 // Returns the actual number of priests gained (may be less than requested)
 func (gs *GameState) GainPriests(playerID string, amount int) int {
 	if amount <= 0 {
@@ -1506,9 +1595,7 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 		return 0
 	}
 
-	priestsInHand := player.Resources.Priests
-	priestsOnCult := gs.CultTracks.GetTotalPriestsOnCultTracks(playerID)
-	totalPriests := priestsInHand + priestsOnCult
+	totalPriests := gs.GetTotalOwnedPriests(playerID)
 	maxNewPriests := 7 - totalPriests
 
 	if maxNewPriests <= 0 {
@@ -1524,6 +1611,29 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 
 	player.Resources.Priests += priestsToGain
 	return priestsToGain
+}
+
+func (gs *GameState) GetTotalOwnedPriests(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Resources == nil {
+		return 0
+	}
+
+	priestsInHand := player.Resources.Priests
+	priestsInTreasury := player.TreasuryPriests
+	priestsOnCult := 0
+	if gs != nil && gs.CultTracks != nil {
+		priestsOnCult = gs.CultTracks.GetTotalPriestsOnCultTracks(playerID)
+	}
+	return priestsInHand + priestsOnCult + priestsInTreasury
+}
+
+func (gs *GameState) RemainingPriestCapacity(playerID string) int {
+	remaining := 7 - gs.GetTotalOwnedPriests(playerID)
+	if remaining < 0 {
+		return 0
+	}
+	return remaining
 }
 
 // IsGameOver checks if the game has ended (after round 6)

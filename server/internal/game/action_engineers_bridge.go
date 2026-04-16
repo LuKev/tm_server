@@ -8,9 +8,10 @@ import (
 )
 
 const engineersBridgeWorkerCost = 2
+const architectsBridgePriestCost = 1
 
-// EngineersBridgeAction represents the reusable 2-worker bridge action used by
-// Engineers and Atlanteans.
+// EngineersBridgeAction represents the reusable bridge action used by
+// Engineers, Atlanteans, and Architects.
 type EngineersBridgeAction struct {
 	BaseAction
 	BridgeHex1 board.Hex
@@ -41,10 +42,14 @@ func (a *EngineersBridgeAction) Validate(gs *GameState) error {
 		return err
 	}
 
-	if player.Faction == nil || (player.Faction.GetType() != models.FactionEngineers && player.Faction.GetType() != models.FactionAtlanteans) {
-		return fmt.Errorf("only Engineers or Atlanteans can use this action")
+	if player.Faction == nil || (player.Faction.GetType() != models.FactionEngineers && player.Faction.GetType() != models.FactionAtlanteans && player.Faction.GetType() != models.FactionArchitects) {
+		return fmt.Errorf("only Engineers, Atlanteans, or Architects can use this action")
 	}
-	if player.Resources.Workers < engineersBridgeWorkerCost {
+	if player.Faction.GetType() == models.FactionArchitects {
+		if player.Resources.Priests < architectsBridgePriestCost {
+			return fmt.Errorf("not enough priests: need %d, have %d", architectsBridgePriestCost, player.Resources.Priests)
+		}
+	} else if player.Resources.Workers < engineersBridgeWorkerCost {
 		return fmt.Errorf("not enough workers: need %d, have %d", engineersBridgeWorkerCost, player.Resources.Workers)
 	}
 	if player.BridgesBuilt >= 3 {
@@ -82,10 +87,18 @@ func (a *EngineersBridgeAction) Execute(gs *GameState) error {
 	}
 
 	player := gs.GetPlayer(a.PlayerID)
-	player.Resources.Workers -= engineersBridgeWorkerCost
+	if player.Faction.GetType() == models.FactionArchitects {
+		player.Resources.Priests -= architectsBridgePriestCost
+	} else {
+		player.Resources.Workers -= engineersBridgeWorkerCost
+	}
 
 	if err := gs.Map.BuildBridge(a.BridgeHex1, a.BridgeHex2, a.PlayerID); err != nil {
-		player.Resources.Workers += engineersBridgeWorkerCost
+		if player.Faction.GetType() == models.FactionArchitects {
+			player.Resources.Priests += architectsBridgePriestCost
+		} else {
+			player.Resources.Workers += engineersBridgeWorkerCost
+		}
 		return fmt.Errorf("failed to build bridge: %w", err)
 	}
 

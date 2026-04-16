@@ -51,6 +51,8 @@ type ConfirmDialog = {
   }>
 }
 
+type HexCoord = { q: number; r: number }
+
 const DEFAULT_PLAYER_OPTIONS: PlayerOptions = {
   autoLeechMode: 'off',
   autoConvertOnPass: false,
@@ -78,6 +80,10 @@ const STRONGHOLD_TARGET_ACTION_TYPES: SpecialActionType[] = [
 type PendingPowerMode =
   | { type: 'power_spade'; actionType: PowerActionType; useCoins?: boolean }
   | { type: 'power_bridge'; source: 'power' | 'engineers'; firstHex: { q: number; r: number } | null; useCoins?: boolean }
+  | {
+    type: 'architects_move_bridge'
+    oldBridge: { from: { q: number; r: number }; to: { q: number; r: number } } | null
+  }
   | {
     type: 'special_action_target'
     actionType: SpecialActionType
@@ -247,6 +253,9 @@ export const Game = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [powerMode, setPowerMode] = useState<PendingPowerMode | null>(null)
+  const [treasurersDepositCoins, setTreasurersDepositCoins] = useState(0)
+  const [treasurersDepositWorkers, setTreasurersDepositWorkers] = useState(0)
+  const [treasurersDepositPriests, setTreasurersDepositPriests] = useState(0)
 
   const [pendingHex, setPendingHex] = useState<{ q: number; r: number } | null>(null)
   const [hexActionMode, setHexActionMode] = useState<'build' | 'transform_build' | 'transform_only' | null>(null)
@@ -510,6 +519,15 @@ export const Game = () => {
     return buildDisplayCoordinateMap(hexes)
   }, [gameState?.map?.hexes])
   const formatHexCoord = (coord: { q: number; r: number }): string => formatDisplayCoordinate(coord, displayCoordinates)
+
+  const parseHexCoord = (value: unknown): HexCoord | null => {
+    if (value == null || typeof value !== 'object') return null
+    const record = value as Record<string, unknown>
+    const q = typeof record.q === 'number' ? record.q : typeof record.Q === 'number' ? record.Q : null
+    const r = typeof record.r === 'number' ? record.r : typeof record.R === 'number' ? record.R : null
+    if (q == null || r == null) return null
+    return { q, r }
+  }
   const canInitiateTurnAction = isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]
@@ -527,6 +545,16 @@ export const Game = () => {
     return ((pendingDecision?.returnedCards as unknown[]) ?? [])
       .map((value) => Number(value))
       .filter((value): value is BonusCardType => Number.isInteger(value) && value >= 0 && value <= 9)
+  }, [pendingDecision, pendingDecisionType])
+  const treasurersDepositAvailability = useMemo(() => {
+    if (pendingDecisionType !== 'treasurers_deposit') {
+      return { coins: 0, workers: 0, priests: 0 }
+    }
+    return {
+      coins: Number(pendingDecision?.availableCoins ?? 0),
+      workers: Number(pendingDecision?.availableWorkers ?? 0),
+      priests: Number(pendingDecision?.availablePriests ?? 0),
+    }
   }, [pendingDecision, pendingDecisionType])
   const pendingLeechOffersForMe = useMemo(() => {
     if (!localPlayerId) return [] as Array<Record<string, unknown>>
@@ -608,6 +636,8 @@ export const Game = () => {
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a cult track.')
       case 'djinni_start_cult_choice':
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a starting cult track.')
+      case 'treasurers_deposit':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose which resources to bank in the Treasury.')
       case 'goblins_cult_steps': {
         const remaining = Number(pendingDecision?.stepsRemaining ?? 0)
         return actorText([pendingDecisionPlayerId ?? ''], remaining === 1 ? 'must choose 1 Goblins cult step.' : `must choose ${String(remaining)} Goblins cult steps.`)
@@ -676,6 +706,13 @@ export const Game = () => {
       current.filter((track) => pendingTownCultTopCandidates.includes(track)),
     )
   }, [hasPendingDecisionForMe, pendingDecisionType, pendingTownCultTopCandidates])
+
+  useEffect(() => {
+    if (pendingDecisionType !== 'treasurers_deposit') return
+    setTreasurersDepositCoins(0)
+    setTreasurersDepositWorkers(0)
+    setTreasurersDepositPriests(0)
+  }, [pendingDecisionType, treasurersDepositAvailability.coins, treasurersDepositAvailability.workers, treasurersDepositAvailability.priests])
 
   useEffect(() => {
     if (pendingDecisionType !== 'auction_bid') return
@@ -1026,6 +1063,10 @@ export const Game = () => {
       return
     }
 
+    if (powerMode?.type === 'architects_move_bridge') {
+      return
+    }
+
     if (powerMode?.type === 'special_action_target') {
       const actionType = powerMode.actionType
       if (actionType === SpecialActionType.WitchesRide) {
@@ -1087,6 +1128,33 @@ export const Game = () => {
 
   const handleBridgeEdgeClick = (from: { q: number; r: number }, to: { q: number; r: number }): void => {
     if (isOtherPlayerTurnConfirmationWindow) return
+    if (powerMode?.type === 'architects_move_bridge') {
+      if (powerMode.oldBridge == null) {
+        setPowerMode({
+          type: 'architects_move_bridge',
+          oldBridge: { from, to },
+        })
+        return
+      }
+
+      const oldBridge = powerMode.oldBridge
+      queueConfirm(
+        'Confirm Architects Bridge Move',
+        `Move bridge from ${formatHexCoord(oldBridge.from)}-${formatHexCoord(oldBridge.to)} to ${formatHexCoord(from)}-${formatHexCoord(to)}?`,
+        () => {
+          performAction('special_action_use', {
+            specialActionType: SpecialActionType.ArchitectsMoveBridge,
+            bridgeHex1: oldBridge.from,
+            bridgeHex2: oldBridge.to,
+            targetHex: from,
+            upgradeHex: to,
+          })
+          setPowerMode(null)
+          setConfirmDialog(null)
+        },
+      )
+      return
+    }
     if (powerMode?.type !== 'power_bridge') return
 
     queueConfirm(
@@ -1380,6 +1448,11 @@ export const Game = () => {
       return
     }
 
+    if (actionType === SpecialActionType.ArchitectsMoveBridge) {
+      setPowerMode({ type: 'architects_move_bridge', oldBridge: null })
+      return
+    }
+
     if (actionType === SpecialActionType.TimeTravelersPowerShift) {
       const available = Math.min(4, localPlayer?.resources.power.powerI ?? 0)
       if (available <= 0) {
@@ -1561,15 +1634,56 @@ export const Game = () => {
     return list.length > 0
   }, [gameState?.pendingTownFormations, localPlayerId])
 
+  const pendingTownAnchorOptions = useMemo((): HexCoord[] => {
+    if (!localPlayerId) return []
+    const pending = gameState?.pendingTownFormations as Record<string, unknown[] | undefined> | undefined
+    const list = pending?.[localPlayerId] ?? []
+    if (list.length === 0) return []
+    const firstTown = list[0]
+    if (firstTown == null || typeof firstTown !== 'object') return []
+    const record = firstTown as Record<string, unknown>
+    const rawHexes = (Array.isArray(record.hexes) ? record.hexes : Array.isArray(record.Hexes) ? record.Hexes : []) as unknown[]
+    return rawHexes.map(parseHexCoord).filter((hex): hex is HexCoord => hex != null)
+  }, [gameState?.pendingTownFormations, localPlayerId])
+
+  const pendingTownSkippedRiverHex = useMemo((): HexCoord | null => {
+    if (!localPlayerId) return null
+    const pending = gameState?.pendingTownFormations as Record<string, unknown[] | undefined> | undefined
+    const list = pending?.[localPlayerId] ?? []
+    if (list.length === 0) return null
+    const firstTown = list[0]
+    if (firstTown == null || typeof firstTown !== 'object') return null
+    const record = firstTown as Record<string, unknown>
+    return parseHexCoord(record.skippedRiverHex ?? record.SkippedRiverHex)
+  }, [gameState?.pendingTownFormations, localPlayerId])
+
   const handleTownTileClick = (tileId: TownTileId): void => {
     const isMandatoryTownSelection = hasPendingDecisionForMe && pendingDecisionType === 'town_tile_selection'
     const isOptionalDelayedTownSelection = !!localPlayerId && hasPendingTownFormationForMe
     if (!isMandatoryTownSelection && !isOptionalDelayedTownSelection) return
 
-    queueConfirm('Confirm Town Tile', `Take ${townTileLabel(tileId)}?`, () => {
-      performAction('select_town_tile', { tileType: tileId })
-      setConfirmDialog(null)
-    })
+    if (pendingTownSkippedRiverHex != null) {
+      queueConfirm('Confirm Town Tile', `Take ${townTileLabel(tileId)}?`, () => {
+        performAction('select_town_tile', { tileType: tileId, anchorHex: pendingTownSkippedRiverHex })
+        setConfirmDialog(null)
+      })
+      return
+    }
+
+    if (pendingTownAnchorOptions.length === 0) return
+
+    openChoiceDialog(
+      'Choose Town Anchor',
+      `Place ${townTileLabel(tileId)} under which building?`,
+      pendingTownAnchorOptions.map((anchor) => ({
+        label: formatHexCoord(anchor),
+        onClick: () => {
+          performAction('select_town_tile', { tileType: tileId, anchorHex: anchor })
+          setConfirmDialog(null)
+        },
+        testId: `town-anchor-${String(anchor.q)}-${String(anchor.r)}`,
+      })),
+    )
   }
 
   const isTownTileClickable = (_tileId: TownTileId, count: number): boolean => {
@@ -1683,6 +1797,7 @@ export const Game = () => {
       return powerMode.actionType
     }
     if (powerMode?.type === 'children_place_power_tokens') return SpecialActionType.ChildrenPlacePowerTokens
+    if (powerMode?.type === 'architects_move_bridge') return SpecialActionType.ArchitectsMoveBridge
     if (cultChoiceContext === 'auren_sh') return SpecialActionType.AurenCultAdvance
     if (chaosModalOpen) return SpecialActionType.ChaosMagiciansDoubleTurn
     if (conspiratorsSwapModalOpen) return SpecialActionType.ConspiratorsSwapFavor
@@ -1708,6 +1823,7 @@ export const Game = () => {
       powerMode?.type === 'power_spade'
       || powerMode?.type === 'special_action_target'
       || powerMode?.type === 'children_place_power_tokens'
+      || powerMode?.type === 'architects_move_bridge'
     ) {
       setPowerMode(null)
     }
@@ -2297,6 +2413,99 @@ export const Game = () => {
                 ))}
               </div>
             </div>
+          ) : hasPendingDecisionForMe && pendingDecisionType === 'treasurers_deposit' ? (
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm font-semibold text-slate-900">Treasurers: Bank Resources</div>
+                <div className="text-sm text-slate-700">
+                  Choose how many of the newly received resources to move into the Treasury.
+                  {pendingDecision?.reason === 'income' ? ' These will double at the start of your next income phase.' : ''}
+                </div>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span>Coins</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={treasurersDepositAvailability.coins}
+                    value={treasurersDepositCoins}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.coins, Math.floor(value))) : 0
+                      setTreasurersDepositCoins(normalized)
+                    }}
+                    className="rounded border border-slate-300 px-2 py-1"
+                    data-testid="treasurers-deposit-coins"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span>Workers</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={treasurersDepositAvailability.workers}
+                    value={treasurersDepositWorkers}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.workers, Math.floor(value))) : 0
+                      setTreasurersDepositWorkers(normalized)
+                    }}
+                    className="rounded border border-slate-300 px-2 py-1"
+                    data-testid="treasurers-deposit-workers"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span>Priests</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={treasurersDepositAvailability.priests}
+                    value={treasurersDepositPriests}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      const normalized = Number.isFinite(value) ? Math.max(0, Math.min(treasurersDepositAvailability.priests, Math.floor(value))) : 0
+                      setTreasurersDepositPriests(normalized)
+                    }}
+                    className="rounded border border-slate-300 px-2 py-1"
+                    data-testid="treasurers-deposit-priests"
+                  />
+                </label>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  data-testid="treasurers-deposit-confirm"
+                  className="rounded bg-blue-600 px-3 py-2 text-sm text-white"
+                  onClick={() => {
+                    performAction('select_treasurers_deposit', {
+                      coinsToTreasury: treasurersDepositCoins,
+                      workersToTreasury: treasurersDepositWorkers,
+                      priestsToTreasury: treasurersDepositPriests,
+                    })
+                  }}
+                >
+                  Confirm
+                </button>
+                <button
+                  type="button"
+                  data-testid="treasurers-deposit-none"
+                  className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100"
+                  onClick={() => {
+                    setTreasurersDepositCoins(0)
+                    setTreasurersDepositWorkers(0)
+                    setTreasurersDepositPriests(0)
+                    performAction('select_treasurers_deposit', {
+                      coinsToTreasury: 0,
+                      workersToTreasury: 0,
+                      priestsToTreasury: 0,
+                    })
+                  }}
+                >
+                  Keep all on board
+                </button>
+              </div>
+            </div>
           ) : hasPendingDecisionForMe && pendingDecisionType === 'goblins_cult_steps' ? (
             <div className="space-y-3">
               <div>
@@ -2426,6 +2635,18 @@ export const Game = () => {
         {(powerMode?.type === 'power_bridge' && powerMode.firstHex != null) && (
           <div className="mb-3 rounded border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-800">
             Bridge mode: first endpoint selected at {formatHexCoord(powerMode.firstHex)}. Click the second endpoint.
+          </div>
+        )}
+
+        {(powerMode?.type === 'architects_move_bridge' && powerMode.oldBridge == null) && (
+          <div className="mb-3 rounded border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-800">
+            Architects stronghold action: click the bridge edge you want to move.
+          </div>
+        )}
+
+        {(powerMode?.type === 'architects_move_bridge' && powerMode.oldBridge != null) && (
+          <div className="mb-3 rounded border border-orange-300 bg-orange-50 px-4 py-2 text-sm text-orange-800">
+            Architects stronghold action: selected {formatHexCoord(powerMode.oldBridge.from)}-{formatHexCoord(powerMode.oldBridge.to)}. Click the new bridge edge.
           </div>
         )}
 
@@ -2661,7 +2882,7 @@ export const Game = () => {
               <GameBoard
                 onHexClick={handleHexClick}
                 onBridgeEdgeClick={handleBridgeEdgeClick}
-                bridgeEdgeSelectionEnabled={powerMode?.type === 'power_bridge'}
+                bridgeEdgeSelectionEnabled={powerMode?.type === 'power_bridge' || powerMode?.type === 'architects_move_bridge'}
                 onPowerActionClick={handlePowerActionClick}
                 disablePowerActions={!canInitiateTurnAction}
               />

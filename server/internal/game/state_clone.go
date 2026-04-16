@@ -60,6 +60,8 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingCultistsCultSelection = clonePendingCultistsCultSelection(gs.PendingCultistsCultSelection)
 	clone.PendingDjinniStartingCultChoice = clonePendingDjinniStartingCultChoice(gs.PendingDjinniStartingCultChoice)
 	clone.PendingArchivistsBonusSelection = clonePendingArchivistsBonusSelection(gs.PendingArchivistsBonusSelection)
+	clone.PendingTreasurersDeposit = clonePendingTreasurersDeposit(gs.PendingTreasurersDeposit)
+	clone.PendingTreasurersDepositQueue = clonePendingTreasurersDepositQueue(gs.PendingTreasurersDepositQueue)
 	clone.PendingTownCultTopChoice = clonePendingTownCultTopChoice(gs.PendingTownCultTopChoice)
 	clone.FinalScoring = cloneFinalScoring(gs.FinalScoring)
 	clone.TurnTimer = cloneTurnTimerState(gs.TurnTimer)
@@ -501,6 +503,25 @@ func clonePendingDjinniStartingCultChoice(src *PendingDjinniStartingCultChoice) 
 	}
 	dst := *src
 	return &dst
+}
+
+func clonePendingTreasurersDeposit(src *PendingTreasurersDeposit) *PendingTreasurersDeposit {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
+func clonePendingTreasurersDepositQueue(src []*PendingTreasurersDeposit) []*PendingTreasurersDeposit {
+	if src == nil {
+		return nil
+	}
+	dst := make([]*PendingTreasurersDeposit, 0, len(src))
+	for _, item := range src {
+		dst = append(dst, clonePendingTreasurersDeposit(item))
+	}
+	return dst
 }
 
 func clonePendingTownCultTopChoice(src *PendingTownCultTopChoice) *PendingTownCultTopChoice {

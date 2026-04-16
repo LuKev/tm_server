@@ -51,6 +51,15 @@ func (a *ConversionAction) Validate(gs *GameState) error {
 	if a.ConversionType == ConversionWorkerToPriest {
 		return fmt.Errorf("worker to priest conversion is only allowed through Darklings priest ordination")
 	}
+	if a.ConversionType == ConversionPowerToPriest {
+		requiredCapacity := a.Amount
+		if player.Faction.GetType() == models.FactionTheEnlightened && player.HasStrongholdAbility {
+			requiredCapacity = a.Amount * 2
+		}
+		if gs.RemainingPriestCapacity(a.PlayerID) < requiredCapacity {
+			return fmt.Errorf("not enough priest capacity")
+		}
+	}
 
 	return nil
 }
@@ -92,10 +101,15 @@ func (a *ConversionAction) Execute(gs *GameState) error {
 			if err := player.Resources.Power.SpendPower(powerNeeded); err != nil {
 				return err
 			}
-			player.Resources.Priests += a.Amount * 2
+			gs.GainPriests(a.PlayerID, a.Amount*2)
 			return nil
 		}
-		return player.Resources.ConvertPowerToPriests(a.Amount)
+		powerNeeded := a.Amount * 5
+		if err := player.Resources.Power.SpendPower(powerNeeded); err != nil {
+			return err
+		}
+		gs.GainPriests(a.PlayerID, a.Amount)
+		return nil
 	case ConversionPriestToWorker:
 		if player.Faction.GetType() == models.FactionDynionGeifr {
 			if player.Resources.Priests < a.Amount {

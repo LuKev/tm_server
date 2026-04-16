@@ -63,8 +63,9 @@ type MapHex struct {
 	Terrain                 models.TerrainType
 	Building                *models.Building    // nil if no building
 	PartOfTown              bool                // true if this building is part of a town
-	HasTownTile             bool                // For Mermaids: true if a town tile is placed on this hex (river)
-	TownTileType            models.TownTileType // For Mermaids: the type of town tile placed on this hex
+	HasTownTile             bool                // true if a town tile marker is placed on this hex
+	TownTileType            models.TownTileType // the town tile placed on this hex
+	TownTileOwnerPlayerID   string              // owner of the town tile marker on this hex
 	PowerTokenOwnerPlayerID string              // Children of the Wyrm river power-token marker
 }
 
@@ -226,6 +227,16 @@ func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
 	return nil
 }
 
+// RemoveBridge deletes an existing bridge.
+func (m *TerraMysticaMap) RemoveBridge(h1, h2 Hex) error {
+	key := NewBridgeKey(h1, h2)
+	if _, exists := m.Bridges[key]; !exists {
+		return fmt.Errorf("cannot remove bridge: bridge does not exist")
+	}
+	delete(m.Bridges, key)
+	return nil
+}
+
 // CountBridgesConnectingPlayerStructures counts bridges connecting two of the player's structures
 // This is used for Engineers' stronghold ability: 3 VP per bridge connecting two structures when passing
 func (m *TerraMysticaMap) CountBridgesConnectingPlayerStructures(playerID string) int {
@@ -237,6 +248,46 @@ func (m *TerraMysticaMap) CountBridgesConnectingPlayerStructures(playerID string
 
 		if hex1 != nil && hex1.Building != nil && hex1.Building.PlayerID == playerID &&
 			hex2 != nil && hex2.Building != nil && hex2.Building.PlayerID == playerID {
+			count++
+		}
+	}
+	return count
+}
+
+// CountPlayerBridgesWithinHexSet counts the player's bridges whose endpoints are
+// both present in the provided set of land hexes.
+func (m *TerraMysticaMap) CountPlayerBridgesWithinHexSet(playerID string, hexes map[Hex]bool) int {
+	count := 0
+	for bridgeKey, owner := range m.Bridges {
+		if owner != playerID {
+			continue
+		}
+		if hexes[bridgeKey.H1] && hexes[bridgeKey.H2] {
+			count++
+		}
+	}
+	return count
+}
+
+// CountPlayerBridgesIncidentToHex returns the number of bridges owned by the
+// player that touch target and connect it to one of the player's structures.
+func (m *TerraMysticaMap) CountPlayerBridgesIncidentToHex(target Hex, playerID string) int {
+	count := 0
+	for bridgeKey, owner := range m.Bridges {
+		if owner != playerID {
+			continue
+		}
+		var other Hex
+		switch {
+		case bridgeKey.H1 == target:
+			other = bridgeKey.H2
+		case bridgeKey.H2 == target:
+			other = bridgeKey.H1
+		default:
+			continue
+		}
+		otherHex := m.GetHex(other)
+		if otherHex != nil && otherHex.Building != nil && otherHex.Building.PlayerID == playerID {
 			count++
 		}
 	}

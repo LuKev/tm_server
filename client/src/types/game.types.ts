@@ -156,6 +156,9 @@ export interface PlayerState {
   townTiles?: number[] // Array of TownTileType IDs
   goblinTreasureTokens?: number
   djinniLampTokens?: number
+  treasuryCoins?: number
+  treasuryWorkers?: number
+  treasuryPriests?: number
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
   options?: PlayerOptions
@@ -196,6 +199,7 @@ export enum SpecialActionType {
   ProspectorsGainCoins = 14,
   TimeTravelersPowerShift = 15,
   DjinniSwapCults = 16,
+  ArchitectsMoveBridge = 17,
 }
 
 export interface CultTrackState {

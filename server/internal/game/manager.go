@@ -186,6 +186,12 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	currentRevision := m.revisions[gameID]
 	beforeTurn := captureTurnProgress(gs)
 	undoSnapshot := gs.CloneForUndo()
+	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+	if player := gs.GetPlayer(action.GetPlayerID()); player != nil && player.Resources != nil {
+		beforeCoins = player.Resources.Coins
+		beforeWorkers = player.Resources.Workers
+		beforePriests = player.Resources.Priests
+	}
 	if meta.ActionID != "" {
 		if _, exists := m.appliedActionID[gameID][meta.ActionID]; exists {
 			return &ActionResult{Revision: currentRevision, Duplicate: true}, nil
@@ -212,6 +218,7 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if err := gs.ResolveAutoLeechOffers(); err != nil {
 		return nil, fmt.Errorf("auto leech resolution failed: %w", err)
 	}
+	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
 	updatePendingFreeActionsWindow(gs, action)
 	stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
 	syncTurnConfirmationPreferences(gs, action)
@@ -230,6 +237,26 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	return &ActionResult{Revision: currentRevision, Duplicate: false}, nil
+}
+
+func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, beforeCoins, beforeWorkers, beforePriests int) {
+	if gs == nil || action == nil {
+		return
+	}
+	if gs.Phase != PhaseAction {
+		return
+	}
+	if action.GetType() == ActionSelectTreasurersDeposit {
+		return
+	}
+	player := gs.GetPlayer(action.GetPlayerID())
+	if !isTreasurers(player) || !player.HasStrongholdAbility || player.Resources == nil {
+		return
+	}
+	coinGain := player.Resources.Coins - beforeCoins
+	workerGain := player.Resources.Workers - beforeWorkers
+	priestGain := player.Resources.Priests - beforePriests
+	gs.queueTreasurersDeposit(player.ID, coinGain, workerGain, priestGain, "received")
 }
 
 func validateActionTurnAndPendingState(gs *GameState, action Action) error {
@@ -319,6 +346,17 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		}
 		if actionType != ActionSelectDjinniStartingCultTrack {
 			return fmt.Errorf("djinni starting cult choice pending for player %s", gs.PendingDjinniStartingCultChoice.PlayerID)
+		}
+		return nil
+	}
+
+	if gs.PendingTreasurersDeposit != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingTreasurersDeposit.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("treasurers deposit choice required from player %s", gs.PendingTreasurersDeposit.PlayerID)
+		}
+		if actionType != ActionSelectTreasurersDeposit {
+			return fmt.Errorf("treasurers deposit choice pending for player %s", gs.PendingTreasurersDeposit.PlayerID)
 		}
 		return nil
 	}
@@ -456,7 +494,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectDjinniStartingCultTrack || actionType == ActionSelectGoblinsCultTrack || actionType == ActionSelectArchivistsBonusCard || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectDjinniStartingCultTrack || actionType == ActionSelectTreasurersDeposit || actionType == ActionSelectGoblinsCultTrack || actionType == ActionSelectArchivistsBonusCard || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -710,6 +748,7 @@ func isPendingResolutionActionType(actionType ActionType) bool {
 		ActionBuildWispsStrongholdDwelling,
 		ActionSelectCultistsCultTrack,
 		ActionSelectDjinniStartingCultTrack,
+		ActionSelectTreasurersDeposit,
 		ActionSelectGoblinsCultTrack,
 		ActionSelectArchivistsBonusCard,
 		ActionUseCultSpade,
@@ -737,6 +776,7 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionSetupBonusCard,
 		ActionSelectCultistsCultTrack,
 		ActionSelectDjinniStartingCultTrack,
+		ActionSelectTreasurersDeposit,
 		ActionSelectGoblinsCultTrack,
 		ActionSelectArchivistsBonusCard,
 		ActionDiscardPendingSpade,
@@ -910,6 +950,9 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			"townTiles":             player.TownTiles,
 			"goblinTreasureTokens":  player.GoblinTreasureTokens,
 			"djinniLampTokens":      player.DjinniLampTokens,
+			"treasuryCoins":         player.TreasuryCoins,
+			"treasuryWorkers":       player.TreasuryWorkers,
+			"treasuryPriests":       player.TreasuryPriests,
 			"specialActionsUsed":    player.SpecialActionsUsed,
 			"cults": map[string]interface{}{
 				"0": player.CultPositions[CultFire],
@@ -1168,6 +1211,17 @@ func serializePendingDecision(gs *GameState) interface{} {
 		return map[string]interface{}{
 			"type":     "djinni_start_cult_choice",
 			"playerId": gs.PendingDjinniStartingCultChoice.PlayerID,
+		}
+	}
+
+	if gs.PendingTreasurersDeposit != nil {
+		return map[string]interface{}{
+			"type":             "treasurers_deposit",
+			"playerId":         gs.PendingTreasurersDeposit.PlayerID,
+			"availableCoins":   gs.PendingTreasurersDeposit.AvailableCoins,
+			"availableWorkers": gs.PendingTreasurersDeposit.AvailableWorkers,
+			"availablePriests": gs.PendingTreasurersDeposit.AvailablePriests,
+			"reason":           gs.PendingTreasurersDeposit.Reason,
 		}
 	}
 

@@ -36,6 +36,7 @@ const (
 	ActionUseDarklingsPriestOrdination  // Convert 0-3 workers to priests (Darklings stronghold, one-time)
 	ActionSelectCultistsCultTrack       // Select cult track for power leech bonus (Cultists only)
 	ActionSelectDjinniStartingCultTrack // Select Djinni starting cult track during setup
+	ActionSelectTreasurersDeposit       // Select how many newly gained resources Treasurers bank
 	ActionSelectArchivistsBonusCard     // Select Archivists' second bonus card after passing with stronghold
 	ActionSelectFaction                 // Select faction at start of game
 	ActionAuctionNominateFaction        // Nominate faction in regular/fast auction setup modes
@@ -247,6 +248,7 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 			// Giants always require exactly 2 spades for a terrain transform.
 			requiredSpades = 2
 		}
+		requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
 		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
 		freeSpades := 0
@@ -402,6 +404,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		// Giants always require exactly 2 spades for a terrain transform.
 		requiredSpades = 2
 	}
+	requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
 	// Check for free spades from BON1 (count for VP when used)
 	vpEligibleFreeSpades := 0
@@ -535,6 +538,20 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		AwardFactionSpadeBonuses(player, spadesUsed)
 	}
 	return nil
+}
+
+func adjustRequiredSpadesForArchitects(gs *GameState, player *Player, targetHex board.Hex, requiredSpades int, buildDwelling bool) int {
+	if gs == nil || !buildDwelling || requiredSpades <= 0 || !isArchitects(player) {
+		return requiredSpades
+	}
+	bridgeReduction := gs.Map.CountPlayerBridgesIncidentToHex(targetHex, player.ID)
+	if bridgeReduction <= 0 {
+		return requiredSpades
+	}
+	if bridgeReduction >= requiredSpades {
+		return 0
+	}
+	return requiredSpades - bridgeReduction
 }
 
 func (a *TransformAndBuildAction) handleBuildDwelling(gs *GameState, player *Player) error {
@@ -815,6 +832,8 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionProspectorsGainCoins)
 	case models.FactionTimeTravelers:
 		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionTimeTravelersPowerShift)
+	case models.FactionArchitects:
+		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionArchitectsMoveBridge)
 
 	case models.FactionGiants:
 		// Giants: Mark stronghold as built so ACTG special action becomes available
@@ -1243,7 +1262,9 @@ func advanceAfterRoundComplete(gs *GameState) {
 		gs.AwardCultRewardsForRound(justCompletedRound)
 		if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
 			gs.GrantIncome()
-			gs.StartActionPhase()
+			if gs.PendingTreasurersDeposit == nil {
+				gs.StartActionPhase()
+			}
 		}
 	}
 }

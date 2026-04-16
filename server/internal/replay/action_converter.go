@@ -436,7 +436,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 			}
 
 			// Select the town tile
-			if err := gs.SelectTownTile(playerID, townTileType); err != nil {
+			if err := gs.SelectTownTile(playerID, townTileType, nil); err != nil {
 				return nil, fmt.Errorf("town tile selection failed: %w", err)
 			}
 		}
@@ -558,7 +558,7 @@ func convertUpgradeAction(playerID string, params map[string]string, entry *LogE
 		}
 
 		// Select the town tile (this will form the town and apply benefits)
-		if err := gs.SelectTownTile(playerID, townTileType); err != nil {
+		if err := gs.SelectTownTile(playerID, townTileType, nil); err != nil {
 			return nil, fmt.Errorf("town tile selection failed: %w", err)
 		}
 

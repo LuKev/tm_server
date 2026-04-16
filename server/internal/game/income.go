@@ -45,9 +45,10 @@ func (gs *GameState) GrantIncome() {
 	// gets 1 spade reward, and can use it in round 6
 
 	for _, player := range gs.Players {
+		gs.releaseTreasuryBeforeIncome(player.ID)
 		income := calculatePlayerIncome(gs, player)
-
-		applyIncome(gs, player, income)
+		applied := applyIncome(gs, player, income)
+		gs.queueTreasurersDeposit(player.ID, applied.Coins, applied.Workers, applied.Priests, "income")
 	}
 }
 
@@ -156,18 +157,23 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	return income
 }
 
-// applyIncome applies the calculated income to a player's resources
-func applyIncome(gs *GameState, player *Player, income BaseIncome) {
+// applyIncome applies the calculated income to a player's resources and
+// returns the actual coin/worker/priest gains applied.
+func applyIncome(gs *GameState, player *Player, income BaseIncome) BaseIncome {
+	applied := BaseIncome{}
 	player.Resources.Coins += income.Coins
+	applied.Coins = income.Coins
 	player.Resources.Workers += income.Workers
+	applied.Workers = income.Workers
 
 	// Apply priest income with 7-priest limit enforcement
 	if income.Priests > 0 {
-		gs.GainPriests(player.ID, income.Priests)
+		applied.Priests = gs.GainPriests(player.ID, income.Priests)
 	}
 
 	// Use GainPower to properly cycle power through bowls
 	if income.Power > 0 {
 		player.Resources.Power.GainPower(income.Power)
 	}
+	return applied
 }

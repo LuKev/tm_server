@@ -26,6 +26,7 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
         case FactionType.ChildrenOfTheWyrm: return SpecialActionType.ChildrenPlacePowerTokens;
         case FactionType.Prospectors: return SpecialActionType.ProspectorsGainCoins;
         case FactionType.TimeTravelers: return SpecialActionType.TimeTravelersPowerShift;
+        case FactionType.Architects: return SpecialActionType.ArchitectsMoveBridge;
         default: return null;
     }
 };
@@ -337,6 +338,9 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const childrenBoardPowerTokens = Object.values(gameState?.map.hexes ?? {}).filter(h => h.powerTokenOwnerPlayerId === playerId).length;
     const goblinTreasureTokens = player.goblinTreasureTokens ?? 0;
     const djinniLampTokens = player.djinniLampTokens ?? 0;
+    const treasuryCoins = player.treasuryCoins ?? 0;
+    const treasuryWorkers = player.treasuryWorkers ?? 0;
+    const treasuryPriests = player.treasuryPriests ?? 0;
 
     const dwellingCount = buildings.filter(b => b?.type === BuildingType.Dwelling).length;
     const tradingHouseCount = buildings.filter(b => b?.type === BuildingType.TradingHouse).length;
@@ -352,7 +356,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
         && pendingDecision?.playerId === playerId
         && pendingDecision?.type === 'post_action_free_actions';
     const conversionActionsEnabled = canUseConversions || isLocalPostActionFreeWindow;
-    const hasReusableBridgeAction = factionType === FactionType.Engineers || factionType === FactionType.Atlanteans;
+    const hasReusableBridgeAction = factionType === FactionType.Engineers || factionType === FactionType.Atlanteans || factionType === FactionType.Architects;
     const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
     const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
     const isLocalEngineersBridgeActive = !!isEngineersBridgeActive && isLocalPlayer;
@@ -463,6 +467,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 <span style={{ fontWeight: 600 }}>Lamps {djinniLampTokens}</span>
                             </div>
                         )}
+                        {factionType === FactionType.Treasurers && (
+                            <div className="resource-item">
+                                <span style={{ fontWeight: 600 }}>Treasury {treasuryCoins}/{treasuryWorkers}/{treasuryPriests}</span>
+                            </div>
+                        )}
                         <div className="resource-item">
                             <ShippingDiggingDisplay
                                 factionType={factionType}
@@ -545,7 +554,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                         />
                                         {/* Stronghold Action Octagon */}
                                         {strongholdActionType !== null && (
-                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
+                                            <div style={{ position: 'absolute', right: hasReusableBridgeAction ? '-6em' : '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdOctagon
                                                     isUsed={isStrongholdActionUsed}
                                                     isActive={isStrongholdActionActive}

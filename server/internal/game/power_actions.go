@@ -180,6 +180,18 @@ func (a *PowerAction) Validate(gs *GameState) error {
 			return err
 		}
 	}
+	if a.ActionType == PowerActionPriest && gs.RemainingPriestCapacity(a.PlayerID) < 1 {
+		return fmt.Errorf("cannot take priest power action at the 7-priest limit")
+	}
+	if isProspectors(player) && (a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2) {
+		requiredPriests := 1
+		if a.ActionType == PowerActionSpade2 {
+			requiredPriests = 2
+		}
+		if gs.RemainingPriestCapacity(a.PlayerID) < requiredPriests {
+			return fmt.Errorf("not enough priest capacity for prospectors spade action")
+		}
+	}
 
 	return nil
 }
@@ -299,8 +311,6 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		player.BridgesBuilt++
 
 	case PowerActionPriest:
-		// Grant priest with 7-priest limit enforcement
-		// If at limit, action still succeeds (power is spent) but no priest is gained
 		gs.GainPriests(a.PlayerID, 1)
 
 	case PowerActionWorkers:

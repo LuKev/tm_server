@@ -1278,7 +1278,7 @@ func (a *LogTownAction) Execute(gs *game.GameState) error {
 
 	// Select the town tile
 	// This assumes PendingTownFormations was populated by the previous action (Build/Upgrade)
-	if err := gs.SelectTownTile(a.PlayerID, tileType); err != nil {
+	if err := gs.SelectTownTile(a.PlayerID, tileType, nil); err != nil {
 		return fmt.Errorf("failed to select town tile: %w", err)
 	}
 

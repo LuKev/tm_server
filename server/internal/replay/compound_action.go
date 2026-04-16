@@ -564,7 +564,7 @@ func (a *AuxiliaryComponent) Execute(gs *game.GameState, playerID string) error 
 			return fmt.Errorf("failed to parse town tile: %w", err)
 		}
 		// Use GameState method directly
-		return gs.SelectTownTile(playerID, tileType)
+		return gs.SelectTownTile(playerID, tileType, nil)
 	case AuxConnect:
 		// Mermaids river-skip town formation: "connect r16"
 		// This triggers a check for town formation using river-skip

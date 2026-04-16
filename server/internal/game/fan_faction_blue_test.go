@@ -94,6 +94,7 @@ func TestAtlanteansSetupPlacesStrongholdAndPendingTownTile(t *testing.T) {
 	selectTown := &SelectTownTileAction{
 		BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "atl"},
 		TileType:   models.TownTile11Points,
+		AnchorHex:  &atlHex,
 	}
 	if err := selectTown.Execute(gs); err != nil {
 		t.Fatalf("select town tile failed: %v", err)

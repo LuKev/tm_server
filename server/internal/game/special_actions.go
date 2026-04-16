@@ -91,6 +91,7 @@ const (
 	SpecialActionProspectorsGainCoins
 	SpecialActionTimeTravelersPowerShift
 	SpecialActionDjinniSwapCults
+	SpecialActionArchitectsMoveBridge
 )
 
 // SpecialAction represents a faction-specific special action
@@ -121,6 +122,9 @@ type SpecialAction struct {
 	// For Children of the Wyrm stronghold action
 	TargetHexes       []board.Hex
 	ConfirmSpendBowl3 bool
+	// For Architects bridge move
+	BridgeHex1 *board.Hex
+	BridgeHex2 *board.Hex
 }
 
 // NewSpecialAction creates a new special action
@@ -296,6 +300,20 @@ func NewTimeTravelersPowerShiftAction(playerID string, amount int) *SpecialActio
 	}
 }
 
+func NewArchitectsMoveBridgeAction(playerID string, fromHex1, fromHex2, toHex1, toHex2 board.Hex) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType: SpecialActionArchitectsMoveBridge,
+		BridgeHex1: &fromHex1,
+		BridgeHex2: &fromHex2,
+		TargetHex:  &toHex1,
+		UpgradeHex: &toHex2,
+	}
+}
+
 // NewEnlightenedGainPowerAction creates The Enlightened stronghold action.
 func NewEnlightenedGainPowerAction(playerID string) *SpecialAction {
 	return &SpecialAction{
@@ -356,6 +374,7 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionChildrenPlacePowerTokens,
 		SpecialActionProspectorsGainCoins,
 		SpecialActionTimeTravelersPowerShift,
+		SpecialActionArchitectsMoveBridge,
 	}
 
 	isStrongholdAction := false
@@ -403,6 +422,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateTimeTravelersPowerShift(player)
 	case SpecialActionDjinniSwapCults:
 		return a.validateDjinniSwapCults(gs, player)
+	case SpecialActionArchitectsMoveBridge:
+		return a.validateArchitectsMoveBridge(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -518,6 +539,56 @@ func (a *SpecialAction) validateConspiratorsSwapFavor(gs *GameState, player *Pla
 	}
 	if gs.FavorTiles.HasTileType(player.ID, *a.NewFavorTile) {
 		return fmt.Errorf("player already has favor tile %v", *a.NewFavorTile)
+	}
+	return nil
+}
+
+func (a *SpecialAction) validateArchitectsMoveBridge(gs *GameState, player *Player) error {
+	if !isArchitects(player) {
+		return fmt.Errorf("only Architects can use this special action")
+	}
+	if a.BridgeHex1 == nil || a.BridgeHex2 == nil || a.TargetHex == nil || a.UpgradeHex == nil {
+		return fmt.Errorf("must choose both the bridge to move and the new bridge location")
+	}
+	oldKey := board.NewBridgeKey(*a.BridgeHex1, *a.BridgeHex2)
+	owner, exists := gs.Map.Bridges[oldKey]
+	if !exists {
+		return fmt.Errorf("selected bridge does not exist")
+	}
+	if owner != a.PlayerID {
+		return fmt.Errorf("selected bridge does not belong to player")
+	}
+	newKey := board.NewBridgeKey(*a.TargetHex, *a.UpgradeHex)
+	if newKey == oldKey {
+		return fmt.Errorf("must move bridge to a different location")
+	}
+
+	endpoint1Owned := false
+	if hex := gs.Map.GetHex(*a.TargetHex); hex != nil && hex.Building != nil && hex.Building.PlayerID == a.PlayerID {
+		endpoint1Owned = true
+	}
+	endpoint2Owned := false
+	if hex := gs.Map.GetHex(*a.UpgradeHex); hex != nil && hex.Building != nil && hex.Building.PlayerID == a.PlayerID {
+		endpoint2Owned = true
+	}
+	if !endpoint1Owned && !endpoint2Owned {
+		return fmt.Errorf("bridge must connect to at least one of your structures")
+	}
+
+	clonedMap := cloneMap(gs.Map)
+	if err := clonedMap.RemoveBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+		return err
+	}
+	if err := clonedMap.BuildBridge(*a.TargetHex, *a.UpgradeHex, a.PlayerID); err != nil {
+		return err
+	}
+	originalMap := gs.Map
+	gs.Map = clonedMap
+	defer func() {
+		gs.Map = originalMap
+	}()
+	if !gs.anchoredTownsRemainValid(a.PlayerID) {
+		return fmt.Errorf("bridge move would invalidate an existing town")
 	}
 	return nil
 }
@@ -746,6 +817,9 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 	}
 
 	if isProspectors(player) {
+		if gs.RemainingPriestCapacity(a.PlayerID) < 1 {
+			return fmt.Errorf("not enough priest capacity for prospectors bonus card spade")
+		}
 		return nil
 	}
 
@@ -885,6 +959,10 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeDjinniSwapCults(gs, player); err != nil {
 			return err
 		}
+	case SpecialActionArchitectsMoveBridge:
+		if err := a.executeArchitectsMoveBridge(gs, player); err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
@@ -956,6 +1034,20 @@ func (a *SpecialAction) executeDjinniSwapCults(gs *GameState, player *Player) er
 	}
 
 	player.DjinniLampTokens--
+	return nil
+}
+
+func (a *SpecialAction) executeArchitectsMoveBridge(gs *GameState, player *Player) error {
+	if err := gs.Map.RemoveBridge(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+		return err
+	}
+	if err := gs.Map.BuildBridge(*a.TargetHex, *a.UpgradeHex, a.PlayerID); err != nil {
+		_ = gs.Map.BuildBridge(*a.BridgeHex1, *a.BridgeHex2, a.PlayerID)
+		return err
+	}
+	player.VictoryPoints += 3
+	gs.CheckForTownFormation(a.PlayerID, *a.TargetHex)
+	gs.CheckForTownFormation(a.PlayerID, *a.UpgradeHex)
 	return nil
 }
 
