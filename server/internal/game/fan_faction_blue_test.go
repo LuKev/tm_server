@@ -165,9 +165,15 @@ func TestAtlanteansStrongholdTownRewardsTriggerOnce(t *testing.T) {
 	if got := player.VictoryPoints; got != 22 {
 		t.Fatalf("victory points = %d, want 22", got)
 	}
-	for _, track := range []CultTrack{CultFire, CultWater, CultEarth, CultAir} {
-		if got := player.CultPositions[track]; got != 2 {
-			t.Fatalf("cult %v = %d, want 2", track, got)
+	wantCult := map[CultTrack]int{
+		CultFire:  3,
+		CultWater: 3,
+		CultEarth: 2,
+		CultAir:   2,
+	}
+	for track, want := range wantCult {
+		if got := player.CultPositions[track]; got != want {
+			t.Fatalf("cult %v = %d, want %d", track, got, want)
 		}
 	}
 
@@ -272,6 +278,65 @@ func TestWispsTradingHouseCreatesAdjacentSingleSpadeFollowup(t *testing.T) {
 	}
 	if got := gs.PendingSpades["p1"]; got != 0 {
 		t.Fatalf("pending spades after use = %d, want 0", got)
+	}
+}
+
+func TestWispsTradingHouseSpadeCanTargetBridgeAdjacentHex(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewWisps()); err != nil {
+		t.Fatalf("add wisps: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.Resources.Coins = 20
+	player.Resources.Workers = 20
+
+	sourceHex := board.NewHex(0, 0)
+	targetHex := board.NewHex(1, -2)
+	bridgeRiverA := board.NewHex(0, -1)
+	bridgeRiverB := board.NewHex(1, -1)
+	gs.Map.Hexes[sourceHex] = &board.MapHex{Coord: sourceHex, Terrain: player.Faction.GetHomeTerrain()}
+	gs.Map.Hexes[bridgeRiverA] = &board.MapHex{Coord: bridgeRiverA, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[bridgeRiverB] = &board.MapHex{Coord: bridgeRiverB, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[targetHex] = &board.MapHex{Coord: targetHex, Terrain: models.TerrainPlains}
+	gs.Map.RiverHexes[bridgeRiverA] = true
+	gs.Map.RiverHexes[bridgeRiverB] = true
+	gs.Map.PlaceBuilding(sourceHex, testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling))
+	if err := gs.Map.BuildBridge(sourceHex, targetHex, "p1"); err != nil {
+		t.Fatalf("BuildBridge failed: %v", err)
+	}
+
+	var oneSpadeTerrain models.TerrainType
+	found := false
+	for _, terrain := range []models.TerrainType{
+		models.TerrainPlains,
+		models.TerrainSwamp,
+		models.TerrainForest,
+		models.TerrainMountain,
+		models.TerrainWasteland,
+		models.TerrainDesert,
+	} {
+		if gs.Map.GetTerrainDistance(terrain, player.Faction.GetHomeTerrain()) == 1 {
+			oneSpadeTerrain = terrain
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("failed to find a one-spade terrain for Wisps")
+	}
+	gs.Map.TransformTerrain(targetHex, oneSpadeTerrain)
+
+	if err := NewUpgradeBuildingAction("p1", sourceHex, models.BuildingTradingHouse).Execute(gs); err != nil {
+		t.Fatalf("upgrade to trading house failed: %v", err)
+	}
+
+	valid := NewTransformAndBuildAction("p1", targetHex, false, models.TerrainTypeUnknown)
+	if err := valid.Execute(gs); err != nil {
+		t.Fatalf("bridge-adjacent Wisps spade follow-up failed: %v", err)
+	}
+	if got := gs.Map.GetHex(targetHex).Terrain; got != player.Faction.GetHomeTerrain() {
+		t.Fatalf("target terrain = %v, want %v", got, player.Faction.GetHomeTerrain())
 	}
 }
 

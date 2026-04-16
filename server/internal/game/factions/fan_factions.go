@@ -179,15 +179,19 @@ func newConfiguredFaction(
 	}
 }
 
-func standardFanFactionStartingResources(workers, coins int) Resources {
+func fanFactionStartingResources(workers, coins, power1, power2 int) Resources {
 	return Resources{
 		Coins:   coins,
 		Workers: workers,
 		Priests: 0,
-		Power1:  5,
-		Power2:  7,
+		Power1:  power1,
+		Power2:  power2,
 		Power3:  0,
 	}
+}
+
+func standardFanFactionStartingResources(workers, coins int) Resources {
+	return fanFactionStartingResources(workers, coins, 5, 7)
 }
 
 func fixedTerraformCost(perSpade int) *int {
@@ -198,8 +202,8 @@ func NewArchitects() Faction {
 	return newConfiguredFaction(
 		models.FactionArchitects,
 		models.TerrainWasteland,
-		standardFanFactionStartingResources(3, 15),
-		CultPositions{},
+		fanFactionStartingResources(3, 15, 3, 9),
+		CultPositions{Fire: 1, Air: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,
@@ -233,8 +237,8 @@ func NewAtlanteans() Faction {
 	return newConfiguredFaction(
 		models.FactionAtlanteans,
 		models.TerrainLake,
-		standardFanFactionStartingResources(3, 15),
-		CultPositions{},
+		fanFactionStartingResources(3, 15, 1, 11),
+		CultPositions{Fire: 1, Water: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,
@@ -252,7 +256,7 @@ func NewChashDallah() Faction {
 		models.FactionChashDallah,
 		models.TerrainForest,
 		standardFanFactionStartingResources(3, 15),
-		CultPositions{},
+		CultPositions{Earth: 1, Air: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		[]Income{{Coins: 2, Power: 1}, {Coins: 2, Power: 1}, {Coins: 3, Power: 1}, {Coins: 4, Power: 1}},
@@ -271,7 +275,7 @@ func NewChildrenOfTheWyrm() Faction {
 		models.FactionChildrenOfTheWyrm,
 		models.TerrainSwamp,
 		standardFanFactionStartingResources(3, 12),
-		CultPositions{},
+		CultPositions{Water: 1, Earth: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,
@@ -324,7 +328,7 @@ func NewDynionGeifr() Faction {
 		models.FactionDynionGeifr,
 		models.TerrainMountain,
 		standardFanFactionStartingResources(2, 15),
-		CultPositions{},
+		CultPositions{Earth: 1, Air: 1},
 		Income{Workers: 2},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,
@@ -344,7 +348,7 @@ func NewGoblins() Faction {
 		models.FactionGoblins,
 		models.TerrainSwamp,
 		standardFanFactionStartingResources(3, 15),
-		CultPositions{},
+		CultPositions{Earth: 1, Air: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,
@@ -362,8 +366,8 @@ func NewProspectors() Faction {
 	return newConfiguredFaction(
 		models.FactionProspectors,
 		models.TerrainPlains,
-		standardFanFactionStartingResources(2, 15),
-		CultPositions{},
+		fanFactionStartingResources(2, 15, 8, 4),
+		CultPositions{Earth: 3},
 		Income{Workers: 1},
 		[]Income{{Workers: 1}, {Workers: 1}, {Workers: 1}, {}, {Workers: 1}, {}, {Workers: 1}, {}},
 		[]Income{{Coins: 4, Power: 1}, {Coins: 3, Power: 1}, {Coins: 2, Power: 2}, {Coins: 1, Power: 2}},
@@ -384,7 +388,7 @@ func NewTheEnlightened() Faction {
 		models.FactionTheEnlightened,
 		models.TerrainForest,
 		base,
-		CultPositions{},
+		CultPositions{Air: 2},
 		Income{Power: 3},
 		[]Income{{Power: 2}, {Power: 3}, {Power: 2}, {Power: 3}, {Power: 2}, {Power: 3}, {Power: 2}, {Power: 3}},
 		[]Income{{Coins: 2, Power: 1}, {Coins: 2, Power: 1}, {Coins: 3, Power: 1}, {Coins: 4, Power: 1}},
@@ -403,7 +407,7 @@ func NewTimeTravelers() Faction {
 		models.FactionTimeTravelers,
 		models.TerrainPlains,
 		standardFanFactionStartingResources(3, 15),
-		CultPositions{},
+		CultPositions{Fire: 2},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,
@@ -420,8 +424,8 @@ func NewTreasurers() Faction {
 	return newConfiguredFaction(
 		models.FactionTreasurers,
 		models.TerrainWasteland,
-		standardFanFactionStartingResources(4, 15),
-		CultPositions{},
+		fanFactionStartingResources(4, 15, 4, 8),
+		CultPositions{Fire: 2},
 		Income{},
 		[]Income{{Workers: 1}, {Workers: 1}, {}, {Workers: 1}, {}, {Workers: 1}, {Workers: 1}, {}},
 		[]Income{{Coins: 2, Power: 1}, {}, {Coins: 2, Power: 2}, {Coins: 2, Power: 2}},
@@ -438,8 +442,8 @@ func NewWisps() Faction {
 	return newConfiguredFaction(
 		models.FactionWisps,
 		models.TerrainLake,
-		standardFanFactionStartingResources(3, 15),
-		CultPositions{},
+		fanFactionStartingResources(3, 15, 7, 5),
+		CultPositions{Water: 1, Air: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
 		standardTradingIncomeSeq,

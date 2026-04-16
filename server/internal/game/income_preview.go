@@ -43,6 +43,10 @@ func (gs *GameState) getRoundCultRewardPreview(playerID string, round int) Incom
 	if gs == nil || gs.ScoringTiles == nil || gs.CultTracks == nil {
 		return preview
 	}
+	player := gs.GetPlayer(playerID)
+	if isArchivists(player) {
+		return preview
+	}
 
 	tile := gs.ScoringTiles.GetTileForRound(round)
 	if tile == nil {
@@ -51,7 +55,7 @@ func (gs *GameState) getRoundCultRewardPreview(playerID string, round int) Incom
 
 	if tile.Type == ScoringTemplePriest {
 		if priestsSent := gs.ScoringTiles.PriestsSent[playerID]; priestsSent > 0 {
-			preview.Coins += priestsSent * tile.CultRewardAmount
+			preview.Coins += adjustCultRewardAmount(player, CultRewardCoin, priestsSent*tile.CultRewardAmount)
 		}
 		return preview
 	}
@@ -66,7 +70,7 @@ func (gs *GameState) getRoundCultRewardPreview(playerID string, round int) Incom
 		return preview
 	}
 
-	totalReward := rewardCount * tile.CultRewardAmount
+	totalReward := adjustCultRewardAmount(player, tile.CultRewardType, rewardCount*tile.CultRewardAmount)
 	switch tile.CultRewardType {
 	case CultRewardPriest:
 		preview.Priests += totalReward

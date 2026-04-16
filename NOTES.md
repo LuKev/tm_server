@@ -60,6 +60,13 @@
     - `Prospectors` dwelling income sequence is `[1W, 1W, 1W, 0, 1W, 0, 1W, 0]`
     - `Dynion Geifr` Stronghold income is `4PW`
     - `Conspirators` Stronghold gives no recurring income; it only unlocks the Stronghold ability
+    - starting power bowls:
+      - `Treasurers`: `4/8/0`
+      - `Atlanteans`: `1/11/0` (their starting stronghold still contributes `+6PW` income, so they play closer to a `5/7` faction after the first income phase)
+      - `Wisps`: `7/5/0`
+      - `Architects`: `3/9/0`
+      - `Prospectors`: `8/4/0`
+      - all other implemented fan factions use the standard `5/7/0`
   - Important implementation note: `client/src/data/factionBoards.ts` explicitly says the current board data is only `approximate for most factions`; do not reuse that pattern for fan factions. Use per-faction board transcriptions from the actual board images instead.
   - Table-host option added for fan factions:
     - lobby/game creation now stores `enableFanFactions`
@@ -140,6 +147,125 @@
     - `Time Travelers` still use the current round tile for cult bonuses; only action VP scoring is shifted
     - `Time Travelers` stronghold special action moves `1-4` power tokens directly from bowl I to bowl III
     - both `Prospectors` and `Time Travelers` may use their stronghold special action on the same turn that the stronghold is built; the engine now opens a forced post-action confirmation window for that specific immediate follow-up even if the player has normal turn confirmation disabled
+  - Detailed implemented fan-faction ability reference:
+    - `Architects`:
+      - action ability: may build a bridge for `1 priest` using the normal bridge-action flow
+      - bridge counts as `+1` town power when evaluating Architects towns
+      - if `Transform and Build` targets a hex connected to one of the player's structures by one of the player's bridges, the transform portion gets `-1 spade` (minimum normal floor rules still apply)
+      - stronghold action: once per round, move one owned bridge to a different legal bridge edge and gain `3 VP`
+      - bridge moves must preserve all existing founded towns, using the recorded town-anchor hexes
+    - `Archivists`:
+      - add one extra bonus card to the available supply whenever they are in the game
+      - ignore all round cult rewards
+      - whenever they take a bonus/pass card with `N` coins on it, gain `2N` power
+      - stronghold ability: when passing, take two bonus cards instead of one
+      - the full combined bonus-card coin gain is applied first, then post-pass power conversions may be used
+    - `Atlanteans`:
+      - setup: place a starting stronghold instead of two dwellings
+      - that starting stronghold immediately forms a town and must choose a town tile during setup
+      - the starting stronghold-town is persistent and never takes a second town tile; instead it grows as connected non-town structures are added
+      - action ability: may build a bridge for `2 workers`
+      - stronghold-town threshold rewards trigger once each at power `7 / 10 / 16`:
+        - `7`: free shipping advance with normal shipping VP
+        - `10`: `+2` on all four cult tracks
+        - `16`: `+20 VP`
+    - `Chash Dallah`:
+      - cannot upgrade digging and always pays `3 workers` per spade
+      - has a separate income track starting at level `0`; level-0 already grants `+2 coins` at income
+      - action ability: advance the Chash track for `2 workers + 2 coins`
+      - track advancement VP is `1 / 2 / 3 / 4`
+      - track income by level is `2C, 1W, 2C, 1W, 2C`
+      - stronghold ability: power actions may be paid with coins instead of power; this is not a tracked once-per-round special action
+    - `Children of the Wyrm`:
+      - burn rule is `3 power from bowl II -> 2 power to bowl III`
+      - leech costs `1 VP` less than normal
+      - all structure coin costs depend on adjacency to another player's building:
+        - dwellings `1C` adjacent / `2C` otherwise
+        - temples `5C` adjacent / `10C` otherwise
+        - stronghold and sanctuary `5C` adjacent / `10C` otherwise
+      - stronghold action: once per round, place `1-2` power tokens on river hexes
+      - tokens are taken from bowl I first, then bowl II, then bowl III
+      - if bowl III would be used, the client should give the player a chance to convert before confirming
+      - river power tokens extend adjacency and town connectivity
+      - building the stronghold returns previously placed river power tokens to bowl I
+    - `Conspirators`:
+      - whenever they take any favor tile, gain `+2 coins`
+      - building the stronghold immediately grants a normal favor-tile selection
+      - stronghold action: once per round, return one owned favor tile and take a different available favor tile
+      - the returned tile removes its cult advance and frees any occupied cult-10 space/key before the replacement tile is applied
+      - taking the replacement tile can regain power from milestone crossings and also grants the normal `+2 coins`
+    - `Djinni`:
+      - setup: choose one cult track to advance `+2`
+      - start with `3` lamp tokens
+      - action ability: spend `1` lamp to swap any two cult tracks exactly
+      - this is not once per round; it is only limited by remaining lamp tokens
+      - swaps cannot move the Djinni into an occupied `10` space owned by another player
+      - stronghold ability: when passing, gain `1 VP` per own priest on cult-board action spaces
+    - `Dynion Geifr`:
+      - start with the normal `Fire +2` favor tile already taken from the supply
+      - priest conversion is `1 priest -> 2 workers + 2 coins`
+      - all structures count as power value `2`
+      - towns need only `3` structures if one is the stronghold, and can also form from `4` dwellings
+      - stronghold build bonus: immediately gain `2 priests`
+    - `Goblins`:
+      - start with `1` treasure token
+      - gain `1` treasure when building a temple or sanctuary
+      - after building the stronghold, each newly founded town grants `1` treasure
+      - action ability: spend `1` treasure token to choose exactly one reward package:
+        - `Dwellings`: gain `+1 power` per own dwelling
+        - `Trading Posts`: gain `+2 coins` per own trading post
+        - `Temples`: gain `+1 worker` per own temple
+        - `Big Structures`: gain cult steps based on built big structures:
+          - stronghold present: `+1` cult step
+          - sanctuary present: `+2` cult steps
+      - big-structure treasure rewards resolve through a pending cult-track selection flow
+    - `Prospectors`:
+      - normal terraforming uses Golden Spades instead of workers
+      - each Golden Spade used gives `+1 VP` and `+1 power`
+      - each Golden Spade costs `4 coins`, reduced to `3 coins` after building the stronghold
+      - regular spade gains (cult rewards, power actions, bonus-card spade) become priests instead of terrain transforms
+      - normal Golden-Spade terraforming does not score the round spade tile
+      - power-action spades and bonus-card spade still do score the round spade tile even though they become priests
+      - stronghold action: once per round, gain `+1 coin` per other player's trading post
+      - that stronghold action is allowed on the same turn the stronghold is built
+    - `The Enlightened`:
+      - may convert `1 coin -> 1 power token in bowl I`
+      - terraforming uses power instead of workers, following the normal `3 -> 2 -> 1` digging progression
+      - stronghold action: once per round, gain `4 power`
+      - after building the stronghold, power conversions are doubled:
+        - `1 power -> 2 coins`
+        - `3 power -> 2 workers`
+        - `5 power -> 2 priests`
+      - cult-track power gains remain normal
+    - `Time Travelers`:
+      - action VP scoring comes from the previous and next round tiles instead of the current round tile, with wraparound between rounds `1` and `6`
+      - current-round cult bonuses still use the actual current round tile
+      - stronghold action: once per round, move `1-4` power from bowl I directly to bowl III
+      - that stronghold action is allowed on the same turn the stronghold is built
+    - `Treasurers`:
+      - treasury/safe is always active during income: newly gained income resources may be banked into the treasury
+      - treasury contents release at the next income phase as double that amount, then clear from the treasury
+      - priests in treasury count toward the global `7`-priest ownership cap together with priests in hand and on cult action spaces
+      - stronghold ability:
+        - non-power and non-spade cult rewards are doubled
+        - action-phase net gains can be banked immediately after the action resolves
+        - conversions may therefore be banked immediately if they create coins/workers/priests
+      - the action-phase treasury prompt is not used for pure power/spade gains
+    - `Wisps`:
+      - whenever they build a trading post, they may immediately take exactly `1` free spade on a directly adjacent hex
+      - the follow-up may not build a dwelling
+      - direct adjacency for this check includes bridge adjacency
+      - building the stronghold immediately grants `7 VP` and creates a mandatory free dwelling placement on any empty lake hex
+  - Fan-faction UI conventions:
+    - faction-specific repeatable action buttons that are not best represented as a once-per-round stronghold octagon now live beside the `+Ship` / `+Dig` controls on the player board
+    - current button-row fan factions:
+      - `Chash Dallah`: `+Track`
+      - `Engineers`: `BR`
+      - `Atlanteans`: `BR`
+      - `Architects`: `BR` for the reusable bridge action; the `Move BR` stronghold ability remains on the normal stronghold octagon
+      - `Mermaids`: `CT` after stronghold
+      - `Goblins`: `Treasure`
+    - `Time Travelers`, `Chash Dallah`, and `Prospectors` should not show a `+Dig` upgrade button because their digging tracks are not upgradable in this implementation
 
 - 2026-04-03 hex-grid canvas resolution fix:
   - `client/src/components/GameBoard/HexGridCanvas.tsx` now treats map geometry as logical board coordinates and separately sizes the canvas backing store from the rendered CSS width plus `window.devicePixelRatio`.
@@ -1233,3 +1359,19 @@
   - Mermaids river-skip towns remain anchored on the skipped river hex, not under a building.
   - Architects bridge-move validation now checks existing towns by recorded marker hexes instead of raw `PartOfTown` connected components, so moving a bridge can be rejected based on which exact building previously received each town tile.
   - Extra Bazel checks on `//internal/notation:notation_test`, `//internal/replay:replay_test`, and `//internal/websocket:websocket_test` currently surface unrelated pre-existing failures outside this anchor change; required `game_test`, `factions_test`, and `client_build_test` still pass.
+- 2026-04-15 fan-faction cult starts:
+  - Updated the implemented fan factions to use the manually verified starting cult tracks:
+    - `Treasurers` `2 Fire`
+    - `Atlanteans` `1 Fire, 1 Water`
+    - `Wisps` `1 Water, 1 Air`
+    - `Chash Dallah` `1 Air, 1 Earth`
+    - `The Enlightened` `2 Air`
+    - `Dynion Geifr` `1 Earth, 1 Air`
+    - `Conspirators` none
+    - `Architects` `1 Fire, 1 Air`
+    - `Archivists` none
+    - `Djinni` faction sheet remains `0`, with the real setup handled by the separate mandatory `+2 of choice` setup decision
+    - `Prospectors` `3 Earth`
+    - `Time Travelers` `2 Fire`
+    - `Goblins` `1 Earth, 1 Air`
+    - `Children of the Wyrm` `1 Water, 1 Earth`

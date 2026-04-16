@@ -16,8 +16,11 @@ export const canShowShippingForFaction = (factionType: FactionType): boolean => 
 };
 
 export const canShowDiggingForFaction = (factionType: FactionType): boolean => {
-  // Darklings have no digging upgrades (they pay priests instead).
-  return factionType !== FactionType.Darklings;
+  // Darklings pay priests instead, and these fan factions do not upgrade digging.
+  return factionType !== FactionType.Darklings
+    && factionType !== FactionType.ChashDallah
+    && factionType !== FactionType.Prospectors
+    && factionType !== FactionType.TimeTravelers;
 };
 
 export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({

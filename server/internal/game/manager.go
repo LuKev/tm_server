@@ -133,6 +133,13 @@ func (m *Manager) ApplyConversionWithoutTurnCheck(gameID, playerID string, conve
 		ConversionType: conversionType,
 		Amount:         amount,
 	}
+	player := gs.GetPlayer(playerID)
+	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+	if player != nil && player.Resources != nil {
+		beforeCoins = player.Resources.Coins
+		beforeWorkers = player.Resources.Workers
+		beforePriests = player.Resources.Priests
+	}
 
 	if err := action.Validate(gs); err != nil {
 		return 0, fmt.Errorf("conversion validation failed: %w", err)
@@ -145,6 +152,7 @@ func (m *Manager) ApplyConversionWithoutTurnCheck(gameID, playerID string, conve
 	if err := gs.ResolveAutoLeechOffers(); err != nil {
 		return 0, fmt.Errorf("auto leech resolution failed: %w", err)
 	}
+	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
 
 	currentRevision := m.revisions[gameID]
 	nextRevision := currentRevision + 1
@@ -256,7 +264,11 @@ func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, before
 	coinGain := player.Resources.Coins - beforeCoins
 	workerGain := player.Resources.Workers - beforeWorkers
 	priestGain := player.Resources.Priests - beforePriests
-	gs.queueTreasurersDeposit(player.ID, coinGain, workerGain, priestGain, "received")
+	reason := "received"
+	if action.GetType() == ActionConversion {
+		reason = "conversion"
+	}
+	gs.queueTreasurersDeposit(player.ID, coinGain, workerGain, priestGain, reason)
 }
 
 func validateActionTurnAndPendingState(gs *GameState, action Action) error {

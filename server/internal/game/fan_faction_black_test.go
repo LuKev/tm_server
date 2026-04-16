@@ -135,8 +135,11 @@ func TestGoblinsTreasureRewardsAndCultResolution(t *testing.T) {
 	if got := player.CultPositions[CultWater]; got != 1 {
 		t.Fatalf("water cult = %d, want 1", got)
 	}
-	if got := player.CultPositions[CultAir]; got != 1 {
-		t.Fatalf("air cult = %d, want 1", got)
+	if got := player.CultPositions[CultAir]; got != 2 {
+		t.Fatalf("air cult = %d, want 2", got)
+	}
+	if got := player.CultPositions[CultEarth]; got != 1 {
+		t.Fatalf("earth cult = %d, want 1", got)
 	}
 }
 

@@ -166,6 +166,26 @@ func TestDynionGeifrFourDwellingsCanFormTown(t *testing.T) {
 	}
 }
 
+func TestDynionGeifrStrongholdGrantsTwoPriestsImmediately(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewDynionGeifr()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.Resources.Priests = 0
+
+	action := &UpgradeBuildingAction{
+		BaseAction:      BaseAction{Type: ActionUpgradeBuilding, PlayerID: "p1"},
+		NewBuildingType: models.BuildingStronghold,
+	}
+	action.handleStrongholdBonuses(gs, player)
+
+	if got := player.Resources.Priests; got != 2 {
+		t.Fatalf("priests after Dynion Geifr stronghold bonus = %d, want 2", got)
+	}
+}
+
 func TestConspiratorsFavorTileGivesTwoCoins(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewConspirators()); err != nil {

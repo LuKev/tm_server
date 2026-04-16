@@ -1332,7 +1332,7 @@ export const Game = () => {
       'Choose which Goblins treasure reward to take.',
       [
         {
-          label: 'Dwellings',
+          label: 'Dwellings (+PW)',
           testId: 'goblins-treasure-dwellings',
           onClick: () => {
             performAction('goblins_treasure', { rewardType: 'dwellings' })
@@ -1340,7 +1340,7 @@ export const Game = () => {
           },
         },
         {
-          label: 'Trading Posts',
+          label: 'Trading Posts (+2C)',
           testId: 'goblins-treasure-trading-posts',
           onClick: () => {
             performAction('goblins_treasure', { rewardType: 'trading_posts' })
@@ -1348,7 +1348,7 @@ export const Game = () => {
           },
         },
         {
-          label: 'Temples',
+          label: 'Temples (+W)',
           testId: 'goblins-treasure-temples',
           onClick: () => {
             performAction('goblins_treasure', { rewardType: 'temples' })
@@ -1356,7 +1356,7 @@ export const Game = () => {
           },
         },
         {
-          label: 'Big Structures',
+          label: 'Big Structures (+cult)',
           testId: 'goblins-treasure-big-structures',
           onClick: () => {
             performAction('goblins_treasure', { rewardType: 'big_structures' })
@@ -2420,6 +2420,7 @@ export const Game = () => {
                 <div className="text-sm text-slate-700">
                   Choose how many of the newly received resources to move into the Treasury.
                   {pendingDecision?.reason === 'income' ? ' These will double at the start of your next income phase.' : ''}
+                  {pendingDecision?.reason === 'conversion' ? ' This conversion can be banked immediately instead of staying on board.' : ''}
                 </div>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
@@ -2509,8 +2510,8 @@ export const Game = () => {
           ) : hasPendingDecisionForMe && pendingDecisionType === 'goblins_cult_steps' ? (
             <div className="space-y-3">
               <div>
-                <div className="text-sm font-semibold text-slate-900">Goblins: Choose Cult Track</div>
-                <div className="text-sm text-slate-700">Select a cult track for each remaining Goblins cult step. Remaining: {String(Number(pendingDecision?.stepsRemaining ?? 0))}.</div>
+                <div className="text-sm font-semibold text-slate-900">Goblins Treasure: Assign Cult Steps</div>
+                <div className="text-sm text-slate-700">Spend each remaining Goblins big-structure cult step on any cult track. Remaining: {String(Number(pendingDecision?.stepsRemaining ?? 0))}.</div>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {CULT_CHOICES.map((choice) => (

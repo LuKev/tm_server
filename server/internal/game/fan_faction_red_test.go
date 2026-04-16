@@ -292,6 +292,116 @@ func TestTreasurersStrongholdPromptsForActionResourceDeposit(t *testing.T) {
 	}
 }
 
+func TestTreasurersStrongholdConversionPromptsForTreasuryDeposit(t *testing.T) {
+	manager := NewManager()
+	gs := NewGameState()
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.Phase = PhaseAction
+	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	manager.CreateGameWithState("g1", gs)
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Priests = 1
+	player.Resources.Workers = 0
+
+	action := &ConversionAction{
+		BaseAction:     BaseAction{Type: ActionConversion, PlayerID: "p1"},
+		ConversionType: ConversionPriestToWorker,
+		Amount:         1,
+	}
+	if _, err := manager.ExecuteActionWithMeta("g1", action, ActionMeta{ExpectedRevision: -1}); err != nil {
+		t.Fatalf("ExecuteActionWithMeta failed: %v", err)
+	}
+
+	if gs.PendingTreasurersDeposit == nil {
+		t.Fatalf("expected pending Treasurers conversion deposit")
+	}
+	if got := gs.PendingTreasurersDeposit.AvailableWorkers; got != 1 {
+		t.Fatalf("available workers to bank after conversion = %d, want 1", got)
+	}
+	if got := gs.PendingTreasurersDeposit.Reason; got != "conversion" {
+		t.Fatalf("deposit reason = %q, want conversion", got)
+	}
+}
+
+func TestTreasurersStrongholdDoublesNonPowerCultRewards(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Workers = 0
+	player.Resources.Coins = 0
+	gs.CultTracks.PlayerPositions["p1"][CultFire] = 6
+	player.CultPositions[CultFire] = 6
+
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{Type: ScoringStrongholdFire, CultTrack: CultFire, CultThreshold: 2, CultRewardType: CultRewardWorker, CultRewardAmount: 1},
+			{Type: ScoringTemplePriest, CultRewardAmount: 2},
+			{Type: ScoringDwellingWater},
+			{Type: ScoringDwellingWater},
+			{Type: ScoringDwellingWater},
+			{Type: ScoringDwellingWater},
+		},
+		PriestsSent: map[string]int{"p1": 2},
+	}
+
+	gs.AwardCultRewardsForRound(1)
+	if got := player.Resources.Workers; got != 6 {
+		t.Fatalf("workers after doubled cult rewards = %d, want 6", got)
+	}
+
+	gs.AwardCultRewardsForRound(2)
+	if got := player.Resources.Coins; got != 8 {
+		t.Fatalf("coins after doubled temple-priest cult rewards = %d, want 8", got)
+	}
+}
+
+func TestTreasurersStrongholdDoesNotDoublePowerOrSpadeCultRewards(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Power = NewPowerSystem(0, 8, 0)
+	player.Resources.Priests = 0
+	gs.CultTracks.PlayerPositions["p1"][CultFire] = 4
+	player.CultPositions[CultFire] = 4
+	gs.CultTracks.PlayerPositions["p1"][CultWater] = 4
+	player.CultPositions[CultWater] = 4
+
+	gs.ScoringTiles = &ScoringTileState{
+		Tiles: []ScoringTile{
+			{Type: ScoringDwellingFire, CultTrack: CultFire, CultThreshold: 4, CultRewardType: CultRewardPower, CultRewardAmount: 4},
+			{Type: ScoringTradingHouseWater, CultTrack: CultWater, CultThreshold: 4, CultRewardType: CultRewardSpade, CultRewardAmount: 1},
+			{Type: ScoringDwellingWater},
+			{Type: ScoringDwellingWater},
+			{Type: ScoringDwellingWater},
+			{Type: ScoringDwellingWater},
+		},
+		PriestsSent: map[string]int{},
+	}
+
+	gs.AwardCultRewardsForRound(1)
+	if got := player.Resources.Power.Bowl3; got != 4 {
+		t.Fatalf("power after cult rewards = %d, want 4", got)
+	}
+
+	gs.AwardCultRewardsForRound(2)
+	if got := gs.PendingCultRewardSpades["p1"]; got != 1 {
+		t.Fatalf("pending cult reward spades = %d, want 1", got)
+	}
+}
+
 func TestTreasurersPriestsInTreasuryBlockPriestPowerActionAtCap(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {

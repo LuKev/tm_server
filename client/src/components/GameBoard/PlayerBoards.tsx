@@ -357,7 +357,8 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
         && pendingDecision?.type === 'post_action_free_actions';
     const conversionActionsEnabled = canUseConversions || isLocalPostActionFreeWindow;
     const hasReusableBridgeAction = factionType === FactionType.Engineers || factionType === FactionType.Atlanteans || factionType === FactionType.Architects;
-    const isMermaidsSquareAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
+    const hasMermaidsConnectAction = factionType === FactionType.Mermaids && !!player.hasStrongholdAbility;
+    const hasGoblinsTreasureAction = factionType === FactionType.Goblins;
     const isStrongholdActionActive = strongholdActionType !== null && activeStrongholdActionType === strongholdActionType && isLocalPlayer;
     const isLocalEngineersBridgeActive = !!isEngineersBridgeActive && isLocalPlayer;
     const isLocalMermaidsConnectActive = !!isMermaidsConnectActive && isLocalPlayer;
@@ -371,7 +372,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
     const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
     const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
     const showShippingUpgrade = canShowShippingForFaction(factionType);
-    const showDiggingUpgrade = canShowDiggingForFaction(factionType) && factionType !== FactionType.ChashDallah;
+    const showDiggingUpgrade = canShowDiggingForFaction(factionType);
     const showChashTrackUpgrade = factionType === FactionType.ChashDallah;
     const chashTrackLevel = player.chashIncomeTrackLevel ?? 0;
     const townTiles = player.townTiles ?? [];
@@ -479,7 +480,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                 diggingLevel={diggingLevel}
                                 hasTempShippingBonus={hasTempShippingBonus}
                             />
-                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade || showChashTrackUpgrade) && (
+                            {!isReplayMode && isLocalPlayer && (showShippingUpgrade || showDiggingUpgrade || showChashTrackUpgrade || hasReusableBridgeAction || hasMermaidsConnectAction || hasGoblinsTreasureAction) && (
                                 <div style={{ display: 'flex', gap: '0.25em', marginLeft: '0.5em' }}>
                                     {showShippingUpgrade && (
                                         <button
@@ -518,6 +519,45 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                             +Track {String(chashTrackLevel)}/4
                                         </button>
                                     )}
+                                    {hasReusableBridgeAction && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-bridge-action`}
+                                            className={`conversion-btn ${isLocalEngineersBridgeActive ? 'special' : ''}`}
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onEngineersBridgeAction?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                            title={factionType === FactionType.Architects ? 'Build a bridge for 1 priest' : factionType === FactionType.Atlanteans ? 'Build a bridge for 2 workers' : 'Build a bridge for 2 workers'}
+                                        >
+                                            BR
+                                        </button>
+                                    )}
+                                    {hasMermaidsConnectAction && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-mermaids-connect`}
+                                            className={`conversion-btn ${isLocalMermaidsConnectActive ? 'special' : ''}`}
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onMermaidsConnectAction?.(playerId); }}
+                                            disabled={!canUseTurnActions}
+                                            title="Mermaids stronghold: connect across one river"
+                                        >
+                                            CT
+                                        </button>
+                                    )}
+                                    {hasGoblinsTreasureAction && (
+                                        <button
+                                            type="button"
+                                            data-testid={`player-${playerId}-goblins-treasure`}
+                                            className="conversion-btn special"
+                                            style={{ padding: '0.1em 0.45em', fontSize: '0.75em' }}
+                                            onClick={() => { onGoblinsTreasureAction?.(playerId); }}
+                                            disabled={!canUseTurnActions || goblinTreasureTokens <= 0}
+                                            title="Spend 1 Goblins treasure"
+                                        >
+                                            Treasure
+                                        </button>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -554,35 +594,13 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                         />
                                         {/* Stronghold Action Octagon */}
                                         {strongholdActionType !== null && (
-                                            <div style={{ position: 'absolute', right: hasReusableBridgeAction ? '-6em' : '-3em', top: '50%', transform: 'translateY(-50%)' }}>
+                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
                                                 <StrongholdOctagon
                                                     isUsed={isStrongholdActionUsed}
                                                     isActive={isStrongholdActionActive}
                                                     onClick={() => { if (strongholdActionType !== null) onStrongholdAction?.(playerId, strongholdActionType); }}
                                                     disabled={!isLocalPlayer || !canUseTurnActions || !!isStrongholdActionUsed}
                                                     testId={`player-${playerId}-stronghold-action`}
-                                                />
-                                            </div>
-                                        )}
-                                        {hasReusableBridgeAction && (
-                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
-                                                <StrongholdSquare
-                                                    isActive={isLocalEngineersBridgeActive}
-                                                    label="BR"
-                                                    onClick={() => { onEngineersBridgeAction?.(playerId); }}
-                                                    disabled={!isLocalPlayer || !canUseTurnActions}
-                                                    testId={`player-${playerId}-engineers-bridge`}
-                                                />
-                                            </div>
-                                        )}
-                                        {isMermaidsSquareAction && (
-                                            <div style={{ position: 'absolute', right: '-3em', top: '50%', transform: 'translateY(-50%)' }}>
-                                                <StrongholdSquare
-                                                    isActive={isLocalMermaidsConnectActive}
-                                                    label="CT"
-                                                    onClick={() => { onMermaidsConnectAction?.(playerId); }}
-                                                    disabled={!isLocalPlayer || !canUseTurnActions}
-                                                    testId={`player-${playerId}-mermaids-connect`}
                                                 />
                                             </div>
                                         )}
@@ -705,9 +723,6 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     <button data-testid={`player-${playerId}-burn-power-1`} className="conversion-btn" onClick={() => { onBurnPower?.(playerId, 1); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>{factionType === FactionType.ChildrenOfTheWyrm ? 'Burn 3PW → +2 Bowl III' : 'Burn 2PW → +1 Bowl III'}</button>
                                     {factionType === FactionType.Alchemists && (
                                         <button data-testid={`player-${playerId}-conversion-alchemists_vp_to_coin`} className="conversion-btn special" onClick={() => { onConversion?.(playerId, 'alchemists_vp_to_coin'); }} disabled={!isLocalPlayer || !conversionActionsEnabled}>1 VP → 1 Coin</button>
-                                    )}
-                                    {factionType === FactionType.Goblins && (
-                                        <button data-testid={`player-${playerId}-goblins-treasure`} className="conversion-btn special" onClick={() => { onGoblinsTreasureAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || goblinTreasureTokens <= 0}>Use 1 Treasure</button>
                                     )}
                                     {factionType === FactionType.Djinni && (
                                         <button data-testid={`player-${playerId}-djinni-lamp`} className="conversion-btn special" onClick={() => { onDjinniLampAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || djinniLampTokens <= 0}>Use 1 Lamp</button>

@@ -332,8 +332,7 @@ func (gs *GameState) awardSpecialCultRewards(tile *ScoringTile) {
 			if isArchivists(player) {
 				continue
 			}
-			coins := priestCount * tile.CultRewardAmount
-			player.Resources.Coins += coins
+			gs.grantCultReward(playerID, player, CultRewardCoin, priestCount*tile.CultRewardAmount)
 		}
 	}
 	gs.ScoringTiles.ResetPriestsSent()
@@ -364,6 +363,7 @@ func (gs *GameState) awardRegularCultRewards(tile *ScoringTile) {
 }
 
 func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType CultRewardType, amount int) {
+	amount = adjustCultRewardAmount(player, rewardType, amount)
 	switch rewardType {
 	case CultRewardPriest:
 		gs.GainPriests(playerID, amount)
@@ -385,5 +385,20 @@ func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType
 		player.Resources.Workers += amount
 	case CultRewardCoin:
 		player.Resources.Coins += amount
+	}
+}
+
+func adjustCultRewardAmount(player *Player, rewardType CultRewardType, amount int) int {
+	if amount <= 0 || player == nil || player.Faction == nil {
+		return amount
+	}
+	if player.Faction.GetType() != models.FactionTreasurers || !player.HasStrongholdAbility {
+		return amount
+	}
+	switch rewardType {
+	case CultRewardPriest, CultRewardWorker, CultRewardCoin:
+		return amount * 2
+	default:
+		return amount
 	}
 }
