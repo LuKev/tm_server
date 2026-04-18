@@ -20,9 +20,10 @@ import (
 
 // GameConfig holds the game setup configuration
 type GameConfig struct {
-	ScoringTiles        []string                     `yaml:"scoring_tiles"`
-	BonusCards          []string                     `yaml:"bonus_cards"`
-	BonusCardSelections map[string]map[string]string `yaml:"bonus_card_selections"`
+	ScoringTiles             []string                     `yaml:"scoring_tiles"`
+	BonusCards               []string                     `yaml:"bonus_cards"`
+	BonusCardSelections      map[string]map[string]string `yaml:"bonus_card_selections"`
+	ExtraBonusCardSelections map[string]map[string]string `yaml:"extra_bonus_card_selections"`
 }
 
 func main() {
@@ -111,8 +112,8 @@ func main() {
 	}
 
 	// Inject bonus card selections from config
-	if config != nil && len(config.BonusCardSelections) > 0 {
-		items = injectBonusCardSelections(items, config.BonusCardSelections)
+	if config != nil && (len(config.BonusCardSelections) > 0 || len(config.ExtraBonusCardSelections) > 0) {
+		items = injectBonusCardSelections(items, config.BonusCardSelections, config.ExtraBonusCardSelections)
 	}
 
 	// Create initial game state
@@ -127,8 +128,61 @@ func main() {
 	totalActions := len(items)
 
 	for simulator.CurrentIndex < totalActions {
+		currentItem := items[simulator.CurrentIndex]
+		var verbosePlayerID string
 		if *verboseFlag {
-			fmt.Printf("  Executing action %d/%d: %T\n", simulator.CurrentIndex+1, totalActions, items[simulator.CurrentIndex])
+			fmt.Printf("  Executing action %d/%d: %T\n", simulator.CurrentIndex+1, totalActions, currentItem)
+			if actionItem, ok := currentItem.(notation.ActionItem); ok && actionItem.Action != nil {
+				fmt.Printf("    Action detail: %#v\n", actionItem.Action)
+				playerID := actionItem.Action.GetPlayerID()
+				verbosePlayerID = playerID
+				if player := simulator.GetState().GetPlayer(playerID); player != nil && player.Resources != nil && player.Resources.Power != nil {
+					fmt.Printf(
+						"    Pre-state %s: VP=%d C=%d W=%d P=%d PW=%d/%d/%d Cult=%d/%d/%d/%d\n",
+						playerID,
+						player.VictoryPoints,
+						player.Resources.Coins,
+						player.Resources.Workers,
+						player.Resources.Priests,
+						player.Resources.Power.Bowl1,
+						player.Resources.Power.Bowl2,
+						player.Resources.Power.Bowl3,
+						player.CultPositions[game.CultFire],
+						player.CultPositions[game.CultWater],
+						player.CultPositions[game.CultEarth],
+						player.CultPositions[game.CultAir],
+					)
+				}
+				if pendingCult := simulator.GetState().PendingCultRewardSpades; len(pendingCult) > 0 {
+					fmt.Printf("    Pending cult spades: %+v\n", pendingCult)
+				}
+				if pendingLeech := simulator.GetState().PendingLeechOffers; len(pendingLeech) > 0 {
+					fmt.Printf("    Pending leech offers:")
+					printedAny := false
+					for pendingPlayerID, offers := range pendingLeech {
+						if len(offers) == 0 {
+							continue
+						}
+						printedAny = true
+						fmt.Printf(" %s=[", pendingPlayerID)
+						for i, offer := range offers {
+							if i > 0 {
+								fmt.Print(", ")
+							}
+							if offer == nil {
+								fmt.Print("nil")
+								continue
+							}
+							fmt.Printf("%s:%d(vp=%d,event=%d)", offer.FromPlayerID, offer.Amount, offer.VPCost, offer.EventID)
+						}
+						fmt.Print("]")
+					}
+					if !printedAny {
+						fmt.Print(" none")
+					}
+					fmt.Println()
+				}
+			}
 		}
 
 		err := simulator.StepForward()
@@ -155,6 +209,34 @@ func main() {
 			}
 
 			os.Exit(1)
+		}
+		if *verboseFlag {
+			if verbosePlayerID != "" {
+				if player := simulator.GetState().GetPlayer(verbosePlayerID); player != nil && player.Resources != nil && player.Resources.Power != nil {
+					fmt.Printf(
+						"    Post-state %s: VP=%d C=%d W=%d P=%d PW=%d/%d/%d Cult=%d/%d/%d/%d\n",
+						verbosePlayerID,
+						player.VictoryPoints,
+						player.Resources.Coins,
+						player.Resources.Workers,
+						player.Resources.Priests,
+						player.Resources.Power.Bowl1,
+						player.Resources.Power.Bowl2,
+						player.Resources.Power.Bowl3,
+						player.CultPositions[game.CultFire],
+						player.CultPositions[game.CultWater],
+						player.CultPositions[game.CultEarth],
+						player.CultPositions[game.CultAir],
+					)
+				}
+			} else if roundStart, ok := currentItem.(notation.RoundStartItem); ok {
+				fmt.Printf(
+					"    Round state after round %d start marker: phase=%v incomePending=%t\n",
+					roundStart.Round,
+					simulator.GetState().Phase,
+					simulator.GetState().Phase == game.PhaseIncome,
+				)
+			}
 		}
 		successCount++
 	}
@@ -206,8 +288,10 @@ func printUsage() {
 	fmt.Println("  bga_test -file game.txt -config game_config.yaml")
 }
 
-// injectBonusCardSelections updates PassAction bonus cards from config
-func injectBonusCardSelections(items []notation.LogItem, selections map[string]map[string]string) []notation.LogItem {
+// injectBonusCardSelections updates PassAction bonus cards from config.
+// For Archivists after building the stronghold, an extra bonus-card follow-up action
+// can be injected immediately after the pass.
+func injectBonusCardSelections(items []notation.LogItem, selections map[string]map[string]string, extraSelections map[string]map[string]string) []notation.LogItem {
 	// For round 0 (initial bonus cards), we need to find GameSettingsItem
 	if round0, ok := selections["0"]; ok {
 		for i, item := range items {
@@ -223,7 +307,8 @@ func injectBonusCardSelections(items []notation.LogItem, selections map[string]m
 
 	// For rounds 1-5, update PassAction items
 	currentRound := 0
-	for i, item := range items {
+	for i := 0; i < len(items); i++ {
+		item := items[i]
 		// Track round changes
 		if _, ok := item.(notation.RoundStartItem); ok {
 			currentRound++
@@ -240,6 +325,20 @@ func injectBonusCardSelections(items []notation.LogItem, selections map[string]m
 							passAction.BonusCard = &cardType
 							items[i] = notation.ActionItem{Action: passAction}
 							fmt.Printf("  Injected %s for %s in round %d\n", cardCode, passAction.PlayerID, currentRound)
+						}
+					}
+				}
+
+				if roundSelections, ok := extraSelections[roundKey]; ok {
+					if cardCode, ok := roundSelections[passAction.PlayerID]; ok {
+						cardType := notation.ParseBonusCardCode(cardCode)
+						if cardType != game.BonusCardUnknown {
+							extraAction := notation.ActionItem{
+								Action: game.NewSelectArchivistsBonusCardAction(passAction.PlayerID, cardType),
+							}
+							items = append(items[:i+1], append([]notation.LogItem{extraAction}, items[i+1:]...)...)
+							i++
+							fmt.Printf("  Injected extra %s for %s in round %d\n", cardCode, passAction.PlayerID, currentRound)
 						}
 					}
 				}
@@ -345,6 +444,7 @@ func injectSettings(items []notation.LogItem, scoringStr, bonusStr string) []not
 
 func createInitialState(items []notation.LogItem) *game.GameState {
 	initialState := game.NewGameState()
+	initialState.ReplayMode = map[string]bool{"__replay__": true}
 
 	// Pre-populate players and settings from GameSettingsItem if present
 	for _, item := range items {

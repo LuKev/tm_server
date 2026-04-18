@@ -129,6 +129,78 @@ Player1 builds a Dwelling for 1 workers 2 coins [E3]
 	}
 }
 
+func TestBGAParser_FavorTileLineWithTrailingPowerPreservesInterveningLeechOrder(t *testing.T) {
+	content := `
+Game board: Base
+Nafghar is playing the Prospectors Faction
+LANMEEE is playing the Archivists Faction
+Xevoc is playing the Conspirators Faction
+Every player has chosen a Faction
+Nafghar places a Dwelling [A1]
+LANMEEE places a Dwelling [B1]
+Xevoc places a Dwelling [C1]
+~ Action phase ~
+Move 1 :
+Nafghar upgrades a Temple to a Sanctuary for 4 workers 8 coins [E6]
+LANMEEE declines getting Power via Structures [E6]
+Xevoc declines getting Power via Structures [E6]
+Nafghar takes a Favor tile
+Nafghar gains 1 on the Cult of Air track (Favor tile) and earns 1 power
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var (
+		upgradeIdx int = -1
+		declineCount int
+		favorIdx int = -1
+	)
+	for idx, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		switch action := actionItem.Action.(type) {
+		case *game.UpgradeBuildingAction:
+			if action.PlayerID == "Prospectors" {
+				upgradeIdx = idx
+			}
+		case *LogDeclineLeechAction:
+			declineCount++
+		case *LogFavorTileAction:
+			if action.PlayerID == "Prospectors" {
+				favorIdx = idx
+				if action.Tile != "FAV-A1" {
+					t.Fatalf("favor tile = %q, want FAV-A1", action.Tile)
+				}
+			}
+		case *LogCompoundAction:
+			for _, sub := range action.Actions {
+				if _, ok := sub.(*LogFavorTileAction); ok {
+					t.Fatalf("unexpected upgrade/favor compounding across intervening leech rows: %#v", action.Actions)
+				}
+			}
+		}
+	}
+
+	if upgradeIdx < 0 {
+		t.Fatal("did not find Prospectors sanctuary upgrade action")
+	}
+	if declineCount != 2 {
+		t.Fatalf("decline count = %d, want 2", declineCount)
+	}
+	if favorIdx < 0 {
+		t.Fatal("did not find standalone Prospectors favor tile action")
+	}
+	if favorIdx <= upgradeIdx {
+		t.Fatalf("favor action index = %d, want > upgrade index %d", favorIdx, upgradeIdx)
+	}
+}
+
 // TestBGAParser_DwarvesTunnelling tests parsing Dwarves tunnelling/Fakirs carpet flight
 func TestBGAParser_DwarvesTunnelling(t *testing.T) {
 	content := `Player1 is playing the Dwarves Faction
@@ -561,4 +633,139 @@ Mellus gets 2 VP (Scoring tile bonus)
 	}
 
 	t.Logf("Parsed %d items, found %d actions at A7", len(items), countA7Actions)
+}
+
+func TestBGAParser_WispsStrongholdDwelling_FromRealBgaGame(t *testing.T) {
+	content := `
+Game board: Base Game
+Xevoc is playing the Conspirators Faction (with 40 VP Starting VPs)
+Nafghar is playing the Prospectors Faction (with 34 VP Starting VPs)
+kezilu is playing the Wisps Faction (with 37 VP Starting VPs)
+LANMEEE is playing the Archivists Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Move 147 :
+kezilu upgrades a Trading house to a Faction Stronghold for 4 workers 4 coins [C4]
+kezilu gets 5 VP (Scoring tile bonus)
+kezilu scores 7 VP (Wisps Stronghold)
+kezilu places a Dwelling (Wisps Stronghold) [H4]
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var dwellingAction *game.BuildWispsStrongholdDwellingAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		if action, ok := actionItem.Action.(*game.BuildWispsStrongholdDwellingAction); ok {
+			dwellingAction = action
+			break
+		}
+	}
+
+	if dwellingAction == nil {
+		t.Fatal("Did not find BuildWispsStrongholdDwellingAction")
+	}
+	if dwellingAction.PlayerID != "Wisps" {
+		t.Fatalf("BuildWispsStrongholdDwellingAction PlayerID = %q, want %q", dwellingAction.PlayerID, "Wisps")
+	}
+	if dwellingAction.TargetHex != parseCoord("H4") {
+		t.Fatalf("BuildWispsStrongholdDwellingAction TargetHex = %+v, want %+v", dwellingAction.TargetHex, parseCoord("H4"))
+	}
+}
+
+func TestBGAParser_ProspectorsStrongholdAction_FromRealBgaGame(t *testing.T) {
+	content := `
+Game board: Base Game
+Xevoc is playing the Conspirators Faction (with 40 VP Starting VPs)
+Nafghar is playing the Prospectors Faction (with 34 VP Starting VPs)
+kezilu is playing the Wisps Faction (with 37 VP Starting VPs)
+LANMEEE is playing the Archivists Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Move 154 :
+Nafghar gains 11 coins (Stronghold Action)
+Nafghar declines doing Conversions
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var strongholdAction *game.SpecialAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		if action, ok := actionItem.Action.(*game.SpecialAction); ok {
+			if action.ActionType == game.SpecialActionProspectorsGainCoins {
+				strongholdAction = action
+				break
+			}
+		}
+	}
+
+	if strongholdAction == nil {
+		t.Fatal("Did not find Prospectors stronghold coin action")
+	}
+	if strongholdAction.PlayerID != "Prospectors" {
+		t.Fatalf("Prospectors stronghold action PlayerID = %q, want %q", strongholdAction.PlayerID, "Prospectors")
+	}
+}
+
+func TestBGAParser_ProspectorsBonusCardSpade_FromRealBgaGame(t *testing.T) {
+	content := `
+Game board: Base Game
+Xevoc is playing the Conspirators Faction (with 40 VP Starting VPs)
+Nafghar is playing the Prospectors Faction (with 34 VP Starting VPs)
+kezilu is playing the Wisps Faction (with 37 VP Starting VPs)
+LANMEEE is playing the Archivists Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Move 23 :
+Nafghar gains 1 spade(s) (Special action)
+Nafghar spends 1 spade(s) to gain 1 Priests (Prospectors ability)
+Nafghar declines doing Conversions
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var bonusSpadeAction *game.SpecialAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok {
+			continue
+		}
+		if action.ActionType == game.SpecialActionBonusCardSpade {
+			bonusSpadeAction = action
+			break
+		}
+	}
+
+	if bonusSpadeAction == nil {
+		t.Fatal("Did not find Prospectors bonus card spade action")
+	}
+	if bonusSpadeAction.PlayerID != "Prospectors" {
+		t.Fatalf("Prospectors bonus card spade PlayerID = %q, want %q", bonusSpadeAction.PlayerID, "Prospectors")
+	}
 }

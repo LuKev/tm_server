@@ -217,10 +217,10 @@ func TestConvertSnellmanToConcise_CompoundSendPriestAndBon1SpadeTransform(t *tes
 
 func TestSplitConciseActionIntoStandaloneReactions_CultistsLeadingBumpBacktracked(t *testing.T) {
 	var backtracked []string
-	got := splitConciseActionIntoStandaloneReactions("+A.L2-Witches", "cultists", func(bump string) {
+	got := splitConciseActionIntoStandaloneReactions("+A.UP-TH-E6", "cultists", func(bump string) {
 		backtracked = append(backtracked, bump)
-	})
-	want := []string{"L2-Witches"}
+	}, false)
+	want := []string{"UP-TH-E6"}
 	if len(got) != len(want) {
 		t.Fatalf("splitConciseActionIntoStandaloneReactions() len = %d, want %d (%v)", len(got), len(want), got)
 	}

@@ -40,6 +40,8 @@ go_test(
         "manager_import_test.go",
         "manager_test.go",
         "parser_test.go",
+        "simulator_initial_bonus_test.go",
+        "simulator_cleanup_timing_test.go",
         "snellman_batch_replay_test.go",
         "snellman_batch_s60_63_replay_test.go",
         "snellman_batch_s64_66_replay_test.go",

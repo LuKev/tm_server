@@ -178,6 +178,46 @@ func TestArchivistsStrongholdPassTakesTwoBonusCards(t *testing.T) {
 	}
 }
 
+func TestArchivistsStrongholdPassAwardsAirFavorVPAfterSecondBonusCard(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewArchivists()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	gs.TurnOrder = []string{"p1"}
+	gs.SuppressTurnAdvance = true
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
+		BonusCardSpade,
+		BonusCardCultAdvance,
+	})
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.VictoryPoints = 40
+	gs.BonusCards.PlayerCards["p1"] = BonusCard6Coins
+	gs.BonusCards.PlayerHasCard["p1"] = false
+	if err := gs.FavorTiles.TakeFavorTile("p1", FavorAir1); err != nil {
+		t.Fatalf("TakeFavorTile failed: %v", err)
+	}
+	for i := 0; i < 4; i++ {
+		hex := board.NewHex(i, 0)
+		gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
+		gs.Map.GetHex(hex).Building = testBuilding("p1", player.Faction.GetType(), models.BuildingTradingHouse)
+	}
+
+	firstCard := BonusCardSpade
+	if err := NewPassAction("p1", &firstCard).Execute(gs); err != nil {
+		t.Fatalf("PassAction.Execute failed: %v", err)
+	}
+
+	if err := NewSelectArchivistsBonusCardAction("p1", BonusCardCultAdvance).Execute(gs); err != nil {
+		t.Fatalf("SelectArchivistsBonusCardAction.Execute failed: %v", err)
+	}
+
+	if got := player.VictoryPoints; got != 44 {
+		t.Fatalf("victory points after Archivists stronghold pass = %d, want 44", got)
+	}
+}
+
 func TestArchivistsExtraBonusCardEnablesSpecialAction(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewArchivists()); err != nil {

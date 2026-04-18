@@ -1202,33 +1202,36 @@ func (a *PassAction) Execute(gs *GameState) error {
 	}
 
 	gs.ApplyAutoConvertOnPass(a.PlayerID)
+	applyPostPassBonuses(gs, player)
 
-	// Award VP from Air+1 favor tile (VP based on Trading House count)
-	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
+	return advanceAfterCompletedPass(gs)
+}
+
+func applyPostPassBonuses(gs *GameState, player *Player) {
+	if gs == nil || player == nil {
+		return
+	}
+
+	// Award VP from Air+1 favor tile (VP based on Trading House count).
+	playerTiles := gs.FavorTiles.GetPlayerTiles(player.ID)
 	if HasFavorTile(playerTiles, FavorAir1) {
-		// Count trading houses on the map
 		tradingHouseCount := 0
 		for _, mapHex := range gs.Map.Hexes {
 			if mapHex.Building != nil &&
-				mapHex.Building.PlayerID == a.PlayerID &&
+				mapHex.Building.PlayerID == player.ID &&
 				mapHex.Building.Type == models.BuildingTradingHouse {
 				tradingHouseCount++
 			}
 		}
 
-		vp := GetAir1PassVP(playerTiles, tradingHouseCount)
-		player.VictoryPoints += vp
+		player.VictoryPoints += GetAir1PassVP(playerTiles, tradingHouseCount)
 	}
 
-	// Award VP for Engineers stronghold ability (3 VP per bridge connecting two structures when passing)
-	if player.Faction.GetType() == models.FactionEngineers && player.HasStrongholdAbility {
-		// Count only bridges connecting two of the engineer's structures
-		bridgeCount := gs.Map.CountBridgesConnectingPlayerStructures(a.PlayerID)
-		bridgeVP := bridgeCount * 3
-		player.VictoryPoints += bridgeVP
+	// Award VP for Engineers stronghold ability (3 VP per bridge connecting two structures when passing).
+	if player.Faction != nil && player.Faction.GetType() == models.FactionEngineers && player.HasStrongholdAbility {
+		bridgeCount := gs.Map.CountBridgesConnectingPlayerStructures(player.ID)
+		player.VictoryPoints += bridgeCount * 3
 	}
-
-	return advanceAfterCompletedPass(gs)
 }
 
 func advanceAfterCompletedPass(gs *GameState) error {

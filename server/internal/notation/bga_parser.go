@@ -19,11 +19,14 @@ type BGAParser struct {
 	currentLine int
 	items       []LogItem
 	// State tracking
-	currentRound  int
-	players       map[string]string // Name -> Faction
-	passOrder     []string          // Tracks who passed in current round to determine next round order
-	townPending   map[string]bool   // Name -> bool, tracks if player just founded a town
-	consumedLines map[int]bool      // Line indices that have been consumed by another action
+	currentRound       int
+	players            map[string]string // Name -> Faction
+	passOrder          []string          // Tracks who passed in current round to determine next round order
+	townPending        map[string]bool   // Name -> bool, tracks if player just founded a town
+	consumedLines      map[int]bool      // Line indices that have been consumed by another action
+	leechSourceByCoord map[string]string // Coord -> player ID of the structure that most recently triggered leech there
+	lastLeechSourceID  string
+	lastLeechSourceHex *board.Hex
 }
 
 func NewBGAParser(content string) *BGAParser {
@@ -35,13 +38,14 @@ func NewBGAParser(content string) *BGAParser {
 	}
 
 	return &BGAParser{
-		lines:         lines,
-		currentLine:   0,
-		items:         make([]LogItem, 0),
-		players:       make(map[string]string),
-		passOrder:     make([]string, 0),
-		townPending:   make(map[string]bool),
-		consumedLines: make(map[int]bool),
+		lines:              lines,
+		currentLine:        0,
+		items:              make([]LogItem, 0),
+		players:            make(map[string]string),
+		passOrder:          make([]string, 0),
+		townPending:        make(map[string]bool),
+		consumedLines:      make(map[int]bool),
+		leechSourceByCoord: make(map[string]string),
 	}
 }
 
@@ -67,6 +71,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	rePowerAction := regexp.MustCompile(`(.*) spends (\d+) power to (?:get|collect) (.*) \(Power action\)`)
 	reLeechGets := regexp.MustCompile(`(.*) gets (\d+) power via Structures \[(.*)\]`)
 	reLeechPays := regexp.MustCompile(`(.*) pays (\d+) VP and gets (\d+) power via Structures \[(.*)\]`)
+	reLeechCap := regexp.MustCompile(`(.*) Power gain via Structures is capped from (\d+) power to (\d+) power`)
 	reBurn := regexp.MustCompile(`(.*) sacrificed (\d+) power in Bowl 2 to get (\d+) power from Bowl 2 to Bowl 3`)
 	reFavorTileStart := regexp.MustCompile(`(.*) takes a Favor tile`)
 	reWitchesRide := regexp.MustCompile(`(.*) builds a Dwelling for free \(Witches Ride\) \[(.*)\]`)
@@ -82,6 +87,9 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reCMDoubleTurn := regexp.MustCompile(`(.*) takes a double-turn \(Chaos Magicians Stronghold\)`)
 	reHalflingsSpades := regexp.MustCompile(`(.*) gets 3 Spades to Transform and Build \(Halflings Stronghold\)`)
 	reEngineersBridge := regexp.MustCompile(`(.*) spends 2 workers to build a Bridge \(Engineers Ability\) \[(.*)\]`)
+	reWispsStrongholdDwelling := regexp.MustCompile(`(.*) places a Dwelling \(Wisps Stronghold\) \[(.*)\]`)
+	reProspectorsStrongholdAction := regexp.MustCompile(`(.*) gains \d+ coins? \(Stronghold Action\)`)
+	reSpecialActionSpade := regexp.MustCompile(`(.*) gains 1 spade\(s\) \(Special action\)`)
 
 	reConversionLine := regexp.MustCompile(`(.*) does some Conversions \(spent: (.*); collects: (.*)\)`)
 
@@ -248,7 +256,8 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 		// Stop at Final Scoring
 		if reFinalScoring.MatchString(line) {
-			break
+			p.handleFinalScoringBlock()
+			continue
 		}
 
 		// Check for Mermaids River Town (must be before regular town check)
@@ -265,8 +274,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			continue
 		}
 
-		// Check for Town VP (to merge)
-		if matches := reTownVP.FindStringSubmatch(line); len(matches) > 2 {
+		// Check for Town VP (to merge) only while a town claim is pending for that player.
+		// BGA often follows the town-tile line with a separate round-scoring VP line, and
+		// that must not be swallowed as part of the town selector.
+		if matches := reTownVP.FindStringSubmatch(line); len(matches) > 2 && p.townPending[matches[1]] {
 			p.handleTownVP(matches[1], matches[2])
 			continue
 		}
@@ -408,6 +419,18 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			coordStr := matches[2]
 			p.handleEngineersBridge(playerID, coordStr)
 
+		} else if matches := reWispsStrongholdDwelling.FindStringSubmatch(line); len(matches) > 2 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleWispsStrongholdDwelling(playerID, matches[2])
+
+		} else if matches := reProspectorsStrongholdAction.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleProspectorsStrongholdAction(playerID)
+
+		} else if matches := reSpecialActionSpade.FindStringSubmatch(line); len(matches) > 1 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleSpecialActionSpade(playerID)
+
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
 			coordStr := p.extractCoord(line)
@@ -483,6 +506,13 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			// fmt.Printf("Matched Leech Gets: %s gets %d at %s\n", playerName, amount, coordStr)
 			p.handleLeech(playerName, coordStr, amount, 0, true)
 
+		} else if matches := reLeechCap.FindStringSubmatch(line); len(matches) > 3 {
+			playerName := matches[1]
+			cappedAmount, _ := strconv.Atoi(matches[3])
+			if cappedAmount == 0 {
+				p.handleZeroCapLeech(playerName)
+			}
+
 		} else if matches := rePass.FindStringSubmatch(line); len(matches) > 1 {
 			// fmt.Printf("Matched Pass: %s\n", line)
 			p.handlePass(matches[1])
@@ -524,6 +554,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 func (p *BGAParser) handleBuildDwelling(playerName, coordStr string, isSetup bool) {
 	hex := parseCoord(coordStr)
 	playerID := p.getPlayerID(playerName)
+	p.rememberLeechSource(coordStr, playerID)
 
 	var action game.Action
 	if isSetup {
@@ -552,87 +583,21 @@ func (p *BGAParser) handleUpgrade(playerName, from, to, coordStr string) {
 	hex := parseCoord(coordStr)
 	playerID := p.getPlayerID(playerName)
 	newType := parseBuildingType(to)
+	p.rememberLeechSource(coordStr, playerID)
 
 	action := game.NewUpgradeBuildingAction(playerID, hex, newType)
 
 	// Check for Cultists ability
 	cultCode := p.checkForCultistAbility(playerID)
 
-	// Check for Favor Tile (Temple/Sanctuary upgrade)
-	// This might be chained after Cultist ability
-	var favorAction *LogFavorTileAction
-	if newType == models.BuildingTemple || newType == models.BuildingSanctuary {
-		// Look ahead for "takes a Favor tile"
-		// We need to be careful not to consume lines that checkForCultistAbility might have skipped over if we didn't use it
-		// But checkForCultistAbility already consumed the cult line if found.
-
-		// Simple lookahead for favor tile
-		reFavor := regexp.MustCompile(fmt.Sprintf(`^%s takes a Favor tile`, regexp.QuoteMeta(playerName)))
-		for lookAhead := 0; lookAhead < 20 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
-			lineIndex := p.currentLine + lookAhead
-			if p.consumedLines[lineIndex] {
-				continue
-			}
-			line := p.lines[lineIndex]
-			if reFavor.MatchString(line) {
-				p.consumedLines[lineIndex] = true
-				// The next line should be the favor tile selection
-				// "Player gains X on the Cult of Y track (Favor tile)"
-				// We need to parse that too.
-				// Let's use a helper or just parse it here.
-				// Actually, handleFavorTileAction does this.
-				// But we want to merge it.
-
-				// Look for the favor tile selection line
-				for subLookAhead := 1; subLookAhead < 3 && lineIndex+subLookAhead < len(p.lines); subLookAhead++ {
-					subLineIndex := lineIndex + subLookAhead
-					subLine := p.lines[subLineIndex]
-					if matches := reFavorTileAction.FindStringSubmatch(subLine); len(matches) > 3 {
-						if p.getPlayerID(matches[1]) == playerID {
-							p.consumedLines[subLineIndex] = true
-							track := matches[3]
-							amount, _ := strconv.Atoi(matches[2])
-
-							// Map track name to code
-							trackCode := "F"
-							switch track {
-							case "Fire":
-								trackCode = "F"
-							case "Water":
-								trackCode = "W"
-							case "Earth":
-								trackCode = "E"
-							case "Air":
-								trackCode = "A"
-							}
-
-							favorAction = &LogFavorTileAction{
-								PlayerID: playerID,
-								Tile:     fmt.Sprintf("FAV-%s%d", trackCode, amount),
-							}
-							break
-						}
-					}
-				}
-				break
-			}
-		}
-	}
-
-	if cultCode != "" || favorAction != nil {
+	if cultCode != "" {
 		actions := []game.Action{action}
 
-		if cultCode != "" {
-			cultAction := &LogCultistAdvanceAction{
-				PlayerID: playerID,
-				Track:    GetCultTrackFromCode(cultCode),
-			}
-			actions = append(actions, cultAction)
+		cultAction := &LogCultistAdvanceAction{
+			PlayerID: playerID,
+			Track:    GetCultTrackFromCode(cultCode),
 		}
-
-		if favorAction != nil {
-			actions = append(actions, favorAction)
-		}
+		actions = append(actions, cultAction)
 
 		compound := &LogCompoundAction{
 			Actions: actions,
@@ -788,13 +753,21 @@ func (p *BGAParser) handleAdvanceShipping(playerName string) {
 
 func (p *BGAParser) handleLeech(playerName, coordStr string, amount int, cost int, accepted bool) {
 	playerID := p.getPlayerID(playerName)
-	_ = coordStr
+	sourcePlayerID := p.getLeechSourcePlayer(coordStr)
+	var sourceHex *board.Hex
+	if normalizedCoord := normalizeBGACoord(coordStr); normalizedCoord != "" {
+		hex := parseCoord(normalizedCoord)
+		sourceHex = &hex
+	}
 
 	if accepted {
 		action := &LogAcceptLeechAction{
-			PlayerID:    playerID,
-			PowerAmount: amount,
-			VPCost:      cost,
+			PlayerID:     playerID,
+			FromPlayerID: sourcePlayerID,
+			FromHex:      sourceHex,
+			PowerAmount:  amount,
+			VPCost:       cost,
+			Explicit:     true,
 		}
 
 		// Check for duplicate (BGA sometimes logs leech twice)
@@ -811,20 +784,17 @@ func (p *BGAParser) handleLeech(playerName, coordStr string, amount int, cost in
 
 		p.items = append(p.items, ActionItem{Action: action})
 	} else {
-		// For decline, we use the standard action (it's simpler) or we could make a LogDecline
-		// But standard DeclinePowerLeechAction doesn't have extra fields we need for log?
-		// Actually standard DeclinePowerLeechAction just needs PlayerID.
-		// But wait, NewDeclinePowerLeechAction takes (playerID, amount).
-		// We have amount.
-		action := game.NewDeclinePowerLeechAction(playerID, amount)
+		action := &LogDeclineLeechAction{
+			PlayerID:     playerID,
+			FromPlayerID: sourcePlayerID,
+			FromHex:      sourceHex,
+		}
 
 		// Check for duplicate (BGA sometimes logs leech twice)
 		if len(p.items) > 0 {
 			if lastItem, ok := p.items[len(p.items)-1].(ActionItem); ok {
-				if lastAction, ok := lastItem.Action.(*game.DeclinePowerLeechAction); ok {
-					// Note: In the parser, we pass 'amount' as the 'offerIndex' to NewDeclinePowerLeechAction
-					// This is a bit of a hack, but it means we check OfferIndex here.
-					if lastAction.PlayerID == playerID && lastAction.OfferIndex == amount {
+				if lastAction, ok := lastItem.Action.(*LogDeclineLeechAction); ok {
+					if lastAction.PlayerID == playerID && lastAction.FromPlayerID == sourcePlayerID && sameLeechHex(lastAction.FromHex, sourceHex) {
 						// Duplicate, ignore
 						return
 					}
@@ -865,7 +835,7 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 	var track string
 
 	// Regex for single-line gain: "Player gains X on the Cult of Y track (Favor tile)"
-	reFavorTileGain := regexp.MustCompile(`gains (\d+) on the Cult of (.*) track \(Favor tile\)`)
+	reFavorTileGain := regexp.MustCompile(`gains (\d+) on the Cult of (.*) track \(Favor tile\)(?: .*)?`)
 
 	for i := 0; i < 5; i++ {
 		line := p.consumeLine()
@@ -911,64 +881,40 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 	}
 	newItem := ActionItem{Action: action}
 
-	// Hoist the action: Find the last "Structure" action by this player and insert after it
-	// Structure actions: Upgrade, Build (Setup or Game)
-	// We search backwards from the end
-	inserted := false
-	for i := len(p.items) - 1; i >= 0; i-- {
-		item := p.items[i]
-		if actItem, ok := item.(ActionItem); ok {
-			if actItem.Action.GetPlayerID() == playerID {
-				// Check if it's a relevant action
-				switch v := actItem.Action.(type) {
-				case *game.UpgradeBuildingAction:
-					// Check for Auren Stronghold upgrade
-					if v.NewBuildingType == models.BuildingStronghold {
-						// Check if player is Auren
-						if p.players[playerName] == "Auren" {
-							// Merge into compound action
-							compoundAction := &LogCompoundAction{
-								Actions: []game.Action{v, action},
-							}
-							p.items[i] = ActionItem{Action: compoundAction}
-							inserted = true
-							break
-						}
-					}
-					// Fallthrough for other upgrades
-					p.items = append(p.items[:i+1], append([]LogItem{newItem}, p.items[i+1:]...)...)
-					inserted = true
-				case *game.TransformAndBuildAction, *game.SetupDwellingAction:
-					// Insert after
-					p.items = append(p.items[:i+1], append([]LogItem{newItem}, p.items[i+1:]...)...)
-					inserted = true
-				case *LogCompoundAction:
-					// Check if the compound action contains a structure action
-					// Usually it's the first one (e.g. Upgrade -> Town)
-					isStructure := false
-					for _, subAction := range v.Actions {
-						switch subAction.(type) {
-						case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
-							isStructure = true
-						}
-					}
-
-					if isStructure {
-						// Append to the compound action
-						v.Actions = append(v.Actions, action)
-						// No need to update p.items[i] as we modified the pointer
-						inserted = true
-					}
-				}
-				if inserted {
-					break
-				}
-			}
-		}
+	if len(p.items) == 0 {
+		p.items = append(p.items, newItem)
+		return
 	}
 
-	if !inserted {
-		// Fallback: append to end
+	lastItem, ok := p.items[len(p.items)-1].(ActionItem)
+	if !ok || lastItem.Action.GetPlayerID() != playerID {
+		p.items = append(p.items, newItem)
+		return
+	}
+
+	switch v := lastItem.Action.(type) {
+	case *game.UpgradeBuildingAction:
+		if v.NewBuildingType == models.BuildingStronghold && p.players[playerName] == "Auren" {
+			p.items[len(p.items)-1] = ActionItem{
+				Action: &LogCompoundAction{Actions: []game.Action{v, action}},
+			}
+			return
+		}
+		p.items = append(p.items, newItem)
+	case *game.TransformAndBuildAction, *game.SetupDwellingAction:
+		p.items = append(p.items, newItem)
+	case *LogCompoundAction:
+		if len(v.Actions) == 0 {
+			p.items = append(p.items, newItem)
+			return
+		}
+		switch v.Actions[len(v.Actions)-1].(type) {
+		case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
+			v.Actions = append(v.Actions, action)
+		default:
+			p.items = append(p.items, newItem)
+		}
+	default:
 		p.items = append(p.items, newItem)
 	}
 }
@@ -978,6 +924,7 @@ func (p *BGAParser) handleWitchesRide(playerName string, coordStr string) {
 	if playerID == "" {
 		return
 	}
+	p.rememberLeechSource(coordStr, playerID)
 
 	actionCode := fmt.Sprintf("ACT-SH-D-%s", coordStr)
 
@@ -1009,6 +956,77 @@ func (p *BGAParser) handleAdvanceDigging(playerName string) {
 
 	action := game.NewAdvanceDiggingAction(playerID)
 	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) handleFinalScoringBlock() {
+	reCultScore := regexp.MustCompile(`(.*) scores (\d+) VP \(Cult of (\w+)\)`)
+	reAreaScore := regexp.MustCompile(`(.*) scores (\d+) VP with (\d+) connected Structures? \(Area scoring\)`)
+	reResourceScore := regexp.MustCompile(`(.*) scores (\d+) VP with (\d+) coins? \(Resource scoring\)`)
+
+	expectations := make(map[string]*FinalScoringExpectation)
+	getExpectation := func(playerName string) *FinalScoringExpectation {
+		playerID := p.getPlayerID(strings.TrimSpace(playerName))
+		if playerID == "" {
+			return nil
+		}
+		if expectations[playerID] == nil {
+			expectations[playerID] = &FinalScoringExpectation{
+				PlayerID: playerID,
+			}
+		}
+		return expectations[playerID]
+	}
+
+	for p.currentLine < len(p.lines) {
+		line := strings.TrimSpace(p.lines[p.currentLine])
+		p.currentLine++
+
+		if line == "" {
+			continue
+		}
+		if line == "End of game" {
+			break
+		}
+
+		if matches := reCultScore.FindStringSubmatch(line); len(matches) > 3 {
+			expectation := getExpectation(matches[1])
+			if expectation == nil {
+				continue
+			}
+			vp, _ := strconv.Atoi(matches[2])
+			expectation.CultVP += vp
+			continue
+		}
+
+		if matches := reAreaScore.FindStringSubmatch(line); len(matches) > 3 {
+			expectation := getExpectation(matches[1])
+			if expectation == nil {
+				continue
+			}
+			vp, _ := strconv.Atoi(matches[2])
+			areaSize, _ := strconv.Atoi(matches[3])
+			expectation.AreaVP = vp
+			expectation.LargestAreaSize = areaSize
+			expectation.HasAreaScore = true
+			continue
+		}
+
+		if matches := reResourceScore.FindStringSubmatch(line); len(matches) > 3 {
+			expectation := getExpectation(matches[1])
+			if expectation == nil {
+				continue
+			}
+			vp, _ := strconv.Atoi(matches[2])
+			resourceValue, _ := strconv.Atoi(matches[3])
+			expectation.ResourceVP = vp
+			expectation.TotalResourceValue = resourceValue
+			expectation.HasResourceScore = true
+		}
+	}
+
+	if len(expectations) > 0 {
+		p.items = append(p.items, FinalScoringValidationItem{Scores: expectations})
+	}
 }
 
 // Helper functions
@@ -1425,36 +1443,25 @@ func (p *BGAParser) handleTownVP(playerName, vpStr string) {
 		VP:       vp,
 	}
 
-	// Merge with previous action
-	// We look backwards for the last action by this player
-	// Similar to Favor Tile merge logic
-	inserted := false
-	for i := len(p.items) - 1; i >= 0; i-- {
-		item := p.items[i]
-		if actItem, ok := item.(ActionItem); ok {
-			// Check if this action belongs to the player
-			if actItem.Action.GetPlayerID() == playerID {
-				// Merge!
-				// Check if it's already a compound action
-				if compound, ok := actItem.Action.(*LogCompoundAction); ok {
-					compound.Actions = append(compound.Actions, townAction)
-					p.items[i] = ActionItem{Action: compound}
-				} else {
-					// Create new compound action
-					compound := &LogCompoundAction{
-						Actions: []game.Action{actItem.Action, townAction},
-					}
-					p.items[i] = ActionItem{Action: compound}
-				}
-				inserted = true
-				break
-			}
-		}
+	if len(p.items) == 0 {
+		p.items = append(p.items, ActionItem{Action: townAction})
+		return
 	}
 
-	if !inserted {
-		// If no previous action found (unlikely), append as new item
+	lastItem, ok := p.items[len(p.items)-1].(ActionItem)
+	if !ok || lastItem.Action.GetPlayerID() != playerID {
 		p.items = append(p.items, ActionItem{Action: townAction})
+		return
+	}
+
+	if compound, ok := lastItem.Action.(*LogCompoundAction); ok {
+		compound.Actions = append(compound.Actions, townAction)
+		p.items[len(p.items)-1] = ActionItem{Action: compound}
+		return
+	}
+
+	p.items[len(p.items)-1] = ActionItem{
+		Action: &LogCompoundAction{Actions: []game.Action{lastItem.Action, townAction}},
 	}
 }
 
@@ -1569,6 +1576,7 @@ func (p *BGAParser) handleGiantsStronghold(playerID, coordStr string) {
 }
 
 func (p *BGAParser) handleSwarmlingStronghold(playerID, coordStr string) {
+	p.rememberLeechSource(coordStr, playerID)
 	// Swarmlings Stronghold: free Dwelling -> Trading House upgrade
 	// Emit as ACT-SH-TP-[coord] (TP = Trading Post, as expected by executeStrongholdAction)
 	p.items = append(p.items, ActionItem{
@@ -1857,4 +1865,78 @@ func (p *BGAParser) handleEngineersBridge(playerID, coordStr string) {
 	}
 
 	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) handleWispsStrongholdDwelling(playerID, coordStr string) {
+	hex := parseCoord(coordStr)
+	p.rememberLeechSource(coordStr, playerID)
+	p.items = append(p.items, ActionItem{
+		Action: game.NewBuildWispsStrongholdDwellingAction(playerID, hex),
+	})
+}
+
+func (p *BGAParser) rememberLeechSource(coordStr, playerID string) {
+	if p == nil {
+		return
+	}
+	coord := normalizeBGACoord(coordStr)
+	playerID = strings.TrimSpace(playerID)
+	if coord == "" || playerID == "" {
+		return
+	}
+	sourceHex := parseCoord(coord)
+	if p.leechSourceByCoord == nil {
+		p.leechSourceByCoord = make(map[string]string)
+	}
+	p.leechSourceByCoord[coord] = playerID
+	p.lastLeechSourceID = playerID
+	p.lastLeechSourceHex = &sourceHex
+}
+
+func (p *BGAParser) getLeechSourcePlayer(coordStr string) string {
+	if p == nil || p.leechSourceByCoord == nil {
+		return ""
+	}
+	return p.leechSourceByCoord[normalizeBGACoord(coordStr)]
+}
+
+func normalizeBGACoord(coordStr string) string {
+	return strings.ToUpper(strings.Trim(strings.TrimSpace(coordStr), "[]"))
+}
+
+func sameLeechHex(left, right *board.Hex) bool {
+	if left == nil || right == nil {
+		return left == nil && right == nil
+	}
+	return *left == *right
+}
+
+func (p *BGAParser) handleZeroCapLeech(playerName string) {
+	playerID := p.getPlayerID(playerName)
+	if playerID == "" {
+		return
+	}
+
+	action := &LogDeclineLeechAction{
+		PlayerID:     playerID,
+		FromPlayerID: p.lastLeechSourceID,
+		FromHex:      p.lastLeechSourceHex,
+	}
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) handleProspectorsStrongholdAction(playerID string) {
+	p.items = append(p.items, ActionItem{
+		Action: game.NewProspectorsGainCoinsAction(playerID),
+	})
+}
+
+func (p *BGAParser) handleSpecialActionSpade(playerID string) {
+	if playerID != "Prospectors" {
+		return
+	}
+
+	p.items = append(p.items, ActionItem{
+		Action: game.NewBonusCardSpadeAction(playerID, board.Hex{}, false, models.TerrainTypeUnknown),
+	})
 }

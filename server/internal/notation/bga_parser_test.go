@@ -138,3 +138,55 @@ deragned is playing the Halflings Faction
 		t.Errorf("Expected BonusCards %q, got %q", expectedBonus, settings.Settings["BonusCards"])
 	}
 }
+
+func TestBGAParser_ParsesFinalScoringBlock(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Witches Faction
+Bob is playing the Giants Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice passes
+Bob passes
+~ Final scoring ~
+Alice scores 8 VP (Cult of Fire)
+Bob scores 4 VP (Cult of Fire)
+Alice scores 18 VP with 15 connected Structures (Area scoring)
+Bob scores 6 VP with 14 connected Structures (Area scoring)
+Alice scores 3 VP with 10 coins (Resource scoring)
+Bob scores 1 VP with 3 coins (Resource scoring)
+End of game
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	lastItem, ok := items[len(items)-1].(FinalScoringValidationItem)
+	if !ok {
+		t.Fatalf("last item type = %T, want FinalScoringValidationItem", items[len(items)-1])
+	}
+
+	alice := lastItem.Scores["Witches"]
+	if alice == nil {
+		t.Fatal("missing Witches final scoring expectation")
+	}
+	if alice.CultVP != 8 || alice.AreaVP != 18 || alice.ResourceVP != 3 {
+		t.Fatalf("Witches final scoring = %+v, want cult=8 area=18 resource=3", *alice)
+	}
+	if !alice.HasAreaScore || alice.LargestAreaSize != 15 {
+		t.Fatalf("Witches area expectation = %+v, want area size 15", *alice)
+	}
+	if !alice.HasResourceScore || alice.TotalResourceValue != 10 {
+		t.Fatalf("Witches resource expectation = %+v, want resource value 10", *alice)
+	}
+
+	bob := lastItem.Scores["Giants"]
+	if bob == nil {
+		t.Fatal("missing Giants final scoring expectation")
+	}
+	if bob.CultVP != 4 || bob.AreaVP != 6 || bob.ResourceVP != 1 {
+		t.Fatalf("Giants final scoring = %+v, want cult=4 area=6 resource=1", *bob)
+	}
+}

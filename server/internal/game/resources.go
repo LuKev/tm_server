@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 )
 
@@ -186,6 +187,7 @@ type PowerLeechOffer struct {
 	Amount       int
 	VPCost       int // VP cost to accept (usually Amount - 1)
 	FromPlayerID string
+	SourceHex    *board.Hex `json:"sourceHex,omitempty"`
 	EventID      int `json:"eventId"`
 }
 

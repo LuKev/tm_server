@@ -14,14 +14,14 @@ import (
 
 // GameSimulator manages the execution of a game replay
 type GameSimulator struct {
-	mu           sync.RWMutex
-	InitialState *game.GameState
-	CurrentState *game.GameState
-	Actions      []notation.LogItem
-	CurrentIndex int               // Index of the *next* action to execute
-	History      []*game.GameState // Snapshots for undo
-	incomePending bool             // RoundStart seen but income not yet granted
-	incomeGranted bool             // Income granted for current round, but action phase may not have started yet
+	mu            sync.RWMutex
+	InitialState  *game.GameState
+	CurrentState  *game.GameState
+	Actions       []notation.LogItem
+	CurrentIndex  int               // Index of the *next* action to execute
+	History       []*game.GameState // Snapshots for undo
+	incomePending bool              // RoundStart seen but income not yet granted
+	incomeGranted bool              // Income granted for current round, but action phase may not have started yet
 }
 
 // NewGameSimulator creates a new simulator
@@ -37,11 +37,11 @@ func NewGameSimulator(initialState *game.GameState, actions []notation.LogItem) 
 	// We'll implement a simple copy or serialization/deserialization later if needed.
 
 	sim := &GameSimulator{
-		InitialState: initialState, // Warning: Reference
-		CurrentState: initialState, // Warning: Reference
-		Actions:      actions,
-		CurrentIndex: 0,
-		History:      make([]*game.GameState, 0),
+		InitialState:  initialState, // Warning: Reference
+		CurrentState:  initialState, // Warning: Reference
+		Actions:       actions,
+		CurrentIndex:  0,
+		History:       make([]*game.GameState, 0),
 		incomePending: false,
 		incomeGranted: false,
 	}
@@ -63,41 +63,19 @@ func (s *GameSimulator) StepForward() error {
 
 	item := s.Actions[s.CurrentIndex]
 
-	// Check for missing Round 0 bonus cards before Round 1 starts.
-	// After setup is completed, `CompleteSetupAndStartRoundOne` advances directly into
-	// action phase and clears `BonusCards.PlayerHasCard`, so we must allow that path
-	// to skip strict setup validation once setup has actually completed.
-	if rs, ok := item.(notation.RoundStartItem); ok && rs.Round == 1 {
-		// Ensure TurnOrder is populated if empty (might happen if players added via map iteration)
-		if len(s.CurrentState.TurnOrder) == 0 {
-			for p := range s.CurrentState.Players {
-				s.CurrentState.TurnOrder = append(s.CurrentState.TurnOrder, p)
-			}
-		}
+	switch v := item.(type) {
+	case notation.ActionItem:
+		if v.Action != nil {
+			s.executePendingRoundCleanupBeforeAction()
 
-		// During strict strict-setup replay, RoundStart for round 1 can appear before
-		// all bonus card rows are replayed. Skip the strict check while still in setup
-		// so setup bonus-card rows can execute before round-start bonuses become required.
-		if s.CurrentState.Phase != game.PhaseSetup && s.CurrentState.SetupSubphase != game.SetupSubphaseComplete {
-			// Check if all players have a bonus card
-			missingPlayers := make([]string, 0)
-			for _, p := range s.CurrentState.TurnOrder {
-				if !s.CurrentState.BonusCards.PlayerHasCard[p] {
-					missingPlayers = append(missingPlayers, p)
-				}
-			}
-			if len(missingPlayers) > 0 {
+			if missingPlayers := s.missingInitialBonusCardPlayers(); len(missingPlayers) > 0 &&
+				s.requiresInitialBonusCards(v.Action) {
 				return &game.MissingInfoError{
 					Type:    "initial_bonus_card",
 					Players: missingPlayers,
 				}
 			}
-		}
-	}
 
-	switch v := item.(type) {
-	case notation.ActionItem:
-		if v.Action != nil {
 			// Income-phase handling:
 			// - LogPreIncomeAction: executes before income is granted.
 			// - LogPostIncomeAction: executes after income is granted but before action phase begins.
@@ -156,6 +134,8 @@ func (s *GameSimulator) StepForward() error {
 			}
 		}
 	case notation.RoundStartItem:
+		cleanupAlreadyApplied := s.currentRoundCleanupApplied()
+
 		if v.Round == 1 && s.CurrentState.Phase == game.PhaseSetup {
 			if len(v.TurnOrder) > 0 {
 				s.CurrentState.TurnOrder = v.TurnOrder
@@ -176,7 +156,10 @@ func (s *GameSimulator) StepForward() error {
 		// (leeches, Cultists +TRACK bonuses, etc.). Triggering cleanup immediately on
 		// "all players passed" can run scoring/bonus-card coin placement too early.
 		if s.CurrentState.Phase == game.PhaseAction && s.CurrentState.AllPlayersPassed() {
+			completedRound := s.CurrentState.Round
 			s.CurrentState.ExecuteCleanupPhase()
+			s.CurrentState.AwardCultRewardsForRound(completedRound)
+			cleanupAlreadyApplied = true
 		}
 
 		// Start a new round
@@ -190,7 +173,7 @@ func (s *GameSimulator) StepForward() error {
 
 		// Apply the cult-track reward associated with the *previous* round's scoring tile.
 		// Snellman logs these as "cult_income_for_faction" at the start of the next round.
-		if v.Round > 1 {
+		if v.Round > 1 && !cleanupAlreadyApplied {
 			s.CurrentState.AwardCultRewardsForRound(v.Round - 1)
 		}
 
@@ -264,10 +247,111 @@ func (s *GameSimulator) StepForward() error {
 				}
 			}
 		}
+	case notation.FinalScoringValidationItem:
+		s.executePendingRoundCleanupBeforeAction()
+		if err := s.validateFinalScoring(v); err != nil {
+			return fmt.Errorf("final scoring validation failed at index %d: %w", s.CurrentIndex, err)
+		}
 	}
 
 	s.CurrentIndex++
 	return nil
+}
+
+func (s *GameSimulator) executePendingRoundCleanupBeforeAction() {
+	if s == nil || s.CurrentState == nil {
+		return
+	}
+	if s.CurrentState.Phase != game.PhaseAction {
+		return
+	}
+	if !s.CurrentState.AllPlayersPassed() || s.CurrentState.HasLateRoundPendingDecisions() {
+		return
+	}
+
+	completedRound := s.CurrentState.Round
+	if s.CurrentState.ExecuteCleanupPhase() {
+		s.CurrentState.AwardCultRewardsForRound(completedRound)
+	}
+}
+
+func (s *GameSimulator) validateFinalScoring(item notation.FinalScoringValidationItem) error {
+	if s == nil || s.CurrentState == nil {
+		return fmt.Errorf("game state is nil")
+	}
+	if s.CurrentState.Phase != game.PhaseEnd {
+		return fmt.Errorf("game is not finished yet: phase=%v", s.CurrentState.Phase)
+	}
+
+	actualScores := s.CurrentState.CalculateFinalScoring()
+	for playerID, expected := range item.Scores {
+		actual := actualScores[playerID]
+		if actual == nil {
+			return fmt.Errorf("missing final score for %q", playerID)
+		}
+		if actual.CultVP != expected.CultVP {
+			return fmt.Errorf("%s cult VP mismatch: got %d, want %d", playerID, actual.CultVP, expected.CultVP)
+		}
+		if expected.HasAreaScore {
+			if actual.AreaVP != expected.AreaVP {
+				return fmt.Errorf("%s area VP mismatch: got %d, want %d", playerID, actual.AreaVP, expected.AreaVP)
+			}
+			if actual.LargestAreaSize != expected.LargestAreaSize {
+				return fmt.Errorf("%s largest area mismatch: got %d, want %d", playerID, actual.LargestAreaSize, expected.LargestAreaSize)
+			}
+		}
+		if expected.HasResourceScore {
+			if actual.ResourceVP != expected.ResourceVP {
+				return fmt.Errorf("%s resource VP mismatch: got %d, want %d", playerID, actual.ResourceVP, expected.ResourceVP)
+			}
+			if actual.TotalResourceValue != expected.TotalResourceValue {
+				return fmt.Errorf("%s resource value mismatch: got %d, want %d", playerID, actual.TotalResourceValue, expected.TotalResourceValue)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (s *GameSimulator) currentRoundCleanupApplied() bool {
+	if s == nil || s.CurrentState == nil {
+		return false
+	}
+	return s.CurrentState.Phase == game.PhaseCleanup
+}
+
+func (s *GameSimulator) missingInitialBonusCardPlayers() []string {
+	if s.CurrentState == nil || s.CurrentState.Round != 1 {
+		return nil
+	}
+	if s.CurrentState.Phase == game.PhaseSetup || s.CurrentState.SetupSubphase != game.SetupSubphaseComplete {
+		return nil
+	}
+
+	playerIDs := s.CurrentState.TurnOrder
+	if len(playerIDs) == 0 {
+		playerIDs = make([]string, 0, len(s.CurrentState.Players))
+		for playerID := range s.CurrentState.Players {
+			playerIDs = append(playerIDs, playerID)
+		}
+	}
+
+	missingPlayers := make([]string, 0)
+	for _, playerID := range playerIDs {
+		if len(s.CurrentState.BonusCards.GetPlayerCards(playerID)) == 0 {
+			missingPlayers = append(missingPlayers, playerID)
+		}
+	}
+	return missingPlayers
+}
+
+func (s *GameSimulator) requiresInitialBonusCards(action game.Action) bool {
+	switch action.(type) {
+	case *notation.LogBonusCardSelectionAction:
+		return false
+	default:
+		return true
+	}
 }
 
 func shouldIgnoreMissingDeclineLeechAtFullPower(action game.Action, gs *game.GameState, err error) bool {

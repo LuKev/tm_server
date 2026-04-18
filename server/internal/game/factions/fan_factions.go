@@ -366,7 +366,7 @@ func NewProspectors() Faction {
 	return newConfiguredFaction(
 		models.FactionProspectors,
 		models.TerrainPlains,
-		fanFactionStartingResources(2, 15, 8, 4),
+		fanFactionStartingResources(2, 15, 7, 5),
 		CultPositions{Earth: 3},
 		Income{Workers: 1},
 		[]Income{{Workers: 1}, {Workers: 1}, {Workers: 1}, {}, {Workers: 1}, {}, {Workers: 1}, {}},

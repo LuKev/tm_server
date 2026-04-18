@@ -54,6 +54,7 @@ func (a *SelectArchivistsBonusCardAction) Execute(gs *GameState) error {
 	player.Resources.Power.GainPower(coins * 2)
 	gs.PendingArchivistsBonusSelection = nil
 	gs.ApplyAutoConvertOnPass(a.PlayerID)
+	applyPostPassBonuses(gs, player)
 	if err := advanceAfterCompletedPass(gs); err != nil {
 		return err
 	}

@@ -1035,6 +1035,8 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 			if neighborPlayer.Faction != nil && neighborPlayer.Faction.GetType() == models.FactionChildrenOfTheWyrm && offer.VPCost > 0 {
 				offer.VPCost--
 			}
+			sourceHex := buildingHex
+			offer.SourceHex = &sourceHex
 			offer.EventID = eventID
 			// Store offer for player to accept/decline
 			if gs.PendingLeechOffers[neighborPlayerID] == nil {

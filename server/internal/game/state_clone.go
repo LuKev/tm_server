@@ -381,6 +381,10 @@ func clonePendingLeechOffers(src map[string][]*PowerLeechOffer) map[string][]*Po
 				continue
 			}
 			offerClone := *offer
+			if offer.SourceHex != nil {
+				sourceHex := *offer.SourceHex
+				offerClone.SourceHex = &sourceHex
+			}
 			clonedOffers = append(clonedOffers, &offerClone)
 		}
 		dst[playerID] = clonedOffers

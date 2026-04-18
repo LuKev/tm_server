@@ -43,10 +43,30 @@ type RoundStartItem struct {
 	TurnOrder []string
 }
 
+type FinalScoringExpectation struct {
+	PlayerID           string
+	CultVP             int
+	AreaVP             int
+	ResourceVP         int
+	LargestAreaSize    int
+	TotalResourceValue int
+	HasAreaScore       bool
+	HasResourceScore   bool
+}
+
+// FinalScoringValidationItem validates the parsed BGA final-scoring block against
+// the engine's computed end-game scoring, instead of skipping those log rows.
+type FinalScoringValidationItem struct {
+	Scores map[string]*FinalScoringExpectation
+}
+
+func (i FinalScoringValidationItem) isLogItem() {}
+
 // LogAcceptLeechAction is a log-only representation of accepting leech
 type LogAcceptLeechAction struct {
 	PlayerID     string
 	FromPlayerID string // optional: expected leech source
+	FromHex      *board.Hex
 	PowerAmount  int
 	VPCost       int
 	Explicit     bool
@@ -82,11 +102,15 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 	}
 
 	idx := 0
-	if a.FromPlayerID != "" {
+	if a.FromPlayerID != "" || a.FromHex != nil {
 		foundIdx := -1
+		fallbackIdx := -1
 		for i, offer := range offers {
-			if offer == nil || !strings.EqualFold(offer.FromPlayerID, a.FromPlayerID) {
+			if !leechOfferMatchesSource(offer, a.FromPlayerID, a.FromHex) {
 				continue
+			}
+			if fallbackIdx < 0 {
+				fallbackIdx = i
 			}
 			// If amount is explicit, prefer an exact amount match when available.
 			if a.Explicit && a.PowerAmount > 0 && offer.Amount != a.PowerAmount {
@@ -94,6 +118,9 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 			}
 			foundIdx = i
 			break
+		}
+		if foundIdx < 0 {
+			foundIdx = fallbackIdx
 		}
 		if foundIdx < 0 {
 			// Capacity 0: treat as auto-decline/no-op even if Snellman row claims an accept.
@@ -109,9 +136,9 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 				if o == nil {
 					continue
 				}
-				summary = append(summary, fmt.Sprintf("%s:%d", o.FromPlayerID, o.Amount))
+				summary = append(summary, summarizePendingLeechOffer(o))
 			}
-			return fmt.Errorf("no pending leech offer from %q for %q (pending=%v)", a.FromPlayerID, a.PlayerID, summary)
+			return fmt.Errorf("no pending leech offer from %q for %q (pending=%v)", leechSourceDescription(a.FromPlayerID, a.FromHex), a.PlayerID, summary)
 		}
 		idx = foundIdx
 	}
@@ -132,6 +159,7 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 type LogDeclineLeechAction struct {
 	PlayerID     string
 	FromPlayerID string // optional: expected leech source
+	FromHex      *board.Hex
 }
 
 // GetType returns the action type.
@@ -152,20 +180,59 @@ func (a *LogDeclineLeechAction) Execute(gs *game.GameState) error {
 		return nil
 	}
 	idx := 0
-	if a.FromPlayerID != "" {
+	if a.FromPlayerID != "" || a.FromHex != nil {
 		found := false
 		for i, offer := range offers {
-			if offer != nil && strings.EqualFold(offer.FromPlayerID, a.FromPlayerID) {
+			if leechOfferMatchesSource(offer, a.FromPlayerID, a.FromHex) {
 				idx = i
 				found = true
 				break
 			}
 		}
 		if !found {
-			return fmt.Errorf("no pending leech offer from %q for %q", a.FromPlayerID, a.PlayerID)
+			return fmt.Errorf("no pending leech offer from %q for %q", leechSourceDescription(a.FromPlayerID, a.FromHex), a.PlayerID)
 		}
 	}
 	return game.NewDeclinePowerLeechAction(a.PlayerID, idx).Execute(gs)
+}
+
+func leechOfferMatchesSource(offer *game.PowerLeechOffer, fromPlayerID string, fromHex *board.Hex) bool {
+	if offer == nil {
+		return false
+	}
+	if fromPlayerID != "" && !strings.EqualFold(offer.FromPlayerID, fromPlayerID) {
+		return false
+	}
+	if fromHex != nil {
+		if offer.SourceHex == nil || *offer.SourceHex != *fromHex {
+			return false
+		}
+	}
+	return true
+}
+
+func leechSourceDescription(fromPlayerID string, fromHex *board.Hex) string {
+	parts := make([]string, 0, 2)
+	if strings.TrimSpace(fromPlayerID) != "" {
+		parts = append(parts, strings.TrimSpace(fromPlayerID))
+	}
+	if fromHex != nil {
+		parts = append(parts, HexToShortString(*fromHex))
+	}
+	if len(parts) == 0 {
+		return ""
+	}
+	return strings.Join(parts, "@")
+}
+
+func summarizePendingLeechOffer(offer *game.PowerLeechOffer) string {
+	if offer == nil {
+		return "nil"
+	}
+	if offer.SourceHex == nil {
+		return fmt.Sprintf("%s:%d", offer.FromPlayerID, offer.Amount)
+	}
+	return fmt.Sprintf("%s@%s:%d", offer.FromPlayerID, HexToShortString(*offer.SourceHex), offer.Amount)
 }
 
 // LogPowerAction is a log-only representation of a power action
@@ -283,20 +350,7 @@ func (a *LogBurnAction) Execute(gs *game.GameState) error {
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
-	// Burn power: move from Bowl 2 to Bowl 3
-	// Amount is 2 * power gained.
-	burned := a.Amount
-	gained := burned // usually 1:1
-
-	if player.Resources.Power.Bowl2 < burned+gained {
-		return fmt.Errorf("insufficient power in bowl 2 to burn: %d available, %d required", player.Resources.Power.Bowl2, burned+gained)
-	}
-
-	player.Resources.Power.Bowl2 -= burned
-	player.Resources.Power.Bowl2 -= gained
-	player.Resources.Power.Bowl3 += gained
-
-	return nil
+	return player.Resources.BurnPower(a.Amount)
 }
 
 // LogDigTransformAction represents a Snellman "dig N" step (terraform by N spades)

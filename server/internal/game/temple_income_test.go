@@ -140,3 +140,34 @@ func TestEngineersTempleIncome(t *testing.T) {
 		t.Errorf("expected 0 power in Bowl 1, got %d", player.Resources.Power.Bowl1)
 	}
 }
+
+func TestProspectorsTempleIncome_IncludesCoins(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewProspectors()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+	player := gs.GetPlayer("player1")
+
+	for i := 0; i < 2; i++ {
+		templeHex := board.NewHex(i, 0)
+		gs.Map.GetHex(templeHex).Terrain = faction.GetHomeTerrain()
+		gs.Map.GetHex(templeHex).Building = &models.Building{
+			Type:       models.BuildingTemple,
+			Faction:    faction.GetType(),
+			PlayerID:   "player1",
+			PowerValue: 2,
+		}
+	}
+
+	initialCoins := player.Resources.Coins
+	initialPriests := player.Resources.Priests
+	gs.GrantIncome()
+
+	if got := player.Resources.Coins - initialCoins; got != 3 {
+		t.Fatalf("expected +3 coins from Prospectors temples, got %d", got)
+	}
+	if got := player.Resources.Priests - initialPriests; got != 1 {
+		t.Fatalf("expected +1 priest from Prospectors temples, got %d", got)
+	}
+}

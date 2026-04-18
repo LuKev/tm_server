@@ -1,5 +1,10 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-16 local Python tooling:
+  - Installed official Apple Silicon Anaconda Distribution `2025.12-2` to `/Users/kevin/anaconda3`.
+  - Ran `conda init zsh`, which modified `/Users/kevin/.zshrc`; a new shell session picks up `conda` and `jupyter`.
+  - Verified base environment versions after install/update: `conda 25.11.1`, `Python 3.13.9`, `jupyter 1.1.1`, `jupyterlab 4.5.6`, `notebook 7.5.5`.
+
 - 2026-04-07 fan factions research sources:
   - Official English rulebook for the published fan-factions expansion is on Capstone's CDN: `https://capstone-games.com/cdn/shop/files/TM_FF_Rules_EN_V1-1_web.pdf?v=266320294850540117`.
   - The official 20-faction list from that rulebook is:
@@ -1380,3 +1385,44 @@
     - `Time Travelers` `2 Fire`
     - `Goblins` `1 Earth, 1 Air`
     - `Children of the Wyrm` `1 Water, 1 Earth`
+- 2026-04-16 BGA fan-faction replay fixture `836564785` (`Conspirators`, `Prospectors`, `Wisps`, `Archivists`):
+  - The BGA parser had been silently skipping at least two real moves from this table:
+    - `kezilu places a Dwelling (Wisps Stronghold) [H4]`
+    - `Nafghar gains 11 coins (Stronghold Action)`
+  - Both lines are now parsed into real game actions instead of being dropped:
+    - `BuildWispsStrongholdDwellingAction`
+    - `SpecialActionProspectorsGainCoins`
+  - The BGA review page for table `836564785` shows final scores:
+    - `kezilu` `168`
+    - `Nafghar` `165`
+    - `Xevoc` `159`
+    - `LANMEEE` `131`
+  - `//cmd/bga_test:bga_test` is now a real Bazel target.
+  - Replay now reports missing round-0 bonus-card selections as `MissingInfoError(initial_bonus_card)` before executing round-1 actions, instead of failing later with a misleading bonus-card action validation error.
+  - Current working config for round-0 bonus cards is:
+    - `Archivists` `BON-SPD`
+    - `Wisps` `BON-WP`
+    - `Prospectors` `BON-6C`
+    - `Conspirators` `BON-4C`
+  - Current working assumption for the global bonus-card pool is `all cards except BON-BB`.
+  - With that round-0 config injected, the next replay blocker is `MissingInfoError(pass_bonus_card)` for `Archivists` in round `1`.
+  - Current pass-card mapping for rounds `2` through `6` has been encoded in `server/internal/replay/testdata/bga_836564785_config.yaml`, including Archivists' second post-pass card each round after the stronghold is built.
+  - `bga_test` config injection now supports Archivists' second post-pass bonus-card pick via `extra_bonus_card_selections`.
+  - Parsing also needed one additional BGA-specific regression for Prospectors using the spade bonus card without transforming terrain:
+    - `Nafghar gains 1 spade(s) (Special action)`
+    - followed by the informational line `spends 1 spade(s) to gain 1 Priests (Prospectors ability)`
+  - Generic income logic had a real engine bug for fan factions with coin-producing temples: `calculateBuildingIncome()` applied temple priests/power but silently dropped `templeIncome.Coins`. This surfaced on Prospectors round-4 income (`+3 coins` from two temples).
+  - Replay had a second real timing bug: when a round ended cleanly and cleanup first ran on the next `RoundStartItem`, `simulator.go` executed `ExecuteCleanupPhase()` but skipped `AwardCultRewardsForRound()`. That dropped Prospectors' round-3 `Temple (Priest)` cleanup income (`Nafghar gets 6 coins (Cult bonus)`).
+  - The legacy replay validator had the same stale cleanup assumption and now also explicitly calls `AwardCultRewardsForRound(completedRound)` after cleanup.
+  - Archivists stronghold passing had a real pass-finalization bug: `SelectArchivistsBonusCardAction` applied the second bonus card and auto-convert, but skipped normal post-pass scoring such as `FavorAir1`. On this table that dropped `LANMEEE gets 4 VP (Favor tile bonus)` on the round-5 pass.
+  - BGA leech rows must be treated as explicit actual amounts, not just hints. Without that, capped leeches could replay against the larger pending offer. On this table the broken case was:
+    - `Nafghar Power gain via Structures is capped from 6 power to 2 power`
+    - `Nafghar pays 1 VP and gets 2 power via Structures [F6]`
+    - If replay ignored the explicit `2 power / 1 VP`, it accepted `3` power from current capacity and deducted `2 VP`, causing the Prospectors final-score drift.
+  - After fixing the Prospectors/Archivists score drift, table `836564785` exposed a new honest blocker instead of silently "succeeding": replay now stops at action `229/363` on a `Wisps` transform (`TargetHex {Q:7,R:2}` / build=false / target terrain lakes) with `not enough workers: need 3, have 0`.
+  - The new `Wisps` blocker appears after both `Wisps` and `Conspirators` have already passed in that round, which strongly suggests a parser/replay ordering problem or a lost pending Wisps-ability spade rather than a simple resource arithmetic error.
+  - Spectator-accessible BGA logs still do not appear to expose exact bonus-card identities for Archivists' multi-card choices; full replay validation for this fixture needs injected setup/pass bonus-card selections rather than guessed or skipped moves.
+  - The long-running one-power drift in this fixture came from incorrect faction data, not replay arithmetic: `Prospectors` start `7/5/0` power on BGA, not `8/4/0`.
+  - BGA parsing no longer stops at `~ Final scoring ~`; the parser now aggregates cult/area/resource score rows into a `FinalScoringValidationItem`, and replay asserts that block against the engine's computed end-game scoring.
+  - With the current config, table `836564785` now replays end-to-end through the final-scoring block: `382` executed actions and final totals `kezilu 168`, `Nafghar 165`, `Xevoc 159`, `LANMEEE 131`.
+  - Broad `//internal/notation:notation_test` and `//internal/replay:replay_test` runs still have unrelated failures in the current dirty tree (for example `TestBGAParser_CultistsAbilityMerge` and multiple legacy Snellman leech-ordering / final-score expectations). The targeted regressions and the `836564785` replay path pass.

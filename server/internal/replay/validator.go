@@ -130,10 +130,12 @@ func (v *GameValidator) handleComment(entry *LogEntry) error {
 		// (Log may have duplicate "Round X income" comments)
 		if roundNum > v.GameState.Round {
 			// Execute cleanup phase BEFORE starting new round
-			// This awards cult rewards and adds coins to leftover bonus cards
 			// Cleanup happens at end of rounds 1-5 (ExecuteCleanupPhase skips round 6)
+			// and cult rewards are awarded explicitly from the just-finished round.
 			if v.GameState.Round >= 1 && v.GameState.Round < 6 {
+				completedRound := v.GameState.Round
 				v.GameState.ExecuteCleanupPhase()
+				v.GameState.AwardCultRewardsForRound(completedRound)
 			}
 
 			// Start new round (this resets HasPassed, power actions, etc.)

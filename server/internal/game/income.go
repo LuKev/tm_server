@@ -136,6 +136,7 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 
 	// Temple income (uses faction method)
 	templeIncome := faction.GetTempleIncome(temples)
+	income.Coins += templeIncome.Coins
 	income.Priests += templeIncome.Priests
 	income.Power += templeIncome.Power
 

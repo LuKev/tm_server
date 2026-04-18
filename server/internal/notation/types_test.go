@@ -37,6 +37,23 @@ func TestLogCompoundAction_AllowsAuxiliaryOnlySequence(t *testing.T) {
 	}
 }
 
+func TestLogBurnAction_UsesStandardTwoToOneBurnSemantics(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	gs.Players[playerID] = &game.Player{ID: playerID, Resources: game.NewResourcePool()}
+	gs.Players[playerID].Resources.Power = game.NewPowerSystem(0, 4, 0)
+
+	action := &LogBurnAction{PlayerID: playerID, Amount: 2}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogBurnAction.Execute() error = %v", err)
+	}
+
+	power := gs.Players[playerID].Resources.Power
+	if power.Bowl2 != 0 || power.Bowl3 != 2 {
+		t.Fatalf("power after burn = %d/%d/%d, want 0/0/2", power.Bowl1, power.Bowl2, power.Bowl3)
+	}
+}
+
 func TestLogDeclineLeechAction_NoPendingOffers_NoError(t *testing.T) {
 	gs := game.NewGameState()
 	playerID := "p1"
@@ -45,6 +62,155 @@ func TestLogDeclineLeechAction_NoPendingOffers_NoError(t *testing.T) {
 	action := &LogDeclineLeechAction{PlayerID: playerID}
 	if err := action.Execute(gs); err != nil {
 		t.Fatalf("LogDeclineLeechAction.Execute(no pending) error = %v, want nil", err)
+	}
+}
+
+func TestLogDeclineLeechAction_FromPlayerIDDeclinesMatchingOffer(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewAuren()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	gs.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{
+		{Amount: 2, VPCost: 1, FromPlayerID: "Archivists"},
+		{Amount: 2, VPCost: 1, FromPlayerID: "Conspirators"},
+	}
+
+	action := &LogDeclineLeechAction{PlayerID: "p1", FromPlayerID: "Conspirators"}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogDeclineLeechAction.Execute() error = %v", err)
+	}
+
+	offers := gs.PendingLeechOffers["p1"]
+	if len(offers) != 1 {
+		t.Fatalf("pending offers after decline = %d, want 1", len(offers))
+	}
+	if got := offers[0].FromPlayerID; got != "Archivists" {
+		t.Fatalf("remaining pending offer source = %q, want Archivists", got)
+	}
+}
+
+func TestLogDeclineLeechAction_FromHexDeclinesMatchingOfferWithSameSourcePlayer(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewAuren()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	firstHex := board.NewHex(1, 5)
+	secondHex := board.NewHex(2, 5)
+	gs.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{
+		{Amount: 3, VPCost: 2, FromPlayerID: "Conspirators", SourceHex: &firstHex},
+		{Amount: 2, VPCost: 1, FromPlayerID: "Conspirators", SourceHex: &secondHex},
+	}
+
+	action := &LogDeclineLeechAction{PlayerID: "p1", FromPlayerID: "Conspirators", FromHex: &secondHex}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogDeclineLeechAction.Execute() error = %v", err)
+	}
+
+	offers := gs.PendingLeechOffers["p1"]
+	if len(offers) != 1 {
+		t.Fatalf("pending offers after hex decline = %d, want 1", len(offers))
+	}
+	if offers[0].SourceHex == nil || *offers[0].SourceHex != firstHex {
+		t.Fatalf("remaining pending offer source hex = %+v, want %+v", offers[0].SourceHex, firstHex)
+	}
+}
+
+func TestLogAcceptLeechAction_ExplicitAmountOverridesPendingOffer(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewAuren()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("p1")
+	player.VictoryPoints = 20
+	player.Resources.Power = game.NewPowerSystem(0, 3, 6)
+	gs.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{
+		{Amount: 6, VPCost: 5},
+	}
+
+	action := &LogAcceptLeechAction{
+		PlayerID:    "p1",
+		PowerAmount: 2,
+		VPCost:      1,
+		Explicit:    true,
+	}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogAcceptLeechAction.Execute() error = %v", err)
+	}
+
+	if got := player.VictoryPoints; got != 19 {
+		t.Fatalf("victory points after capped leech = %d, want 19", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 1 {
+		t.Fatalf("bowl II after capped leech = %d, want 1", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 8 {
+		t.Fatalf("bowl III after capped leech = %d, want 8", got)
+	}
+}
+
+func TestLogAcceptLeechAction_FromPlayerIDFallsBackToSourceWhenAmountIsCapped(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewAuren()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("p1")
+	player.VictoryPoints = 20
+	player.Resources.Power = game.NewPowerSystem(0, 3, 6)
+	gs.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{
+		{Amount: 6, VPCost: 5, FromPlayerID: "Archivists"},
+	}
+
+	action := &LogAcceptLeechAction{
+		PlayerID:     "p1",
+		FromPlayerID: "Archivists",
+		PowerAmount:  2,
+		VPCost:       1,
+		Explicit:     true,
+	}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogAcceptLeechAction.Execute() error = %v", err)
+	}
+
+	if got := player.VictoryPoints; got != 19 {
+		t.Fatalf("victory points after capped source leech = %d, want 19", got)
+	}
+}
+
+func TestLogAcceptLeechAction_FromHexSelectsMatchingOfferWithSameSourcePlayer(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewAuren()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("p1")
+	player.VictoryPoints = 20
+	player.Resources.Power = game.NewPowerSystem(0, 4, 4)
+
+	firstHex := board.NewHex(1, 5)
+	secondHex := board.NewHex(2, 5)
+	gs.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{
+		{Amount: 3, VPCost: 2, FromPlayerID: "Conspirators", SourceHex: &firstHex},
+		{Amount: 2, VPCost: 1, FromPlayerID: "Conspirators", SourceHex: &secondHex},
+	}
+
+	action := &LogAcceptLeechAction{
+		PlayerID:     "p1",
+		FromPlayerID: "Conspirators",
+		FromHex:      &secondHex,
+		PowerAmount:  2,
+		VPCost:       1,
+		Explicit:     true,
+	}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogAcceptLeechAction.Execute() error = %v", err)
+	}
+
+	if got := len(gs.PendingLeechOffers["p1"]); got != 1 {
+		t.Fatalf("pending offers after hex accept = %d, want 1", got)
+	}
+	if gs.PendingLeechOffers["p1"][0].SourceHex == nil || *gs.PendingLeechOffers["p1"][0].SourceHex != firstHex {
+		t.Fatalf("remaining pending offer source hex = %+v, want %+v", gs.PendingLeechOffers["p1"][0].SourceHex, firstHex)
 	}
 }
 

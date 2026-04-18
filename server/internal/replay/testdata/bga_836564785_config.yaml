@@ -1,0 +1,59 @@
+scoring_tiles:
+  - SCORE8
+  - SCORE2
+  - SCORE9
+  - SCORE6
+  - SCORE4
+  - SCORE3
+bonus_cards:
+  - BON-SPD
+  - BON-4C
+  - BON-6C
+  - BON-SHIP
+  - BON-WP
+  - BON-TP
+  - BON-P
+  - BON-DW
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Archivists: BON-SPD
+    Wisps: BON-WP
+    Prospectors: BON-6C
+    Conspirators: BON-4C
+  "1":
+    Archivists: BON-SHIP
+    Wisps: BON-6C
+    Prospectors: BON-SPD
+    Conspirators: BON-TP
+  "2":
+    Archivists: BON-4C
+    Wisps: BON-SHIP-VP
+    Prospectors: BON-DW
+    Conspirators: BON-SPD
+  "3":
+    Archivists: BON-TP
+    Wisps: BON-6C
+    Prospectors: BON-4C
+    Conspirators: BON-SHIP-VP
+  "4":
+    Archivists: BON-4C
+    Wisps: BON-TP
+    Prospectors: BON-DW
+    Conspirators: BON-6C
+  "5":
+    Archivists: BON-WP
+    Wisps: BON-SHIP-VP
+    Prospectors: BON-4C
+    Conspirators: BON-TP
+extra_bonus_card_selections:
+  "1":
+    Archivists: BON-DW
+  "2":
+    Archivists: BON-WP
+  "3":
+    Archivists: BON-SHIP
+  "4":
+    Archivists: BON-SPD
+  "5":
+    Archivists: BON-6C
