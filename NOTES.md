@@ -1,5 +1,9 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-18 Railway server build gotcha:
+  - Railway currently builds the backend with direct `go build -o out ./cmd/server`, but local verification in this repo should still use Bazel, with `bazel build //cmd/server:server` as the quickest compile check.
+  - `server/internal/websocket/client.go` keeps request-param parser helpers (`parseIntParam`, `parseOptionalIntParam`, `parseBridgeEndpoints`) as closures inside `buildActionFromPayload`; if `buildSpecialAction` needs one of those helpers, it must receive it explicitly rather than calling an out-of-scope name.
+
 - 2026-04-16 local Python tooling:
   - Installed official Apple Silicon Anaconda Distribution `2025.12-2` to `/Users/kevin/anaconda3`.
   - Ran `conda init zsh`, which modified `/Users/kevin/.zshrc`; a new shell session picks up `conda` and `jupyter`.

@@ -1182,7 +1182,16 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
-		return buildSpecialAction(seatID, specialType, parseHexParam, parseBoolParam, parseCultTrackFromParams(getParam), getParam)
+		return buildSpecialAction(
+			seatID,
+			specialType,
+			parseHexParam,
+			parseBoolParam,
+			parseIntParam,
+			parseBridgeEndpoints,
+			parseCultTrackFromParams(getParam),
+			getParam,
+		)
 
 	case "pass":
 		bonusCard, err := parseOptionalBonusCardType(getParam)
@@ -1275,15 +1284,15 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		return game.NewSelectDjinniStartingCultTrackAction(seatID, track), nil
 
 	case "select_treasurers_deposit":
-		coins, err := parseOptionalIntParam(getParam, 0, "coinsToTreasury")
+		coins, err := parseOptionalIntParam(0, "coinsToTreasury")
 		if err != nil {
 			return nil, err
 		}
-		workers, err := parseOptionalIntParam(getParam, 0, "workersToTreasury")
+		workers, err := parseOptionalIntParam(0, "workersToTreasury")
 		if err != nil {
 			return nil, err
 		}
-		priests, err := parseOptionalIntParam(getParam, 0, "priestsToTreasury")
+		priests, err := parseOptionalIntParam(0, "priestsToTreasury")
 		if err != nil {
 			return nil, err
 		}
@@ -1519,6 +1528,8 @@ func buildSpecialAction(
 	specialType game.SpecialActionType,
 	parseHexParam func(...string) (board.Hex, error),
 	parseBoolParam func(bool, ...string) (bool, error),
+	parseIntParam func(...string) (int, error),
+	parseBridgeEndpoints func() (board.Hex, board.Hex, error),
 	parseCultTrack func() (game.CultTrack, error),
 	getParam func(...string) (json.RawMessage, bool),
 ) (game.Action, error) {
