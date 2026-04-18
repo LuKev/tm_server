@@ -1430,3 +1430,20 @@
   - BGA parsing no longer stops at `~ Final scoring ~`; the parser now aggregates cult/area/resource score rows into a `FinalScoringValidationItem`, and replay asserts that block against the engine's computed end-game scoring.
   - With the current config, table `836564785` now replays end-to-end through the final-scoring block: `382` executed actions and final totals `kezilu 168`, `Nafghar 165`, `Xevoc 159`, `LANMEEE 131`.
   - Broad `//internal/notation:notation_test` and `//internal/replay:replay_test` runs still have unrelated failures in the current dirty tree (for example `TestBGAParser_CultistsAbilityMerge` and multiple legacy Snellman leech-ordering / final-score expectations). The targeted regressions and the `836564785` replay path pass.
+- 2026-04-18 BGA fan-faction replay fixture `837822159` (`Wisps`, `Time Travelers`, `Dynion Geifr`, plus standard `Chaos Magicians`):
+  - Config lives at `server/internal/replay/testdata/bga_837822159_config.yaml`.
+  - Replay support needed explicit parsing for `Time Travellers` stronghold rows (`moves N power from Bowl I to Bowl III (Stronghold Action)`).
+- 2026-04-18 BGA fan-faction replay fixture `838634311` (`Architects`, `The Enlightened`, `Goblins`, plus standard `Mermaids`):
+  - Config lives at `server/internal/replay/testdata/bga_838634311_config.yaml`.
+  - Replay support needed:
+    - `Architects` priest-paid bridge rows plus transform/build merge when the discounted transform is immediately followed by the dwelling build.
+    - `Goblins` treasure rows for `coins`, `workers`, and `power`.
+    - `The Enlightened` stronghold action row (`gains 4 power (Stronghold Action)`).
+    - Mermaids river-town resolution keyed to the exact skipped river hex from the BGA `R~...` token.
+  - The late-round `Enlightened` burn mismatch was caused by a real faction-data regression, not a replay bypass:
+    - their stronghold has `no recurring income`;
+    - earlier code had incorrectly changed it to `+3 power`, which inflated BGA income by `+3` (for example round 6 `21 power` was being replayed as `24`).
+  - With the corrected faction data and the parser fixes above, table `838634311` now replays end to end: `365` actions and final totals `Xevoc 171`, `SHIPxIT 167`, `EndoZoa 136`, `HugoBB 114`.
+- Current BGA fan-faction coverage from committed replay fixtures:
+  - Covered: `Architects`, `Archivists`, `Conspirators`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Wisps`.
+  - Still lacking a BGA replay fixture: `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Djinni`, `Treasurers`.

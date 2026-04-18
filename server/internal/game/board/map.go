@@ -762,6 +762,12 @@ func (m *TerraMysticaMap) GetConnectedBuildingsForMermaids(start Hex, playerID s
 	return m.getConnectedBuildings(start, playerID, true)
 }
 
+// GetConnectedBuildingsForMermaidsUsingRiver returns the buildings connected from
+// the starting hex when the Mermaids explicitly choose a specific skipped river.
+func (m *TerraMysticaMap) GetConnectedBuildingsForMermaidsUsingRiver(start Hex, playerID string, river Hex) []Hex {
+	return m.collectConnectedBuildingsWithRiver(start, playerID, &river)
+}
+
 func (m *TerraMysticaMap) getConnectedBuildings(start Hex, playerID string, allowMermaidRiverSkip bool) ([]Hex, *Hex) {
 	if allowMermaidRiverSkip {
 		return m.getConnectedBuildingsForMermaids(start, playerID)

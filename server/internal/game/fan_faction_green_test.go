@@ -175,3 +175,36 @@ func TestEnlightenedTerraformUsesPower(t *testing.T) {
 		t.Fatalf("bowl III = %d, want %d", got, 9-expectedPowerSpend)
 	}
 }
+
+func TestEnlightenedTerraformAutoBurnsPower(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTheEnlightened()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.Resources.Coins = 10
+	player.Resources.Workers = 1
+	player.Resources.Power = NewPowerSystem(0, 4, 1)
+
+	initialHex := board.NewHex(0, 0)
+	targetHex := board.NewHex(0, 1)
+	gs.Map.GetHex(initialHex).Terrain = models.TerrainForest
+	gs.Map.GetHex(initialHex).Building = testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainMountain
+
+	action := NewTransformAndBuildAction("p1", targetHex, false, models.TerrainTypeUnknown)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("TransformAndBuildAction.Execute failed: %v", err)
+	}
+
+	if got := player.Resources.Power.Bowl1; got != 3 {
+		t.Fatalf("bowl I = %d, want 3", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 0 {
+		t.Fatalf("bowl II = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 0 {
+		t.Fatalf("bowl III = %d, want 0", got)
+	}
+}

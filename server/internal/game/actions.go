@@ -188,7 +188,13 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		return fmt.Errorf("not enough priests for terraform: need %d, have %d", totalPriestsNeeded, player.Resources.Priests)
 	}
 	if totalPowerNeeded > 0 && !player.Resources.Power.CanSpend(totalPowerNeeded) {
-		return fmt.Errorf("not enough power for terraform: need %d, have %d", totalPowerNeeded, player.Resources.Power.Bowl3)
+		if player.Faction.GetType() != models.FactionTheEnlightened {
+			return fmt.Errorf("not enough power for terraform: need %d, have %d", totalPowerNeeded, player.Resources.Power.Bowl3)
+		}
+		requiredBurn := totalPowerNeeded - player.Resources.Power.Bowl3
+		if requiredBurn <= 0 || !player.Resources.Power.CanBurn(requiredBurn) {
+			return fmt.Errorf("not enough power for terraform: need %d, have %d", totalPowerNeeded, player.Resources.Power.Bowl3)
+		}
 	}
 	if player.Resources.Coins < totalCoinsNeeded {
 		return fmt.Errorf("not enough coins: need %d, have %d", totalCoinsNeeded, player.Resources.Coins)
@@ -493,6 +499,12 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			player.VictoryPoints += remainingSpades
 		} else if player.Faction.GetType() == models.FactionTheEnlightened {
 			powerCost := player.Faction.GetTerraformCost(remainingSpades)
+			requiredBurn := powerCost - player.Resources.Power.Bowl3
+			if requiredBurn > 0 {
+				if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
+					return fmt.Errorf("failed to auto-burn power for terraform: %w", err)
+				}
+			}
 			if err := player.Resources.Power.SpendPower(powerCost); err != nil {
 				return fmt.Errorf("failed to spend power for terraform: %w", err)
 			}

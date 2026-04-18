@@ -1,0 +1,46 @@
+scoring_tiles:
+  - SCORE2
+  - SCORE5
+  - SCORE6
+  - SCORE8
+  - SCORE9
+  - SCORE3
+bonus_cards:
+  - BON-SHIP
+  - BON-WP
+  - BON-BB
+  - BON-TP
+  - BON-P
+  - BON-DW
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Mermaids: BON-WP
+    "The Enlightened": BON-P
+    Architects: BON-SHIP
+    Goblins: BON-SHIP-VP
+  "1":
+    Mermaids: BON-DW
+    "The Enlightened": BON-WP
+    Architects: BON-P
+    Goblins: BON-BB
+  "2":
+    Mermaids: BON-SHIP-VP
+    "The Enlightened": BON-BB
+    Architects: BON-DW
+    Goblins: BON-TP
+  "3":
+    Mermaids: BON-BB
+    "The Enlightened": BON-WP
+    Architects: BON-SHIP-VP
+    Goblins: BON-DW
+  "4":
+    Mermaids: BON-P
+    "The Enlightened": BON-SHIP-VP
+    Architects: BON-DW
+    Goblins: BON-TP
+  "5":
+    Mermaids: BON-BB
+    "The Enlightened": BON-WP
+    Architects: BON-SHIP-VP
+    Goblins: BON-DW

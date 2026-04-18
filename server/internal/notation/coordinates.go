@@ -71,32 +71,48 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 	return board.Hex{}, fmt.Errorf("hex %s not found (row %d, hex %d): only %d non-river hexes in row", coord, row, hexNum, count)
 }
 
-// ConvertRiverCoordToAxial converts river notation (e.g., "R~D5") to axial coordinates
-// The format is R~[Coord] where Coord is a land hex adjacent to the river hex
-// Returns the river hex closest to the given land hex
+// ConvertRiverCoordToAxial converts BGA river notation (e.g., "R~C3") to axial coordinates.
+// BGA numbers river hexes within a row independently from land hexes, so "R~C3" means
+// "the 3rd river hex in row C", not "the river adjacent to land hex C3".
 func ConvertRiverCoordToAxial(riverCoord string) (board.Hex, error) {
-	// Parse "R~D5" format
 	if !strings.HasPrefix(riverCoord, "R~") {
 		return board.Hex{}, fmt.Errorf("invalid river coordinate format: %s (expected R~[Coord])", riverCoord)
 	}
 
-	landCoord := riverCoord[2:] // Remove "R~" prefix
-	landHex, err := ConvertLogCoordToAxial(landCoord)
-	if err != nil {
-		return board.Hex{}, fmt.Errorf("invalid land coordinate in river ref: %w", err)
+	coord := strings.ToUpper(strings.TrimSpace(riverCoord[2:]))
+	if len(coord) < 2 {
+		return board.Hex{}, fmt.Errorf("invalid river coordinate: %s", riverCoord)
 	}
 
-	// Get terrain layout
-	layout := board.BaseGameTerrainLayout()
+	row := int(coord[0] - 'A')
+	if row < 0 || row > 8 {
+		return board.Hex{}, fmt.Errorf("invalid river row: %c (must be A-I)", coord[0])
+	}
 
-	// Find adjacent river hexes
-	neighbors := landHex.Neighbors()
-	for _, neighbor := range neighbors {
-		terrain, exists := layout[neighbor]
-		if exists && terrain == models.TerrainRiver {
-			return neighbor, nil
+	var riverNum int
+	if _, err := fmt.Sscanf(coord[1:], "%d", &riverNum); err != nil {
+		return board.Hex{}, fmt.Errorf("invalid river number in %s: %w", riverCoord, err)
+	}
+	if riverNum < 1 {
+		return board.Hex{}, fmt.Errorf("river number must be >= 1, got %d", riverNum)
+	}
+
+	layout := board.BaseGameTerrainLayout()
+	startQ := -row / 2
+	count := 0
+	for q := startQ; ; q++ {
+		h := board.NewHex(q, row)
+		terrain, exists := layout[h]
+		if !exists {
+			break
+		}
+		if terrain == models.TerrainRiver {
+			count++
+			if count == riverNum {
+				return h, nil
+			}
 		}
 	}
 
-	return board.Hex{}, fmt.Errorf("no river hex found adjacent to %s", landCoord)
+	return board.Hex{}, fmt.Errorf("river %s not found: only %d river hexes in row", riverCoord, count)
 }

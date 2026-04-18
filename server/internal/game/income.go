@@ -127,7 +127,10 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 
 	// Dwelling income (uses faction method)
 	dwellingIncome := faction.GetDwellingIncome(dwellings)
+	income.Coins += dwellingIncome.Coins
 	income.Workers += dwellingIncome.Workers
+	income.Priests += dwellingIncome.Priests
+	income.Power += dwellingIncome.Power
 
 	// Trading house income (uses faction method)
 	thIncome := faction.GetTradingHouseIncome(tradingHouses)
@@ -143,7 +146,10 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	// Sanctuary income (uses faction method, only 1 per faction)
 	if sanctuaries > 0 {
 		sanctuaryIncome := faction.GetSanctuaryIncome()
+		income.Coins += sanctuaryIncome.Coins
+		income.Workers += sanctuaryIncome.Workers
 		income.Priests += sanctuaryIncome.Priests
+		income.Power += sanctuaryIncome.Power
 	}
 
 	// Stronghold income (uses faction method)

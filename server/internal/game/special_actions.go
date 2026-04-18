@@ -1308,9 +1308,37 @@ func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) 
 		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != a.PlayerID {
 			continue
 		}
-		gs.CheckForTownFormation(a.PlayerID, mapHex.Coord)
-		if len(gs.PendingTownFormations[a.PlayerID]) > before {
-			break
+
+		connected := gs.Map.GetConnectedBuildingsForMermaidsUsingRiver(mapHex.Coord, a.PlayerID, *a.TargetHex)
+		if len(connected) == 0 {
+			continue
+		}
+
+		alreadyInTown := false
+		for _, h := range connected {
+			connectedHex := gs.Map.GetHex(h)
+			if connectedHex != nil && connectedHex.PartOfTown {
+				alreadyInTown = true
+				break
+			}
+		}
+		if alreadyInTown {
+			continue
+		}
+
+		if gs.CanFormTown(a.PlayerID, connected) {
+			gs.createPendingTown(a.PlayerID, connected, a.TargetHex, player.Faction.GetType())
+			if len(gs.PendingTownFormations[a.PlayerID]) > before {
+				break
+			}
+			for _, pending := range gs.PendingTownFormations[a.PlayerID] {
+				if pending == nil || !sameTownComponent(pending.Hexes, connected) {
+					continue
+				}
+				pending.SkippedRiverHex = a.TargetHex
+				pending.CanBeDelayed = true
+				return nil
+			}
 		}
 	}
 	if len(gs.PendingTownFormations[a.PlayerID]) <= before {

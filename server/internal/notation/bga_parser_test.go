@@ -190,3 +190,31 @@ End of game
 		t.Fatalf("Giants final scoring = %+v, want cult=4 area=6 resource=1", *bob)
 	}
 }
+
+func TestBGAParser_SkipsDynionGeifrStartingFavorTileDuringSetup(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Dynion Geifr Faction
+Bob is playing the Wisps Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Alice takes a Favor tile
+Alice gains 2 on the Cult of Fire track (Favor tile)
+Bob places a Dwelling [D5]
+~ Action phase ~
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if favorAction, ok := actionItem.Action.(*LogFavorTileAction); ok && favorAction.PlayerID == "Dynion Geifr" {
+			t.Fatalf("unexpected Dynion Geifr setup favor action parsed: %+v", favorAction)
+		}
+	}
+}

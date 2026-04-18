@@ -1,0 +1,46 @@
+scoring_tiles:
+  - SCORE3
+  - SCORE7
+  - SCORE1
+  - SCORE4
+  - SCORE2
+  - SCORE8
+bonus_cards:
+  - BON-4C
+  - BON-SHIP
+  - BON-WP
+  - BON-BB
+  - BON-P
+  - BON-DW
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Wisps: BON-4C
+    "Time Travellers": BON-WP
+    "Chaos Magicians": BON-BB
+    "Dynion Geifr": BON-P
+  "1":
+    Wisps: BON-BB
+    "Time Travellers": BON-SHIP
+    "Chaos Magicians": BON-SHIP-VP
+    "Dynion Geifr": BON-WP
+  "2":
+    Wisps: BON-WP
+    "Time Travellers": BON-4C
+    "Chaos Magicians": BON-BB
+    "Dynion Geifr": BON-SHIP
+  "3":
+    Wisps: BON-SHIP-VP
+    "Time Travellers": BON-SHIP
+    "Chaos Magicians": BON-P
+    "Dynion Geifr": BON-DW
+  "4":
+    Wisps: BON-BB
+    "Time Travellers": BON-4C
+    "Chaos Magicians": BON-SHIP-VP
+    "Dynion Geifr": BON-P
+  "5":
+    Wisps: BON-WP
+    "Time Travellers": BON-SHIP-VP
+    "Chaos Magicians": BON-BB
+    "Dynion Geifr": BON-DW

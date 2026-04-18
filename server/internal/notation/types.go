@@ -592,23 +592,14 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			action := game.NewBonusCardCultAction(a.PlayerID, track)
 			return action.Execute(gs)
 		} else if parts[1] == "TOWN" {
-			// ACT-TOWN-Q_R (Mermaids river town)
+			// ACT-TOWN-Q_R or ACT-TOWN-R~C3 (Mermaids river town)
 			if len(parts) < 3 {
 				return fmt.Errorf("invalid mermaids town action code")
 			}
-			// Parse axial coordinates from "Q_R" format
-			coordParts := strings.Split(parts[2], "_")
-			if len(coordParts) != 2 {
-				return fmt.Errorf("invalid river hex coordinates: %s", parts[2])
+			riverHex, err := resolveMermaidsRiverTownHex(gs, a.PlayerID, parts[2])
+			if err != nil {
+				return err
 			}
-			var q, r int
-			if _, err := fmt.Sscanf(coordParts[0], "%d", &q); err != nil {
-				return fmt.Errorf("invalid Q coordinate: %w", err)
-			}
-			if _, err := fmt.Sscanf(coordParts[1], "%d", &r); err != nil {
-				return fmt.Errorf("invalid R coordinate: %w", err)
-			}
-			riverHex := board.NewHex(q, r)
 
 			// Mermaids river town: Mark the river hex as part of a pending town
 			// This will be completed by the subsequent TW[VP] action
@@ -808,6 +799,101 @@ func (a *LogConversionAction) GetPlayerID() string { return a.PlayerID }
 // Validate checks if the action is valid.
 func (a *LogConversionAction) Validate(gs *game.GameState) error { return nil }
 
+func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (board.Hex, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return board.Hex{}, fmt.Errorf("missing mermaids river town coordinate")
+	}
+
+	if strings.HasPrefix(strings.ToUpper(token), "R~") {
+		if riverHex, err := ConvertRiverCoordToAxial(token); err == nil {
+			if gs == nil || gs.Map == nil {
+				return riverHex, nil
+			}
+			clone := gs.CloneForUndo()
+			if err := game.NewMermaidsRiverTownAction(playerID, riverHex).Execute(clone); err == nil {
+				return riverHex, nil
+			}
+		}
+
+		if gs == nil || gs.Map == nil {
+			return board.Hex{}, fmt.Errorf("game map is unavailable for mermaids river town resolution")
+		}
+
+		landDisplay := strings.TrimSpace(token[2:])
+		landHex, ok := board.HexForDisplayCoordinate(gs.Map.ID, landDisplay)
+		if !ok {
+			var err error
+			landHex, err = ConvertLogCoordToAxial(landDisplay)
+			if err != nil {
+				return board.Hex{}, fmt.Errorf("invalid mermaids river town reference %q: %w", token, err)
+			}
+		}
+
+		candidates := make([]board.Hex, 0, 6)
+		seen := make(map[board.Hex]bool)
+		for _, neighbor := range landHex.Neighbors() {
+			if seen[neighbor] {
+				continue
+			}
+			seen[neighbor] = true
+			mapHex := gs.Map.GetHex(neighbor)
+			if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+				continue
+			}
+			candidates = append(candidates, neighbor)
+		}
+		if len(candidates) == 0 {
+			return board.Hex{}, fmt.Errorf("no river hex found adjacent to %s", landDisplay)
+		}
+		if len(candidates) == 1 {
+			return candidates[0], nil
+		}
+
+		valid := make([]board.Hex, 0, len(candidates))
+		for _, candidate := range candidates {
+			clone := gs.CloneForUndo()
+			if err := game.NewMermaidsRiverTownAction(playerID, candidate).Execute(clone); err == nil {
+				valid = append(valid, candidate)
+			}
+		}
+		if len(valid) == 1 {
+			return valid[0], nil
+		}
+
+		allValid := make([]board.Hex, 0, 8)
+		for hex, mapHex := range gs.Map.Hexes {
+			if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+				continue
+			}
+			clone := gs.CloneForUndo()
+			if err := game.NewMermaidsRiverTownAction(playerID, hex).Execute(clone); err == nil {
+				allValid = append(allValid, hex)
+			}
+		}
+		if len(allValid) == 1 {
+			return allValid[0], nil
+		}
+		if len(valid) == 0 && len(allValid) == 0 {
+			return board.Hex{}, fmt.Errorf("no valid mermaids river town candidate found for %s", token)
+		}
+		return board.Hex{}, fmt.Errorf("ambiguous mermaids river town reference %s: local=%v all=%v", token, valid, allValid)
+	}
+
+	coordParts := strings.Split(token, "_")
+	if len(coordParts) != 2 {
+		return board.Hex{}, fmt.Errorf("invalid river hex coordinates: %s", token)
+	}
+	var q, r int
+	if _, err := fmt.Sscanf(coordParts[0], "%d", &q); err != nil {
+		return board.Hex{}, fmt.Errorf("invalid Q coordinate: %w", err)
+	}
+	if _, err := fmt.Sscanf(coordParts[1], "%d", &r); err != nil {
+		return board.Hex{}, fmt.Errorf("invalid R coordinate: %w", err)
+	}
+	return board.NewHex(q, r), nil
+}
+
 // Execute applies the action to the game state.
 func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
@@ -832,6 +918,15 @@ func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	vpCost := a.Cost[models.ResourceVictoryPoint]
 	if vpCost > 0 {
 		player.VictoryPoints -= vpCost
+	}
+
+	if powerCost > 0 && player.Resources.Power != nil {
+		requiredBurn := powerCost - player.Resources.Power.Bowl3
+		if requiredBurn > 0 && player.Resources.Power.CanBurn(requiredBurn) {
+			if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
+				return err
+			}
+		}
 	}
 
 	if err := player.Resources.Spend(cost); err != nil {

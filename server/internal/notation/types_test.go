@@ -54,6 +54,40 @@ func TestLogBurnAction_UsesStandardTwoToOneBurnSemantics(t *testing.T) {
 	}
 }
 
+func TestLogConversionAction_AutoBurnsToFundLoggedPowerSpend(t *testing.T) {
+	gs := game.NewGameState()
+	playerID := "p1"
+	gs.Players[playerID] = &game.Player{ID: playerID, Resources: game.NewResourcePool()}
+	gs.Players[playerID].Resources.Power = game.NewPowerSystem(0, 2, 4)
+
+	action := &LogConversionAction{
+		PlayerID: playerID,
+		Cost: map[models.ResourceType]int{
+			models.ResourcePower: 5,
+		},
+		Reward: map[models.ResourceType]int{
+			models.ResourcePriest: 1,
+		},
+	}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogConversionAction.Execute() error = %v", err)
+	}
+
+	player := gs.Players[playerID]
+	if got := player.Resources.Power.Bowl1; got != 5 {
+		t.Fatalf("bowl I after conversion = %d, want 5", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 0 {
+		t.Fatalf("bowl II after conversion = %d, want 0", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 0 {
+		t.Fatalf("bowl III after conversion = %d, want 0", got)
+	}
+	if got := player.Resources.Priests; got != 1 {
+		t.Fatalf("priests after conversion = %d, want 1", got)
+	}
+}
+
 func TestLogDeclineLeechAction_NoPendingOffers_NoError(t *testing.T) {
 	gs := game.NewGameState()
 	playerID := "p1"

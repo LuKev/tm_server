@@ -129,6 +129,206 @@ Player1 builds a Dwelling for 1 workers 2 coins [E3]
 	}
 }
 
+func TestBGAParser_TimeTravelersStrongholdAction(t *testing.T) {
+	content := `
+Game board: Base
+Player1 is playing the Time Travellers Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [D2]
+Player1 places a Dwelling [G2]
+~ The Factions auction is over ~
+~ Action phase ~
+Move 1 :
+Player1 moves 3 power from Bowl I to Bowl III (Stronghold Action)
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	found := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Time Travellers" {
+			continue
+		}
+		if action.ActionType != game.SpecialActionTimeTravelersPowerShift {
+			t.Fatalf("action type = %v, want %v", action.ActionType, game.SpecialActionTimeTravelersPowerShift)
+		}
+		if action.Amount != 3 {
+			t.Fatalf("amount = %d, want 3", action.Amount)
+		}
+		found = true
+	}
+
+	if !found {
+		t.Fatal("did not find Time Travellers stronghold action")
+	}
+}
+
+func TestBGAParser_EnlightenedStrongholdAction(t *testing.T) {
+	content := `
+Game board: Base
+Player1 is playing the The Enlightened Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [D2]
+Player1 places a Dwelling [G2]
+~ The Factions auction is over ~
+~ Action phase ~
+Move 1 :
+Player1 gains 4 power (Stronghold Action)
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	found := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "The Enlightened" {
+			continue
+		}
+		if action.ActionType != game.SpecialActionEnlightenedGainPower {
+			t.Fatalf("action type = %v, want %v", action.ActionType, game.SpecialActionEnlightenedGainPower)
+		}
+		found = true
+	}
+
+	if !found {
+		t.Fatal("did not find The Enlightened stronghold action")
+	}
+}
+
+func TestBGAParser_ArchitectsBridgeAndDiscountedTransformBuild(t *testing.T) {
+	content := `
+Game board: Base
+Player1 is playing the Architects Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [C2]
+Player1 places a Dwelling [D4]
+~ The Factions auction is over ~
+~ Action phase ~
+Move 1 :
+Player1 spends 1 Priests to build a Bridge (Architects Ability) [C2-D3]
+Player1 transforms a Terrain space desert → wasteland for 0 spade(s) [D3]
+Player1 builds a Dwelling for 1 workers 2 coins [D3]
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	foundBridge := false
+	foundMergedTransform := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		switch action := actionItem.Action.(type) {
+		case *game.EngineersBridgeAction:
+			if action.PlayerID == "Architects" {
+				foundBridge = true
+			}
+		case *game.TransformAndBuildAction:
+			if action.PlayerID == "Architects" && action.TargetHex == parseCoord("D3") {
+				if !action.BuildDwelling {
+					t.Fatalf("Architects transform at D3 should be merged with dwelling build")
+				}
+				foundMergedTransform = true
+			}
+		}
+	}
+
+	if !foundBridge {
+		t.Fatal("did not find Architects bridge action")
+	}
+	if !foundMergedTransform {
+		t.Fatal("did not find merged Architects transform/build action")
+	}
+}
+
+func TestBGAParser_GoblinsTreasureRewards(t *testing.T) {
+	content := `
+Game board: Base
+Player1 is playing the Goblins Faction
+Player2 is playing the Nomads Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [D2]
+Player1 places a Dwelling [G2]
+~ The Factions auction is over ~
+~ Action phase ~
+Move 1 :
+Player1 spends Markers to gain 6 coins (Goblins ability)
+Player1 spends Markers to gain 3 workers (Goblins ability)
+Player1 spends Markers to gain 4 power (Goblins ability)
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var rewards []game.GoblinsTreasureRewardType
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.UseGoblinsTreasureAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Goblins" {
+			continue
+		}
+		rewards = append(rewards, action.RewardType)
+	}
+
+	want := []game.GoblinsTreasureRewardType{
+		game.GoblinsTreasureTradingPosts,
+		game.GoblinsTreasureTemples,
+		game.GoblinsTreasureDwellings,
+	}
+	if len(rewards) != len(want) {
+		t.Fatalf("parsed %d Goblins treasure actions, want %d (%v)", len(rewards), len(want), rewards)
+	}
+	for i := range want {
+		if rewards[i] != want[i] {
+			t.Fatalf("reward[%d] = %q, want %q", i, rewards[i], want[i])
+		}
+	}
+}
+
 func TestBGAParser_FavorTileLineWithTrailingPowerPreservesInterveningLeechOrder(t *testing.T) {
 	content := `
 Game board: Base

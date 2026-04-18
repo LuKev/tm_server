@@ -120,6 +120,115 @@ func TestStrongholdIncome_ChaosMagicians(t *testing.T) {
 	}
 }
 
+func TestDwellingIncome_TheEnlightenedUsesPower(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewTheEnlightened()
+	gs.AddPlayer("player1", faction)
+
+	player := gs.GetPlayer("player1")
+	gs.Map.GetHex(board.NewHex(0, 0)).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+	gs.Map.GetHex(board.NewHex(0, 1)).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+
+	income := calculateBuildingIncome(gs, player)
+	if income.Workers != 0 {
+		t.Fatalf("workers = %d, want 0", income.Workers)
+	}
+	if income.Power != 5 {
+		t.Fatalf("power = %d, want 5", income.Power)
+	}
+}
+
+func TestCalculatePlayerIncome_TheEnlightenedMatchesBGAIncomeRows(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewTheEnlightened()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("player1")
+	gs.BonusCards.SetAvailableBonusCards([]BonusCardType{
+		BonusCardPriest,
+		BonusCardWorkerPower,
+		BonusCardStrongholdSanctuary,
+	})
+	if _, err := gs.BonusCards.TakeBonusCard("player1", BonusCardPriest); err != nil {
+		t.Fatalf("TakeBonusCard priest failed: %v", err)
+	}
+
+	gs.Map.GetHex(board.NewHex(0, 0)).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+	gs.Map.GetHex(board.NewHex(0, 1)).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+
+	roundOneIncome := calculatePlayerIncome(gs, player)
+	if roundOneIncome != (BaseIncome{Priests: 1, Power: 8}) {
+		t.Fatalf("round-one income = %+v, want %+v", roundOneIncome, BaseIncome{Priests: 1, Power: 8})
+	}
+
+	gs.Map.GetHex(board.NewHex(0, 1)).Building = &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 3,
+	}
+	gs.Map.GetHex(board.NewHex(1, 0)).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+	gs.BonusCards.ReturnBonusCard("player1")
+	if _, err := gs.BonusCards.TakeBonusCard("player1", BonusCardWorkerPower); err != nil {
+		t.Fatalf("TakeBonusCard worker/power failed: %v", err)
+	}
+
+	roundTwoIncome := calculatePlayerIncome(gs, player)
+	if roundTwoIncome != (BaseIncome{Workers: 1, Power: 11}) {
+		t.Fatalf("round-two income = %+v, want %+v", roundTwoIncome, BaseIncome{Workers: 1, Power: 11})
+	}
+
+	// Match BGA table 838634311 round 3: stronghold + 2 dwellings + 1 temple + BON-BB.
+	gs.Map.GetHex(board.NewHex(0, 0)).Building = &models.Building{
+		Type:       models.BuildingTemple,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 2,
+	}
+	gs.Map.GetHex(board.NewHex(1, 1)).Building = &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	}
+	gs.BonusCards.ReturnBonusCard("player1")
+	if _, err := gs.BonusCards.TakeBonusCard("player1", BonusCardStrongholdSanctuary); err != nil {
+		t.Fatalf("TakeBonusCard stronghold/sanctuary failed: %v", err)
+	}
+
+	roundThreeIncome := calculatePlayerIncome(gs, player)
+	if roundThreeIncome != (BaseIncome{Workers: 2, Priests: 1, Power: 8}) {
+		t.Fatalf("round-three income = %+v, want %+v", roundThreeIncome, BaseIncome{Workers: 2, Priests: 1, Power: 8})
+	}
+}
+
 func TestStrongholdIncome_Fakirs(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewFakirs()
