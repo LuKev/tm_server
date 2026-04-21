@@ -1,0 +1,55 @@
+scoring_tiles:
+  - SCORE1
+  - SCORE7
+  - SCORE9
+  - SCORE4
+  - SCORE2
+  - SCORE3
+bonus_cards:
+  - BON-SPD
+  - BON-4C
+  - BON-6C
+  - BON-SHIP
+  - BON-WP
+  - BON-BB
+  - BON-SHIP-VP
+starting_cult_choices:
+  Djinni: Earth
+bonus_card_selections:
+  "0":
+    Djinni: BON-WP
+    "Time Travellers": BON-4C
+    Conspirators: BON-SPD
+    Wisps: BON-BB
+  "1":
+    Djinni: BON-6C
+    "Time Travellers": BON-SPD
+    Conspirators: BON-WP
+    Wisps: BON-4C
+  "2":
+    Djinni: BON-SHIP
+    "Time Travellers": BON-6C
+    Conspirators: BON-4C
+    Wisps: BON-BB
+  "3":
+    Djinni: BON-BB
+    "Time Travellers": BON-WP
+    Conspirators: BON-SPD
+    Wisps: BON-SHIP-VP
+  "4":
+    Djinni: BON-SPD
+    "Time Travellers": BON-SHIP
+    Conspirators: BON-SHIP-VP
+    Wisps: BON-6C
+  "5":
+    Djinni: BON-SHIP-VP
+    "Time Travellers": BON-SPD
+    Conspirators: BON-4C
+    Wisps: BON-BB
+conspirators_swap_returns:
+  Conspirators:
+    - FAV-E2
+    - FAV-A2
+    - FAV-W1
+    - FAV-F2
+    - FAV-F1

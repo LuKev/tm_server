@@ -218,3 +218,153 @@ Bob places a Dwelling [D5]
 		}
 	}
 }
+
+func TestBGAParser_RemovesCanceledTurnSegmentWhenReplacementFollows(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Conspirators Faction
+Bob is playing the Giants Faction
+Carol is playing the Wisps Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+Alice upgrades a Dwelling to a Trading house for 2 workers 3 coins [D2]
+Bob declines getting Power via Structures [D2]
+Alice cancels their move
+Alice upgrades a Dwelling to a Trading house for 2 workers 3 coins [C2]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	foundReplacement := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+
+		if action, ok := actionItem.Action.(*LogConversionAction); ok && action.PlayerID == "Conspirators" {
+			t.Fatalf("found canceled Conspirators conversion still present: %+v", action)
+		}
+
+		if action, ok := actionItem.Action.(*game.UpgradeBuildingAction); ok && action.PlayerID == "Conspirators" {
+			foundReplacement = true
+			if got := action.TargetHex; got != parseCoord("C2") {
+				t.Fatalf("replacement upgrade target = %v, want %v", got, parseCoord("C2"))
+			}
+		}
+	}
+	if !foundReplacement {
+		t.Fatal("expected replacement upgrade after cancel")
+	}
+}
+
+func TestBGAParser_CancelMoveKeepsPreviousTurnWhenNextLineIsFollowUpChoice(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Conspirators Faction
+Bob is playing the Giants Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice does some Conversions (spent: 3 power 0 Priests 0 workers ; collects: 0 Priests  0 workers 3 coins)
+Alice upgrades a Dwelling to a Trading house for 2 workers 3 coins [H8]
+Bob declines getting Power via Structures [H8]
+Alice cancels their move
+Alice gives back a Favor tile and loses 1 Cult points (Conspirators Stronghold)
+Alice takes a Favor tile
+Alice gains 1 on the Cult of Air track (Favor tile) and earns 3 power
+Alice earns 2 coins (Conspirators ability)
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	foundUpgrade := false
+	foundSwap := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if action, ok := actionItem.Action.(*game.UpgradeBuildingAction); ok && action.PlayerID == "Conspirators" {
+			foundUpgrade = true
+		}
+		if _, ok := actionItem.Action.(*LogConspiratorsSwapFavorAction); ok {
+			foundSwap = true
+		}
+	}
+	if !foundUpgrade {
+		t.Fatal("expected original upgrade to remain when cancel is followed by a swap choice")
+	}
+	if !foundSwap {
+		t.Fatal("expected follow-up Conspirators swap action after cancel")
+	}
+}
+
+func TestBGAParser_CancelMoveDoesNotRemoveCommittedTurnAfterOtherPlayersAct(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Conspirators Faction
+Bob is playing the Giants Faction
+Carol is playing the Wisps Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice sacrificed 1 power in Bowl 2 to get 1 power from Bowl 2 to Bowl 3
+Alice spends 4 power to collect 7 coins (Power action)
+Alice declines doing Conversions
+Bob spends 4 power to collect 2 workers (Power action)
+Bob declines doing Conversions
+Carol builds a Dwelling for 1 workers 2 coins [B2]
+Alice gets 1 power via Structures [B2]
+Alice cancels their move
+Alice builds a Dwelling for 1 workers 2 coins [G3]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	foundCoins := false
+	foundBurn := false
+	foundReplacementBuild := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		switch action := actionItem.Action.(type) {
+		case *LogBurnAction:
+			if action.PlayerID == "Conspirators" && action.Amount == 1 {
+				foundBurn = true
+			}
+		case *LogPowerAction:
+			if action.PlayerID == "Conspirators" && action.ActionCode == "ACT4" {
+				foundCoins = true
+			}
+		case *game.SetupDwellingAction:
+			if action.PlayerID == "Conspirators" && action.Hex == parseCoord("G3") {
+				foundReplacementBuild = true
+			}
+		case *game.TransformAndBuildAction:
+			if action.PlayerID == "Conspirators" && action.BuildDwelling && action.TargetHex == parseCoord("G3") {
+				foundReplacementBuild = true
+			}
+		}
+	}
+
+	if !foundBurn {
+		t.Fatal("expected committed burn action to remain after later cancel")
+	}
+	if !foundCoins {
+		t.Fatal("expected committed ACT4 coin action to remain after later cancel")
+	}
+	if !foundReplacementBuild {
+		t.Fatal("expected replacement build after cancel")
+	}
+}

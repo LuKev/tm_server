@@ -1428,6 +1428,9 @@
   - Spectator-accessible BGA logs still do not appear to expose exact bonus-card identities for Archivists' multi-card choices; full replay validation for this fixture needs injected setup/pass bonus-card selections rather than guessed or skipped moves.
   - The long-running one-power drift in this fixture came from incorrect faction data, not replay arithmetic: `Prospectors` start `7/5/0` power on BGA, not `8/4/0`.
   - BGA parsing no longer stops at `~ Final scoring ~`; the parser now aggregates cult/area/resource score rows into a `FinalScoringValidationItem`, and replay asserts that block against the engine's computed end-game scoring.
+  - The last remaining Conspirators economy drift was a parser bug, not a faction/economy bug:
+    - `Xevoc cancels their move` after other players had already taken real turns was causing `handleCancelMove()` to delete an earlier committed `BURN1 + ACT4 (4 power -> 7 coins)` segment.
+    - Cancel rollback now only removes the player's most recent committed segment when no other player's non-leech action has happened since then.
   - With the current config, table `836564785` now replays end-to-end through the final-scoring block: `382` executed actions and final totals `kezilu 168`, `Nafghar 165`, `Xevoc 159`, `LANMEEE 131`.
   - Broad `//internal/notation:notation_test` and `//internal/replay:replay_test` runs still have unrelated failures in the current dirty tree (for example `TestBGAParser_CultistsAbilityMerge` and multiple legacy Snellman leech-ordering / final-score expectations). The targeted regressions and the `836564785` replay path pass.
 - 2026-04-18 BGA fan-faction replay fixture `837822159` (`Wisps`, `Time Travelers`, `Dynion Geifr`, plus standard `Chaos Magicians`):
@@ -1444,6 +1447,12 @@
     - their stronghold has `no recurring income`;
     - earlier code had incorrectly changed it to `+3 power`, which inflated BGA income by `+3` (for example round 6 `21 power` was being replayed as `24`).
   - With the corrected faction data and the parser fixes above, table `838634311` now replays end to end: `365` actions and final totals `Xevoc 171`, `SHIPxIT 167`, `EndoZoa 136`, `HugoBB 114`.
+- 2026-04-18 BGA fan-faction replay fixture `838140312` (`Djinni`, `Conspirators`, `Time Travellers`, `Wisps`):
+  - Config lives at `server/internal/replay/testdata/bga_838140312_config.yaml`.
+  - Two separate honest fixes were needed to finish this table:
+    - `Conspirators` stronghold swaps must clear any claimed cult milestone bonuses above the reduced cult level. Otherwise later retakes of the same favor tile never pay their milestone power again, which BGA does allow.
+    - BGA's setup packet shows both `Conspirators` and `Djinni` start at `15 coins, 3 workers, 5/7/0 power`, not `17 coins`.
+  - With those fixes, table `838140312` now replays end to end with final-scoring validation: `376` actions and final totals `Xevoc 167`, `marszej76 157`, `deragned 156`, `icebar83 146`.
 - Current BGA fan-faction coverage from committed replay fixtures:
-  - Covered: `Architects`, `Archivists`, `Conspirators`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Wisps`.
-  - Still lacking a BGA replay fixture: `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Djinni`, `Treasurers`.
+  - Covered: `Architects`, `Archivists`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Wisps`.
+  - Still lacking a BGA replay fixture: `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Treasurers`.

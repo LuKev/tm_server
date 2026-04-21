@@ -329,6 +329,61 @@ Player1 spends Markers to gain 4 power (Goblins ability)
 	}
 }
 
+func TestBGAParser_DjinniSwapCults_FromRealBgaGame(t *testing.T) {
+	content := `
+Game board: Fire & Ice
+Player1 is playing the Djinni Faction
+Player2 is playing the Wisps Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [B2]
+Player1 places a Dwelling [E5]
+~ Action phase ~
+Move 1 :
+Player1 spends Markers to swap the Cult of Earth and Cult of Air tracks (Djinni ability)
+Player1 spends Markers to swap the Cult of Fire and Cult of Air tracks (Djinni ability)
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var swaps []*game.SpecialAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Djinni" || action.ActionType != game.SpecialActionDjinniSwapCults {
+			continue
+		}
+		swaps = append(swaps, action)
+	}
+
+	if len(swaps) != 2 {
+		t.Fatalf("parsed %d Djinni swap actions, want 2", len(swaps))
+	}
+
+	if swaps[0].CultTrack == nil || *swaps[0].CultTrack != game.CultEarth {
+		t.Fatalf("first swap first track = %v, want earth", swaps[0].CultTrack)
+	}
+	if swaps[0].SecondCultTrack == nil || *swaps[0].SecondCultTrack != game.CultAir {
+		t.Fatalf("first swap second track = %v, want air", swaps[0].SecondCultTrack)
+	}
+	if swaps[1].CultTrack == nil || *swaps[1].CultTrack != game.CultFire {
+		t.Fatalf("second swap first track = %v, want fire", swaps[1].CultTrack)
+	}
+	if swaps[1].SecondCultTrack == nil || *swaps[1].SecondCultTrack != game.CultAir {
+		t.Fatalf("second swap second track = %v, want air", swaps[1].SecondCultTrack)
+	}
+}
+
 func TestBGAParser_FavorTileLineWithTrailingPowerPreservesInterveningLeechOrder(t *testing.T) {
 	content := `
 Game board: Base
@@ -967,5 +1022,53 @@ Nafghar declines doing Conversions
 	}
 	if bonusSpadeAction.PlayerID != "Prospectors" {
 		t.Fatalf("Prospectors bonus card spade PlayerID = %q, want %q", bonusSpadeAction.PlayerID, "Prospectors")
+	}
+}
+
+func TestBGAParser_ConspiratorsStrongholdSwap_FromRealBgaGame(t *testing.T) {
+	content := `
+Game board: Base Game
+Xevoc is playing the Conspirators Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Move 88 :
+Xevoc gives back a Favor tile and loses 1 Cult points (Conspirators Stronghold)
+Xevoc takes a Favor tile
+Xevoc gains 2 on the Cult of Air track (Favor tile) and earns 2 power
+Xevoc earns 2 coins (Conspirators ability)
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var swapAction *LogConspiratorsSwapFavorAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*LogConspiratorsSwapFavorAction)
+		if !ok {
+			continue
+		}
+		swapAction = action
+		break
+	}
+
+	if swapAction == nil {
+		t.Fatal("Did not find LogConspiratorsSwapFavorAction")
+	}
+	if swapAction.PlayerID != "Conspirators" {
+		t.Fatalf("PlayerID = %q, want %q", swapAction.PlayerID, "Conspirators")
+	}
+	if swapAction.ReturnedCultAmount != 1 {
+		t.Fatalf("ReturnedCultAmount = %d, want 1", swapAction.ReturnedCultAmount)
+	}
+	if swapAction.NewTile != "FAV-A2" {
+		t.Fatalf("NewTile = %q, want %q", swapAction.NewTile, "FAV-A2")
 	}
 }

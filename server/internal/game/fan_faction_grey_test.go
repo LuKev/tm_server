@@ -338,3 +338,94 @@ func TestConspiratorsSwapFavorCanRegainPowerOnSameCultTrack(t *testing.T) {
 		t.Fatalf("water cult position 10 occupier = %q, want p1", occupier)
 	}
 }
+
+func TestConspiratorsSwapFavorReclaimsMilestoneAfterDroppingBelowIt(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewConspirators()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Coins = 0
+	player.Resources.Power = NewPowerSystem(5, 2, 0)
+
+	if err := gs.FavorTiles.TakeFavorTileAllowDuplicate("p1", FavorAir2); err != nil {
+		t.Fatalf("TakeFavorTileAllowDuplicate Air +2 failed: %v", err)
+	}
+	gs.CultTracks.PlayerPositions["p1"][CultAir] = 5
+	player.CultPositions[CultAir] = 5
+	gs.CultTracks.BonusPositionsClaimed["p1"][CultAir][3] = true
+	gs.CultTracks.BonusPositionsClaimed["p1"][CultAir][5] = true
+
+	if err := NewConspiratorsSwapFavorAction("p1", FavorAir2, FavorWater1).Execute(gs); err != nil {
+		t.Fatalf("Conspirators swap Air +2 -> Water +1 failed: %v", err)
+	}
+
+	if got := gs.CultTracks.GetPosition("p1", CultAir); got != 3 {
+		t.Fatalf("air cult after dropping Air +2 = %d, want 3", got)
+	}
+	if gs.CultTracks.BonusPositionsClaimed["p1"][CultAir][5] {
+		t.Fatalf("expected Air milestone 5 to become reclaimable after cult decreases")
+	}
+
+	player.Resources.Power = NewPowerSystem(5, 2, 0)
+	player.SpecialActionsUsed[SpecialActionConspiratorsSwapFavor] = false
+	if err := NewConspiratorsSwapFavorAction("p1", FavorWater1, FavorAir2).Execute(gs); err != nil {
+		t.Fatalf("Conspirators swap Water +1 -> Air +2 failed: %v", err)
+	}
+
+	if got := gs.CultTracks.GetPosition("p1", CultAir); got != 5 {
+		t.Fatalf("air cult after retaking Air +2 = %d, want 5", got)
+	}
+	if got := player.Resources.Power.Bowl1; got != 3 {
+		t.Fatalf("bowl I = %d, want 3", got)
+	}
+	if got := player.Resources.Power.Bowl2; got != 4 {
+		t.Fatalf("bowl II = %d, want 4", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 0 {
+		t.Fatalf("bowl III = %d, want 0", got)
+	}
+}
+
+func TestConspiratorsSwapFavorCanTakeDuplicateOfAnotherHeldTile(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewConspirators()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Coins = 0
+
+	if err := gs.FavorTiles.TakeFavorTile("p1", FavorEarth1); err != nil {
+		t.Fatalf("TakeFavorTile(Earth1) failed: %v", err)
+	}
+	if err := gs.FavorTiles.TakeFavorTile("p1", FavorAir2); err != nil {
+		t.Fatalf("TakeFavorTile(Air2) failed: %v", err)
+	}
+	player.CultPositions[CultEarth] = 1
+	gs.CultTracks.PlayerPositions["p1"][CultEarth] = 1
+
+	action := NewConspiratorsSwapFavorAction("p1", FavorEarth1, FavorAir2)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("Conspirators duplicate swap failed: %v", err)
+	}
+
+	air2Count := 0
+	for _, tile := range gs.FavorTiles.GetPlayerTiles("p1") {
+		if tile == FavorAir2 {
+			air2Count++
+		}
+		if tile == FavorEarth1 {
+			t.Fatalf("expected Earth +1 to be returned")
+		}
+	}
+	if air2Count != 2 {
+		t.Fatalf("Air +2 copies = %d, want 2", air2Count)
+	}
+	if got := player.Resources.Coins; got != 2 {
+		t.Fatalf("coins = %d, want 2", got)
+	}
+}

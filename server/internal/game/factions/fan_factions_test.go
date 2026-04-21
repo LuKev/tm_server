@@ -169,6 +169,8 @@ func TestFanFactionStartingPower_UserCorrections(t *testing.T) {
 		{name: "Architects", got: NewArchitects().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 3, Power2: 9}},
 		{name: "Prospectors", got: NewProspectors().GetStartingResources(), want: Resources{Coins: 15, Workers: 2, Power1: 7, Power2: 5}},
 		{name: "Archivists", got: NewArchivists().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 5, Power2: 7}},
+		{name: "Conspirators", got: NewConspirators().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 5, Power2: 7}},
+		{name: "Djinni", got: NewDjinni().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 5, Power2: 7}},
 	}
 
 	for _, tt := range tests {

@@ -529,6 +529,63 @@ func (a *LogFavorTileAction) Execute(gs *game.GameState) error {
 	return nil
 }
 
+// LogConspiratorsSwapFavorAction replays the BGA Conspirators stronghold swap flow.
+// BGA logs only expose the returned favor tile's cult-step amount, not its full identity.
+type LogConspiratorsSwapFavorAction struct {
+	PlayerID           string
+	ReturnedCultAmount int
+	ReturnedTile       string // Optional explicit tile code from replay config when BGA log is ambiguous.
+	NewTile            string // e.g. "FAV-A2"
+}
+
+func (a *LogConspiratorsSwapFavorAction) GetType() game.ActionType { return game.ActionSpecialAction }
+func (a *LogConspiratorsSwapFavorAction) GetPlayerID() string      { return a.PlayerID }
+func (a *LogConspiratorsSwapFavorAction) Validate(gs *game.GameState) error { return nil }
+
+func (a *LogConspiratorsSwapFavorAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+
+	newTileType, err := ParseFavorTileCode(a.NewTile)
+	if err != nil {
+		return err
+	}
+
+	if strings.TrimSpace(a.ReturnedTile) != "" {
+		returnedTileType, err := ParseFavorTileCode(a.ReturnedTile)
+		if err != nil {
+			return err
+		}
+		return game.NewConspiratorsSwapFavorAction(a.PlayerID, returnedTileType, newTileType).Execute(gs)
+	}
+
+	allTiles := game.GetAllFavorTiles()
+	candidateSet := make(map[game.FavorTileType]bool)
+	candidates := make([]game.FavorTileType, 0)
+	for _, tileType := range gs.FavorTiles.GetPlayerTiles(a.PlayerID) {
+		tile, ok := allTiles[tileType]
+		if !ok || tile.CultAdvance != a.ReturnedCultAmount || tileType == newTileType {
+			continue
+		}
+		if candidateSet[tileType] {
+			continue
+		}
+		candidateSet[tileType] = true
+		candidates = append(candidates, tileType)
+	}
+
+	if len(candidates) == 0 {
+		return fmt.Errorf("unable to infer returned Conspirators favor tile for %s with cult amount %d", a.PlayerID, a.ReturnedCultAmount)
+	}
+	if len(candidates) > 1 {
+		return fmt.Errorf("ambiguous returned Conspirators favor tile for %s with cult amount %d", a.PlayerID, a.ReturnedCultAmount)
+	}
+
+	return game.NewConspiratorsSwapFavorAction(a.PlayerID, candidates[0], newTileType).Execute(gs)
+}
+
 // LogSpecialAction is a log-only representation of special faction actions (e.g. Witches Ride)
 type LogSpecialAction struct {
 	PlayerID   string

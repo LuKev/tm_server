@@ -537,9 +537,6 @@ func (a *SpecialAction) validateConspiratorsSwapFavor(gs *GameState, player *Pla
 	if !gs.FavorTiles.IsAvailable(*a.NewFavorTile) {
 		return fmt.Errorf("favor tile %v is not available", *a.NewFavorTile)
 	}
-	if gs.FavorTiles.HasTileType(player.ID, *a.NewFavorTile) {
-		return fmt.Errorf("player already has favor tile %v", *a.NewFavorTile)
-	}
 	return nil
 }
 
@@ -1367,7 +1364,7 @@ func (a *SpecialAction) executeConspiratorsSwapFavor(gs *GameState, player *Play
 	if err := gs.FavorTiles.ReturnFavorTile(player.ID, *a.ReturnFavorTile); err != nil {
 		return err
 	}
-	if err := gs.FavorTiles.TakeFavorTile(player.ID, *a.NewFavorTile); err != nil {
+	if err := gs.FavorTiles.TakeFavorTileAllowDuplicate(player.ID, *a.NewFavorTile); err != nil {
 		return err
 	}
 	gs.CheckAllTownFormations(player.ID)

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/notation"
 )
@@ -55,6 +56,47 @@ func TestGameSimulator_ReportsMissingInitialBonusCardsBeforeRoundOneAction(t *te
 	}
 	if len(missingErr.Players) != 2 {
 		t.Fatalf("MissingInfoError.Players len = %d, want 2 (%v)", len(missingErr.Players), missingErr.Players)
+	}
+}
+
+func TestGameSimulator_ReportsMissingDjinniStartingCultChoiceBeforeSetupAction(t *testing.T) {
+	items := []notation.LogItem{
+		notation.GameSettingsItem{
+			Settings: map[string]string{
+				"Player:alice":        "Djinni",
+				"Player:bob":          "Engineers",
+				"BonusCards":          "BON-SPD,BON-4C,BON-6C,BON-SHIP,BON-WP",
+				"ScoringTiles":        "SCORE1,SCORE2,SCORE3,SCORE4,SCORE5,SCORE6",
+				"StartingVP:Djinni":   "20",
+				"StartingVP:Engineers": "20",
+			},
+		},
+		notation.ActionItem{
+			Action: game.NewSetupDwellingAction("Djinni", board.NewHex(0, 0)),
+		},
+	}
+
+	initialState := createInitialState(items)
+	sim := NewGameSimulator(initialState, items)
+
+	if err := sim.StepForward(); err != nil {
+		t.Fatalf("settings step failed: %v", err)
+	}
+
+	err := sim.StepForward()
+	if err == nil {
+		t.Fatal("expected missing Djinni starting cult choice error")
+	}
+
+	var missingErr *game.MissingInfoError
+	if !errors.As(err, &missingErr) {
+		t.Fatalf("error type = %T, want *game.MissingInfoError", err)
+	}
+	if missingErr.Type != "initial_djinni_cult_choice" {
+		t.Fatalf("MissingInfoError.Type = %q, want %q", missingErr.Type, "initial_djinni_cult_choice")
+	}
+	if len(missingErr.Players) != 1 || missingErr.Players[0] != "Djinni" {
+		t.Fatalf("MissingInfoError.Players = %v, want [Djinni]", missingErr.Players)
 	}
 }
 

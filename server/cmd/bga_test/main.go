@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -22,8 +23,10 @@ import (
 type GameConfig struct {
 	ScoringTiles             []string                     `yaml:"scoring_tiles"`
 	BonusCards               []string                     `yaml:"bonus_cards"`
+	StartingCultChoices      map[string]string            `yaml:"starting_cult_choices"`
 	BonusCardSelections      map[string]map[string]string `yaml:"bonus_card_selections"`
 	ExtraBonusCardSelections map[string]map[string]string `yaml:"extra_bonus_card_selections"`
+	ConspiratorsSwapReturns  map[string][]string          `yaml:"conspirators_swap_returns"`
 }
 
 func main() {
@@ -110,10 +113,16 @@ func main() {
 	if scoringStr != "" || bonusStr != "" {
 		items = injectSettings(items, scoringStr, bonusStr)
 	}
+	if config != nil && len(config.StartingCultChoices) > 0 {
+		items = injectStartingCultChoices(items, config.StartingCultChoices)
+	}
 
 	// Inject bonus card selections from config
 	if config != nil && (len(config.BonusCardSelections) > 0 || len(config.ExtraBonusCardSelections) > 0) {
 		items = injectBonusCardSelections(items, config.BonusCardSelections, config.ExtraBonusCardSelections)
+	}
+	if config != nil && len(config.ConspiratorsSwapReturns) > 0 {
+		items = injectConspiratorsSwapReturns(items, config.ConspiratorsSwapReturns)
 	}
 
 	// Create initial game state
@@ -151,6 +160,13 @@ func main() {
 						player.CultPositions[game.CultWater],
 						player.CultPositions[game.CultEarth],
 						player.CultPositions[game.CultAir],
+					)
+					fmt.Printf(
+						"    Pre-context %s: Tiles=%s Buildings=%s Bonus=%s\n",
+						playerID,
+						formatFavorTiles(simulator.GetState(), playerID),
+						formatBuildingCounts(simulator.GetState(), playerID),
+						formatBonusCards(simulator.GetState(), playerID),
 					)
 				}
 				if pendingCult := simulator.GetState().PendingCultRewardSpades; len(pendingCult) > 0 {
@@ -227,6 +243,13 @@ func main() {
 						player.CultPositions[game.CultWater],
 						player.CultPositions[game.CultEarth],
 						player.CultPositions[game.CultAir],
+					)
+					fmt.Printf(
+						"    Post-context %s: Tiles=%s Buildings=%s Bonus=%s\n",
+						verbosePlayerID,
+						formatFavorTiles(simulator.GetState(), verbosePlayerID),
+						formatBuildingCounts(simulator.GetState(), verbosePlayerID),
+						formatBonusCards(simulator.GetState(), verbosePlayerID),
 					)
 				}
 			} else if roundStart, ok := currentItem.(notation.RoundStartItem); ok {
@@ -349,6 +372,87 @@ func injectBonusCardSelections(items []notation.LogItem, selections map[string]m
 	return items
 }
 
+func injectStartingCultChoices(items []notation.LogItem, choices map[string]string) []notation.LogItem {
+	if len(choices) == 0 {
+		return items
+	}
+
+	inserted := make([]notation.LogItem, 0, len(choices))
+	playerIDs := make([]string, 0, len(choices))
+	for playerID := range choices {
+		playerIDs = append(playerIDs, playerID)
+	}
+	sort.Strings(playerIDs)
+
+	for _, playerID := range playerIDs {
+		cultName := choices[playerID]
+		cultTrack, ok := parseCultTrackChoice(cultName)
+		if !ok {
+			fmt.Printf("  Warning: unknown starting cult choice %q for %s\n", cultName, playerID)
+			continue
+		}
+		inserted = append(inserted, notation.ActionItem{
+			Action: game.NewSelectDjinniStartingCultTrackAction(playerID, cultTrack),
+		})
+		fmt.Printf("  Injected Djinni starting cult %s for %s\n", strings.ToUpper(strings.TrimSpace(cultName)), playerID)
+	}
+	if len(inserted) == 0 {
+		return items
+	}
+
+	for i, item := range items {
+		if _, ok := item.(notation.GameSettingsItem); ok {
+			return append(items[:i+1], append(inserted, items[i+1:]...)...)
+		}
+	}
+
+	return append(inserted, items...)
+}
+
+func injectConspiratorsSwapReturns(items []notation.LogItem, returnsByPlayer map[string][]string) []notation.LogItem {
+	seenByPlayer := make(map[string]int)
+	for i, item := range items {
+		actionItem, ok := item.(notation.ActionItem)
+		if !ok {
+			continue
+		}
+		swapAction, ok := actionItem.Action.(*notation.LogConspiratorsSwapFavorAction)
+		if !ok {
+			continue
+		}
+
+		returns := returnsByPlayer[swapAction.PlayerID]
+		if len(returns) == 0 {
+			continue
+		}
+		idx := seenByPlayer[swapAction.PlayerID]
+		seenByPlayer[swapAction.PlayerID] = idx + 1
+		if idx >= len(returns) {
+			continue
+		}
+
+		swapAction.ReturnedTile = returns[idx]
+		items[i] = notation.ActionItem{Action: swapAction}
+		fmt.Printf("  Injected Conspirators return %s for %s swap #%d\n", returns[idx], swapAction.PlayerID, idx+1)
+	}
+	return items
+}
+
+func parseCultTrackChoice(raw string) (game.CultTrack, bool) {
+	switch strings.ToUpper(strings.TrimSpace(raw)) {
+	case "F", "FIRE":
+		return game.CultFire, true
+	case "W", "WATER":
+		return game.CultWater, true
+	case "E", "EARTH":
+		return game.CultEarth, true
+	case "A", "AIR":
+		return game.CultAir, true
+	default:
+		return game.CultFire, false
+	}
+}
+
 func extractTableID(input string) string {
 	// Check if it's just a number
 	if _, err := strconv.Atoi(input); err == nil {
@@ -367,6 +471,60 @@ func extractTableID(input string) string {
 	}
 
 	return ""
+}
+
+func formatFavorTiles(gs *game.GameState, playerID string) string {
+	tiles := gs.FavorTiles.GetPlayerTiles(playerID)
+	if len(tiles) == 0 {
+		return "[]"
+	}
+	names := make([]string, 0, len(tiles))
+	allTiles := game.GetAllFavorTiles()
+	for _, tile := range tiles {
+		if info, ok := allTiles[tile]; ok {
+			names = append(names, info.Name)
+			continue
+		}
+		names = append(names, fmt.Sprintf("Favor(%d)", tile))
+	}
+	sort.Strings(names)
+	return "[" + strings.Join(names, ",") + "]"
+}
+
+func formatBonusCards(gs *game.GameState, playerID string) string {
+	cards := gs.BonusCards.GetPlayerCards(playerID)
+	if len(cards) == 0 {
+		return "[]"
+	}
+	names := make([]string, 0, len(cards))
+	allCards := game.GetAllBonusCards()
+	for _, card := range cards {
+		if info, ok := allCards[card]; ok {
+			names = append(names, info.Name)
+			continue
+		}
+		names = append(names, fmt.Sprintf("Bonus(%d)", card))
+	}
+	sort.Strings(names)
+	return "[" + strings.Join(names, ",") + "]"
+}
+
+func formatBuildingCounts(gs *game.GameState, playerID string) string {
+	counts := map[models.BuildingType]int{}
+	for _, mapHex := range gs.Map.Hexes {
+		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+			continue
+		}
+		counts[mapHex.Building.Type]++
+	}
+	parts := []string{
+		fmt.Sprintf("D=%d", counts[models.BuildingDwelling]),
+		fmt.Sprintf("TP=%d", counts[models.BuildingTradingHouse]),
+		fmt.Sprintf("TE=%d", counts[models.BuildingTemple]),
+		fmt.Sprintf("SA=%d", counts[models.BuildingSanctuary]),
+		fmt.Sprintf("SH=%d", counts[models.BuildingStronghold]),
+	}
+	return "[" + strings.Join(parts, ",") + "]"
 }
 
 func fetchBGALog(tableID string) (string, error) {

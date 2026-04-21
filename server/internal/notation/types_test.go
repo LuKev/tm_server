@@ -273,6 +273,47 @@ func TestLogCultTrackDecreaseAction_DecrementsCultTrack(t *testing.T) {
 	}
 }
 
+func TestLogConspiratorsSwapFavorAction_InferReturnedTileByCultAmount(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewConspirators()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+
+	if err := gs.FavorTiles.TakeFavorTile("p1", game.FavorEarth1); err != nil {
+		t.Fatalf("TakeFavorTile(Earth1) failed: %v", err)
+	}
+	if err := gs.FavorTiles.TakeFavorTile("p1", game.FavorAir2); err != nil {
+		t.Fatalf("TakeFavorTile(Air2) failed: %v", err)
+	}
+	player.CultPositions[game.CultEarth] = 1
+	gs.CultTracks.PlayerPositions["p1"][game.CultEarth] = 1
+
+	action := &LogConspiratorsSwapFavorAction{
+		PlayerID:           "p1",
+		ReturnedCultAmount: 1,
+		NewTile:            "FAV-A2",
+	}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogConspiratorsSwapFavorAction.Execute() error = %v", err)
+	}
+
+	air2Count := 0
+	for _, tile := range gs.FavorTiles.GetPlayerTiles("p1") {
+		if tile == game.FavorAir2 {
+			air2Count++
+		}
+		if tile == game.FavorEarth1 {
+			t.Fatalf("expected Earth +1 to be returned")
+		}
+	}
+	if air2Count != 2 {
+		t.Fatalf("Air +2 copies = %d, want 2", air2Count)
+	}
+}
+
 func TestLogCompoundAction_CultTownSelectionWithDecreaseToken(t *testing.T) {
 	gs := game.NewGameState()
 	playerID := "p1"

@@ -68,6 +68,14 @@ func (s *GameSimulator) StepForward() error {
 		if v.Action != nil {
 			s.executePendingRoundCleanupBeforeAction()
 
+			if missingPlayers := s.missingInitialDjinniCultChoicePlayers(); len(missingPlayers) > 0 &&
+				s.requiresInitialDjinniCultChoice(v.Action) {
+				return &game.MissingInfoError{
+					Type:    "initial_djinni_cult_choice",
+					Players: missingPlayers,
+				}
+			}
+
 			if missingPlayers := s.missingInitialBonusCardPlayers(); len(missingPlayers) > 0 &&
 				s.requiresInitialBonusCards(v.Action) {
 				return &game.MissingInfoError{
@@ -343,6 +351,25 @@ func (s *GameSimulator) missingInitialBonusCardPlayers() []string {
 		}
 	}
 	return missingPlayers
+}
+
+func (s *GameSimulator) missingInitialDjinniCultChoicePlayers() []string {
+	if s.CurrentState == nil || s.CurrentState.PendingDjinniStartingCultChoice == nil {
+		return nil
+	}
+	if strings.TrimSpace(s.CurrentState.PendingDjinniStartingCultChoice.PlayerID) == "" {
+		return nil
+	}
+	return []string{s.CurrentState.PendingDjinniStartingCultChoice.PlayerID}
+}
+
+func (s *GameSimulator) requiresInitialDjinniCultChoice(action game.Action) bool {
+	switch action.(type) {
+	case *game.SelectDjinniStartingCultTrackAction:
+		return false
+	default:
+		return true
+	}
 }
 
 func (s *GameSimulator) requiresInitialBonusCards(action game.Action) bool {

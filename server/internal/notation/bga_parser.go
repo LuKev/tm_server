@@ -19,14 +19,15 @@ type BGAParser struct {
 	currentLine int
 	items       []LogItem
 	// State tracking
-	currentRound       int
-	players            map[string]string // Name -> Faction
-	passOrder          []string          // Tracks who passed in current round to determine next round order
-	townPending        map[string]bool   // Name -> bool, tracks if player just founded a town
-	consumedLines      map[int]bool      // Line indices that have been consumed by another action
-	leechSourceByCoord map[string]string // Coord -> player ID of the structure that most recently triggered leech there
-	lastLeechSourceID  string
-	lastLeechSourceHex *board.Hex
+	currentRound                 int
+	players                      map[string]string // Name -> Faction
+	passOrder                    []string          // Tracks who passed in current round to determine next round order
+	townPending                  map[string]bool   // Name -> bool, tracks if player just founded a town
+	consumedLines                map[int]bool      // Line indices that have been consumed by another action
+	leechSourceByCoord           map[string]string // Coord -> player ID of the structure that most recently triggered leech there
+	lastLeechSourceID            string
+	lastLeechSourceHex           *board.Hex
+	pendingConspiratorsFavorLoss map[string]int
 }
 
 func NewBGAParser(content string) *BGAParser {
@@ -38,14 +39,15 @@ func NewBGAParser(content string) *BGAParser {
 	}
 
 	return &BGAParser{
-		lines:              lines,
-		currentLine:        0,
-		items:              make([]LogItem, 0),
-		players:            make(map[string]string),
-		passOrder:          make([]string, 0),
-		townPending:        make(map[string]bool),
-		consumedLines:      make(map[int]bool),
-		leechSourceByCoord: make(map[string]string),
+		lines:                        lines,
+		currentLine:                  0,
+		items:                        make([]LogItem, 0),
+		players:                      make(map[string]string),
+		passOrder:                    make([]string, 0),
+		townPending:                  make(map[string]bool),
+		consumedLines:                make(map[int]bool),
+		leechSourceByCoord:           make(map[string]string),
+		pendingConspiratorsFavorLoss: make(map[string]int),
 	}
 }
 
@@ -74,6 +76,8 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reLeechCap := regexp.MustCompile(`(.*) Power gain via Structures is capped from (\d+) power to (\d+) power`)
 	reBurn := regexp.MustCompile(`(.*) sacrificed (\d+) power in Bowl 2 to get (\d+) power from Bowl 2 to Bowl 3`)
 	reFavorTileStart := regexp.MustCompile(`(.*) takes a Favor tile`)
+	reConspiratorsReturnFavor := regexp.MustCompile(`(.*) gives back a Favor tile and loses (\d+) Cult points \(Conspirators Stronghold\)`)
+	reCancelMove := regexp.MustCompile(`(.*) cancels their move`)
 	reWitchesRide := regexp.MustCompile(`(.*) builds a Dwelling for free \(Witches Ride\) \[(.*)\]`)
 	reExchangeTrack := regexp.MustCompile(`(.*) advances on the Exchange Track for (.*) and earns (\d+) VP`)
 	reTownFound := regexp.MustCompile(`(.*) founds a Town \[(.*)\]`)
@@ -94,6 +98,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reTimeTravelersStrongholdAction := regexp.MustCompile(`(.*) moves (\d+) power from Bowl I to Bowl III \(Stronghold Action\)`)
 	reSpecialActionSpade := regexp.MustCompile(`(.*) gains 1 spade\(s\) \(Special action\)`)
 	reGoblinsTreasure := regexp.MustCompile(`(.*) spends Markers to gain (\d+) (coins|workers|power) \(Goblins ability\)`)
+	reDjinniSwapCults := regexp.MustCompile(`(.*) spends Markers to swap the Cult of (.*) and Cult of (.*) tracks \(Djinni ability\)`)
 
 	reConversionLine := regexp.MustCompile(`(.*) does some Conversions \(spent: (.*); collects: (.*)\)`)
 
@@ -453,6 +458,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerID := p.getPlayerID(matches[1])
 			p.handleGoblinsTreasure(playerID, matches[3])
 
+		} else if matches := reDjinniSwapCults.FindStringSubmatch(line); len(matches) > 3 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleDjinniSwapCults(playerID, matches[2], matches[3])
+
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
 			coordStr := p.extractCoord(line)
@@ -498,6 +507,14 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 			// fmt.Printf("Matched Burn: %s sacrificed %d\n", playerName, amount)
 			p.handleBurn(playerName, amount)
+
+		} else if matches := reConspiratorsReturnFavor.FindStringSubmatch(line); len(matches) > 2 {
+			playerName := matches[1]
+			amount, _ := strconv.Atoi(matches[2])
+			p.handleConspiratorsReturnFavor(playerName, amount)
+
+		} else if matches := reCancelMove.FindStringSubmatch(line); len(matches) > 1 {
+			p.handleCancelMove(matches[1])
 
 		} else if matches := reFavorTileStart.FindStringSubmatch(line); len(matches) > 1 {
 			// Favor Tile:
@@ -854,6 +871,114 @@ func (p *BGAParser) handleBurn(playerName string, amount int) {
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
+func (p *BGAParser) handleCancelMove(playerName string) {
+	playerName = strings.TrimSpace(playerName)
+	playerID := p.getPlayerID(playerName)
+	if playerID == "" || !p.cancelLikelyFollowedByReplacement(playerName) {
+		return
+	}
+
+	searchStart := 0
+	for i := len(p.items) - 1; i >= 0; i-- {
+		if _, ok := p.items[i].(RoundStartItem); ok {
+			searchStart = i + 1
+			break
+		}
+	}
+
+	lastIdx := -1
+	for i := len(p.items) - 1; i >= searchStart; i-- {
+		actionItem, ok := p.items[i].(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if isLeechResponseAction(actionItem.Action) {
+			continue
+		}
+		if actionItem.Action.GetPlayerID() != playerID {
+			// Another player's real turn has happened since this player's last committed action,
+			// so the cancel must refer to an unlogged in-progress move rather than undoing older items.
+			return
+		}
+		lastIdx = i
+		break
+	}
+	if lastIdx < 0 {
+		return
+	}
+
+	start := lastIdx
+	for start > 0 {
+		actionItem, ok := p.items[start-1].(ActionItem)
+		if !ok || actionItem.Action == nil {
+			break
+		}
+		if actionItem.Action.GetPlayerID() != playerID {
+			break
+		}
+		start--
+	}
+
+	end := lastIdx
+	for end+1 < len(p.items) {
+		actionItem, ok := p.items[end+1].(ActionItem)
+		if !ok || actionItem.Action == nil {
+			break
+		}
+		switch actionItem.Action.(type) {
+		case *LogAcceptLeechAction, *LogDeclineLeechAction:
+			end++
+		default:
+			goto removeCanceledSegment
+		}
+	}
+
+removeCanceledSegment:
+	p.items = append(p.items[:start], p.items[end+1:]...)
+}
+
+func isLeechResponseAction(action game.Action) bool {
+	if action == nil {
+		return false
+	}
+	switch action.(type) {
+	case *LogAcceptLeechAction, *LogDeclineLeechAction:
+		return true
+	default:
+		return false
+	}
+}
+
+func (p *BGAParser) cancelLikelyFollowedByReplacement(playerName string) bool {
+	if p == nil {
+		return false
+	}
+	prefix := strings.TrimSpace(playerName) + " "
+	for i := p.currentLine; i < len(p.lines) && i < p.currentLine+5; i++ {
+		line := strings.TrimSpace(p.lines[i])
+		if line == "" {
+			continue
+		}
+		if strings.HasPrefix(line, prefix) {
+			suffix := strings.TrimSpace(strings.TrimPrefix(line, prefix))
+			if strings.HasPrefix(suffix, "gives back a Favor tile") || strings.HasPrefix(suffix, "takes a Favor tile") {
+				return false
+			}
+			return true
+		}
+		break
+	}
+	return false
+}
+
+func (p *BGAParser) handleConspiratorsReturnFavor(playerName string, amount int) {
+	playerID := p.getPlayerID(strings.TrimSpace(playerName))
+	if playerID == "" || amount <= 0 {
+		return
+	}
+	p.pendingConspiratorsFavorLoss[playerID] = amount
+}
+
 func (p *BGAParser) handleFavorTile(playerName string) {
 	playerName = strings.TrimSpace(playerName)
 	playerID := p.getPlayerID(playerName)
@@ -912,6 +1037,18 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 
 	if tileCode == "" {
 		tileCode = "FAV-UNKNOWN"
+	}
+
+	if lostAmount, ok := p.pendingConspiratorsFavorLoss[playerID]; ok {
+		delete(p.pendingConspiratorsFavorLoss, playerID)
+		p.items = append(p.items, ActionItem{
+			Action: &LogConspiratorsSwapFavorAction{
+				PlayerID:           playerID,
+				ReturnedCultAmount: lostAmount,
+				NewTile:            tileCode,
+			},
+		})
+		return
 	}
 
 	action := &LogFavorTileAction{
@@ -2031,5 +2168,19 @@ func (p *BGAParser) handleGoblinsTreasure(playerID, reward string) {
 
 	p.items = append(p.items, ActionItem{
 		Action: game.NewUseGoblinsTreasureAction(playerID, rewardType),
+	})
+}
+
+func (p *BGAParser) handleDjinniSwapCults(playerID, firstTrack, secondTrack string) {
+	if playerID != "Djinni" {
+		return
+	}
+
+	p.items = append(p.items, ActionItem{
+		Action: game.NewDjinniSwapCultsAction(
+			playerID,
+			parseCultTrack(firstTrack),
+			parseCultTrack(secondTrack),
+		),
 	})
 }

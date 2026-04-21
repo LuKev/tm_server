@@ -130,11 +130,29 @@ func (cts *CultTrackState) DecreasePlayer(playerID string, track CultTrack, spac
 			player.Keys++
 		}
 	}
+	cts.clearClaimedBonusesAbove(playerID, track, targetPos)
 	cts.PlayerPositions[playerID][track] = targetPos
 	if player != nil {
 		player.CultPositions[track] = targetPos
 	}
 	return currentPos - targetPos
+}
+
+func (cts *CultTrackState) clearClaimedBonusesAbove(playerID string, track CultTrack, targetPos int) {
+	playerClaims, ok := cts.BonusPositionsClaimed[playerID]
+	if !ok {
+		return
+	}
+	trackClaims, ok := playerClaims[track]
+	if !ok {
+		return
+	}
+
+	for _, milestone := range []int{3, 5, 7, 10} {
+		if milestone > targetPos {
+			delete(trackClaims, milestone)
+		}
+	}
 }
 
 // GetTotalPriestsOnCultTracks returns the total number of priests a player has on cult track action spaces

@@ -228,8 +228,7 @@ func (fts *FavorTileState) IsAvailable(tileType FavorTileType) bool {
 	return fts.Available[tileType] > 0
 }
 
-// HasTileType checks if a player already has a tile of this type
-// (Players can only have one tile of each type)
+// HasTileType checks if a player already has a tile of this type.
 func (fts *FavorTileState) HasTileType(playerID string, tileType FavorTileType) bool {
 	tiles, ok := fts.PlayerTiles[playerID]
 	if !ok {
@@ -244,8 +243,8 @@ func (fts *FavorTileState) HasTileType(playerID string, tileType FavorTileType) 
 	return false
 }
 
-// TakeFavorTile gives a favor tile to a player
-// Returns error if tile is not available or player already has this type
+// TakeFavorTile gives a favor tile to a player.
+// Base favor selection paths disallow duplicate tile types for the same player.
 func (fts *FavorTileState) TakeFavorTile(playerID string, tileType FavorTileType) error {
 	// Check if available
 	if !fts.IsAvailable(tileType) {
@@ -261,6 +260,19 @@ func (fts *FavorTileState) TakeFavorTile(playerID string, tileType FavorTileType
 	fts.Available[tileType]--
 	fts.PlayerTiles[playerID] = append(fts.PlayerTiles[playerID], tileType)
 
+	return nil
+}
+
+// TakeFavorTileAllowDuplicate gives a favor tile to a player without enforcing
+// the base-game duplicate-type restriction. This is used by Conspirators'
+// stronghold swap, which only requires the new tile to differ from the returned tile.
+func (fts *FavorTileState) TakeFavorTileAllowDuplicate(playerID string, tileType FavorTileType) error {
+	if !fts.IsAvailable(tileType) {
+		return fmt.Errorf("favor tile %v is not available", tileType)
+	}
+
+	fts.Available[tileType]--
+	fts.PlayerTiles[playerID] = append(fts.PlayerTiles[playerID], tileType)
 	return nil
 }
 
