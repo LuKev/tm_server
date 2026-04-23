@@ -50,14 +50,21 @@ func TestFanFactionCosts_UserCorrections(t *testing.T) {
 	tests := []struct {
 		name           string
 		faction        Faction
+		diggingCost    *Cost
 		templeCost     *Cost
 		sanctuaryCost  *Cost
 		strongholdCost *Cost
 	}{
 		{
+			name:        "Atlanteans",
+			faction:     NewAtlanteans(),
+			diggingCost: &Cost{Coins: 4, Workers: 1, Priests: 1},
+		},
+		{
 			name:           "Children of the Wyrm",
 			faction:        NewChildrenOfTheWyrm(),
-			sanctuaryCost:  &Cost{Coins: 5, Workers: 4},
+			templeCost:     &Cost{Coins: 8, Workers: 2},
+			sanctuaryCost:  &Cost{Coins: 10, Workers: 4},
 			strongholdCost: &Cost{Coins: 10, Workers: 4},
 		},
 		{
@@ -87,6 +94,11 @@ func TestFanFactionCosts_UserCorrections(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.diggingCost != nil {
+				if got := tt.faction.GetDiggingCost(0); got != *tt.diggingCost {
+					t.Fatalf("expected digging cost %+v, got %+v", *tt.diggingCost, got)
+				}
+			}
 			if tt.templeCost != nil {
 				if got := tt.faction.GetTempleCost(); got != *tt.templeCost {
 					t.Fatalf("expected temple cost %+v, got %+v", *tt.templeCost, got)
@@ -164,7 +176,7 @@ func TestFanFactionStartingPower_UserCorrections(t *testing.T) {
 		want Resources
 	}{
 		{name: "Treasurers", got: NewTreasurers().GetStartingResources(), want: Resources{Coins: 15, Workers: 4, Power1: 4, Power2: 8}},
-		{name: "Atlanteans", got: NewAtlanteans().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 1, Power2: 11}},
+		{name: "Atlanteans", got: NewAtlanteans().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 11, Power2: 1}},
 		{name: "Wisps", got: NewWisps().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 7, Power2: 5}},
 		{name: "Architects", got: NewArchitects().GetStartingResources(), want: Resources{Coins: 15, Workers: 3, Power1: 3, Power2: 9}},
 		{name: "Prospectors", got: NewProspectors().GetStartingResources(), want: Resources{Coins: 15, Workers: 2, Power1: 7, Power2: 5}},

@@ -71,9 +71,10 @@ func (gs *GameState) CalculateFinalScoring() map[string]*PlayerFinalScore {
 // If there's a tie for 1st, 1st and 2nd place VP are summed and split.
 // If there's a tie for 2nd, 2nd and 3rd place VP are summed and split.
 func (gs *GameState) calculateAreaBonuses(scores map[string]*PlayerFinalScore) {
-	// Calculate largest area for each player (faction-specific adjacency + shipping)
-	for playerID, player := range gs.Players {
-		largestArea := gs.Map.GetLargestConnectedArea(playerID, player.Faction, player.ShippingLevel)
+	// Calculate largest area for each player using state-level connectivity so
+	// fan-faction adjacency rules such as Children river-token networks apply.
+	for playerID := range gs.Players {
+		largestArea := gs.getLargestConnectedAreaForPlayer(playerID)
 		scores[playerID].LargestAreaSize = largestArea
 	}
 
@@ -244,12 +245,9 @@ func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalS
 		workerCoins := player.Resources.Workers
 		priestCoins := player.Resources.Priests
 
-		// Step 3 & 4: Convert power to coins optimally
-		// Power in Bowl 3 converts directly to coins (1:1)
-		// Power in Bowl 2 can be burned: 2 Bowl 2 → 1 Bowl 3, then that 1 Bowl 3 → 1 coin
-		// Optimal: burn all possible Bowl 2 power, then convert all Bowl 3
-		bowl2Coins := player.Resources.Power.Bowl2 / 2 // 2 Bowl 2 → 1 coin (via burning)
-		bowl3Coins := player.Resources.Power.Bowl3     // 1 Bowl 3 → 1 coin
+		// Step 3 & 4: Convert power to coins optimally.
+		bowl2Coins := finalBowl2CoinValue(player)
+		bowl3Coins := player.Resources.Power.Bowl3 // 1 Bowl 3 → 1 coin
 		powerCoins := bowl2Coins + bowl3Coins
 
 		// Step 5: Sum all coins
@@ -267,6 +265,16 @@ func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalS
 		// Track total resource value (in coins) for tiebreaker
 		scores[playerID].TotalResourceValue = totalCoins
 	}
+}
+
+func finalBowl2CoinValue(player *Player) int {
+	bowl2 := player.Resources.Power.Bowl2
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		// Children sacrifice one Bowl II token to move up to two more tokens to
+		// Bowl III. BGA also applies this during final resource conversion.
+		return (bowl2 * 2) / 3
+	}
+	return bowl2 / 2
 }
 
 // GetWinner returns the player ID of the winner

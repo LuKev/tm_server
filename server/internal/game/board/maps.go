@@ -623,6 +623,12 @@ func NormalizeMapID(raw string) MapID {
 		return MapBase
 	}
 	switch normalized {
+	case "base", "base game":
+		return MapBase
+	case "lakes", "lake":
+		return MapLakes
+	case "revised base", "revised-base", "revised_base":
+		return MapRevisedBase
 	case "fire_and_ice", "fire and ice", "fire&ice":
 		return MapFireAndIce
 	default:

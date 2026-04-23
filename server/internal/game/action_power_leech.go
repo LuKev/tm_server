@@ -10,16 +10,23 @@ import (
 type AcceptPowerLeechAction struct {
 	BaseAction
 	OfferIndex int // Index of the offer in PendingLeechOffers
+	Amount     int // Optional partial amount to accept; <=0 accepts the full offer.
 }
 
 // NewAcceptPowerLeechAction creates a new accept power leech action
 func NewAcceptPowerLeechAction(playerID string, offerIndex int) *AcceptPowerLeechAction {
+	return NewAcceptPowerLeechAmountAction(playerID, offerIndex, 0)
+}
+
+// NewAcceptPowerLeechAmountAction creates a new accept power leech action with an optional partial amount.
+func NewAcceptPowerLeechAmountAction(playerID string, offerIndex int, amount int) *AcceptPowerLeechAction {
 	return &AcceptPowerLeechAction{
 		BaseAction: BaseAction{
 			Type:     ActionAcceptPowerLeech,
 			PlayerID: playerID,
 		},
 		OfferIndex: offerIndex,
+		Amount:     amount,
 	}
 }
 
@@ -30,7 +37,7 @@ func (a *AcceptPowerLeechAction) Validate(gs *GameState) error {
 
 // Execute performs the action
 func (a *AcceptPowerLeechAction) Execute(gs *GameState) error {
-	return executePowerLeechOffer(gs, a.PlayerID, a.OfferIndex, true)
+	return executePowerLeechOfferAmount(gs, a.PlayerID, a.OfferIndex, true, a.Amount)
 }
 
 // DeclinePowerLeechAction represents declining a power leech offer
@@ -79,6 +86,10 @@ func validatePowerLeechOffer(gs *GameState, playerID string, offerIndex int) err
 }
 
 func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, accepted bool) error {
+	return executePowerLeechOfferAmount(gs, playerID, offerIndex, accepted, 0)
+}
+
+func executePowerLeechOfferAmount(gs *GameState, playerID string, offerIndex int, accepted bool, amount int) error {
 	if err := validatePowerLeechOffer(gs, playerID, offerIndex); err != nil {
 		return err
 	}
@@ -87,6 +98,23 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 	player := gs.GetPlayer(playerID)
 	offers := gs.PendingLeechOffers[playerID]
 	offer := offers[offerIndex]
+	var remainder *PowerLeechOffer
+	if accepted && amount > 0 && offer != nil {
+		if amount > offer.Amount {
+			return fmt.Errorf("cannot accept %d power from offer of %d", amount, offer.Amount)
+		}
+		if amount < offer.Amount {
+			partial := *offer
+			partial.Amount = amount
+			partial.VPCost = maxInt(0, amount-1)
+			remaining := *offer
+			remaining.Amount -= amount
+			remaining.VPCost = maxInt(0, remaining.Amount-1)
+			offers[offerIndex] = &partial
+			offer = offers[offerIndex]
+			remainder = &remaining
+		}
+	}
 
 	// Cultists leech bonus depends on whether the leeching player could actually gain
 	// any power from this offer at the time they respond. Snellman logs include
@@ -122,8 +150,12 @@ func executePowerLeechOffer(gs *GameState, playerID string, offerIndex int, acce
 		}
 	}
 
-	// Remove the offer
-	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
+	// Remove the accepted/declined offer, preserving any unaccepted remainder.
+	updatedOffers := append(offers[:offerIndex], offers[offerIndex+1:]...)
+	if remainder != nil {
+		updatedOffers = append(updatedOffers[:offerIndex], append([]*PowerLeechOffer{remainder}, updatedOffers[offerIndex:]...)...)
+	}
+	gs.PendingLeechOffers[playerID] = updatedOffers
 
 	// Check if all offers for this building are resolved
 	if offer != nil {

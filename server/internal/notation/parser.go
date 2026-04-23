@@ -407,6 +407,9 @@ func parseActionCodeWithContext(playerID, code string, inCompound bool) (game.Ac
 		if len(m) > 2 {
 			from = strings.TrimSpace(m[2])
 		}
+		if !explicit && from != "" {
+			explicit = true
+		}
 		vpCost := amount - 1
 		if vpCost < 0 {
 			vpCost = 0

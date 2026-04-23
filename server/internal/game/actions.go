@@ -941,14 +941,12 @@ func getUpgradeCost(gs *GameState, player *Player, mapHex *board.MapHex, newBuil
 	}
 
 	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
-		if hasAdjacentOpponent(gs, player, mapHex.Coord) {
-			if newBuildingType == models.BuildingSanctuary || newBuildingType == models.BuildingStronghold {
-				baseCost.Coins = 5
+		adjacentOpponent := hasAdjacentOpponent(gs, player, mapHex.Coord)
+		switch newBuildingType {
+		case models.BuildingTradingHouse, models.BuildingTemple, models.BuildingSanctuary, models.BuildingStronghold:
+			if adjacentOpponent {
+				baseCost.Coins /= 2
 			}
-		} else if newBuildingType == models.BuildingTemple {
-			baseCost.Coins = 10
-		} else if newBuildingType == models.BuildingSanctuary || newBuildingType == models.BuildingStronghold {
-			baseCost.Coins = 10
 		}
 		return baseCost
 	}
@@ -1264,7 +1262,11 @@ func (gs *GameState) HasLateRoundPendingDecisions() bool {
 	if gs == nil {
 		return false
 	}
-	return gs.HasPendingLeechOffers() || gs.PendingCultistsCultSelection != nil || gs.PendingGoblinsCultSteps != nil
+	return gs.HasPendingLeechOffers() ||
+		gs.PendingCultistsCultSelection != nil ||
+		gs.PendingGoblinsCultSteps != nil ||
+		gs.PendingTreasurersDeposit != nil ||
+		gs.PendingArchivistsBonusSelection != nil
 }
 
 func advanceAfterRoundComplete(gs *GameState) {

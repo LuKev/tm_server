@@ -306,6 +306,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 			// Check from both endpoints - CheckForTownFormation handles appending to PendingTownFormations
 			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex1)
 			gs.CheckForTownFormation(a.PlayerID, *a.BridgeHex2)
+			gs.updateAtlanteansStrongholdTown(a.PlayerID)
 		}
 
 		player.BridgesBuilt++

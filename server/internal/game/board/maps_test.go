@@ -52,6 +52,20 @@ func TestNormalizeMapID_FireAndIceAliases(t *testing.T) {
 	}
 }
 
+func TestNormalizeMapID_BGANameAliases(t *testing.T) {
+	cases := map[string]MapID{
+		"Base Game":    MapBase,
+		"Lakes":        MapLakes,
+		"Revised Base": MapRevisedBase,
+	}
+
+	for raw, want := range cases {
+		if got := NormalizeMapID(raw); got != want {
+			t.Fatalf("NormalizeMapID(%q): got %q, want %q", raw, got, want)
+		}
+	}
+}
+
 func TestRevisedBaseLayout_KeyHexes(t *testing.T) {
 	layout, err := LayoutForMap(MapRevisedBase)
 	if err != nil {

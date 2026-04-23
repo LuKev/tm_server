@@ -521,6 +521,58 @@ func TestResourceConversion_WithPower(t *testing.T) {
 	}
 }
 
+func TestResourceConversion_ChildrenOfTheWyrmUsesSpecialFinalBurn(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("player1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 5
+	player.Resources.Power.Bowl2 = 3
+	player.Resources.Power.Bowl3 = 0
+	player.Resources.Workers = 0
+	player.Resources.Priests = 0
+
+	scores := map[string]*PlayerFinalScore{
+		"player1": {PlayerID: "player1"},
+	}
+	gs.calculateResourceConversion(scores)
+
+	if scores["player1"].TotalResourceValue != 7 {
+		t.Fatalf("resource value = %d, want 7", scores["player1"].TotalResourceValue)
+	}
+	if scores["player1"].ResourceVP != 2 {
+		t.Fatalf("resource VP = %d, want 2", scores["player1"].ResourceVP)
+	}
+}
+
+func TestResourceConversion_ChildrenOfTheWyrmFinalBurnAllowsPartialMove(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("player1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("player1")
+
+	player.Resources.Coins = 0
+	player.Resources.Power.Bowl2 = 2
+	player.Resources.Power.Bowl3 = 0
+	player.Resources.Workers = 0
+	player.Resources.Priests = 0
+
+	scores := map[string]*PlayerFinalScore{
+		"player1": {PlayerID: "player1"},
+	}
+	gs.calculateResourceConversion(scores)
+
+	if scores["player1"].TotalResourceValue != 1 {
+		t.Fatalf("resource value = %d, want 1", scores["player1"].TotalResourceValue)
+	}
+	if scores["player1"].ResourceVP != 0 {
+		t.Fatalf("resource VP = %d, want 0", scores["player1"].ResourceVP)
+	}
+}
+
 func TestResourceConversion_Alchemists(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAlchemists()

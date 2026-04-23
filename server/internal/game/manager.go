@@ -251,6 +251,12 @@ func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, before
 	if gs == nil || action == nil {
 		return
 	}
+	type skipNetTreasurersDepositQueue interface {
+		SkipNetTreasurersDepositQueue() bool
+	}
+	if skipper, ok := action.(skipNetTreasurersDepositQueue); ok && skipper.SkipNetTreasurersDepositQueue() {
+		return
+	}
 	if gs.Phase != PhaseAction {
 		return
 	}
@@ -269,6 +275,17 @@ func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, before
 		reason = "conversion"
 	}
 	gs.queueTreasurersDeposit(player.ID, coinGain, workerGain, priestGain, reason)
+}
+
+func MaybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, beforeCoins, beforeWorkers, beforePriests int) {
+	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
+}
+
+func QueueTreasurersDeposit(gs *GameState, playerID string, coins, workers, priests int, reason string) {
+	if gs == nil {
+		return
+	}
+	gs.queueTreasurersDeposit(playerID, coins, workers, priests, reason)
 }
 
 func validateActionTurnAndPendingState(gs *GameState, action Action) error {
@@ -989,21 +1006,21 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			hexData["displayCoord"] = displayCoord
 		}
 
-			if mapHex.Building != nil {
-				hexData["building"] = map[string]interface{}{
-					"ownerPlayerId": mapHex.Building.PlayerID,
-					"faction":       mapHex.Building.Faction,
-					"type":          mapHex.Building.Type,
-				}
+		if mapHex.Building != nil {
+			hexData["building"] = map[string]interface{}{
+				"ownerPlayerId": mapHex.Building.PlayerID,
+				"faction":       mapHex.Building.Faction,
+				"type":          mapHex.Building.Type,
 			}
-			if mapHex.HasTownTile {
-				hexData["hasTownTile"] = true
-				hexData["townTileType"] = mapHex.TownTileType
-				hexData["townTileOwnerPlayerId"] = mapHex.TownTileOwnerPlayerID
-			}
-			if mapHex.PowerTokenOwnerPlayerID != "" {
-				hexData["powerTokenOwnerPlayerId"] = mapHex.PowerTokenOwnerPlayerID
-			}
+		}
+		if mapHex.HasTownTile {
+			hexData["hasTownTile"] = true
+			hexData["townTileType"] = mapHex.TownTileType
+			hexData["townTileOwnerPlayerId"] = mapHex.TownTileOwnerPlayerID
+		}
+		if mapHex.PowerTokenOwnerPlayerID != "" {
+			hexData["powerTokenOwnerPlayerId"] = mapHex.PowerTokenOwnerPlayerID
+		}
 
 		hexes[key] = hexData
 	}

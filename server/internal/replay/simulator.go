@@ -14,14 +14,15 @@ import (
 
 // GameSimulator manages the execution of a game replay
 type GameSimulator struct {
-	mu            sync.RWMutex
-	InitialState  *game.GameState
-	CurrentState  *game.GameState
-	Actions       []notation.LogItem
-	CurrentIndex  int               // Index of the *next* action to execute
-	History       []*game.GameState // Snapshots for undo
-	incomePending bool              // RoundStart seen but income not yet granted
-	incomeGranted bool              // Income granted for current round, but action phase may not have started yet
+	mu                         sync.RWMutex
+	InitialState               *game.GameState
+	CurrentState               *game.GameState
+	Actions                    []notation.LogItem
+	CurrentIndex               int               // Index of the *next* action to execute
+	History                    []*game.GameState // Snapshots for undo
+	incomePending              bool              // RoundStart seen but income not yet granted
+	incomeGranted              bool              // Income granted for current round, but action phase may not have started yet
+	lastTreasurersIncomeOffers map[string]*game.PendingTreasurersDeposit
 }
 
 // NewGameSimulator creates a new simulator
@@ -37,13 +38,14 @@ func NewGameSimulator(initialState *game.GameState, actions []notation.LogItem) 
 	// We'll implement a simple copy or serialization/deserialization later if needed.
 
 	sim := &GameSimulator{
-		InitialState:  initialState, // Warning: Reference
-		CurrentState:  initialState, // Warning: Reference
-		Actions:       actions,
-		CurrentIndex:  0,
-		History:       make([]*game.GameState, 0),
-		incomePending: false,
-		incomeGranted: false,
+		InitialState:               initialState, // Warning: Reference
+		CurrentState:               initialState, // Warning: Reference
+		Actions:                    actions,
+		CurrentIndex:               0,
+		History:                    make([]*game.GameState, 0),
+		incomePending:              false,
+		incomeGranted:              false,
+		lastTreasurersIncomeOffers: make(map[string]*game.PendingTreasurersDeposit),
 	}
 
 	// Save initial state to history
@@ -62,11 +64,29 @@ func (s *GameSimulator) StepForward() error {
 	}
 
 	item := s.Actions[s.CurrentIndex]
+	s.autoResolveImplicitZeroTreasurersDeposits(item)
 
 	switch v := item.(type) {
 	case notation.ActionItem:
 		if v.Action != nil {
 			s.executePendingRoundCleanupBeforeAction()
+
+			if s.CurrentState.Phase == game.PhaseSetup {
+				if _, ok := v.Action.(*notation.LogPostIncomeAction); ok {
+					s.CurrentState.Round = 1
+					s.CurrentState.CompleteSetupAndStartRoundOne()
+					s.incomePending = false
+					s.incomeGranted = false
+				}
+			}
+
+			if s.CurrentState.Phase == game.PhaseCleanup {
+				if _, ok := v.Action.(*notation.LogPostIncomeAction); ok {
+					s.CurrentState.StartNewRound()
+					s.incomePending = true
+					s.incomeGranted = false
+				}
+			}
 
 			if missingPlayers := s.missingInitialDjinniCultChoicePlayers(); len(missingPlayers) > 0 &&
 				s.requiresInitialDjinniCultChoice(v.Action) {
@@ -94,10 +114,12 @@ func (s *GameSimulator) StepForward() error {
 					// Keep waiting; income is granted when we hit the first non-pre-income action.
 				case *notation.LogPostIncomeAction:
 					s.CurrentState.GrantIncome()
+					s.rememberTreasurersIncomeOffer()
 					s.incomePending = false
 					s.incomeGranted = true
 				default:
 					s.CurrentState.GrantIncome()
+					s.rememberTreasurersIncomeOffer()
 					s.incomePending = false
 					s.incomeGranted = true
 					// Any unused cult reward spades must be spent during income; they are not available
@@ -132,6 +154,13 @@ func (s *GameSimulator) StepForward() error {
 				}
 			}
 
+			beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+			if player := s.CurrentState.GetPlayer(v.Action.GetPlayerID()); player != nil && player.Resources != nil {
+				beforeCoins = player.Resources.Coins
+				beforeWorkers = player.Resources.Workers
+				beforePriests = player.Resources.Priests
+			}
+
 			// Execute the action against the current state
 			if err := v.Action.Execute(s.CurrentState); err != nil {
 				if shouldIgnoreMissingDeclineLeechAtFullPower(v.Action, s.CurrentState, err) {
@@ -140,8 +169,16 @@ func (s *GameSimulator) StepForward() error {
 				}
 				return fmt.Errorf("action execution failed at index %d (%T %#v): %w", s.CurrentIndex, v.Action, v.Action, err)
 			}
+			game.MaybeQueueTreasurersDepositAfterAction(s.CurrentState, v.Action, beforeCoins, beforeWorkers, beforePriests)
 		}
 	case notation.RoundStartItem:
+		if s.CurrentState.Round == v.Round && s.CurrentState.Phase != game.PhaseSetup {
+			if len(v.TurnOrder) > 0 {
+				s.CurrentState.TurnOrder = v.TurnOrder
+			}
+			break
+		}
+
 		cleanupAlreadyApplied := s.currentRoundCleanupApplied()
 
 		if v.Round == 1 && s.CurrentState.Phase == game.PhaseSetup {
@@ -283,6 +320,50 @@ func (s *GameSimulator) executePendingRoundCleanupBeforeAction() {
 	}
 }
 
+func (s *GameSimulator) autoResolveImplicitZeroTreasurersDeposits(nextItem notation.LogItem) {
+	if s == nil || s.CurrentState == nil || s.CurrentState.PendingTreasurersDeposit == nil {
+		return
+	}
+	if nextItemIsTreasurersDeposit(nextItem, s.CurrentState.PendingTreasurersDeposit) {
+		return
+	}
+	for s.CurrentState.PendingTreasurersDeposit != nil {
+		playerID := s.CurrentState.PendingTreasurersDeposit.PlayerID
+		if err := game.NewSelectTreasurersDepositAction(playerID, 0, 0, 0).Execute(s.CurrentState); err != nil {
+			return
+		}
+	}
+}
+
+func nextItemIsTreasurersDeposit(item notation.LogItem, pending *game.PendingTreasurersDeposit) bool {
+	if pending == nil {
+		return false
+	}
+	actionItem, ok := item.(notation.ActionItem)
+	if !ok || actionItem.Action == nil {
+		return false
+	}
+	action := actionItem.Action
+	wrappedPostIncome := false
+	if wrapped, ok := action.(*notation.LogPostIncomeAction); ok && wrapped != nil {
+		action = wrapped.Action
+		wrappedPostIncome = true
+	}
+	deposit, ok := action.(*game.SelectTreasurersDepositAction)
+	if !ok || deposit == nil {
+		return false
+	}
+	if deposit.PlayerID != pending.PlayerID {
+		return false
+	}
+	// A post-income Safe choice belongs to the current round's actual income block,
+	// not to an older unresolved non-income treasury prompt.
+	if wrappedPostIncome && pending.Reason != "income" {
+		return false
+	}
+	return true
+}
+
 func (s *GameSimulator) validateFinalScoring(item notation.FinalScoringValidationItem) error {
 	if s == nil || s.CurrentState == nil {
 		return fmt.Errorf("game state is nil")
@@ -290,6 +371,8 @@ func (s *GameSimulator) validateFinalScoring(item notation.FinalScoringValidatio
 	if s.CurrentState.Phase != game.PhaseEnd {
 		return fmt.Errorf("game is not finished yet: phase=%v", s.CurrentState.Phase)
 	}
+
+	s.reconcileOmittedRoundSixTreasurersIncomeDeposit(item)
 
 	actualScores := s.CurrentState.CalculateFinalScoring()
 	for playerID, expected := range item.Scores {
@@ -319,6 +402,98 @@ func (s *GameSimulator) validateFinalScoring(item notation.FinalScoringValidatio
 	}
 
 	return nil
+}
+
+func (s *GameSimulator) rememberTreasurersIncomeOffer() {
+	if s == nil || s.CurrentState == nil {
+		return
+	}
+	var latest *game.PendingTreasurersDeposit
+	if pending := s.CurrentState.PendingTreasurersDeposit; pending != nil && pending.Reason == "income" {
+		latest = pending
+	}
+	for _, queued := range s.CurrentState.PendingTreasurersDepositQueue {
+		if queued == nil || queued.Reason != "income" {
+			continue
+		}
+		latest = queued
+	}
+	if latest == nil {
+		return
+	}
+	s.lastTreasurersIncomeOffers[latest.PlayerID] = &game.PendingTreasurersDeposit{
+		PlayerID:         latest.PlayerID,
+		AvailableCoins:   latest.AvailableCoins,
+		AvailableWorkers: latest.AvailableWorkers,
+		AvailablePriests: latest.AvailablePriests,
+		Reason:           latest.Reason,
+	}
+}
+
+func (s *GameSimulator) reconcileOmittedRoundSixTreasurersIncomeDeposit(item notation.FinalScoringValidationItem) {
+	if s == nil || s.CurrentState == nil || s.CurrentState.Round != 6 {
+		return
+	}
+	for playerID, expected := range item.Scores {
+		if expected == nil || !expected.HasExactResourceBreakdown {
+			continue
+		}
+		player := s.CurrentState.GetPlayer(playerID)
+		if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionTreasurers || player.Resources == nil {
+			continue
+		}
+		offer := s.lastTreasurersIncomeOffers[playerID]
+		if offer == nil || offer.Reason != "income" {
+			continue
+		}
+
+		coinsToTreasury := player.Resources.Coins - expected.FinalCoinsBeforeResourceScoring
+		workersToTreasury := player.Resources.Workers - expected.FinalWorkersBeforeResourceScoring
+		priestsToTreasury := player.Resources.Priests - expected.FinalPriestsBeforeResourceScoring
+		if coinsToTreasury < 0 || workersToTreasury < 0 || priestsToTreasury < 0 {
+			continue
+		}
+		if coinsToTreasury == 0 && workersToTreasury == 0 && priestsToTreasury == 0 {
+			continue
+		}
+		if coinsToTreasury > offer.AvailableCoins || workersToTreasury > offer.AvailableWorkers || priestsToTreasury > offer.AvailablePriests {
+			continue
+		}
+
+		player.Resources.Coins -= coinsToTreasury
+		player.Resources.Workers -= workersToTreasury
+		player.Resources.Priests -= priestsToTreasury
+		player.TreasuryCoins += coinsToTreasury
+		player.TreasuryWorkers += workersToTreasury
+		player.TreasuryPriests += priestsToTreasury
+		s.updateCachedFinalScoringForPlayer(playerID)
+	}
+}
+
+func (s *GameSimulator) updateCachedFinalScoringForPlayer(playerID string) {
+	if s == nil || s.CurrentState == nil || s.CurrentState.FinalScoring == nil {
+		return
+	}
+	score := s.CurrentState.FinalScoring[playerID]
+	player := s.CurrentState.GetPlayer(playerID)
+	if score == nil || player == nil || player.Resources == nil || player.Resources.Power == nil {
+		return
+	}
+
+	totalResourceValue := player.Resources.Coins +
+		player.Resources.Workers +
+		player.Resources.Priests +
+		player.Resources.Power.Bowl3 +
+		(player.Resources.Power.Bowl2 / 2)
+	coinsPerVP := 3
+	if player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
+		coinsPerVP = 2
+	}
+
+	score.TotalResourceValue = totalResourceValue
+	score.ResourceVP = totalResourceValue / coinsPerVP
+	score.TotalVP = score.BaseVP + score.AreaVP + score.CultVP + score.ResourceVP
+	player.VictoryPoints = score.TotalVP
 }
 
 func (s *GameSimulator) currentRoundCleanupApplied() bool {

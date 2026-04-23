@@ -212,7 +212,7 @@ func FactionTypeFromString(s string) FactionType {
 		return FactionAtlanteans
 	case "ChashDallah", "Chash Dallah", "CashDallah", "Cash Dallah":
 		return FactionChashDallah
-	case "ChildrenOfTheWyrm", "Children of the Wyrm":
+	case "ChildrenOfTheWyrm", "Children of the Wyrm", "Children Of The Wyrm":
 		return FactionChildrenOfTheWyrm
 	case "Conspirators":
 		return FactionConspirators

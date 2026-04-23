@@ -309,12 +309,13 @@ func runGoldenSnellmanFixture(
 	state = asMap(readUntilType(t, clients[playerIDs[0]], "game_state_update", 4*time.Second)["payload"])
 
 	runner := &goldenRunner{
-		t:       t,
-		gameID:  gameID,
-		deps:    deps.Games,
-		clients: clients,
-		state:   state,
-		gs:      gs,
+		t:                  t,
+		gameID:             gameID,
+		deps:               deps.Games,
+		clients:            clients,
+		state:              state,
+		gs:                 gs,
+		preExecutedActions: make(map[game.Action]bool),
 	}
 
 	// Snellman fixtures start after factions are already selected; execute the
@@ -332,6 +333,9 @@ func runGoldenSnellmanFixture(
 	}
 
 	for i, action := range actions {
+		if runner.preExecutedActions[action] {
+			continue
+		}
 		if runner.isNoOpLeechAction(action) {
 			if testing.Verbose() {
 				runner.t.Logf("golden skip no-op leech idx=%d action=%s", i, describeGoldenAction(action))
@@ -456,15 +460,16 @@ func runGoldenSnellmanFixture(
 }
 
 type goldenRunner struct {
-	t               *testing.T
-	gameID          string
-	deps            *game.Manager
-	clients         map[string]*gws.Conn
-	state           map[string]any
-	gs              *game.GameState
-	step            int
-	compoundDepth   int
-	recordedActions []goldenExportAction
+	t                  *testing.T
+	gameID             string
+	deps               *game.Manager
+	clients            map[string]*gws.Conn
+	state              map[string]any
+	gs                 *game.GameState
+	step               int
+	compoundDepth      int
+	recordedActions    []goldenExportAction
+	preExecutedActions map[game.Action]bool
 }
 
 func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []game.Action) error {
@@ -665,9 +670,13 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 				return err
 			}
 		}
-		return r.perform(a.PlayerID, "accept_leech", map[string]any{
+		params := map[string]any{
 			"offerIndex": offerIndex,
-		})
+		}
+		if a.Explicit && a.PowerAmount > 0 {
+			params["amount"] = a.PowerAmount
+		}
+		return r.perform(a.PlayerID, "accept_leech", params)
 	case *notation.LogDeclineLeechAction:
 		if !hasPendingLeechOffer(r.state, a.PlayerID) {
 			if r.isNoOpLeechAction(a) {
@@ -707,7 +716,11 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		if err != nil {
 			return err
 		}
-		if err := r.perform(a.PlayerID, "select_town_tile", map[string]any{"tileType": int(tile)}); err != nil {
+		params, err := r.townTileSelectionParams(a.PlayerID, tile)
+		if err != nil {
+			return err
+		}
+		if err := r.perform(a.PlayerID, "select_town_tile", params); err != nil {
 			return err
 		}
 		return r.resolveTownCultTopChoice(a.PlayerID, nil)
@@ -752,7 +765,7 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 	preExecuted := make(map[int]bool, len(compound.Actions))
 
 	for i := 0; i < len(compound.Actions); i++ {
-		if preExecuted[i] {
+		if preExecuted[i] || r.preExecutedActions[compound.Actions[i]] {
 			continue
 		}
 		action := compound.Actions[i]
@@ -879,7 +892,11 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 					if err != nil {
 						return err
 					}
-					if err := r.perform(a.PlayerID, "select_town_tile", map[string]any{"tileType": int(tile)}); err != nil {
+					params, err := r.townTileSelectionParams(a.PlayerID, tile)
+					if err != nil {
+						return err
+					}
+					if err := r.perform(a.PlayerID, "select_town_tile", params); err != nil {
 						return err
 					}
 					if err := r.resolveTownCultTopChoice(a.PlayerID, pendingTownTracks); err != nil {
@@ -922,7 +939,11 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 			if err != nil {
 				return err
 			}
-			if err := r.perform(a.PlayerID, "select_town_tile", map[string]any{"tileType": int(tile)}); err != nil {
+			params, err := r.townTileSelectionParams(a.PlayerID, tile)
+			if err != nil {
+				return err
+			}
+			if err := r.perform(a.PlayerID, "select_town_tile", params); err != nil {
 				return err
 			}
 			if err := r.resolveTownCultTopChoice(a.PlayerID, pendingTownTracks); err != nil {
@@ -1347,6 +1368,37 @@ func (r *goldenRunner) ensureTownTileSelectionPending(playerID string) error {
 	return nil
 }
 
+func (r *goldenRunner) townTileSelectionParams(playerID string, tile models.TownTileType) (map[string]any, error) {
+	params := map[string]any{"tileType": int(tile)}
+	anchor, ok := r.pendingTownAnchorHex(playerID)
+	if !ok {
+		return nil, fmt.Errorf("cannot select town tile for %s: no pending town anchor", strings.TrimSpace(playerID))
+	}
+	params["anchorHex"] = toHexParam(anchor)
+	return params, nil
+}
+
+func (r *goldenRunner) pendingTownAnchorHex(playerID string) (board.Hex, bool) {
+	if r == nil || r.gs == nil {
+		return board.Hex{}, false
+	}
+	pendingTowns, ok := r.gs.PendingTownFormations[playerID]
+	if !ok || len(pendingTowns) == 0 || pendingTowns[0] == nil {
+		return board.Hex{}, false
+	}
+	pending := pendingTowns[0]
+	if pending.SkippedRiverHex != nil {
+		return *pending.SkippedRiverHex, true
+	}
+	for _, hex := range pending.Hexes {
+		mapHex := r.gs.Map.GetHex(hex)
+		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			return hex, true
+		}
+	}
+	return board.Hex{}, false
+}
+
 func hasPendingTownSelection(state map[string]any, playerID string) bool {
 	pd := asMap(state["pendingDecision"])
 	return asString(pd["type"]) == "town_tile_selection" && asString(pd["playerId"]) == playerID
@@ -1405,11 +1457,30 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 		if len(upcoming) > 0 && r.canUseImmediateLeechResponse(upcoming[0]) {
 			return nil
 		}
+		if decisionType == "cultists_cult_choice" &&
+			(len(upcoming) == 0 || !actionResolvesPendingDecision(decisionType, playerID, upcoming[0])) {
+			resolved, err := r.resolveFutureCultistsChoice(playerID, upcoming)
+			if err != nil {
+				return err
+			}
+			if resolved {
+				continue
+			}
+		}
 		if upcomingActionResolvesPending(decisionType, upcoming, playerID) {
 			if nextPlayerID != "" && playerID != nextPlayerID && actionRequiresTurnOwnership(upcoming[0]) {
 				return fmt.Errorf("pending decision %q for player %q cannot be resolved by upcoming action for %q", decisionType, playerID, nextPlayerID)
 			}
 			return nil
+		}
+		if decisionType == "leech_offer" {
+			resolved, err := r.resolveFutureLeechResponse(playerID, upcoming)
+			if err != nil {
+				return err
+			}
+			if resolved {
+				continue
+			}
 		}
 		if decisionType == "leech_offer" && canContinueFreeActionBeforeLeech(r.state, upcoming) {
 			return nil
@@ -1421,6 +1492,86 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 		}
 	}
 	return fmt.Errorf("pending decision resolution exceeded iteration guard")
+}
+
+func (r *goldenRunner) resolveFutureLeechResponse(playerID string, upcoming []game.Action) (bool, error) {
+	for i := 1; i < len(upcoming); i++ {
+		action := upcoming[i]
+		if action == nil || r.preExecutedActions[action] {
+			continue
+		}
+		response := r.findMatchingLeechResponseInAction(action, playerID)
+		if response == nil || r.preExecutedActions[response] {
+			continue
+		}
+		if err := r.executeActionWithUpcoming(response, upcoming[i:]); err != nil {
+			return false, err
+		}
+		r.preExecutedActions[response] = true
+		return true, nil
+	}
+	return false, nil
+}
+
+func (r *goldenRunner) findMatchingLeechResponseInAction(action game.Action, playerID string) game.Action {
+	response := findLeechResponseInAction(action, playerID)
+	if response == nil {
+		return nil
+	}
+	switch a := response.(type) {
+	case *notation.LogAcceptLeechAction:
+		if _, err := findLeechOfferIndex(r.state, a.PlayerID, a.FromPlayerID, a.PowerAmount, a.Explicit); err != nil {
+			return nil
+		}
+	case *notation.LogDeclineLeechAction:
+		if _, err := findLeechOfferIndex(r.state, a.PlayerID, a.FromPlayerID, 0, false); err != nil {
+			return nil
+		}
+	}
+	return response
+}
+
+func findLeechResponseInAction(action game.Action, playerID string) game.Action {
+	switch a := action.(type) {
+	case *notation.LogAcceptLeechAction:
+		if strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID) {
+			return a
+		}
+	case *notation.LogDeclineLeechAction:
+		if strings.TrimSpace(a.PlayerID) == strings.TrimSpace(playerID) {
+			return a
+		}
+	case *notation.LogCompoundAction:
+		for _, nested := range a.Actions {
+			if found := findLeechResponseInAction(nested, playerID); found != nil {
+				return found
+			}
+		}
+	case *notation.LogPreIncomeAction:
+		return findLeechResponseInAction(a.Action, playerID)
+	case *notation.LogPostIncomeAction:
+		return findLeechResponseInAction(a.Action, playerID)
+	}
+	return nil
+}
+
+func (r *goldenRunner) resolveFutureCultistsChoice(playerID string, upcoming []game.Action) (bool, error) {
+	for i := 1; i < len(upcoming); i++ {
+		action := upcoming[i]
+		if action == nil {
+			continue
+		}
+		found := findCultistAdvanceInAction(action, playerID)
+		if found == nil || r.preExecutedActions[found] {
+			continue
+		}
+		if err := r.executeActionWithUpcoming(found, upcoming[i:]); err != nil {
+			return false, err
+		}
+		r.preExecutedActions[found] = true
+		return true, nil
+	}
+	return false, nil
 }
 
 func canUsePostActionFreeWindow(action game.Action, playerID string) bool {
@@ -3047,6 +3198,8 @@ func findLeechOfferIndex(state map[string]any, playerID, fromPlayerID string, am
 	}
 
 	normalizedFrom := strings.ToLower(strings.TrimSpace(fromPlayerID))
+	fallbackIdx := -1
+	fallbackAmount := 0
 	for i, raw := range offers {
 		offer := asMap(raw)
 		offerFrom := strings.ToLower(strings.TrimSpace(firstNonEmptyString(offer["fromPlayerID"], offer["FromPlayerID"])))
@@ -3054,10 +3207,20 @@ func findLeechOfferIndex(state map[string]any, playerID, fromPlayerID string, am
 		if normalizedFrom != "" && offerFrom != normalizedFrom {
 			continue
 		}
+		if fallbackIdx < 0 {
+			fallbackIdx = i
+			fallbackAmount = offerAmount
+		}
 		if strictAmount && amount > 0 && offerAmount != amount {
 			continue
 		}
 		return i, nil
+	}
+	if strictAmount && amount > 0 && fallbackIdx >= 0 && fallbackAmount > amount {
+		return fallbackIdx, nil
+	}
+	if !strictAmount && fallbackIdx >= 0 {
+		return fallbackIdx, nil
 	}
 
 	if normalizedFrom == "" && !strictAmount {

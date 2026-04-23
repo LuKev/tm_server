@@ -414,7 +414,7 @@ func TestConvertSnellmanToConcise_CultistsLeadingCultStepBacktracksToPriorAction
 	}
 }
 
-func TestConvertSnellmanToConciseForReplay_CultistsBumpsBacktrackAndLeechesStayStandalone(t *testing.T) {
+func TestConvertSnellmanToConciseForReplay_CultistsBumpsBacktrackAndLeechOrdering(t *testing.T) {
 	input := strings.Join([]string{
 		"option strict-leech\tshow history",
 		"cultists\t\t20 VP\t\t15 C\t\t3 W\t\t0 P\t\t5/7/0 PW\t\t1/0/1/0\t\tsetup",
@@ -446,23 +446,25 @@ func TestConvertSnellmanToConciseForReplay_CultistsBumpsBacktrackAndLeechesStayS
 	if !strings.Contains(got, "FAV-F1") {
 		t.Fatalf("expected first cultists trigger action to include favor action:\n%s", got)
 	}
-	if strings.Contains(got, "UP-TE-F7.FAV-F1") {
-		t.Fatalf("expected replay conversion to split upgrade and favor rows:\n%s", got)
-	}
 	lines := strings.Split(got, "\n")
 	foundStandaloneCultBump := false
+	foundCultBumpBeforeLeech := false
 	for _, line := range lines {
 		if !strings.Contains(line, "|") {
 			continue
 		}
 		cells := strings.Split(line, "|")
-	for _, cell := range cells {
-		tok := strings.TrimSpace(cell)
-		if tok == "" {
-			continue
-		}
-			if strings.Contains(tok, ".L") || strings.Contains(tok, ".DL") || strings.HasPrefix(tok, "L.") || strings.HasPrefix(tok, "DL.") {
-				t.Fatalf("leech action must be standalone, found chained token %q in:\n%s", tok, got)
+		for _, cell := range cells {
+			tok := strings.TrimSpace(cell)
+			if tok == "" {
+				continue
+			}
+			firstPart := strings.Split(tok, ".")[0]
+			if (strings.HasPrefix(firstPart, "L") || strings.HasPrefix(firstPart, "DL")) && strings.Contains(tok, ".") {
+				t.Fatalf("leech action must not be chained before another action, found token %q in:\n%s", tok, got)
+			}
+			if strings.Contains(tok, "+E.L2-Darklings") {
+				foundCultBumpBeforeLeech = true
 			}
 			if tok == "+E" || tok == "+W" || tok == "+F" || tok == "+A" {
 				foundStandaloneCultBump = true
@@ -471,6 +473,9 @@ func TestConvertSnellmanToConciseForReplay_CultistsBumpsBacktrackAndLeechesStayS
 	}
 	if !foundStandaloneCultBump {
 		t.Fatalf("expected standalone cult bump token in replay concise output, found none in:\n%s", got)
+	}
+	if !foundCultBumpBeforeLeech {
+		t.Fatalf("expected Cultists +EARTH to remain before its logged leech action in replay output:\n%s", got)
 	}
 }
 

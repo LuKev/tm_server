@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
@@ -198,6 +199,17 @@ func main() {
 					}
 					fmt.Println()
 				}
+				if pendingDeposit := simulator.GetState().PendingTreasurersDeposit; pendingDeposit != nil {
+					fmt.Printf(
+						"    Pending Treasurers deposit: player=%s coins=%d workers=%d priests=%d reason=%s queue=%d\n",
+						pendingDeposit.PlayerID,
+						pendingDeposit.AvailableCoins,
+						pendingDeposit.AvailableWorkers,
+						pendingDeposit.AvailablePriests,
+						pendingDeposit.Reason,
+						len(simulator.GetState().PendingTreasurersDepositQueue),
+					)
+				}
 			}
 		}
 
@@ -258,6 +270,17 @@ func main() {
 					roundStart.Round,
 					simulator.GetState().Phase,
 					simulator.GetState().Phase == game.PhaseIncome,
+				)
+			}
+			if pendingDeposit := simulator.GetState().PendingTreasurersDeposit; pendingDeposit != nil {
+				fmt.Printf(
+					"    Pending Treasurers deposit after action: player=%s coins=%d workers=%d priests=%d reason=%s queue=%d\n",
+					pendingDeposit.PlayerID,
+					pendingDeposit.AvailableCoins,
+					pendingDeposit.AvailableWorkers,
+					pendingDeposit.AvailablePriests,
+					pendingDeposit.Reason,
+					len(simulator.GetState().PendingTreasurersDepositQueue),
 				)
 			}
 		}
@@ -601,7 +624,21 @@ func injectSettings(items []notation.LogItem, scoringStr, bonusStr string) []not
 }
 
 func createInitialState(items []notation.LogItem) *game.GameState {
-	initialState := game.NewGameState()
+	mapID := board.MapBase
+	for _, item := range items {
+		if s, ok := item.(notation.GameSettingsItem); ok {
+			if rawMap, ok := s.Settings["Game"]; ok {
+				mapID = board.NormalizeMapID(rawMap)
+			}
+			break
+		}
+	}
+
+	initialState, err := game.NewGameStateWithMap(mapID)
+	if err != nil {
+		fmt.Printf("Warning: failed to initialize map %s: %v; falling back to base map\n", mapID, err)
+		initialState = game.NewGameState()
+	}
 	initialState.ReplayMode = map[string]bool{"__replay__": true}
 
 	// Pre-populate players and settings from GameSettingsItem if present

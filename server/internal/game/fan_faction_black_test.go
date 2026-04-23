@@ -242,7 +242,7 @@ func TestChildrenOfTheWyrmRiverNetworkAffectsAdjacencyDiscountsAndTownConnectivi
 
 	player := gs.GetPlayer("p1")
 	player.HasStrongholdAbility = true
-	player.Resources.Power = NewPowerSystem(2, 0, 0)
+	player.Resources.Power = NewPowerSystem(4, 4, 0)
 
 	sourceHex := board.NewHex(0, -1)
 	riverHex1 := board.NewHex(0, 0)
@@ -304,7 +304,111 @@ func TestChildrenOfTheWyrmRiverNetworkAffectsAdjacencyDiscountsAndTownConnectivi
 	if got := len(connected); got != len(connectedHexes) {
 		t.Fatalf("connected Children buildings = %d, want %d", got, len(connectedHexes))
 	}
+	if got := gs.getLargestConnectedAreaForPlayer("p1"); got != len(connectedHexes) {
+		t.Fatalf("children largest connected area = %d, want %d", got, len(connectedHexes))
+	}
 	if !gs.CanFormTown("p1", connected) {
 		t.Fatalf("expected Children river-network component to satisfy town requirements")
+	}
+}
+
+func TestChildrenOfTheWyrmUpgradeCoinCostsFollowAdjacencyPairs(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer p1 failed: %v", err)
+	}
+	if err := gs.AddPlayer("p2", factions.NewWitches()); err != nil {
+		t.Fatalf("AddPlayer p2 failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+
+	dwellingHex := board.NewHex(0, 0)
+	tradingHex := board.NewHex(1, 0)
+	adjacentOpponentHex := board.NewHex(1, -1)
+	farOpponentHex := board.NewHex(5, 5)
+
+	for _, hex := range []board.Hex{dwellingHex, tradingHex, adjacentOpponentHex, farOpponentHex} {
+		if gs.Map.GetHex(hex) == nil {
+			gs.Map.Hexes[hex] = &board.MapHex{Coord: hex, Terrain: player.Faction.GetHomeTerrain()}
+		}
+	}
+
+	gs.Map.PlaceBuilding(dwellingHex, testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling))
+	gs.Map.PlaceBuilding(tradingHex, testBuilding("p1", player.Faction.GetType(), models.BuildingTradingHouse))
+	gs.Map.PlaceBuilding(adjacentOpponentHex, testBuilding("p2", models.FactionWitches, models.BuildingDwelling))
+
+	if got := getUpgradeCost(gs, player, gs.Map.GetHex(dwellingHex), models.BuildingTradingHouse).Coins; got != 3 {
+		t.Fatalf("adjacent children trading house coins = %d, want 3", got)
+	}
+	if got := getUpgradeCost(gs, player, gs.Map.GetHex(tradingHex), models.BuildingTemple).Coins; got != 4 {
+		t.Fatalf("adjacent children temple coins = %d, want 4", got)
+	}
+	if got := getUpgradeCost(gs, player, gs.Map.GetHex(tradingHex), models.BuildingStronghold).Coins; got != 5 {
+		t.Fatalf("adjacent children stronghold coins = %d, want 5", got)
+	}
+
+	if err := gs.Map.RemoveBuilding(adjacentOpponentHex); err != nil {
+		t.Fatalf("RemoveBuilding(adjacent opponent) failed: %v", err)
+	}
+	gs.Map.PlaceBuilding(farOpponentHex, testBuilding("p2", models.FactionWitches, models.BuildingDwelling))
+
+	if got := getUpgradeCost(gs, player, gs.Map.GetHex(dwellingHex), models.BuildingTradingHouse).Coins; got != 6 {
+		t.Fatalf("non-adjacent children trading house coins = %d, want 6", got)
+	}
+	if got := getUpgradeCost(gs, player, gs.Map.GetHex(tradingHex), models.BuildingTemple).Coins; got != 8 {
+		t.Fatalf("non-adjacent children temple coins = %d, want 8", got)
+	}
+	if got := getUpgradeCost(gs, player, gs.Map.GetHex(tradingHex), models.BuildingStronghold).Coins; got != 10 {
+		t.Fatalf("non-adjacent children stronghold coins = %d, want 10", got)
+	}
+}
+
+func TestChildrenOfTheWyrmRiverNetworkExtendsLeechAdjacency(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer p1 failed: %v", err)
+	}
+	if err := gs.AddPlayer("p2", factions.NewWitches()); err != nil {
+		t.Fatalf("AddPlayer p2 failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Power = NewPowerSystem(4, 4, 0)
+
+	firstBuildingHex := board.NewHex(2, 4)  // E5
+	secondBuildingHex := board.NewHex(4, 1) // B3
+	opponentBuildHex := board.NewHex(5, 2)  // C3
+	riverHex1 := board.NewHex(3, 3)
+	riverHex2 := board.NewHex(4, 2)
+
+	if err := gs.Map.PlaceBuilding(firstBuildingHex, testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling)); err != nil {
+		t.Fatalf("PlaceBuilding(E5) failed: %v", err)
+	}
+	if err := gs.Map.PlaceBuilding(secondBuildingHex, testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling)); err != nil {
+		t.Fatalf("PlaceBuilding(B3) failed: %v", err)
+	}
+	if err := NewChildrenPlacePowerTokensAction("p1", []board.Hex{riverHex1, riverHex2}, false).Execute(gs); err != nil {
+		t.Fatalf("Children power-token placement failed: %v", err)
+	}
+
+	if err := gs.Map.PlaceBuilding(opponentBuildHex, testBuilding("p2", models.FactionWitches, models.BuildingDwelling)); err != nil {
+		t.Fatalf("PlaceBuilding(C3) failed: %v", err)
+	}
+	if got := len(gs.leechSourceBuildingsForPlayer(opponentBuildHex, "p1")); got != 2 {
+		t.Fatalf("children leech source buildings = %d, want 2", got)
+	}
+	gs.TriggerPowerLeech(opponentBuildHex, "p2")
+
+	offers := gs.PendingLeechOffers["p1"]
+	if len(offers) != 1 {
+		t.Fatalf("children pending leech offers = %d, want 1", len(offers))
+	}
+	if got := offers[0].Amount; got != 2 {
+		t.Fatalf("children river-network leech amount = %d, want 2", got)
+	}
+	if got := offers[0].FromPlayerID; got != "p2" {
+		t.Fatalf("children river-network leech source = %q, want p2", got)
 	}
 }

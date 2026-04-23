@@ -1211,7 +1211,11 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
-		return game.NewAcceptPowerLeechAction(seatID, offerIndex), nil
+		amount, err := parseOptionalIntParam(0, "amount", "powerAmount")
+		if err != nil {
+			return nil, err
+		}
+		return game.NewAcceptPowerLeechAmountAction(seatID, offerIndex, amount), nil
 
 	case "decline_leech":
 		offerIndex, err := parseIntParam("offerIndex")

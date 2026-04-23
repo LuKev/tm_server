@@ -226,39 +226,6 @@ func (gs *GameState) CanFormTown(playerID string, hexes []board.Hex) bool {
 	return totalPower >= minPower
 }
 
-func (gs *GameState) anchoredTownsRemainValid(playerID string) bool {
-	for _, anchorHex := range gs.getTownAnchorHexes(playerID) {
-		mapHex := gs.Map.GetHex(anchorHex)
-		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID || !mapHex.PartOfTown {
-			return false
-		}
-		component := gs.Map.GetConnectedBuildingsIncludingBridges(anchorHex, playerID)
-		townComponent := make([]board.Hex, 0, len(component))
-		for _, hex := range component {
-			componentHex := gs.Map.GetHex(hex)
-			if componentHex == nil || componentHex.Building == nil || componentHex.Building.PlayerID != playerID || !componentHex.PartOfTown {
-				continue
-			}
-			townComponent = append(townComponent, hex)
-		}
-		if !gs.CanFormTown(playerID, townComponent) {
-			return false
-		}
-	}
-	return true
-}
-
-func (gs *GameState) getTownAnchorHexes(playerID string) []board.Hex {
-	anchors := make([]board.Hex, 0)
-	for hex, mapHex := range gs.Map.Hexes {
-		if mapHex == nil || !mapHex.HasTownTile || mapHex.TownTileOwnerPlayerID != playerID {
-			continue
-		}
-		anchors = append(anchors, hex)
-	}
-	return anchors
-}
-
 func (gs *GameState) defaultTownAnchorHex(playerID string, pending *PendingTownFormation) *board.Hex {
 	if pending == nil {
 		return nil
@@ -536,16 +503,12 @@ func (gs *GameState) updateAtlanteansStrongholdTown(playerID string) {
 		current := queue[0]
 		queue = queue[1:]
 
-		for _, neighbor := range gs.atlanteansTownTraversalNeighbors(current) {
+		for _, neighbor := range gs.atlanteansTownTraversalNeighbors(playerID, current) {
 			if known[neighbor] {
 				continue
 			}
 			mapHex := gs.Map.GetHex(neighbor)
 			if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
-				continue
-			}
-			if mapHex.PartOfTown {
-				// Do not merge other existing towns into the stronghold town.
 				continue
 			}
 			known[neighbor] = true
@@ -584,10 +547,21 @@ func (gs *GameState) updateAtlanteansStrongholdTown(playerID string) {
 	}
 }
 
-func (gs *GameState) atlanteansTownTraversalNeighbors(current board.Hex) []board.Hex {
-	neighbors := gs.Map.GetDirectNeighbors(current)
+// CheckAtlanteansStrongholdTown refreshes the persistent Atlanteans starting
+// stronghold town after actions that may connect new structures to it.
+func (gs *GameState) CheckAtlanteansStrongholdTown(playerID string) {
+	gs.updateAtlanteansStrongholdTown(playerID)
+}
+
+func (gs *GameState) atlanteansTownTraversalNeighbors(playerID string, current board.Hex) []board.Hex {
+	neighbors := make([]board.Hex, 0)
+	for _, neighbor := range current.Neighbors() {
+		if gs.Map.IsValidHex(neighbor) && gs.Map.IsDirectlyAdjacent(current, neighbor) {
+			neighbors = append(neighbors, neighbor)
+		}
+	}
 	for bridgeKey, owner := range gs.Map.Bridges {
-		if owner == "" {
+		if owner == "" || owner != playerID {
 			continue
 		}
 		if bridgeKey.H1 == current {

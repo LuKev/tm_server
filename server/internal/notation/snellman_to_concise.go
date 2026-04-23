@@ -3,8 +3,8 @@ package notation
 import (
 	"bufio"
 	"fmt"
-	"sort"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -58,7 +58,7 @@ func IsSnellmanTextFormat(content string) bool {
 // ConvertSnellmanToConcise converts Snellman's tab-delimited ledger format to Concise Notation format.
 // This is primarily a display-oriented conversion and may apply layout heuristics.
 func ConvertSnellmanToConcise(content string) (string, error) {
-	return convertSnellmanToConcise(content, false)
+	return convertSnellmanToConcise(content, false, false)
 }
 
 // ConvertSnellmanToConciseForReplay converts Snellman's tab-delimited ledger format to Concise
@@ -66,10 +66,10 @@ func ConvertSnellmanToConcise(content string) (string, error) {
 // row becomes (at most) one concise token placed on its own grid row, so replay execution order
 // matches the Snellman ledger.
 func ConvertSnellmanToConciseForReplay(content string) (string, error) {
-	return convertSnellmanToConcise(content, true)
+	return convertSnellmanToConcise(content, true, true)
 }
 
-func convertSnellmanToConcise(content string, linear bool) (string, error) {
+func convertSnellmanToConcise(content string, linear bool, enforceLinearSourceOrder bool) (string, error) {
 	var result []string
 	scanner := bufio.NewScanner(strings.NewReader(content))
 
@@ -771,7 +771,7 @@ func convertSnellmanToConcise(content string, linear bool) (string, error) {
 		if len(round.TurnOrder) > 0 {
 			columns = round.TurnOrder
 		}
-		if linear {
+		if linear && enforceLinearSourceOrder {
 			anchors := roundLeechAnchors[round]
 			if anchors == nil {
 				anchors = make(map[int]map[string]string)
@@ -988,6 +988,8 @@ func enforceReplayLinearSourceLeechOrder(round *snellmanRoundData, columns []str
 	}
 
 	leechIdxBySource := make(map[int][]int)
+	boundLeechIdx := make(map[int]bool)
+	lastSourceByReactorAndSource := make(map[string]int)
 	for i, ev := range events {
 		if !isLeechOrDeclineToken(ev.token) {
 			continue
@@ -997,10 +999,18 @@ func enforceReplayLinearSourceLeechOrder(round *snellmanRoundData, columns []str
 			continue
 		}
 		sourceIndex := resolveSourceEventIndex(events, i, sourceFaction)
+		bindingKey := normalizeFactionNameForMatching(ev.faction) + "\x00" + sourceFaction
+		if prevSourceIndex, ok := lastSourceByReactorAndSource[bindingKey]; ok && sourceIndex <= prevSourceIndex {
+			if nextSourceIndex := findNextSourceEventIndex(events, prevSourceIndex+1, sourceFaction); nextSourceIndex >= 0 {
+				sourceIndex = nextSourceIndex
+			}
+		}
 		if sourceIndex < 0 {
 			continue
 		}
+		lastSourceByReactorAndSource[bindingKey] = sourceIndex
 		leechIdxBySource[sourceIndex] = append(leechIdxBySource[sourceIndex], i)
+		boundLeechIdx[i] = true
 	}
 	if len(leechIdxBySource) == 0 {
 		return
@@ -1010,6 +1020,9 @@ func enforceReplayLinearSourceLeechOrder(round *snellmanRoundData, columns []str
 	reordered := make([]anchoredEvent, 0, len(events))
 	for i := 0; i < len(events); i++ {
 		if used[i] {
+			continue
+		}
+		if boundLeechIdx[i] {
 			continue
 		}
 		ev := events[i]
@@ -1043,6 +1056,25 @@ func enforceReplayLinearSourceLeechOrder(round *snellmanRoundData, columns []str
 	}
 
 	rebuildFromAnchoredEvents(round, columns, reordered, anchors)
+}
+
+func findNextSourceEventIndex(events []anchoredEvent, start int, sourceFaction string) int {
+	source := normalizeFactionNameForMatching(sourceFaction)
+	if source == "" {
+		return -1
+	}
+	if start < 0 {
+		start = 0
+	}
+	for i := start; i < len(events); i++ {
+		if isLeechOrDeclineToken(events[i].token) {
+			continue
+		}
+		if normalizeFactionNameForMatching(events[i].faction) == source && actionMayTriggerLeech(events[i].token) {
+			return i
+		}
+	}
+	return -1
 }
 
 func resolveLeechSourceFromEvent(ev anchoredEvent) string {
@@ -2286,12 +2318,6 @@ func splitConciseActionIntoStandaloneReactions(
 
 	isCultists := normalizeFactionNameForMatching(faction) == "cultists"
 	seenMain := false
-	isUpgradeToken := func(part string) bool {
-		return strings.HasPrefix(part, "UP-")
-	}
-	isFavorToken := func(part string) bool {
-		return strings.HasPrefix(part, "FAV-")
-	}
 	hasUpcomingNonLeech := func(start int) bool {
 		for i := start; i < len(parts); i++ {
 			p := strings.TrimSpace(parts[i])
@@ -2310,20 +2336,6 @@ func splitConciseActionIntoStandaloneReactions(
 		part := strings.TrimSpace(raw)
 		if part == "" {
 			continue
-		}
-		if splitUpgradeFavorForReplay && isUpgradeToken(part) && len(parts) > i+1 {
-			nextPart := ""
-			for j := i + 1; j < len(parts); j++ {
-				nextPart = strings.TrimSpace(parts[j])
-				if nextPart != "" {
-					break
-				}
-			}
-			if isFavorToken(nextPart) {
-				chain = append(chain, part)
-				flushChain()
-				continue
-			}
 		}
 		if isCultists {
 			if bump := normalizeCultTrackBumpToken(part); bump != "" && !seenMain {
@@ -2354,13 +2366,21 @@ func splitConciseActionIntoStandaloneReactions(
 					seenMain = true
 					continue
 				}
-				if backtrackCultBonus != nil {
+				if backtrackCultBonus != nil && !splitUpgradeFavorForReplay {
 					backtrackCultBonus(bump)
+				} else {
+					chain = append(chain, bump)
+					seenMain = true
 				}
 				continue
+			}
 		}
-	}
 		if isLeechOrDeclineToken(part) {
+			if len(chain) > 0 {
+				chain = append(chain, part)
+				flushChain()
+				continue
+			}
 			flushChain()
 			out = append(out, part)
 			continue
@@ -2481,6 +2501,10 @@ func actionMayTriggerLeech(action string) bool {
 		}
 		// Witches stronghold action places a dwelling directly.
 		if strings.HasPrefix(p, "ACT-SH-D-") {
+			return true
+		}
+		// Swarmlings stronghold action upgrades a dwelling to a trading house.
+		if strings.HasPrefix(p, "ACT-SH-TP-") {
 			return true
 		}
 	}

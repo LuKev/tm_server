@@ -67,6 +67,8 @@ func TestDebugReplayActionStateWindow(t *testing.T) {
 	playerFilter := strings.TrimSpace(os.Getenv("TM_DEBUG_REPLAY_PLAYER"))
 	dumpAll := strings.EqualFold(strings.TrimSpace(os.Getenv("TM_DEBUG_REPLAY_DUMP_ALL")), "1") ||
 		strings.EqualFold(strings.TrimSpace(os.Getenv("TM_DEBUG_REPLAY_DUMP_ALL")), "true")
+	dumpPost := strings.EqualFold(strings.TrimSpace(os.Getenv("TM_DEBUG_REPLAY_POST")), "1") ||
+		strings.EqualFold(strings.TrimSpace(os.Getenv("TM_DEBUG_REPLAY_POST")), "true")
 	actionOrdinal := 0
 
 	sim := session.Simulator
@@ -92,18 +94,19 @@ func TestDebugReplayActionStateWindow(t *testing.T) {
 		if actionEnd >= 0 && actionOrdinal >= actionEnd {
 			include = false
 		}
-		if include {
+		logState := func(prefix string) {
 			if playerFilter == "" || strings.EqualFold(playerFilter, playerID) {
 				player := sim.CurrentState.GetPlayer(playerID)
 				if player == nil {
-					t.Logf("idx=%d actionIdx=%d player=%s action=%s pre=(missing player)", idx, actionOrdinal, playerID, describeAction(actionItem.Action))
+					t.Logf("idx=%d actionIdx=%d player=%s action=%s %s=(missing player)", idx, actionOrdinal, playerID, describeAction(actionItem.Action), prefix)
 				} else {
 					t.Logf(
-						"idx=%d actionIdx=%d player=%s action=%s pre=vp=%d c=%d w=%d p=%d pw=%d/%d/%d cult=%d/%d/%d/%d",
+						"idx=%d actionIdx=%d player=%s action=%s %s=vp=%d c=%d w=%d p=%d pw=%d/%d/%d cult=%d/%d/%d/%d",
 						idx,
 						actionOrdinal,
 						playerID,
 						describeAction(actionItem.Action),
+						prefix,
 						player.VictoryPoints,
 						player.Resources.Coins,
 						player.Resources.Workers,
@@ -119,10 +122,16 @@ func TestDebugReplayActionStateWindow(t *testing.T) {
 				}
 			}
 		}
+		if include {
+			logState("pre")
+		}
 		actionOrdinal++
 
 		if err := sim.StepForward(); err != nil {
 			t.Fatalf("step forward idx=%d action=%T: %v", idx, actionItem.Action, err)
+		}
+		if include && dumpPost {
+			logState("post")
 		}
 	}
 }

@@ -52,6 +52,12 @@ type FinalScoringExpectation struct {
 	TotalResourceValue int
 	HasAreaScore       bool
 	HasResourceScore   bool
+	// Exact on-board resources before the final "convert everything to coins" step.
+	FinalCoinsBeforeResourceScoring   int
+	FinalWorkersBeforeResourceScoring int
+	FinalPriestsBeforeResourceScoring int
+	FinalPowerCoinsConverted          int
+	HasExactResourceBreakdown         bool
 }
 
 // FinalScoringValidationItem validates the parsed BGA final-scoring block against
@@ -97,6 +103,9 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 			if capacity <= 0 {
 				return nil
 			}
+		}
+		if a.Explicit && a.PowerAmount > 0 && strings.TrimSpace(a.FromPlayerID) != "" {
+			return executeLoggedLeechWithoutPendingOffer(player, a)
 		}
 		return fmt.Errorf("no pending leech offers for %q", a.PlayerID)
 	}
@@ -144,14 +153,59 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 	}
 
 	if a.Explicit && a.PowerAmount > 0 && offers[idx] != nil {
-		offers[idx].Amount = a.PowerAmount
-		offers[idx].VPCost = a.VPCost
+		if offers[idx].Amount > a.PowerAmount {
+			remainder := *offers[idx]
+			remainder.Amount -= a.PowerAmount
+			remainder.VPCost = replayLeechVPCost(player, remainder.Amount)
+			offers[idx].Amount = a.PowerAmount
+			offers[idx].VPCost = a.VPCost
+			updatedOffers := make([]*game.PowerLeechOffer, 0, len(offers)+1)
+			updatedOffers = append(updatedOffers, offers[:idx+1]...)
+			updatedOffers = append(updatedOffers, &remainder)
+			updatedOffers = append(updatedOffers, offers[idx+1:]...)
+			gs.PendingLeechOffers[a.PlayerID] = updatedOffers
+		} else {
+			offers[idx].Amount = a.PowerAmount
+			offers[idx].VPCost = a.VPCost
+		}
 	}
 	// Use the strict game action so Cultists leech bonuses resolve consistently.
 	if err := game.NewAcceptPowerLeechAction(a.PlayerID, idx).Execute(gs); err != nil {
 		return fmt.Errorf("failed to accept pending leech offer: %w", err)
 	}
 	return nil
+}
+
+func executeLoggedLeechWithoutPendingOffer(player *game.Player, action *LogAcceptLeechAction) error {
+	if player == nil || player.Resources == nil {
+		return fmt.Errorf("player resources not found: %s", action.PlayerID)
+	}
+	offer := &game.PowerLeechOffer{
+		Amount:       action.PowerAmount,
+		VPCost:       action.VPCost,
+		FromPlayerID: action.FromPlayerID,
+		SourceHex:    action.FromHex,
+	}
+	vpCost := player.Resources.AcceptPowerLeech(offer)
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && vpCost > 0 {
+		vpCost--
+	}
+	player.VictoryPoints -= vpCost
+	return nil
+}
+
+func replayLeechVPCost(player *game.Player, amount int) int {
+	if amount <= 1 {
+		return 0
+	}
+	cost := amount - 1
+	if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && cost > 0 {
+		cost--
+	}
+	if cost < 0 {
+		return 0
+	}
+	return cost
 }
 
 // LogDeclineLeechAction is a log-only representation of declining leech.
@@ -295,11 +349,11 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 		// Parse coordinates if present: ACT1-C2-D4
 		parts := strings.Split(a.ActionCode, "-")
 		if len(parts) == 3 {
-			hex1, err := ConvertLogCoordToAxial(parts[1])
+			hex1, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[1])
 			if err != nil {
 				return fmt.Errorf("invalid bridge hex1: %w", err)
 			}
-			hex2, err := ConvertLogCoordToAxial(parts[2])
+			hex2, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[2])
 			if err != nil {
 				return fmt.Errorf("invalid bridge hex2: %w", err)
 			}
@@ -310,6 +364,7 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 
 			// Check for town formation after building bridge
 			gs.CheckAllTownFormations(a.PlayerID)
+			gs.CheckAtlanteansStrongholdTown(a.PlayerID)
 		}
 
 		// Increment bridge count (game logic handles limit check in Validate, but we are in Execute)
@@ -334,6 +389,7 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 type LogBurnAction struct {
 	PlayerID string
 	Amount   int
+	Moved    int
 }
 
 // GetType returns the action type.
@@ -350,7 +406,36 @@ func (a *LogBurnAction) Execute(gs *game.GameState) error {
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
+	if a.Moved > 0 {
+		return player.Resources.Power.BurnPowerExact(a.Amount, a.Moved)
+	}
+	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		return player.Resources.Power.BurnPowerChildren(a.Amount)
+	}
 	return player.Resources.BurnPower(a.Amount)
+}
+
+// LogChildrenPlacePowerTokensAction resolves BGA Children-of-the-Wyrm river
+// references against the current game state before executing the real action.
+type LogChildrenPlacePowerTokensAction struct {
+	PlayerID    string
+	RiverCoords []string
+}
+
+func (a *LogChildrenPlacePowerTokensAction) GetType() game.ActionType {
+	return game.ActionSpecialAction
+}
+
+func (a *LogChildrenPlacePowerTokensAction) GetPlayerID() string { return a.PlayerID }
+
+func (a *LogChildrenPlacePowerTokensAction) Validate(gs *game.GameState) error { return nil }
+
+func (a *LogChildrenPlacePowerTokensAction) Execute(gs *game.GameState) error {
+	targetHexes, err := resolveChildrenPowerTokenHexes(gs, a.PlayerID, a.RiverCoords)
+	if err != nil {
+		return err
+	}
+	return game.NewChildrenPlacePowerTokensAction(a.PlayerID, targetHexes, true).Execute(gs)
 }
 
 // LogDigTransformAction represents a Snellman "dig N" step (terraform by N spades)
@@ -538,8 +623,8 @@ type LogConspiratorsSwapFavorAction struct {
 	NewTile            string // e.g. "FAV-A2"
 }
 
-func (a *LogConspiratorsSwapFavorAction) GetType() game.ActionType { return game.ActionSpecialAction }
-func (a *LogConspiratorsSwapFavorAction) GetPlayerID() string      { return a.PlayerID }
+func (a *LogConspiratorsSwapFavorAction) GetType() game.ActionType          { return game.ActionSpecialAction }
+func (a *LogConspiratorsSwapFavorAction) GetPlayerID() string               { return a.PlayerID }
 func (a *LogConspiratorsSwapFavorAction) Validate(gs *game.GameState) error { return nil }
 
 func (a *LogConspiratorsSwapFavorAction) Execute(gs *game.GameState) error {
@@ -675,11 +760,11 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 				return fmt.Errorf("not enough workers for engineers bridge: need 2, have %d", player.Resources.Workers)
 			}
 			player.Resources.Workers -= 2
-			hex1, err := ConvertLogCoordToAxial(parts[2])
+			hex1, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[2])
 			if err != nil {
 				return err
 			}
-			hex2, err := ConvertLogCoordToAxial(parts[3])
+			hex2, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[3])
 			if err != nil {
 				return err
 			}
@@ -710,7 +795,7 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			buildDwelling = true
 		}
 
-		hex, err := ConvertLogCoordToAxial(coordPart)
+		hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), coordPart)
 		if err != nil {
 			return err
 		}
@@ -753,7 +838,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-D")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[3])
+		hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[3])
 		if err != nil {
 			return err
 		}
@@ -779,7 +864,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 			buildDwelling = true
 		}
 
-		hex, err := ConvertLogCoordToAxial(coordPart)
+		hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), coordPart)
 		if err != nil {
 			return err
 		}
@@ -794,7 +879,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-S")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[3])
+		hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[3])
 		if err != nil {
 			return err
 		}
@@ -806,7 +891,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-TP")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[3])
+		hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), parts[3])
 		if err != nil {
 			return err
 		}
@@ -881,7 +966,7 @@ func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (bo
 		landHex, ok := board.HexForDisplayCoordinate(gs.Map.ID, landDisplay)
 		if !ok {
 			var err error
-			landHex, err = ConvertLogCoordToAxial(landDisplay)
+			landHex, err = ConvertLogCoordToAxialForMap(logMapID(gs), landDisplay)
 			if err != nil {
 				return board.Hex{}, fmt.Errorf("invalid mermaids river town reference %q: %w", token, err)
 			}
@@ -949,6 +1034,124 @@ func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (bo
 		return board.Hex{}, fmt.Errorf("invalid R coordinate: %w", err)
 	}
 	return board.NewHex(q, r), nil
+}
+
+func logMapID(gs *game.GameState) board.MapID {
+	if gs != nil && gs.Map != nil && gs.Map.ID != "" {
+		return gs.Map.ID
+	}
+	return board.MapBase
+}
+
+func resolveChildrenPowerTokenHexes(gs *game.GameState, playerID string, tokens []string) ([]board.Hex, error) {
+	if gs == nil || gs.Map == nil {
+		return nil, fmt.Errorf("game map is unavailable for children power-token resolution")
+	}
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("missing children power-token coordinates")
+	}
+
+	resolved := make([]board.Hex, 0, len(tokens))
+	used := make(map[board.Hex]bool, len(tokens))
+
+	var search func(int) bool
+	search = func(index int) bool {
+		if index == len(tokens) {
+			return true
+		}
+
+		for _, candidate := range candidateChildrenPowerTokenHexes(gs, tokens[index], used) {
+			next := append(append([]board.Hex(nil), resolved...), candidate)
+			clone := gs.CloneForUndo()
+			if err := game.NewChildrenPlacePowerTokensAction(playerID, next, true).Execute(clone); err != nil {
+				continue
+			}
+			resolved = append(resolved, candidate)
+			used[candidate] = true
+			if search(index + 1) {
+				return true
+			}
+			delete(used, candidate)
+			resolved = resolved[:len(resolved)-1]
+		}
+		return false
+	}
+
+	if search(0) {
+		return append([]board.Hex(nil), resolved...), nil
+	}
+	return nil, fmt.Errorf("no valid children power-token placement found for %v", tokens)
+}
+
+func candidateChildrenPowerTokenHexes(gs *game.GameState, token string, used map[board.Hex]bool) []board.Hex {
+	token = strings.TrimSpace(token)
+	candidates := make([]board.Hex, 0, 8)
+	seen := make(map[board.Hex]bool)
+	addCandidate := func(hex board.Hex) {
+		if used[hex] || seen[hex] {
+			return
+		}
+		seen[hex] = true
+		candidates = append(candidates, hex)
+	}
+
+	if strings.HasPrefix(strings.ToUpper(token), "R~") {
+		landDisplay := strings.TrimSpace(token[2:])
+		landHex, ok := board.HexForDisplayCoordinate(gs.Map.ID, landDisplay)
+		if !ok {
+			if parsed, err := ConvertLogCoordToAxialForMap(logMapID(gs), landDisplay); err == nil {
+				landHex = parsed
+				ok = true
+			}
+		}
+		if ok {
+			// BGA's Children stronghold UI labels a whole same-row river segment by the land
+			// hex immediately to its left, so repeated rows like [R~B3] + [R~B3] can denote
+			// the two consecutive river hexes after B3. When that segment exists, treat it as
+			// authoritative to avoid settling on a merely locally-valid adjacent-river guess.
+			segmentCandidates := childrenRiverSegmentCandidates(gs, landHex)
+			if len(segmentCandidates) > 0 {
+				for _, riverHex := range segmentCandidates {
+					addCandidate(riverHex)
+				}
+				return candidates
+			}
+
+			for _, neighbor := range landHex.Neighbors() {
+				mapHex := gs.Map.GetHex(neighbor)
+				if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+					continue
+				}
+				addCandidate(neighbor)
+			}
+		}
+		if riverHex, err := ConvertRiverCoordToAxial(token); err == nil {
+			addCandidate(riverHex)
+		}
+		return candidates
+	}
+
+	if hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), token); err == nil {
+		addCandidate(hex)
+	}
+	return candidates
+}
+
+func childrenRiverSegmentCandidates(gs *game.GameState, landHex board.Hex) []board.Hex {
+	if gs == nil || gs.Map == nil {
+		return nil
+	}
+
+	candidates := make([]board.Hex, 0, 2)
+	for q := landHex.Q + 1; ; q++ {
+		riverHex := board.NewHex(q, landHex.R)
+		mapHex := gs.Map.GetHex(riverHex)
+		if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+			break
+		}
+		candidates = append(candidates, riverHex)
+	}
+	return candidates
 }
 
 // Execute applies the action to the game state.
@@ -1019,6 +1222,15 @@ func (a *LogCompoundAction) GetPlayerID() string {
 		return a.Actions[0].GetPlayerID()
 	}
 	return ""
+}
+
+func (a *LogCompoundAction) SkipNetTreasurersDepositQueue() bool {
+	for _, action := range a.Actions {
+		if skipper, ok := action.(interface{ SkipNetTreasurersDepositQueue() bool }); ok && skipper.SkipNetTreasurersDepositQueue() {
+			return true
+		}
+	}
+	return false
 }
 
 // Validate checks if the action is valid.
@@ -1458,14 +1670,17 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 
 // LogTownAction is a log-only representation of founding a town
 type LogTownAction struct {
-	PlayerID string
-	VP       int
+	PlayerID  string
+	VP        int
+	AnchorHex *board.Hex
 }
 
 // GetType returns the action type.
 func (a *LogTownAction) GetType() game.ActionType { return game.ActionSpecialAction } // Placeholder
 // GetPlayerID returns the player ID.
 func (a *LogTownAction) GetPlayerID() string { return a.PlayerID }
+
+func (a *LogTownAction) SkipNetTreasurersDepositQueue() bool { return true }
 
 // Validate checks if the action is valid.
 func (a *LogTownAction) Validate(gs *game.GameState) error { return nil }
@@ -1476,6 +1691,12 @@ func (a *LogTownAction) Execute(gs *game.GameState) error {
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
+	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+	if player.Resources != nil {
+		beforeCoins = player.Resources.Coins
+		beforeWorkers = player.Resources.Workers
+		beforePriests = player.Resources.Priests
+	}
 
 	tileType, err := GetTownTileFromVP(a.VP)
 	if err != nil {
@@ -1484,9 +1705,28 @@ func (a *LogTownAction) Execute(gs *game.GameState) error {
 
 	// Select the town tile
 	// This assumes PendingTownFormations was populated by the previous action (Build/Upgrade)
-	if err := gs.SelectTownTile(a.PlayerID, tileType, nil); err != nil {
+	if err := gs.SelectTownTile(a.PlayerID, tileType, a.AnchorHex); err != nil {
 		return fmt.Errorf("failed to select town tile: %w", err)
 	}
+
+	coinGain := 0
+	workerGain := 0
+	priestGain := 0
+	if player.Resources != nil {
+		coinGain = player.Resources.Coins - beforeCoins
+		workerGain = player.Resources.Workers - beforeWorkers
+		priestGain = player.Resources.Priests - beforePriests
+	}
+	if coinGain < 0 {
+		coinGain = 0
+	}
+	if workerGain < 0 {
+		workerGain = 0
+	}
+	if priestGain < 0 {
+		priestGain = 0
+	}
+	game.QueueTreasurersDeposit(gs, a.PlayerID, coinGain, workerGain, priestGain, "received")
 
 	return nil
 }
@@ -1593,7 +1833,7 @@ func (a *LogHalflingsSpadeAction) Execute(gs *game.GameState) error {
 
 	// Apply each transform using ApplyHalflingsSpadeAction
 	for i, coordStr := range a.TransformCoords {
-		hex, err := ConvertLogCoordToAxial(coordStr)
+		hex, err := ConvertLogCoordToAxialForMap(logMapID(gs), coordStr)
 		if err != nil {
 			return err
 		}

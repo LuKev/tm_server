@@ -216,6 +216,141 @@ func TestAtlanteansCanUseBridgeAction(t *testing.T) {
 	}
 }
 
+func TestAtlanteansBridgeCanGrowStrongholdTownThroughExistingTownStructures(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("atl", factions.NewAtlanteans()); err != nil {
+		t.Fatalf("add atl: %v", err)
+	}
+	if err := gs.AddPlayer("eng", factions.NewEngineers()); err != nil {
+		t.Fatalf("add eng: %v", err)
+	}
+
+	player := gs.GetPlayer("atl")
+	player.Resources.Workers = 2
+	player.VictoryPoints = 0
+	player.AtlanteansTownRewards = make(map[int]bool)
+
+	strongholdHex := board.NewHex(0, 0)
+	sanctuaryHex := board.NewHex(1, -2)
+	templeHex := board.NewHex(2, -2)
+	tradingHouseHex := board.NewHex(2, -3)
+	otherBridgeHex := board.NewHex(4, 0)
+	river1 := board.NewHex(0, -1)
+	river2 := board.NewHex(1, -1)
+
+	for _, hex := range []board.Hex{
+		strongholdHex,
+		sanctuaryHex,
+		templeHex,
+		tradingHouseHex,
+		otherBridgeHex,
+	} {
+		gs.Map.Hexes[hex] = &board.MapHex{Coord: hex, Terrain: player.Faction.GetHomeTerrain()}
+	}
+	for _, riverHex := range []board.Hex{river1, river2} {
+		gs.Map.Hexes[riverHex] = &board.MapHex{Coord: riverHex, Terrain: models.TerrainRiver}
+		gs.Map.RiverHexes[riverHex] = true
+	}
+
+	gs.Map.PlaceBuilding(strongholdHex, testBuilding("atl", player.Faction.GetType(), models.BuildingStronghold))
+	gs.Map.PlaceBuilding(sanctuaryHex, testBuilding("atl", player.Faction.GetType(), models.BuildingSanctuary))
+	gs.Map.PlaceBuilding(templeHex, testBuilding("atl", player.Faction.GetType(), models.BuildingTemple))
+	gs.Map.PlaceBuilding(tradingHouseHex, testBuilding("atl", player.Faction.GetType(), models.BuildingTradingHouse))
+	gs.Map.PlaceBuilding(otherBridgeHex, testBuilding("atl", player.Faction.GetType(), models.BuildingTradingHouse))
+
+	gs.Map.GetHex(strongholdHex).PartOfTown = true
+	gs.Map.GetHex(sanctuaryHex).PartOfTown = true
+	gs.Map.GetHex(templeHex).PartOfTown = true
+	gs.Map.GetHex(tradingHouseHex).PartOfTown = true
+	player.AtlanteansTownHexes = []board.Hex{strongholdHex}
+
+	gs.Map.Bridges[board.NewBridgeKey(strongholdHex, otherBridgeHex)] = "eng"
+
+	action := NewEngineersBridgeAction("atl", strongholdHex, sanctuaryHex)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("atlanteans bridge action failed: %v", err)
+	}
+
+	if got := player.ShippingLevel; got != 1 {
+		t.Fatalf("shipping = %d, want 1", got)
+	}
+	if got := player.VictoryPoints; got != 2 {
+		t.Fatalf("victory points = %d, want 2", got)
+	}
+	wantCult := map[CultTrack]int{
+		CultFire:  3,
+		CultWater: 3,
+		CultEarth: 2,
+		CultAir:   2,
+	}
+	for track, want := range wantCult {
+		if got := player.CultPositions[track]; got != want {
+			t.Fatalf("cult %v = %d, want %d", track, got, want)
+		}
+	}
+	if len(player.AtlanteansTownHexes) != 4 {
+		t.Fatalf("Atlanteans stronghold town hexes = %v, want 4 connected structures", player.AtlanteansTownHexes)
+	}
+}
+
+func TestAtlanteansPowerBridgeUpdatesStrongholdTownImmediately(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("atl", factions.NewAtlanteans()); err != nil {
+		t.Fatalf("add atl: %v", err)
+	}
+
+	player := gs.GetPlayer("atl")
+	player.VictoryPoints = 0
+	player.ShippingLevel = 1
+	player.Resources.Power = NewPowerSystem(4, 1, 3)
+	player.CultPositions[CultFire] = 3
+	player.CultPositions[CultWater] = 3
+	player.CultPositions[CultEarth] = 2
+	player.CultPositions[CultAir] = 2
+	player.AtlanteansTownRewards = make(map[int]bool)
+
+	strongholdHex := board.NewHex(0, 0)
+	sanctuaryHex := board.NewHex(1, -2)
+	templeHex := board.NewHex(2, -2)
+	tradingHouseHex := board.NewHex(2, -3)
+	river1 := board.NewHex(0, -1)
+	river2 := board.NewHex(1, -1)
+
+	for _, hex := range []board.Hex{strongholdHex, sanctuaryHex, templeHex, tradingHouseHex} {
+		gs.Map.Hexes[hex] = &board.MapHex{Coord: hex, Terrain: player.Faction.GetHomeTerrain()}
+	}
+	for _, riverHex := range []board.Hex{river1, river2} {
+		gs.Map.Hexes[riverHex] = &board.MapHex{Coord: riverHex, Terrain: models.TerrainRiver}
+		gs.Map.RiverHexes[riverHex] = true
+	}
+
+	gs.Map.PlaceBuilding(strongholdHex, testBuilding("atl", player.Faction.GetType(), models.BuildingStronghold))
+	gs.Map.PlaceBuilding(sanctuaryHex, testBuilding("atl", player.Faction.GetType(), models.BuildingSanctuary))
+	gs.Map.PlaceBuilding(templeHex, testBuilding("atl", player.Faction.GetType(), models.BuildingTemple))
+	gs.Map.PlaceBuilding(tradingHouseHex, testBuilding("atl", player.Faction.GetType(), models.BuildingTradingHouse))
+	gs.Map.GetHex(strongholdHex).PartOfTown = true
+	player.AtlanteansTownHexes = []board.Hex{strongholdHex}
+
+	action := NewPowerActionWithBridge("atl", strongholdHex, sanctuaryHex)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("power bridge action failed: %v", err)
+	}
+
+	if !player.AtlanteansTownRewards[7] || !player.AtlanteansTownRewards[10] {
+		t.Fatalf("Atlanteans town rewards = %v, want 7 and 10 triggered", player.AtlanteansTownRewards)
+	}
+	if got := player.ShippingLevel; got != 2 {
+		t.Fatalf("shipping = %d, want 2", got)
+	}
+	if got := player.VictoryPoints; got != 3 {
+		t.Fatalf("victory points = %d, want 3", got)
+	}
+	power := player.Resources.Power
+	if power.Bowl1 != 1 || power.Bowl2 != 7 || power.Bowl3 != 0 {
+		t.Fatalf("power = %d/%d/%d, want 1/7/0", power.Bowl1, power.Bowl2, power.Bowl3)
+	}
+}
+
 func TestWispsTradingHouseCreatesAdjacentSingleSpadeFollowup(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewWisps()); err != nil {

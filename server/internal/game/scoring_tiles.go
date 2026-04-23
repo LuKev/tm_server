@@ -366,7 +366,10 @@ func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType
 	amount = adjustCultRewardAmount(player, rewardType, amount)
 	switch rewardType {
 	case CultRewardPriest:
-		gs.GainPriests(playerID, amount)
+		gained := gs.GainPriests(playerID, amount)
+		if isTreasurers(player) && player.HasStrongholdAbility {
+			gs.queueTreasurersDeposit(playerID, 0, 0, gained, "cult_reward")
+		}
 	case CultRewardPower:
 		player.Resources.Power.GainPower(amount)
 	case CultRewardSpade:
@@ -383,8 +386,14 @@ func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType
 		gs.PendingCultRewardSpades[playerID] += amount
 	case CultRewardWorker:
 		player.Resources.Workers += amount
+		if isTreasurers(player) && player.HasStrongholdAbility {
+			gs.queueTreasurersDeposit(playerID, 0, amount, 0, "cult_reward")
+		}
 	case CultRewardCoin:
 		player.Resources.Coins += amount
+		if isTreasurers(player) && player.HasStrongholdAbility {
+			gs.queueTreasurersDeposit(playerID, amount, 0, 0, "cult_reward")
+		}
 	}
 }
 

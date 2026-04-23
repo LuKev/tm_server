@@ -1,0 +1,54 @@
+scoring_tiles:
+  - SCORE4
+  - SCORE6
+  - SCORE1
+  - SCORE2
+  - SCORE5
+  - SCORE8
+bonus_cards:
+  - BON-4C
+  - BON-SHIP
+  - BON-WP
+  - BON-P
+  - BON-6C
+  - BON-DW
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Atlanteans: BON-4C
+    "Children Of The Wyrm": BON-SHIP
+    Conspirators: BON-WP
+    Architects: BON-P
+  "1":
+    Atlanteans: BON-SHIP-VP
+    "Children Of The Wyrm": BON-4C
+    Conspirators: BON-6C
+    Architects: BON-DW
+  "2":
+    Atlanteans: BON-P
+    "Children Of The Wyrm": BON-6C
+    Conspirators: BON-WP
+    Architects: BON-4C
+  "3":
+    Atlanteans: BON-WP
+    "Children Of The Wyrm": BON-SHIP-VP
+    Conspirators: BON-SHIP
+    Architects: BON-6C
+  "4":
+    Atlanteans: BON-DW
+    "Children Of The Wyrm": BON-WP
+    Conspirators: BON-4C
+    Architects: BON-SHIP
+  "5":
+    Atlanteans: BON-P
+    "Children Of The Wyrm": BON-DW
+    Conspirators: BON-6C
+    Architects: BON-SHIP-VP
+conspirators_swap_returns:
+  Conspirators:
+    - FAV-W2
+    - FAV-W2
+    - FAV-W3
+    - FAV-F1
+    - FAV-E1
+    - FAV-W1

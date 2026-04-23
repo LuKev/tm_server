@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 )
 
 func TestBGAParser(t *testing.T) {
@@ -87,6 +88,42 @@ kezilu places a Dwelling [D4]
 	}
 }
 
+func TestBGAParser_UsesGameBoardForCoordinates(t *testing.T) {
+	content := `Game board: Lakes
+Mini-expansions: On
+Alice is playing the Auren Faction (with 40 VP Starting VPs)
+Bob is playing the Witches Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Alice places a Dwelling [B1]
+Bob places a Dwelling [B2]
+~ Income phase ~`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	expected, ok := board.HexForDisplayCoordinate(board.MapLakes, "B1")
+	if !ok {
+		t.Fatal("missing Lakes coordinate B1")
+	}
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		setup, ok := actionItem.Action.(*game.SetupDwellingAction)
+		if ok && setup.PlayerID == "Auren" {
+			if setup.Hex != expected {
+				t.Fatalf("setup hex = %v, want Lakes B1 %v", setup.Hex, expected)
+			}
+			return
+		}
+	}
+	t.Fatalf("expected Auren setup dwelling in parsed items: %#v", items)
+}
+
 func TestBGAParserSettings(t *testing.T) {
 	content := `Game board: Base Game
 Round 1 scoring: SCORE2, TOWN >> 5
@@ -139,6 +176,257 @@ deragned is playing the Halflings Faction
 	}
 }
 
+func TestBGAParser_ParsesChashIncomeTrackAdvancement(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Chash Dallah Faction
+Bob is playing the Halflings Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice advances on the Income Track for 2 workers 2 coins and earns 1 VP
+Bob passes
+Alice advances on the Income Track for 2 workers 2 coins and earns 2 VP
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	trackActions := 0
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if _, ok := actionItem.Action.(*game.AdvanceChashTrackAction); ok {
+			trackActions++
+		}
+	}
+
+	if trackActions != 2 {
+		t.Fatalf("AdvanceChashTrackAction count = %d, want 2", trackActions)
+	}
+}
+
+func TestBGAParser_ParsesTreasurersSafeDepositsWithoutSkippingPhaseSemantics(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Treasurers Faction
+Bob is playing the Engineers Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Alice places a Dwelling [D4]
+Bob places a Dwelling [E5]
+~ Action phase ~
+Alice passes
+Bob passes
+~ Cleanup phase ~
+Alice places 2 workers into their Safe (Income)
+~ Income phase ~
+Alice places 1 workers 1 Priests 3 coins into their Safe (Income)
+Alice places 7 coins into their Safe (Power action)
+~ Action phase ~
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	deposits := make([]game.Action, 0, 3)
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		switch actionItem.Action.(type) {
+		case *game.SelectTreasurersDepositAction, *LogPostIncomeAction:
+			deposits = append(deposits, actionItem.Action)
+		}
+	}
+
+	if len(deposits) != 3 {
+		t.Fatalf("deposit action count = %d, want 3", len(deposits))
+	}
+
+	if _, ok := deposits[0].(*game.SelectTreasurersDepositAction); !ok {
+		t.Fatalf("cleanup-phase deposit type = %T, want *game.SelectTreasurersDepositAction", deposits[0])
+	}
+
+	postIncome, ok := deposits[1].(*LogPostIncomeAction)
+	if !ok {
+		t.Fatalf("income-phase deposit type = %T, want *LogPostIncomeAction", deposits[1])
+	}
+	inner, ok := postIncome.Action.(*game.SelectTreasurersDepositAction)
+	if !ok {
+		t.Fatalf("wrapped income-phase deposit type = %T, want *game.SelectTreasurersDepositAction", postIncome.Action)
+	}
+	if inner.CoinsToTreasury != 3 || inner.WorkersToTreasury != 1 || inner.PriestsToTreasury != 1 {
+		t.Fatalf("wrapped income-phase deposit = %+v, want coins=3 workers=1 priests=1", inner)
+	}
+
+	actionDeposit, ok := deposits[2].(*game.SelectTreasurersDepositAction)
+	if !ok {
+		t.Fatalf("action-phase deposit type = %T, want *game.SelectTreasurersDepositAction", deposits[2])
+	}
+	if actionDeposit.CoinsToTreasury != 7 || actionDeposit.WorkersToTreasury != 0 || actionDeposit.PriestsToTreasury != 0 {
+		t.Fatalf("action-phase deposit = %+v, want coins=7", actionDeposit)
+	}
+}
+
+func TestBGAParser_ParsesTreasurersActionPhaseSafeDepositsFromRealSnippet(t *testing.T) {
+	content := `Game board: Base Game
+Zaarito is playing the Treasurers Faction
+marszej76 is playing the Nomads Faction
+philvec is playing the Wisps Faction
+zjwlanlan is playing the Dynion Geifr Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Zaarito cancels their move
+Zaarito transforms a Terrain space mountains → wasteland for 1 spade(s) (Bonus card action) [F1]
+Zaarito builds a Dwelling for 1 workers 2 coins [F1]
+Zaarito gets 2 VP (Scoring tile bonus)
+Zaarito founds a Town [F1]
+Zaarito gets 5 VP (Town bonus)
+Zaarito places 6 coins into their Safe (Town bonus)
+Zaarito declines doing Conversions
+marszej76 builds a Dwelling for 1 workers 2 coins [B4]
+marszej76 gets 2 VP (Scoring tile bonus)
+marszej76 gets 2 VP (Favor tile bonus)
+marszej76 declines doing Conversions
+philvec builds a Dwelling for 2 workers 2 coins [G1]
+philvec gets 2 VP (Scoring tile bonus)
+philvec gets 2 VP (Favor tile bonus)
+philvec declines doing Conversions
+zjwlanlan builds a Dwelling for 1 workers 2 coins [E4]
+zjwlanlan gets 2 VP (Scoring tile bonus)
+zjwlanlan gets 2 VP (Favor tile bonus)
+zjwlanlan declines doing Conversions
+Zaarito gets 1 power via Structures [E4]
+Zaarito Power gain via Structures is capped from 3 power to 1 power
+marszej76 pays 1 VP and gets 2 power via Structures [E4]
+Zaarito places 2 workers into their Safe (Power action)
+Zaarito declines doing Conversions
+marszej76 builds a Dwelling for 1 workers 2 coins [G4]
+marszej76 gets 2 VP (Scoring tile bonus)
+marszej76 gets 2 VP (Favor tile bonus)
+marszej76 declines doing Conversions
+philvec does some Conversions (spent: 0 power 1 Priests 0 workers ; collects: 0 Priests  2 workers 2 coins)
+philvec builds a Dwelling for 2 workers 2 coins [D7]
+philvec gets 2 VP (Scoring tile bonus)
+philvec gets 2 VP (Favor tile bonus)
+philvec founds a Town [E9]
+philvec gets 9 VP and collects 1 Priests (Town bonus)
+philvec declines doing Conversions
+zjwlanlan builds a Dwelling for 1 workers 2 coins [H2]
+zjwlanlan gets 2 VP (Scoring tile bonus)
+zjwlanlan gets 2 VP (Favor tile bonus)
+zjwlanlan declines doing Conversions
+Zaarito does some Conversions (spent: 1 power 1 Priests 0 workers ; collects: 0 Priests  1 workers 1 coins)
+Zaarito places 1 workers 1 coins into their Safe (Conversion)
+Zaarito passes and becomes the first player for the next round
+Zaarito chooses 1 Bonus card
+Zaarito places 1 coins into their Safe (Bonus card)
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var deposits []*game.SelectTreasurersDepositAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		deposit, ok := actionItem.Action.(*game.SelectTreasurersDepositAction)
+		if !ok {
+			continue
+		}
+		if deposit.PlayerID != "Treasurers" {
+			continue
+		}
+		deposits = append(deposits, deposit)
+	}
+
+	if len(deposits) != 4 {
+		t.Fatalf("Treasurers action-phase deposit count = %d, want 4", len(deposits))
+	}
+	if deposits[0].CoinsToTreasury != 6 || deposits[0].WorkersToTreasury != 0 {
+		t.Fatalf("town-bonus deposit = %+v, want 6 coins", deposits[0])
+	}
+	if deposits[1].CoinsToTreasury != 0 || deposits[1].WorkersToTreasury != 2 {
+		t.Fatalf("power-action deposit = %+v, want 2 workers", deposits[1])
+	}
+	if deposits[2].CoinsToTreasury != 1 || deposits[2].WorkersToTreasury != 1 {
+		t.Fatalf("conversion deposit = %+v, want 1 coin + 1 worker", deposits[2])
+	}
+	if deposits[3].CoinsToTreasury != 1 || deposits[3].WorkersToTreasury != 0 {
+		t.Fatalf("bonus-card deposit = %+v, want 1 coin", deposits[3])
+	}
+}
+
+func TestBGAParser_SynthesizesMissingPowerActionBeforeTreasurersSafeDeposit(t *testing.T) {
+	content := `Game board: Base Game
+Zaarito is playing the Treasurers Faction
+marszej76 is playing the Nomads Faction
+philvec is playing the Wisps Faction
+zjwlanlan is playing the Dynion Geifr Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Zaarito advances on the Shipping track for 1 Priests 4 coins and gets 2 VP
+Zaarito declines doing Conversions
+zjwlanlan builds a Dwelling for 1 workers 2 coins [E4]
+Zaarito gets 1 power via Structures [E4]
+Zaarito Power gain via Structures is capped from 3 power to 1 power
+marszej76 pays 1 VP and gets 2 power via Structures [E4]
+Zaarito places 2 workers into their Safe (Power action)
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	foundPower := false
+	foundDeposit := false
+	for i, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if powerAction, ok := actionItem.Action.(*LogPowerAction); ok && powerAction.PlayerID == "Treasurers" {
+			foundPower = true
+			if powerAction.ActionCode != "ACT3" {
+				t.Fatalf("synthetic power action code = %q, want ACT3", powerAction.ActionCode)
+			}
+			if i+1 >= len(items) {
+				t.Fatalf("expected deposit action after synthetic power action")
+			}
+			nextItem, ok := items[i+1].(ActionItem)
+			if !ok {
+				t.Fatalf("item after synthetic power action = %T, want ActionItem", items[i+1])
+			}
+			deposit, ok := nextItem.Action.(*game.SelectTreasurersDepositAction)
+			if !ok {
+				t.Fatalf("item after synthetic power action = %T, want *game.SelectTreasurersDepositAction", nextItem.Action)
+			}
+			if deposit.WorkersToTreasury != 2 || deposit.CoinsToTreasury != 0 || deposit.PriestsToTreasury != 0 {
+				t.Fatalf("synthetic power-action deposit = %+v, want 2 workers", deposit)
+			}
+			foundDeposit = true
+			break
+		}
+	}
+
+	if !foundPower || !foundDeposit {
+		t.Fatalf("expected synthetic power action and deposit, foundPower=%t foundDeposit=%t", foundPower, foundDeposit)
+	}
+}
+
 func TestBGAParser_ParsesFinalScoringBlock(t *testing.T) {
 	content := `Game board: Base Game
 Alice is playing the Witches Faction
@@ -152,6 +440,8 @@ Alice scores 8 VP (Cult of Fire)
 Bob scores 4 VP (Cult of Fire)
 Alice scores 18 VP with 15 connected Structures (Area scoring)
 Bob scores 6 VP with 14 connected Structures (Area scoring)
+Alice converts 2 workers into 2 coins
+Alice converts 1 power into 1 coins
 Alice scores 3 VP with 10 coins (Resource scoring)
 Bob scores 1 VP with 3 coins (Resource scoring)
 End of game
@@ -181,6 +471,12 @@ End of game
 	if !alice.HasResourceScore || alice.TotalResourceValue != 10 {
 		t.Fatalf("Witches resource expectation = %+v, want resource value 10", *alice)
 	}
+	if !alice.HasExactResourceBreakdown {
+		t.Fatalf("Witches exact resource breakdown missing: %+v", *alice)
+	}
+	if alice.FinalCoinsBeforeResourceScoring != 7 || alice.FinalWorkersBeforeResourceScoring != 2 || alice.FinalPowerCoinsConverted != 1 {
+		t.Fatalf("Witches exact resource breakdown = %+v, want coins=7 workers=2 powerCoins=1", *alice)
+	}
 
 	bob := lastItem.Scores["Giants"]
 	if bob == nil {
@@ -188,6 +484,12 @@ End of game
 	}
 	if bob.CultVP != 4 || bob.AreaVP != 6 || bob.ResourceVP != 1 {
 		t.Fatalf("Giants final scoring = %+v, want cult=4 area=6 resource=1", *bob)
+	}
+	if !bob.HasExactResourceBreakdown {
+		t.Fatalf("Giants exact resource breakdown missing: %+v", *bob)
+	}
+	if bob.FinalCoinsBeforeResourceScoring != 3 || bob.FinalWorkersBeforeResourceScoring != 0 || bob.FinalPriestsBeforeResourceScoring != 0 || bob.FinalPowerCoinsConverted != 0 {
+		t.Fatalf("Giants exact resource breakdown = %+v, want only 3 coins on board", *bob)
 	}
 }
 
@@ -217,6 +519,102 @@ Bob places a Dwelling [D5]
 			t.Fatalf("unexpected Dynion Geifr setup favor action parsed: %+v", favorAction)
 		}
 	}
+}
+
+func TestBGAParser_ParsesAtlanteansStartingStrongholdSetupPlacement(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Atlanteans Faction
+Bob is playing the Engineers Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Alice places a Faction Stronghold [D5]
+Alice founds a Town [D5]
+Alice gains 2 on the Cult of Fire track and earns 1 power
+Alice gains 2 on the Cult of Air track
+Alice gains 2 on the Cult of Earth track
+Alice gains 2 on the Cult of Water track and earns 1 power
+Alice gets 2 VP and moves 2 spaces forward on each of the 4 Cult tracks
+~ Action phase ~
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	if len(items) < 3 {
+		t.Fatalf("expected setup stronghold and town actions, got %d items", len(items))
+	}
+
+	foundSetup := false
+	foundTown := false
+	foundTownAnchor := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		switch action := actionItem.Action.(type) {
+		case *game.SetupDwellingAction:
+			if action.PlayerID == "Atlanteans" {
+				foundSetup = true
+			}
+		case *LogTownAction:
+			if action.PlayerID == "Atlanteans" && action.VP == 2 {
+				foundTown = true
+				foundTownAnchor = action.AnchorHex != nil && *action.AnchorHex == parseCoord("D5")
+			}
+		case *LogCompoundAction:
+			for _, subaction := range action.Actions {
+				if setup, ok := subaction.(*game.SetupDwellingAction); ok && setup.PlayerID == "Atlanteans" {
+					foundSetup = true
+				}
+				if town, ok := subaction.(*LogTownAction); ok && town.PlayerID == "Atlanteans" && town.VP == 2 {
+					foundTown = true
+					foundTownAnchor = town.AnchorHex != nil && *town.AnchorHex == parseCoord("D5")
+				}
+			}
+		}
+	}
+	if !foundSetup || !foundTown || !foundTownAnchor {
+		t.Fatalf("foundSetup=%t foundTown=%t foundTownAnchor=%t, items=%#v", foundSetup, foundTown, foundTownAnchor, items)
+	}
+}
+
+func TestBGAParser_ParsesAtlanteansBridgeAbility(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Atlanteans Faction
+Bob is playing the Engineers Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice spends 2 workers to build a Bridge (Atlanteans Ability) [C4-D5]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		bridge, ok := actionItem.Action.(*game.EngineersBridgeAction)
+		if !ok {
+			continue
+		}
+		if bridge.PlayerID != "Atlanteans" {
+			t.Fatalf("bridge parsed for wrong player: %+v", bridge)
+		}
+		if bridge.BridgeHex1 != parseCoord("C4") || bridge.BridgeHex2 != parseCoord("D5") {
+			t.Fatalf("bridge coordinates = %v-%v, want C4-D5", bridge.BridgeHex1, bridge.BridgeHex2)
+		}
+		return
+	}
+
+	t.Fatalf("expected Atlanteans bridge action in parsed items: %#v", items)
 }
 
 func TestBGAParser_RemovesCanceledTurnSegmentWhenReplacementFollows(t *testing.T) {
@@ -340,7 +738,7 @@ Alice builds a Dwelling for 1 workers 2 coins [G3]
 		}
 		switch action := actionItem.Action.(type) {
 		case *LogBurnAction:
-			if action.PlayerID == "Conspirators" && action.Amount == 1 {
+			if action.PlayerID == "Conspirators" && action.Amount == 1 && action.Moved == 1 {
 				foundBurn = true
 			}
 		case *LogPowerAction:
@@ -366,5 +764,50 @@ Alice builds a Dwelling for 1 workers 2 coins [G3]
 	}
 	if !foundReplacementBuild {
 		t.Fatal("expected replacement build after cancel")
+	}
+}
+
+func TestBGAParser_ParsesChildrenStrongholdPowerTokenPlacement(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Children Of The Wyrm Faction
+Bob is playing the Halflings Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+Alice places a Dwelling [E5]
+Alice places a Dwelling [E10]
+Bob places a Dwelling [E6]
+Bob places a Dwelling [F5]
+~ Action phase ~
+Alice sacrifices Power to place 2 power on the game board (Children Of The Wyrm Stronghold) [R~D3] + [R~C2]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	found := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		action, ok := actionItem.Action.(*LogChildrenPlacePowerTokensAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Children Of The Wyrm" {
+			continue
+		}
+		found = true
+		if len(action.RiverCoords) != 2 {
+			t.Fatalf("children power-token target count = %d, want 2", len(action.RiverCoords))
+		}
+		if action.RiverCoords[0] != "R~D3" || action.RiverCoords[1] != "R~C2" {
+			t.Fatalf("children power-token refs = %v, want [R~D3 R~C2]", action.RiverCoords)
+		}
+	}
+	if !found {
+		t.Fatal("expected children power-token placement action")
 	}
 }

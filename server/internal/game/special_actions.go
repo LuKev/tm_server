@@ -579,14 +579,6 @@ func (a *SpecialAction) validateArchitectsMoveBridge(gs *GameState, player *Play
 	if err := clonedMap.BuildBridge(*a.TargetHex, *a.UpgradeHex, a.PlayerID); err != nil {
 		return err
 	}
-	originalMap := gs.Map
-	gs.Map = clonedMap
-	defer func() {
-		gs.Map = originalMap
-	}()
-	if !gs.anchoredTownsRemainValid(a.PlayerID) {
-		return fmt.Errorf("bridge move would invalidate an existing town")
-	}
 	return nil
 }
 

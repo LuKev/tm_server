@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/notation"
 )
 
@@ -14,6 +15,18 @@ func TestCreateInitialState_EnablesReplayMode(t *testing.T) {
 	}
 	if state.ReplayMode == nil || !state.ReplayMode["__replay__"] {
 		t.Fatalf("ReplayMode[__replay__] = %v, want true", state.ReplayMode)
+	}
+}
+
+func TestCreateInitialState_UsesParsedMap(t *testing.T) {
+	state := createInitialState([]notation.LogItem{
+		notation.GameSettingsItem{Settings: map[string]string{"Game": "Lakes"}},
+	})
+	if state == nil || state.Map == nil {
+		t.Fatal("createInitialState returned nil map")
+	}
+	if state.Map.ID != board.MapLakes {
+		t.Fatalf("map ID = %q, want %q", state.Map.ID, board.MapLakes)
 	}
 }
 

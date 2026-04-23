@@ -54,6 +54,208 @@ func TestLogBurnAction_UsesStandardTwoToOneBurnSemantics(t *testing.T) {
 	}
 }
 
+func TestLogBurnAction_UsesChildrenThreeForTwoBurnSemantics(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.Resources.Power = game.NewPowerSystem(0, 9, 0)
+
+	action := &LogBurnAction{PlayerID: "p1", Amount: 3}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogBurnAction.Execute() error = %v", err)
+	}
+
+	power := player.Resources.Power
+	if power.Bowl2 != 0 || power.Bowl3 != 6 {
+		t.Fatalf("children power after burn = %d/%d/%d, want 0/0/6", power.Bowl1, power.Bowl2, power.Bowl3)
+	}
+}
+
+func TestLogBurnAction_UsesExactMovedPowerWhenProvided(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.Resources.Power = game.NewPowerSystem(0, 2, 0)
+
+	action := &LogBurnAction{PlayerID: "p1", Amount: 1, Moved: 1}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogBurnAction.Execute() error = %v", err)
+	}
+
+	power := player.Resources.Power
+	if power.Bowl2 != 0 || power.Bowl3 != 1 {
+		t.Fatalf("children exact burn power = %d/%d/%d, want 0/0/1", power.Bowl1, power.Bowl2, power.Bowl3)
+	}
+}
+
+func TestLogPowerAction_AtlanteansBridgeUpdatesStrongholdTownImmediately(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("Atlanteans", factions.NewAtlanteans()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("Atlanteans")
+	player.VictoryPoints = 0
+	player.ShippingLevel = 1
+	player.Resources.Power = game.NewPowerSystem(4, 1, 3)
+	player.CultPositions[game.CultFire] = 3
+	player.CultPositions[game.CultWater] = 3
+	player.CultPositions[game.CultEarth] = 2
+	player.CultPositions[game.CultAir] = 2
+	player.AtlanteansTownRewards = make(map[int]bool)
+
+	strongholdHex, err := ConvertLogCoordToAxial("C4")
+	if err != nil {
+		t.Fatalf("ConvertLogCoordToAxial(C4) failed: %v", err)
+	}
+	sanctuaryHex, err := ConvertLogCoordToAxial("D5")
+	if err != nil {
+		t.Fatalf("ConvertLogCoordToAxial(D5) failed: %v", err)
+	}
+	templeHex := sanctuaryHex.Neighbors()[0]
+	if templeHex == strongholdHex {
+		templeHex = sanctuaryHex.Neighbors()[1]
+	}
+	tradingHouseHex := templeHex.Neighbors()[0]
+	if tradingHouseHex == sanctuaryHex || tradingHouseHex == strongholdHex {
+		tradingHouseHex = templeHex.Neighbors()[1]
+	}
+
+	for _, hex := range []board.Hex{strongholdHex, sanctuaryHex, templeHex, tradingHouseHex} {
+		gs.Map.Hexes[hex] = &board.MapHex{Coord: hex, Terrain: player.Faction.GetHomeTerrain()}
+	}
+	gs.Map.PlaceBuilding(strongholdHex, &models.Building{
+		Type:       models.BuildingStronghold,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   "Atlanteans",
+		PowerValue: game.GetPowerValue(models.BuildingStronghold),
+	})
+	gs.Map.PlaceBuilding(sanctuaryHex, &models.Building{
+		Type:       models.BuildingSanctuary,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   "Atlanteans",
+		PowerValue: game.GetPowerValue(models.BuildingSanctuary),
+	})
+	gs.Map.PlaceBuilding(templeHex, &models.Building{
+		Type:       models.BuildingTemple,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   "Atlanteans",
+		PowerValue: game.GetPowerValue(models.BuildingTemple),
+	})
+	gs.Map.PlaceBuilding(tradingHouseHex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   "Atlanteans",
+		PowerValue: game.GetPowerValue(models.BuildingTradingHouse),
+	})
+	gs.Map.GetHex(strongholdHex).PartOfTown = true
+	player.AtlanteansTownHexes = []board.Hex{strongholdHex}
+
+	action := &LogPowerAction{PlayerID: "Atlanteans", ActionCode: "ACT1-C4-D5"}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogPowerAction.Execute failed: %v", err)
+	}
+
+	if !player.AtlanteansTownRewards[7] || !player.AtlanteansTownRewards[10] {
+		t.Fatalf("Atlanteans town rewards = %v, want 7 and 10 triggered", player.AtlanteansTownRewards)
+	}
+	power := player.Resources.Power
+	if power.Bowl1 != 1 || power.Bowl2 != 7 || power.Bowl3 != 0 {
+		t.Fatalf("power after power-action bridge = %d/%d/%d, want 1/7/0", power.Bowl1, power.Bowl2, power.Bowl3)
+	}
+}
+
+func TestResolveChildrenPowerTokenHexes_UsesSameRowRiverSegmentNotation(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewChildrenOfTheWyrm()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Power = game.NewPowerSystem(6, 6, 0)
+
+	sourceHex := board.NewHex(2, 4) // E5 on the base map
+	if err := gs.Map.PlaceBuilding(sourceHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    models.FactionChildrenOfTheWyrm,
+		PlayerID:   "p1",
+		PowerValue: 1,
+	}); err != nil {
+		t.Fatalf("PlaceBuilding(E5) failed: %v", err)
+	}
+
+	targetHexes, err := resolveChildrenPowerTokenHexes(gs, "p1", []string{"R~D3", "R~C2"})
+	if err != nil {
+		t.Fatalf("resolveChildrenPowerTokenHexes() error = %v", err)
+	}
+
+	want := []board.Hex{board.NewHex(3, 3), board.NewHex(4, 2)}
+	if len(targetHexes) != len(want) {
+		t.Fatalf("resolved hex count = %d, want %d (%v)", len(targetHexes), len(want), targetHexes)
+	}
+	for i := range want {
+		if targetHexes[i] != want[i] {
+			t.Fatalf("resolved hex %d = %v, want %v (all=%v)", i, targetHexes[i], want[i], targetHexes)
+		}
+	}
+
+	if err := game.NewChildrenPlacePowerTokensAction("p1", targetHexes, true).Execute(gs); err != nil {
+		t.Fatalf("ChildrenPlacePowerTokensAction.Execute() error = %v", err)
+	}
+
+	if !gs.IsAdjacentToPlayerBuilding(board.NewHex(4, 1), "p1") { // B3
+		t.Fatalf("expected B3 to become adjacent through the resolved Children river network")
+	}
+}
+
+func TestLogTownAction_QueuesExactTreasurersTownRewardDeposit(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+
+	hexA := board.NewHex(-1, 0)
+	hexB := board.NewHex(0, 0)
+	hexC := board.NewHex(1, -2)
+	hexD := board.NewHex(2, -2)
+	for _, hex := range []board.Hex{hexA, hexB, hexC, hexD} {
+		gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
+	}
+	gs.Map.GetHex(hexA).Building = &models.Building{Type: models.BuildingDwelling, Faction: player.Faction.GetType(), PlayerID: "p1", PowerValue: game.GetPowerValue(models.BuildingDwelling)}
+	gs.Map.GetHex(hexB).Building = &models.Building{Type: models.BuildingTradingHouse, Faction: player.Faction.GetType(), PlayerID: "p1", PowerValue: game.GetPowerValue(models.BuildingTradingHouse)}
+	gs.Map.GetHex(hexC).Building = &models.Building{Type: models.BuildingTradingHouse, Faction: player.Faction.GetType(), PlayerID: "p1", PowerValue: game.GetPowerValue(models.BuildingTradingHouse)}
+	gs.Map.GetHex(hexD).Building = &models.Building{Type: models.BuildingSanctuary, Faction: player.Faction.GetType(), PlayerID: "p1", PowerValue: game.GetPowerValue(models.BuildingSanctuary)}
+	if err := gs.Map.BuildBridge(hexB, hexC, "p1"); err != nil {
+		t.Fatalf("BuildBridge failed: %v", err)
+	}
+	gs.PendingTownFormations["p1"] = []*game.PendingTownFormation{{
+		PlayerID: "p1",
+		Hexes:    []board.Hex{hexA, hexB, hexC, hexD},
+	}}
+
+	action := &LogTownAction{PlayerID: "p1", VP: 5}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogTownAction.Execute() error = %v", err)
+	}
+
+	if gs.PendingTreasurersDeposit == nil {
+		t.Fatalf("expected pending Treasurers deposit after town reward")
+	}
+	if got := gs.PendingTreasurersDeposit.AvailableCoins; got != 6 {
+		t.Fatalf("available coins to bank after town reward = %d, want 6", got)
+	}
+}
+
 func TestLogConversionAction_AutoBurnsToFundLoggedPowerSpend(t *testing.T) {
 	gs := game.NewGameState()
 	playerID := "p1"
@@ -569,8 +771,8 @@ func TestParseReplayInsufficientResources_WrappedPrefix(t *testing.T) {
 
 func TestIncomeWrapper_TransformOnlyRetriesWithSyntheticSpade(t *testing.T) {
 	testCases := []struct {
-		name  string
-		wrap  func(game.Action) game.Action
+		name string
+		wrap func(game.Action) game.Action
 	}{
 		{
 			name: "pre_income",

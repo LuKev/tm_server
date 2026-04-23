@@ -71,10 +71,10 @@
     - `Conspirators` Stronghold gives no recurring income; it only unlocks the Stronghold ability
     - starting power bowls:
       - `Treasurers`: `4/8/0`
-      - `Atlanteans`: `1/11/0` (their starting stronghold still contributes `+6PW` income, so they play closer to a `5/7` faction after the first income phase)
+      - `Atlanteans`: `11/1/0` (verified from the BGA faction board image; their starting stronghold still contributes `+6PW` income, so they play closer to a `5/7` faction after the first income phase)
       - `Wisps`: `7/5/0`
       - `Architects`: `3/9/0`
-      - `Prospectors`: `8/4/0`
+      - `Prospectors`: `7/5/0`
       - all other implemented fan factions use the standard `5/7/0`
   - Important implementation note: `client/src/data/factionBoards.ts` explicitly says the current board data is only `approximate for most factions`; do not reuse that pattern for fan factions. Use per-faction board transcriptions from the actual board images instead.
   - Table-host option added for fan factions:
@@ -109,8 +109,13 @@
     - `Atlanteans` place a starting `Stronghold` during setup instead of two dwellings
     - Atlanteans place after all normal setup dwellings are finished; if `Chaos Magicians` are present, Atlanteans place immediately before or after Chaos based on relative turn order
     - the starting Atlanteans stronghold is immediately a town; the player must choose the starting town tile during setup and gains its rewards immediately
-    - the Atlanteans stronghold-town never takes a second town tile; instead it tracks one persistent town rooted at the starting stronghold and can grow as connected non-town structures are added
+    - the Atlanteans stronghold-town never takes a second town tile; instead it tracks one persistent town rooted at the starting stronghold
+    - BGA replay `439202939` shows that persistent stronghold-town can still grow through connected Atlanteans structures that already belong to another founded town; those structures count toward the `7 / 10 / 16` threshold rewards even though they already have a town marker elsewhere
     - Atlanteans may use the reusable `build a bridge for 2 workers` faction action
+    - BGA logs that reusable bridge action as `build a Bridge (Atlanteans Ability)`; the parser must not skip those lines
+    - Atlanteans stronghold-town connectivity should use natural adjacency plus the Atlanteans player's own bridges only; do not inherit opponents' bridges from the generic board-neighbor helper
+    - Atlanteans stronghold-town threshold rewards must be checked immediately after any bridge placement, including the normal 3-power bridge power action and notation replay bridge actions
+    - Atlanteans digging / Exchange-track advancement cost is `1 worker + 4 coins + 1 priest`
     - Atlanteans stronghold-town threshold rewards trigger once each at `7 / 10 / 16` power, including when multiple thresholds are crossed at once:
       - `7`: advance shipping by 1 for free and gain the normal shipping VP
       - `10`: advance 2 on all 4 cult tracks
@@ -121,6 +126,7 @@
   - Black-faction mechanic clarifications implemented:
     - `Children of the Wyrm` start with `12 coins`
     - `Children of the Wyrm` use a non-standard burn: `3` power from bowl II -> `2` power to bowl III
+    - `Children of the Wyrm` final resource conversion uses the same special burn ratio for remaining bowl-II power: `2` bowl-II power converts to `1` coin at final scoring, not `0`
     - `Children of the Wyrm` leech costs `1 VP` less than normal
     - `Children of the Wyrm` adjacency-based coin discounts apply to all structures:
       - dwellings are `1C` adjacent / `2C` otherwise
@@ -163,7 +169,7 @@
       - bridge counts as `+1` town power when evaluating Architects towns
       - if `Transform and Build` targets a hex connected to one of the player's structures by one of the player's bridges, the transform portion gets `-1 spade` (minimum normal floor rules still apply)
       - stronghold action: once per round, move one owned bridge to a different legal bridge edge and gain `3 VP`
-      - bridge moves must preserve all existing founded towns, using the recorded town-anchor hexes
+      - BGA replay `717052298` shows bridge moves do not revalidate already founded towns; town markers are permanent once selected, so a later bridge move may disconnect a prior town marker without rejecting the move
     - `Archivists`:
       - add one extra bonus card to the available supply whenever they are in the game
       - ignore all round cult rewards
@@ -256,6 +262,10 @@
       - treasury/safe is always active during income: newly gained income resources may be banked into the treasury
       - treasury contents release at the next income phase as double that amount, then clear from the treasury
       - priests in treasury count toward the global `7`-priest ownership cap together with priests in hand and on cult action spaces
+      - replay support now has to distinguish income-phase treasury prompts from other prompt sources:
+        - cleanup cult rewards only open a treasury deposit prompt after the Treasurers stronghold is built
+        - those cult-reward prompts are not interchangeable with the later post-income `Safe` prompt
+        - BGA final scoring can omit the visible round-6 income deposit, so replay reconciles that hidden deposit from the parsed final resource breakdown
       - stronghold ability:
         - non-power and non-spade cult rewards are doubled
         - action-phase net gains can be banked immediately after the action resolves
@@ -1361,7 +1371,7 @@
   - Djinni stronghold scoring is passive on pass: they gain `1 VP` per priest on cult-track action spaces (`CultTracks.PriestsOnActionSpaces` total), not per cult level.
 - 2026-04-14 red fan factions (`Architects`, `Treasurers`):
   - `Architects` reusable bridge action is wired through the existing `engineers_bridge` path, but it costs `1 priest` for Architects instead of `2 workers`.
-  - `Architects` bridges contribute `+1` town power while still not counting as structures; this applies both when founding towns and when validating whether a moved bridge would invalidate an existing town marker.
+  - `Architects` bridges contribute `+1` town power while still not counting as structures; BGA replay `717052298` shows already founded town markers are permanent and are not revalidated when an Architects bridge later moves.
   - `Architects` only get the bridge-based spade discount on `Transform and Build` actions that end with a dwelling on the target hex; the reduction is `1 spade` per owned bridge incident to that target hex.
   - `Architects` stronghold action is implemented as a dedicated special action that moves one owned bridge to a new legal edge and grants `3 VP`; the client uses a two-step bridge-edge picker (old edge, then new edge).
   - `Treasurers` now track off-board resources via `treasuryCoins`, `treasuryWorkers`, and `treasuryPriests` on the player state and surface them on the player board header.
@@ -1371,7 +1381,7 @@
   - Town founding now records a specific town-marker hex for all standard towns, and live `select_town_tile` actions must send an explicit `anchorHex`; the client now prompts the player to choose which building gets the town tile.
   - `GameState.SelectTownTile` still accepts a nil anchor for replay / notation compatibility and deterministically falls back to the skipped Mermaids river hex or the first owned building in the pending town.
   - Mermaids river-skip towns remain anchored on the skipped river hex, not under a building.
-  - Architects bridge-move validation now checks existing towns by recorded marker hexes instead of raw `PartOfTown` connected components, so moving a bridge can be rejected based on which exact building previously received each town tile.
+  - Town anchors remain useful for replaying BGA's exact town-tile choices, but existing town markers are permanent after selection; do not reject a later Architects bridge move just because it would disconnect an already founded town marker.
   - Extra Bazel checks on `//internal/notation:notation_test`, `//internal/replay:replay_test`, and `//internal/websocket:websocket_test` currently surface unrelated pre-existing failures outside this anchor change; required `game_test`, `factions_test`, and `client_build_test` still pass.
 - 2026-04-15 fan-faction cult starts:
   - Updated the implemented fan factions to use the manually verified starting cult tracks:
@@ -1432,7 +1442,8 @@
     - `Xevoc cancels their move` after other players had already taken real turns was causing `handleCancelMove()` to delete an earlier committed `BURN1 + ACT4 (4 power -> 7 coins)` segment.
     - Cancel rollback now only removes the player's most recent committed segment when no other player's non-leech action has happened since then.
   - With the current config, table `836564785` now replays end-to-end through the final-scoring block: `382` executed actions and final totals `kezilu 168`, `Nafghar 165`, `Xevoc 159`, `LANMEEE 131`.
-  - Broad `//internal/notation:notation_test` and `//internal/replay:replay_test` runs still have unrelated failures in the current dirty tree (for example `TestBGAParser_CultistsAbilityMerge` and multiple legacy Snellman leech-ordering / final-score expectations). The targeted regressions and the `836564785` replay path pass.
+  - The earlier `TestBGAParser_CultistsAbilityMerge` regression was fixed on 2026-04-23.
+  - The legacy Snellman replay failures from missing/stale leech-offer ordering and old Cultists expectations were fixed on 2026-04-23; keep these covered with both notation/replay unit tests and websocket golden tests.
 - 2026-04-18 BGA fan-faction replay fixture `837822159` (`Wisps`, `Time Travelers`, `Dynion Geifr`, plus standard `Chaos Magicians`):
   - Config lives at `server/internal/replay/testdata/bga_837822159_config.yaml`.
   - Replay support needed explicit parsing for `Time Travellers` stronghold rows (`moves N power from Bowl I to Bowl III (Stronghold Action)`).
@@ -1453,6 +1464,37 @@
     - `Conspirators` stronghold swaps must clear any claimed cult milestone bonuses above the reduced cult level. Otherwise later retakes of the same favor tile never pay their milestone power again, which BGA does allow.
     - BGA's setup packet shows both `Conspirators` and `Djinni` start at `15 coins, 3 workers, 5/7/0 power`, not `17 coins`.
   - With those fixes, table `838140312` now replays end to end with final-scoring validation: `376` actions and final totals `Xevoc 167`, `marszej76 157`, `deragned 156`, `icebar83 146`.
+- 2026-04-21 BGA fan-faction replay fixtures `452954134`, `546240474`, and `439202939`:
+  - `452954134` (`Treasurers`, `Dynion Geifr`, `Wisps`, `Nomads`) now replays end to end after fixing Treasurers treasury timing, cult-reward banking semantics, and round-6 final-scoring reconciliation for hidden safe deposits.
+  - `546240474` (`Chash Dallah`, `Children of the Wyrm`, `Dynion Geifr`, `Halflings`) now replays end to end on the same engine without extra special-case skips.
+  - `439202939` (`Atlanteans`, `Prospectors`, `Engineers`, `Treasurers`) needed three honest fixes:
+    - parse `build a Bridge (Atlanteans Ability)` as the reusable bridge action instead of skipping it
+    - let the Atlanteans persistent stronghold-town count connected Atlanteans structures even when those structures already belong to another founded town, while still ignoring opponents' bridges
+    - charge Atlanteans the board-accurate digging upgrade cost `1W + 4C + 1P`, not the standard `2W + 5C + 1P`
+- 2026-04-23 BGA fan-faction replay fixture `717052298` (`Atlanteans`, `Children of the Wyrm`, `Conspirators`, `Architects`):
+  - Config lives at `server/internal/replay/testdata/bga_717052298_config.yaml`.
+  - Honest fixes found while replaying this table:
+    - `Children of the Wyrm` final scoring must value bowl-II power with their special burn ratio, including partial `2 bowl-II power -> 1 coin`.
+    - Atlanteans must update persistent stronghold-town threshold rewards immediately after bridge placement from normal bridge power actions and notation replay bridge actions.
+    - Architects bridge moves should not revalidate or remove already founded town markers; town markers are permanent after BGA selects them.
+    - BGA bridge-move rows, exact burn rows, and town-anchor choices must be parsed directly rather than skipped or guessed.
+  - With the current config, table `717052298` replays end to end: `309` executed actions and final totals `Superczarny 151`, `Lord Aslan 136`, `büschelnalle 132`, `BowserHugs 114`.
+- 2026-04-23 BGA fan-faction replay fixture `437123900` (`Treasurers`, `Atlanteans`, `Time Travellers`, `Dynion Geifr`) on the Lakes map:
+  - Config lives at `server/internal/replay/testdata/bga_437123900_config.yaml`.
+  - BGA `Game board: Lakes` must initialize both the replay game state and BGA coordinate parser with the Lakes map; using base-map coordinates puts actions on the wrong hexes.
+  - BGA board-name aliases such as `Base`, `Base game`, `Lakes`, and `Lake` are normalized in `board.NormalizeMapID`.
+  - The BGA parser now resolves log coordinates with `board.HexForDisplayCoordinate(mapID, coord)` and map-specific row starts; Lakes and Fire & Ice use the short-top-row staggering.
+  - BGA uses the British faction label `Time Travellers`; replay config keys should match that spelling when injecting bonus-card selections for BGA logs.
+  - With the current config, table `437123900` replays end to end: `312` executed actions and final totals `Stahlbrötchen 166`, `kandahar888 160`, `Win Lose or Draw 137`, `kaerugoro 134`.
+- 2026-04-23 Snellman replay / websocket golden regressions:
+  - Snellman source-tagged leeches can be logged after later source actions or inside compounds; replay must match pending leech offers by source player and explicit amount instead of consuming the first offer for that player.
+  - Source-tagged explicit one-power leeches (`L-Player`) are real explicit responses and should not be treated as loose hints that can consume a larger pending offer.
+  - Snellman `ACT-SH-TP-...` stronghold trading-post upgrade rows create normal adjacency leech sources.
+  - Linear replay conversion must preserve leading `+TRACK` compounds such as `+TRACK. pass`; do not backtrack Cultists track choices onto earlier source rows when replaying old fixtures.
+  - Websocket golden replays may need to execute a future recorded leech response or Cultists cult-track choice before the next logged row when the live server is blocked on a pending decision; mark pre-executed nested actions as consumed rather than auto-accepting or skipping them.
+  - Live `accept_leech` payloads may include an explicit `amount` / `powerAmount`; partial accepts split the pending offer so logged capped leeches are tested honestly.
+  - Live `select_town_tile` requires an `anchorHex`; Snellman golden tests derive that from the pending town formation instead of relying on replay-only nil-anchor fallback.
+  - As of the final full check on 2026-04-23, `bazel test //... --test_output=errors` passes all server-side targets and `//:client_build_test`; the remaining failure is `//:client_playwright_test` browser E2E coverage with UI contract issues unrelated to the replay fixes.
 - Current BGA fan-faction coverage from committed replay fixtures:
-  - Covered: `Architects`, `Archivists`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Wisps`.
-  - Still lacking a BGA replay fixture: `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Treasurers`.
+  - Covered: `Architects`, `Archivists`, `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`.
+  - Still lacking a BGA replay fixture: none among the currently implemented / requested fan factions.

@@ -8,16 +8,28 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-// ConvertLogCoordToAxial converts log notation (e.g., "D5") to axial (q, r)
-// Letter = row (A=0, B=1, ..., I=8)
-// Number = nth non-river hex in that row (1-indexed)
+// ConvertLogCoordToAxial converts base-map log notation (e.g., "D5") to axial (q, r).
 func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
+	return ConvertLogCoordToAxialForMap(board.MapBase, coord)
+}
+
+// ConvertLogCoordToAxialForMap converts map-specific display notation (e.g.,
+// "D5") to axial coordinates.
+func ConvertLogCoordToAxialForMap(mapID board.MapID, coord string) (board.Hex, error) {
 	if len(coord) < 2 {
 		return board.Hex{}, fmt.Errorf("invalid coordinate: %s", coord)
 	}
 
 	// Convert to uppercase for case-insensitive parsing
 	coord = strings.ToUpper(coord)
+
+	if mapID == "" {
+		mapID = board.MapBase
+	}
+	mapID = board.NormalizeMapID(string(mapID))
+	if hex, ok := board.HexForDisplayCoordinate(mapID, coord); ok {
+		return hex, nil
+	}
 
 	// Parse row letter
 	row := int(coord[0] - 'A')
@@ -35,8 +47,10 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 		return board.Hex{}, fmt.Errorf("hex number must be >= 1, got %d", hexNum)
 	}
 
-	// Get terrain layout
-	layout := board.BaseGameTerrainLayout()
+	layout, err := board.LayoutForMap(mapID)
+	if err != nil {
+		return board.Hex{}, err
+	}
 
 	// Find the starting q for this row
 	// Pattern from terrain_layout.go:
@@ -49,7 +63,7 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 	// Row 6: q starts at -3
 	// Row 7: q starts at -3
 	// Row 8: q starts at -4
-	startQ := -row / 2
+	startQ := mapStartQForLogCoord(mapID, row)
 
 	// Count non-river hexes until we reach the nth one
 	count := 0
@@ -69,6 +83,13 @@ func ConvertLogCoordToAxial(coord string) (board.Hex, error) {
 	}
 
 	return board.Hex{}, fmt.Errorf("hex %s not found (row %d, hex %d): only %d non-river hexes in row", coord, row, hexNum, count)
+}
+
+func mapStartQForLogCoord(mapID board.MapID, row int) int {
+	if mapID == board.MapLakes || mapID == board.MapFireAndIce {
+		return -(row + 1) / 2
+	}
+	return -row / 2
 }
 
 // ConvertRiverCoordToAxial converts BGA river notation (e.g., "R~C3") to axial coordinates.

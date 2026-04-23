@@ -359,24 +359,28 @@ func (gs *GameState) advanceTreasurersDepositQueue() {
 	gs.PendingTreasurersDepositQueue = gs.PendingTreasurersDepositQueue[1:]
 }
 
-func (gs *GameState) releaseTreasuryBeforeIncome(playerID string) {
+func (gs *GameState) releaseTreasuryBeforeIncome(playerID string) BaseIncome {
+	released := BaseIncome{}
 	player := gs.GetPlayer(playerID)
 	if !isTreasurers(player) {
-		return
+		return released
 	}
 	if player.TreasuryCoins > 0 {
-		player.Resources.Coins += player.TreasuryCoins * 2
+		released.Coins = player.TreasuryCoins * 2
+		player.Resources.Coins += released.Coins
 		player.TreasuryCoins = 0
 	}
 	if player.TreasuryWorkers > 0 {
-		player.Resources.Workers += player.TreasuryWorkers * 2
+		released.Workers = player.TreasuryWorkers * 2
+		player.Resources.Workers += released.Workers
 		player.TreasuryWorkers = 0
 	}
 	if player.TreasuryPriests > 0 {
 		treasuryPriests := player.TreasuryPriests
 		player.TreasuryPriests = 0
-		gs.GainPriests(playerID, treasuryPriests*2)
+		released.Priests = gs.GainPriests(playerID, treasuryPriests*2)
 	}
+	return released
 }
 
 func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
@@ -825,6 +829,9 @@ func (gs *GameState) areHexesDirectlyAdjacentForPlayer(playerID string, h1, h2 b
 	if gs.Map.IsDirectlyAdjacent(h1, h2) {
 		return true
 	}
+	if gs.Map.HasBridge(h1, h2) {
+		return true
+	}
 
 	player := gs.GetPlayer(playerID)
 	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
@@ -872,6 +879,71 @@ func (gs *GameState) getConnectedBuildingsForPlayer(playerID string, start board
 	}
 
 	return connected
+}
+
+func (gs *GameState) areHexesConnectedForAreaScoring(playerID string, player *Player, h1, h2 board.Hex) bool {
+	if gs.areHexesDirectlyAdjacentForPlayer(playerID, h1, h2) {
+		return true
+	}
+	if player == nil || player.Faction == nil {
+		return false
+	}
+
+	if fakir, ok := player.Faction.(*factions.Fakirs); ok {
+		return h1.Distance(h2) <= fakir.GetFlightRange()+1
+	}
+	if player.Faction.GetType() == models.FactionDwarves {
+		return h1.Distance(h2) <= 2
+	}
+
+	return gs.Map.IsIndirectlyAdjacent(h1, h2, player.ShippingLevel)
+}
+
+func (gs *GameState) getLargestConnectedAreaForPlayer(playerID string) int {
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return 0
+	}
+
+	buildingHexes := gs.getPlayerBuildingHexes(playerID)
+	if len(buildingHexes) == 0 {
+		return 0
+	}
+
+	visited := make(map[board.Hex]bool, len(buildingHexes))
+	largest := 0
+
+	for _, start := range buildingHexes {
+		if visited[start] {
+			continue
+		}
+
+		size := 0
+		queue := []board.Hex{start}
+		visited[start] = true
+
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
+			size++
+
+			for _, candidate := range buildingHexes {
+				if visited[candidate] || candidate == current {
+					continue
+				}
+				if gs.areHexesConnectedForAreaScoring(playerID, player, current, candidate) {
+					visited[candidate] = true
+					queue = append(queue, candidate)
+				}
+			}
+		}
+
+		if size > largest {
+			largest = size
+		}
+	}
+
+	return largest
 }
 
 func (gs *GameState) canPlaceChildrenPowerTokenAt(playerID string, targetHex board.Hex, planned map[board.Hex]bool) bool {
@@ -996,24 +1068,65 @@ func (gs *GameState) IsAdjacentToPlayerBuilding(targetHex board.Hex, playerID st
 	return false
 }
 
+func (gs *GameState) leechSourceBuildingsForPlayer(targetHex board.Hex, playerID string) []board.Hex {
+	sourceHexes := make([]board.Hex, 0, 4)
+	seen := make(map[board.Hex]bool)
+	addSource := func(hex board.Hex) {
+		if seen[hex] {
+			return
+		}
+		seen[hex] = true
+		sourceHexes = append(sourceHexes, hex)
+	}
+
+	for _, neighbor := range gs.Map.GetDirectNeighbors(targetHex) {
+		mapHex := gs.Map.GetHex(neighbor)
+		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+			addSource(neighbor)
+		}
+	}
+
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil || player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
+		return sourceHexes
+	}
+
+	componentByHex, _ := gs.childrenTokenComponentsForPlayer(playerID)
+	touchedComponents := gs.hexTouchesChildrenTokenComponent(playerID, targetHex, componentByHex)
+	if len(touchedComponents) == 0 {
+		return sourceHexes
+	}
+
+	for _, buildingHex := range gs.getPlayerBuildingHexes(playerID) {
+		buildingComponents := gs.hexTouchesChildrenTokenComponent(playerID, buildingHex, componentByHex)
+		for componentID := range touchedComponents {
+			if buildingComponents[componentID] {
+				addSource(buildingHex)
+				break
+			}
+		}
+	}
+
+	return sourceHexes
+}
+
 // TriggerPowerLeech triggers power leech offers for all adjacent players
 // This is called when a building is placed or upgraded
 // According to Terra Mystica rules, each adjacent player receives ONE offer equal to
 // the sum of power values from ALL their buildings adjacent to the new building
 // Special: If building player is Cultists, they get cult advance or power bonus based on responses
 func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID string) {
-	// Find all adjacent players and calculate total power from their adjacent buildings
-	neighbors := gs.Map.GetDirectNeighbors(buildingHex)
-	adjacentPlayerPower := make(map[string]int) // playerID -> total power from their adjacent buildings
-
-	for _, neighbor := range neighbors {
-		mapHex := gs.Map.GetHex(neighbor)
-		if mapHex != nil && mapHex.Building != nil {
-			neighborPlayerID := mapHex.Building.PlayerID
-			if neighborPlayerID != buildingPlayerID {
-				// Add this building's power value to the player's total
-				adjacentPlayerPower[neighborPlayerID] += mapHex.Building.PowerValue
+	adjacentPlayerPower := make(map[string]int)
+	for playerID := range gs.Players {
+		if playerID == buildingPlayerID {
+			continue
+		}
+		for _, sourceHex := range gs.leechSourceBuildingsForPlayer(buildingHex, playerID) {
+			mapHex := gs.Map.GetHex(sourceHex)
+			if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+				continue
 			}
+			adjacentPlayerPower[playerID] += mapHex.Building.PowerValue
 		}
 	}
 

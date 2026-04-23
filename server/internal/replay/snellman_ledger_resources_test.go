@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/notation"
 )
 
@@ -298,6 +299,7 @@ func runSnellmanLedgerResourcesMatchFromDir(t *testing.T, fixtureDir string, fix
 	sim := NewGameSimulator(createInitialState(items), items)
 
 	expIdx := 0
+	consumed := make([]bool, len(expected))
 	for sim.CurrentIndex < len(sim.Actions) {
 		item := sim.Actions[sim.CurrentIndex]
 		if err := sim.StepForward(); err != nil {
@@ -321,31 +323,56 @@ func runSnellmanLedgerResourcesMatchFromDir(t *testing.T, fixtureDir string, fix
 		}
 
 		// Keep expected cursor aligned to non-Cultists rows only.
-		for expIdx < len(expected) && expected[expIdx].PlayerID == "Cultists" {
-			expIdx++
-		}
+		expIdx = nextSnellmanExpectedIndex(expected, consumed, expIdx)
 		if expIdx >= len(expected) {
 			t.Fatalf("ran out of expected states at simIndex=%d action=%T", sim.CurrentIndex, ai.Action)
 		}
 
+		wantIdx := expIdx
+		outOfOrderLeech := false
 		want := expected[expIdx]
-		if gotPlayer != want.PlayerID {
-			t.Fatalf("alignment mismatch at expIdx=%d: want player=%s (snellman line %d action=%q), got player=%s action=%T",
-				expIdx, want.PlayerID, want.Line, want.Action, gotPlayer, ai.Action)
-		}
-
 		p := sim.CurrentState.GetPlayer(gotPlayer)
 		if p == nil {
 			t.Fatalf("player not found in sim state: %s", gotPlayer)
 		}
+		if gotPlayer != want.PlayerID {
+			if matchedIdx := findOutOfOrderLeechExpectedIndex(expected, consumed, expIdx, ai.Action); matchedIdx >= 0 {
+				wantIdx = matchedIdx
+				want = expected[matchedIdx]
+				outOfOrderLeech = true
+			} else if _, ok := snellmanExpectedLeechKind(want.Action); ok {
+				if matchedIdx := findUnconsumedExpectedIndexByPlayerState(expected, consumed, expIdx, gotPlayer, p); matchedIdx >= 0 {
+					wantIdx = matchedIdx
+					want = expected[matchedIdx]
+				} else {
+					t.Fatalf("alignment mismatch at expIdx=%d: want player=%s (snellman line %d action=%q), got player=%s action=%T",
+						expIdx, want.PlayerID, want.Line, want.Action, gotPlayer, ai.Action)
+				}
+			} else {
+				t.Fatalf("alignment mismatch at expIdx=%d: want player=%s (snellman line %d action=%q), got player=%s action=%T",
+					expIdx, want.PlayerID, want.Line, want.Action, gotPlayer, ai.Action)
+			}
+		}
 
-		if p.VictoryPoints != want.VP ||
-			p.Resources.Coins != want.C ||
-			p.Resources.Workers != want.W ||
-			p.Resources.Priests != want.P ||
-			p.Resources.Power.Bowl1 != want.PW1 ||
-			p.Resources.Power.Bowl2 != want.PW2 ||
-			p.Resources.Power.Bowl3 != want.PW3 {
+		if outOfOrderLeech {
+			consumed[wantIdx] = true
+			continue
+		}
+
+		if !snellmanPlayerStateMatches(p, want) {
+			_, kind, source, isLeechAction := replayLeechActionDetails(ai.Action)
+			if isLeechAction {
+				if matchedIdx := findUnconsumedLeechExpectedIndexByState(expected, consumed, expIdx, gotPlayer, kind, p); matchedIdx >= 0 {
+					consumed[matchedIdx] = true
+					continue
+				}
+				if snellmanExpectedLeechMatches(want.Action, kind, source) &&
+					findConsumedLeechExpectedIndexByState(expected, consumed, expIdx, gotPlayer, kind, p) >= 0 {
+					consumed[wantIdx] = true
+					expIdx = nextSnellmanExpectedIndex(expected, consumed, expIdx+1)
+					continue
+				}
+			}
 			t.Fatalf("state mismatch after expIdx=%d simIndex=%d player=%s snellmanLine=%d action=%q parsed=%T %#v\nwant: VP=%d C=%d W=%d P=%d PW=%d/%d/%d cult=%d/%d/%d/%d\ngot:  VP=%d C=%d W=%d P=%d PW=%d/%d/%d cult=%d/%d/%d/%d",
 				expIdx, sim.CurrentIndex, gotPlayer, want.Line, want.Action,
 				ai.Action, ai.Action,
@@ -354,27 +381,150 @@ func runSnellmanLedgerResourcesMatchFromDir(t *testing.T, fixtureDir string, fix
 				p.CultPositions[0], p.CultPositions[1], p.CultPositions[2], p.CultPositions[3],
 			)
 		}
-		if p.CultPositions[0] != want.Fire ||
-			p.CultPositions[1] != want.Water ||
-			p.CultPositions[2] != want.Earth ||
-			p.CultPositions[3] != want.Air {
-			t.Fatalf("state mismatch after expIdx=%d simIndex=%d player=%s snellmanLine=%d action=%q parsed=%T %#v\nwant: VP=%d C=%d W=%d P=%d PW=%d/%d/%d cult=%d/%d/%d/%d\ngot:  VP=%d C=%d W=%d P=%d PW=%d/%d/%d cult=%d/%d/%d/%d",
-				expIdx, sim.CurrentIndex, gotPlayer, want.Line, want.Action,
-				ai.Action, ai.Action,
-				want.VP, want.C, want.W, want.P, want.PW1, want.PW2, want.PW3, want.Fire, want.Water, want.Earth, want.Air,
-				p.VictoryPoints, p.Resources.Coins, p.Resources.Workers, p.Resources.Priests, p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3,
-				p.CultPositions[0], p.CultPositions[1], p.CultPositions[2], p.CultPositions[3],
-			)
-		}
 
-		expIdx++
+		consumed[wantIdx] = true
+		if wantIdx == expIdx {
+			expIdx = nextSnellmanExpectedIndex(expected, consumed, expIdx+1)
+		}
 	}
 
 	// Ignore trailing Cultists ledger rows when asserting expected consumption.
-	for expIdx < len(expected) && expected[expIdx].PlayerID == "Cultists" {
-		expIdx++
-	}
+	expIdx = nextSnellmanExpectedIndex(expected, consumed, expIdx)
 	if expIdx != len(expected) {
 		t.Fatalf("expected %d ledger action rows, consumed %d", len(expected), expIdx)
 	}
+}
+
+func nextSnellmanExpectedIndex(expected []snellmanExpectedState, consumed []bool, start int) int {
+	for start < len(expected) && (consumed[start] || expected[start].PlayerID == "Cultists") {
+		start++
+	}
+	return start
+}
+
+func findOutOfOrderLeechExpectedIndex(expected []snellmanExpectedState, consumed []bool, start int, action game.Action) int {
+	playerID, kind, source, ok := replayLeechActionDetails(action)
+	if !ok {
+		return -1
+	}
+	for idx := start + 1; idx < len(expected); idx++ {
+		if consumed[idx] || expected[idx].PlayerID == "Cultists" {
+			continue
+		}
+		if expected[idx].PlayerID != playerID {
+			continue
+		}
+		if snellmanExpectedLeechMatches(expected[idx].Action, kind, source) {
+			return idx
+		}
+	}
+	return -1
+}
+
+func findUnconsumedLeechExpectedIndexByState(expected []snellmanExpectedState, consumed []bool, start int, playerID string, kind string, player *game.Player) int {
+	for idx := start + 1; idx < len(expected); idx++ {
+		if consumed[idx] || expected[idx].PlayerID == "Cultists" {
+			continue
+		}
+		if expected[idx].PlayerID != playerID {
+			continue
+		}
+		if !snellmanExpectedLeechKindMatches(expected[idx].Action, kind) {
+			continue
+		}
+		if snellmanPlayerStateMatches(player, expected[idx]) {
+			return idx
+		}
+	}
+	return -1
+}
+
+func findConsumedLeechExpectedIndexByState(expected []snellmanExpectedState, consumed []bool, start int, playerID string, kind string, player *game.Player) int {
+	for idx := start + 1; idx < len(expected); idx++ {
+		if !consumed[idx] || expected[idx].PlayerID == "Cultists" {
+			continue
+		}
+		if expected[idx].PlayerID != playerID {
+			continue
+		}
+		if !snellmanExpectedLeechKindMatches(expected[idx].Action, kind) {
+			continue
+		}
+		if snellmanPlayerStateMatches(player, expected[idx]) {
+			return idx
+		}
+	}
+	return -1
+}
+
+func findUnconsumedExpectedIndexByPlayerState(expected []snellmanExpectedState, consumed []bool, start int, playerID string, player *game.Player) int {
+	for idx := start + 1; idx < len(expected); idx++ {
+		if consumed[idx] || expected[idx].PlayerID == "Cultists" {
+			continue
+		}
+		if expected[idx].PlayerID != playerID {
+			continue
+		}
+		if snellmanPlayerStateMatches(player, expected[idx]) {
+			return idx
+		}
+	}
+	return -1
+}
+
+func snellmanPlayerStateMatches(player *game.Player, want snellmanExpectedState) bool {
+	return player.VictoryPoints == want.VP &&
+		player.Resources.Coins == want.C &&
+		player.Resources.Workers == want.W &&
+		player.Resources.Priests == want.P &&
+		player.Resources.Power.Bowl1 == want.PW1 &&
+		player.Resources.Power.Bowl2 == want.PW2 &&
+		player.Resources.Power.Bowl3 == want.PW3 &&
+		player.CultPositions[0] == want.Fire &&
+		player.CultPositions[1] == want.Water &&
+		player.CultPositions[2] == want.Earth &&
+		player.CultPositions[3] == want.Air
+}
+
+func replayLeechActionDetails(action game.Action) (playerID string, kind string, source string, ok bool) {
+	switch v := action.(type) {
+	case *notation.LogAcceptLeechAction:
+		return v.PlayerID, "leech", normalizePlayerKey(v.FromPlayerID), true
+	case *notation.LogDeclineLeechAction:
+		return v.PlayerID, "decline", normalizePlayerKey(v.FromPlayerID), true
+	default:
+		return "", "", "", false
+	}
+}
+
+func snellmanExpectedLeechKindMatches(action string, kind string) bool {
+	actualKind, ok := snellmanExpectedLeechKind(action)
+	return ok && actualKind == kind
+}
+
+func snellmanExpectedLeechKind(action string) (string, bool) {
+	lower := strings.ToLower(strings.TrimSpace(action))
+	switch {
+	case strings.HasPrefix(lower, "leech "):
+		return "leech", true
+	case strings.HasPrefix(lower, "decline "):
+		return "decline", true
+	default:
+		return "", false
+	}
+}
+
+func snellmanExpectedLeechMatches(action string, kind string, source string) bool {
+	lower := strings.ToLower(strings.TrimSpace(action))
+	if !snellmanExpectedLeechKindMatches(lower, kind) {
+		return false
+	}
+	if source == "" {
+		return true
+	}
+	parts := strings.Split(lower, " from ")
+	if len(parts) != 2 {
+		return false
+	}
+	return normalizePlayerKey(parts[1]) == source
 }

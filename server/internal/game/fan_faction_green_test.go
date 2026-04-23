@@ -38,11 +38,34 @@ func TestChashDallahIncomeTrack_StartAndAdvance(t *testing.T) {
 	player.Resources.Workers = 3
 	player.ChashIncomeTrackLevel = 1
 	gs.GrantIncome()
-	if got := player.Resources.Coins; got != 15 {
-		t.Fatalf("coins after level-1 income = %d, want 15", got)
+	if got := player.Resources.Coins; got != 17 {
+		t.Fatalf("coins after level-1 income = %d, want 17", got)
 	}
 	if got := player.Resources.Workers; got != 5 {
 		t.Fatalf("workers after level-1 income = %d, want 5", got)
+	}
+}
+
+func TestChashDallahIncomeTrack_IsCumulative(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewChashDallah()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.ChashIncomeTrackLevel = 4
+	player.Resources.Coins = 0
+	player.Resources.Workers = 0
+	player.Resources.Priests = 0
+	player.Resources.Power = NewPowerSystem(0, 0, 0)
+
+	gs.GrantIncome()
+
+	if got := player.Resources.Coins; got != 6 {
+		t.Fatalf("coins after level-4 income = %d, want 6", got)
+	}
+	if got := player.Resources.Workers; got != 3 {
+		t.Fatalf("workers after level-4 income = %d, want 3", got)
 	}
 }
 

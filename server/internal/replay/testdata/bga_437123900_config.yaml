@@ -1,0 +1,46 @@
+scoring_tiles:
+  - SCORE3
+  - SCORE4
+  - SCORE6
+  - SCORE8
+  - SCORE5
+  - SCORE2
+bonus_cards:
+  - BON-SPD
+  - BON-4C
+  - BON-6C
+  - BON-BB
+  - BON-TP
+  - BON-DW
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Treasurers: BON-SPD
+    Atlanteans: BON-6C
+    "Time Travellers": BON-TP
+    "Dynion Geifr": BON-BB
+  "1":
+    Treasurers: BON-BB
+    Atlanteans: BON-SPD
+    "Time Travellers": BON-SHIP-VP
+    "Dynion Geifr": BON-4C
+  "2":
+    Treasurers: BON-6C
+    Atlanteans: BON-BB
+    "Time Travellers": BON-TP
+    "Dynion Geifr": BON-SPD
+  "3":
+    Treasurers: BON-SHIP-VP
+    Atlanteans: BON-4C
+    "Time Travellers": BON-DW
+    "Dynion Geifr": BON-BB
+  "4":
+    Treasurers: BON-TP
+    Atlanteans: BON-DW
+    "Time Travellers": BON-BB
+    "Dynion Geifr": BON-6C
+  "5":
+    Treasurers: BON-SHIP-VP
+    Atlanteans: BON-SPD
+    "Time Travellers": BON-DW
+    "Dynion Geifr": BON-TP

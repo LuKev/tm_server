@@ -275,6 +275,55 @@ Player1 builds a Dwelling for 1 workers 2 coins [D3]
 	}
 }
 
+func TestBGAParser_ArchitectsStrongholdMoveBridge(t *testing.T) {
+	content := `
+Game board: Base
+Player1 is playing the Architects Faction
+Every player has chosen a Faction
+Player1 places a Dwelling [C2]
+Player1 places a Dwelling [D4]
+~ The Factions auction is over ~
+~ Action phase ~
+Player1 moves a Bridge and scores 3 VP (Architects Stronghold) [C2-D4] → [D6-E8]
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok || action.ActionType != game.SpecialActionArchitectsMoveBridge {
+			continue
+		}
+		if action.PlayerID != "Architects" {
+			t.Fatalf("player = %s, want Architects", action.PlayerID)
+		}
+		if action.BridgeHex1 == nil || *action.BridgeHex1 != parseCoord("C2") {
+			t.Fatalf("from hex 1 = %v, want C2", action.BridgeHex1)
+		}
+		if action.BridgeHex2 == nil || *action.BridgeHex2 != parseCoord("D4") {
+			t.Fatalf("from hex 2 = %v, want D4", action.BridgeHex2)
+		}
+		if action.TargetHex == nil || *action.TargetHex != parseCoord("D6") {
+			t.Fatalf("to hex 1 = %v, want D6", action.TargetHex)
+		}
+		if action.UpgradeHex == nil || *action.UpgradeHex != parseCoord("E8") {
+			t.Fatalf("to hex 2 = %v, want E8", action.UpgradeHex)
+		}
+		return
+	}
+
+	t.Fatal("did not find Architects stronghold bridge move")
+}
+
 func TestBGAParser_GoblinsTreasureRewards(t *testing.T) {
 	content := `
 Game board: Base

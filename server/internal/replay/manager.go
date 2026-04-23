@@ -381,6 +381,10 @@ func actionMayTriggerLeechForReplay(action game.Action) bool {
 		return true
 	case *game.TransformAndBuildAction:
 		return v.BuildDwelling
+	case *notation.LogSpecialAction:
+		code := strings.ToUpper(strings.TrimSpace(v.ActionCode))
+		return strings.HasPrefix(code, "ACT-SH-D-") ||
+			strings.HasPrefix(code, "ACT-SH-TP-")
 	default:
 		return false
 	}

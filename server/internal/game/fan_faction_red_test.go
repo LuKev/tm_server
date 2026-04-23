@@ -175,7 +175,48 @@ func TestArchitectsStrongholdMoveBridgeGrantsVP(t *testing.T) {
 	}
 }
 
-func TestArchitectsStrongholdMoveBridgeCannotInvalidateTown(t *testing.T) {
+func TestArchitectsStrongholdMovedBridgeEnablesAdjacentBuild(t *testing.T) {
+	gs := NewGameState()
+	gs.Map = newRedFactionTestMap()
+	gs.TurnOrder = []string{"p1"}
+	if err := gs.AddPlayer("p1", factions.NewArchitects()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+	player.Resources.Coins = 10
+	player.Resources.Workers = 10
+
+	source := board.NewHex(0, 0)
+	oldEndpoint := board.NewHex(1, -2)
+	target := board.NewHex(1, 1)
+	for _, hex := range []board.Hex{source, oldEndpoint, target} {
+		gs.Map.GetHex(hex).Terrain = player.Faction.GetHomeTerrain()
+	}
+	gs.Map.GetHex(source).Building = testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling)
+	gs.Map.GetHex(oldEndpoint).Building = testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling)
+	gs.Map.GetHex(target).Terrain = models.TerrainDesert
+	if err := gs.Map.BuildBridge(source, oldEndpoint, "p1"); err != nil {
+		t.Fatalf("BuildBridge failed: %v", err)
+	}
+
+	move := NewArchitectsMoveBridgeAction("p1", source, oldEndpoint, source, target)
+	if err := move.Execute(gs); err != nil {
+		t.Fatalf("Architects move bridge failed: %v", err)
+	}
+	if !gs.IsAdjacentToPlayerBuilding(target, "p1") {
+		t.Fatalf("moved bridge should make empty endpoint adjacent to Architects structure")
+	}
+	if err := NewTransformAndBuildAction("p1", target, true, models.TerrainTypeUnknown).Execute(gs); err != nil {
+		t.Fatalf("TransformAndBuildAction.Execute failed: %v", err)
+	}
+	if got := gs.Map.GetHex(target).Building; got == nil || got.PlayerID != "p1" {
+		t.Fatalf("expected Architects dwelling on moved bridge endpoint")
+	}
+}
+
+func TestArchitectsStrongholdMoveBridgePreservesExistingTownMarker(t *testing.T) {
 	gs := NewGameState()
 	gs.Map = newRedFactionTestMap()
 	if err := gs.AddPlayer("p1", factions.NewArchitects()); err != nil {
@@ -206,8 +247,14 @@ func TestArchitectsStrongholdMoveBridgeCannotInvalidateTown(t *testing.T) {
 	}
 
 	action := NewArchitectsMoveBridgeAction("p1", hexB, hexC, hexB, board.NewHex(1, 1))
-	if err := action.Validate(gs); err == nil {
-		t.Fatalf("expected bridge move to be rejected because it breaks an existing town")
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("Architects bridge move should not invalidate permanent town marker: %v", err)
+	}
+	if !gs.Map.GetHex(hexB).HasTownTile {
+		t.Fatalf("town marker should remain after bridge move")
+	}
+	if !gs.Map.GetHex(hexC).PartOfTown {
+		t.Fatalf("existing town membership should remain after bridge move")
 	}
 }
 
@@ -244,11 +291,14 @@ func TestTreasurersIncomeCanBeBankedAndTreasuryDoublesNextRound(t *testing.T) {
 	if gs.PendingTreasurersDeposit == nil {
 		t.Fatalf("expected pending Treasurers income deposit")
 	}
-	if got := gs.PendingTreasurersDeposit.AvailableWorkers; got != 1 {
-		t.Fatalf("available worker income to bank = %d, want 1", got)
+	if got := gs.PendingTreasurersDeposit.AvailableCoins; got != 2 {
+		t.Fatalf("available coin income to bank = %d, want 2", got)
 	}
-	if got := gs.PendingTreasurersDeposit.AvailablePriests; got != 1 {
-		t.Fatalf("available priest income to bank = %d, want 1", got)
+	if got := gs.PendingTreasurersDeposit.AvailableWorkers; got != 3 {
+		t.Fatalf("available worker income to bank = %d, want 3", got)
+	}
+	if got := gs.PendingTreasurersDeposit.AvailablePriests; got != 3 {
+		t.Fatalf("available priest income to bank = %d, want 3", got)
 	}
 
 	if err := NewSelectTreasurersDepositAction("p1", 0, 1, 1).Execute(gs); err != nil {
@@ -361,6 +411,46 @@ func TestTreasurersStrongholdDoublesNonPowerCultRewards(t *testing.T) {
 	gs.AwardCultRewardsForRound(2)
 	if got := player.Resources.Coins; got != 8 {
 		t.Fatalf("coins after doubled temple-priest cult rewards = %d, want 8", got)
+	}
+}
+
+func TestTreasurersCultRewardQueuesIncomeDeposit(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+	player.HasStrongholdAbility = true
+
+	gs.grantCultReward("p1", player, CultRewardWorker, 2)
+
+	if gs.PendingTreasurersDeposit == nil {
+		t.Fatalf("expected pending Treasurers deposit after cult reward")
+	}
+	if got := gs.PendingTreasurersDeposit.AvailableWorkers; got != 4 {
+		t.Fatalf("available workers to bank after doubled cult reward = %d, want 4", got)
+	}
+	if got := gs.PendingTreasurersDeposit.Reason; got != "cult_reward" {
+		t.Fatalf("deposit reason = %q, want cult_reward", got)
+	}
+}
+
+func TestTreasurersCultRewardWithoutStrongholdDoesNotQueueDeposit(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	player := gs.GetPlayer("p1")
+
+	gs.grantCultReward("p1", player, CultRewardCoin, 4)
+
+	if gs.PendingTreasurersDeposit != nil {
+		t.Fatalf("did not expect pending Treasurers deposit without stronghold ability")
+	}
+	if got := player.Resources.Coins; got != 19 {
+		t.Fatalf("coins after cult reward = %d, want 19", got)
 	}
 }
 

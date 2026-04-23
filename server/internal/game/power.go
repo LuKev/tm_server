@@ -110,6 +110,21 @@ func (ps *PowerSystem) BurnPower(amount int) error {
 	return nil
 }
 
+// BurnPowerExact applies a logged burn with explicit sacrificed and moved
+// counts: Bowl II loses both counts, and only the moved tokens enter Bowl III.
+func (ps *PowerSystem) BurnPowerExact(sacrificed, moved int) error {
+	if sacrificed < 0 || moved < 0 {
+		return fmt.Errorf("cannot burn negative power")
+	}
+	cost := sacrificed + moved
+	if cost > ps.Bowl2 {
+		return fmt.Errorf("cannot burn exact %d sacrificed and %d moved, need %d in Bowl 2 but only have %d", sacrificed, moved, cost, ps.Bowl2)
+	}
+	ps.Bowl2 -= cost
+	ps.Bowl3 += moved
+	return nil
+}
+
 // CanBurn checks if the player can burn power to get the specified amount in Bowl 3
 func (ps *PowerSystem) CanBurn(amount int) bool {
 	return ps.Bowl2 >= (amount * 2)

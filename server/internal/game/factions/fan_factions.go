@@ -12,6 +12,7 @@ type configuredFaction struct {
 	sanctuaryIncome    Income
 	strongholdIncome   Income
 	fixedTerraformCost *int
+	diggingCost        *Cost
 	dwellingCost       *Cost
 	tradingHouseCost   *Cost
 	templeCost         *Cost
@@ -59,6 +60,13 @@ func (f *configuredFaction) GetDwellingCost() Cost {
 		return *f.dwellingCost
 	}
 	return f.BaseFaction.GetDwellingCost()
+}
+
+func (f *configuredFaction) GetDiggingCost(currentLevel int) Cost {
+	if f.diggingCost != nil {
+		return *f.diggingCost
+	}
+	return f.BaseFaction.GetDiggingCost(currentLevel)
 }
 
 func (f *configuredFaction) GetTradingHouseCost() Cost {
@@ -234,10 +242,11 @@ func NewArchivists() Faction {
 
 func NewAtlanteans() Faction {
 	sanctuaryCost := Cost{Coins: 8, Workers: 4}
-	return newConfiguredFaction(
+	diggingCost := Cost{Coins: 4, Workers: 1, Priests: 1}
+	faction := newConfiguredFaction(
 		models.FactionAtlanteans,
 		models.TerrainLake,
-		fanFactionStartingResources(3, 15, 1, 11),
+		fanFactionStartingResources(3, 15, 11, 1),
 		CultPositions{Fire: 1, Water: 1},
 		Income{Workers: 1},
 		standardDwellingIncomeSeq,
@@ -248,6 +257,8 @@ func NewAtlanteans() Faction {
 		nil,
 		nil, nil, nil, &sanctuaryCost, nil,
 	)
+	faction.diggingCost = &diggingCost
+	return faction
 }
 
 func NewChashDallah() Faction {
@@ -269,7 +280,8 @@ func NewChashDallah() Faction {
 }
 
 func NewChildrenOfTheWyrm() Faction {
-	sanctuaryCost := Cost{Coins: 5, Workers: 4}
+	templeCost := Cost{Coins: 8, Workers: 2}
+	sanctuaryCost := Cost{Coins: 10, Workers: 4}
 	strongholdCost := Cost{Coins: 10, Workers: 4}
 	return newConfiguredFaction(
 		models.FactionChildrenOfTheWyrm,
@@ -283,7 +295,7 @@ func NewChildrenOfTheWyrm() Faction {
 		Income{Priests: 1},
 		Income{Power: 4},
 		nil,
-		nil, nil, nil, &sanctuaryCost, &strongholdCost,
+		nil, nil, &templeCost, &sanctuaryCost, &strongholdCost,
 	)
 }
 

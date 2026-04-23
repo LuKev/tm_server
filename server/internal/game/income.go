@@ -24,16 +24,16 @@ type BaseIncome struct {
 }
 
 func chashIncomeTrackIncome(level int) BaseIncome {
-	switch level {
-	case 0:
-		return BaseIncome{Coins: 2}
-	case 1, 3:
-		return BaseIncome{Workers: 1}
-	case 2, 4:
-		return BaseIncome{Coins: 2}
-	default:
-		return BaseIncome{}
+	income := BaseIncome{Coins: 2}
+	for step := 1; step <= level; step++ {
+		switch step {
+		case 1, 3:
+			income.Workers++
+		case 2, 4:
+			income.Coins += 2
+		}
 	}
+	return income
 }
 
 // GrantIncome grants income to all players at the start of a round
@@ -45,10 +45,16 @@ func (gs *GameState) GrantIncome() {
 	// gets 1 spade reward, and can use it in round 6
 
 	for _, player := range gs.Players {
-		gs.releaseTreasuryBeforeIncome(player.ID)
+		released := gs.releaseTreasuryBeforeIncome(player.ID)
 		income := calculatePlayerIncome(gs, player)
 		applied := applyIncome(gs, player, income)
-		gs.queueTreasurersDeposit(player.ID, applied.Coins, applied.Workers, applied.Priests, "income")
+		gs.queueTreasurersDeposit(
+			player.ID,
+			released.Coins+applied.Coins,
+			released.Workers+applied.Workers,
+			released.Priests+applied.Priests,
+			"income",
+		)
 	}
 }
 
