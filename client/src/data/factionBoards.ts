@@ -16,7 +16,7 @@ export interface BuildingSlot {
     } | null; // null means no income (e.g. last dwelling often has none, or just reveals nothing)
 }
 
-export interface FactionBoardLayout {
+interface FactionBoardLayout {
     dwellings: BuildingSlot[];     // 8 slots
     tradingHouses: BuildingSlot[]; // 4 slots
     temples: BuildingSlot[];       // 3 slots

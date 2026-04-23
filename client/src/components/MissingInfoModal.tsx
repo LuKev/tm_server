@@ -8,7 +8,7 @@ export interface MissingInfo {
     PlayerFactions: Record<string, boolean>;
 }
 
-export interface MissingInfoData {
+interface MissingInfoData {
     scoringTiles: string[];
     bonusCards: string[];
     bonusCardSelections: Record<string, Record<string, string>>;

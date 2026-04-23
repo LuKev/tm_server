@@ -97,12 +97,6 @@ export const PowerCircleIcon = ({ className, style }: { className?: string, styl
     />
 );
 
-export const CultIcon = ({ className }: { className?: string }): React.ReactElement => (
-    <div className={className} style={{ borderRadius: '50%', backgroundColor: '#E5E7EB', border: '0.15em solid #5C4033', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '0.75rem', aspectRatio: '1 / 1', color: '#5C4033' }}>
-        C
-    </div>
-);
-
 export const CultRhombusIcon = ({ className, showNumber = false }: { className?: string, showNumber?: boolean }): React.ReactElement => {
     // Rhombus where circles just touch at their borders (not intersecting)
     // Using em units for responsive scaling
@@ -133,11 +127,6 @@ export const CultRhombusIcon = ({ className, showNumber = false }: { className?:
         </div>
     );
 };
-export const VPIcon = ({ className, children }: { className?: string, children?: React.ReactNode }): React.ReactElement => (
-    <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#D4B483', border: '0.15em solid #5C4033', borderRadius: '50%', width: '1.5em', height: '1.5em', fontWeight: 'bold', fontSize: '1em', color: '#5C4033' }}>
-        {children ?? 'VP'}
-    </div>
-);
 
 export const CultActionIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
     <div className={className} style={{ position: 'relative', aspectRatio: '1/1', ...style }}>

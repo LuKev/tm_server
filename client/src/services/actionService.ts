@@ -1,7 +1,7 @@
 import { useWebSocket } from './WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
 
-export interface PerformActionPayload {
+interface PerformActionPayload {
   type: string
   gameID: string
   actionId: string
@@ -9,7 +9,7 @@ export interface PerformActionPayload {
   params?: Record<string, unknown>
 }
 
-export interface ActionMessage {
+interface ActionMessage {
   type: 'perform_action'
   payload: PerformActionPayload
 }

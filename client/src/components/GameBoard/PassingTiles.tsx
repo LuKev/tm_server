@@ -48,7 +48,7 @@ const shouldShowDivider = (type: BonusCardType): boolean => {
     }
 };
 
-export const BonusCardContent: React.FC<{
+const BonusCardContent: React.FC<{
     type: BonusCardType;
     isUsed?: boolean;
     coins?: number;

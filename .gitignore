@@ -3,6 +3,8 @@ node_modules/
 
 # Build artifacts
 bazel-*
+server/server
+server/bga_test
 **/.DS_Store
 
 # Local env
@@ -11,6 +13,11 @@ bazel-*
 # E2E generated outputs
 client/e2e/artifacts/
 client/test-results/
+
+# Generated/imported replay scratch data
+scripts/bga_log.txt
+scripts/game_*.txt
+test_data/
 
 # Project docs to ignore
 IMPLEMENTATION_PLAN.md

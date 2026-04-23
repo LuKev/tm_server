@@ -5,7 +5,7 @@ export interface AxialCoord {
   r: number;
 }
 
-export interface PixelCoord {
+interface PixelCoord {
   x: number;
   y: number;
 }
@@ -75,87 +75,10 @@ export function hexCenter(row: number, col: number, hasA1 = true): PixelCoord {
   };
 }
 
-/**
- * Convert axial coordinates to row/col used in terra-mystica layout
- */
-export function axialToRowCol(coord: AxialCoord): { row: number; col: number } {
-  // Terra Mystica uses row/col notation, need to map from axial
-  // This mapping depends on your specific layout
-  return {
-    row: coord.r,
-    col: coord.q,
-  };
-}
-
 export function getDisplayCoordinate(coord: AxialCoord, labels?: Map<string, string>): string | null {
   return labels?.get(`${String(coord.q)},${String(coord.r)}`) ?? null
 }
 
 export function formatDisplayCoordinate(coord: AxialCoord, labels?: Map<string, string>): string {
   return getDisplayCoordinate(coord, labels) ?? `(${String(coord.q)}, ${String(coord.r)})`
-}
-
-/**
- * Get hex corners for drawing
- * Based on terra-mystica/stc/game.js makeHexPath
- */
-export function getHexCorners(center: PixelCoord, size = HEX_SIZE): PixelCoord[] {
-  const corners: PixelCoord[] = [];
-  let x = center.x - Math.cos(Math.PI / 6) * size;
-  let y = center.y + Math.sin(Math.PI / 6) * size;
-  let angle = 0;
-
-  for (let i = 0; i < 6; i++) {
-    corners.push({ x, y });
-    angle += Math.PI / 3;
-    x += Math.sin(angle) * size;
-    y += Math.cos(angle) * size;
-  }
-
-  return corners;
-}
-
-/**
- * Get neighboring hexes
- */
-export function getNeighbors(coord: AxialCoord): AxialCoord[] {
-  const directions = [
-    { q: 1, r: 0 },
-    { q: 1, r: -1 },
-    { q: 0, r: -1 },
-    { q: -1, r: 0 },
-    { q: -1, r: 1 },
-    { q: 0, r: 1 },
-  ];
-
-  return directions.map(dir => ({
-    q: coord.q + dir.q,
-    r: coord.r + dir.r,
-  }));
-}
-
-/**
- * Calculate distance between two hexes
- */
-export function distance(a: AxialCoord, b: AxialCoord): number {
-  return (
-    Math.abs(a.q - b.q) +
-    Math.abs(a.q + a.r - b.q - b.r) +
-    Math.abs(a.r - b.r)
-  ) / 2;
-}
-
-/**
- * Convert coordinate to string key for maps/sets
- */
-export function coordToKey(coord: AxialCoord): string {
-  return `${String(coord.q)},${String(coord.r)}`;
-}
-
-/**
- * Parse coordinate from string key
- */
-export function keyToCoord(key: string): AxialCoord {
-  const [q, r] = key.split(',').map(Number);
-  return { q, r };
 }

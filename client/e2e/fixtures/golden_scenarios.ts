@@ -1,9 +1,9 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-export type GoldenScenarioMode = 'smoke' | 'nightly'
+type GoldenScenarioMode = 'smoke' | 'nightly'
 
-export type GoldenScenario = {
+type GoldenScenario = {
   id: string
   scriptPath: string
   mode: GoldenScenarioMode

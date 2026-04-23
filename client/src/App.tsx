@@ -2,15 +2,12 @@ import { BrowserRouter as Router, Route, Routes, useLocation } from 'react-route
 import { WebSocketProvider } from './services/WebSocketContext';
 import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
-import { MapTest } from './components/MapTest';
-import { CultTracksTest } from './components/CultTracks/CultTracksTest';
 import { Replay } from './components/Replay';
 import { ImportGame } from './components/ImportGame';
 import './App.css'
 
 function AppShell(): React.ReactElement {
   const location = useLocation();
-  const showTestRoutes = import.meta.env.DEV
   const isPlainGameShell = location.pathname.startsWith('/game/') || location.pathname.startsWith('/replay/');
 
   return (
@@ -28,8 +25,6 @@ function AppShell(): React.ReactElement {
         <Route path="/import" element={<ImportGame />} />
         <Route path="/game/:gameId" element={<Game />} />
         <Route path="/replay/:gameId" element={<Replay />} />
-        {showTestRoutes && <Route path="/maptest" element={<MapTest />} />}
-        {showTestRoutes && <Route path="/culttrackstest" element={<CultTracksTest />} />}
       </Routes>
     </div>
   );

@@ -1,5 +1,10 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-23 cleanup pass:
+  - Removed stale client-only dev test routes `/maptest` and `/culttrackstest`, along with their obsolete SVG hex renderer files. The maintained board renderer is `client/src/components/GameBoard/HexGridCanvas.tsx`.
+  - Removed tracked local build/scratch artifacts: `server/server`, `server/bga_test`, `scripts/game_*.txt`, and the old root `test_data/` replay scratch directory. Replay fixtures that should stay under test should live in package-scoped `server/internal/**/testdata/` and be wired into Bazel data.
+  - `.gitignore` now excludes those local binary/log/scratch outputs so Bazel builds and fetched BGA logs do not get re-added accidentally.
+
 - 2026-04-18 Railway server build gotcha:
   - Railway currently builds the backend with direct `go build -o out ./cmd/server`, but local verification in this repo should still use Bazel, with `bazel build //cmd/server:server` as the quickest compile check.
   - `server/internal/websocket/client.go` keeps request-param parser helpers (`parseIntParam`, `parseOptionalIntParam`, `parseBridgeEndpoints`) as closures inside `buildActionFromPayload`; if `buildSpecialAction` needs one of those helpers, it must receive it explicitly rather than calling an out-of-scope name.

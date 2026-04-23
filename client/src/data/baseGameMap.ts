@@ -138,13 +138,3 @@ export const BASE_GAME_MAP: MapHexData[] = [
   { coord: { q: 7, r: 8 }, terrain: TerrainType.Forest, isRiver: false },
   { coord: { q: 8, r: 8 }, terrain: TerrainType.Wasteland, isRiver: false },
 ];
-
-// Helper to get map as a dictionary keyed by "q,r"
-export function getMapDictionary(): Map<string, MapHexData> {
-  const dict = new Map<string, MapHexData>();
-  BASE_GAME_MAP.forEach(hex => {
-    const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
-    dict.set(key, hex);
-  });
-  return dict;
-}

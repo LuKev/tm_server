@@ -48,7 +48,7 @@ export const FACTION_COLORS: Record<FactionType, string> = {
 };
 
 // Contrast colors for text/borders
-export const CONTRAST_COLORS: Record<string, string> = {
+const CONTRAST_COLORS: Record<string, string> = {
   '#f4d03f': '#000',  // Yellow -> Black
   '#c8956b': '#000',  // Brown -> Black
   '#2c2c2c': '#fff',  // Black -> White

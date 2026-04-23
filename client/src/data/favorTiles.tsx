@@ -2,7 +2,7 @@ import React from 'react';
 import { CultType, FavorTileType } from '../types/game.types';
 import { CoinIcon, WorkerIcon, PowerIcon, DwellingIcon, TradingHouseIcon, CultActionIcon } from '../components/shared/Icons';
 
-export interface FavorTileData {
+interface FavorTileData {
     id: string;
     type: FavorTileType;
     cult: CultType;

@@ -29,11 +29,10 @@ src/
 │   │   ├── HexGridCanvas.tsx    # Canvas hex renderer (ported from game.js)
 │   │   └── GameBoard.tsx        # Main game container
 │   ├── CultTracks/
-│   │   ├── CultTracks.tsx       # Cult track rendering
-│   │   └── CultTracksTest.tsx   # Test page
+│   │   └── CultTracks.tsx       # Cult track rendering
 │   ├── Game.tsx                 # Full game view (board + cult tracks)
-│   ├── Lobby.tsx                # Game lobby
-│   └── MapTest.tsx              # Interactive map testing
+│   ├── ImportGame.tsx           # Replay import flow
+│   └── Lobby.tsx                # Game lobby
 ├── types/
 │   └── game.types.ts            # TypeScript types (mirrors Go backend)
 ├── utils/
@@ -62,10 +61,9 @@ src/
   - Bonus tiles with power values and faction-colored priests
   - Integrated sidebar layout adjacent to game board
 
-- **Test Pages**
-  - Map test with interactive controls
-  - Cult tracks test with sample data
-  - Full game view with proper layout
+- **Replay Import**
+  - Snellman and BGA log import flows
+  - Replay stepping and missing-info handling
 
 ### 🚧 In Progress
 
@@ -83,18 +81,12 @@ Based on `terra-mystica/stc/game.js` with direct port of drawing logic to TypeSc
 - **Component Architecture**: React components with Zustand state management
 - **Type Safety**: Full TypeScript integration with Go backend types
 
-## 📖 Documentation
-
-- [Implementation Notes](./IMPLEMENTATION_NOTES.md) - Detailed technical documentation
-- [Quick Start Guide](./QUICKSTART.md) - Development setup and approach
-- [Map Test Guide](./MAP_TEST_GUIDE.md) - Testing instructions
-
 ## 🌐 Available Routes
 
 - `/` - Game lobby
+- `/import` - Import replay
 - `/game/:id` - Main game view
-- `/maptest` - Interactive map testing (development only)
-- `/culttrackstest` - Cult tracks testing (development only)
+- `/replay/:id` - Replay view
 
 ## Expanding the ESLint configuration
 

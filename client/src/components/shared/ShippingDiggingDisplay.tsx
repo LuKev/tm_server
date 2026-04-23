@@ -2,7 +2,7 @@ import React from 'react';
 import { FactionType } from '../../types/game.types';
 import { ShippingIcon, SpadeIcon } from './Icons';
 
-export type ShippingDiggingDisplayProps = {
+type ShippingDiggingDisplayProps = {
   factionType: FactionType;
   shipping: number;
   diggingLevel: number;
