@@ -1851,6 +1851,8 @@ func maxDiggingLevelForFaction(factionType models.FactionType) (int, error) {
 		return 0, fmt.Errorf("darklings cannot advance digging level")
 	case models.FactionChashDallah:
 		return 0, fmt.Errorf("chash dallah cannot advance digging level")
+	case models.FactionTimeTravelers:
+		return 0, fmt.Errorf("time travelers cannot advance digging level")
 	case models.FactionFakirs:
 		return 1, nil
 	default:

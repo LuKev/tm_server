@@ -1500,6 +1500,9 @@
   - Live `accept_leech` payloads may include an explicit `amount` / `powerAmount`; partial accepts split the pending offer so logged capped leeches are tested honestly.
   - Live `select_town_tile` requires an `anchorHex`; Snellman golden tests derive that from the pending town formation instead of relying on replay-only nil-anchor fallback.
   - As of the final full check on 2026-04-23, `bazel test //... --test_output=errors` passes all server-side targets and `//:client_build_test`; the remaining failure is `//:client_playwright_test` browser E2E coverage with UI contract issues unrelated to the replay fixes.
+- 2026-04-23 Time Travelers digging rule:
+  - `Time Travelers` are now engine-blocked from `AdvanceDiggingAction`, matching the existing UI expectation that they have no upgradable digging track.
+  - Regression coverage lives in `server/internal/game/fan_faction_brown_test.go`.
 - Current BGA fan-faction coverage from committed replay fixtures:
   - Covered: `Architects`, `Archivists`, `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`.
   - Still lacking a BGA replay fixture: none among the currently implemented / requested fan factions.

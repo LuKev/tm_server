@@ -289,6 +289,18 @@ func TestTimeTravelersStrongholdActionMovesPowerFromBowlOneToThree(t *testing.T)
 	}
 }
 
+func TestTimeTravelersCannotAdvanceDigging(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewTimeTravelers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	err := NewAdvanceDiggingAction("p1").Validate(gs)
+	if err == nil || err.Error() != "time travelers cannot advance digging level" {
+		t.Fatalf("Validate error = %v, want time travelers digging rejection", err)
+	}
+}
+
 func TestProspectorsCanUseStrongholdActionOnBuildTurn(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewProspectors()); err != nil {
