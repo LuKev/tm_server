@@ -23,6 +23,8 @@ type GameState struct {
 	Phase                            GamePhase                             `json:"phase"`
 	SetupMode                        SetupMode                             `json:"setupMode"`
 	EnableFanFactions                bool                                  `json:"enableFanFactions"`
+	FireIceFinalScoringSetting       FireIceFinalScoringSetting            `json:"fireIceFinalScoringSetting"`
+	FireIceFinalScoringTile          FireIceFinalScoringTile               `json:"fireIceFinalScoringTile,omitempty"`
 	SetupSubphase                    SetupSubphase                         `json:"setupSubphase"`
 	AuctionState                     *AuctionState                         `json:"auctionState,omitempty"`
 	SetupDwellingOrder               []string                              `json:"setupDwellingOrder"`
@@ -190,6 +192,27 @@ const (
 	SetupModeSnellman    SetupMode = "snellman"
 	SetupModeAuction     SetupMode = "auction"
 	SetupModeFastAuction SetupMode = "fast_auction"
+)
+
+// FireIceFinalScoringSetting controls whether the Fire & Ice extra final scoring
+// is disabled, enabled, or randomized at game start.
+type FireIceFinalScoringSetting string
+
+const (
+	FireIceFinalScoringOff    FireIceFinalScoringSetting = "off"
+	FireIceFinalScoringOn     FireIceFinalScoringSetting = "on"
+	FireIceFinalScoringRandom FireIceFinalScoringSetting = "random"
+)
+
+// FireIceFinalScoringTile represents the resolved Fire & Ice extra end-game tile.
+type FireIceFinalScoringTile string
+
+const (
+	FireIceFinalScoringTileNone                FireIceFinalScoringTile = ""
+	FireIceFinalScoringTileGreatestDistance    FireIceFinalScoringTile = "distance"
+	FireIceFinalScoringTileStrongholdSanctuary FireIceFinalScoringTile = "stronghold_sanctuary"
+	FireIceFinalScoringTileOutposts            FireIceFinalScoringTile = "edge"
+	FireIceFinalScoringTileSettlements         FireIceFinalScoringTile = "cluster"
 )
 
 // TurnOrderPolicy controls how next-round turn order is derived after passing.
@@ -537,6 +560,8 @@ func newGameStateWithBoard(gameMap *board.TerraMysticaMap) *GameState {
 		Round:                        1,
 		Phase:                        PhaseSetup,
 		SetupMode:                    SetupModeSnellman,
+		FireIceFinalScoringSetting:   FireIceFinalScoringOff,
+		FireIceFinalScoringTile:      FireIceFinalScoringTileNone,
 		SetupSubphase:                SetupSubphaseNone,
 		TurnOrderPolicy:              TurnOrderPolicyPassOrder,
 		PowerActions:                 NewPowerActionState(),

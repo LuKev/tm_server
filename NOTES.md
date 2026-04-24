@@ -1,5 +1,23 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-23 Fire & Ice extra final scoring:
+  - Official expansion rulebook source used for the four extra end-game tiles: `https://images.zmangames.com/filer_public/bf/d8/bfd8d8cb-6d92-4c17-86ea-b1a9fa90e1aa/zm7242_terra_mystica_fire_ice_rules.pdf`
+  - Added a per-table lobby option `fireIceScoring` with values:
+    - `off`
+    - `on`
+    - `random` (`50%` extra scoring on, `50%` off)
+  - The actual Fire & Ice tile is resolved once at game creation/start time and serialized on game state as `fireIceFinalScoringTile`.
+  - Implemented tile mappings:
+    - `distance` = Greatest Distance
+    - `stronghold_sanctuary` = Stronghold / Sanctuary distance
+    - `edge` = Outposts (connected border structures)
+    - `cluster` = Settlements
+  - Implementation details:
+    - Fire & Ice VP uses the same `18/12/6` ranking and tie-splitting as normal area scoring.
+    - Only players with a positive metric participate in the Fire & Ice award ranks.
+    - Distance metrics are computed as shortest map-space distance between structures on valid board hexes.
+    - Settlement counting uses direct-adjacency clusters inside one connected area-scoring component; Mermaid river-town tiles also merge structures across the scored river hex into one settlement, per the rulebook note.
+
 - 2026-04-23 cleanup pass:
   - Removed stale client-only dev test routes `/maptest` and `/culttrackstest`, along with their obsolete SVG hex renderer files. The maintained board renderer is `client/src/components/GameBoard/HexGridCanvas.tsx`.
   - Removed tracked local build/scratch artifacts: `server/server`, `server/bga_test`, `scripts/game_*.txt`, and the old root `test_data/` replay scratch directory. Replay fixtures that should stay under test should live in package-scoped `server/internal/**/testdata/` and be wired into Bazel data.

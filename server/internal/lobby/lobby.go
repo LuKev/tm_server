@@ -26,6 +26,7 @@ type GameMeta struct {
 	Host              string                     `json:"host"`
 	MapID             string                     `json:"mapId"`
 	EnableFanFactions bool                       `json:"enableFanFactions"`
+	FireIceScoring    string                     `json:"fireIceScoring"`
 	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
 	Players           []string                   `json:"players"`
 	MaxPlayers        int                        `json:"maxPlayers"`
@@ -61,7 +62,7 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition, enableFanFactions bool) (*GameMeta, error) {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition, enableFanFactions bool, fireIceScoring string) (*GameMeta, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -88,12 +89,17 @@ func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID str
 	if normalizedMapID == "" {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidMap, strings.TrimSpace(mapID))
 	}
+	fireIceScoring = strings.TrimSpace(fireIceScoring)
+	if fireIceScoring == "" {
+		fireIceScoring = "off"
+	}
 	g := &GameMeta{
 		ID:                id,
 		Name:              name,
 		Host:              host,
 		MapID:             string(normalizedMapID),
 		EnableFanFactions: enableFanFactions,
+		FireIceScoring:    fireIceScoring,
 		CustomMap:         board.CloneCustomMapDefinition(customMap),
 		MaxPlayers:        maxPlayers,
 		CreatedAt:         time.Now(),

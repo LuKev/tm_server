@@ -37,6 +37,11 @@
   opacity: 0.5;
 }
 
+.scoring-tile.fire-ice-scoring-tile {
+  border-color: #1f2937;
+  background: linear-gradient(135deg, #e0f2fe 0%, #fff7ed 100%);
+}
+
 .tile-section {
   flex: 1;
   display: flex;
@@ -68,6 +73,19 @@
   font-size: 0.875rem;
   /* text-sm */
   font-style: italic;
+}
+
+.fire-ice-scoring-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+  text-align: center;
+}
+
+.fire-ice-scoring-label {
+  font-weight: 700;
+  color: #111827;
 }
 
 /* Icon sizing helpers */

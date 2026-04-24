@@ -444,6 +444,8 @@ export const Replay = (): React.ReactElement => {
                                         : (gameState?.scoringTiles?.tiles.map(t => t.type) ?? [])
                                 }
                                 currentRound={gameState?.round.round ?? 1}
+                                fireIceFinalScoringSetting={gameState?.fireIceFinalScoringSetting}
+                                fireIceFinalScoringTile={gameState?.fireIceFinalScoringTile}
                             />
                         </div>
                     </div>

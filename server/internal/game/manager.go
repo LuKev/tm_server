@@ -19,6 +19,7 @@ type CreateGameOptions struct {
 	TurnTimer          *TurnTimerConfig
 	MapID              board.MapID
 	EnableFanFactions  bool
+	FireIceScoring     FireIceFinalScoringSetting
 	CustomMap          *board.CustomMapDefinition
 }
 
@@ -870,6 +871,9 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	}
 	gs.SetupMode = setupMode
 	gs.EnableFanFactions = opts.EnableFanFactions
+	fireIceSetting := normalizeFireIceFinalScoringSetting(opts.FireIceScoring)
+	gs.FireIceFinalScoringSetting = fireIceSetting
+	gs.FireIceFinalScoringTile = resolveFireIceFinalScoringTile(fireIceSetting, rand.New(rand.NewSource(time.Now().UnixNano())))
 
 	if err := gs.ScoringTiles.InitializeForGame(); err != nil {
 		return fmt.Errorf("failed to initialize scoring tiles: %w", err)
@@ -909,6 +913,38 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	m.revisions[id] = 0
 	m.appliedActionID[id] = make(map[string]int)
 	return nil
+}
+
+func normalizeFireIceFinalScoringSetting(setting FireIceFinalScoringSetting) FireIceFinalScoringSetting {
+	switch setting {
+	case FireIceFinalScoringOn, FireIceFinalScoringRandom:
+		return setting
+	case "", FireIceFinalScoringOff:
+		return FireIceFinalScoringOff
+	default:
+		return FireIceFinalScoringOff
+	}
+}
+
+func resolveFireIceFinalScoringTile(setting FireIceFinalScoringSetting, rng *rand.Rand) FireIceFinalScoringTile {
+	setting = normalizeFireIceFinalScoringSetting(setting)
+	if setting == FireIceFinalScoringOff {
+		return FireIceFinalScoringTileNone
+	}
+	if rng == nil {
+		rng = rand.New(rand.NewSource(time.Now().UnixNano()))
+	}
+	if setting == FireIceFinalScoringRandom && rng.Intn(2) == 0 {
+		return FireIceFinalScoringTileNone
+	}
+
+	tiles := []FireIceFinalScoringTile{
+		FireIceFinalScoringTileStrongholdSanctuary,
+		FireIceFinalScoringTileOutposts,
+		FireIceFinalScoringTileSettlements,
+		FireIceFinalScoringTileGreatestDistance,
+	}
+	return tiles[rng.Intn(len(tiles))]
 }
 
 // SerializeGameState converts GameState to a JSON-friendly format for the frontend.
@@ -1047,21 +1083,23 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 	}
 
 	return map[string]interface{}{
-		"id":                   gameID,
-		"revision":             revision,
-		"mapId":                gs.Map.ID,
-		"enableFanFactions":    gs.EnableFanFactions,
-		"phase":                gs.Phase,
-		"setupMode":            gs.SetupMode,
-		"turnOrderPolicy":      gs.TurnOrderPolicy,
-		"setupSubphase":        gs.SetupSubphase,
-		"setupDwellingOrder":   gs.SetupDwellingOrder,
-		"setupDwellingIndex":   gs.SetupDwellingIndex,
-		"setupBonusOrder":      gs.SetupBonusOrder,
-		"setupBonusIndex":      gs.SetupBonusIndex,
-		"setupPlacedDwellings": gs.SetupPlacedDwellings,
-		"currentTurn":          gs.CurrentPlayerIndex,
-		"players":              players,
+		"id":                         gameID,
+		"revision":                   revision,
+		"mapId":                      gs.Map.ID,
+		"enableFanFactions":          gs.EnableFanFactions,
+		"fireIceFinalScoringSetting": gs.FireIceFinalScoringSetting,
+		"fireIceFinalScoringTile":    gs.FireIceFinalScoringTile,
+		"phase":                      gs.Phase,
+		"setupMode":                  gs.SetupMode,
+		"turnOrderPolicy":            gs.TurnOrderPolicy,
+		"setupSubphase":              gs.SetupSubphase,
+		"setupDwellingOrder":         gs.SetupDwellingOrder,
+		"setupDwellingIndex":         gs.SetupDwellingIndex,
+		"setupBonusOrder":            gs.SetupBonusOrder,
+		"setupBonusIndex":            gs.SetupBonusIndex,
+		"setupPlacedDwellings":       gs.SetupPlacedDwellings,
+		"currentTurn":                gs.CurrentPlayerIndex,
+		"players":                    players,
 		"map": map[string]interface{}{
 			"id":      gs.Map.ID,
 			"hexes":   hexes,

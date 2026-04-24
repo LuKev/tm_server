@@ -15,6 +15,7 @@ interface GameInfo {
   host: string
   mapId: string
   enableFanFactions?: boolean
+  fireIceScoring?: 'off' | 'on' | 'random'
   customMap?: CustomMapDefinition
   started?: boolean
   players: string[]
@@ -79,6 +80,7 @@ export function Lobby(): React.ReactElement {
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
   const [enableFanFactions, setEnableFanFactions] = useState(false)
+  const [fireIceScoring, setFireIceScoring] = useState<'off' | 'on' | 'random'>('off')
   const [lobbyError, setLobbyError] = useState<string | null>(null)
 
   const trimmedPlayerName = playerName.trim()
@@ -146,6 +148,7 @@ export function Lobby(): React.ReactElement {
         creator: trimmedPlayerName,
         mapId: newGameMapId,
         enableFanFactions,
+        fireIceScoring,
         customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
       },
     })
@@ -317,6 +320,21 @@ export function Lobby(): React.ReactElement {
                 <span>Enable fan factions</span>
               </label>
 
+              <label className="lobby-field-stack">
+                <span className="lobby-label">Fire &amp; Ice final scoring</span>
+                <select
+                  data-testid="lobby-fire-ice-scoring"
+                  value={fireIceScoring}
+                  onChange={(e) => { setFireIceScoring(e.target.value as 'off' | 'on' | 'random') }}
+                  className="lobby-select"
+                  disabled={!isConnected || joinedGameId !== null}
+                >
+                  <option value="off">Off</option>
+                  <option value="on">On</option>
+                  <option value="random">Random (50/50)</option>
+                </select>
+              </label>
+
               <div className="lobby-timer-box">
                 <label className="lobby-checkbox-row">
                   <input
@@ -406,6 +424,9 @@ export function Lobby(): React.ReactElement {
                             </span>
                             <span className="lobby-tag lobby-tag-muted">
                               Fan Factions: {g.enableFanFactions ? 'On' : 'Off'}
+                            </span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              F+I: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
                             </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>
@@ -503,6 +524,9 @@ export function Lobby(): React.ReactElement {
                             <span className="lobby-tag">{g.id}</span>
                             <span className="lobby-tag lobby-tag-muted">Map: {displayMapName}</span>
                             <span className="lobby-tag lobby-tag-muted">Started</span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              F+I: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
+                            </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>
                         </div>

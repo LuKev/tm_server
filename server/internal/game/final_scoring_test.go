@@ -8,6 +8,92 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+func placeFinalScoringTestBuilding(t *testing.T, gs *GameState, playerID string, hex board.Hex, buildingType models.BuildingType) {
+	t.Helper()
+
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		t.Fatalf("player %s missing faction", playerID)
+	}
+
+	mapHex := gs.Map.GetHex(hex)
+	if mapHex == nil {
+		t.Fatalf("hex %v is not valid on the test map", hex)
+	}
+	mapHex.Terrain = player.Faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(hex, &models.Building{
+		Type:       buildingType,
+		Faction:    player.Faction.GetType(),
+		PlayerID:   playerID,
+		PowerValue: getStructurePowerValue(player, buildingType),
+	})
+}
+
+func pickConnectedBorderHexes(t *testing.T, gs *GameState, count int, used map[board.Hex]bool) []board.Hex {
+	t.Helper()
+
+	for start := range gs.Map.Hexes {
+		if used[start] || !gs.isBorderMapHex(start) {
+			continue
+		}
+
+		seen := map[board.Hex]bool{start: true}
+		queue := []board.Hex{start}
+		component := []board.Hex{start}
+
+		for len(queue) > 0 && len(component) < count {
+			current := queue[0]
+			queue = queue[1:]
+			for _, neighbor := range current.Neighbors() {
+				if seen[neighbor] || used[neighbor] || !gs.Map.IsValidHex(neighbor) || !gs.isBorderMapHex(neighbor) {
+					continue
+				}
+				seen[neighbor] = true
+				queue = append(queue, neighbor)
+				component = append(component, neighbor)
+				if len(component) == count {
+					return component
+				}
+			}
+		}
+		if len(component) == count {
+			return component
+		}
+	}
+
+	t.Fatalf("unable to find %d connected border hexes", count)
+	return nil
+}
+
+func pickStraightHexRun(t *testing.T, gs *GameState, count int, used map[board.Hex]bool) []board.Hex {
+	t.Helper()
+
+	for start := range gs.Map.Hexes {
+		if used[start] {
+			continue
+		}
+		for direction := 0; direction < len(board.DirectionVectors); direction++ {
+			run := make([]board.Hex, 0, count)
+			current := start
+			valid := true
+			for len(run) < count {
+				if used[current] || !gs.Map.IsValidHex(current) {
+					valid = false
+					break
+				}
+				run = append(run, current)
+				current = current.Neighbor(direction)
+			}
+			if valid && len(run) == count {
+				return run
+			}
+		}
+	}
+
+	t.Fatalf("unable to find a straight run of %d hexes", count)
+	return nil
+}
+
 func TestCalculateFinalScoring_Complete(t *testing.T) {
 	gs := NewGameState()
 	faction1 := factions.NewAuren()      // Forest
@@ -618,5 +704,182 @@ func TestResourceConversion_AlchemistsWithPower(t *testing.T) {
 
 	if scores["player1"].ResourceVP != 3 {
 		t.Errorf("expected 3 VP (7 coins / 2), got %d", scores["player1"].ResourceVP)
+	}
+}
+
+func TestCalculateFinalScoring_FireIceGreatestDistance(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("player1", factions.NewAuren()); err != nil {
+		t.Fatalf("add player1: %v", err)
+	}
+	if err := gs.AddPlayer("player2", factions.NewSwarmlings()); err != nil {
+		t.Fatalf("add player2: %v", err)
+	}
+	if err := gs.AddPlayer("player3", factions.NewHalflings()); err != nil {
+		t.Fatalf("add player3: %v", err)
+	}
+
+	used := make(map[board.Hex]bool)
+	player1Run := pickStraightHexRun(t, gs, 4, used)
+	for _, hex := range player1Run {
+		used[hex] = true
+	}
+	player2Run := pickStraightHexRun(t, gs, 5, used)
+	for _, hex := range player2Run {
+		used[hex] = true
+	}
+	player3Run := pickStraightHexRun(t, gs, 2, used)
+
+	for _, hex := range player1Run {
+		placeFinalScoringTestBuilding(t, gs, "player1", hex, models.BuildingDwelling)
+	}
+	for _, hex := range player2Run {
+		placeFinalScoringTestBuilding(t, gs, "player2", hex, models.BuildingDwelling)
+	}
+	for _, hex := range player3Run {
+		placeFinalScoringTestBuilding(t, gs, "player3", hex, models.BuildingDwelling)
+	}
+
+	gs.FireIceFinalScoringTile = FireIceFinalScoringTileGreatestDistance
+
+	scores := gs.CalculateFinalScoring()
+
+	if scores["player2"].FireIceMetricValue != 4 || scores["player2"].FireIceVP != 18 {
+		t.Fatalf("player2 Fire & Ice score = (%d, %d), want (4, 18)", scores["player2"].FireIceMetricValue, scores["player2"].FireIceVP)
+	}
+	if scores["player1"].FireIceMetricValue != 3 || scores["player1"].FireIceVP != 12 {
+		t.Fatalf("player1 Fire & Ice score = (%d, %d), want (3, 12)", scores["player1"].FireIceMetricValue, scores["player1"].FireIceVP)
+	}
+	if scores["player3"].FireIceMetricValue != 1 || scores["player3"].FireIceVP != 6 {
+		t.Fatalf("player3 Fire & Ice score = (%d, %d), want (1, 6)", scores["player3"].FireIceMetricValue, scores["player3"].FireIceVP)
+	}
+}
+
+func TestCalculateFinalScoring_FireIceStrongholdSanctuary(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("player1", factions.NewAuren()); err != nil {
+		t.Fatalf("add player1: %v", err)
+	}
+	if err := gs.AddPlayer("player2", factions.NewSwarmlings()); err != nil {
+		t.Fatalf("add player2: %v", err)
+	}
+	if err := gs.AddPlayer("player3", factions.NewHalflings()); err != nil {
+		t.Fatalf("add player3: %v", err)
+	}
+
+	placeFinalScoringTestBuilding(t, gs, "player1", board.NewHex(0, 0), models.BuildingStronghold)
+	placeFinalScoringTestBuilding(t, gs, "player1", board.NewHex(1, 0), models.BuildingDwelling)
+	placeFinalScoringTestBuilding(t, gs, "player1", board.NewHex(2, 0), models.BuildingDwelling)
+	placeFinalScoringTestBuilding(t, gs, "player1", board.NewHex(3, 0), models.BuildingSanctuary)
+
+	placeFinalScoringTestBuilding(t, gs, "player2", board.NewHex(0, 4), models.BuildingStronghold)
+	placeFinalScoringTestBuilding(t, gs, "player2", board.NewHex(1, 4), models.BuildingSanctuary)
+
+	placeFinalScoringTestBuilding(t, gs, "player3", board.NewHex(0, 7), models.BuildingStronghold)
+
+	gs.FireIceFinalScoringTile = FireIceFinalScoringTileStrongholdSanctuary
+
+	scores := gs.CalculateFinalScoring()
+
+	if scores["player1"].FireIceMetricValue != 3 || scores["player1"].FireIceVP != 18 {
+		t.Fatalf("player1 Fire & Ice score = (%d, %d), want (3, 18)", scores["player1"].FireIceMetricValue, scores["player1"].FireIceVP)
+	}
+	if scores["player2"].FireIceMetricValue != 1 || scores["player2"].FireIceVP != 12 {
+		t.Fatalf("player2 Fire & Ice score = (%d, %d), want (1, 12)", scores["player2"].FireIceMetricValue, scores["player2"].FireIceVP)
+	}
+	if scores["player3"].FireIceMetricValue != 0 || scores["player3"].FireIceVP != 0 {
+		t.Fatalf("player3 Fire & Ice score = (%d, %d), want (0, 0)", scores["player3"].FireIceMetricValue, scores["player3"].FireIceVP)
+	}
+}
+
+func TestCalculateFinalScoring_FireIceOutposts(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("player1", factions.NewAuren()); err != nil {
+		t.Fatalf("add player1: %v", err)
+	}
+	if err := gs.AddPlayer("player2", factions.NewSwarmlings()); err != nil {
+		t.Fatalf("add player2: %v", err)
+	}
+	if err := gs.AddPlayer("player3", factions.NewHalflings()); err != nil {
+		t.Fatalf("add player3: %v", err)
+	}
+
+	used := make(map[board.Hex]bool)
+	player1Hexes := pickConnectedBorderHexes(t, gs, 3, used)
+	for _, hex := range player1Hexes {
+		used[hex] = true
+	}
+	player2Hexes := pickConnectedBorderHexes(t, gs, 2, used)
+	for _, hex := range player2Hexes {
+		used[hex] = true
+	}
+	player3Hexes := pickConnectedBorderHexes(t, gs, 1, used)
+
+	for _, hex := range player1Hexes {
+		if !gs.isBorderMapHex(hex) {
+			t.Fatalf("expected %v to be a border hex", hex)
+		}
+		placeFinalScoringTestBuilding(t, gs, "player1", hex, models.BuildingDwelling)
+	}
+	for _, hex := range player2Hexes {
+		if !gs.isBorderMapHex(hex) {
+			t.Fatalf("expected %v to be a border hex", hex)
+		}
+		placeFinalScoringTestBuilding(t, gs, "player2", hex, models.BuildingDwelling)
+	}
+	if !gs.isBorderMapHex(player3Hexes[0]) {
+		t.Fatalf("expected %v to be a border hex", player3Hexes[0])
+	}
+	placeFinalScoringTestBuilding(t, gs, "player3", player3Hexes[0], models.BuildingDwelling)
+
+	gs.FireIceFinalScoringTile = FireIceFinalScoringTileOutposts
+
+	scores := gs.CalculateFinalScoring()
+
+	if scores["player1"].FireIceMetricValue != 3 || scores["player1"].FireIceVP != 18 {
+		t.Fatalf("player1 Fire & Ice score = (%d, %d), want (3, 18)", scores["player1"].FireIceMetricValue, scores["player1"].FireIceVP)
+	}
+	if scores["player2"].FireIceMetricValue != 2 || scores["player2"].FireIceVP != 12 {
+		t.Fatalf("player2 Fire & Ice score = (%d, %d), want (2, 12)", scores["player2"].FireIceMetricValue, scores["player2"].FireIceVP)
+	}
+	if scores["player3"].FireIceMetricValue != 1 || scores["player3"].FireIceVP != 6 {
+		t.Fatalf("player3 Fire & Ice score = (%d, %d), want (1, 6)", scores["player3"].FireIceMetricValue, scores["player3"].FireIceVP)
+	}
+}
+
+func TestCalculateFinalScoring_FireIceSettlements(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("player1", factions.NewDwarves()); err != nil {
+		t.Fatalf("add player1: %v", err)
+	}
+	if err := gs.AddPlayer("player2", factions.NewFakirs()); err != nil {
+		t.Fatalf("add player2: %v", err)
+	}
+	if err := gs.AddPlayer("player3", factions.NewMermaids()); err != nil {
+		t.Fatalf("add player3: %v", err)
+	}
+
+	for _, hex := range []board.Hex{board.NewHex(0, 0), board.NewHex(2, 0), board.NewHex(4, 0)} {
+		placeFinalScoringTestBuilding(t, gs, "player1", hex, models.BuildingDwelling)
+	}
+	for _, hex := range []board.Hex{board.NewHex(0, 4), board.NewHex(2, 4)} {
+		placeFinalScoringTestBuilding(t, gs, "player2", hex, models.BuildingDwelling)
+	}
+	for _, hex := range []board.Hex{board.NewHex(0, 7), board.NewHex(1, 7)} {
+		placeFinalScoringTestBuilding(t, gs, "player3", hex, models.BuildingDwelling)
+	}
+
+	gs.FireIceFinalScoringTile = FireIceFinalScoringTileSettlements
+
+	scores := gs.CalculateFinalScoring()
+
+	if scores["player1"].FireIceMetricValue != 3 || scores["player1"].FireIceVP != 18 {
+		t.Fatalf("player1 Fire & Ice score = (%d, %d), want (3, 18)", scores["player1"].FireIceMetricValue, scores["player1"].FireIceVP)
+	}
+	if scores["player2"].FireIceMetricValue != 2 || scores["player2"].FireIceVP != 12 {
+		t.Fatalf("player2 Fire & Ice score = (%d, %d), want (2, 12)", scores["player2"].FireIceMetricValue, scores["player2"].FireIceVP)
+	}
+	if scores["player3"].FireIceMetricValue != 1 || scores["player3"].FireIceVP != 6 {
+		t.Fatalf("player3 Fire & Ice score = (%d, %d), want (1, 6)", scores["player3"].FireIceMetricValue, scores["player3"].FireIceVP)
 	}
 }

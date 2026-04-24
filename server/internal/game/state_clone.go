@@ -16,6 +16,8 @@ func (gs *GameState) CloneForUndo() *GameState {
 		Round:                           gs.Round,
 		Phase:                           gs.Phase,
 		SetupMode:                       gs.SetupMode,
+		FireIceFinalScoringSetting:      gs.FireIceFinalScoringSetting,
+		FireIceFinalScoringTile:         gs.FireIceFinalScoringTile,
 		SetupSubphase:                   gs.SetupSubphase,
 		SetupDwellingIndex:              gs.SetupDwellingIndex,
 		SetupBonusIndex:                 gs.SetupBonusIndex,

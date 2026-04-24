@@ -9,11 +9,23 @@ interface EndGameScoringProps {
 
 export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => {
     if (!gameState.finalScoring) return null;
+    const fireIceTile = gameState.fireIceFinalScoringTile;
+    const showFireIceColumn = fireIceTile !== undefined && fireIceTile !== '';
 
     const scores = Object.values(gameState.finalScoring).sort((a, b) => {
         if (b.totalVp !== a.totalVp) return b.totalVp - a.totalVp;
         return b.totalResourceValue - a.totalResourceValue;
     });
+
+    const fireIceLabel = (() => {
+        switch (fireIceTile) {
+            case 'distance': return 'Distance';
+            case 'stronghold_sanctuary': return 'SH/SA Distance';
+            case 'edge': return 'Edge';
+            case 'cluster': return 'Clusters';
+            default: return 'F+I';
+        }
+    })();
 
     const getFactionLabel = (playerId: string): string => {
         const player = gameState.players[playerId];
@@ -79,6 +91,7 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
                                 <th className="p-3">Player</th>
                                 <th className="p-3 text-right">Base VP</th>
                                 <th className="p-3 text-right">Area VP (Size)</th>
+                                {showFireIceColumn && <th className="p-3 text-right">{fireIceLabel} VP</th>}
                                 <th className="p-3 text-right">Cult VP</th>
                                 <th className="p-3 text-right">Resource VP</th>
                                 <th className="p-3 text-right font-bold">Total VP</th>
@@ -103,6 +116,11 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
                                     <td className="p-3 text-right">
                                         {score.areaVp} <span className="text-gray-400 text-sm">({score.largestAreaSize})</span>
                                     </td>
+                                    {showFireIceColumn && (
+                                        <td className="p-3 text-right">
+                                            {score.fireIceVp} <span className="text-gray-400 text-sm">({score.fireIceMetricValue})</span>
+                                        </td>
+                                    )}
                                     <td className="p-3 text-right">{score.cultVp}</td>
                                     <td className="p-3 text-right">
                                         {score.resourceVp} <span className="text-gray-400 text-sm">(Val: {score.totalResourceValue})</span>

@@ -56,6 +56,7 @@ type createGamePayload struct {
 	Creator           string                     `json:"creator"`
 	MapID             string                     `json:"mapId,omitempty"`
 	EnableFanFactions bool                       `json:"enableFanFactions,omitempty"`
+	FireIceScoring    string                     `json:"fireIceScoring,omitempty"`
 	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
 }
 
@@ -636,6 +637,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		TurnTimer:          turnTimer,
 		MapID:              board.NormalizeMapID(meta.MapID),
 		EnableFanFactions:  meta.EnableFanFactions,
+		FireIceScoring:     game.FireIceFinalScoringSetting(strings.TrimSpace(meta.FireIceScoring)),
 		CustomMap:          board.CloneCustomMapDefinition(meta.CustomMap),
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
@@ -676,7 +678,25 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	meta, err := c.deps.Lobby.CreateGame(p.Name, p.MaxPlayers, p.Creator, p.MapID, p.CustomMap, p.EnableFanFactions)
+	fireIceScoring := strings.ToLower(strings.TrimSpace(p.FireIceScoring))
+	switch fireIceScoring {
+	case "", string(game.FireIceFinalScoringOff):
+		fireIceScoring = string(game.FireIceFinalScoringOff)
+	case string(game.FireIceFinalScoringOn), string(game.FireIceFinalScoringRandom):
+	default:
+		c.sendActionRejected("", "invalid_fire_ice_scoring", fmt.Sprintf("unsupported Fire & Ice scoring option: %s", p.FireIceScoring))
+		return
+	}
+
+	meta, err := c.deps.Lobby.CreateGame(
+		p.Name,
+		p.MaxPlayers,
+		p.Creator,
+		p.MapID,
+		p.CustomMap,
+		p.EnableFanFactions,
+		fireIceScoring,
+	)
 	if err != nil {
 		c.sendLobbyError(err)
 		return

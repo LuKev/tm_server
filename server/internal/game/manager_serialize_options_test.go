@@ -1,6 +1,7 @@
 package game
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
@@ -77,6 +78,36 @@ func TestCreateGameWithOptions_SerializesFanFactionToggle(t *testing.T) {
 	state := manager.SerializeGameState("g1")
 	if got := state["enableFanFactions"]; got != true {
 		t.Fatalf("enableFanFactions: got %v, want true", got)
+	}
+}
+
+func TestCreateGameWithOptions_SerializesFireIceFinalScoring(t *testing.T) {
+	manager := NewManager()
+	if err := manager.CreateGameWithOptions("g1", []string{"p1", "p2"}, CreateGameOptions{
+		RandomizeTurnOrder: false,
+		SetupMode:          SetupModeSnellman,
+		FireIceScoring:     FireIceFinalScoringOn,
+	}); err != nil {
+		t.Fatalf("create game: %v", err)
+	}
+
+	state := manager.SerializeGameState("g1")
+	if got := state["fireIceFinalScoringSetting"]; got != string(FireIceFinalScoringOn) {
+		t.Fatalf("fireIceFinalScoringSetting: got %v, want %q", got, FireIceFinalScoringOn)
+	}
+	gotTile, ok := state["fireIceFinalScoringTile"].(string)
+	if !ok {
+		t.Fatalf("fireIceFinalScoringTile missing or wrong type: %#v", state["fireIceFinalScoringTile"])
+	}
+	if gotTile == string(FireIceFinalScoringTileNone) {
+		t.Fatalf("expected a resolved Fire & Ice tile when scoring is on")
+	}
+}
+
+func TestResolveFireIceFinalScoringTile_RandomCanDisableScoring(t *testing.T) {
+	tile := resolveFireIceFinalScoringTile(FireIceFinalScoringRandom, rand.New(rand.NewSource(0)))
+	if tile != FireIceFinalScoringTileNone {
+		t.Fatalf("expected random seed 0 to disable Fire & Ice scoring, got %q", tile)
 	}
 }
 

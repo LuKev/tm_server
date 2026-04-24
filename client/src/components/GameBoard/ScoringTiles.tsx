@@ -131,10 +131,40 @@ const CultDots = ({ type, count }: { type: CultType, count: number }): React.Rea
 interface ScoringTilesProps {
     tiles: number[];
     currentRound: number;
+    fireIceFinalScoringSetting?: 'off' | 'on' | 'random';
+    fireIceFinalScoringTile?: 'distance' | 'stronghold_sanctuary' | 'edge' | 'cluster' | '';
 }
 
-export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound }): React.ReactElement | null => {
-    if (tiles.length === 0) {
+const fireIceTileLabel = (tile: ScoringTilesProps['fireIceFinalScoringTile']): string => {
+    switch (tile) {
+        case 'distance': return 'Greatest Distance';
+        case 'stronghold_sanctuary': return 'Stronghold + Sanctuary';
+        case 'edge': return 'Outposts';
+        case 'cluster': return 'Settlements';
+        default: return 'No Extra Scoring';
+    }
+}
+
+const fireIceSettingLabel = (setting: ScoringTilesProps['fireIceFinalScoringSetting']): string => {
+    switch (setting) {
+        case 'on': return 'On';
+        case 'random': return 'Random';
+        default: return 'Off';
+    }
+}
+
+export const ScoringTiles: React.FC<ScoringTilesProps> = ({
+    tiles,
+    currentRound,
+    fireIceFinalScoringSetting,
+    fireIceFinalScoringTile,
+}): React.ReactElement | null => {
+    const showFireIceScoring =
+        fireIceFinalScoringSetting === 'on'
+        || fireIceFinalScoringSetting === 'random'
+        || (fireIceFinalScoringTile !== undefined && fireIceFinalScoringTile !== '');
+
+    if (tiles.length === 0 && !showFireIceScoring) {
         return null;
     }
 
@@ -183,6 +213,21 @@ export const ScoringTiles: React.FC<ScoringTilesProps> = ({ tiles, currentRound 
                     </div>
                 );
             })}
+            {showFireIceScoring && (
+                <div className="scoring-tile fire-ice-scoring-tile">
+                    <div className="tile-section left">
+                        <div className="content-row">
+                            <div className="vp-text">F&amp;I</div>
+                        </div>
+                    </div>
+                    <div className="tile-section">
+                        <div className="fire-ice-scoring-content">
+                            <div className="fire-ice-scoring-label">{fireIceTileLabel(fireIceFinalScoringTile)}</div>
+                            <div className="final-round-text">Setup: {fireIceSettingLabel(fireIceFinalScoringSetting)}</div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

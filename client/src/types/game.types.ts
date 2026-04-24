@@ -274,6 +274,8 @@ export interface GameState {
   id: string
   mapId?: string
   enableFanFactions?: boolean
+  fireIceFinalScoringSetting?: 'off' | 'on' | 'random'
+  fireIceFinalScoringTile?: 'distance' | 'stronghold_sanctuary' | 'edge' | 'cluster' | ''
   revision?: number
   phase: GamePhase
   setupMode?: 'snellman' | 'auction' | 'fast_auction'
@@ -322,6 +324,8 @@ export interface PlayerFinalScore {
   playerName: string
   baseVp: number
   areaVp: number
+  fireIceVp: number
+  fireIceMetricValue: number
   cultVp: number
   resourceVp: number
   totalVp: number
