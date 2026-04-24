@@ -69,14 +69,38 @@ func (a *SetupDwellingAction) Validate(gs *GameState) error {
 		return fmt.Errorf("hex does not exist: %v", a.Hex)
 	}
 
-	// Cannot be river
-	if hexData.Terrain == models.TerrainRiver {
-		return fmt.Errorf("cannot build on river (unless faction has water building ability)")
-	}
-
 	// Check if hex already has a building
 	if hexData.Building != nil {
 		return fmt.Errorf("hex already has a building")
+	}
+
+	factionType := player.Faction.GetType()
+	if isIceFactionType(factionType) || isVolcanoFactionType(factionType) {
+		if !isStandardLandTerrain(hexData.Terrain) {
+			return fmt.Errorf("fire and ice setup dwellings must start on a standard land terrain")
+		}
+		if player.HasStartingTerrain && hexData.Terrain != player.StartingTerrain {
+			return fmt.Errorf("setup dwelling must be placed on selected starting terrain %s", player.StartingTerrain)
+		}
+		return nil
+	}
+
+	if factionType == models.FactionShapeshifters || factionType == models.FactionRiverwalkers {
+		if !isStandardLandTerrain(hexData.Terrain) {
+			return fmt.Errorf("variable faction setup dwellings must be placed on standard land terrain")
+		}
+		if factionType == models.FactionRiverwalkers && !isAdjacentToRiver(gs, a.Hex) {
+			return fmt.Errorf("riverwalkers setup dwellings must be adjacent to river terrain")
+		}
+		if player.HasStartingTerrain && hexData.Terrain != player.StartingTerrain {
+			return fmt.Errorf("setup dwelling must be placed on selected home terrain %s", player.StartingTerrain)
+		}
+		return nil
+	}
+
+	// Cannot be river
+	if hexData.Terrain == models.TerrainRiver {
+		return fmt.Errorf("cannot build on river (unless faction has water building ability)")
 	}
 
 	// Must be player's home terrain
@@ -108,6 +132,22 @@ func (a *SetupDwellingAction) Execute(gs *GameState) error {
 
 	// Place the starting structure on the map
 	hexData := gs.Map.GetHex(a.Hex)
+	factionType := player.Faction.GetType()
+	if (isIceFactionType(factionType) || isVolcanoFactionType(factionType)) && hexData.Terrain != player.Faction.GetHomeTerrain() {
+		if !player.HasStartingTerrain {
+			player.StartingTerrain = hexData.Terrain
+			player.HasStartingTerrain = true
+		}
+		hexData.Terrain = player.Faction.GetHomeTerrain()
+	} else if factionType == models.FactionShapeshifters || factionType == models.FactionRiverwalkers {
+		if !player.HasStartingTerrain {
+			player.StartingTerrain = hexData.Terrain
+			player.HasStartingTerrain = true
+			if factionType == models.FactionRiverwalkers {
+				player.UnlockedTerrains = map[models.TerrainType]bool{hexData.Terrain: true}
+			}
+		}
+	}
 	hexData.Building = &models.Building{
 		Type:       buildingType,
 		PlayerID:   a.PlayerID,

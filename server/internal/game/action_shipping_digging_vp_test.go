@@ -237,4 +237,18 @@ func TestDiggingLevelConstraints(t *testing.T) {
 	if err := action6.Execute(gs3); err == nil {
 		t.Error("Darklings should not be able to advance digging at all")
 	}
+
+	// Test Firewalkers cannot advance digging at all
+	gs4 := NewGameState()
+	firewalkers := factions.NewFirewalkers()
+	gs4.AddPlayer("player4", firewalkers)
+	player4 := gs4.GetPlayer("player4")
+	player4.Resources.Coins = 100
+	player4.Resources.Workers = 100
+	player4.Resources.Priests = 5
+
+	action7 := NewAdvanceDiggingAction("player4")
+	if err := action7.Execute(gs4); err == nil {
+		t.Error("Firewalkers should not be able to advance digging at all")
+	}
 }

@@ -77,6 +77,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
         const shippingLevel = (player as unknown as { shipping?: number }).shipping ?? 0;
         const diggingLevel = (player as unknown as { digging?: number }).digging ?? 0;
         const vp = player.victoryPoints ?? player.VictoryPoints ?? 0;
+        const firewalkersMarkerVp = factionType === FactionType.Firewalkers ? player.firewalkersBlockerVp : undefined;
         const incomePreview = gameState.nextRoundIncome?.[pid] ?? null
 
         return (
@@ -118,6 +119,24 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
                   </span>
                   <span style={{ color: '#9ca3af' }}>|</span>
                   <span style={{ fontWeight: 700 }}>{vp} VP</span>
+                  {firewalkersMarkerVp !== undefined && (
+                    <span
+                      title="Firewalkers VP marker"
+                      style={{
+                        border: '1px solid #fdba74',
+                        borderRadius: '9999px',
+                        color: '#9a3412',
+                        backgroundColor: '#fff7ed',
+                        fontSize: '0.7rem',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        padding: '0.12rem 0.35rem',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      Marker {firewalkersMarkerVp}
+                    </span>
+                  )}
                 </div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>

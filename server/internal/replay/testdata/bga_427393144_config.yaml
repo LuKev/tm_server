@@ -1,0 +1,39 @@
+bonus_cards:
+  - BON-SPD
+  - BON-4C
+  - BON-6C
+  - BON-SHIP
+  - BON-WP
+  - BON-P
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Mermaids: BON-SHIP
+    Shapeshifters: BON-SPD
+    "Ice Maidens": BON-WP
+    Nomads: BON-P
+  "1":
+    Mermaids: BON-SHIP-VP
+    Shapeshifters: BON-SHIP
+    "Ice Maidens": BON-6C
+    Nomads: BON-4C
+  "2":
+    Mermaids: BON-SPD
+    Shapeshifters: BON-4C
+    "Ice Maidens": BON-P
+    Nomads: BON-6C
+  "3":
+    Mermaids: BON-SHIP-VP
+    Shapeshifters: BON-6C
+    "Ice Maidens": BON-4C
+    Nomads: BON-WP
+  "4":
+    Mermaids: BON-4C
+    Shapeshifters: BON-SHIP
+    "Ice Maidens": BON-6C
+    Nomads: BON-SPD
+  "5":
+    Mermaids: BON-SPD
+    Shapeshifters: BON-4C
+    "Ice Maidens": BON-SHIP-VP
+    Nomads: BON-6C

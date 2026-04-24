@@ -19,6 +19,11 @@ export const canShowDiggingForFaction = (factionType: FactionType): boolean => {
   // Darklings pay priests instead, and these fan factions do not upgrade digging.
   return factionType !== FactionType.Darklings
     && factionType !== FactionType.ChashDallah
+    && factionType !== FactionType.Dragonlords
+    && factionType !== FactionType.Acolytes
+    && factionType !== FactionType.Firewalkers
+    && factionType !== FactionType.Riverwalkers
+    && factionType !== FactionType.Shapeshifters
     && factionType !== FactionType.Prospectors
     && factionType !== FactionType.TimeTravelers;
 };

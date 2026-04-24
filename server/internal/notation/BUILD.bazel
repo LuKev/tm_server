@@ -36,6 +36,7 @@ go_test(
         "bga_parser_special_action_test.go",
         "duplicate_leech_test.go",
         "generator_leech_placement_test.go",
+        "log_power_action_test.go",
         "parser_test.go",
         "snellman_parser_test.go",
         "snellman_to_concise_test.go",

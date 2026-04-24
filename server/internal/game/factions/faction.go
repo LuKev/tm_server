@@ -76,10 +76,11 @@ type Cost struct {
 
 // Income represents resource income per round
 type Income struct {
-	Coins   int
-	Workers int
-	Priests int
-	Power   int
+	Coins         int
+	Workers       int
+	Priests       int
+	Power         int
+	VictoryPoints int
 }
 
 // Standard building costs (can be overridden by factions)

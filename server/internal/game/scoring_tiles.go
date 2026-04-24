@@ -370,6 +370,13 @@ func (gs *GameState) grantCultReward(playerID string, player *Player, rewardType
 	case CultRewardPower:
 		player.Resources.Power.GainPower(amount)
 	case CultRewardSpade:
+		if isRiverwalkers(player) {
+			return
+		}
+		if factionConvertsSpadeRewards(player) {
+			gs.convertFactionSpadeReward(playerID, amount, false)
+			return
+		}
 		if player.Faction != nil && player.Faction.GetType() == models.FactionProspectors {
 			gs.GainPriests(playerID, amount)
 			return

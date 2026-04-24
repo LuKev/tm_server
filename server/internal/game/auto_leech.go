@@ -50,12 +50,11 @@ func (gs *GameState) shouldAutoResolveLeechOffer(playerID string, offer *PowerLe
 		mode = LeechAutoModeOff
 	}
 
-	// Exception 1: if source is Cultists (or future Shapeshifters), require explicit choice.
+	// Exception 1: if source is Cultists or Shapeshifters, require explicit choice.
 	if source := gs.GetPlayer(offer.FromPlayerID); source != nil && source.Faction != nil {
 		switch source.Faction.GetType() {
-		case models.FactionCultists:
+		case models.FactionCultists, models.FactionShapeshifters:
 			return false, false
-			// TODO: Shapeshifters are not implemented yet. When available, always require manual leech choice.
 		}
 	}
 

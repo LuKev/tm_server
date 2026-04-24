@@ -1,0 +1,40 @@
+bonus_cards:
+  - BON-4C
+  - BON-WP
+  - BON-P
+  - BON-6C
+  - BON-BB
+  - BON-TP
+  - BON-SHIP-VP
+fire_ice_final_scoring_tile: cluster
+bonus_card_selections:
+  "0":
+    Shapeshifters: BON-WP
+    Dragonlords: BON-P
+    Giants: BON-BB
+    Mermaids: BON-6C
+  "1":
+    Shapeshifters: BON-6C
+    Dragonlords: BON-WP
+    Giants: BON-4C
+    Mermaids: BON-BB
+  "2":
+    Shapeshifters: BON-BB
+    Dragonlords: BON-6C
+    Giants: BON-P
+    Mermaids: BON-SHIP-VP
+  "3":
+    Shapeshifters: BON-SHIP-VP
+    Dragonlords: BON-BB
+    Giants: BON-4C
+    Mermaids: BON-TP
+  "4":
+    Shapeshifters: BON-TP
+    Dragonlords: BON-6C
+    Giants: BON-SHIP-VP
+    Mermaids: BON-BB
+  "5":
+    Shapeshifters: BON-BB
+    Dragonlords: BON-SHIP-VP
+    Giants: BON-TP
+    Mermaids: BON-WP

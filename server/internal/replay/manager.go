@@ -10,6 +10,7 @@ import (
 	"sync"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
@@ -635,12 +636,10 @@ func (m *ReplayManager) JumpTo(gameID string, targetIndex int) error {
 }
 
 func createInitialState(items []notation.LogItem) *game.GameState {
-	initialState := game.NewGameState()
-	initialState.ReplayMode = map[string]bool{"__replay__": true}
-
 	// Pre-populate players and settings from GameSettingsItem if present
 	for _, item := range items {
 		if s, ok := item.(notation.GameSettingsItem); ok {
+			initialState := newReplayInitialState(s.Settings)
 			for k, v := range s.Settings {
 				if strings.HasPrefix(k, "Player:") {
 					factionName := v
@@ -703,11 +702,97 @@ func createInitialState(items []notation.LogItem) *game.GameState {
 					}
 				}
 			}
-			break // Only need the first settings item
+
+			for k, v := range s.Settings {
+				if !strings.HasPrefix(k, "InitialBonusCard:") {
+					continue
+				}
+				playerID := strings.TrimPrefix(k, "InitialBonusCard:")
+				cardType := notation.ParseBonusCardCode(v)
+				if cardType == game.BonusCardUnknown {
+					continue
+				}
+				if _, err := initialState.BonusCards.TakeBonusCard(playerID, cardType); err != nil {
+					fmt.Printf("Warning: failed to assign initial bonus card %s to %s: %v\n", v, playerID, err)
+				}
+			}
+
+			applyReplayStartingTerrainSettings(initialState, s.Settings)
+
+			return initialState // Only need the first settings item
 		}
 	}
 
+	return newReplayInitialState(nil)
+}
+
+func newReplayInitialState(settings map[string]string) *game.GameState {
+	mapID := board.MapBase
+	if settings != nil {
+		if rawMap, ok := settings["Game"]; ok {
+			mapID = board.NormalizeMapID(rawMap)
+		}
+	}
+
+	initialState, err := game.NewGameStateWithMap(mapID)
+	if err != nil {
+		initialState = game.NewGameState()
+	}
+	initialState.ReplayMode = map[string]bool{"__replay__": true}
 	return initialState
+}
+
+func applyReplayStartingTerrainSettings(gs *game.GameState, settings map[string]string) {
+	if gs == nil {
+		return
+	}
+	for key, rawTerrain := range settings {
+		if !strings.HasPrefix(key, "StartingTerrain:") {
+			continue
+		}
+		playerID := strings.TrimPrefix(key, "StartingTerrain:")
+		player := gs.Players[playerID]
+		if player == nil {
+			continue
+		}
+		terrain, ok := parseReplayStartingTerrain(rawTerrain)
+		if !ok {
+			continue
+		}
+		player.StartingTerrain = terrain
+		player.HasStartingTerrain = true
+		if player.Faction != nil && player.Faction.GetType() == models.FactionRiverwalkers {
+			if player.UnlockedTerrains == nil {
+				player.UnlockedTerrains = make(map[models.TerrainType]bool)
+			}
+			player.UnlockedTerrains[terrain] = true
+		}
+	}
+}
+
+func parseReplayStartingTerrain(raw string) (models.TerrainType, bool) {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "plains", "plain":
+		return models.TerrainPlains, true
+	case "swamp":
+		return models.TerrainSwamp, true
+	case "lakes", "lake":
+		return models.TerrainLake, true
+	case "forest":
+		return models.TerrainForest, true
+	case "mountains", "mountain":
+		return models.TerrainMountain, true
+	case "wasteland":
+		return models.TerrainWasteland, true
+	case "desert":
+		return models.TerrainDesert, true
+	default:
+		return models.TerrainTypeUnknown, false
+	}
+}
+
+func CreateInitialState(items []notation.LogItem) *game.GameState {
+	return createInitialState(items)
 }
 
 func detectMissingInfo(items []notation.LogItem) *MissingGameInfo {

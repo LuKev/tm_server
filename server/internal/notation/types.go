@@ -47,10 +47,13 @@ type FinalScoringExpectation struct {
 	PlayerID           string
 	CultVP             int
 	AreaVP             int
+	FireIceVP          int
 	ResourceVP         int
 	LargestAreaSize    int
+	FireIceMetricValue int
 	TotalResourceValue int
 	HasAreaScore       bool
+	HasFireIceScore    bool
 	HasResourceScore   bool
 }
 
@@ -259,12 +262,26 @@ func (a *LogPowerAction) Validate(gs *game.GameState) error {
 		return fmt.Errorf("unknown power action code: %s", a.ActionCode)
 	}
 
-	if !gs.PowerActions.IsAvailable(actionType) {
+	if !gs.PowerActions.IsAvailable(actionType) && !replayLogPowerActionCanReuseOccupied(player) {
 		return fmt.Errorf("power action %v has already been taken this round", actionType)
 	}
 
-	powerCost := game.GetPowerCost(actionType)
+	powerCost := replayLogPowerActionCost(player, actionType)
 	if player.Resources.Power.Bowl3 < powerCost {
+		requiredBurn := replayLogPowerActionRequiredBurn(gs, player, powerCost)
+		if player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"] {
+			return nil
+		}
+		if requiredBurn > 0 {
+			canBurn := player.Resources.Power.CanBurn(requiredBurn)
+			if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+				canBurn = player.Resources.Power.CanBurnChildren(requiredBurn)
+			}
+			if canBurn {
+				return nil
+			}
+			return fmt.Errorf("not enough power for log action: need %d in Bowl III, have %d and cannot auto-burn %d more from Bowl II", powerCost, player.Resources.Power.Bowl3, requiredBurn)
+		}
 		return fmt.Errorf("not enough power in Bowl III: need %d, have %d", powerCost, player.Resources.Power.Bowl3)
 	}
 
@@ -280,8 +297,22 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	actionType := ParsePowerActionCode(a.ActionCode)
 
-	// Spend power from Bowl III only. Explicit burns are represented as separate log actions.
-	powerCost := game.GetPowerCost(actionType)
+	powerCost := replayLogPowerActionCost(player, actionType)
+	if requiredBurn := replayLogPowerActionRequiredBurn(gs, player, powerCost); requiredBurn > 0 && !(player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"]) {
+		var err error
+		if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+			err = player.Resources.Power.BurnPowerChildren(requiredBurn)
+		} else {
+			err = player.Resources.Power.BurnPower(requiredBurn)
+		}
+		if err != nil {
+			return fmt.Errorf("failed to auto-burn power for replay log action %s: %w", a.ActionCode, err)
+		}
+	}
+	if player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"] && player.Resources.Power.Bowl3 < powerCost {
+		player.Resources.Power.Bowl3 = powerCost
+	}
+
 	if err := player.Resources.Power.SpendPower(powerCost); err != nil {
 		return fmt.Errorf("failed to spend power for %s: %w", a.ActionCode, err)
 	}
@@ -295,11 +326,11 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 		// Parse coordinates if present: ACT1-C2-D4
 		parts := strings.Split(a.ActionCode, "-")
 		if len(parts) == 3 {
-			hex1, err := ConvertLogCoordToAxial(parts[1])
+			hex1, err := convertLogCoordForGame(gs, parts[1])
 			if err != nil {
 				return fmt.Errorf("invalid bridge hex1: %w", err)
 			}
-			hex2, err := ConvertLogCoordToAxial(parts[2])
+			hex2, err := convertLogCoordForGame(gs, parts[2])
 			if err != nil {
 				return fmt.Errorf("invalid bridge hex2: %w", err)
 			}
@@ -330,6 +361,31 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	return nil
 }
 
+func replayLogPowerActionCanReuseOccupied(player *game.Player) bool {
+	return player != nil &&
+		player.Faction != nil &&
+		player.Faction.GetType() == models.FactionYetis &&
+		player.HasStrongholdAbility
+}
+
+func replayLogPowerActionCost(player *game.Player, actionType game.PowerActionType) int {
+	cost := game.GetPowerCost(actionType)
+	if replayLogPowerActionCanReuseOccupied(player) && cost > 0 {
+		return cost - 1
+	}
+	return cost
+}
+
+func replayLogPowerActionRequiredBurn(gs *game.GameState, player *game.Player, powerCost int) int {
+	if gs == nil || gs.ReplayMode == nil || !gs.ReplayMode["__replay__"] || player == nil {
+		return 0
+	}
+	if powerCost <= player.Resources.Power.Bowl3 {
+		return 0
+	}
+	return powerCost - player.Resources.Power.Bowl3
+}
+
 // LogBurnAction is a log-only representation of burning power
 type LogBurnAction struct {
 	PlayerID string
@@ -351,6 +407,34 @@ func (a *LogBurnAction) Execute(gs *game.GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 	return player.Resources.BurnPower(a.Amount)
+}
+
+// LogRiverBuildAction defers ambiguous BGA river coordinates (for example Selkies
+// river dwellings on Fjords) until replay execution, where board state can pick
+// the only legal candidate.
+type LogRiverBuildAction struct {
+	PlayerID   string
+	CoordToken string
+}
+
+func (a *LogRiverBuildAction) GetType() game.ActionType { return game.ActionTransformAndBuild }
+func (a *LogRiverBuildAction) GetPlayerID() string      { return a.PlayerID }
+
+func (a *LogRiverBuildAction) Validate(gs *game.GameState) error {
+	_, err := resolveSelkiesRiverDwellingHex(gs, a.PlayerID, a.CoordToken)
+	return err
+}
+
+func (a *LogRiverBuildAction) Execute(gs *game.GameState) error {
+	hex, err := resolveSelkiesRiverDwellingHex(gs, a.PlayerID, a.CoordToken)
+	if err != nil {
+		return err
+	}
+	if err := game.NewTransformAndBuildAction(a.PlayerID, hex, true, models.TerrainTypeUnknown).Execute(gs); err != nil {
+		return err
+	}
+	consumeReplayRiverBuildHex(gs, a.PlayerID, hex)
+	return nil
 }
 
 // LogDigTransformAction represents a Snellman "dig N" step (terraform by N spades)
@@ -538,8 +622,8 @@ type LogConspiratorsSwapFavorAction struct {
 	NewTile            string // e.g. "FAV-A2"
 }
 
-func (a *LogConspiratorsSwapFavorAction) GetType() game.ActionType { return game.ActionSpecialAction }
-func (a *LogConspiratorsSwapFavorAction) GetPlayerID() string      { return a.PlayerID }
+func (a *LogConspiratorsSwapFavorAction) GetType() game.ActionType          { return game.ActionSpecialAction }
+func (a *LogConspiratorsSwapFavorAction) GetPlayerID() string               { return a.PlayerID }
 func (a *LogConspiratorsSwapFavorAction) Validate(gs *game.GameState) error { return nil }
 
 func (a *LogConspiratorsSwapFavorAction) Execute(gs *game.GameState) error {
@@ -675,11 +759,11 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 				return fmt.Errorf("not enough workers for engineers bridge: need 2, have %d", player.Resources.Workers)
 			}
 			player.Resources.Workers -= 2
-			hex1, err := ConvertLogCoordToAxial(parts[2])
+			hex1, err := convertLogCoordForGame(gs, parts[2])
 			if err != nil {
 				return err
 			}
-			hex2, err := ConvertLogCoordToAxial(parts[3])
+			hex2, err := convertLogCoordForGame(gs, parts[3])
 			if err != nil {
 				return err
 			}
@@ -710,7 +794,7 @@ func (a *LogSpecialAction) Execute(gs *game.GameState) error {
 			buildDwelling = true
 		}
 
-		hex, err := ConvertLogCoordToAxial(coordPart)
+		hex, err := convertLogCoordForGame(gs, coordPart)
 		if err != nil {
 			return err
 		}
@@ -753,7 +837,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-D")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[3])
+		hex, err := convertLogCoordForGame(gs, parts[3])
 		if err != nil {
 			return err
 		}
@@ -779,7 +863,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 			buildDwelling = true
 		}
 
-		hex, err := ConvertLogCoordToAxial(coordPart)
+		hex, err := convertLogCoordForGame(gs, coordPart)
 		if err != nil {
 			return err
 		}
@@ -790,11 +874,39 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 		}
 		return fmt.Errorf("ACT-SH-T is only valid for Nomads, got faction %v", player.Faction.GetType())
 
+	case "I": // Selkies stronghold
+		if len(parts) < 4 {
+			return fmt.Errorf("missing coord for ACT-SH-I")
+		}
+
+		coordPart := parts[3]
+		buildDwelling := false
+		if dotIdx := strings.Index(coordPart, "."); dotIdx > 0 {
+			coordPart = coordPart[:dotIdx]
+			buildDwelling = true
+		}
+
+		hex, err := convertLogCoordForGame(gs, coordPart)
+		if err != nil {
+			return err
+		}
+
+		targetTerrain := models.TerrainTypeUnknown
+		if len(parts) > 4 {
+			targetTerrain = parseTerrainShortCode(parts[4])
+		}
+
+		if player.Faction.GetType() == models.FactionSelkies {
+			action := game.NewSelkiesStrongholdAction(a.PlayerID, hex, buildDwelling, targetTerrain)
+			return action.Execute(gs)
+		}
+		return fmt.Errorf("ACT-SH-I is only valid for Selkies, got faction %v", player.Faction.GetType())
+
 	case "S": // Giants (2 Spades)
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-S")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[3])
+		hex, err := convertLogCoordForGame(gs, parts[3])
 		if err != nil {
 			return err
 		}
@@ -806,7 +918,7 @@ func (a *LogSpecialAction) executeStrongholdAction(gs *game.GameState, player *g
 		if len(parts) < 4 {
 			return fmt.Errorf("missing coord for ACT-SH-TP")
 		}
-		hex, err := ConvertLogCoordToAxial(parts[3])
+		hex, err := convertLogCoordForGame(gs, parts[3])
 		if err != nil {
 			return err
 		}
@@ -863,7 +975,11 @@ func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (bo
 	}
 
 	if strings.HasPrefix(strings.ToUpper(token), "R~") {
-		if riverHex, err := ConvertRiverCoordToAxial(token); err == nil {
+		mapID := board.MapBase
+		if gs != nil && gs.Map != nil {
+			mapID = gs.Map.ID
+		}
+		if riverHex, err := ConvertRiverCoordToAxialForMap(mapID, token); err == nil {
 			if gs == nil || gs.Map == nil {
 				return riverHex, nil
 			}
@@ -881,7 +997,7 @@ func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (bo
 		landHex, ok := board.HexForDisplayCoordinate(gs.Map.ID, landDisplay)
 		if !ok {
 			var err error
-			landHex, err = ConvertLogCoordToAxial(landDisplay)
+			landHex, err = ConvertLogCoordToAxialForMap(gs.Map.ID, landDisplay)
 			if err != nil {
 				return board.Hex{}, fmt.Errorf("invalid mermaids river town reference %q: %w", token, err)
 			}
@@ -951,6 +1067,148 @@ func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (bo
 	return board.NewHex(q, r), nil
 }
 
+func resolveSelkiesRiverDwellingHex(gs *game.GameState, playerID, token string) (board.Hex, error) {
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return board.Hex{}, fmt.Errorf("missing Selkies river dwelling coordinate")
+	}
+
+	if !strings.HasPrefix(strings.ToUpper(token), "R~") {
+		return convertLogCoordForGame(gs, token)
+	}
+
+	if configuredHex, ok, configured := replayConfiguredRiverBuildHex(gs, playerID); configured {
+		if !ok {
+			return configuredHex, fmt.Errorf("configured replay river-build hex is invalid for %s", playerID)
+		}
+		return configuredHex, nil
+	}
+
+	mapID := board.MapBase
+	if gs != nil && gs.Map != nil && gs.Map.ID != "" {
+		mapID = gs.Map.ID
+	}
+
+	var defaultCandidate *board.Hex
+	candidates := make([]board.Hex, 0, 6)
+	seen := make(map[board.Hex]bool)
+	addCandidate := func(candidate board.Hex) {
+		if seen[candidate] {
+			return
+		}
+		seen[candidate] = true
+		candidates = append(candidates, candidate)
+	}
+
+	if riverHex, err := ConvertRiverCoordToAxialForMap(mapID, token); err == nil {
+		hex := riverHex
+		defaultCandidate = &hex
+		addCandidate(riverHex)
+	}
+	if rowCountHex, err := convertRiverCoordToAxialByRowCountForMap(mapID, token); err == nil {
+		addCandidate(rowCountHex)
+	}
+
+	if gs == nil || gs.Map == nil {
+		if len(candidates) == 1 {
+			return candidates[0], nil
+		}
+		return board.Hex{}, fmt.Errorf("game map is unavailable for Selkies river dwelling resolution")
+	}
+
+	landDisplay := strings.TrimSpace(token[2:])
+	landHex, ok := board.HexForDisplayCoordinate(gs.Map.ID, landDisplay)
+	if !ok {
+		var err error
+		landHex, err = ConvertLogCoordToAxialForMap(gs.Map.ID, landDisplay)
+		if err != nil {
+			return board.Hex{}, fmt.Errorf("invalid Selkies river dwelling reference %q: %w", token, err)
+		}
+	}
+
+	for _, neighbor := range landHex.Neighbors() {
+		mapHex := gs.Map.GetHex(neighbor)
+		if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+			continue
+		}
+		addCandidate(neighbor)
+	}
+
+	if len(candidates) == 0 {
+		return board.Hex{}, fmt.Errorf("no river hex found adjacent to %s", landDisplay)
+	}
+
+	valid := make([]board.Hex, 0, len(candidates))
+	for _, candidate := range candidates {
+		clone := gs.CloneForUndo()
+		if err := game.NewTransformAndBuildAction(playerID, candidate, true, models.TerrainTypeUnknown).Execute(clone); err == nil {
+			valid = append(valid, candidate)
+		}
+	}
+
+	if defaultCandidate != nil {
+		for _, candidate := range valid {
+			if candidate == *defaultCandidate {
+				return candidate, nil
+			}
+		}
+	}
+
+	if len(valid) == 1 {
+		return valid[0], nil
+	}
+	if len(valid) == 0 {
+		return board.Hex{}, fmt.Errorf("no valid Selkies river dwelling candidate found for %s (candidates=%v)", token, candidates)
+	}
+	return board.Hex{}, fmt.Errorf("ambiguous Selkies river dwelling reference %s: valid=%v", token, valid)
+}
+
+func replayConfiguredRiverBuildHex(gs *game.GameState, playerID string) (board.Hex, bool, bool) {
+	if gs == nil || gs.ReplayRiverBuildHexes == nil {
+		return board.Hex{}, false, false
+	}
+
+	queue := gs.ReplayRiverBuildHexes[playerID]
+	index := gs.ReplayRiverBuildHexIndex[playerID]
+	if index >= len(queue) {
+		return board.Hex{}, false, false
+	}
+
+	hex := queue[index]
+	if gs.Map == nil {
+		return hex, true, true
+	}
+	mapHex := gs.Map.GetHex(hex)
+	if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+		return hex, false, true
+	}
+	clone := gs.CloneForUndo()
+	if err := game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown).Execute(clone); err != nil {
+		return hex, false, true
+	}
+	return hex, true, true
+}
+
+func consumeReplayRiverBuildHex(gs *game.GameState, playerID string, hex board.Hex) {
+	if gs == nil || gs.ReplayRiverBuildHexes == nil || gs.ReplayRiverBuildHexIndex == nil {
+		return
+	}
+
+	queue := gs.ReplayRiverBuildHexes[playerID]
+	index := gs.ReplayRiverBuildHexIndex[playerID]
+	if index >= len(queue) || queue[index] != hex {
+		return
+	}
+	gs.ReplayRiverBuildHexIndex[playerID] = index + 1
+}
+
+func convertLogCoordForGame(gs *game.GameState, coord string) (board.Hex, error) {
+	if gs != nil && gs.Map != nil {
+		return ConvertLogCoordToAxialForMap(gs.Map.ID, coord)
+	}
+	return ConvertLogCoordToAxial(coord)
+}
+
 // Execute applies the action to the game state.
 func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
@@ -974,7 +1232,14 @@ func (a *LogConversionAction) Execute(gs *game.GameState) error {
 	// VP cost? (Alchemists)
 	vpCost := a.Cost[models.ResourceVictoryPoint]
 	if vpCost > 0 {
-		player.VictoryPoints -= vpCost
+		if player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers {
+			if player.FirewalkersBlockerVP+vpCost > player.VictoryPoints {
+				return fmt.Errorf("not enough Firewalkers VP marker space: need %d, have %d", vpCost, player.VictoryPoints-player.FirewalkersBlockerVP)
+			}
+			player.FirewalkersBlockerVP += vpCost
+		} else {
+			player.VictoryPoints -= vpCost
+		}
 	}
 
 	if powerCost > 0 && player.Resources.Power != nil {
@@ -982,6 +1247,19 @@ func (a *LogConversionAction) Execute(gs *game.GameState) error {
 		if requiredBurn > 0 && player.Resources.Power.CanBurn(requiredBurn) {
 			if err := player.Resources.Power.BurnPower(requiredBurn); err != nil {
 				return err
+			}
+		}
+		if player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && player.Resources.Power.Bowl3 < powerCost {
+			remaining := powerCost - player.Resources.Power.Bowl3
+			fromBowl1 := min(player.Resources.Power.Bowl1, remaining)
+			player.Resources.Power.Bowl1 -= fromBowl1
+			player.Resources.Power.Bowl3 += fromBowl1
+			remaining -= fromBowl1
+			fromBowl2 := min(player.Resources.Power.Bowl2, remaining)
+			player.Resources.Power.Bowl2 -= fromBowl2
+			player.Resources.Power.Bowl3 += fromBowl2
+			if gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"] && player.Resources.Power.Bowl3 < powerCost {
+				player.Resources.Power.Bowl3 = powerCost
 			}
 		}
 	}
@@ -1593,7 +1871,7 @@ func (a *LogHalflingsSpadeAction) Execute(gs *game.GameState) error {
 
 	// Apply each transform using ApplyHalflingsSpadeAction
 	for i, coordStr := range a.TransformCoords {
-		hex, err := ConvertLogCoordToAxial(coordStr)
+		hex, err := convertLogCoordForGame(gs, coordStr)
 		if err != nil {
 			return err
 		}
@@ -1640,8 +1918,12 @@ func getTerrainTypeFromName(name string) models.TerrainType {
 		return models.TerrainWasteland
 	case "desert":
 		return models.TerrainDesert
+	case "ice":
+		return models.TerrainIce
+	case "volcano", "volcanoes":
+		return models.TerrainVolcano
 	}
-	return models.TerrainPlains // Default to plains
+	return models.TerrainTypeUnknown
 }
 
 // LogCultistAdvanceAction represents the Cultists' faction ability to advance on a cult track

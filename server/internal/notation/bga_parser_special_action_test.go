@@ -410,9 +410,9 @@ Nafghar gains 1 on the Cult of Air track (Favor tile) and earns 1 power
 	}
 
 	var (
-		upgradeIdx int = -1
+		upgradeIdx   int = -1
 		declineCount int
-		favorIdx int = -1
+		favorIdx     int = -1
 	)
 	for idx, item := range items {
 		actionItem, ok := item.(ActionItem)
@@ -610,6 +610,65 @@ Player1 upgrades a Dwelling to a Trading house for 0 workers 0 coins (Swarmlings
 	}
 
 	t.Logf("Parsed %d items, foundSwarmlingsBonus=%v", len(items), foundSwarmlingsBonus)
+}
+
+func TestBGAParser_SelkiesStronghold(t *testing.T) {
+	content := `Game board: Fjords
+Player1 is playing the Selkies Faction
+Player1 places a Dwelling [E6]
+~ Action phase ~
+Move 1 :
+Player1 transforms a Terrain space plains → ice for 1 spade(s) (Selkies Stronghold) [A3]
+Player1 builds a Dwelling for 1 workers 2 coins [A3]
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		if specialAction, ok := actionItem.Action.(*LogSpecialAction); ok && specialAction.ActionCode == "ACT-SH-I-A3.a3" {
+			return
+		}
+	}
+
+	t.Fatal("Did not find Selkies stronghold action")
+}
+
+func TestBGAParser_SelkiesStrongholdTransformOnlyPreservesTargetTerrain(t *testing.T) {
+	content := `Game board: Fjords
+Player1 is playing the Selkies Faction
+Player1 places a Dwelling [E6]
+~ Action phase ~
+Move 1 :
+Player1 transforms a Terrain space wasteland → desert for 1 spade(s) (Selkies Stronghold) [D6]
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		if specialAction, ok := actionItem.Action.(*LogSpecialAction); ok && specialAction.ActionCode == "ACT-SH-I-D6-Y" {
+			return
+		}
+	}
+
+	t.Fatal("Did not find Selkies transform-only stronghold action with target terrain")
 }
 
 // TestBGAParser_MermaidsRiverTown tests parsing Mermaids river town formation

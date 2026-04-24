@@ -96,6 +96,7 @@ func incomeFromSequence(seq []Income, count int) Income {
 		total.Workers += seq[i].Workers
 		total.Priests += seq[i].Priests
 		total.Power += seq[i].Power
+		total.VictoryPoints += seq[i].VictoryPoints
 	}
 	return total
 }

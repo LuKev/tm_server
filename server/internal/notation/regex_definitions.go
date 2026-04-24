@@ -13,4 +13,6 @@ var (
 	reBridgePower     = regexp.MustCompile(`(.*) spends \d+ power to build a Bridge \(Power action\)`)
 	reConversion      = regexp.MustCompile(`(.*) does some Conversions \(spent: (.*) ; collects: (.*)\)`)
 	reAlchemistsVP    = regexp.MustCompile(`(.*) converts (\d+) VP into (\d+) coins \(Alchemists ability\)`)
+	reFirewalkersGain = regexp.MustCompile(`(.*) moves their VP marker by (\d+) VP forward to gain (\d+) power \(Firewalkers Ability\)`)
+	reFirewalkersCoin = regexp.MustCompile(`(.*) moves their VP marker by (\d+) VP forward to convert to (\d+) power → (\d+) coins \(Firewalkers Ability\)`)
 )

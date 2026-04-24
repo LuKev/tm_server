@@ -12,6 +12,8 @@ export const TERRAIN_COLORS: Record<TerrainType, string> = {
   [TerrainType.Mountain]: '#95a5a6',    // Gray
   [TerrainType.Wasteland]: '#e74c3c',   // Red
   [TerrainType.River]: '#b3d9ff',       // Light Blue
+  [TerrainType.Ice]: '#edf8ff',         // Ice
+  [TerrainType.Volcano]: '#ff8a2a',     // Volcano
 };
 
 // Faction colors (from terra-mystica codebase)
@@ -45,6 +47,15 @@ export const FACTION_COLORS: Record<FactionType, string> = {
   [FactionType.TimeTravelers]: '#c8956b',
   [FactionType.Treasurers]: '#e74c3c',
   [FactionType.Wisps]: '#5dade2',
+  [FactionType.IceMaidens]: '#edf8ff',
+  [FactionType.Yetis]: '#edf8ff',
+  [FactionType.Dragonlords]: '#ff8a2a',
+  [FactionType.Acolytes]: '#ff8a2a',
+  [FactionType.Shapeshifters]: '#ddd4c7',
+  [FactionType.Riverwalkers]: '#ddd4c7',
+  [FactionType.Firewalkers]: '#ff8a2a',
+  [FactionType.Selkies]: '#edf8ff',
+  [FactionType.SnowShamans]: '#edf8ff',
 };
 
 // Contrast colors for text/borders
@@ -57,6 +68,9 @@ export const CONTRAST_COLORS: Record<string, string> = {
   '#95a5a6': '#000',  // Gray -> Black
   '#e74c3c': '#fff',  // Red -> White
   '#b3d9ff': '#000',  // Light Blue -> Black
+  '#edf8ff': '#000',  // Ice -> Black
+  '#ff8a2a': '#000',  // Volcano -> Black
+  '#ddd4c7': '#000',  // Colorless -> Black
 };
 
 // Cult track colors (from terra-mystica/stc/game.js)

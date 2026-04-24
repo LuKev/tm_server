@@ -1,0 +1,54 @@
+scoring_tiles:
+  - SCORE4
+  - SCORE1
+  - SCORE8
+  - SCORE2
+  - SCORE7
+  - SCORE3
+bonus_cards:
+  - BON-6C
+  - BON-SHIP
+  - BON-BB
+  - BON-TP
+  - BON-P
+  - BON-DW
+  - BON-SHIP-VP
+acolytes_cult_tracks:
+  Acolytes: [W, F, F, E, E, W, F, W, E, E, E, W, E]
+river_build_hexes:
+  Selkies:
+    - 5_2
+    - 2_1
+    - 10_1
+    - 9_1
+bonus_card_selections:
+  "0":
+    Acolytes: BON-P
+    Selkies: BON-TP
+    Witches: BON-SHIP
+    "Chaos Magicians": BON-BB
+  "1":
+    Acolytes: BON-DW
+    Selkies: BON-6C
+    Witches: BON-P
+    "Chaos Magicians": BON-SHIP
+  "2":
+    Acolytes: BON-TP
+    Selkies: BON-BB
+    Witches: BON-6C
+    "Chaos Magicians": BON-P
+  "3":
+    Acolytes: BON-6C
+    Selkies: BON-SHIP-VP
+    Witches: BON-BB
+    "Chaos Magicians": BON-DW
+  "4":
+    Acolytes: BON-SHIP-VP
+    Selkies: BON-TP
+    Witches: BON-6C
+    "Chaos Magicians": BON-BB
+  "5":
+    Acolytes: BON-DW
+    Selkies: BON-6C
+    Witches: BON-SHIP-VP
+    "Chaos Magicians": BON-TP

@@ -46,6 +46,15 @@ func NewRegistry() *Registry {
 	r.Register(NewTimeTravelers())
 	r.Register(NewTreasurers())
 	r.Register(NewWisps())
+	r.Register(NewIceMaidens())
+	r.Register(NewYetis())
+	r.Register(NewDragonlords())
+	r.Register(NewAcolytes())
+	r.Register(NewShapeshifters())
+	r.Register(NewRiverwalkers())
+	r.Register(NewFirewalkers())
+	r.Register(NewSelkies())
+	r.Register(NewSnowShamans())
 
 	return r
 }

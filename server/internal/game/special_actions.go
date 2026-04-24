@@ -92,6 +92,8 @@ const (
 	SpecialActionTimeTravelersPowerShift
 	SpecialActionDjinniSwapCults
 	SpecialActionArchitectsMoveBridge
+	SpecialActionShapeshiftersShiftTerrain
+	SpecialActionSelkiesStronghold
 )
 
 // SpecialAction represents a faction-specific special action
@@ -102,9 +104,9 @@ type SpecialAction struct {
 	CultTrack *CultTrack
 	// For Djinni cult swap
 	SecondCultTrack *CultTrack
-	// For Witches' Ride, Giants, Nomads, Bonus Card Spade
+	// For Witches' Ride, Giants, Nomads, Selkies, Bonus Card Spade
 	TargetHex     *board.Hex
-	BuildDwelling bool // For Giants and Nomads - whether to build dwelling after transform
+	BuildDwelling bool // For Giants, Nomads, and Selkies - whether to build dwelling after transform
 	UseSkip       bool // For bonus card spade with Fakirs/Dwarves
 	// For Alchemists conversion and Darklings priest ordination
 	ConvertVPToCoins bool // true = VP->Coins, false = Coins->VP
@@ -234,6 +236,23 @@ func NewNomadsSandstormAction(playerID string, targetHex board.Hex, buildDwellin
 		ActionType:    SpecialActionNomadsSandstorm,
 		TargetHex:     &targetHex,
 		BuildDwelling: buildDwelling,
+	}
+}
+
+func NewSelkiesStrongholdAction(playerID string, targetHex board.Hex, buildDwelling bool, targetTerrain models.TerrainType) *SpecialAction {
+	var terrain *models.TerrainType
+	if targetTerrain != models.TerrainTypeUnknown {
+		terrain = &targetTerrain
+	}
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:    SpecialActionSelkiesStronghold,
+		TargetHex:     &targetHex,
+		BuildDwelling: buildDwelling,
+		TargetTerrain: terrain,
 	}
 }
 
@@ -375,6 +394,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		SpecialActionProspectorsGainCoins,
 		SpecialActionTimeTravelersPowerShift,
 		SpecialActionArchitectsMoveBridge,
+		SpecialActionShapeshiftersShiftTerrain,
+		SpecialActionSelkiesStronghold,
 	}
 
 	isStrongholdAction := false
@@ -402,6 +423,8 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateGiantsTransform(gs, player)
 	case SpecialActionNomadsSandstorm:
 		return a.validateNomadsSandstorm(gs, player)
+	case SpecialActionSelkiesStronghold:
+		return a.validateSelkiesStronghold(gs, player)
 	case SpecialActionWater2CultAdvance:
 		return a.validateWater2CultAdvance(gs)
 	case SpecialActionBonusCardSpade:
@@ -424,13 +447,50 @@ func (a *SpecialAction) Validate(gs *GameState) error {
 		return a.validateDjinniSwapCults(gs, player)
 	case SpecialActionArchitectsMoveBridge:
 		return a.validateArchitectsMoveBridge(gs, player)
+	case SpecialActionShapeshiftersShiftTerrain:
+		return a.validateShapeshiftersShiftTerrain(gs, player)
 	default:
 		return fmt.Errorf("unknown special action type")
 	}
 }
 
 func tracksSpecialActionUsage(actionType SpecialActionType) bool {
-	return actionType != SpecialActionMermaidsRiverTown && actionType != SpecialActionDjinniSwapCults
+	return actionType != SpecialActionMermaidsRiverTown &&
+		actionType != SpecialActionDjinniSwapCults &&
+		actionType != SpecialActionShapeshiftersShiftTerrain
+}
+
+func NewShapeshiftersShiftTerrainAction(playerID string, terrain models.TerrainType) *SpecialAction {
+	return &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: playerID,
+		},
+		ActionType:    SpecialActionShapeshiftersShiftTerrain,
+		TargetTerrain: &terrain,
+	}
+}
+
+func (a *SpecialAction) validateShapeshiftersShiftTerrain(gs *GameState, player *Player) error {
+	if !isShapeshifters(player) {
+		return fmt.Errorf("only Shapeshifters can shift home terrain")
+	}
+	if a.TargetTerrain == nil || !isStandardLandTerrain(*a.TargetTerrain) {
+		return fmt.Errorf("must choose a standard land terrain")
+	}
+	if player.HasStartingTerrain && player.StartingTerrain == *a.TargetTerrain {
+		return fmt.Errorf("chosen terrain is already the Shapeshifters home terrain")
+	}
+	if isOpponentHomeTerrain(gs, player, *a.TargetTerrain) {
+		return fmt.Errorf("cannot shift to another player's home terrain")
+	}
+	if player.Resources.Power.CanSpend(5) {
+		return nil
+	}
+	if player.Resources.Power.TotalPower() < 5 {
+		return fmt.Errorf("not enough power to shift terrain")
+	}
+	return nil
 }
 
 func (a *SpecialAction) validateDjinniSwapCults(gs *GameState, player *Player) error {
@@ -778,6 +838,28 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 	return nil
 }
 
+func (a *SpecialAction) validateSelkiesStronghold(gs *GameState, player *Player) error {
+	if !isSelkies(player) {
+		return fmt.Errorf("only Selkies can use this stronghold special action")
+	}
+	if a.TargetHex == nil {
+		return fmt.Errorf("target hex must be specified")
+	}
+
+	mapHex := gs.Map.GetHex(*a.TargetHex)
+	if mapHex == nil {
+		return fmt.Errorf("hex does not exist: %v", a.TargetHex)
+	}
+	if mapHex.Building != nil {
+		return fmt.Errorf("hex already has a building")
+	}
+	if !isAdjacentToPlayerBuildingWithExtraShipping(gs, *a.TargetHex, a.PlayerID, 1) {
+		return fmt.Errorf("hex is not adjacent to player's buildings within shipping range +1")
+	}
+
+	return nil
+}
+
 func (a *SpecialAction) validateWater2CultAdvance(gs *GameState) error {
 	// Check if player has Water+2 favor tile
 	playerTiles := gs.FavorTiles.GetPlayerTiles(a.PlayerID)
@@ -813,10 +895,16 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 		}
 	}
 
+	if isRiverwalkers(player) {
+		return fmt.Errorf("riverwalkers cannot gain or use spades")
+	}
 	if isProspectors(player) {
 		if gs.RemainingPriestCapacity(a.PlayerID) < 1 {
 			return fmt.Errorf("not enough priest capacity for prospectors bonus card spade")
 		}
+		return nil
+	}
+	if factionConvertsSpadeRewards(player) {
 		return nil
 	}
 
@@ -916,6 +1004,10 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		if err := a.executeNomadsSandstorm(gs, player); err != nil {
 			return err
 		}
+	case SpecialActionSelkiesStronghold:
+		if err := a.executeSelkiesStronghold(gs, player); err != nil {
+			return err
+		}
 	case SpecialActionWater2CultAdvance:
 		if err := a.executeWater2CultAdvance(gs, player); err != nil {
 			return err
@@ -958,6 +1050,10 @@ func (a *SpecialAction) Execute(gs *GameState) error {
 		}
 	case SpecialActionArchitectsMoveBridge:
 		if err := a.executeArchitectsMoveBridge(gs, player); err != nil {
+			return err
+		}
+	case SpecialActionShapeshiftersShiftTerrain:
+		if err := a.executeShapeshiftersShiftTerrain(gs, player); err != nil {
 			return err
 		}
 	default:
@@ -1003,6 +1099,22 @@ func (a *SpecialAction) executeProspectorsGainCoins(gs *GameState, player *Playe
 func (a *SpecialAction) executeTimeTravelersPowerShift(player *Player) error {
 	player.Resources.Power.Bowl1 -= a.Amount
 	player.Resources.Power.Bowl3 += a.Amount
+	return nil
+}
+
+func (a *SpecialAction) executeShapeshiftersShiftTerrain(gs *GameState, player *Player) error {
+	if a.TargetTerrain == nil {
+		return fmt.Errorf("must choose a standard land terrain")
+	}
+	if player.Resources.Power.CanSpend(5) {
+		if err := player.Resources.Power.SpendPower(5); err != nil {
+			return err
+		}
+	} else if err := gs.removePowerTokens(player.ID, 5); err != nil {
+		return err
+	}
+	player.StartingTerrain = *a.TargetTerrain
+	player.HasStartingTerrain = true
 	return nil
 }
 
@@ -1177,10 +1289,27 @@ func (a *SpecialAction) executeNomadsSandstorm(gs *GameState, player *Player) er
 	return nil
 }
 
+func (a *SpecialAction) executeSelkiesStronghold(gs *GameState, player *Player) error {
+	bonusSpade := &SpecialAction{
+		BaseAction: BaseAction{
+			Type:     ActionSpecialAction,
+			PlayerID: a.PlayerID,
+		},
+		TargetHex:     a.TargetHex,
+		BuildDwelling: a.BuildDwelling,
+		TargetTerrain: a.TargetTerrain,
+	}
+	return bonusSpade.executeBonusCardSpade(gs, player)
+}
+
 func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) error {
 	if isProspectors(player) {
 		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 		gs.GainPriests(a.PlayerID, 1)
+		return nil
+	}
+	if factionConvertsSpadeRewards(player) {
+		gs.convertFactionSpadeReward(a.PlayerID, 1, true)
 		return nil
 	}
 
@@ -1192,13 +1321,16 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 	}
 
 	// Transform terrain
-	targetTerrain := player.Faction.GetHomeTerrain()
+	targetTerrain := effectiveHomeTerrain(player)
 	if a.TargetTerrain != nil {
 		targetTerrain = *a.TargetTerrain
 	}
 
 	// Calculate terraform cost (but we get 1 free spade)
-	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
+	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	if err != nil {
+		return err
+	}
 	if distance == 0 {
 		// If distance is 0, we might be transforming to same terrain (no-op) or invalid
 		// But if we are here, we probably want to transform.

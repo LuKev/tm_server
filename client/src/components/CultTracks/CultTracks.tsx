@@ -109,6 +109,15 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
       [FactionType.TimeTravelers]: 'T',
       [FactionType.Treasurers]: 'R',
       [FactionType.Wisps]: 'W',
+      [FactionType.IceMaidens]: 'I',
+      [FactionType.Yetis]: 'Y',
+      [FactionType.Dragonlords]: 'D',
+      [FactionType.Acolytes]: 'A',
+      [FactionType.Shapeshifters]: 'S',
+      [FactionType.Riverwalkers]: 'R',
+      [FactionType.Firewalkers]: 'F',
+      [FactionType.Selkies]: 'S',
+      [FactionType.SnowShamans]: 'S',
     };
     return names[faction];
   }, []);

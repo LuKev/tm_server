@@ -133,11 +133,11 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	}
 
 	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-		targetTerrain := player.Faction.GetHomeTerrain()
-		if a.TargetTerrain != models.TerrainTypeUnknown {
-			targetTerrain = a.TargetTerrain
+		targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
+		requiredSpades, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+		if err != nil {
+			return err
 		}
-		requiredSpades := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
 		if player.Faction.GetType() == models.FactionGiants {
 			requiredSpades = 2
 		}
@@ -176,6 +176,16 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, totalCoinsNeeded, err := a.calculateCosts(gs, player, mapHex)
 	if err != nil {
 		return err
+	}
+
+	combinedCost := factions.Cost{
+		Workers: totalWorkersNeeded,
+		Priests: totalPriestsNeeded,
+		Coins:   totalCoinsNeeded,
+		Power:   totalPowerNeeded,
+	}
+	if totalPowerNeeded == 0 && gs.canAffordWithReplayAutoConversions(player, combinedCost) {
+		return nil
 	}
 
 	// Check total workers needed (terraform + dwelling)
@@ -232,9 +242,9 @@ func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Playe
 
 func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, int, int, error) {
 	// Check if terrain needs transformation to target terrain (default: home terrain)
-	targetTerrain := player.Faction.GetHomeTerrain()
-	if a.TargetTerrain != models.TerrainTypeUnknown {
-		targetTerrain = a.TargetTerrain
+	targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
+	if isSelkies(player) && mapHex.Terrain == models.TerrainRiver && a.BuildDwelling {
+		targetTerrain = models.TerrainRiver
 	}
 	needsTransform := mapHex.Terrain != targetTerrain
 
@@ -245,51 +255,79 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 
 	if needsTransform {
 		// Calculate terraform cost
-		distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
-		if distance == 0 {
-			return 0, 0, 0, 0, fmt.Errorf("terrain distance calculation failed")
+		if isRiverwalkers(player) {
+			return 0, 0, 0, 0, fmt.Errorf("riverwalkers cannot transform terrain")
 		}
-		requiredSpades := distance
-		if player.Faction.GetType() == models.FactionGiants {
-			// Giants always require exactly 2 spades for a terrain transform.
-			requiredSpades = 2
-		}
-		requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
-
-		// Check for free spades from power actions (ACT5/ACT6) or cult rewards
-		freeSpades := 0
-		if !isProspectors(player) {
-			if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-				freeSpades += gs.PendingSpades[a.PlayerID]
+		if targetTerrain == models.TerrainVolcano {
+			switch {
+			case isDragonlords(player):
+				if player.Resources.Power.TotalPower() < volcanoTransformCost(gs, player, mapHex.Terrain) {
+					return 0, 0, 0, 0, fmt.Errorf("not enough power tokens for volcano transform")
+				}
+			case isAcolytes(player):
+				if _, ok := gs.acolytesCultPaymentTrack(player, acolytesCultTransformCost(gs, player, mapHex.Terrain)); !ok {
+					return 0, 0, 0, 0, fmt.Errorf("not enough cult steps for volcano transform")
+				}
+			case isFirewalkers(player):
+				if firewalkersAvailableVP(player) < firewalkersVPTransformCost(gs, player, mapHex.Terrain) {
+					return 0, 0, 0, 0, fmt.Errorf("not enough available victory points for lava transform")
+				}
+			default:
+				return 0, 0, 0, 0, fmt.Errorf("only volcano factions may transform to volcano")
 			}
-			if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
-				freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+		} else {
+			distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+			if err != nil {
+				return 0, 0, 0, 0, err
 			}
-		}
-		if player.Faction.GetType() == models.FactionGiants {
-			// Giants cannot use a single free spade; only a full pair is usable.
-			if freeSpades >= 2 {
-				freeSpades = 2
-			} else {
-				freeSpades = 0
+			requiredSpades := distance
+			if player.Faction.GetType() == models.FactionGiants {
+				// Giants always require exactly 2 spades for a terrain transform.
+				requiredSpades = 2
 			}
-		} else if freeSpades > requiredSpades {
-			freeSpades = requiredSpades // Only use what we need
-		}
+			requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
-		remainingSpades := requiredSpades - freeSpades
+			// Check for free spades from power actions (ACT5/ACT6) or cult rewards
+			freeSpades := 0
+			if !isProspectors(player) {
+				if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+					freeSpades += gs.PendingSpades[a.PlayerID]
+				}
+				if gs.PendingCultRewardSpades != nil && gs.PendingCultRewardSpades[a.PlayerID] > 0 {
+					freeSpades += gs.PendingCultRewardSpades[a.PlayerID]
+				}
+			}
+			if player.Faction.GetType() == models.FactionGiants {
+				// Giants cannot use a single free spade; only a full pair is usable.
+				if freeSpades >= 2 {
+					freeSpades = 2
+				} else {
+					freeSpades = 0
+				}
+			} else if freeSpades > requiredSpades {
+				freeSpades = requiredSpades // Only use what we need
+			}
 
-		// Darklings pay priests for terraform (1 priest per spade)
-		if remainingSpades > 0 {
-			if player.Faction.GetType() == models.FactionDarklings {
-				totalPriestsNeeded = remainingSpades
-			} else if isProspectors(player) {
-				totalCoinsNeeded += remainingSpades * getProspectorsGoldenSpadeCost(player)
-			} else if player.Faction.GetType() == models.FactionTheEnlightened {
-				totalPowerNeeded = player.Faction.GetTerraformCost(remainingSpades)
-			} else {
-				// Other factions pay workers
-				totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
+			remainingSpades := requiredSpades - freeSpades
+
+			// Darklings pay priests for terraform (1 priest per spade)
+			if remainingSpades > 0 {
+				if player.Faction.GetType() == models.FactionDarklings {
+					totalPriestsNeeded = remainingSpades
+				} else if isProspectors(player) {
+					totalCoinsNeeded += remainingSpades * getProspectorsGoldenSpadeCost(player)
+				} else if player.Faction.GetType() == models.FactionTheEnlightened {
+					totalPowerNeeded = player.Faction.GetTerraformCost(remainingSpades)
+				} else if isIceFactionType(player.Faction.GetType()) {
+					cost := iceTerraformCost(player, remainingSpades)
+					totalWorkersNeeded += cost.Workers
+					totalPriestsNeeded += cost.Priests
+					totalPowerNeeded += cost.Power
+					totalCoinsNeeded += cost.Coins
+				} else {
+					// Other factions pay workers
+					totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
+				}
 			}
 		}
 	}
@@ -324,19 +362,36 @@ func (a *TransformAndBuildAction) validateDwelling(gs *GameState, player *Player
 		return err
 	}
 
+	if isSelkies(player) && mapHex.Terrain == models.TerrainRiver && !needsTransform {
+		if !canSelkiesBuildRiverDwelling(gs, player, a.TargetHex) {
+			return fmt.Errorf("selkies need two non-adjacent ice buildings adjacent to build on river")
+		}
+		return nil
+	}
+
+	if isRiverwalkers(player) && isStandardLandTerrain(mapHex.Terrain) && !needsTransform {
+		if !riverwalkersCanSettleTerrain(player, mapHex.Terrain) {
+			return fmt.Errorf("riverwalkers have not unlocked %s terrain", mapHex.Terrain)
+		}
+		if !isAdjacentToRiver(gs, a.TargetHex) {
+			return fmt.Errorf("riverwalkers dwellings must be adjacent to river terrain")
+		}
+		return nil
+	}
+
 	// After transformation (if any), hex must be player's home terrain
 	if needsTransform {
 		// Will be target terrain after transform
-		if targetTerrain != player.Faction.GetHomeTerrain() {
+		if targetTerrain != effectiveHomeTerrain(player) {
 			return fmt.Errorf("cannot build dwelling: target terrain %v is not home terrain", targetTerrain)
 		}
-	} else if mapHex.Terrain != player.Faction.GetHomeTerrain() {
+	} else if mapHex.Terrain != effectiveHomeTerrain(player) {
 		return fmt.Errorf("cannot build dwelling: hex is not home terrain")
 	}
 
 	// Check if player can afford dwelling (coins and priests)
 	dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
-	if !player.Resources.CanAfford(dwellingCost) {
+	if !gs.canAffordWithReplayAutoConversions(player, dwellingCost) {
 		return fmt.Errorf("not enough resources for dwelling: need %v, have %v", dwellingCost, player.Resources)
 	}
 	return nil
@@ -349,6 +404,22 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 
 	player := gs.GetPlayer(a.PlayerID)
 	mapHex := gs.Map.GetHex(a.TargetHex)
+
+	totalWorkersNeeded, totalPriestsNeeded, totalPowerNeeded, totalCoinsNeeded, err := a.calculateCosts(gs, player, mapHex)
+	if err != nil {
+		return err
+	}
+	if totalPowerNeeded == 0 {
+		combinedCost := factions.Cost{
+			Workers: totalWorkersNeeded,
+			Priests: totalPriestsNeeded,
+			Coins:   totalCoinsNeeded,
+			Power:   totalPowerNeeded,
+		}
+		if err := gs.prepareReplayAutoConversions(player, combinedCost); err != nil {
+			return err
+		}
+	}
 
 	// Step 0: Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
@@ -395,16 +466,38 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 }
 
 func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player, mapHex *board.MapHex) error {
-	targetTerrain := player.Faction.GetHomeTerrain()
-	if a.TargetTerrain != models.TerrainTypeUnknown {
-		targetTerrain = a.TargetTerrain
+	targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
+	if isSelkies(player) && mapHex.Terrain == models.TerrainRiver && a.BuildDwelling {
+		targetTerrain = models.TerrainRiver
 	}
 	needsTransform := mapHex.Terrain != targetTerrain
 	if !needsTransform {
 		return nil
 	}
 
-	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, targetTerrain)
+	if targetTerrain == models.TerrainVolcano {
+		switch {
+		case isDragonlords(player):
+			if err := gs.removePowerTokens(a.PlayerID, volcanoTransformCost(gs, player, mapHex.Terrain)); err != nil {
+				return err
+			}
+		case isAcolytes(player):
+			if err := gs.spendAcolytesCultSteps(a.PlayerID, acolytesCultTransformCost(gs, player, mapHex.Terrain)); err != nil {
+				return err
+			}
+		case isFirewalkers(player):
+			cost := firewalkersVPTransformCost(gs, player, mapHex.Terrain)
+			player.VictoryPoints -= cost
+		default:
+			return fmt.Errorf("only volcano factions may transform to volcano")
+		}
+		return gs.Map.TransformTerrain(a.TargetHex, targetTerrain)
+	}
+
+	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	if err != nil {
+		return err
+	}
 	requiredSpades := distance
 	if player.Faction.GetType() == models.FactionGiants {
 		// Giants always require exactly 2 spades for a terrain transform.
@@ -508,6 +601,10 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 			if err := player.Resources.Power.SpendPower(powerCost); err != nil {
 				return fmt.Errorf("failed to spend power for terraform: %w", err)
 			}
+		} else if isIceFactionType(player.Faction.GetType()) {
+			if err := gs.spendWithReplayAutoConversions(player, iceTerraformCost(player, remainingSpades)); err != nil {
+				return fmt.Errorf("failed to pay for ice terraform: %w", err)
+			}
 		} else {
 			// Other factions pay workers
 			totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
@@ -569,7 +666,7 @@ func adjustRequiredSpadesForArchitects(gs *GameState, player *Player, targetHex 
 func (a *TransformAndBuildAction) handleBuildDwelling(gs *GameState, player *Player) error {
 	// Pay for dwelling
 	dwellingCost := getDwellingBuildCost(gs, player, a.TargetHex)
-	if err := player.Resources.Spend(dwellingCost); err != nil {
+	if err := gs.spendWithReplayAutoConversions(player, dwellingCost); err != nil {
 		return fmt.Errorf("failed to pay for dwelling: %w", err)
 	}
 
@@ -622,6 +719,9 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	if !isValidUpgrade(mapHex.Building.Type, a.NewBuildingType) {
 		return fmt.Errorf("invalid upgrade: cannot upgrade %v to %v", mapHex.Building.Type, a.NewBuildingType)
 	}
+	if isSelkies(player) && mapHex.Terrain == models.TerrainRiver {
+		return fmt.Errorf("selkies river dwellings cannot be upgraded")
+	}
 
 	// Check building limits
 	if err := gs.CheckBuildingLimit(a.PlayerID, a.NewBuildingType); err != nil {
@@ -631,7 +731,7 @@ func (a *UpgradeBuildingAction) Validate(gs *GameState) error {
 	// Get upgrade cost (may be reduced if adjacent to opponent)
 	cost := getUpgradeCost(gs, player, mapHex, a.NewBuildingType)
 
-	if !player.Resources.CanAfford(cost) {
+	if !gs.canAffordWithReplayAutoConversions(player, cost) {
 		return fmt.Errorf("cannot afford upgrade to %v", a.NewBuildingType)
 	}
 
@@ -651,7 +751,7 @@ func (a *UpgradeBuildingAction) Execute(gs *GameState) error {
 	cost := getUpgradeCost(gs, player, mapHex, a.NewBuildingType)
 
 	// Pay for upgrade
-	if err := player.Resources.Spend(cost); err != nil {
+	if err := gs.spendWithReplayAutoConversions(player, cost); err != nil {
 		return fmt.Errorf("failed to pay for upgrade: %w", err)
 	}
 
@@ -840,6 +940,10 @@ func (a *UpgradeBuildingAction) handleStrongholdBonuses(gs *GameState, player *P
 		}
 	case models.FactionChildrenOfTheWyrm:
 		player.Resources.Power.Bowl1 += gs.childrenRemovedPowerTokenCount(a.PlayerID)
+	case models.FactionDragonlords:
+		player.Resources.Power.Bowl1 += len(gs.Players)
+	case models.FactionSnowShamans:
+		gs.grantSnowShamansStrongholdDwellings(a.PlayerID)
 	case models.FactionProspectors:
 		gs.grantPendingPostActionSpecialAction(a.PlayerID, SpecialActionProspectorsGainCoins)
 	case models.FactionTimeTravelers:
@@ -901,6 +1005,11 @@ func getDwellingBuildCost(gs *GameState, player *Player, targetHex board.Hex) fa
 		return factions.Cost{}
 	}
 	baseCost := player.Faction.GetDwellingCost()
+	if isSelkies(player) {
+		if mapHex := gs.Map.GetHex(targetHex); mapHex != nil && mapHex.Terrain == models.TerrainRiver {
+			baseCost.Workers++
+		}
+	}
 	if player.Faction.GetType() != models.FactionChildrenOfTheWyrm {
 		return baseCost
 	}
@@ -999,6 +1108,12 @@ func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 
 	// Check if player can advance shipping (some factions like Dwarves/Fakirs cannot)
 	// Faction.CanUpgradeShipping() is checked by the faction implementations
+	if player.Faction.GetType() == models.FactionRiverwalkers {
+		return fmt.Errorf("riverwalkers cannot advance shipping")
+	}
+	if player.Faction.GetType() == models.FactionSnowShamans {
+		return fmt.Errorf("snow shamans advance shipping only when passing")
+	}
 
 	// Check if already at max level
 	if player.ShippingLevel >= 5 {
@@ -1007,7 +1122,7 @@ func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 
 	// Check if player can afford shipping upgrade
 	cost := player.Faction.GetShippingCost(player.ShippingLevel)
-	if !player.Resources.CanAfford(cost) {
+	if !gs.canAffordWithReplayAutoConversions(player, cost) {
 		return fmt.Errorf("cannot afford shipping upgrade")
 	}
 
@@ -1024,7 +1139,7 @@ func (a *AdvanceShippingAction) Execute(gs *GameState) error {
 	cost := player.Faction.GetShippingCost(player.ShippingLevel)
 
 	// Pay for upgrade
-	if err := player.Resources.Spend(cost); err != nil {
+	if err := gs.spendWithReplayAutoConversions(player, cost); err != nil {
 		return fmt.Errorf("failed to pay for shipping: %w", err)
 	}
 
@@ -1060,6 +1175,9 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 	}
 
 	factionType := player.Faction.GetType()
+	if factionType == models.FactionSnowShamans {
+		return fmt.Errorf("snow shamans advance digging only when passing")
+	}
 	maxLevel, err := maxDiggingLevelForFaction(factionType)
 	if err != nil {
 		return err
@@ -1072,7 +1190,7 @@ func (a *AdvanceDiggingAction) Validate(gs *GameState) error {
 
 	// Check if player can afford digging upgrade
 	cost := player.Faction.GetDiggingCost(player.DiggingLevel)
-	if !player.Resources.CanAfford(cost) {
+	if !gs.canAffordWithReplayAutoConversions(player, cost) {
 		return fmt.Errorf("cannot afford digging upgrade")
 	}
 
@@ -1089,7 +1207,7 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 	cost := player.Faction.GetDiggingCost(player.DiggingLevel)
 
 	// Pay for upgrade
-	if err := player.Resources.Spend(cost); err != nil {
+	if err := gs.spendWithReplayAutoConversions(player, cost); err != nil {
 		return fmt.Errorf("failed to pay for digging: %w", err)
 	}
 
@@ -1244,6 +1362,59 @@ func applyPostPassBonuses(gs *GameState, player *Player) {
 		bridgeCount := gs.Map.CountBridgesConnectingPlayerStructures(player.ID)
 		player.VictoryPoints += bridgeCount * 3
 	}
+
+	if isIceMaidens(player) && player.HasStrongholdAbility {
+		templeCount := 0
+		for _, mapHex := range gs.Map.Hexes {
+			if mapHex.Building != nil && mapHex.Building.PlayerID == player.ID && mapHex.Building.Type == models.BuildingTemple {
+				templeCount++
+			}
+		}
+		player.VictoryPoints += templeCount * 3
+	}
+
+	if isFirewalkers(player) && player.HasStrongholdAbility {
+		player.VictoryPoints += gs.countDirectBuildingGroups(player.ID)
+	}
+
+	if isSnowShamans(player) {
+		if maxDigging, err := maxDiggingLevelForFaction(player.Faction.GetType()); err == nil && player.DiggingLevel < maxDigging {
+			player.DiggingLevel++
+			gs.updateFactionDiggingLevel(player)
+		} else if player.ShippingLevel < 5 {
+			player.ShippingLevel++
+		}
+	}
+}
+
+func (gs *GameState) countDirectBuildingGroups(playerID string) int {
+	hexes := gs.getPlayerBuildingHexes(playerID)
+	visited := make(map[board.Hex]bool, len(hexes))
+	groups := 0
+	for _, start := range hexes {
+		if visited[start] {
+			continue
+		}
+		groups++
+		queue := []board.Hex{start}
+		visited[start] = true
+		for len(queue) > 0 {
+			current := queue[0]
+			queue = queue[1:]
+			for _, neighbor := range gs.Map.GetDirectNeighbors(current) {
+				if visited[neighbor] {
+					continue
+				}
+				mapHex := gs.Map.GetHex(neighbor)
+				if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
+					continue
+				}
+				visited[neighbor] = true
+				queue = append(queue, neighbor)
+			}
+		}
+	}
+	return groups
 }
 
 func advanceAfterCompletedPass(gs *GameState) error {
@@ -1336,6 +1507,9 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 	// Note: It's valid to sacrifice a priest even if you can't advance (no refund)
 	// Position 10 requires a key (checked in gs.AdvanceCultTrack)
 	gs.AdvanceCultTrack(a.PlayerID, a.Track, a.SpacesToClimb)
+	if isAcolytes(player) && player.HasStrongholdAbility {
+		gs.AdvanceCultTrack(a.PlayerID, a.Track, 1)
+	}
 
 	// Track priest placement on cult track action spaces
 	// In Terra Mystica, each track has 4 action spaces: one 3-step and three 2-step

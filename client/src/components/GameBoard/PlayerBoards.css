@@ -296,6 +296,12 @@
     background-color: #7e22ce;
 }
 
+.riverwalker-unlocks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25em;
+}
+
 .pb-special-action-hover:hover {
     box-shadow: inset 0 0 0 0.15em #facc15, 0 0 0.45em rgba(250, 204, 21, 0.85);
 }

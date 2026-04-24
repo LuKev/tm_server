@@ -560,7 +560,7 @@ func (d CustomMapDefinition) validate() error {
 			return fmt.Errorf("row %d has %d columns, expected %d", rowIndex, len(row), expected)
 		}
 		for colIndex, terrain := range row {
-			if terrain < models.TerrainPlains || terrain > models.TerrainRiver {
+			if terrain < models.TerrainPlains || terrain > models.TerrainVolcano {
 				return fmt.Errorf("row %d column %d has invalid terrain %d", rowIndex, colIndex, terrain)
 			}
 		}
@@ -623,6 +623,10 @@ func NormalizeMapID(raw string) MapID {
 		return MapBase
 	}
 	switch normalized {
+	case "base game", "base_game":
+		return MapBase
+	case "revised base game", "revised_base", "revised_base_game":
+		return MapRevisedBase
 	case "fire_and_ice", "fire and ice", "fire&ice":
 		return MapFireAndIce
 	default:
