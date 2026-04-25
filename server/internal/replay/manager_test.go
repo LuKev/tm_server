@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
 )
 
@@ -56,5 +58,51 @@ func TestDetectMissingGlobalInfo(t *testing.T) {
 	}
 	if !missing.GlobalScoringTiles {
 		t.Error("GlobalScoringTiles should be true")
+	}
+}
+
+func TestCreateInitialState_UsesGameBoardSetting(t *testing.T) {
+	items := []notation.LogItem{
+		notation.GameSettingsItem{
+			Settings: map[string]string{
+				"Game":               "Fjords",
+				"Player:Alice":       "Witches",
+				"StartingVP:Witches": "20",
+			},
+		},
+	}
+
+	initialState := createInitialState(items)
+
+	if initialState.Map == nil {
+		t.Fatal("initialState.Map is nil")
+	}
+	if initialState.Map.ID != board.MapFjords {
+		t.Fatalf("initialState.Map.ID = %q, want %q", initialState.Map.ID, board.MapFjords)
+	}
+}
+
+func TestCreateInitialState_AppliesStartingTerrainSetting(t *testing.T) {
+	items := []notation.LogItem{
+		notation.GameSettingsItem{
+			Settings: map[string]string{
+				"Game":                         "Base Game",
+				"Player:mellison":             "Ice Maidens",
+				"StartingVP:Ice Maidens":      "27",
+				"StartingTerrain:Ice Maidens": "mountains",
+			},
+		},
+	}
+
+	initialState := createInitialState(items)
+	player := initialState.Players["Ice Maidens"]
+	if player == nil {
+		t.Fatal("Ice Maidens player not found")
+	}
+	if !player.HasStartingTerrain {
+		t.Fatal("expected starting terrain to be set")
+	}
+	if player.StartingTerrain != models.TerrainMountain {
+		t.Fatalf("starting terrain = %v, want %v", player.StartingTerrain, models.TerrainMountain)
 	}
 }

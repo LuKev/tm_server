@@ -148,6 +148,16 @@ func executePowerLeechOfferAmount(gs *GameState, playerID string, offerIndex int
 				}
 			}
 		}
+		if bonus, exists := gs.PendingShapeshiftersLeech[offer.EventID]; exists && bonus != nil && bonus.PlayerID == offer.FromPlayerID {
+			bonus.ResolvedCount++
+			if potentialGain > 0 {
+				if accepted {
+					bonus.AcceptedCount++
+				} else {
+					bonus.DeclinedCount++
+				}
+			}
+		}
 	}
 
 	// Remove the accepted/declined offer, preserving any unaccepted remainder.
@@ -160,6 +170,7 @@ func executePowerLeechOfferAmount(gs *GameState, playerID string, offerIndex int
 	// Check if all offers for this building are resolved
 	if offer != nil {
 		gs.ResolveCultistsLeechBonus(offer.EventID)
+		gs.ResolveShapeshiftersLeechBonus(offer.EventID)
 	}
 
 	// Continue turn flow after the full leech queue resolves.
@@ -172,6 +183,34 @@ func executePowerLeechOfferAmount(gs *GameState, playerID string, offerIndex int
 	}
 
 	return nil
+}
+
+func (gs *GameState) ResolveShapeshiftersLeechBonus(eventID int) {
+	bonus, exists := gs.PendingShapeshiftersLeech[eventID]
+	if !exists {
+		return
+	}
+	if bonus.ResolvedCount < bonus.OffersCreated {
+		return
+	}
+	delete(gs.PendingShapeshiftersLeech, eventID)
+
+	player := gs.GetPlayer(bonus.PlayerID)
+	if !isShapeshifters(player) {
+		return
+	}
+	if bonus.AcceptedCount == 0 && bonus.DeclinedCount == 0 {
+		return
+	}
+	if bonus.AcceptedCount > 0 {
+		// UI choice is not modeled yet; take the generally beneficial errata option when affordable.
+		if player.VictoryPoints > 0 {
+			player.VictoryPoints--
+			player.Resources.Power.Bowl3++
+		}
+		return
+	}
+	player.Resources.GainPower(1)
 }
 
 // ResolveCultistsLeechBonus checks if all leech offers for a Cultists player are resolved

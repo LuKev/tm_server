@@ -384,6 +384,79 @@ const WISPS_BOARD: FactionBoardLayout = {
     stronghold: { cost: { workers: 4, coins: 4 }, income: { power: 3 } },
 };
 
+const ALL_WORKER_DWELLINGS = withDwellingIncome([{ workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }]);
+const NO_BASE_FOURTH_DWELLINGS = withDwellingIncome([{ workers: 1 }, { workers: 1 }, { workers: 1 }, null, { workers: 1 }, { workers: 1 }, { workers: 1 }, { workers: 1 }]);
+const ICE_SANCTUARY: BuildingSlot = { cost: { workers: 4, coins: 6 }, income: { priests: 1 } };
+const ICE_STRONGHOLD_POWER4: BuildingSlot = { cost: { workers: 4, coins: 6 }, income: { power: 4 } };
+const VOLCANO_SANCTUARY: BuildingSlot = { cost: { workers: 4, coins: 8 }, income: { priests: 1 } };
+const VOLCANO_STRONGHOLD_POWER2: BuildingSlot = { cost: { workers: 4, coins: 8 }, income: { power: 2 } };
+
+const ICE_MAIDENS_BOARD: FactionBoardLayout = {
+    dwellings: ALL_WORKER_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: ICE_SANCTUARY,
+    stronghold: ICE_STRONGHOLD_POWER4,
+};
+
+const YETIS_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ workers: 1 }, { workers: 1 }, null, { workers: 1 }, { workers: 1 }, null, { workers: 1 }, { workers: 1 }]),
+    tradingHouses: withTradingIncome([{ coins: 2, power: 2 }, { coins: 2, power: 2 }, { coins: 2, power: 2 }, { coins: 2, power: 2 }]),
+    temples: withTempleIncome([{ priests: 1 }, { power: 5 }, { priests: 1 }]),
+    sanctuary: ICE_SANCTUARY,
+    stronghold: ICE_STRONGHOLD_POWER4,
+};
+
+const ACOLYTES_BOARD: FactionBoardLayout = {
+    dwellings: NO_BASE_FOURTH_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: VOLCANO_SANCTUARY,
+    stronghold: VOLCANO_STRONGHOLD_POWER2,
+};
+
+const DRAGONLORDS_BOARD: FactionBoardLayout = ACOLYTES_BOARD;
+
+const SHAPESHIFTERS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: ICE_SANCTUARY,
+    stronghold: { cost: { workers: 3, coins: 6 }, income: { power: 4 } },
+};
+
+const RIVERWALKERS_BOARD: FactionBoardLayout = {
+    dwellings: withDwellingIncome([{ workers: 1 }, { workers: 1 }, null, { workers: 1 }, { workers: 1 }, null, { workers: 1 }, { workers: 1 }]),
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: withTempleIncome([{ priests: 1 }, { power: 5 }, { priests: 1 }]),
+    sanctuary: ICE_SANCTUARY,
+    stronghold: { cost: { workers: 4, coins: 6 }, income: { power: 2 } },
+};
+
+const FIREWALKERS_BOARD: FactionBoardLayout = {
+    dwellings: STANDARD_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: STANDARD_SANCTUARY,
+    stronghold: { cost: { workers: 4, coins: 8 }, income: null },
+};
+
+const SELKIES_BOARD: FactionBoardLayout = {
+    dwellings: ALL_WORKER_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: STANDARD_TEMPLES,
+    sanctuary: ICE_SANCTUARY,
+    stronghold: { cost: { workers: 4, coins: 6 }, income: null },
+};
+
+const SNOW_SHAMANS_BOARD: FactionBoardLayout = {
+    dwellings: ALL_WORKER_DWELLINGS,
+    tradingHouses: STANDARD_TRADING_HOUSES,
+    temples: withTempleIncome([{ power: 4 }, { priests: 1 }, { power: 4 }]),
+    sanctuary: ICE_SANCTUARY,
+    stronghold: { cost: { workers: 4, coins: 6 }, income: null },
+};
+
 export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
     [FactionType.Unknown]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },
     [FactionType.ChaosMagicians]: CHAOS_MAGICIAN_BOARD,
@@ -413,6 +486,15 @@ export const FACTION_BOARDS: Record<FactionType, FactionBoardLayout> = {
     [FactionType.TimeTravelers]: TIME_TRAVELERS_BOARD,
     [FactionType.Treasurers]: TREASURERS_BOARD,
     [FactionType.Wisps]: WISPS_BOARD,
+    [FactionType.IceMaidens]: ICE_MAIDENS_BOARD,
+    [FactionType.Yetis]: YETIS_BOARD,
+    [FactionType.Dragonlords]: DRAGONLORDS_BOARD,
+    [FactionType.Acolytes]: ACOLYTES_BOARD,
+    [FactionType.Shapeshifters]: SHAPESHIFTERS_BOARD,
+    [FactionType.Riverwalkers]: RIVERWALKERS_BOARD,
+    [FactionType.Firewalkers]: FIREWALKERS_BOARD,
+    [FactionType.Selkies]: SELKIES_BOARD,
+    [FactionType.SnowShamans]: SNOW_SHAMANS_BOARD,
 
     // Defaults for others
     [FactionType.Witches]: { dwellings: STANDARD_DWELLINGS, tradingHouses: STANDARD_TRADING_HOUSES, temples: STANDARD_TEMPLES, sanctuary: STANDARD_SANCTUARY, stronghold: STANDARD_STRONGHOLD },

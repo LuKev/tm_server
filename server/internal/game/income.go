@@ -17,10 +17,11 @@ import "github.com/lukev/tm_server/internal/models"
 
 // BaseIncome represents the standard income for each faction
 type BaseIncome struct {
-	Coins   int
-	Workers int
-	Priests int
-	Power   int // Power cycles through bowls using GainPower()
+	Coins         int
+	Workers       int
+	Priests       int
+	Power         int // Power cycles through bowls using GainPower()
+	VictoryPoints int
 }
 
 func chashIncomeTrackIncome(level int) BaseIncome {
@@ -69,10 +70,12 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Workers += baseIncome.Workers
 	income.Priests += baseIncome.Priests
 	income.Power += baseIncome.Power
+	income.VictoryPoints += baseIncome.VictoryPoints
 	if faction.GetType() == models.FactionChashDallah {
 		trackIncome := chashIncomeTrackIncome(player.ChashIncomeTrackLevel)
 		income.Coins += trackIncome.Coins
 		income.Workers += trackIncome.Workers
+		income.VictoryPoints += trackIncome.VictoryPoints
 	}
 
 	// 2. Income from buildings on the map (uses faction methods)
@@ -81,6 +84,7 @@ func calculatePlayerIncome(gs *GameState, player *Player) BaseIncome {
 	income.Workers += buildingIncome.Workers
 	income.Priests += buildingIncome.Priests
 	income.Power += buildingIncome.Power
+	income.VictoryPoints += buildingIncome.VictoryPoints
 
 	// 3. Income from favor tiles
 	playerTiles := gs.FavorTiles.GetPlayerTiles(player.ID)
@@ -137,17 +141,23 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 	income.Workers += dwellingIncome.Workers
 	income.Priests += dwellingIncome.Priests
 	income.Power += dwellingIncome.Power
+	income.VictoryPoints += dwellingIncome.VictoryPoints
 
 	// Trading house income (uses faction method)
 	thIncome := faction.GetTradingHouseIncome(tradingHouses)
 	income.Coins += thIncome.Coins
+	income.Workers += thIncome.Workers
+	income.Priests += thIncome.Priests
 	income.Power += thIncome.Power
+	income.VictoryPoints += thIncome.VictoryPoints
 
 	// Temple income (uses faction method)
 	templeIncome := faction.GetTempleIncome(temples)
 	income.Coins += templeIncome.Coins
+	income.Workers += templeIncome.Workers
 	income.Priests += templeIncome.Priests
 	income.Power += templeIncome.Power
+	income.VictoryPoints += templeIncome.VictoryPoints
 
 	// Sanctuary income (uses faction method, only 1 per faction)
 	if sanctuaries > 0 {
@@ -156,6 +166,7 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 		income.Workers += sanctuaryIncome.Workers
 		income.Priests += sanctuaryIncome.Priests
 		income.Power += sanctuaryIncome.Power
+		income.VictoryPoints += sanctuaryIncome.VictoryPoints
 	}
 
 	// Stronghold income (uses faction method)
@@ -165,6 +176,7 @@ func calculateBuildingIncome(gs *GameState, player *Player) BaseIncome {
 		income.Workers += strongholdIncome.Workers
 		income.Priests += strongholdIncome.Priests
 		income.Power += strongholdIncome.Power
+		income.VictoryPoints += strongholdIncome.VictoryPoints
 	}
 
 	return income
@@ -188,5 +200,7 @@ func applyIncome(gs *GameState, player *Player, income BaseIncome) BaseIncome {
 	if income.Power > 0 {
 		player.Resources.Power.GainPower(income.Power)
 	}
+	player.VictoryPoints += income.VictoryPoints
+	applied.VictoryPoints = income.VictoryPoints
 	return applied
 }

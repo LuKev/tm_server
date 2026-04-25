@@ -101,7 +101,16 @@ func isKnownFaction(f models.FactionType) bool {
 		models.FactionTheEnlightened,
 		models.FactionTimeTravelers,
 		models.FactionTreasurers,
-		models.FactionWisps:
+		models.FactionWisps,
+		models.FactionIceMaidens,
+		models.FactionYetis,
+		models.FactionDragonlords,
+		models.FactionAcolytes,
+		models.FactionShapeshifters,
+		models.FactionRiverwalkers,
+		models.FactionFirewalkers,
+		models.FactionSelkies,
+		models.FactionSnowShamans:
 		return true
 	}
 	return false

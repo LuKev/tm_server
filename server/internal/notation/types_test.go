@@ -386,6 +386,36 @@ func TestLogAcceptLeechAction_ExplicitAmountOverridesPendingOffer(t *testing.T) 
 	}
 }
 
+func TestLogConversionAction_FirewalkersMovesMarkerAndGainsPower(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("firewalkers", factions.NewFirewalkers()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("firewalkers")
+	player.VictoryPoints = 30
+	player.FirewalkersBlockerVP = 20
+	player.Resources.Power = game.NewPowerSystem(4, 4, 0)
+
+	action := &LogConversionAction{
+		PlayerID: "firewalkers",
+		Cost:     map[models.ResourceType]int{models.ResourceVictoryPoint: 5},
+		Reward:   map[models.ResourceType]int{models.ResourcePower: 5},
+	}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogConversionAction.Execute() error = %v", err)
+	}
+
+	if got := player.VictoryPoints; got != 30 {
+		t.Fatalf("victory points = %d, want 30", got)
+	}
+	if got := player.FirewalkersBlockerVP; got != 25 {
+		t.Fatalf("firewalkers marker = %d, want 25", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 1 {
+		t.Fatalf("bowl III = %d, want 1", got)
+	}
+}
+
 func TestLogAcceptLeechAction_FromPlayerIDFallsBackToSourceWhenAmountIsCapped(t *testing.T) {
 	gs := game.NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewAuren()); err != nil {

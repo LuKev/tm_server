@@ -23,6 +23,8 @@ export const TERRAIN_BRUSH_OPTIONS: TerrainBrushOption[] = [
   { terrain: TerrainType.Mountain, label: 'Mountain', importCode: 'S' },
   { terrain: TerrainType.Wasteland, label: 'Wasteland', importCode: 'R' },
   { terrain: TerrainType.Desert, label: 'Desert', importCode: 'Y' },
+  { terrain: TerrainType.Ice, label: 'Ice', importCode: 'W' },
+  { terrain: TerrainType.Volcano, label: 'Volcano', importCode: 'V' },
 ]
 
 const EXPORT_CODE_MAP: Record<TerrainType, string> = {
@@ -34,6 +36,8 @@ const EXPORT_CODE_MAP: Record<TerrainType, string> = {
   [TerrainType.Mountain]: 'S',
   [TerrainType.Wasteland]: 'R',
   [TerrainType.Desert]: 'Y',
+  [TerrainType.Ice]: 'W',
+  [TerrainType.Volcano]: 'V',
 }
 
 const IMPORT_TOKEN_MAP = new Map<string, TerrainType>([
@@ -63,6 +67,13 @@ const IMPORT_TOKEN_MAP = new Map<string, TerrainType>([
   ['y', TerrainType.Desert],
   ['desert', TerrainType.Desert],
   ['yellow', TerrainType.Desert],
+  ['w', TerrainType.Ice],
+  ['ice', TerrainType.Ice],
+  ['white', TerrainType.Ice],
+  ['v', TerrainType.Volcano],
+  ['volcano', TerrainType.Volcano],
+  ['lava', TerrainType.Volcano],
+  ['orange', TerrainType.Volcano],
 ])
 
 function getRowLength(firstRowColumns: number, firstRowLonger: boolean, rowIndex: number): number {

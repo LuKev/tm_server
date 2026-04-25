@@ -9,6 +9,8 @@ export enum TerrainType {
   Wasteland = 5,
   Desert = 6,
   River = 7,
+  Ice = 8,
+  Volcano = 9,
 }
 
 export enum FactionType {
@@ -41,6 +43,15 @@ export enum FactionType {
   TimeTravelers = 26,
   Treasurers = 27,
   Wisps = 28,
+  IceMaidens = 29,
+  Yetis = 30,
+  Dragonlords = 31,
+  Acolytes = 32,
+  Shapeshifters = 33,
+  Riverwalkers = 34,
+  Firewalkers = 35,
+  Selkies = 36,
+  SnowShamans = 37,
 }
 
 export enum BuildingType {
@@ -154,6 +165,7 @@ export interface PlayerState {
   buildings: Record<string, Building>
   victoryPoints?: number
   VictoryPoints?: number // Deprecated, use victoryPoints
+  firewalkersBlockerVp?: number
   keys?: number
   townsFormed?: number
   townTiles?: number[] // Array of TownTileType IDs
@@ -162,6 +174,7 @@ export interface PlayerState {
   treasuryCoins?: number
   treasuryWorkers?: number
   treasuryPriests?: number
+  unlockedTerrains?: Partial<Record<TerrainType, boolean>>
   Faction?: FactionType | { Type: FactionType }
   specialActionsUsed?: Record<number, boolean>
   options?: PlayerOptions
@@ -203,6 +216,8 @@ export enum SpecialActionType {
   TimeTravelersPowerShift = 15,
   DjinniSwapCults = 16,
   ArchitectsMoveBridge = 17,
+  ShapeshiftersShiftTerrain = 18,
+  SelkiesStronghold = 19,
 }
 
 export interface CultTrackState {

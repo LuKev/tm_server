@@ -651,6 +651,109 @@ func TestNomadsSandstorm_RequiresDirectAdjacency(t *testing.T) {
 	}
 }
 
+func TestSelkiesStronghold_AllowsShippingPlusOne(t *testing.T) {
+	gs, err := NewGameStateWithMap(board.MapFjords)
+	if err != nil {
+		t.Fatalf("new game state: %v", err)
+	}
+	faction := factions.NewSelkies()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 20
+	player.Resources.Workers = 20
+	player.Resources.Priests = 5
+	player.HasStrongholdAbility = true
+	player.StartingTerrain = models.TerrainPlains
+	player.HasStartingTerrain = true
+
+	origin, ok := board.HexForDisplayCoordinate(board.MapFjords, "E6")
+	if !ok {
+		t.Fatal("expected E6 to exist on Fjords")
+	}
+	startDwelling, ok := board.HexForDisplayCoordinate(board.MapFjords, "B2")
+	if !ok {
+		t.Fatal("expected B2 to exist on Fjords")
+	}
+	targetHex, ok := board.HexForDisplayCoordinate(board.MapFjords, "A3")
+	if !ok {
+		t.Fatal("expected A3 to exist on Fjords")
+	}
+
+	gs.Map.GetHex(origin).Terrain = models.TerrainIce
+	gs.Map.GetHex(startDwelling).Terrain = models.TerrainIce
+	gs.Map.PlaceBuilding(startDwelling, &models.Building{Type: models.BuildingDwelling, PlayerID: "player1", Faction: faction.GetType(), PowerValue: 1})
+	gs.Map.PlaceBuilding(origin, &models.Building{Type: models.BuildingStronghold, PlayerID: "player1", Faction: faction.GetType(), PowerValue: 3})
+
+	action := NewSelkiesStrongholdAction("player1", targetHex, true, models.TerrainTypeUnknown)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("expected Selkies stronghold to succeed, got error: %v", err)
+	}
+
+	mapHex := gs.Map.GetHex(targetHex)
+	if mapHex.Building == nil || mapHex.Building.PlayerID != "player1" {
+		t.Fatalf("expected dwelling to be built, got %+v", mapHex.Building)
+	}
+}
+
+func TestSelkiesStronghold_TransformOnlyUsesProvidedTerrainAndFreeSpade(t *testing.T) {
+	gs, err := NewGameStateWithMap(board.MapFjords)
+	if err != nil {
+		t.Fatalf("new game state: %v", err)
+	}
+	faction := factions.NewSelkies()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+
+	player := gs.GetPlayer("player1")
+	player.Resources.Coins = 10
+	player.Resources.Workers = 0
+	player.Resources.Priests = 1
+	player.HasStrongholdAbility = true
+	player.StartingTerrain = models.TerrainPlains
+	player.HasStartingTerrain = true
+
+	targetHex, ok := board.HexForDisplayCoordinate(board.MapFjords, "D6")
+	if !ok {
+		t.Fatal("expected D6 to exist on Fjords")
+	}
+	var supportHex board.Hex
+	foundSupport := false
+	for _, neighbor := range gs.Map.GetDirectNeighbors(targetHex) {
+		mapHex := gs.Map.GetHex(neighbor)
+		if mapHex == nil || mapHex.Terrain == models.TerrainRiver {
+			continue
+		}
+		supportHex = neighbor
+		foundSupport = true
+		break
+	}
+	if !foundSupport {
+		t.Fatal("expected a non-river support hex adjacent to D6")
+	}
+
+	gs.Map.GetHex(supportHex).Terrain = models.TerrainIce
+	gs.Map.PlaceBuilding(supportHex, &models.Building{Type: models.BuildingStronghold, PlayerID: "player1", Faction: faction.GetType(), PowerValue: 3})
+
+	action := NewSelkiesStrongholdAction("player1", targetHex, false, models.TerrainDesert)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("expected Selkies transform-only stronghold action to succeed, got error: %v", err)
+	}
+
+	if got := gs.Map.GetHex(targetHex).Terrain; got != models.TerrainDesert {
+		t.Fatalf("target terrain = %v, want %v", got, models.TerrainDesert)
+	}
+	if got := player.Resources.Workers; got != 0 {
+		t.Fatalf("workers = %d, want 0 after free one-spade transform", got)
+	}
+	if got := player.Resources.Coins; got != 10 {
+		t.Fatalf("coins = %d, want 10 for transform-only stronghold action", got)
+	}
+}
+
 func TestUpgradeToStronghold_GrantsAbility(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()

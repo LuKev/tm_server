@@ -5,6 +5,7 @@ import (
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 func TestBGAParser(t *testing.T) {
@@ -173,6 +174,245 @@ deragned is playing the Halflings Faction
 	expectedBonus := "BON-SPD,BON-6C,BON-SHIP,BON-BB,BON-TP,BON-P,BON-SHIP-VP"
 	if settings.Settings["BonusCards"] != expectedBonus {
 		t.Errorf("Expected BonusCards %q, got %q", expectedBonus, settings.Settings["BonusCards"])
+	}
+}
+
+func TestBGAParserSettings_PreservesFactionStartingTerrain(t *testing.T) {
+	content := `Game board: Base Game
+Barnawal selected the faction Ice Maidens on mountains to play in position #1
+Zoras selected the faction Nomads on desert to play in position #2
+mellison is playing the Ice Maidens Faction (with 27 VP Starting VPs)
+Zoras is playing the Nomads Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var settings *GameSettingsItem
+	for _, item := range items {
+		if s, ok := item.(GameSettingsItem); ok {
+			settings = &s
+			break
+		}
+	}
+
+	if settings == nil {
+		t.Fatal("GameSettingsItem not found")
+	}
+	if got := settings.Settings["StartingTerrain:Ice Maidens"]; got != "mountains" {
+		t.Fatalf("StartingTerrain:Ice Maidens = %q, want %q", got, "mountains")
+	}
+	if got := settings.Settings["StartingTerrain:Nomads"]; got != "desert" {
+		t.Fatalf("StartingTerrain:Nomads = %q, want %q", got, "desert")
+	}
+}
+
+func TestBGAParser_FirewalkersMarkerToCoinDoesNotCreateResidualPower(t *testing.T) {
+	content := "Game board: Base Game\n" +
+		"snakeixirr selected the faction Firewalkers on volcano to play in position #1\n" +
+		"snakeixirr is playing the Firewalkers Faction (with 39 VP Starting VPs)\n" +
+		"~ Every player has chosen a Faction and receives the matching starting resources. ~\n" +
+		"snakeixirr moves their VP marker by 2 VP forward to convert to 2 power \u2192 1 coins (Firewalkers Ability)\n"
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var markerToCoin *LogConversionAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if _, ok := actionItem.Action.(*LogCompoundAction); ok {
+			t.Fatalf("Firewalkers marker-to-coin should parse as a direct conversion, not a power compound")
+		}
+		conversion, ok := actionItem.Action.(*LogConversionAction)
+		if !ok || conversion.PlayerID != "Firewalkers" {
+			continue
+		}
+		if conversion.Cost[models.ResourceVictoryPoint] == 2 {
+			markerToCoin = conversion
+			break
+		}
+	}
+
+	if markerToCoin == nil {
+		t.Fatal("Firewalkers marker-to-coin conversion not found")
+	}
+	if got := markerToCoin.Reward[models.ResourceCoin]; got != 1 {
+		t.Fatalf("coin reward = %d, want 1", got)
+	}
+	if got := markerToCoin.Reward[models.ResourcePower]; got != 0 {
+		t.Fatalf("power reward = %d, want 0", got)
+	}
+	if got := markerToCoin.Cost[models.ResourcePower]; got != 0 {
+		t.Fatalf("power cost = %d, want 0", got)
+	}
+}
+
+func TestBGAParser_TransformToIceUsesIceTargetTerrain(t *testing.T) {
+	content := `Game board: Base Game
+mellison selected the faction Ice Maidens on mountains to play in position #1
+mellison is playing the Ice Maidens Faction (with 27 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+mellison transforms a Terrain space forest → ice for 1 spade(s) [F4]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.TransformAndBuildAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Ice Maidens" {
+			continue
+		}
+		if action.TargetTerrain != models.TerrainIce {
+			t.Fatalf("target terrain = %v, want %v", action.TargetTerrain, models.TerrainIce)
+		}
+		return
+	}
+
+	t.Fatal("Did not find Ice Maidens transform action")
+}
+
+func TestBGAParser_ShapeshiftersStrongholdShiftParsesTerrainChange(t *testing.T) {
+	content := `Game board: Base Game
+Zoras selected the faction Shapeshifters on plains to play in position #1
+Zoras is playing the Shapeshifters Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Zoras changes his Home Terrain to mountains for Power (Shapeshifters Stronghold)
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Shapeshifters" {
+			continue
+		}
+		if action.ActionType != game.SpecialActionShapeshiftersShiftTerrain {
+			t.Fatalf("action type = %v, want %v", action.ActionType, game.SpecialActionShapeshiftersShiftTerrain)
+		}
+		if action.TargetTerrain == nil || *action.TargetTerrain != models.TerrainMountain {
+			t.Fatalf("target terrain = %+v, want Mountain", action.TargetTerrain)
+		}
+		return
+	}
+
+	t.Fatal("Did not find Shapeshifters stronghold terrain-shift action")
+}
+
+func TestBGAParser_FjordsSetupCoordinates(t *testing.T) {
+	content := `Game board: Fjords
+haligh selected the faction Witches on forest to play in position #1
+haligh is playing the Witches Faction (with 24 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+haligh places a Dwelling [F5]
+~ Action phase ~
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	expectedHex, ok := board.HexForDisplayCoordinate(board.MapFjords, "F5")
+	if !ok {
+		t.Fatal("expected Fjords F5 coordinate to exist")
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SetupDwellingAction)
+		if !ok {
+			continue
+		}
+		if action.Hex != expectedHex {
+			t.Fatalf("setup dwelling hex = %+v, want %+v", action.Hex, expectedHex)
+		}
+		return
+	}
+
+	t.Fatal("Did not find SetupDwellingAction")
+}
+
+func TestBGAParser_FjordsRiverDwellingCoordinate(t *testing.T) {
+	content := `Game board: Fjords
+kezilu selected the faction Selkies on plains to play in position #1
+kezilu is playing the Selkies Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+kezilu builds a Dwelling for 1 workers 2 coins + 1 workers (Selkies Ability) [R~C4]
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*LogRiverBuildAction)
+		if !ok {
+			continue
+		}
+		if action.PlayerID != "Selkies" {
+			continue
+		}
+		if action.CoordToken != "R~C4" {
+			t.Fatalf("river dwelling token = %q, want %q", action.CoordToken, "R~C4")
+		}
+		return
+	}
+
+	t.Fatal("Did not find Selkies LogRiverBuildAction")
+}
+
+func TestConvertRiverCoordToAxialForMap_FjordsUsesLandDisplayReference(t *testing.T) {
+	hex, err := ConvertRiverCoordToAxialForMap(board.MapFjords, "R~C4")
+	if err != nil {
+		t.Fatalf("ConvertRiverCoordToAxialForMap failed: %v", err)
+	}
+	if want := board.NewHex(5, 2); hex != want {
+		t.Fatalf("river hex = %+v, want %+v", hex, want)
 	}
 }
 

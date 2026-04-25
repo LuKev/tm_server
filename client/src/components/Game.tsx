@@ -74,6 +74,7 @@ const STRONGHOLD_TARGET_ACTION_TYPES: SpecialActionType[] = [
   SpecialActionType.SwarmlingsUpgrade,
   SpecialActionType.GiantsTransform,
   SpecialActionType.NomadsSandstorm,
+  SpecialActionType.SelkiesStronghold,
   SpecialActionType.MermaidsRiverTown,
 ]
 
@@ -796,6 +797,9 @@ export const Game = () => {
       case FactionType.Nomads:
         hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.NomadsSandstorm]
         break
+      case FactionType.Selkies:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.SelkiesStronghold]
+        break
       case FactionType.TheEnlightened:
         hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.EnlightenedGainPower]
         break
@@ -807,6 +811,9 @@ export const Game = () => {
         break
       case FactionType.TimeTravelers:
         hasUnusedStronghold = !!localPlayer.hasStrongholdAbility && !used[SpecialActionType.TimeTravelersPowerShift]
+        break
+      case FactionType.Shapeshifters:
+        hasUnusedStronghold = !!localPlayer.hasStrongholdAbility
         break
       default:
         hasUnusedStronghold = false
@@ -1093,7 +1100,12 @@ export const Game = () => {
         return
       }
 
-      if (actionType === SpecialActionType.GiantsTransform || actionType === SpecialActionType.NomadsSandstorm || actionType === SpecialActionType.BonusCardSpade) {
+      if (
+        actionType === SpecialActionType.GiantsTransform
+        || actionType === SpecialActionType.NomadsSandstorm
+        || actionType === SpecialActionType.SelkiesStronghold
+        || actionType === SpecialActionType.BonusCardSpade
+      ) {
         setPendingHex({ q, r })
         setHexActionMode('transform_build')
         setSelectedTerrain(localHomeTerrain)
@@ -1421,6 +1433,7 @@ export const Game = () => {
     if (
       actionType === SpecialActionType.GiantsTransform
       || actionType === SpecialActionType.NomadsSandstorm
+      || actionType === SpecialActionType.SelkiesStronghold
       || actionType === SpecialActionType.WitchesRide
       || actionType === SpecialActionType.SwarmlingsUpgrade
       || actionType === SpecialActionType.MermaidsRiverTown
@@ -1476,6 +1489,25 @@ export const Game = () => {
             },
           }
         }),
+      )
+      return
+    }
+
+    if (actionType === SpecialActionType.ShapeshiftersShiftTerrain) {
+      openChoiceDialog(
+        'Shapeshifters Terrain Shift',
+        'Choose the new home terrain. This costs 5 power or removes 5 power tokens.',
+        TERRAIN_CHOICES.map((terrain) => ({
+          label: terrain.name,
+          testId: `shapeshifters-shift-${terrain.name.toLowerCase()}`,
+          onClick: () => {
+            performAction('special_action_use', {
+              specialActionType: actionType,
+              targetTerrain: terrain.id,
+            })
+            setConfirmDialog(null)
+          },
+        })),
       )
       return
     }

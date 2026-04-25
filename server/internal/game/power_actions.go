@@ -144,11 +144,11 @@ func (a *PowerAction) Validate(gs *GameState) error {
 	}
 
 	// Check if this power action is still available
-	if !gs.PowerActions.IsAvailable(a.ActionType) {
+	if !gs.PowerActions.IsAvailable(a.ActionType) && !(player.Faction != nil && player.Faction.GetType() == models.FactionYetis && player.HasStrongholdAbility) {
 		return fmt.Errorf("power action %v has already been taken this round", a.ActionType)
 	}
 
-	powerCost := GetPowerCost(a.ActionType)
+	powerCost := getPowerActionCostForPlayer(player, a.ActionType)
 	if a.shouldPayWithCoins(player) {
 		if !isChashUsingCoinPowerActions(player) {
 			return fmt.Errorf("only Chash Dallah with stronghold may pay coins for power actions")
@@ -168,9 +168,14 @@ func (a *PowerAction) Validate(gs *GameState) error {
 	}
 
 	// Validate spade actions
-	if (a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2) && !isProspectors(player) {
-		if err := a.validateSpadeAction(gs, player); err != nil {
-			return err
+	if a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2 {
+		if isRiverwalkers(player) {
+			return fmt.Errorf("riverwalkers cannot gain or use spades")
+		}
+		if !isProspectors(player) && !factionConvertsSpadeRewards(player) {
+			if err := a.validateSpadeAction(gs, player); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -267,7 +272,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 	}
 
 	player := gs.GetPlayer(a.PlayerID)
-	powerCost := GetPowerCost(a.ActionType)
+	powerCost := getPowerActionCostForPlayer(player, a.ActionType)
 	if a.shouldPayWithCoins(player) {
 		player.Resources.Coins -= powerCost
 	} else {
@@ -321,12 +326,18 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		player.Resources.Coins += 7
 
 	case PowerActionSpade1, PowerActionSpade2:
+		spades := 1
+		if a.ActionType == PowerActionSpade2 {
+			spades = 2
+		}
+		if factionConvertsSpadeRewards(player) {
+			gs.convertFactionSpadeReward(a.PlayerID, spades, true)
+			break
+		}
 		if isProspectors(player) {
 			priests := 1
-			spades := 1
 			if a.ActionType == PowerActionSpade2 {
 				priests = 2
-				spades = 2
 			}
 			for i := 0; i < spades; i++ {
 				gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
@@ -390,7 +401,7 @@ func (a *PowerAction) requiredAutoBurn(player *Player) int {
 		return 0
 	}
 
-	powerCost := GetPowerCost(a.ActionType)
+	powerCost := getPowerActionCostForPlayer(player, a.ActionType)
 	if player.Resources.Power.Bowl3 >= powerCost {
 		return 0
 	}
@@ -416,7 +427,7 @@ func (a *PowerAction) shouldPayWithCoins(player *Player) bool {
 	if a.UseCoins {
 		return true
 	}
-	powerCost := GetPowerCost(a.ActionType)
+	powerCost := getPowerActionCostForPlayer(player, a.ActionType)
 	return a.requiredAutoBurnWithoutCoins(player) > 0 && player.Resources.Coins >= powerCost
 }
 
@@ -424,7 +435,7 @@ func (a *PowerAction) requiredAutoBurnWithoutCoins(player *Player) int {
 	if player == nil || player.Resources == nil || player.Resources.Power == nil {
 		return 0
 	}
-	powerCost := GetPowerCost(a.ActionType)
+	powerCost := getPowerActionCostForPlayer(player, a.ActionType)
 	if player.Resources.Power.Bowl3 >= powerCost {
 		return 0
 	}
@@ -441,7 +452,11 @@ func (a *PowerAction) requiredSpadesForTransform(gs *GameState, player *Player) 
 		return 0, fmt.Errorf("hex does not exist: %v", *a.TargetHex)
 	}
 
-	distance := gs.Map.GetTerrainDistance(mapHex.Terrain, player.Faction.GetHomeTerrain())
+	targetTerrain := effectiveHomeTerrain(player)
+	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	if err != nil {
+		return 0, err
+	}
 	if distance == 0 {
 		return 0, fmt.Errorf("hex is already home terrain")
 	}
@@ -462,8 +477,11 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 
 	// Calculate spades needed
 	currentTerrain := mapHex.Terrain
-	targetTerrain := player.Faction.GetHomeTerrain()
-	distance := gs.Map.GetTerrainDistance(currentTerrain, targetTerrain)
+	targetTerrain := effectiveHomeTerrain(player)
+	distance, err := fireIceTerraformDistance(player, currentTerrain, targetTerrain)
+	if err != nil {
+		return err
+	}
 	requiredSpades := distance
 	if player.Faction.GetType() == models.FactionGiants {
 		requiredSpades = 2

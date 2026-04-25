@@ -48,6 +48,7 @@ type GameState struct {
 	PendingSpadeBuildAllowed         map[string]bool                       `json:"pendingSpadeBuildAllowed"`
 	PendingCultRewardSpades          map[string]int                        `json:"pendingCultRewardSpades"`
 	PendingCultistsLeech             map[int]*CultistsLeechBonus           `json:"pendingCultistsLeech"`
+	PendingShapeshiftersLeech        map[int]*CultistsLeechBonus           `json:"pendingShapeshiftersLeech"`
 	NextLeechEventID                 int                                   `json:"-"`
 	SkipAbilityUsedThisAction        map[string][]board.Hex                `json:"skipAbilityUsedThisAction"`
 	PendingFavorTileSelection        *PendingFavorTileSelection            `json:"pendingFavorTileSelection"`
@@ -68,6 +69,10 @@ type GameState struct {
 	PendingPostActionSpecialActions  map[string]map[SpecialActionType]bool `json:"-"`
 	TurnTimer                        *TurnTimerState                       `json:"turnTimer,omitempty"`
 	ReplayMode                       map[string]bool                       `json:"replayMode"`
+	ReplayAcolytesCultTracks         map[string][]CultTrack                `json:"-"`
+	ReplayAcolytesCultTrackIndex     map[string]int                        `json:"-"`
+	ReplayRiverBuildHexes            map[string][]board.Hex                `json:"-"`
+	ReplayRiverBuildHexIndex         map[string]int                        `json:"-"`
 	FinalScoring                     map[string]*PlayerFinalScore          `json:"finalScoring"`
 	SuppressTurnAdvance              bool                                  `json:"-"`
 	RiverTownHex                     *board.Hex                            `json:"-"` // For Mermaids river town formation
@@ -237,35 +242,44 @@ const (
 
 // Player represents a player in the game
 type Player struct {
-	ID                    string                     `json:"id"`
-	Name                  string                     `json:"name"`
-	Faction               factions.Faction           `json:"faction"`
-	Options               PlayerOptions              `json:"options"`
-	Resources             *ResourcePool              `json:"resources"`
-	ShippingLevel         int                        `json:"shippingLevel"`
-	DiggingLevel          int                        `json:"diggingLevel"`
-	BridgesBuilt          int                        `json:"bridgesBuilt"` // Number of bridges built (max 3)
-	ChashIncomeTrackLevel int                        `json:"chashIncomeTrackLevel"`
-	CultPositions         map[CultTrack]int          `json:"cults"`                // Position on each cult track (0-10)
-	HasStrongholdAbility  bool                       `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
-	SpecialActionsUsed    map[SpecialActionType]bool `json:"specialActionsUsed"`   // Track which special actions have been used this round
-	HasPassed             bool                       `json:"hasPassed"`
-	VictoryPoints         int                        `json:"victoryPoints"`
-	Keys                  int                        `json:"keys"`        // Keys for advancing to position 10 on cult tracks
-	TownsFormed           int                        `json:"townsFormed"` // Number of towns formed
-	TownTiles             []models.TownTileType      `json:"townTiles"`   // Town tiles selected by this player
-	GoblinTreasureTokens  int                        `json:"goblinTreasureTokens"`
-	DjinniLampTokens      int                        `json:"djinniLampTokens"`
-	TreasuryCoins         int                        `json:"treasuryCoins"`
-	TreasuryWorkers       int                        `json:"treasuryWorkers"`
-	TreasuryPriests       int                        `json:"treasuryPriests"`
-	AtlanteansTownHexes   []board.Hex                `json:"-"`
-	AtlanteansTownRewards map[int]bool               `json:"-"`
+	ID                    string                      `json:"id"`
+	Name                  string                      `json:"name"`
+	Faction               factions.Faction            `json:"faction"`
+	Options               PlayerOptions               `json:"options"`
+	Resources             *ResourcePool               `json:"resources"`
+	ShippingLevel         int                         `json:"shippingLevel"`
+	DiggingLevel          int                         `json:"diggingLevel"`
+	BridgesBuilt          int                         `json:"bridgesBuilt"` // Number of bridges built (max 3)
+	ChashIncomeTrackLevel int                         `json:"chashIncomeTrackLevel"`
+	CultPositions         map[CultTrack]int           `json:"cults"`                // Position on each cult track (0-10)
+	HasStrongholdAbility  bool                        `json:"hasStrongholdAbility"` // Whether the stronghold special ability is available
+	SpecialActionsUsed    map[SpecialActionType]bool  `json:"specialActionsUsed"`   // Track which special actions have been used this round
+	HasPassed             bool                        `json:"hasPassed"`
+	VictoryPoints         int                         `json:"victoryPoints"`
+	Keys                  int                         `json:"keys"`        // Keys for advancing to position 10 on cult tracks
+	TownsFormed           int                         `json:"townsFormed"` // Number of towns formed
+	TownTiles             []models.TownTileType       `json:"townTiles"`   // Town tiles selected by this player
+	GoblinTreasureTokens  int                         `json:"goblinTreasureTokens"`
+	DjinniLampTokens      int                         `json:"djinniLampTokens"`
+	TreasuryCoins         int                         `json:"treasuryCoins"`
+	TreasuryWorkers       int                         `json:"treasuryWorkers"`
+	TreasuryPriests       int                         `json:"treasuryPriests"`
+	StartingTerrain       models.TerrainType          `json:"startingTerrain"`
+	HasStartingTerrain    bool                        `json:"hasStartingTerrain"`
+	UnlockedTerrains      map[models.TerrainType]bool `json:"unlockedTerrains,omitempty"`
+	FirewalkersBlockerVP  int                         `json:"firewalkersBlockerVp"`
+	AtlanteansTownHexes   []board.Hex                 `json:"-"`
+	AtlanteansTownRewards map[int]bool                `json:"-"`
 }
 
 func getStructurePowerValue(player *Player, buildingType models.BuildingType) int {
 	if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionDynionGeifr {
 		return 2
+	}
+	if player != nil && player.Faction != nil && player.Faction.GetType() == models.FactionYetis {
+		if buildingType == models.BuildingStronghold || buildingType == models.BuildingSanctuary {
+			return 4
+		}
 	}
 	return GetPowerValue(buildingType)
 }
@@ -413,6 +427,12 @@ func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
 	}
 
 	switch player.Faction.GetType() {
+	case models.FactionIceMaidens:
+		gs.PendingFavorTileSelection = &PendingFavorTileSelection{
+			PlayerID:      playerID,
+			Count:         1,
+			SelectedTiles: []FavorTileType{},
+		}
 	case models.FactionArchivists:
 		gs.ensureArchivistsBonusCardAvailable()
 	case models.FactionDynionGeifr:
@@ -433,6 +453,11 @@ func (gs *GameState) applyFactionSpecificSetup(playerID string) error {
 	case models.FactionDjinni:
 		player.DjinniLampTokens = 3
 		gs.PendingDjinniStartingCultChoice = &PendingDjinniStartingCultChoice{PlayerID: playerID}
+	case models.FactionFirewalkers:
+		player.FirewalkersBlockerVP = player.VictoryPoints - 4
+		if player.FirewalkersBlockerVP < 0 {
+			player.FirewalkersBlockerVP = 0
+		}
 	}
 
 	return nil
@@ -574,8 +599,14 @@ func newGameStateWithBoard(gameMap *board.TerraMysticaMap) *GameState {
 		PendingTownFormations:        make(map[string][]*PendingTownFormation),
 		PendingSpades:                make(map[string]int),
 		PendingSpadeBuildAllowed:     make(map[string]bool),
+		PendingCultistsLeech:         make(map[int]*CultistsLeechBonus),
+		PendingShapeshiftersLeech:    make(map[int]*CultistsLeechBonus),
 		SkipAbilityUsedThisAction:    make(map[string][]board.Hex),
 		PendingWispsTradingPostSpade: make(map[string]board.Hex),
+		ReplayAcolytesCultTracks:     make(map[string][]CultTrack),
+		ReplayAcolytesCultTrackIndex: make(map[string]int),
+		ReplayRiverBuildHexes:        make(map[string][]board.Hex),
+		ReplayRiverBuildHexIndex:     make(map[string]int),
 		SetupPlacedDwellings:         make(map[string]int),
 	}
 }
@@ -1185,21 +1216,21 @@ func (gs *GameState) TriggerPowerLeech(buildingHex board.Hex, buildingPlayerID s
 		}
 	}
 
-	// Cultists special ability: If at least one offer was created, mark for cult advance/power bonus
-	// The actual bonus is applied when all offers are resolved (accepted/declined)
+	// Response-based source abilities resolve after all leech offers for this event.
 	if offersCreated > 0 {
 		buildingPlayer := gs.GetPlayer(buildingPlayerID)
-		if buildingPlayer != nil {
-			if _, ok := buildingPlayer.Faction.(*factions.Cultists); ok {
-				// Store that this building triggered Cultists ability
-				// We'll resolve it when all leech offers are processed
+		if buildingPlayer != nil && buildingPlayer.Faction != nil {
+			switch buildingPlayer.Faction.GetType() {
+			case models.FactionCultists:
 				if gs.PendingCultistsLeech == nil {
 					gs.PendingCultistsLeech = make(map[int]*CultistsLeechBonus)
 				}
-				gs.PendingCultistsLeech[eventID] = &CultistsLeechBonus{
-					PlayerID:      buildingPlayerID,
-					OffersCreated: offersCreated,
+				gs.PendingCultistsLeech[eventID] = &CultistsLeechBonus{PlayerID: buildingPlayerID, OffersCreated: offersCreated}
+			case models.FactionShapeshifters:
+				if gs.PendingShapeshiftersLeech == nil {
+					gs.PendingShapeshiftersLeech = make(map[int]*CultistsLeechBonus)
 				}
+				gs.PendingShapeshiftersLeech[eventID] = &CultistsLeechBonus{PlayerID: buildingPlayerID, OffersCreated: offersCreated}
 			}
 		}
 	}
@@ -1368,6 +1399,9 @@ func (gs *GameState) BuildDwelling(playerID string, targetHex board.Hex) error {
 	// Award VP from Earth+1 favor tile (+2 VP when building Dwelling)
 	playerTiles := gs.FavorTiles.GetPlayerTiles(playerID)
 	if HasFavorTile(playerTiles, FavorEarth1) {
+		player.VictoryPoints += 2
+	}
+	if player.Faction.GetType() == models.FactionSelkies && mapHex.Terrain == models.TerrainRiver {
 		player.VictoryPoints += 2
 	}
 
@@ -1878,6 +1912,16 @@ func maxDiggingLevelForFaction(factionType models.FactionType) (int, error) {
 		return 0, fmt.Errorf("chash dallah cannot advance digging level")
 	case models.FactionTimeTravelers:
 		return 0, fmt.Errorf("time travelers cannot advance digging level")
+	case models.FactionDragonlords:
+		return 0, fmt.Errorf("dragonlords cannot advance digging level")
+	case models.FactionAcolytes:
+		return 0, fmt.Errorf("acolytes cannot advance digging level")
+	case models.FactionFirewalkers:
+		return 0, fmt.Errorf("firewalkers cannot advance digging level")
+	case models.FactionRiverwalkers:
+		return 0, fmt.Errorf("riverwalkers cannot advance digging level")
+	case models.FactionShapeshifters:
+		return 0, nil
 	case models.FactionFakirs:
 		return 1, nil
 	default:

@@ -35,6 +35,15 @@ const (
 	FactionTimeTravelers
 	FactionTreasurers
 	FactionWisps
+	FactionIceMaidens
+	FactionYetis
+	FactionDragonlords
+	FactionAcolytes
+	FactionShapeshifters
+	FactionRiverwalkers
+	FactionFirewalkers
+	FactionSelkies
+	FactionSnowShamans
 )
 
 func (f FactionType) String() string {
@@ -97,6 +106,24 @@ func (f FactionType) String() string {
 		return "Treasurers"
 	case FactionWisps:
 		return "Wisps"
+	case FactionIceMaidens:
+		return "IceMaidens"
+	case FactionYetis:
+		return "Yetis"
+	case FactionDragonlords:
+		return "Dragonlords"
+	case FactionAcolytes:
+		return "Acolytes"
+	case FactionShapeshifters:
+		return "Shapeshifters"
+	case FactionRiverwalkers:
+		return "Riverwalkers"
+	case FactionFirewalkers:
+		return "Firewalkers"
+	case FactionSelkies:
+		return "Selkies"
+	case FactionSnowShamans:
+		return "SnowShamans"
 	default:
 		return "Unknown"
 	}
@@ -106,13 +133,16 @@ func (f FactionType) String() string {
 type FactionColor int
 
 const (
-	ColorYellow FactionColor = iota // Desert
-	ColorRed                        // Wasteland
-	ColorBlue                       // Lake
-	ColorGreen                      // Forest
-	ColorBrown                      // Plains
-	ColorBlack                      // Swamp
-	ColorGray                       // Mountain
+	ColorYellow    FactionColor = iota // Desert
+	ColorRed                           // Wasteland
+	ColorBlue                          // Lake
+	ColorGreen                         // Forest
+	ColorBrown                         // Plains
+	ColorBlack                         // Swamp
+	ColorGray                          // Mountain
+	ColorIce                           // Ice
+	ColorVolcano                       // Volcano
+	ColorColorless                     // Variable/colorless
 )
 
 // GetFactionColor returns the color/terrain type of a faction
@@ -146,6 +176,12 @@ func (f FactionType) GetFactionColor() FactionColor {
 		return ColorGray // Mountain
 	case FactionProspectors, FactionTimeTravelers:
 		return ColorBrown // Plains
+	case FactionIceMaidens, FactionYetis, FactionSelkies, FactionSnowShamans:
+		return ColorIce
+	case FactionDragonlords, FactionAcolytes, FactionFirewalkers:
+		return ColorVolcano
+	case FactionShapeshifters, FactionRiverwalkers:
+		return ColorColorless
 	default:
 		return ColorYellow // Default
 	}
@@ -166,7 +202,10 @@ func (f FactionType) IsFanFaction() bool {
 		FactionTheEnlightened,
 		FactionTimeTravelers,
 		FactionTreasurers,
-		FactionWisps:
+		FactionWisps,
+		FactionFirewalkers,
+		FactionSelkies,
+		FactionSnowShamans:
 		return true
 	default:
 		return false
@@ -232,6 +271,24 @@ func FactionTypeFromString(s string) FactionType {
 		return FactionTreasurers
 	case "Wisps":
 		return FactionWisps
+	case "IceMaidens", "Ice Maidens":
+		return FactionIceMaidens
+	case "Yetis", "Yeti":
+		return FactionYetis
+	case "Dragonlords", "Dragon Lords":
+		return FactionDragonlords
+	case "Acolytes":
+		return FactionAcolytes
+	case "Shapeshifters", "Shape Shifters":
+		return FactionShapeshifters
+	case "Riverwalkers", "River Walkers":
+		return FactionRiverwalkers
+	case "Firewalkers", "Fire Walkers":
+		return FactionFirewalkers
+	case "Selkies":
+		return FactionSelkies
+	case "SnowShamans", "Snow Shamans":
+		return FactionSnowShamans
 	default:
 		return FactionUnknown
 	}

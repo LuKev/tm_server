@@ -23,6 +23,16 @@
   - Removed tracked local build/scratch artifacts: `server/server`, `server/bga_test`, `scripts/game_*.txt`, and the old root `test_data/` replay scratch directory. Replay fixtures that should stay under test should live in package-scoped `server/internal/**/testdata/` and be wired into Bazel data.
   - `.gitignore` now excludes those local binary/log/scratch outputs so Bazel builds and fetched BGA logs do not get re-added accidentally.
 
+- 2026-04-24 Fire & Ice BGA replay testing:
+  - BGA table `312813929` is a Fjords game with Fire & Ice cluster final scoring, but the static BGA gamereview log omits setup/build coordinates in this old archive; current text-log replay cannot reconstruct it. The final scoring block does expose cluster scoring values: Aje8 18 VP/14 settlements, BwianR 9 VP/7, PetrSvoboda 9 VP/7, EBLCar 0 VP/6.
+  - Added `server/internal/replay/testdata/bga_312813929_config.yaml` with the supplied bonus-card sequence and `fire_ice_final_scoring_tile: cluster`.
+  - BGA table `508650344` is a Fjords game with Yetis and Firewalkers, no Fire & Ice final scoring. The static log includes coordinates and replays through all actions after parser support for Yetis discounted power actions and Firewalkers VP-to-power log lines.
+  - `508650344` confirmed Yetis ending resources should score 3 resource VP; the fix was to give Yetis the Ice faction dwelling-income rule with no gaps and worker income on all 8 dwellings. The later Firewalkers `0P` replay block was caused by the fixture using round-3 `SCORE7` when the BGA cult cleanup proves it was the Fire SH/SA worker tile (`SCORE4`), plus the parser leaving residual power from Firewalkers "marker -> power -> coin" log lines. With round 3 corrected to `SCORE4` and the coin variant parsed as marker advance plus coins only, `508650344` replays successfully with snakeixirr/Firewalkers at 157 VP and 5 resource VP from 16 coins.
+  - Firewalkers board-data correction from BGA replay validation: no base worker income; dwelling worker blanks at the 4th and 8th dwellings; second temple gives `+2VP` income instead of a priest; stronghold costs `4W + 8C`, gives `+2PW` income, and after built gives `+1VP` per direct building cluster when passing.
+  - Firewalkers cannot upgrade digging. Their VP marker is stored server-side as `firewalkersBlockerVp` and should be shown beside regular VP in both the player summary bar and detailed player board.
+  - Firewalkers BGA "moves their VP marker forward to gain power" log lines move the separate blocker marker upward and grant power; they do not spend scored VP directly. Volcano transforms spend scored VP only from the gap above that marker.
+  - The Bazel `bga_test --url` path still cannot find `scripts/fetch_bga_log.py` from runfiles; direct `python3 scripts/fetch_bga_log.py <table> --output ...` works.
+
 - 2026-04-18 Railway server build gotcha:
   - Railway currently builds the backend with direct `go build -o out ./cmd/server`, but local verification in this repo should still use Bazel, with `bazel build //cmd/server:server` as the quickest compile check.
   - `server/internal/websocket/client.go` keeps request-param parser helpers (`parseIntParam`, `parseOptionalIntParam`, `parseBridgeEndpoints`) as closures inside `buildActionFromPayload`; if `buildSpecialAction` needs one of those helpers, it must receive it explicitly rather than calling an out-of-scope name.
@@ -60,13 +70,24 @@
     - it uses `Cash Dallah`, while the official English v1.1 rulebook text says `Chash Dallah`
   - For exact faction-board costs / starting resources / income tracks for the original 16 print-and-play factions, the best accessible source found so far is the Unknowns thread `https://unknowns.de/forum/thread/21078-terra-mystica-fan-factions/`, which links directly to BGG-hosted board images (`cf.geekdo-images.com/.../pic*.jpg`).
   - Downloaded local reference images for those 16 print-and-play faction boards were saved under `/tmp/tm_fan_boards` during this session.
-  - Current requested implementation subset excludes these factions:
+  - Current Fire/Ice/Colorless implementation request includes:
+    - original Fire & Ice factions: `Ice Maidens`, `Yetis`, `Dragonlords`, `Acolytes`, `Shapeshifters`, `Riverwalkers`
+    - fan factions: `Firewalkers`, `Selkies`, `Snow Shamans`
+  - Current fan-faction exclusions for Fire/Ice/Colorless work are:
     - `Changelings`
-    - `Firewalkers`
     - `Geologists`
     - `Kingdom of Ember`
-    - `Selkies`
-    - `Snow Shamans`
+  - Initial Fire/Ice/Colorless implementation caveats:
+    - the setup hex selected by Ice/Volcano/colorless factions determines their starting terrain behavior when the UI does not provide a dedicated terrain-choice step
+    - `Snow Shamans` pass upgrade currently auto-prioritizes digging before shipping because there is no UI choice step yet
+    - `Acolytes` volcano transforms auto-use the first affordable cult track because there is no UI choice step yet
+    - `Riverwalkers` terrain unlocks are exposed as a free conversion that spends `1P` plus `1C`/`2C` instead of interrupting each priest-gain event with a replacement choice
+    - `Shapeshifters` automatically pay `1VP` for the errata power-token option when at least one opponent accepts leech and the VP is available; the exact optional prompt is not UI-backed yet
+    - `Shapeshifters` stronghold terrain shift is a normal turn action and can be used multiple times per round
+  - Original Fire & Ice board-data reminder:
+    - `Yetis` have no worker income on their 3rd and 6th dwellings, and their 2nd temple gives `5PW` instead of a priest
+    - `Riverwalkers` cannot gain or use spades; cult-reward spades are ignored and spade actions are invalid for them
+    - `Riverwalkers` dwellings require unlocked standard land adjacent to river terrain
   - For the remaining set, the published `Prospectors` faction appears to be the renamed successor to the older `Gold Diggers` print-and-play faction:
     - the published rulebook text for `Prospectors` matches the older thread description for `Gold Diggers` on golden spades, priests from normal spades, 4-coin golden spades reduced to 3 after Stronghold, and the Stronghold special action granting 1 coin per other players' Trading Posts.
   - User-confirmed fan-faction transcription corrections for the implementation subset:
@@ -1175,7 +1196,7 @@
   - `set_player_options` websocket action parsing added in `server/internal/websocket/client.go`.
   - Auto leech resolution added (`server/internal/game/auto_leech.go`) and executed after actions in `manager.go`.
     - Cultists source always requires manual response.
-    - Shapeshifters placeholder TODO retained.
+    - Shapeshifters source offers require manual leech resolution so their response-based faction ability can be handled intentionally.
     - Passed-player power-saturation heuristic auto-declines leech when next-round income would already saturate power bowls.
   - Pass auto-convert added (`server/internal/game/auto_convert.go`) and called from `PassAction.Execute`:
     - Converts priest overflow risk into workers before round income (7-priest cap-aware, including priests on cult tracks).
@@ -1524,3 +1545,34 @@
 - Current BGA fan-faction coverage from committed replay fixtures:
   - Covered: `Architects`, `Archivists`, `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`.
   - Still lacking a BGA replay fixture: none among the currently implemented / requested fan factions.
+
+- 2026-04-23 BGA Fire & Ice fixture `654969016` (`Acolytes`, `Selkies`, `Witches`, `Chaos Magicians` on `Fjords`):
+  - Config lives at `server/internal/replay/testdata/bga_654969016_config.yaml`.
+  - `Acolytes` cult-point payments for volcano transforms must go through the shared cult-decrease path (`DecreaseCultTrack` / `CultTrackState.DecreasePlayer`), not direct position mutation.
+    - Direct mutation leaves `BonusPositionsClaimed` stale.
+    - BGA does allow re-earning cult milestone power after `Acolytes` spend back below a threshold and later re-climb it.
+    - The concrete replay symptom was late missing power on `Water +2` / `Favor tile action` lines after earlier volcano transforms had lowered the same track.
+  - The focused regression for that bug lives in `TestAcolytesCultSpendClearsMilestoneClaimsForReclimb`.
+  - This table also needs explicit replay queues for both special Fire & Ice mechanics:
+    - `Acolytes` cult-payment queue:
+      - `W, F, F, E, E, W, F, W, E, E, E, W, E`
+    - `Selkies` river-build queue:
+      - `5_2, 2_1, 10_1, 9_1`
+  - `Selkies` must also score `+2 VP` whenever they place a dwelling on a river hex. The missing award belonged in `BuildDwelling`; without it this table undercounted `kezilu` by exactly `8 VP` across four river dwellings.
+  - With those queues plus the `Acolytes` cult-decrease fix and the `Selkies` river-dwelling VP fix, table `654969016` now replays end to end through final-scoring validation: `386` actions and final totals `felipebart 171`, `haligh 162`, `bballrace 152`, `kezilu 147`.
+- 2026-04-23 BGA Fire & Ice fixture `427393144` (`Mermaids`, `Shapeshifters`, `Ice Maidens`, `Nomads`):
+  - Config lives at `server/internal/replay/testdata/bga_427393144_config.yaml`.
+  - This table needs round scoring order `SCORE8,SCORE5,SCORE1,SCORE7,SCORE3,SCORE4`.
+  - The final replay mismatch was a real Fire & Ice rules bug, not a parser issue:
+    - `fireIceTerraformDistance()` was treating `selected starting terrain -> ice` as `0` spades because `TerrainDistance(from, startingTerrain)` is `0` when `from == startingTerrain`.
+    - BGA charges `1` worker / spade in that case for Ice factions.
+    - The concrete replay symptom was late round 3 `Ice Maidens` ending with `+1 resource VP` from two workers that should have been spent on `mountains -> ice` transforms.
+  - Rule reminder for Ice factions in this codebase:
+    - digging upgrades still cost `5c + 1w + 1p`
+    - terraform cost is workers per required spade
+    - converting the faction's selected starting terrain to `ice` still costs `1` spade
+  - Focused regression coverage lives in `TestIceFactionTransformFromSelectedStartingTerrainStillCostsOneSpade`.
+  - With that fix, table `427393144` now replays end to end through final-scoring validation: `380` actions and final totals `Zoras 145`, `Barnawal 138`, `mellison 137`, `jekyl03 134`.
+- 2026-04-24 concise notation direction:
+  - Goal: any supported game, including Fire & Ice maps and implemented fan factions, should be serializable to concise notation and replayable from that concise text without depending on original BGA/Snellman text.
+  - Current gap to remember: BGA imports parse directly to replay actions and only generate concise text for display; concise parser/generator needs explicit round-trip coverage for fan-faction headers, map settings, and fan/F&I special action tokens before concise can be treated as canonical replay storage.

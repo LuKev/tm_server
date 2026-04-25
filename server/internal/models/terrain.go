@@ -12,6 +12,8 @@ const (
 	TerrainWasteland
 	TerrainDesert
 	TerrainRiver                   // River hexes - cannot be built on, used for shipping
+	TerrainIce                     // Fire & Ice expansion terrain
+	TerrainVolcano                 // Fire & Ice expansion terrain
 	TerrainTypeUnknown TerrainType = -1
 )
 
@@ -33,6 +35,10 @@ func (t TerrainType) String() string {
 		return "Wasteland"
 	case TerrainRiver:
 		return "River"
+	case TerrainIce:
+		return "Ice"
+	case TerrainVolcano:
+		return "Volcano"
 	default:
 		return "Unknown"
 	}

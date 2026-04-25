@@ -71,6 +71,33 @@ func TestResolveAutoLeechOffers_CultistsSourceRequiresManualChoice(t *testing.T)
 	}
 }
 
+func TestResolveAutoLeechOffers_ShapeshiftersSourceRequiresManualChoice(t *testing.T) {
+	gs := NewGameState()
+	mustAddPlayer(t, gs, "src", factions.NewShapeshifters())
+	mustAddPlayer(t, gs, "dst", factions.NewAuren())
+	gs.TurnOrder = []string{"src", "dst"}
+	gs.CurrentPlayerIndex = 0
+
+	dst := gs.GetPlayer("dst")
+	dst.Options.AutoLeechMode = LeechAutoModeAccept4
+	dst.VictoryPoints = 20
+
+	gs.PendingLeechOffers["dst"] = []*PowerLeechOffer{
+		{Amount: 2, FromPlayerID: "src", EventID: 1},
+	}
+
+	if err := gs.ResolveAutoLeechOffers(); err != nil {
+		t.Fatalf("resolve auto leech: %v", err)
+	}
+
+	if got := len(gs.PendingLeechOffers["dst"]); got != 1 {
+		t.Fatalf("expected offer to remain pending for manual decision, got %d", got)
+	}
+	if got := dst.VictoryPoints; got != 20 {
+		t.Fatalf("expected VP unchanged, got %d", got)
+	}
+}
+
 func TestResolveAutoLeechOffers_PassedIncomeSaturationAutoDeclines(t *testing.T) {
 	gs := NewGameState()
 	gs.Round = 1

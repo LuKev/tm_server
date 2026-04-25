@@ -13,7 +13,6 @@ import (
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 	"github.com/lukev/tm_server/internal/notation"
 	"github.com/lukev/tm_server/internal/replay"
@@ -24,10 +23,13 @@ import (
 type GameConfig struct {
 	ScoringTiles             []string                     `yaml:"scoring_tiles"`
 	BonusCards               []string                     `yaml:"bonus_cards"`
+	FireIceFinalScoringTile  string                       `yaml:"fire_ice_final_scoring_tile"`
 	StartingCultChoices      map[string]string            `yaml:"starting_cult_choices"`
 	BonusCardSelections      map[string]map[string]string `yaml:"bonus_card_selections"`
 	ExtraBonusCardSelections map[string]map[string]string `yaml:"extra_bonus_card_selections"`
 	ConspiratorsSwapReturns  map[string][]string          `yaml:"conspirators_swap_returns"`
+	AcolytesCultTracks       map[string][]string          `yaml:"acolytes_cult_tracks"`
+	RiverBuildHexes          map[string][]string          `yaml:"river_build_hexes"`
 }
 
 func main() {
@@ -127,7 +129,25 @@ func main() {
 	}
 
 	// Create initial game state
-	initialState := createInitialState(items)
+	initialState := replay.CreateInitialState(items)
+	if config != nil && strings.TrimSpace(config.FireIceFinalScoringTile) != "" {
+		if err := applyFireIceFinalScoringTileConfig(initialState, config.FireIceFinalScoringTile); err != nil {
+			fmt.Printf("❌ Failed to apply Fire & Ice final scoring tile config: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	if config != nil && len(config.AcolytesCultTracks) > 0 {
+		if err := applyAcolytesCultTrackConfig(initialState, config.AcolytesCultTracks); err != nil {
+			fmt.Printf("❌ Failed to apply Acolytes cult-track config: %v\n", err)
+			os.Exit(1)
+		}
+	}
+	if config != nil && len(config.RiverBuildHexes) > 0 {
+		if err := applyRiverBuildHexConfig(initialState, config.RiverBuildHexes); err != nil {
+			fmt.Printf("❌ Failed to apply replay river-build config: %v\n", err)
+			os.Exit(1)
+		}
+	}
 
 	// Create simulator
 	simulator := replay.NewGameSimulator(initialState, items)
@@ -146,6 +166,9 @@ func main() {
 				fmt.Printf("    Action detail: %#v\n", actionItem.Action)
 				playerID := actionItem.Action.GetPlayerID()
 				verbosePlayerID = playerID
+				if riverAction, ok := actionItem.Action.(*notation.LogRiverBuildAction); ok {
+					printRiverBuildDebug(simulator.GetState(), riverAction)
+				}
 				if player := simulator.GetState().GetPlayer(playerID); player != nil && player.Resources != nil && player.Resources.Power != nil {
 					fmt.Printf(
 						"    Pre-state %s: VP=%d C=%d W=%d P=%d PW=%d/%d/%d Cult=%d/%d/%d/%d\n",
@@ -296,9 +319,43 @@ func main() {
 
 	fmt.Printf("\n📊 Final Scores:\n")
 	for i, score := range rankedScores {
-		fmt.Printf("   %d. %s: %d VP (Base: %d, Area: %d, Cult: %d, Res: %d)\n",
-			i+1, score.PlayerName, score.TotalVP, score.BaseVP, score.AreaVP, score.CultVP, score.ResourceVP)
+		fireIcePart := ""
+		if score.FireIceVP != 0 || score.FireIceMetricValue != 0 {
+			fireIcePart = fmt.Sprintf(", F&I: %d/%d", score.FireIceVP, score.FireIceMetricValue)
+		}
+		fmt.Printf("   %d. %s: %d VP (Base: %d, Area: %d%s, Cult: %d, Res: %d)\n",
+			i+1, score.PlayerName, score.TotalVP, score.BaseVP, score.AreaVP, fireIcePart, score.CultVP, score.ResourceVP)
 	}
+}
+
+func applyFireIceFinalScoringTileConfig(gs *game.GameState, tileName string) error {
+	if gs == nil {
+		return fmt.Errorf("game state is nil")
+	}
+	normalized := strings.ToLower(strings.TrimSpace(tileName))
+	normalized = strings.ReplaceAll(normalized, "-", "_")
+	normalized = strings.ReplaceAll(normalized, " ", "_")
+
+	switch normalized {
+	case "", "none", "off":
+		gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOff
+		gs.FireIceFinalScoringTile = game.FireIceFinalScoringTileNone
+	case "distance", "greatest_distance":
+		gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOn
+		gs.FireIceFinalScoringTile = game.FireIceFinalScoringTileGreatestDistance
+	case "stronghold_sanctuary", "sh_sa":
+		gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOn
+		gs.FireIceFinalScoringTile = game.FireIceFinalScoringTileStrongholdSanctuary
+	case "edge", "outposts", "outpost":
+		gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOn
+		gs.FireIceFinalScoringTile = game.FireIceFinalScoringTileOutposts
+	case "cluster", "settlements", "connected_settlements":
+		gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOn
+		gs.FireIceFinalScoringTile = game.FireIceFinalScoringTileSettlements
+	default:
+		return fmt.Errorf("unknown Fire & Ice final scoring tile %q", tileName)
+	}
+	return nil
 }
 
 func loadConfig(path string) (*GameConfig, error) {
@@ -311,6 +368,287 @@ func loadConfig(path string) (*GameConfig, error) {
 		return nil, err
 	}
 	return &config, nil
+}
+
+func applyAcolytesCultTrackConfig(gs *game.GameState, configuredTracks map[string][]string) error {
+	if gs == nil {
+		return fmt.Errorf("game state is nil")
+	}
+	if gs.ReplayAcolytesCultTracks == nil {
+		gs.ReplayAcolytesCultTracks = make(map[string][]game.CultTrack)
+	}
+	if gs.ReplayAcolytesCultTrackIndex == nil {
+		gs.ReplayAcolytesCultTrackIndex = make(map[string]int)
+	}
+
+	for playerID, trackCodes := range configuredTracks {
+		queue := make([]game.CultTrack, 0, len(trackCodes))
+		for _, code := range trackCodes {
+			track, err := parseCultTrackCode(code)
+			if err != nil {
+				return fmt.Errorf("%s: %w", playerID, err)
+			}
+			queue = append(queue, track)
+		}
+		gs.ReplayAcolytesCultTracks[playerID] = queue
+		gs.ReplayAcolytesCultTrackIndex[playerID] = 0
+	}
+
+	return nil
+}
+
+func applyRiverBuildHexConfig(gs *game.GameState, configuredHexes map[string][]string) error {
+	if gs == nil {
+		return fmt.Errorf("game state is nil")
+	}
+	if gs.ReplayRiverBuildHexes == nil {
+		gs.ReplayRiverBuildHexes = make(map[string][]board.Hex)
+	}
+	if gs.ReplayRiverBuildHexIndex == nil {
+		gs.ReplayRiverBuildHexIndex = make(map[string]int)
+	}
+
+	for playerID, rawHexes := range configuredHexes {
+		queue := make([]board.Hex, 0, len(rawHexes))
+		for _, rawHex := range rawHexes {
+			hex, err := parseReplayHex(rawHex)
+			if err != nil {
+				return fmt.Errorf("%s: %w", playerID, err)
+			}
+			if gs.Map != nil {
+				mapHex := gs.Map.GetHex(hex)
+				if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+					return fmt.Errorf("%s: replay river-build hex %q is not a river space", playerID, rawHex)
+				}
+			}
+			queue = append(queue, hex)
+		}
+		gs.ReplayRiverBuildHexes[playerID] = queue
+		gs.ReplayRiverBuildHexIndex[playerID] = 0
+	}
+
+	return nil
+}
+
+func parseCultTrackCode(code string) (game.CultTrack, error) {
+	switch strings.ToUpper(strings.TrimSpace(code)) {
+	case "F", "FIRE":
+		return game.CultFire, nil
+	case "W", "WATER":
+		return game.CultWater, nil
+	case "E", "EARTH":
+		return game.CultEarth, nil
+	case "A", "AIR":
+		return game.CultAir, nil
+	default:
+		return game.CultFire, fmt.Errorf("unknown cult track code %q", code)
+	}
+}
+
+func parseReplayHex(raw string) (board.Hex, error) {
+	parts := strings.Split(strings.TrimSpace(raw), "_")
+	if len(parts) != 2 {
+		return board.Hex{}, fmt.Errorf("invalid replay hex %q (expected Q_R)", raw)
+	}
+	q, err := strconv.Atoi(parts[0])
+	if err != nil {
+		return board.Hex{}, fmt.Errorf("invalid replay hex q coordinate %q: %w", raw, err)
+	}
+	r, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return board.Hex{}, fmt.Errorf("invalid replay hex r coordinate %q: %w", raw, err)
+	}
+	return board.NewHex(q, r), nil
+}
+
+func printRiverBuildDebug(gs *game.GameState, action *notation.LogRiverBuildAction) {
+	if gs == nil || gs.Map == nil || action == nil {
+		return
+	}
+
+	fmt.Printf("    River build analysis for %s %s\n", action.PlayerID, action.CoordToken)
+	if configuredQueue := gs.ReplayRiverBuildHexes[action.PlayerID]; len(configuredQueue) > 0 {
+		index := gs.ReplayRiverBuildHexIndex[action.PlayerID]
+		if index < len(configuredQueue) {
+			fmt.Printf("    Configured replay hex: %s\n", formatHexWithDisplay(gs.Map, configuredQueue[index]))
+		}
+	}
+
+	token := strings.TrimSpace(action.CoordToken)
+	if !strings.HasPrefix(strings.ToUpper(token), "R~") {
+		fmt.Printf("    Non-river token; no river analysis needed\n")
+		return
+	}
+
+	landDisplay := strings.TrimSpace(token[2:])
+	landHex, ok := gs.Map.HexForDisplayCoordinate(landDisplay)
+	if !ok {
+		fmt.Printf("    Could not resolve land anchor %q on map %s\n", landDisplay, gs.Map.ID)
+		return
+	}
+
+	fmt.Printf("    Land anchor: %s -> %s\n", landDisplay, formatHexWithDisplay(gs.Map, landHex))
+
+	seen := make(map[board.Hex]bool)
+	candidates := make([]board.Hex, 0, 6)
+	addCandidate := func(hex board.Hex) {
+		if seen[hex] {
+			return
+		}
+		seen[hex] = true
+		candidates = append(candidates, hex)
+	}
+
+	if defaultHex, err := notation.ConvertRiverCoordToAxialForMap(gs.Map.ID, token); err == nil {
+		addCandidate(defaultHex)
+		fmt.Printf("    Default mapped candidate: %s\n", formatHexWithDisplay(gs.Map, defaultHex))
+	}
+	if rowCountHex, err := convertRiverCoordByRowCount(gs.Map.ID, token); err == nil {
+		if !seen[rowCountHex] {
+			fmt.Printf("    Row-count candidate: %s\n", formatHexWithDisplay(gs.Map, rowCountHex))
+		}
+		addCandidate(rowCountHex)
+	}
+	for _, neighbor := range landHex.Neighbors() {
+		mapHex := gs.Map.GetHex(neighbor)
+		if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+			continue
+		}
+		addCandidate(neighbor)
+	}
+
+	for _, candidate := range candidates {
+		clone := gs.CloneForUndo()
+		err := game.NewTransformAndBuildAction(action.PlayerID, candidate, true, models.TerrainTypeUnknown).Execute(clone)
+		neighbors := describeCandidateNeighbors(gs.Map, candidate)
+		if err != nil {
+			fmt.Printf("    Candidate %s invalid: %v | neighbors=%s\n", formatHexWithDisplay(gs.Map, candidate), err, neighbors)
+			continue
+		}
+		fmt.Printf(
+			"    Candidate %s valid | neighbors=%s | leech=%s\n",
+			formatHexWithDisplay(gs.Map, candidate),
+			neighbors,
+			formatPendingLeechOffers(clone.PendingLeechOffers),
+		)
+	}
+}
+
+func describeCandidateNeighbors(m *board.TerraMysticaMap, riverHex board.Hex) string {
+	parts := make([]string, 0, 6)
+	for _, neighbor := range m.GetDirectNeighbors(riverHex) {
+		mapHex := m.GetHex(neighbor)
+		if mapHex == nil || mapHex.Terrain == models.TerrainRiver {
+			continue
+		}
+		label := formatHexWithDisplay(m, neighbor)
+		if mapHex.Building == nil {
+			parts = append(parts, fmt.Sprintf("%s=empty/%s", label, mapHex.Terrain))
+			continue
+		}
+		parts = append(parts, fmt.Sprintf("%s=%s/%s/%s", label, mapHex.Building.PlayerID, mapHex.Building.Type, mapHex.Terrain))
+	}
+	sort.Strings(parts)
+	if len(parts) == 0 {
+		return "none"
+	}
+	return strings.Join(parts, ", ")
+}
+
+func formatPendingLeechOffers(offers map[string][]*game.PowerLeechOffer) string {
+	if len(offers) == 0 {
+		return "none"
+	}
+	parts := make([]string, 0, len(offers))
+	for playerID, playerOffers := range offers {
+		if len(playerOffers) == 0 {
+			continue
+		}
+		desc := make([]string, 0, len(playerOffers))
+		for _, offer := range playerOffers {
+			if offer == nil {
+				desc = append(desc, "nil")
+				continue
+			}
+			desc = append(desc, fmt.Sprintf("%s:%d(vp=%d)", offer.FromPlayerID, offer.Amount, offer.VPCost))
+		}
+		parts = append(parts, fmt.Sprintf("%s=[%s]", playerID, strings.Join(desc, ", ")))
+	}
+	sort.Strings(parts)
+	if len(parts) == 0 {
+		return "none"
+	}
+	return strings.Join(parts, " ")
+}
+
+func formatHexWithDisplay(m *board.TerraMysticaMap, hex board.Hex) string {
+	if display, ok := m.DisplayCoordinateForHex(hex); ok {
+		return fmt.Sprintf("%s/%d_%d", display, hex.Q, hex.R)
+	}
+	return fmt.Sprintf("%d_%d", hex.Q, hex.R)
+}
+
+func convertRiverCoordByRowCount(mapID board.MapID, riverCoord string) (board.Hex, error) {
+	riverCoord = strings.ToUpper(strings.TrimSpace(riverCoord))
+	if !strings.HasPrefix(riverCoord, "R~") {
+		return board.Hex{}, fmt.Errorf("invalid river coordinate format: %s", riverCoord)
+	}
+
+	coord := strings.TrimSpace(riverCoord[2:])
+	if len(coord) < 2 {
+		return board.Hex{}, fmt.Errorf("invalid river coordinate: %s", riverCoord)
+	}
+
+	row := int(coord[0] - 'A')
+	if row < 0 || row > 25 {
+		return board.Hex{}, fmt.Errorf("invalid river row: %q", coord)
+	}
+
+	var riverNum int
+	if _, err := fmt.Sscanf(coord[1:], "%d", &riverNum); err != nil {
+		return board.Hex{}, fmt.Errorf("invalid river number in %s: %w", riverCoord, err)
+	}
+	if riverNum < 1 {
+		return board.Hex{}, fmt.Errorf("river number must be >= 1, got %d", riverNum)
+	}
+
+	layout, err := board.LayoutForMap(mapID)
+	if err != nil {
+		return board.Hex{}, err
+	}
+
+	startQ := 0
+	foundRow := false
+	for candidate := range layout {
+		if candidate.R != row {
+			continue
+		}
+		foundRow = true
+		if candidate.Q < startQ {
+			startQ = candidate.Q
+		}
+	}
+	if !foundRow {
+		return board.Hex{}, fmt.Errorf("row %d not found on map %s", row, mapID)
+	}
+
+	count := 0
+	for q := startQ; ; q++ {
+		hex := board.NewHex(q, row)
+		terrain, exists := layout[hex]
+		if !exists {
+			break
+		}
+		if terrain != models.TerrainRiver {
+			continue
+		}
+		count++
+		if count == riverNum {
+			return hex, nil
+		}
+	}
+
+	return board.Hex{}, fmt.Errorf("river %s not found in row-count scan", riverCoord)
 }
 
 func printUsage() {
@@ -550,6 +888,10 @@ func formatBuildingCounts(gs *game.GameState, playerID string) string {
 	return "[" + strings.Join(parts, ",") + "]"
 }
 
+func createInitialState(items []notation.LogItem) *game.GameState {
+	return replay.CreateInitialState(items)
+}
+
 func fetchBGALog(tableID string) (string, error) {
 	// Get script directory
 	execPath, err := os.Executable()
@@ -621,133 +963,4 @@ func injectSettings(items []notation.LogItem, scoringStr, bonusStr string) []not
 	}
 
 	return items
-}
-
-func createInitialState(items []notation.LogItem) *game.GameState {
-	mapID := board.MapBase
-	for _, item := range items {
-		if s, ok := item.(notation.GameSettingsItem); ok {
-			if rawMap, ok := s.Settings["Game"]; ok {
-				mapID = board.NormalizeMapID(rawMap)
-			}
-			break
-		}
-	}
-
-	initialState, err := game.NewGameStateWithMap(mapID)
-	if err != nil {
-		fmt.Printf("Warning: failed to initialize map %s: %v; falling back to base map\n", mapID, err)
-		initialState = game.NewGameState()
-	}
-	initialState.ReplayMode = map[string]bool{"__replay__": true}
-
-	// Pre-populate players and settings from GameSettingsItem if present
-	for _, item := range items {
-		if s, ok := item.(notation.GameSettingsItem); ok {
-			// First pass: create players
-			for k, v := range s.Settings {
-				if strings.HasPrefix(k, "Player:") {
-					factionName := v
-					factionType := models.FactionTypeFromString(factionName)
-					faction := factions.NewFaction(factionType)
-					initialState.AddPlayer(factionName, faction)
-
-					// Set player name
-					playerName := strings.TrimPrefix(k, "Player:")
-					if p, exists := initialState.Players[factionName]; exists {
-						p.Name = playerName
-					}
-
-					// Set starting VPs if specified
-					if vpStr, ok := s.Settings["StartingVP:"+factionName]; ok {
-						if vp, err := strconv.Atoi(vpStr); err == nil {
-							if p, exists := initialState.Players[factionName]; exists {
-								p.VictoryPoints = vp
-							}
-						}
-					}
-				} else if k == "BonusCards" {
-					// Parse bonus cards
-					cards := strings.Split(v, ",")
-					availableCards := make([]game.BonusCardType, 0)
-					for _, cardCode := range cards {
-						parts := strings.Split(cardCode, " ")
-						code := parts[0]
-						cardType := notation.ParseBonusCardCode(code)
-						if cardType != game.BonusCardUnknown {
-							availableCards = append(availableCards, cardType)
-						}
-					}
-					initialState.BonusCards.SetAvailableBonusCards(availableCards)
-				} else if k == "ScoringTiles" {
-					// Parse scoring tiles
-					tiles := strings.Split(v, ",")
-					initialState.ScoringTiles = game.NewScoringTileState()
-					for i, tileCode := range tiles {
-						parts := strings.Split(tileCode, " ")
-						code := parts[0]
-						tile, err := parseScoringTile(code)
-						if err != nil {
-							fmt.Printf("Warning: failed to parse scoring tile %s: %v\n", code, err)
-							continue
-						}
-						if i < 6 {
-							initialState.ScoringTiles.Tiles = append(initialState.ScoringTiles.Tiles, tile)
-						}
-					}
-				}
-			}
-
-			// Second pass: assign initial bonus cards (must happen after players and bonus cards are set up)
-			for k, v := range s.Settings {
-				if strings.HasPrefix(k, "InitialBonusCard:") {
-					playerID := strings.TrimPrefix(k, "InitialBonusCard:")
-					cardType := notation.ParseBonusCardCode(v)
-					if cardType != game.BonusCardUnknown {
-						// Assign the card to the player
-						_, err := initialState.BonusCards.TakeBonusCard(playerID, cardType)
-						if err != nil {
-							fmt.Printf("Warning: failed to assign initial bonus card %s to %s: %v\n", v, playerID, err)
-						} else {
-							fmt.Printf("  Assigned initial bonus card %s to %s\n", v, playerID)
-						}
-					}
-				}
-			}
-			break
-		}
-	}
-
-	return initialState
-}
-
-func parseScoringTile(code string) (game.ScoringTile, error) {
-	allTiles := game.GetAllScoringTiles()
-
-	// Map of scoring codes to tile types
-	scoreMap := map[string]game.ScoringTileType{
-		"SCORE1": game.ScoringSpades,
-		"SCORE2": game.ScoringTown,
-		"SCORE3": game.ScoringDwellingWater,
-		"SCORE4": game.ScoringStrongholdFire,
-		"SCORE5": game.ScoringDwellingFire,
-		"SCORE6": game.ScoringTradingHouseWater,
-		"SCORE7": game.ScoringStrongholdAir,
-		"SCORE8": game.ScoringTradingHouseAir,
-		"SCORE9": game.ScoringTemplePriest,
-	}
-
-	tileType, ok := scoreMap[code]
-	if !ok {
-		return game.ScoringTile{}, fmt.Errorf("unknown scoring tile code: %s", code)
-	}
-
-	// Find the matching tile from all tiles
-	for _, tile := range allTiles {
-		if tile.Type == tileType {
-			return tile, nil
-		}
-	}
-
-	return game.ScoringTile{}, fmt.Errorf("scoring tile not found: %s", code)
 }

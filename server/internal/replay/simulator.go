@@ -292,6 +292,7 @@ func (s *GameSimulator) StepForward() error {
 				}
 			}
 		}
+		applyReplayStartingTerrainSettings(s.CurrentState, settings)
 	case notation.FinalScoringValidationItem:
 		s.executePendingRoundCleanupBeforeAction()
 		if err := s.validateFinalScoring(v); err != nil {
@@ -389,6 +390,14 @@ func (s *GameSimulator) validateFinalScoring(item notation.FinalScoringValidatio
 			}
 			if actual.LargestAreaSize != expected.LargestAreaSize {
 				return fmt.Errorf("%s largest area mismatch: got %d, want %d", playerID, actual.LargestAreaSize, expected.LargestAreaSize)
+			}
+		}
+		if expected.HasFireIceScore {
+			if actual.FireIceVP != expected.FireIceVP {
+				return fmt.Errorf("%s Fire & Ice VP mismatch: got %d, want %d", playerID, actual.FireIceVP, expected.FireIceVP)
+			}
+			if actual.FireIceMetricValue != expected.FireIceMetricValue {
+				return fmt.Errorf("%s Fire & Ice metric mismatch: got %d, want %d", playerID, actual.FireIceMetricValue, expected.FireIceMetricValue)
 			}
 		}
 		if expected.HasResourceScore {

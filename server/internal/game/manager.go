@@ -1010,6 +1010,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 			"hasPassed":             player.HasPassed,
 			"hasStrongholdAbility":  player.HasStrongholdAbility,
 			"victoryPoints":         player.VictoryPoints,
+			"firewalkersBlockerVp":  player.FirewalkersBlockerVP,
 			"keys":                  player.Keys,
 			"townsFormed":           player.TownsFormed,
 			"townTiles":             player.TownTiles,

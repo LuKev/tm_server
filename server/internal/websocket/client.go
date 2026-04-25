@@ -1722,6 +1722,32 @@ func buildSpecialAction(
 		}
 		return game.NewArchitectsMoveBridgeAction(seatID, oldHex1, oldHex2, newHex1, newHex2), nil
 
+	case game.SpecialActionShapeshiftersShiftTerrain:
+		rawTerrain, ok := getParam("targetTerrain")
+		if !ok {
+			return nil, fmt.Errorf("missing targetTerrain")
+		}
+		targetTerrain, err := parseTerrainTypeRaw(rawTerrain)
+		if err != nil {
+			return nil, fmt.Errorf("invalid targetTerrain: %w", err)
+		}
+		return game.NewShapeshiftersShiftTerrainAction(seatID, targetTerrain), nil
+
+	case game.SpecialActionSelkiesStronghold:
+		targetHex, err := parseHexParam("targetHex")
+		if err != nil {
+			return nil, fmt.Errorf("missing or invalid targetHex for selkies stronghold: %w", err)
+		}
+		buildDwelling := parseBoolParam("buildDwelling")
+		targetTerrain := models.TerrainTypeUnknown
+		if rawTerrain, ok := getParam("targetTerrain"); ok {
+			targetTerrain, err = parseTerrainTypeRaw(rawTerrain)
+			if err != nil {
+				return nil, fmt.Errorf("invalid targetTerrain: %w", err)
+			}
+		}
+		return game.NewSelkiesStrongholdAction(seatID, targetHex, buildDwelling, targetTerrain), nil
+
 	case game.SpecialActionChaosMagiciansDoubleTurn:
 		rawFirst, ok := getParam("firstAction")
 		if !ok {

@@ -2,6 +2,8 @@ package game
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -19,6 +21,7 @@ const (
 	ConversionCoinToPower    ConversionType = "coin_to_power"
 	ConversionAlchVPToCoin   ConversionType = "alchemists_vp_to_coin"
 	ConversionAlchCoinToVP   ConversionType = "alchemists_coin_to_vp"
+	ConversionRiverUnlock    ConversionType = "riverwalkers_unlock_"
 )
 
 // ConversionAction represents a free conversion during the acting player's turn.
@@ -48,6 +51,25 @@ func (a *ConversionAction) Validate(gs *GameState) error {
 	if a.Amount <= 0 {
 		return fmt.Errorf("conversion amount must be positive")
 	}
+	if terrain, ok, err := parseRiverwalkersUnlockConversion(a.ConversionType); ok {
+		if err != nil {
+			return err
+		}
+		if !isRiverwalkers(player) {
+			return fmt.Errorf("riverwalker terrain unlock is only available to Riverwalkers")
+		}
+		if player.UnlockedTerrains != nil && player.UnlockedTerrains[terrain] {
+			return fmt.Errorf("riverwalkers have already unlocked %s terrain", terrain)
+		}
+		if player.Resources.Priests < 1 {
+			return fmt.Errorf("riverwalkers need 1 priest to unlock terrain")
+		}
+		cost := gs.riverwalkersUnlockCost(player, terrain)
+		if player.Resources.Coins < cost {
+			return fmt.Errorf("not enough coins to unlock terrain: need %d, have %d", cost, player.Resources.Coins)
+		}
+		return nil
+	}
 	if a.ConversionType == ConversionWorkerToPriest {
 		return fmt.Errorf("worker to priest conversion is only allowed through Darklings priest ordination")
 	}
@@ -73,6 +95,17 @@ func (a *ConversionAction) Execute(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+
+	if terrain, ok, _ := parseRiverwalkersUnlockConversion(a.ConversionType); ok {
+		cost := gs.riverwalkersUnlockCost(player, terrain)
+		player.Resources.Priests--
+		player.Resources.Coins -= cost
+		if player.UnlockedTerrains == nil {
+			player.UnlockedTerrains = make(map[models.TerrainType]bool)
+		}
+		player.UnlockedTerrains[terrain] = true
+		return nil
 	}
 
 	switch a.ConversionType {
@@ -132,6 +165,23 @@ func (a *ConversionAction) Execute(gs *GameState) error {
 	default:
 		return fmt.Errorf("unsupported conversion type: %s", a.ConversionType)
 	}
+}
+
+func parseRiverwalkersUnlockConversion(conversionType ConversionType) (models.TerrainType, bool, error) {
+	raw := string(conversionType)
+	prefix := string(ConversionRiverUnlock)
+	if !strings.HasPrefix(raw, prefix) {
+		return models.TerrainTypeUnknown, false, nil
+	}
+	value, err := strconv.Atoi(strings.TrimPrefix(raw, prefix))
+	if err != nil {
+		return models.TerrainTypeUnknown, true, fmt.Errorf("invalid riverwalker terrain unlock: %s", raw)
+	}
+	terrain := models.TerrainType(value)
+	if !isStandardLandTerrain(terrain) {
+		return models.TerrainTypeUnknown, true, fmt.Errorf("riverwalkers can only unlock standard land terrain")
+	}
+	return terrain, true, nil
 }
 
 // BurnPowerAction represents burning power (2 from bowl II -> 1 to bowl III).

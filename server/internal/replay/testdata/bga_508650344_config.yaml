@@ -1,0 +1,46 @@
+scoring_tiles:
+  - SCORE6
+  - SCORE8
+  - SCORE4
+  - SCORE1
+  - SCORE5
+  - SCORE2
+bonus_cards:
+  - BON-P
+  - BON-BB
+  - BON-WP
+  - BON-SHIP
+  - BON-TP
+  - BON-6C
+  - BON-DW
+bonus_card_selections:
+  "0":
+    Yetis: BON-P
+    Firewalkers: BON-BB
+    Alchemists: BON-WP
+    Witches: BON-SHIP
+  "1":
+    Yetis: BON-BB
+    Firewalkers: BON-TP
+    Alchemists: BON-6C
+    Witches: BON-DW
+  "2":
+    Yetis: BON-SHIP
+    Firewalkers: BON-DW
+    Alchemists: BON-WP
+    Witches: BON-6C
+  "3":
+    Yetis: BON-6C
+    Firewalkers: BON-P
+    Alchemists: BON-TP
+    Witches: BON-BB
+  "4":
+    Yetis: BON-BB
+    Firewalkers: BON-DW
+    Alchemists: BON-WP
+    Witches: BON-TP
+  "5":
+    Yetis: BON-WP
+    Firewalkers: BON-TP
+    Alchemists: BON-DW
+    Witches: BON-6C

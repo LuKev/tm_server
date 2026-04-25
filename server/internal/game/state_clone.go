@@ -34,10 +34,15 @@ func (gs *GameState) CloneForUndo() *GameState {
 		NextLeechEventID:                gs.NextLeechEventID,
 		PendingFreeActionsPlayerID:      gs.PendingFreeActionsPlayerID,
 		PendingCultistsLeech:            clonePendingCultistsLeech(gs.PendingCultistsLeech),
+		PendingShapeshiftersLeech:       clonePendingCultistsLeech(gs.PendingShapeshiftersLeech),
 		SkipAbilityUsedThisAction:       cloneSkipAbilityUsedThisAction(gs.SkipAbilityUsedThisAction),
 		PendingWispsTradingPostSpade:    cloneHexMap(gs.PendingWispsTradingPostSpade),
 		PendingPostActionSpecialActions: clonePendingPostActionSpecialActions(gs.PendingPostActionSpecialActions),
 		ReplayMode:                      cloneStringBoolMap(gs.ReplayMode),
+		ReplayAcolytesCultTracks:        cloneReplayCultTrackQueues(gs.ReplayAcolytesCultTracks),
+		ReplayAcolytesCultTrackIndex:    cloneStringIntMap(gs.ReplayAcolytesCultTrackIndex),
+		ReplayRiverBuildHexes:           cloneReplayRiverBuildHexQueues(gs.ReplayRiverBuildHexes),
+		ReplayRiverBuildHexIndex:        cloneStringIntMap(gs.ReplayRiverBuildHexIndex),
 		SuppressTurnAdvance:             gs.SuppressTurnAdvance,
 		PendingTurnConfirmationPlayerID: "",
 	}
@@ -54,6 +59,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingLeechOffers = clonePendingLeechOffers(gs.PendingLeechOffers)
 	clone.PendingTownFormations = clonePendingTownFormations(gs.PendingTownFormations)
 	clone.PendingCultistsLeech = clonePendingCultistsLeech(gs.PendingCultistsLeech)
+	clone.PendingShapeshiftersLeech = clonePendingCultistsLeech(gs.PendingShapeshiftersLeech)
 	clone.PendingFavorTileSelection = clonePendingFavorTileSelection(gs.PendingFavorTileSelection)
 	clone.PendingHalflingsSpades = clonePendingHalflingsSpades(gs.PendingHalflingsSpades)
 	clone.PendingGoblinsCultSteps = clonePendingGoblinsCultSteps(gs.PendingGoblinsCultSteps)
@@ -91,6 +97,28 @@ func clonePlayers(src map[string]*Player) map[string]*Player {
 	return dst
 }
 
+func cloneReplayCultTrackQueues(src map[string][]CultTrack) map[string][]CultTrack {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string][]CultTrack, len(src))
+	for playerID, queue := range src {
+		dst[playerID] = append([]CultTrack(nil), queue...)
+	}
+	return dst
+}
+
+func cloneReplayRiverBuildHexQueues(src map[string][]board.Hex) map[string][]board.Hex {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string][]board.Hex, len(src))
+	for playerID, queue := range src {
+		dst[playerID] = append([]board.Hex(nil), queue...)
+	}
+	return dst
+}
+
 func clonePlayer(src *Player) *Player {
 	if src == nil {
 		return nil
@@ -109,6 +137,12 @@ func clonePlayer(src *Player) *Player {
 		dst.SpecialActionsUsed = make(map[SpecialActionType]bool, len(src.SpecialActionsUsed))
 		for actionType, used := range src.SpecialActionsUsed {
 			dst.SpecialActionsUsed[actionType] = used
+		}
+	}
+	if src.UnlockedTerrains != nil {
+		dst.UnlockedTerrains = make(map[models.TerrainType]bool, len(src.UnlockedTerrains))
+		for terrain, unlocked := range src.UnlockedTerrains {
+			dst.UnlockedTerrains[terrain] = unlocked
 		}
 	}
 	if src.TownTiles != nil {

@@ -18,6 +18,7 @@ type BGAParser struct {
 	lines       []string
 	currentLine int
 	items       []LogItem
+	mapID       board.MapID
 	// State tracking
 	currentRound                 int
 	inIncomePhase                bool
@@ -30,7 +31,6 @@ type BGAParser struct {
 	lastLeechSourceID            string
 	lastLeechSourceHex           *board.Hex
 	pendingConspiratorsFavorLoss map[string]int
-	mapID                        board.MapID
 }
 
 func NewBGAParser(content string) *BGAParser {
@@ -45,6 +45,7 @@ func NewBGAParser(content string) *BGAParser {
 		lines:                        lines,
 		currentLine:                  0,
 		items:                        make([]LogItem, 0),
+		mapID:                        board.MapBase,
 		players:                      make(map[string]string),
 		passOrder:                    make([]string, 0),
 		townPending:                  make(map[string]bool),
@@ -52,7 +53,6 @@ func NewBGAParser(content string) *BGAParser {
 		consumedLines:                make(map[int]bool),
 		leechSourceByCoord:           make(map[string]string),
 		pendingConspiratorsFavorLoss: make(map[string]int),
-		mapID:                        board.MapBase,
 	}
 }
 
@@ -60,7 +60,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	// Regex patterns
 	reMove := regexp.MustCompile(`^Move (\d+) :`)
 	reFactionSelection := regexp.MustCompile(`(.*) is playing the (.*) Faction(?: \(with (\d+) VP Starting VPs\))?`)
-	reFactionSelection2 := regexp.MustCompile(`(.*) selected the faction (.*) on`)
+	reFactionSelection2 := regexp.MustCompile(`(.*) selected the faction (.*) on ([A-Za-z]+) to play`)
 	reGameBoard := regexp.MustCompile(`Game board: (.*)`)
 	reMiniExpansions := regexp.MustCompile(`Mini-expansions: (.*)`)
 
@@ -94,6 +94,8 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reGiantsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* \(Giants Stronghold\) \[(.*)\]`)
 	reSwarmlingStronghold := regexp.MustCompile(`(.*) upgrades a Dwelling to a Trading house for free \(Swarmlings Stronghold\) \[(.*)\]`)
 	reNomadsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* for free \(Nomads Stronghold\).*\[(.*)\]`)
+	reSelkiesStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* \(Selkies Stronghold\) \[(.*)\]`)
+	reShapeshiftersStronghold := regexp.MustCompile(`(.*) changes .* Home Terrain to ([A-Za-z]+) for Power \(Shapeshifters Stronghold\)`)
 	reCMDoubleTurn := regexp.MustCompile(`(.*) takes a double-turn \(Chaos Magicians Stronghold\)`)
 	reHalflingsSpades := regexp.MustCompile(`(.*) gets 3 Spades to Transform and Build \(Halflings Stronghold\)`)
 	reWorkersBridge := regexp.MustCompile(`(.*) spends 2 workers to build a Bridge \((?:Engineers|Atlanteans) Ability\) \[(.*)\]`)
@@ -121,6 +123,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reFinalScoring := regexp.MustCompile(`~ Final scoring ~`)
 
 	settings := make(map[string]string)
+	settings["ReplaySource"] = "BGA"
 	scoringTiles := make(map[int]string)
 	removedBonuses := make([]string, 0)
 
@@ -166,8 +169,18 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		}
 	}
 
-	// Parse player factions from setup summary
-	var setupOrder []string
+	// Parse player factions from setup summary.
+	// Auction logs can contain provisional "selected the faction ..." lines before the
+	// final "is playing the ... Faction" assignments. Prefer the final assignments when
+	// present, but still support partial logs that only contain one form.
+	var (
+		setupOrder         []string
+		provisionalPlayers = make(map[string]string)
+		finalPlayers       = make(map[string]string)
+		provisionalOrder   []string
+		finalOrder         []string
+		sawFinalPlayers    bool
+	)
 	for p.currentLine < len(p.lines) {
 		line := strings.TrimSpace(p.lines[p.currentLine])
 		p.currentLine++
@@ -178,9 +191,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		if matches := reFactionSelection.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := strings.TrimSpace(matches[1])
 			factionName := strings.TrimSpace(matches[2])
-			p.players[playerName] = factionName
-			if !contains(setupOrder, factionName) {
-				setupOrder = append(setupOrder, factionName)
+			finalPlayers[playerName] = factionName
+			sawFinalPlayers = true
+			if !contains(finalOrder, factionName) {
+				finalOrder = append(finalOrder, factionName)
 			}
 			// Check for starting VPs (group 3)
 			if len(matches) > 3 && matches[3] != "" {
@@ -189,11 +203,32 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		} else if matches := reFactionSelection2.FindStringSubmatch(line); len(matches) > 2 {
 			playerName := strings.TrimSpace(matches[1])
 			factionName := strings.TrimSpace(matches[2])
-			p.players[playerName] = factionName
-			if !contains(setupOrder, factionName) {
-				setupOrder = append(setupOrder, factionName)
+			provisionalPlayers[playerName] = factionName
+			if !contains(provisionalOrder, factionName) {
+				provisionalOrder = append(provisionalOrder, factionName)
+			}
+			if len(matches) > 3 {
+				settings["StartingTerrain:"+factionName] = strings.TrimSpace(matches[3])
+			}
+		} else if line != "" {
+			// Some fixtures and partial logs omit the "Every player..." separator and
+			// move directly into setup placements or the action phase. Auction logs can
+			// interleave non-faction lines between provisional picks and final faction
+			// assignments, so only stop once we've seen final assignments or no faction
+			// summary at all.
+			if sawFinalPlayers || len(provisionalPlayers) == 0 {
+				p.currentLine--
+				break
 			}
 		}
+	}
+
+	if len(finalPlayers) > 0 {
+		p.players = finalPlayers
+		setupOrder = finalOrder
+	} else if len(provisionalPlayers) > 0 {
+		p.players = provisionalPlayers
+		setupOrder = provisionalOrder
 	}
 
 	// Add settings item with players
@@ -364,6 +399,14 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerID := p.getPlayerID(matches[1])
 			p.handleAlchemistsVP(playerID, matches[2], matches[3])
 
+		} else if matches := reFirewalkersGain.FindStringSubmatch(line); len(matches) > 3 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleFirewalkersPower(playerID, matches[2], matches[3])
+
+		} else if matches := reFirewalkersCoin.FindStringSubmatch(line); len(matches) > 4 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleFirewalkersPowerToCoin(playerID, matches[2], matches[3], matches[4])
+
 		} else if matches := reBonusCardCult.FindStringSubmatch(line); len(matches) > 2 {
 			// Bonus card cult advance: "gains 1 on the Cult of Y track (Bonus card action)"
 			playerID := p.getPlayerID(matches[1])
@@ -428,6 +471,18 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			playerID := p.getPlayerID(matches[1])
 			coordStr := matches[2]
 			p.handleNomadsStronghold(playerID, coordStr)
+
+		} else if matches := reSelkiesStronghold.FindStringSubmatch(line); len(matches) > 2 {
+			playerID := p.getPlayerID(matches[1])
+			coordStr, targetTerrainName := p.extractTransformInfoFromLine(line)
+			if coordStr == "" {
+				coordStr = matches[2]
+			}
+			p.handleSelkiesStronghold(playerID, coordStr, getTerrainTypeFromName(targetTerrainName))
+
+		} else if matches := reShapeshiftersStronghold.FindStringSubmatch(line); len(matches) > 2 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleShapeshiftersStronghold(playerID, matches[2])
 
 		} else if matches := reCMDoubleTurn.FindStringSubmatch(line); len(matches) > 1 {
 			// Chaos Magicians Stronghold: double-turn
@@ -536,7 +591,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			reward := p.parseAmount(rewardStr)
 
 			// fmt.Printf("Matched PowerAction: %s spends %d to get %d\n", playerName, cost, reward)
-			p.handlePowerAction(playerName, cost, reward)
+			p.handlePowerAction(playerName, cost, reward, rewardStr)
 
 		} else if matches := reBurn.FindStringSubmatch(line); len(matches) > 3 {
 			// Single-line Burn:
@@ -651,7 +706,14 @@ func (p *BGAParser) handleBuildDwelling(playerName, coordStr string, isSetup boo
 		action = game.NewSetupDwellingAction(playerID, hex)
 		p.items = append(p.items, ActionItem{Action: action})
 	} else {
-		action = game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown)
+		if playerID == "Selkies" && strings.HasPrefix(strings.ToUpper(strings.TrimSpace(coordStr)), "R~") {
+			action = &LogRiverBuildAction{
+				PlayerID:   playerID,
+				CoordToken: strings.Trim(strings.TrimSpace(coordStr), "[]"),
+			}
+		} else {
+			action = game.NewTransformAndBuildAction(playerID, hex, true, models.TerrainTypeUnknown)
+		}
 
 		// Check for Cultists ability
 		if cultCode := p.checkForCultistAbility(playerID); cultCode != "" {
@@ -702,24 +764,9 @@ func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr strin
 	hex := p.parseCoord(coordStr)
 	playerID := p.getPlayerID(playerName)
 
-	var targetTerrain models.TerrainType
+	targetTerrain := models.TerrainTypeUnknown
 	if targetTerrainStr != "" {
-		switch strings.ToLower(targetTerrainStr) {
-		case "plains":
-			targetTerrain = models.TerrainPlains
-		case "swamp":
-			targetTerrain = models.TerrainSwamp
-		case "lakes":
-			targetTerrain = models.TerrainLake
-		case "forest":
-			targetTerrain = models.TerrainForest
-		case "mountains":
-			targetTerrain = models.TerrainMountain
-		case "wasteland":
-			targetTerrain = models.TerrainWasteland
-		case "desert":
-			targetTerrain = models.TerrainDesert
-		}
+		targetTerrain = getTerrainTypeFromName(targetTerrainStr)
 	}
 
 	buildDwelling := false
@@ -750,27 +797,50 @@ func (p *BGAParser) handleTransform(playerName, coordStr, targetTerrainStr strin
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
-func (p *BGAParser) handlePowerAction(playerName string, cost, reward int) {
+func (p *BGAParser) handleShapeshiftersStronghold(playerID, targetTerrainStr string) {
+	targetTerrain := getTerrainTypeFromName(targetTerrainStr)
+	if targetTerrain == models.TerrainTypeUnknown {
+		return
+	}
+	p.items = append(p.items, ActionItem{Action: game.NewShapeshiftersShiftTerrainAction(playerID, targetTerrain)})
+}
+
+func (p *BGAParser) handlePowerAction(playerName string, cost, reward int, rewardStr string) {
 	playerID := p.getPlayerID(playerName)
+	rewardType := strings.ToLower(rewardStr)
 
 	// Map to Action Code
 	code := "ACT?"
-	if cost == 3 {
-		if reward == 1 {
+	if cost == 2 {
+		if reward == 1 && strings.Contains(rewardType, "priest") {
+			code = "ACT2" // Yetis SH discount: Priest (2pw -> 1 Priest)
+		}
+	} else if cost == 3 {
+		if reward == 1 && strings.Contains(rewardType, "priest") {
 			code = "ACT2" // Priest (3pw -> 1 Priest)
+		} else if reward == 2 && strings.Contains(rewardType, "worker") {
+			code = "ACT3" // Yetis SH discount: Workers (3pw -> 2 Workers)
+		} else if reward == 7 && strings.Contains(rewardType, "coin") {
+			code = "ACT4" // Yetis SH discount: Coins (3pw -> 7 Coins)
+		} else if reward == 1 && strings.Contains(rewardType, "spade") {
+			code = "ACT5" // Yetis SH discount: Spade (3pw -> 1 Spade)
 		} else {
 			code = "ACT1" // Bridge (3pw -> Bridge) - unlikely to match "collect N"
 		}
 	} else if cost == 4 {
-		if reward == 2 {
+		if reward == 2 && strings.Contains(rewardType, "worker") {
 			code = "ACT3" // Workers (4pw -> 2 Workers)
-		} else if reward == 7 {
+		} else if reward == 7 && strings.Contains(rewardType, "coin") {
 			code = "ACT4" // Coins (4pw -> 7 Coins)
-		} else if reward == 1 {
+		} else if reward == 1 && strings.Contains(rewardType, "spade") {
 			code = "ACT5" // Spade (4pw -> 1 Spade)
 		}
+	} else if cost == 5 {
+		if reward == 2 && strings.Contains(rewardType, "spade") {
+			code = "ACT6" // Yetis SH discount: 2 Spades (5pw -> 2 Spades)
+		}
 	} else if cost == 6 {
-		if reward == 2 {
+		if reward == 2 && strings.Contains(rewardType, "spade") {
 			code = "ACT6" // 2 Spades (6pw -> 2 Spades)
 		}
 	}
@@ -860,8 +930,10 @@ func (p *BGAParser) handleLeech(playerName, coordStr string, amount int, cost in
 	sourcePlayerID := p.getLeechSourcePlayer(coordStr)
 	var sourceHex *board.Hex
 	if normalizedCoord := normalizeBGACoord(coordStr); normalizedCoord != "" {
-		hex := p.parseCoord(normalizedCoord)
-		sourceHex = &hex
+		if !strings.HasPrefix(normalizedCoord, "R~") {
+			hex := p.parseCoord(normalizedCoord)
+			sourceHex = &hex
+		}
 	}
 
 	if accepted {
@@ -1051,19 +1123,33 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 	reFavorTileGain := regexp.MustCompile(`gains (\d+) on the Cult of (.*) track \(Favor tile\)(?: .*)?`)
 
 	for i := 0; i < 5; i++ {
-		line := p.consumeLine()
+		if p.currentLine >= len(p.lines) {
+			break
+		}
+		line := strings.TrimSpace(p.lines[p.currentLine])
+		if line == "" {
+			p.currentLine++
+			continue
+		}
 
 		// Check for single-line gain
 		if matches := reFavorTileGain.FindStringSubmatch(line); len(matches) > 2 {
+			p.currentLine++
 			amount, _ = strconv.Atoi(matches[1])
 			track = matches[2]
 			break
 		}
 
-		// Stop if we hit a new move or timestamp
+		if strings.HasPrefix(line, playerName+" declines doing Conversions") {
+			p.currentLine++
+			continue
+		}
+
+		// Stop before consuming unrelated actions.
 		if strings.HasPrefix(line, "Move ") || strings.Contains(line, " AM") || strings.Contains(line, " PM") {
 			break
 		}
+		break
 	}
 
 	if track != "" && amount > 0 {
@@ -1085,7 +1171,10 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 	}
 
 	if tileCode == "" {
-		tileCode = "FAV-UNKNOWN"
+		// BGA may omit the cult-gain line when the player is already at the
+		// top of that cult. In observed logs this occurs for the Air+1 pass-VP
+		// favor, whose later pass VP confirms the tile.
+		tileCode = "FAV-A1"
 	}
 
 	if lostAmount, ok := p.pendingConspiratorsFavorLoss[playerID]; ok {
@@ -1111,21 +1200,36 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 		return
 	}
 
-	targetIndex, targetAction, ok := p.previousPlayerActionSkippingLeeches(playerID)
-	if !ok {
+	targetIndex := len(p.items) - 1
+	for targetIndex >= 0 {
+		item, ok := p.items[targetIndex].(ActionItem)
+		if !ok || !isLeechResponseAction(item.Action) {
+			break
+		}
+		targetIndex--
+	}
+	skippedLeechRows := targetIndex != len(p.items)-1
+	if targetIndex < 0 {
 		p.items = append(p.items, newItem)
 		return
 	}
 
-	switch v := targetAction.(type) {
+	lastItem, ok := p.items[targetIndex].(ActionItem)
+	if !ok || lastItem.Action.GetPlayerID() != playerID {
+		p.items = append(p.items, newItem)
+		return
+	}
+
+	switch v := lastItem.Action.(type) {
 	case *game.UpgradeBuildingAction:
-		if v.NewBuildingType == models.BuildingStronghold && p.players[playerName] == "Auren" {
-			p.items[targetIndex] = ActionItem{
-				Action: &LogCompoundAction{Actions: []game.Action{v, action}},
-			}
+		if skippedLeechRows || !(v.NewBuildingType == models.BuildingStronghold && p.players[playerName] == "Auren") {
+			p.items = append(p.items, newItem)
 			return
 		}
-		p.items = append(p.items, newItem)
+		p.items[targetIndex] = ActionItem{
+			Action: &LogCompoundAction{Actions: []game.Action{v, action}},
+		}
+		return
 	case *game.TransformAndBuildAction, *game.SetupDwellingAction:
 		p.items = append(p.items, newItem)
 	case *LogCompoundAction:
@@ -1133,52 +1237,32 @@ func (p *BGAParser) handleFavorTile(playerName string) {
 			p.items = append(p.items, newItem)
 			return
 		}
-		lastAction := v.Actions[len(v.Actions)-1]
-		switch lastAction.(type) {
-		case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
+		if compoundCanMergeFavor(v.Actions, skippedLeechRows) {
 			v.Actions = append(v.Actions, action)
-		case *LogCultistAdvanceAction:
-			if compoundCanReceiveFavorTile(v.Actions) {
-				v.Actions = append(v.Actions, action)
-			} else {
-				p.items = append(p.items, newItem)
-			}
-		default:
-			p.items = append(p.items, newItem)
+			p.items[targetIndex] = ActionItem{Action: v}
+			return
 		}
+		p.items = append(p.items, newItem)
 	default:
 		p.items = append(p.items, newItem)
 	}
 }
 
-func (p *BGAParser) previousPlayerActionSkippingLeeches(playerID string) (int, game.Action, bool) {
-	for i := len(p.items) - 1; i >= 0; i-- {
-		if _, ok := p.items[i].(RoundStartItem); ok {
-			break
-		}
-		actionItem, ok := p.items[i].(ActionItem)
-		if !ok || actionItem.Action == nil {
-			continue
-		}
-		if isLeechResponseAction(actionItem.Action) {
-			continue
-		}
-		if actionItem.Action.GetPlayerID() != playerID {
-			return -1, nil, false
-		}
-		return i, actionItem.Action, true
-	}
-	return -1, nil, false
-}
-
-func compoundCanReceiveFavorTile(actions []game.Action) bool {
+func compoundCanMergeFavor(actions []game.Action, skippedLeechRows bool) bool {
 	for _, action := range actions {
-		switch action.(type) {
-		case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
+		if _, ok := action.(*LogCultistAdvanceAction); ok {
 			return true
 		}
 	}
-	return false
+	if skippedLeechRows {
+		return false
+	}
+	switch actions[len(actions)-1].(type) {
+	case *game.UpgradeBuildingAction, *game.TransformAndBuildAction, *game.SetupDwellingAction:
+		return true
+	default:
+		return false
+	}
 }
 
 func (p *BGAParser) handleWitchesRide(playerName string, coordStr string) {
@@ -1321,6 +1405,7 @@ func (p *BGAParser) skipSetupDynionGeifrStartingFavorTile(playerName string) boo
 func (p *BGAParser) handleFinalScoringBlock() {
 	reCultScore := regexp.MustCompile(`(.*) scores (\d+) VP \(Cult of (\w+)\)`)
 	reAreaScore := regexp.MustCompile(`(.*) scores (\d+) VP with (\d+) connected Structures? \(Area scoring\)`)
+	reFireIceScore := regexp.MustCompile(`(.*) scores (\d+) VP with (\d+) .* \(Fire & Ice final scoring\)`)
 	reResourceScore := regexp.MustCompile(`(.*) scores (\d+) VP with (\d+) coins? \(Resource scoring\)`)
 	reResourceConversion := regexp.MustCompile(`(.*) converts (\d+) (power|workers?|Priests?) into (\d+) coins?`)
 
@@ -1392,6 +1477,19 @@ func (p *BGAParser) handleFinalScoringBlock() {
 			continue
 		}
 
+		if matches := reFireIceScore.FindStringSubmatch(line); len(matches) > 3 {
+			expectation := getExpectation(matches[1])
+			if expectation == nil {
+				continue
+			}
+			vp, _ := strconv.Atoi(matches[2])
+			metricValue, _ := strconv.Atoi(matches[3])
+			expectation.FireIceVP = vp
+			expectation.FireIceMetricValue = metricValue
+			expectation.HasFireIceScore = true
+			continue
+		}
+
 		if matches := reResourceScore.FindStringSubmatch(line); len(matches) > 3 {
 			expectation := getExpectation(matches[1])
 			if expectation == nil {
@@ -1442,7 +1540,15 @@ func parseCoord(s string) board.Hex {
 
 func (p *BGAParser) parseCoord(s string) board.Hex {
 	s = strings.Trim(s, "[]")
-	h, err := ConvertLogCoordToAxialForMap(p.mapID, s)
+	var (
+		h   board.Hex
+		err error
+	)
+	if strings.HasPrefix(strings.ToUpper(strings.TrimSpace(s)), "R~") {
+		h, err = ConvertRiverCoordToAxialForMap(p.mapID, s)
+	} else {
+		h, err = ConvertLogCoordToAxialForMap(p.mapID, s)
+	}
 	if err != nil {
 		return board.Hex{}
 	}
@@ -1925,6 +2031,37 @@ func (p *BGAParser) handleAlchemistsVP(playerID, vpStr, coinsStr string) {
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
+func (p *BGAParser) handleFirewalkersPower(playerID, vpStr, powerStr string) {
+	vp, _ := strconv.Atoi(vpStr)
+	power, _ := strconv.Atoi(powerStr)
+	if playerID == "" || vp <= 0 || power <= 0 {
+		return
+	}
+
+	action := &LogConversionAction{
+		PlayerID: playerID,
+		Cost:     map[models.ResourceType]int{models.ResourceVictoryPoint: vp},
+		Reward:   map[models.ResourceType]int{models.ResourcePower: power},
+	}
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) handleFirewalkersPowerToCoin(playerID, vpStr, powerStr, coinsStr string) {
+	vp, _ := strconv.Atoi(vpStr)
+	power, _ := strconv.Atoi(powerStr)
+	coins, _ := strconv.Atoi(coinsStr)
+	if playerID == "" || vp <= 0 || power <= 0 || coins <= 0 {
+		return
+	}
+
+	action := &LogConversionAction{
+		PlayerID: playerID,
+		Cost:     map[models.ResourceType]int{models.ResourceVictoryPoint: vp},
+		Reward:   map[models.ResourceType]int{models.ResourceCoin: coins},
+	}
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
 func (p *BGAParser) parseResourceMap(s string) map[models.ResourceType]int {
 	res := make(map[models.ResourceType]int)
 	// Regex to find "N unit"
@@ -2015,6 +2152,44 @@ func (p *BGAParser) handleNomadsStronghold(playerID, coordStr string) {
 		actionCode = fmt.Sprintf("ACT-SH-T-%s.%s", coordStr, strings.ToLower(coordStr))
 	} else {
 		actionCode = fmt.Sprintf("ACT-SH-T-%s", coordStr)
+	}
+
+	p.items = append(p.items, ActionItem{
+		Action: &LogSpecialAction{
+			PlayerID:   playerID,
+			ActionCode: actionCode,
+		},
+	})
+}
+
+func (p *BGAParser) handleSelkiesStronghold(playerID, coordStr string, targetTerrain models.TerrainType) {
+	buildDwelling := false
+	reDwellingBuild := regexp.MustCompile(`builds a Dwelling`)
+	for lookAhead := 0; lookAhead < 5 && p.currentLine+lookAhead < len(p.lines); lookAhead++ {
+		lineIndex := p.currentLine + lookAhead
+		nextLine := p.lines[lineIndex]
+		if reDwellingBuild.MatchString(nextLine) {
+			nextCoord := p.extractCoordFromLine(nextLine)
+			if nextCoord == coordStr {
+				buildDwelling = true
+				p.consumedLines[lineIndex] = true
+				break
+			}
+		}
+		if strings.Contains(nextLine, " passes") ||
+			strings.Contains(nextLine, " upgrades") ||
+			strings.Contains(nextLine, " transforms") ||
+			strings.Contains(nextLine, " sends a Priest") {
+			break
+		}
+	}
+
+	actionCode := fmt.Sprintf("ACT-SH-I-%s", coordStr)
+	if !buildDwelling && targetTerrain != models.TerrainTypeUnknown {
+		actionCode = fmt.Sprintf("%s-%s", actionCode, getTerrainShortCode(targetTerrain))
+	}
+	if buildDwelling {
+		actionCode = fmt.Sprintf("ACT-SH-I-%s.%s", coordStr, strings.ToLower(coordStr))
 	}
 
 	p.items = append(p.items, ActionItem{
@@ -2301,13 +2476,17 @@ func (p *BGAParser) rememberLeechSource(coordStr, playerID string) {
 	if coord == "" || playerID == "" {
 		return
 	}
-	sourceHex := p.parseCoord(coord)
+	var sourceHex *board.Hex
+	if !strings.HasPrefix(coord, "R~") {
+		hex := p.parseCoord(coord)
+		sourceHex = &hex
+	}
 	if p.leechSourceByCoord == nil {
 		p.leechSourceByCoord = make(map[string]string)
 	}
 	p.leechSourceByCoord[coord] = playerID
 	p.lastLeechSourceID = playerID
-	p.lastLeechSourceHex = &sourceHex
+	p.lastLeechSourceHex = sourceHex
 }
 
 func (p *BGAParser) getLeechSourcePlayer(coordStr string) string {
