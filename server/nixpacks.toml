@@ -1,8 +1,8 @@
 [phases.setup]
-nixPkgs = ["go", "python3", "bazelisk"]
+nixPkgs = ["go", "python3"]
 
 [phases.build]
-cmds = ["bazel build //cmd/server:server && cp bazel-bin/cmd/server/server_/server out"]
+cmds = ["go build -o out ./cmd/server"]
 
 [start]
 cmd = "./out"
