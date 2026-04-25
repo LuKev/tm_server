@@ -1,5 +1,9 @@
 # Workspace Notes (Snellman Replay)
 
+- 2026-04-24 Railway/Bazel deploy:
+  - `server/nixpacks.toml` now installs `bazelisk` and builds the backend with `bazel build //cmd/server:server`, then copies `bazel-bin/cmd/server/server_/server` to `out` for Railway's existing `./out` start command.
+  - If Railway server deploys fail at stage 0, check both the Bazel compile target and the Nixpacks Bazel package availability before falling back to direct Go commands.
+
 - 2026-04-23 Fire & Ice extra final scoring:
   - Official expansion rulebook source used for the four extra end-game tiles: `https://images.zmangames.com/filer_public/bf/d8/bfd8d8cb-6d92-4c17-86ea-b1a9fa90e1aa/zm7242_terra_mystica_fire_ice_rules.pdf`
   - Added a per-table lobby option `fireIceScoring` with values:

@@ -1738,7 +1738,10 @@ func buildSpecialAction(
 		if err != nil {
 			return nil, fmt.Errorf("missing or invalid targetHex for selkies stronghold: %w", err)
 		}
-		buildDwelling := parseBoolParam("buildDwelling")
+		buildDwelling, err := parseBoolParam(false, "buildDwelling")
+		if err != nil {
+			return nil, fmt.Errorf("invalid buildDwelling for selkies stronghold: %w", err)
+		}
 		targetTerrain := models.TerrainTypeUnknown
 		if rawTerrain, ok := getParam("targetTerrain"); ok {
 			targetTerrain, err = parseTerrainTypeRaw(rawTerrain)
