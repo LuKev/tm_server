@@ -363,6 +363,62 @@ func TestRiverwalkersCannotGainOrUseSpades(t *testing.T) {
 	}
 }
 
+func TestDragonlordsAndRiverwalkersCannotAdvanceDigging(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		faction factions.Faction
+	}{
+		{name: "dragonlords", faction: factions.NewDragonlords()},
+		{name: "riverwalkers", faction: factions.NewRiverwalkers()},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			gs := NewGameState()
+			if err := gs.AddPlayer("player", tt.faction); err != nil {
+				t.Fatalf("add player: %v", err)
+			}
+			player := gs.GetPlayer("player")
+			player.Resources.Coins = 100
+			player.Resources.Workers = 100
+			player.Resources.Priests = 5
+
+			if err := NewAdvanceDiggingAction("player").Execute(gs); err == nil {
+				t.Fatalf("%s should not be able to advance digging", tt.name)
+			}
+			if got := player.DiggingLevel; got != 0 {
+				t.Fatalf("digging level = %d, want 0", got)
+			}
+		})
+	}
+}
+
+func TestRiverwalkersShippingIsFixedAtOne(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("river", factions.NewRiverwalkers()); err != nil {
+		t.Fatalf("add riverwalkers: %v", err)
+	}
+	player := gs.GetPlayer("river")
+	player.Resources.Coins = 100
+	player.Resources.Priests = 5
+
+	if got := player.ShippingLevel; got != 1 {
+		t.Fatalf("starting shipping = %d, want 1", got)
+	}
+	if err := NewAdvanceShippingAction("river").Execute(gs); err == nil {
+		t.Fatalf("expected paid shipping advancement to fail")
+	}
+	if err := gs.AdvanceShippingLevel("river"); err == nil {
+		t.Fatalf("expected direct shipping advancement to fail")
+	}
+	gs.ApplyTownTileBenefits("river", models.TownTile4Points)
+
+	if got := player.ShippingLevel; got != 1 {
+		t.Fatalf("shipping after attempted upgrades = %d, want 1", got)
+	}
+	if got := player.VictoryPoints; got != 24 {
+		t.Fatalf("VP after shipping town tile = %d, want 24", got)
+	}
+}
+
 func TestRiverwalkersUnlockTerrainBeforeBuilding(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("river", factions.NewRiverwalkers()); err != nil {

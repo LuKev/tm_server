@@ -1838,6 +1838,9 @@ func (gs *GameState) AdvanceShippingLevel(playerID string) error {
 	if player == nil {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
+	if player.Faction.GetType() == models.FactionRiverwalkers {
+		return fmt.Errorf("riverwalkers cannot advance shipping")
+	}
 
 	// Check if already at max level
 	if player.ShippingLevel >= 5 {
