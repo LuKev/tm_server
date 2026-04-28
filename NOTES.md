@@ -1554,9 +1554,14 @@
 - Current BGA fan-faction coverage from committed replay fixtures:
   - Covered: `Architects`, `Archivists`, `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`.
   - Still lacking a BGA replay fixture: none among the currently implemented / requested fan factions.
+  - Stronghold coverage scan from fetched BGA review logs:
+    - Fan factions still worth extra replay coverage because their current validated BGA game did not build the Stronghold: `Chash Dallah` (`546240474`) and `Goblins` (`838634311`).
+    - Fan factions with observed Stronghold builds/actions in current validated BGA logs: `Architects`, `Archivists`, `Atlanteans`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`, plus requested Fire/Ice fan factions `Firewalkers`, `Selkies`, and `Snow Shamans`.
 - Current Fire/Ice/Colorless BGA replay coverage from committed fixture configs and notes:
   - Covered by end-to-end BGA replay validation: `Acolytes`, `Dragonlords`, `Firewalkers`, `Ice Maidens`, `Yetis`, `Selkies`, `Shapeshifters`, `Snow Shamans`, `Riverwalkers`.
   - Still needing replay testing: none among the currently implemented Fire/Ice/Colorless factions.
+  - Stronghold coverage scan from fetched BGA review logs:
+    - `Acolytes` (`654969016`) and `Dragonlords` (`819403314`) are the remaining Fire/Ice/Colorless factions whose current strict BGA replay coverage does not include a Stronghold build.
 
 - 2026-04-23 BGA Fire & Ice fixture `654969016` (`Acolytes`, `Selkies`, `Witches`, `Chaos Magicians` on `Fjords`):
   - Config lives at `server/internal/replay/testdata/bga_654969016_config.yaml`.
