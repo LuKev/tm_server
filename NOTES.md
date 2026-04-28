@@ -37,6 +37,8 @@
   - `670716682` covers Dragonlords Stronghold token gain and late Dragonlords volcano transforms. If Dragonlords are one power token short in this fixture, check the previous round's cult reward tile first: round 5 must be `SCORE8` so Dragonlords at Air 8 receive 2 cult-reward spades, converted to 2 Bowl I power tokens; using `SCORE6` there awards only 1 converted spade and causes the round-6 conversion failure.
   - BGA labels the Fire & Ice board as `Fire & Ice`; `board.NormalizeMapID` should accept that exact alias so BGA replay setup uses the Fire & Ice map instead of falling back to the base map.
   - Rules gates for Dragonlords and Riverwalkers: neither faction can advance digging; Riverwalkers start at shipping level `1` and cannot advance it through paid shipping, town-tile shipping, or generic shipping-grant paths.
+  - Current Riverwalkers shipping behavior: they are not blocked from taking `BON-SHIP`; `player.ShippingLevel` remains fixed at `1`, but normal adjacency/build checks use `effectiveShippingLevel`, so `BON-SHIP` gives them temporary shipping range `2` while they hold the tile.
+  - Current Riverwalkers live UI: the local player board shows terrain unlocks as purple conversion buttons (`Unlock Plains`, `Plains unlocked`, etc.) in the conversions column. There is no dedicated priest-income prompt, cost display, or opponent/replay unlock display yet; choosing not to unlock simply means not clicking an unlock conversion.
   - BGA table `835013792` is a 3-player Revised Base Game with Fire & Ice cluster/settlement final scoring and Firewalkers, Riverwalkers, and Selkies. Missing bonus tiles: `BON-SPD`, `BON-TP`, `BON-P`, `BON-WP`. Config lives at `server/internal/replay/testdata/bga_835013792_config.yaml`.
   - `835013792` inferred scoring tiles are `SCORE9,SCORE2,SCORE4,SCORE1,SCORE5,SCORE7`; the strict replay reaches exact final scores: kandahar888/Firewalkers 203, octo86/Riverwalkers 140, tanu_schka/Selkies 132.
   - `835013792` covered BGA Riverwalkers rows that need explicit parser handling: Fire/Ice setup transform rows should be ignored before setup dwelling placement, income terrain-cycle unlock rows replace one just-granted income priest before it reaches supply, power-action unlock rows spend the logged power/coin fee without adding a priest, and Riverwalkers Stronghold bridge rows must place free bridges and trigger town checks.
@@ -1556,12 +1558,17 @@
 - 2026-04-23 Time Travelers digging rule:
   - `Time Travelers` are now engine-blocked from `AdvanceDiggingAction`, matching the existing UI expectation that they have no upgradable digging track.
   - Regression coverage lives in `server/internal/game/fan_faction_brown_test.go`.
+- 2026-04-28 BGA fan-faction replay fixture `792377979` (`Goblins`, `Chaos Magicians`, `Witches`, `Nomads`):
+  - Config lives at `server/internal/replay/testdata/bga_792377979_config.yaml`; the game uses Base Game map, mini-expansions on, fan factions on without Fire & Ice factions, and missing bonus tiles `BON-DW`, `BON-TP`, `BON-WP`.
+  - `792377979` inferred scoring tiles are `SCORE7,SCORE2,SCORE5,SCORE4,SCORE6,SCORE3`; round 1 is Air worker cult reward, not Fire worker cult reward.
+  - The strict replay reaches exact final scores: ldj/Goblins 197, MattTheLesser/Witches 173, felipebart/Nomads 161, Alloran/Chaos Magicians 149. It covers Goblins Stronghold treasure gain from later towns.
+  - BGA cancel rows inside a Chaos Magicians double-turn can appear after a committed double-turn power action and before the replacement second action. The BGA parser must not remove the committed `ACT-SH-2X` segment in that case; otherwise Chaos Magicians are short 7 coins in round 6 and the replay later burns workers on hidden coin funding.
 - Current BGA fan-faction coverage from committed replay fixtures:
   - Covered: `Architects`, `Archivists`, `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`.
   - Still lacking a BGA replay fixture: none among the currently implemented / requested fan factions.
   - Stronghold coverage scan from fetched BGA review logs:
-    - Fan factions still worth extra replay coverage because their current validated BGA game did not build the Stronghold: `Chash Dallah` (`546240474`) and `Goblins` (`838634311`).
-    - Fan factions with observed Stronghold builds/actions in current validated BGA logs: `Architects`, `Archivists`, `Atlanteans`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`, plus requested Fire/Ice fan factions `Firewalkers`, `Selkies`, and `Snow Shamans`.
+    - Fan factions still worth extra replay coverage because their current validated BGA game did not build the Stronghold: `Chash Dallah` (`546240474`).
+    - Fan factions with observed Stronghold builds/actions in current validated BGA logs: `Architects`, `Archivists`, `Atlanteans`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins` (`792377979`), `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`, plus requested Fire/Ice fan factions `Firewalkers`, `Selkies`, and `Snow Shamans`.
 - Current Fire/Ice/Colorless BGA replay coverage from committed fixture configs and notes:
   - Covered by end-to-end BGA replay validation: `Acolytes`, `Dragonlords`, `Firewalkers`, `Ice Maidens`, `Yetis`, `Selkies`, `Shapeshifters`, `Snow Shamans`, `Riverwalkers`.
   - Still needing replay testing: none among the currently implemented Fire/Ice/Colorless factions.

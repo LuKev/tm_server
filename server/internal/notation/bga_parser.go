@@ -1112,7 +1112,24 @@ func (p *BGAParser) handleCancelMove(playerName string) {
 	}
 
 removeCanceledSegment:
+	if actionRangeContainsChaosMagiciansDoubleTurn(p.items[start : end+1]) {
+		return
+	}
 	p.items = append(p.items[:start], p.items[end+1:]...)
+}
+
+func actionRangeContainsChaosMagiciansDoubleTurn(items []LogItem) bool {
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if specialAction, ok := actionItem.Action.(*LogSpecialAction); ok &&
+			strings.EqualFold(strings.TrimSpace(specialAction.ActionCode), "ACT-SH-2X") {
+			return true
+		}
+	}
+	return false
 }
 
 func isLeechResponseAction(action game.Action) bool {

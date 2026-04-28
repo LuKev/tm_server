@@ -1,0 +1,46 @@
+scoring_tiles:
+  - SCORE7
+  - SCORE2
+  - SCORE5
+  - SCORE4
+  - SCORE6
+  - SCORE3
+bonus_cards:
+  - BON-SPD
+  - BON-SHIP
+  - BON-P
+  - BON-BB
+  - BON-4C
+  - BON-6C
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Goblins: BON-SPD
+    Chaos Magicians: BON-SHIP
+    Witches: BON-P
+    Nomads: BON-BB
+  "1":
+    Goblins: BON-SHIP
+    Chaos Magicians: BON-BB
+    Witches: BON-4C
+    Nomads: BON-6C
+  "2":
+    Goblins: BON-4C
+    Chaos Magicians: BON-6C
+    Witches: BON-SPD
+    Nomads: BON-SHIP-VP
+  "3":
+    Goblins: BON-6C
+    Chaos Magicians: BON-BB
+    Witches: BON-SHIP-VP
+    Nomads: BON-4C
+  "4":
+    Goblins: BON-SPD
+    Chaos Magicians: BON-SHIP-VP
+    Witches: BON-6C
+    Nomads: BON-BB
+  "5":
+    Goblins: BON-4C
+    Chaos Magicians: BON-P
+    Witches: BON-BB
+    Nomads: BON-SHIP-VP

@@ -1271,6 +1271,72 @@ Alice builds a Dwelling for 1 workers 2 coins [G3]
 	}
 }
 
+func TestBGAParser_CancelMoveKeepsChaosMagiciansDoubleTurnActions(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Chaos Magicians Faction
+Bob is playing the Giants Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice takes a double-turn (Chaos Magicians Stronghold)
+Alice sacrificed 3 power in Bowl 2 to get 3 power from Bowl 2 to Bowl 3
+Alice spends 4 power to collect 7 coins (Power action)
+Alice declines doing Conversions
+Alice cancels their move
+Alice cancels their move
+Alice upgrades a Trading house to a Temple for 2 workers 5 coins [C5]
+Alice takes a Favor tile
+Alice gains 3 on the Cult of Earth track (Favor tile) and earns 3 power
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	foundDoubleTurn := false
+	foundBurn := false
+	foundCoins := false
+	foundUpgrade := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		switch action := actionItem.Action.(type) {
+		case *LogSpecialAction:
+			if action.PlayerID == "Chaos Magicians" && action.ActionCode == "ACT-SH-2X" {
+				foundDoubleTurn = true
+			}
+		case *LogBurnAction:
+			if action.PlayerID == "Chaos Magicians" && action.Amount == 3 && action.Moved == 3 {
+				foundBurn = true
+			}
+		case *LogPowerAction:
+			if action.PlayerID == "Chaos Magicians" && action.ActionCode == "ACT4" {
+				foundCoins = true
+			}
+		case *game.UpgradeBuildingAction:
+			if action.PlayerID == "Chaos Magicians" && action.NewBuildingType == models.BuildingTemple {
+				foundUpgrade = true
+			}
+		}
+	}
+
+	if !foundDoubleTurn {
+		t.Fatal("expected Chaos Magicians double-turn action to remain after cancel")
+	}
+	if !foundBurn {
+		t.Fatal("expected committed burn action to remain after cancel")
+	}
+	if !foundCoins {
+		t.Fatal("expected committed ACT4 coin action to remain after cancel")
+	}
+	if !foundUpgrade {
+		t.Fatal("expected replacement temple upgrade after cancel")
+	}
+}
+
 func TestBGAParser_ParsesChildrenStrongholdPowerTokenPlacement(t *testing.T) {
 	content := `Game board: Base Game
 Alice is playing the Children Of The Wyrm Faction
