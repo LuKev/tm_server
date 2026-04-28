@@ -1,0 +1,46 @@
+scoring_tiles:
+  - SCORE5
+  - SCORE4
+  - SCORE3
+  - SCORE7
+  - SCORE8
+  - SCORE6
+bonus_cards:
+  - BON-SPD
+  - BON-4C
+  - BON-BB
+  - BON-TP
+  - BON-P
+  - BON-DW
+  - BON-SHIP-VP
+bonus_card_selections:
+  "0":
+    Nomads: BON-P
+    Riverwalkers: BON-BB
+    Dragonlords: BON-SPD
+    Giants: BON-4C
+  "1":
+    Nomads: BON-SPD
+    Riverwalkers: BON-TP
+    Dragonlords: BON-BB
+    Giants: BON-DW
+  "2":
+    Nomads: BON-DW
+    Riverwalkers: BON-4C
+    Dragonlords: BON-SHIP-VP
+    Giants: BON-BB
+  "3":
+    Nomads: BON-BB
+    Riverwalkers: BON-DW
+    Dragonlords: BON-4C
+    Giants: BON-P
+  "4":
+    Nomads: BON-DW
+    Riverwalkers: BON-SHIP-VP
+    Dragonlords: BON-TP
+    Giants: BON-4C
+  "5":
+    Nomads: BON-SHIP-VP
+    Riverwalkers: BON-BB
+    Dragonlords: BON-DW
+    Giants: BON-TP

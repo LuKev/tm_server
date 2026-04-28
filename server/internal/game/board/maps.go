@@ -629,7 +629,7 @@ func NormalizeMapID(raw string) MapID {
 		return MapLakes
 	case "revised base", "revised-base", "revised_base", "revised base game", "revised-base-game", "revised_base_game":
 		return MapRevisedBase
-	case "fire_and_ice", "fire and ice", "fire&ice":
+	case "fire_and_ice", "fire and ice", "fire&ice", "fire & ice":
 		return MapFireAndIce
 	default:
 		return MapID(normalized)

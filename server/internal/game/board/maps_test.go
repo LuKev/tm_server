@@ -42,6 +42,7 @@ func TestNormalizeMapID_FireAndIceAliases(t *testing.T) {
 		"fire-and-ice",
 		"fire_and_ice",
 		"Fire and Ice",
+		"Fire & Ice",
 		"fire&ice",
 	}
 
