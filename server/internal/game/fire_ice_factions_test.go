@@ -447,6 +447,41 @@ func TestShapeshiftersLeechAcceptedAddsPowerTokenForVP(t *testing.T) {
 	}
 }
 
+func TestShapeshiftersBGAReplayWaitsForExplicitLeechBonusRow(t *testing.T) {
+	gs := NewGameState()
+	gs.ReplayMode = map[string]bool{"__replay__": true, "__bga__": true}
+	if err := gs.AddPlayer("shape", factions.NewShapeshifters()); err != nil {
+		t.Fatalf("add shapeshifters: %v", err)
+	}
+	if err := gs.AddPlayer("neighbor", factions.NewAuren()); err != nil {
+		t.Fatalf("add neighbor: %v", err)
+	}
+	gs.Phase = PhaseAction
+	gs.TurnOrder = []string{"shape", "neighbor"}
+	shape := gs.GetPlayer("shape")
+	shape.VictoryPoints = 20
+	beforeBowl3 := shape.Resources.Power.Bowl3
+	neighbor := gs.GetPlayer("neighbor")
+	neighbor.Resources.Power = NewPowerSystem(2, 0, 0)
+
+	sourceHex := board.NewHex(0, 0)
+	neighborHex := board.NewHex(1, 0)
+	gs.Map.PlaceBuilding(sourceHex, &models.Building{Type: models.BuildingDwelling, PlayerID: "shape", Faction: models.FactionShapeshifters, PowerValue: 1})
+	gs.Map.PlaceBuilding(neighborHex, &models.Building{Type: models.BuildingDwelling, PlayerID: "neighbor", Faction: models.FactionAuren, PowerValue: 1})
+
+	gs.TriggerPowerLeech(sourceHex, "shape")
+	if err := NewAcceptPowerLeechAction("neighbor", 0).Execute(gs); err != nil {
+		t.Fatalf("accept leech: %v", err)
+	}
+
+	if got := shape.VictoryPoints; got != 20 {
+		t.Fatalf("shapeshifters VP = %d, want 20 before explicit BGA row", got)
+	}
+	if got := shape.Resources.Power.Bowl3; got != beforeBowl3 {
+		t.Fatalf("shapeshifters bowl III = %d, want %d before explicit BGA row", got, beforeBowl3)
+	}
+}
+
 func TestShapeshiftersAllLeechDeclinedGainsPower(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("shape", factions.NewShapeshifters()); err != nil {
@@ -499,5 +534,30 @@ func TestShapeshiftersStrongholdCanShiftHomeTerrain(t *testing.T) {
 	}
 	if got := player.Resources.Power.Bowl3; got != 0 {
 		t.Fatalf("bowl III after shift = %d, want 0", got)
+	}
+}
+
+func TestSnowShamansPassUsesQueuedShippingUpgrade(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("snow", factions.NewSnowShamans()); err != nil {
+		t.Fatalf("add snow shamans: %v", err)
+	}
+	gs.Phase = PhaseAction
+	gs.Round = 6
+	gs.TurnOrder = []string{"snow"}
+
+	player := gs.GetPlayer("snow")
+	if err := gs.QueueSnowShamansPassUpgrade("snow", SnowShamansPassUpgradeShipping); err != nil {
+		t.Fatalf("queue pass upgrade: %v", err)
+	}
+	if err := NewPassAction("snow", nil).Execute(gs); err != nil {
+		t.Fatalf("pass: %v", err)
+	}
+
+	if got := player.ShippingLevel; got != 1 {
+		t.Fatalf("shipping level = %d, want 1", got)
+	}
+	if got := player.DiggingLevel; got != 0 {
+		t.Fatalf("digging level = %d, want 0", got)
 	}
 }

@@ -47,6 +47,32 @@ func TestStepForward_QueuesTreasurersDepositAfterActionResourceGain(t *testing.T
 	}
 }
 
+func TestFinalScoringValidation_RejectsBGADragonlordsResourceMismatch(t *testing.T) {
+	gs := game.NewGameState()
+	gs.ReplayMode = map[string]bool{"__replay__": true, "__bga__": true}
+	gs.Phase = game.PhaseEnd
+	if err := gs.AddPlayer("Dragonlords", factions.NewDragonlords()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	player := gs.GetPlayer("Dragonlords")
+	player.Resources.Coins = 3
+
+	sim := NewGameSimulator(gs, nil)
+	err := sim.validateFinalScoring(notation.FinalScoringValidationItem{
+		Scores: map[string]*notation.FinalScoringExpectation{
+			"Dragonlords": {
+				PlayerID:           "Dragonlords",
+				ResourceVP:         0,
+				TotalResourceValue: 2,
+				HasResourceScore:   true,
+			},
+		},
+	})
+	if err == nil {
+		t.Fatal("expected Dragonlords resource mismatch to fail validation")
+	}
+}
+
 func TestStepForward_HandlesRoundOneTreasurersIncomeDepositBeforeActionPhaseMarker(t *testing.T) {
 	gs := game.NewGameState()
 	gs.TurnOrder = []string{"p1"}

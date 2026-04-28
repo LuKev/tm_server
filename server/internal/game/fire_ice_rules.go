@@ -278,6 +278,15 @@ func (gs *GameState) convertFactionSpadeReward(playerID string, spades int, vpEl
 	}
 }
 
+func (gs *GameState) ConvertFactionSpadeReward(playerID string, spades int, vpEligible bool) bool {
+	player := gs.GetPlayer(playerID)
+	if !factionConvertsSpadeRewards(player) {
+		return false
+	}
+	gs.convertFactionSpadeReward(playerID, spades, vpEligible)
+	return true
+}
+
 func (gs *GameState) bestAcolytesCultTrackForGain(player *Player) CultTrack {
 	if player == nil {
 		return CultFire

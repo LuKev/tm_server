@@ -30,6 +30,56 @@ type ActionItem struct {
 
 func (i ActionItem) isLogItem() {}
 
+// LogSnowShamansPassUpgradeAction records BGA's explicit Snow Shamans pass-upgrade row.
+type LogSnowShamansPassUpgradeAction struct {
+	PlayerID string
+	Upgrade  game.SnowShamansPassUpgrade
+}
+
+func (a *LogSnowShamansPassUpgradeAction) GetType() game.ActionType { return game.ActionSpecialAction }
+
+func (a *LogSnowShamansPassUpgradeAction) GetPlayerID() string { return a.PlayerID }
+
+func (a *LogSnowShamansPassUpgradeAction) Validate(gs *game.GameState) error { return nil }
+
+func (a *LogSnowShamansPassUpgradeAction) Execute(gs *game.GameState) error {
+	return gs.QueueSnowShamansPassUpgrade(a.PlayerID, a.Upgrade)
+}
+
+// LogShapeshiftersLeechBonusAction records BGA's explicit Shapeshifters
+// post-leech choice row.
+type LogShapeshiftersLeechBonusAction struct {
+	PlayerID string
+	Paid     bool
+	Declined bool
+}
+
+func (a *LogShapeshiftersLeechBonusAction) GetType() game.ActionType { return game.ActionSpecialAction }
+
+func (a *LogShapeshiftersLeechBonusAction) GetPlayerID() string { return a.PlayerID }
+
+func (a *LogShapeshiftersLeechBonusAction) Validate(gs *game.GameState) error { return nil }
+
+func (a *LogShapeshiftersLeechBonusAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+	if a.Declined {
+		return nil
+	}
+	if a.Paid {
+		if player.VictoryPoints <= 0 {
+			return fmt.Errorf("not enough VP for Shapeshifters leech bonus")
+		}
+		player.VictoryPoints--
+		player.Resources.Power.Bowl3++
+		return nil
+	}
+	player.Resources.GainPower(1)
+	return nil
+}
+
 // GameSettingsItem represents the game configuration header.
 type GameSettingsItem struct {
 	Settings map[string]string
@@ -70,6 +120,11 @@ type FinalScoringValidationItem struct {
 }
 
 func (i FinalScoringValidationItem) isLogItem() {}
+
+// CleanupPhaseItem marks an explicit cleanup phase boundary from replay logs.
+type CleanupPhaseItem struct{}
+
+func (i CleanupPhaseItem) isLogItem() {}
 
 // LogAcceptLeechAction is a log-only representation of accepting leech
 type LogAcceptLeechAction struct {
@@ -156,21 +211,8 @@ func (a *LogAcceptLeechAction) Execute(gs *game.GameState) error {
 	}
 
 	if a.Explicit && a.PowerAmount > 0 && offers[idx] != nil {
-		if offers[idx].Amount > a.PowerAmount {
-			remainder := *offers[idx]
-			remainder.Amount -= a.PowerAmount
-			remainder.VPCost = replayLeechVPCost(player, remainder.Amount)
-			offers[idx].Amount = a.PowerAmount
-			offers[idx].VPCost = a.VPCost
-			updatedOffers := make([]*game.PowerLeechOffer, 0, len(offers)+1)
-			updatedOffers = append(updatedOffers, offers[:idx+1]...)
-			updatedOffers = append(updatedOffers, &remainder)
-			updatedOffers = append(updatedOffers, offers[idx+1:]...)
-			gs.PendingLeechOffers[a.PlayerID] = updatedOffers
-		} else {
-			offers[idx].Amount = a.PowerAmount
-			offers[idx].VPCost = a.VPCost
-		}
+		offers[idx].Amount = a.PowerAmount
+		offers[idx].VPCost = a.VPCost
 	}
 	// Use the strict game action so Cultists leech bonuses resolve consistently.
 	if err := game.NewAcceptPowerLeechAction(a.PlayerID, idx).Execute(gs); err != nil {
@@ -323,7 +365,7 @@ func (a *LogPowerAction) Validate(gs *game.GameState) error {
 	powerCost := replayLogPowerActionCost(player, actionType)
 	if player.Resources.Power.Bowl3 < powerCost {
 		requiredBurn := replayLogPowerActionRequiredBurn(gs, player, powerCost)
-		if player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"] {
+		if replayLogPowerActionCanForceSpend(gs, player) {
 			return nil
 		}
 		if requiredBurn > 0 {
@@ -352,7 +394,7 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	actionType := ParsePowerActionCode(a.ActionCode)
 
 	powerCost := replayLogPowerActionCost(player, actionType)
-	if requiredBurn := replayLogPowerActionRequiredBurn(gs, player, powerCost); requiredBurn > 0 && !(player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"]) {
+	if requiredBurn := replayLogPowerActionRequiredBurn(gs, player, powerCost); requiredBurn > 0 && !replayLogPowerActionCanForceSpend(gs, player) {
 		var err error
 		if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
 			err = player.Resources.Power.BurnPowerChildren(requiredBurn)
@@ -363,7 +405,7 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 			return fmt.Errorf("failed to auto-burn power for replay log action %s: %w", a.ActionCode, err)
 		}
 	}
-	if player.Faction != nil && player.Faction.GetType() == models.FactionFirewalkers && gs != nil && gs.ReplayMode != nil && gs.ReplayMode["__replay__"] && player.Resources.Power.Bowl3 < powerCost {
+	if replayLogPowerActionCanForceSpend(gs, player) && player.Resources.Power.Bowl3 < powerCost {
 		player.Resources.Power.Bowl3 = powerCost
 	}
 
@@ -408,8 +450,14 @@ func (a *LogPowerAction) Execute(gs *game.GameState) error {
 	case game.PowerActionCoins:
 		player.Resources.Coins += 7
 	case game.PowerActionSpade1:
+		if gs.ConvertFactionSpadeReward(a.PlayerID, 1, true) {
+			break
+		}
 		gs.PendingSpades[a.PlayerID]++
 	case game.PowerActionSpade2:
+		if gs.ConvertFactionSpadeReward(a.PlayerID, 2, true) {
+			break
+		}
 		gs.PendingSpades[a.PlayerID] += 2
 	}
 
@@ -439,6 +487,18 @@ func replayLogPowerActionRequiredBurn(gs *game.GameState, player *game.Player, p
 		return 0
 	}
 	return powerCost - player.Resources.Power.Bowl3
+}
+
+func replayLogPowerActionCanForceSpend(gs *game.GameState, player *game.Player) bool {
+	if gs == nil || gs.ReplayMode == nil || !gs.ReplayMode["__replay__"] || player == nil || player.Faction == nil {
+		return false
+	}
+	switch player.Faction.GetType() {
+	case models.FactionFirewalkers:
+		return true
+	default:
+		return false
+	}
 }
 
 // LogBurnAction is a log-only representation of burning power
@@ -1052,6 +1112,94 @@ func (a *LogConversionAction) GetPlayerID() string { return a.PlayerID }
 
 // Validate checks if the action is valid.
 func (a *LogConversionAction) Validate(gs *game.GameState) error { return nil }
+
+// LogRiverwalkersUnlockAction records BGA Riverwalkers terrain-cycle unlock rows.
+// BGA logs these as spending coins, optionally with the 3-power priest action,
+// and unlocking a terrain from the Riverwalkers terrain cycle.
+type LogRiverwalkersUnlockAction struct {
+	PlayerID   string
+	Terrain    models.TerrainType
+	CoinCost   int
+	PowerCost  int
+	SourceText string
+}
+
+func (a *LogRiverwalkersUnlockAction) GetType() game.ActionType { return game.ActionSpecialAction }
+
+func (a *LogRiverwalkersUnlockAction) GetPlayerID() string { return a.PlayerID }
+
+func (a *LogRiverwalkersUnlockAction) Validate(gs *game.GameState) error { return nil }
+
+func (a *LogRiverwalkersUnlockAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+	if player.Faction == nil || player.Faction.GetType() != models.FactionRiverwalkers {
+		return fmt.Errorf("riverwalker terrain unlock is only available to Riverwalkers")
+	}
+	if a.Terrain < models.TerrainPlains || a.Terrain > models.TerrainDesert {
+		return fmt.Errorf("riverwalkers can only unlock standard land terrain")
+	}
+	if player.UnlockedTerrains != nil && player.UnlockedTerrains[a.Terrain] {
+		return fmt.Errorf("riverwalkers have already unlocked %s terrain", a.Terrain)
+	}
+	if player.Resources.Coins < a.CoinCost {
+		return fmt.Errorf("not enough coins to unlock terrain: need %d, have %d", a.CoinCost, player.Resources.Coins)
+	}
+	if a.PowerCost > 0 {
+		if player.Resources.Power == nil {
+			return fmt.Errorf("player has no power system")
+		}
+		if err := player.Resources.Power.SpendPower(a.PowerCost); err != nil {
+			return err
+		}
+	}
+	if strings.EqualFold(strings.TrimSpace(a.SourceText), "income") {
+		if player.Resources.Priests < 1 {
+			return fmt.Errorf("riverwalkers income unlock requires one just-gained priest")
+		}
+		player.Resources.Priests--
+	}
+	player.Resources.Coins -= a.CoinCost
+	if player.UnlockedTerrains == nil {
+		player.UnlockedTerrains = make(map[models.TerrainType]bool)
+	}
+	player.UnlockedTerrains[a.Terrain] = true
+	return nil
+}
+
+// LogFreeBridgeAction records free bridge placement rows such as Riverwalkers'
+// stronghold bridges.
+type LogFreeBridgeAction struct {
+	PlayerID   string
+	BridgeHex1 board.Hex
+	BridgeHex2 board.Hex
+	Reason     string
+}
+
+func (a *LogFreeBridgeAction) GetType() game.ActionType { return game.ActionSpecialAction }
+
+func (a *LogFreeBridgeAction) GetPlayerID() string { return a.PlayerID }
+
+func (a *LogFreeBridgeAction) Validate(gs *game.GameState) error { return nil }
+
+func (a *LogFreeBridgeAction) Execute(gs *game.GameState) error {
+	player := gs.GetPlayer(a.PlayerID)
+	if player == nil {
+		return fmt.Errorf("player not found: %s", a.PlayerID)
+	}
+	if player.BridgesBuilt >= 3 {
+		return fmt.Errorf("player has already built 3 bridges (maximum)")
+	}
+	if err := gs.Map.BuildBridge(a.BridgeHex1, a.BridgeHex2, a.PlayerID); err != nil {
+		return fmt.Errorf("failed to build bridge: %w", err)
+	}
+	player.BridgesBuilt++
+	gs.CheckForTownFormation(a.PlayerID, a.BridgeHex1)
+	gs.CheckForTownFormation(a.PlayerID, a.BridgeHex2)
+	return nil
+}
 
 func resolveMermaidsRiverTownHex(gs *game.GameState, playerID, token string) (board.Hex, error) {
 	token = strings.TrimSpace(token)

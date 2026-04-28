@@ -58,7 +58,7 @@ var (
 		{Workers: 1},
 		{Workers: 1},
 		{Workers: 1},
-		{Workers: 1},
+		{},
 	}
 	firewalkersDwellingIncomeSeq = []Income{
 		{Workers: 1},

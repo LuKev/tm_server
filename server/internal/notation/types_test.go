@@ -94,6 +94,43 @@ func TestLogBurnAction_UsesExactMovedPowerWhenProvided(t *testing.T) {
 	}
 }
 
+func TestLogShapeshiftersLeechBonusAction_AppliesExplicitBGARows(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("shape", factions.NewShapeshifters()); err != nil {
+		t.Fatalf("add shapeshifters: %v", err)
+	}
+	player := gs.GetPlayer("shape")
+	player.VictoryPoints = 10
+	player.Resources.Power = game.NewPowerSystem(1, 0, 0)
+
+	paid := &LogShapeshiftersLeechBonusAction{PlayerID: "shape", Paid: true}
+	if err := paid.Execute(gs); err != nil {
+		t.Fatalf("paid bonus: %v", err)
+	}
+	if player.VictoryPoints != 9 || player.Resources.Power.Bowl3 != 1 {
+		t.Fatalf("paid bonus state VP=%d PW=%d/%d/%d, want VP=9 PW=1/0/1",
+			player.VictoryPoints, player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+	}
+
+	free := &LogShapeshiftersLeechBonusAction{PlayerID: "shape"}
+	if err := free.Execute(gs); err != nil {
+		t.Fatalf("free bonus: %v", err)
+	}
+	if player.Resources.Power.Bowl1 != 0 || player.Resources.Power.Bowl2 != 1 || player.Resources.Power.Bowl3 != 1 {
+		t.Fatalf("free bonus power = %d/%d/%d, want 0/1/1",
+			player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+	}
+
+	decline := &LogShapeshiftersLeechBonusAction{PlayerID: "shape", Declined: true}
+	if err := decline.Execute(gs); err != nil {
+		t.Fatalf("declined bonus: %v", err)
+	}
+	if player.VictoryPoints != 9 || player.Resources.Power.Bowl1 != 0 || player.Resources.Power.Bowl2 != 1 || player.Resources.Power.Bowl3 != 1 {
+		t.Fatalf("declined bonus changed state VP=%d PW=%d/%d/%d",
+			player.VictoryPoints, player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3)
+	}
+}
+
 func TestLogPowerAction_AtlanteansBridgeUpdatesStrongholdTownImmediately(t *testing.T) {
 	gs := game.NewGameState()
 	if err := gs.AddPlayer("Atlanteans", factions.NewAtlanteans()); err != nil {
@@ -383,6 +420,9 @@ func TestLogAcceptLeechAction_ExplicitAmountOverridesPendingOffer(t *testing.T) 
 	}
 	if got := player.Resources.Power.Bowl3; got != 8 {
 		t.Fatalf("bowl III after capped leech = %d, want 8", got)
+	}
+	if got := len(gs.PendingLeechOffers["p1"]); got != 0 {
+		t.Fatalf("pending offers after capped leech = %d, want 0", got)
 	}
 }
 

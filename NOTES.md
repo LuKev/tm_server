@@ -27,8 +27,14 @@
   - `.gitignore` now excludes those local binary/log/scratch outputs so Bazel builds and fetched BGA logs do not get re-added accidentally.
 
 - 2026-04-24 Fire & Ice BGA replay testing:
-  - BGA table `312813929` is a Fjords game with Fire & Ice cluster final scoring, but the static BGA gamereview log omits setup/build coordinates in this old archive; current text-log replay cannot reconstruct it. The final scoring block does expose cluster scoring values: Aje8 18 VP/14 settlements, BwianR 9 VP/7, PetrSvoboda 9 VP/7, EBLCar 0 VP/6.
-  - Added `server/internal/replay/testdata/bga_312813929_config.yaml` with the supplied bonus-card sequence and `fire_ice_final_scoring_tile: cluster`.
+  - Removed `server/internal/replay/testdata/bga_312813929_config.yaml`; the old archive omitted setup/build coordinates and should not be used as Dragonlords coverage.
+  - BGA table `819403314` is a Fjords game with Fire & Ice cluster/settlement final scoring. Missing bonus tiles: `BON-BB`, `BON-WP`, `BON-P`. Config lives at `server/internal/replay/testdata/bga_819403314_config.yaml`.
+  - `819403314` inferred scoring tiles are `SCORE9,SCORE4,SCORE6,SCORE2,SCORE3,SCORE8`; bonus-card choices came from the user-provided round sequence for Shapeshifters, Snow Shamans, Alchemists, and Dragonlords.
+  - `819403314` replays end to end with strict Dragonlords resource validation; do not reintroduce Dragonlords-specific replay force-spend or resource-validation skips. It covers Snow Shamans explicit pass-upgrade rows and Dragonlords bonus-card spade rows.
+  - Dragonlords dwelling income has no base worker and blanks at both the 4th and 8th dwellings: `W,W,W,0,W,W,W,0`. The replay previously failed at Dragonlords `ACT5` because BGA logs `gains 1 spade(s) (Special action)` followed by Dragonlords converting that spade to a Bowl I power token; the parser was ignoring those rows for Dragonlords and missed two power tokens before the action.
+  - BGA table `835013792` is a 3-player Revised Base Game with Fire & Ice cluster/settlement final scoring and Firewalkers, Riverwalkers, and Selkies. Missing bonus tiles: `BON-SPD`, `BON-TP`, `BON-P`, `BON-WP`. Config lives at `server/internal/replay/testdata/bga_835013792_config.yaml`.
+  - `835013792` inferred scoring tiles are `SCORE9,SCORE2,SCORE4,SCORE1,SCORE5,SCORE7`; the strict replay reaches exact final scores: kandahar888/Firewalkers 203, octo86/Riverwalkers 140, tanu_schka/Selkies 132.
+  - `835013792` covered BGA Riverwalkers rows that need explicit parser handling: Fire/Ice setup transform rows should be ignored before setup dwelling placement, income terrain-cycle unlock rows replace one just-granted income priest before it reaches supply, power-action unlock rows spend the logged power/coin fee without adding a priest, and Riverwalkers Stronghold bridge rows must place free bridges and trigger town checks.
   - BGA table `508650344` is a Fjords game with Yetis and Firewalkers, no Fire & Ice final scoring. The static log includes coordinates and replays through all actions after parser support for Yetis discounted power actions and Firewalkers VP-to-power log lines.
   - `508650344` confirmed Yetis ending resources should score 3 resource VP; the fix was to give Yetis the Ice faction dwelling-income rule with no gaps and worker income on all 8 dwellings. The later Firewalkers `0P` replay block was caused by the fixture using round-3 `SCORE7` when the BGA cult cleanup proves it was the Fire SH/SA worker tile (`SCORE4`), plus the parser leaving residual power from Firewalkers "marker -> power -> coin" log lines. With round 3 corrected to `SCORE4` and the coin variant parsed as marker advance plus coins only, `508650344` replays successfully with snakeixirr/Firewalkers at 157 VP and 5 resource VP from 16 coins.
   - Firewalkers board-data correction from BGA replay validation: no base worker income; dwelling worker blanks at the 4th and 8th dwellings; second temple gives `+2VP` income instead of a priest; stronghold costs `4W + 8C`, gives `+2PW` income, and after built gives `+1VP` per direct building cluster when passing.
@@ -84,7 +90,7 @@
     - the setup hex selected by Ice/Volcano/colorless factions determines their starting terrain behavior when the UI does not provide a dedicated terrain-choice step
     - `Snow Shamans` pass upgrade currently auto-prioritizes digging before shipping because there is no UI choice step yet
     - `Acolytes` volcano transforms auto-use the first affordable cult track because there is no UI choice step yet
-    - `Riverwalkers` terrain unlocks are exposed as a free conversion that spends `1P` plus `1C`/`2C` instead of interrupting each priest-gain event with a replacement choice
+    - `Riverwalkers` live terrain unlocks are still exposed as a free conversion shortcut; BGA replay parsing handles the logged income/power-action terrain-cycle unlock forms separately.
     - `Shapeshifters` automatically pay `1VP` for the errata power-token option when at least one opponent accepts leech and the VP is available; the exact optional prompt is not UI-backed yet
     - `Shapeshifters` stronghold terrain shift is a normal turn action and can be used multiple times per round
   - Original Fire & Ice board-data reminder:
@@ -1548,6 +1554,9 @@
 - Current BGA fan-faction coverage from committed replay fixtures:
   - Covered: `Architects`, `Archivists`, `Atlanteans`, `Chash Dallah`, `Children of the Wyrm`, `Conspirators`, `Djinni`, `Dynion Geifr`, `Goblins`, `Prospectors`, `The Enlightened`, `Time Travelers`, `Treasurers`, `Wisps`.
   - Still lacking a BGA replay fixture: none among the currently implemented / requested fan factions.
+- Current Fire/Ice/Colorless BGA replay coverage from committed fixture configs and notes:
+  - Covered by end-to-end BGA replay validation: `Acolytes`, `Dragonlords`, `Firewalkers`, `Ice Maidens`, `Yetis`, `Selkies`, `Shapeshifters`, `Snow Shamans`, `Riverwalkers`.
+  - Still needing replay testing: none among the currently implemented Fire/Ice/Colorless factions.
 
 - 2026-04-23 BGA Fire & Ice fixture `654969016` (`Acolytes`, `Selkies`, `Witches`, `Chaos Magicians` on `Fjords`):
   - Config lives at `server/internal/replay/testdata/bga_654969016_config.yaml`.

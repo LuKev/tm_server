@@ -99,8 +99,14 @@ func TestFireIceFactionIncomeAndCosts(t *testing.T) {
 	if got := NewAcolytes().GetBaseFactionIncome(); got != (Income{}) {
 		t.Fatalf("acolytes base income = %+v", got)
 	}
+	if got := NewAcolytes().GetDwellingIncome(8); got != (Income{Workers: 6}) {
+		t.Fatalf("acolytes dwelling income at 8 = %+v", got)
+	}
 	if got := NewDragonlords().GetDwellingIncome(4); got != (Income{Workers: 3}) {
 		t.Fatalf("dragonlords dwelling income at 4 = %+v", got)
+	}
+	if got := NewDragonlords().GetDwellingIncome(8); got != (Income{Workers: 6}) {
+		t.Fatalf("dragonlords dwelling income at 8 = %+v", got)
 	}
 	if got := NewRiverwalkers().GetTempleIncome(2); got != (Income{Priests: 1, Power: 5}) {
 		t.Fatalf("riverwalkers temple income at 2 = %+v", got)

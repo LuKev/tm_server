@@ -169,7 +169,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		}
 	}
 
-	if err := a.validateAdjacency(gs, player); err != nil {
+	if err := a.validateAdjacency(gs, player, mapHex); err != nil {
 		return err
 	}
 
@@ -213,7 +213,7 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	return nil
 }
 
-func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Player) error {
+func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Player, mapHex *board.MapHex) error {
 	// Check adjacency - required for both transforming and building
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)
 
@@ -233,11 +233,65 @@ func (a *TransformAndBuildAction) validateAdjacency(gs *GameState, player *Playe
 		}
 	} else {
 		// Normal adjacency required if not using skip
-		if !isAdjacent {
+		if !isAdjacent &&
+			!a.canUseCleanupCultRewardSpadeWithoutAdjacency(gs, player, mapHex) &&
+			!gs.isReplayCultSpadeBuildHex(a.PlayerID, a.TargetHex) {
 			return fmt.Errorf("hex is not adjacent to player's buildings")
 		}
 	}
 	return nil
+}
+
+func (a *TransformAndBuildAction) canUseCleanupCultRewardSpadeWithoutAdjacency(gs *GameState, player *Player, mapHex *board.MapHex) bool {
+	if gs == nil || player == nil || mapHex == nil || a.BuildDwelling || gs.Phase != PhaseCleanup {
+		return false
+	}
+	if gs.PendingCultRewardSpades == nil || gs.PendingCultRewardSpades[a.PlayerID] <= 0 {
+		return false
+	}
+
+	targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
+	if mapHex.Terrain == targetTerrain {
+		return false
+	}
+	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	if err != nil {
+		return false
+	}
+	if player.Faction.GetType() == models.FactionGiants {
+		distance = 2
+	}
+	return distance > 0 && distance <= gs.PendingCultRewardSpades[a.PlayerID]
+}
+
+func (gs *GameState) rememberReplayCultSpadeBuildHex(playerID string, hex board.Hex) {
+	if gs == nil || gs.ReplayMode == nil || !gs.ReplayMode["__replay__"] {
+		return
+	}
+	if gs.ReplayCultSpadeBuildHexes == nil {
+		gs.ReplayCultSpadeBuildHexes = make(map[string]map[board.Hex]bool)
+	}
+	if gs.ReplayCultSpadeBuildHexes[playerID] == nil {
+		gs.ReplayCultSpadeBuildHexes[playerID] = make(map[board.Hex]bool)
+	}
+	gs.ReplayCultSpadeBuildHexes[playerID][hex] = true
+}
+
+func (gs *GameState) isReplayCultSpadeBuildHex(playerID string, hex board.Hex) bool {
+	if gs == nil || gs.ReplayCultSpadeBuildHexes == nil {
+		return false
+	}
+	return gs.ReplayCultSpadeBuildHexes[playerID][hex]
+}
+
+func (gs *GameState) consumeReplayCultSpadeBuildHex(playerID string, hex board.Hex) {
+	if gs == nil || gs.ReplayCultSpadeBuildHexes == nil {
+		return
+	}
+	delete(gs.ReplayCultSpadeBuildHexes[playerID], hex)
+	if len(gs.ReplayCultSpadeBuildHexes[playerID]) == 0 {
+		delete(gs.ReplayCultSpadeBuildHexes, playerID)
+	}
 }
 
 func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, mapHex *board.MapHex) (int, int, int, int, error) {
@@ -421,6 +475,10 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 		}
 	}
 
+	allowReplayCultSpadeBuild := !a.BuildDwelling &&
+		!gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID) &&
+		a.canUseCleanupCultRewardSpadeWithoutAdjacency(gs, player, mapHex)
+
 	// Step 0: Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
 	if a.UseSkip {
 		if gs.SkipAbilityUsedThisAction == nil {
@@ -450,6 +508,9 @@ func (a *TransformAndBuildAction) Execute(gs *GameState) error {
 	// Step 1: Transform terrain to target terrain if needed
 	if err := a.handleTransform(gs, player, mapHex); err != nil {
 		return err
+	}
+	if allowReplayCultSpadeBuild {
+		gs.rememberReplayCultSpadeBuildHex(a.PlayerID, a.TargetHex)
 	}
 
 	// Step 2: Build dwelling if requested
@@ -674,6 +735,7 @@ func (a *TransformAndBuildAction) handleBuildDwelling(gs *GameState, player *Pla
 	if err := gs.BuildDwelling(a.PlayerID, a.TargetHex); err != nil {
 		return err
 	}
+	gs.consumeReplayCultSpadeBuildHex(a.PlayerID, a.TargetHex)
 	return nil
 }
 
@@ -1335,6 +1397,27 @@ func (a *PassAction) Execute(gs *GameState) error {
 	return advanceAfterCompletedPass(gs)
 }
 
+// QueueSnowShamansPassUpgrade records the free Snow Shamans pass upgrade chosen by a replay log.
+func (gs *GameState) QueueSnowShamansPassUpgrade(playerID string, upgrade SnowShamansPassUpgrade) error {
+	player, err := gs.ValidatePlayer(playerID)
+	if err != nil {
+		return err
+	}
+	if !isSnowShamans(player) {
+		return fmt.Errorf("snow shamans pass upgrade queued for non-Snow Shamans player %s", playerID)
+	}
+	switch upgrade {
+	case SnowShamansPassUpgradeDigging, SnowShamansPassUpgradeShipping:
+	default:
+		return fmt.Errorf("unknown Snow Shamans pass upgrade %q", upgrade)
+	}
+	if gs.PendingSnowShamansPassUpgrade == nil {
+		gs.PendingSnowShamansPassUpgrade = make(map[string]SnowShamansPassUpgrade)
+	}
+	gs.PendingSnowShamansPassUpgrade[playerID] = upgrade
+	return nil
+}
+
 func applyPostPassBonuses(gs *GameState, player *Player) {
 	if gs == nil || player == nil {
 		return
@@ -1376,6 +1459,25 @@ func applyPostPassBonuses(gs *GameState, player *Player) {
 	}
 
 	if isSnowShamans(player) {
+		gs.applySnowShamansPassUpgrade(player)
+	}
+}
+
+func (gs *GameState) applySnowShamansPassUpgrade(player *Player) {
+	upgrade := SnowShamansPassUpgradeDigging
+	if gs.PendingSnowShamansPassUpgrade != nil {
+		if queued, ok := gs.PendingSnowShamansPassUpgrade[player.ID]; ok {
+			upgrade = queued
+			delete(gs.PendingSnowShamansPassUpgrade, player.ID)
+		}
+	}
+
+	switch upgrade {
+	case SnowShamansPassUpgradeShipping:
+		if player.ShippingLevel < 5 {
+			player.ShippingLevel++
+		}
+	case SnowShamansPassUpgradeDigging:
 		if maxDigging, err := maxDiggingLevelForFaction(player.Faction.GetType()); err == nil && player.DiggingLevel < maxDigging {
 			player.DiggingLevel++
 			gs.updateFactionDiggingLevel(player)

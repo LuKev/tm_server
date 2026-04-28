@@ -67,6 +67,37 @@ func TestLogPowerAction_ReplayAutoBurnsMissingPower(t *testing.T) {
 	}
 }
 
+func TestLogPowerAction_DragonlordsSpadePowerActionRequiresRealPower(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("dragon", factions.NewDragonlords()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	gs.ReplayMode = map[string]bool{"__replay__": true, "__bga__": true}
+	player := gs.GetPlayer("dragon")
+	player.Resources.Power = game.NewPowerSystem(0, 0, 4)
+
+	action := &LogPowerAction{PlayerID: "dragon", ActionCode: "ACT5"}
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("LogPowerAction.Execute failed: %v", err)
+	}
+
+	if got := player.Resources.Power.Bowl1; got != 5 {
+		t.Fatalf("bowl1 = %d, want 5 after logged spend and Dragonlords spade conversion", got)
+	}
+	if got := player.Resources.Power.Bowl3; got != 0 {
+		t.Fatalf("bowl3 = %d, want 0 after spend", got)
+	}
+	if got := gs.PendingSpades["dragon"]; got != 0 {
+		t.Fatalf("pending spades = %d, want 0 after Dragonlords spade conversion", got)
+	}
+
+	gs.PowerActions.ResetForNewRound()
+	player.Resources.Power = game.NewPowerSystem(0, 0, 2)
+	if err := action.Execute(gs); err == nil {
+		t.Fatal("expected Dragonlords ACT5 with only 2 Bowl III power to fail")
+	}
+}
+
 func TestLogPowerAction_NonReplayRequiresExplicitBurn(t *testing.T) {
 	gs := game.NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewWitches()); err != nil {

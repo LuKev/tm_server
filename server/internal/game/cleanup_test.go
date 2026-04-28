@@ -260,6 +260,50 @@ func TestUseCultSpadeAction_NotAdjacent(t *testing.T) {
 	}
 }
 
+func TestTransformAndBuildAction_CleanupCultSpadeCanTransformNonAdjacentHex(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewAuren()
+	gs.AddPlayer("player1", faction)
+	gs.ReplayMode = map[string]bool{"__replay__": true}
+	gs.Phase = PhaseCleanup
+	gs.PendingCultRewardSpades = map[string]int{"player1": 1}
+
+	sourceHex := board.NewHex(0, 0)
+	gs.Map.GetHex(sourceHex).Terrain = faction.GetHomeTerrain()
+	gs.Map.PlaceBuilding(sourceHex, &models.Building{
+		Type:       models.BuildingDwelling,
+		Faction:    faction.GetType(),
+		PlayerID:   "player1",
+		PowerValue: 1,
+	})
+
+	targetHex := board.NewHex(5, 5)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainLake
+
+	action := NewTransformAndBuildAction("player1", targetHex, false, models.TerrainForest)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("cleanup cult spade transform failed: %v", err)
+	}
+	if terrain := gs.Map.GetHex(targetHex).Terrain; terrain != models.TerrainForest {
+		t.Fatalf("target terrain = %v, want %v", terrain, models.TerrainForest)
+	}
+	if got := gs.PendingCultRewardSpades["player1"]; got != 0 {
+		t.Fatalf("pending cult spades = %d, want 0", got)
+	}
+
+	gs.Phase = PhaseAction
+	player := gs.GetPlayer("player1")
+	player.Resources.Workers = 1
+	player.Resources.Coins = 2
+	buildAction := NewTransformAndBuildAction("player1", targetHex, true, models.TerrainTypeUnknown)
+	if err := buildAction.Execute(gs); err != nil {
+		t.Fatalf("replay build on cleanup cult-spade hex failed: %v", err)
+	}
+	if gs.isReplayCultSpadeBuildHex("player1", targetHex) {
+		t.Fatalf("expected replay cult-spade build marker to be consumed")
+	}
+}
+
 func TestUseCultSpadeAction_ScoringTileVP(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()

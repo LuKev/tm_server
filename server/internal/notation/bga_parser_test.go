@@ -89,6 +89,122 @@ kezilu places a Dwelling [D4]
 	}
 }
 
+func TestBGAParser_SkipsFireIceSetupTransformRows(t *testing.T) {
+	content := `Game board: Revised Base Game
+Mini-expansions: On
+tanu_schka selected the faction Selkies on forest to play in position #1
+tanu_schka is playing the Selkies Faction (with 38 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+tanu_schka transforms a Terrain space forest → ice [E7]
+tanu_schka places a Dwelling [E7]
+~ Action phase ~
+`
+
+	parser := NewBGAParser(content)
+	actions, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse log: %v", err)
+	}
+
+	foundSetup := false
+	for _, item := range actions {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		switch actionItem.Action.(type) {
+		case *game.TransformAndBuildAction:
+			t.Fatalf("setup transform row was parsed as a transform action: %#v", actionItem.Action)
+		case *game.SetupDwellingAction:
+			foundSetup = true
+		}
+	}
+	if !foundSetup {
+		t.Fatalf("expected setup dwelling action")
+	}
+}
+
+func TestBGAParser_RiverwalkersUnlockRows(t *testing.T) {
+	content := `Game board: Revised Base Game
+Mini-expansions: On
+octo86 selected the faction Riverwalkers on lakes to play in position #1
+octo86 is playing the Riverwalkers Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+octo86 places a Dwelling [E4]
+~ Income phase ~
+octo86 spends 1 coins to unlock 1 Priests from mountains Terrain cycle (Riverwalkers ability) (Income)
+~ Action phase ~
+octo86 spends 3 power + 1 coins to unlock 1 Priests from wasteland Terrain cycle (Riverwalkers ability) (Power action)
+`
+
+	parser := NewBGAParser(content)
+	actions, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse log: %v", err)
+	}
+
+	var incomeUnlock *LogRiverwalkersUnlockAction
+	var powerUnlock *LogRiverwalkersUnlockAction
+	for _, item := range actions {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		if postIncome, ok := actionItem.Action.(*LogPostIncomeAction); ok {
+			incomeUnlock, _ = postIncome.Action.(*LogRiverwalkersUnlockAction)
+			continue
+		}
+		if unlock, ok := actionItem.Action.(*LogRiverwalkersUnlockAction); ok {
+			powerUnlock = unlock
+		}
+	}
+
+	if incomeUnlock == nil {
+		t.Fatalf("expected income Riverwalkers unlock action")
+	}
+	if incomeUnlock.Terrain != models.TerrainMountain || incomeUnlock.CoinCost != 1 || incomeUnlock.PowerCost != 0 {
+		t.Fatalf("income unlock = %+v, want mountain/1C/0PW", incomeUnlock)
+	}
+	if powerUnlock == nil {
+		t.Fatalf("expected power-action Riverwalkers unlock action")
+	}
+	if powerUnlock.Terrain != models.TerrainWasteland || powerUnlock.CoinCost != 1 || powerUnlock.PowerCost != 3 {
+		t.Fatalf("power unlock = %+v, want wasteland/1C/3PW", powerUnlock)
+	}
+}
+
+func TestBGAParser_RiverwalkersStrongholdBridgeRows(t *testing.T) {
+	content := `Game board: Revised Base Game
+Mini-expansions: On
+octo86 selected the faction Riverwalkers on lakes to play in position #1
+octo86 is playing the Riverwalkers Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+octo86 places a Dwelling [E4]
+~ Action phase ~
+octo86 build a Bridge (Riverwalkers Stronghold) [E4-G1]
+`
+
+	parser := NewBGAParser(content)
+	actions, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse log: %v", err)
+	}
+
+	for _, item := range actions {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		if bridge, ok := actionItem.Action.(*LogFreeBridgeAction); ok {
+			if bridge.PlayerID != "Riverwalkers" {
+				t.Fatalf("bridge player = %s, want Riverwalkers", bridge.PlayerID)
+			}
+			return
+		}
+	}
+	t.Fatalf("expected free bridge action")
+}
+
 func TestBGAParser_UsesGameBoardForCoordinates(t *testing.T) {
 	content := `Game board: Lakes
 Mini-expansions: On
@@ -291,6 +407,92 @@ mellison transforms a Terrain space forest → ice for 1 spade(s) [F4]
 	}
 
 	t.Fatal("Did not find Ice Maidens transform action")
+}
+
+func TestBGAParser_SnowShamansPassUpgradeRowsAreChoices(t *testing.T) {
+	content := `Game board: Fjords
+bballrace selected the faction Snow Shamans on lakes to play in position #1
+bballrace is playing the Snow Shamans Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+bballrace advances on the Exchange Track for free and earns 0 VP (Snow Shamans ability)
+bballrace advances on the Shipping Track for free and earns 0 VP (Snow Shamans ability)
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var upgrades []game.SnowShamansPassUpgrade
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*LogSnowShamansPassUpgradeAction)
+		if !ok {
+			if _, isPaidDigging := actionItem.Action.(*game.AdvanceDiggingAction); isPaidDigging {
+				t.Fatalf("Snow Shamans exchange row parsed as paid digging action")
+			}
+			if _, isPaidShipping := actionItem.Action.(*game.AdvanceShippingAction); isPaidShipping {
+				t.Fatalf("Snow Shamans shipping row parsed as paid shipping action")
+			}
+			continue
+		}
+		upgrades = append(upgrades, action.Upgrade)
+	}
+
+	if len(upgrades) != 2 {
+		t.Fatalf("parsed Snow Shamans upgrades = %v, want 2 choices", upgrades)
+	}
+	if upgrades[0] != game.SnowShamansPassUpgradeDigging || upgrades[1] != game.SnowShamansPassUpgradeShipping {
+		t.Fatalf("parsed upgrades = %v, want digging then shipping", upgrades)
+	}
+}
+
+func TestBGAParser_ShapeshiftersLeechBonusRowsAreExplicitActions(t *testing.T) {
+	content := `Game board: Fjords
+mellison selected the faction Shapeshifters on forest to play in position #1
+mellison is playing the Shapeshifters Faction (with 38 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+mellison pays 1 VP to gain 1 power in Bowl 3 (Shapeshifters ability)
+mellison gets 1 power (Shapeshifters Ability)
+mellison declines gaining a new power in Bowl 3 (Shapeshifters Ability)
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var actions []*LogShapeshiftersLeechBonusAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*LogShapeshiftersLeechBonusAction)
+		if ok {
+			actions = append(actions, action)
+		}
+	}
+
+	if len(actions) != 3 {
+		t.Fatalf("parsed Shapeshifters bonus actions = %d, want 3", len(actions))
+	}
+	if !actions[0].Paid || actions[0].Declined {
+		t.Fatalf("first action = %+v, want paid", actions[0])
+	}
+	if actions[1].Paid || actions[1].Declined {
+		t.Fatalf("second action = %+v, want free power", actions[1])
+	}
+	if !actions[2].Declined || actions[2].Paid {
+		t.Fatalf("third action = %+v, want declined", actions[2])
+	}
 }
 
 func TestBGAParser_ShapeshiftersStrongholdShiftParsesTerrainChange(t *testing.T) {
@@ -733,6 +935,29 @@ End of game
 	}
 }
 
+func TestBGAParser_EmitsCleanupPhaseItem(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Witches Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice passes
+~ Cleanup phase ~
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	for _, item := range items {
+		if _, ok := item.(CleanupPhaseItem); ok {
+			return
+		}
+	}
+	t.Fatal("expected CleanupPhaseItem")
+}
+
 func TestBGAParser_SkipsDynionGeifrStartingFavorTileDuringSetup(t *testing.T) {
 	content := `Game board: Base Game
 Alice is playing the Dynion Geifr Faction
@@ -941,6 +1166,45 @@ Alice earns 2 coins (Conspirators ability)
 	}
 	if !foundSwap {
 		t.Fatal("expected follow-up Conspirators swap action after cancel")
+	}
+}
+
+func TestBGAParser_CancelMoveKeepsPreviousTurnWhenNextLineIsPass(t *testing.T) {
+	content := `Game board: Base Game
+Alice is playing the Alchemists Faction
+Bob is playing the Giants Faction
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Alice builds a Dwelling for 1 workers 2 coins [E5]
+Alice cancels their move
+Alice passes
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	foundBuild := false
+	foundPass := false
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok || actionItem.Action == nil {
+			continue
+		}
+		if action, ok := actionItem.Action.(*game.TransformAndBuildAction); ok && action.PlayerID == "Alchemists" {
+			foundBuild = true
+		}
+		if action, ok := actionItem.Action.(*game.PassAction); ok && action.PlayerID == "Alchemists" {
+			foundPass = true
+		}
+	}
+	if !foundBuild {
+		t.Fatal("expected committed build to remain when cancel is followed by pass")
+	}
+	if !foundPass {
+		t.Fatal("expected pass after cancel")
 	}
 }
 

@@ -86,6 +86,52 @@ func TestUpgradeBuildingAction_NormalModeStillRequiresExplicitConversions(t *tes
 	}
 }
 
+func TestUpgradeBuildingAction_ReplayAutoConvertsAlchemistsVPToCoinsBeforeWorkers(t *testing.T) {
+	gs := NewGameState()
+	gs.ReplayMode = map[string]bool{"__replay__": true, "__bga__": true}
+	gs.Phase = PhaseAction
+	gs.TurnOrder = []string{"alchemists"}
+
+	if err := gs.AddPlayer("alchemists", factions.NewAlchemists()); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+
+	player := gs.GetPlayer("alchemists")
+	player.VictoryPoints = 30
+	player.Resources.Coins = 4
+	player.Resources.Workers = 2
+	player.Resources.Priests = 1
+
+	hex := board.NewHex(0, 0)
+	if err := gs.Map.TransformTerrain(hex, models.TerrainSwamp); err != nil {
+		t.Fatalf("set terrain: %v", err)
+	}
+	gs.Map.PlaceBuilding(hex, &models.Building{
+		Type:       models.BuildingTradingHouse,
+		PlayerID:   "alchemists",
+		Faction:    models.FactionAlchemists,
+		PowerValue: 2,
+	})
+
+	action := NewUpgradeBuildingAction("alchemists", hex, models.BuildingTemple)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("execute temple upgrade: %v", err)
+	}
+
+	if got := player.VictoryPoints; got != 29 {
+		t.Fatalf("VP after replay funding = %d, want 29", got)
+	}
+	if got := player.Resources.Coins; got != 0 {
+		t.Fatalf("coins after replay funding = %d, want 0", got)
+	}
+	if got := player.Resources.Workers; got != 0 {
+		t.Fatalf("workers after replay funding = %d, want 0", got)
+	}
+	if got := player.Resources.Priests; got != 1 {
+		t.Fatalf("priests after replay funding = %d, want 1", got)
+	}
+}
+
 func TestTransformAndBuildAction_ReplayAutoConvertsPowerToWorker(t *testing.T) {
 	gs := NewGameState()
 	gs.ReplayMode = map[string]bool{"__replay__": true, "__bga__": true}

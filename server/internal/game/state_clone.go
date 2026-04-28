@@ -43,6 +43,8 @@ func (gs *GameState) CloneForUndo() *GameState {
 		ReplayAcolytesCultTrackIndex:    cloneStringIntMap(gs.ReplayAcolytesCultTrackIndex),
 		ReplayRiverBuildHexes:           cloneReplayRiverBuildHexQueues(gs.ReplayRiverBuildHexes),
 		ReplayRiverBuildHexIndex:        cloneStringIntMap(gs.ReplayRiverBuildHexIndex),
+		ReplayCultSpadeBuildHexes:       cloneNestedHexBoolMap(gs.ReplayCultSpadeBuildHexes),
+		PendingSnowShamansPassUpgrade:   cloneSnowShamansPassUpgradeMap(gs.PendingSnowShamansPassUpgrade),
 		SuppressTurnAdvance:             gs.SuppressTurnAdvance,
 		PendingTurnConfirmationPlayerID: "",
 	}
@@ -167,6 +169,23 @@ func cloneHexMap(src map[string]board.Hex) map[string]board.Hex {
 	dst := make(map[string]board.Hex, len(src))
 	for playerID, hex := range src {
 		dst[playerID] = hex
+	}
+	return dst
+}
+
+func cloneNestedHexBoolMap(src map[string]map[board.Hex]bool) map[string]map[board.Hex]bool {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]map[board.Hex]bool, len(src))
+	for playerID, hexes := range src {
+		if hexes == nil {
+			continue
+		}
+		dst[playerID] = make(map[board.Hex]bool, len(hexes))
+		for hex, value := range hexes {
+			dst[playerID][hex] = value
+		}
 	}
 	return dst
 }
@@ -605,6 +624,17 @@ func cloneStringBoolMap(src map[string]bool) map[string]bool {
 		return nil
 	}
 	dst := make(map[string]bool, len(src))
+	for key, value := range src {
+		dst[key] = value
+	}
+	return dst
+}
+
+func cloneSnowShamansPassUpgradeMap(src map[string]SnowShamansPassUpgrade) map[string]SnowShamansPassUpgrade {
+	if src == nil {
+		return nil
+	}
+	dst := make(map[string]SnowShamansPassUpgrade, len(src))
 	for key, value := range src {
 		dst[key] = value
 	}

@@ -73,6 +73,8 @@ type GameState struct {
 	ReplayAcolytesCultTrackIndex     map[string]int                        `json:"-"`
 	ReplayRiverBuildHexes            map[string][]board.Hex                `json:"-"`
 	ReplayRiverBuildHexIndex         map[string]int                        `json:"-"`
+	ReplayCultSpadeBuildHexes        map[string]map[board.Hex]bool         `json:"-"`
+	PendingSnowShamansPassUpgrade    map[string]SnowShamansPassUpgrade     `json:"-"`
 	FinalScoring                     map[string]*PlayerFinalScore          `json:"finalScoring"`
 	SuppressTurnAdvance              bool                                  `json:"-"`
 	RiverTownHex                     *board.Hex                            `json:"-"` // For Mermaids river town formation
@@ -218,6 +220,14 @@ const (
 	FireIceFinalScoringTileStrongholdSanctuary FireIceFinalScoringTile = "stronghold_sanctuary"
 	FireIceFinalScoringTileOutposts            FireIceFinalScoringTile = "edge"
 	FireIceFinalScoringTileSettlements         FireIceFinalScoringTile = "cluster"
+)
+
+// SnowShamansPassUpgrade records the free track upgrade Snow Shamans take when passing.
+type SnowShamansPassUpgrade string
+
+const (
+	SnowShamansPassUpgradeDigging  SnowShamansPassUpgrade = "digging"
+	SnowShamansPassUpgradeShipping SnowShamansPassUpgrade = "shipping"
 )
 
 // TurnOrderPolicy controls how next-round turn order is derived after passing.
@@ -580,34 +590,36 @@ func NewGameStateWithCustomMap(definition *board.CustomMapDefinition) (*GameStat
 
 func newGameStateWithBoard(gameMap *board.TerraMysticaMap) *GameState {
 	return &GameState{
-		Map:                          gameMap,
-		Players:                      make(map[string]*Player),
-		Round:                        1,
-		Phase:                        PhaseSetup,
-		SetupMode:                    SetupModeSnellman,
-		FireIceFinalScoringSetting:   FireIceFinalScoringOff,
-		FireIceFinalScoringTile:      FireIceFinalScoringTileNone,
-		SetupSubphase:                SetupSubphaseNone,
-		TurnOrderPolicy:              TurnOrderPolicyPassOrder,
-		PowerActions:                 NewPowerActionState(),
-		CultTracks:                   NewCultTrackState(),
-		FavorTiles:                   NewFavorTileState(),
-		BonusCards:                   NewBonusCardState(),
-		TownTiles:                    NewTownTileState(),
-		ScoringTiles:                 NewScoringTileState(),
-		PendingLeechOffers:           make(map[string][]*PowerLeechOffer),
-		PendingTownFormations:        make(map[string][]*PendingTownFormation),
-		PendingSpades:                make(map[string]int),
-		PendingSpadeBuildAllowed:     make(map[string]bool),
-		PendingCultistsLeech:         make(map[int]*CultistsLeechBonus),
-		PendingShapeshiftersLeech:    make(map[int]*CultistsLeechBonus),
-		SkipAbilityUsedThisAction:    make(map[string][]board.Hex),
-		PendingWispsTradingPostSpade: make(map[string]board.Hex),
-		ReplayAcolytesCultTracks:     make(map[string][]CultTrack),
-		ReplayAcolytesCultTrackIndex: make(map[string]int),
-		ReplayRiverBuildHexes:        make(map[string][]board.Hex),
-		ReplayRiverBuildHexIndex:     make(map[string]int),
-		SetupPlacedDwellings:         make(map[string]int),
+		Map:                           gameMap,
+		Players:                       make(map[string]*Player),
+		Round:                         1,
+		Phase:                         PhaseSetup,
+		SetupMode:                     SetupModeSnellman,
+		FireIceFinalScoringSetting:    FireIceFinalScoringOff,
+		FireIceFinalScoringTile:       FireIceFinalScoringTileNone,
+		SetupSubphase:                 SetupSubphaseNone,
+		TurnOrderPolicy:               TurnOrderPolicyPassOrder,
+		PowerActions:                  NewPowerActionState(),
+		CultTracks:                    NewCultTrackState(),
+		FavorTiles:                    NewFavorTileState(),
+		BonusCards:                    NewBonusCardState(),
+		TownTiles:                     NewTownTileState(),
+		ScoringTiles:                  NewScoringTileState(),
+		PendingLeechOffers:            make(map[string][]*PowerLeechOffer),
+		PendingTownFormations:         make(map[string][]*PendingTownFormation),
+		PendingSpades:                 make(map[string]int),
+		PendingSpadeBuildAllowed:      make(map[string]bool),
+		PendingCultistsLeech:          make(map[int]*CultistsLeechBonus),
+		PendingShapeshiftersLeech:     make(map[int]*CultistsLeechBonus),
+		SkipAbilityUsedThisAction:     make(map[string][]board.Hex),
+		PendingWispsTradingPostSpade:  make(map[string]board.Hex),
+		ReplayAcolytesCultTracks:      make(map[string][]CultTrack),
+		ReplayAcolytesCultTrackIndex:  make(map[string]int),
+		ReplayRiverBuildHexes:         make(map[string][]board.Hex),
+		ReplayRiverBuildHexIndex:      make(map[string]int),
+		ReplayCultSpadeBuildHexes:     make(map[string]map[board.Hex]bool),
+		PendingSnowShamansPassUpgrade: make(map[string]SnowShamansPassUpgrade),
+		SetupPlacedDwellings:          make(map[string]int),
 	}
 }
 

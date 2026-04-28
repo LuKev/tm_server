@@ -226,6 +226,13 @@ func (s *GameSimulator) StepForward() error {
 		// This allows replay to match Snellman interludes between income blocks.
 		s.incomePending = true
 		s.incomeGranted = false
+	case notation.CleanupPhaseItem:
+		if s.CurrentState.Phase == game.PhaseAction {
+			completedRound := s.CurrentState.Round
+			if s.CurrentState.ExecuteCleanupPhase() {
+				s.CurrentState.AwardCultRewardsForRound(completedRound)
+			}
+		}
 	case notation.GameSettingsItem:
 		// Initialize players from settings
 		settings := v.Settings

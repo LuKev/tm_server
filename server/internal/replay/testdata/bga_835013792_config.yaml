@@ -1,0 +1,40 @@
+scoring_tiles:
+  - SCORE9
+  - SCORE2
+  - SCORE4
+  - SCORE1
+  - SCORE5
+  - SCORE7
+bonus_cards:
+  - BON-4C
+  - BON-BB
+  - BON-SHIP
+  - BON-SHIP-VP
+  - BON-6C
+  - BON-DW
+fire_ice_final_scoring_tile: cluster
+bonus_card_selections:
+  "0":
+    Firewalkers: BON-4C
+    Riverwalkers: BON-BB
+    Selkies: BON-SHIP
+  "1":
+    Firewalkers: BON-BB
+    Riverwalkers: BON-SHIP-VP
+    Selkies: BON-6C
+  "2":
+    Firewalkers: BON-DW
+    Riverwalkers: BON-4C
+    Selkies: BON-SHIP
+  "3":
+    Firewalkers: BON-SHIP-VP
+    Riverwalkers: BON-6C
+    Selkies: BON-BB
+  "4":
+    Firewalkers: BON-BB
+    Riverwalkers: BON-4C
+    Selkies: BON-DW
+  "5":
+    Firewalkers: BON-DW
+    Riverwalkers: BON-6C
+    Selkies: BON-4C

@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 type replayAutoCostPlan struct {
+	vpToCoins       int
 	burn            int
 	powerToPriests  int
 	priestsToWorker int
@@ -22,7 +24,7 @@ func (gs *GameState) canAffordWithReplayAutoConversions(player *Player, cost fac
 	if !gs.allowsReplayAutoConversions(cost) {
 		return player.Resources.CanAfford(cost)
 	}
-	_, ok := planReplayAutoCost(player.Resources, cost)
+	_, ok := planReplayAutoCost(player, cost)
 	return ok
 }
 
@@ -34,11 +36,11 @@ func (gs *GameState) spendWithReplayAutoConversions(player *Player, cost faction
 		return player.Resources.Spend(cost)
 	}
 
-	plan, ok := planReplayAutoCost(player.Resources, cost)
+	plan, ok := planReplayAutoCost(player, cost)
 	if !ok {
 		return player.Resources.Spend(cost)
 	}
-	if err := plan.Apply(player.Resources); err != nil {
+	if err := plan.Apply(player); err != nil {
 		return err
 	}
 	return player.Resources.Spend(cost)
@@ -51,11 +53,11 @@ func (gs *GameState) prepareReplayAutoConversions(player *Player, cost factions.
 	if !gs.allowsReplayAutoConversions(cost) {
 		return nil
 	}
-	plan, ok := planReplayAutoCost(player.Resources, cost)
+	plan, ok := planReplayAutoCost(player, cost)
 	if !ok {
 		return nil
 	}
-	return plan.Apply(player.Resources)
+	return plan.Apply(player)
 }
 
 func (gs *GameState) allowsReplayAutoConversions(cost factions.Cost) bool {
@@ -70,9 +72,17 @@ func (gs *GameState) allowsReplayAutoConversions(cost factions.Cost) bool {
 	return cost.Power == 0
 }
 
-func (p replayAutoCostPlan) Apply(resources *ResourcePool) error {
-	if resources == nil {
+func (p replayAutoCostPlan) Apply(player *Player) error {
+	if player == nil || player.Resources == nil {
 		return fmt.Errorf("nil resources")
+	}
+	resources := player.Resources
+	if p.vpToCoins > 0 {
+		if player.VictoryPoints < p.vpToCoins {
+			return fmt.Errorf("not enough VP for Alchemists coin conversion")
+		}
+		player.VictoryPoints -= p.vpToCoins
+		resources.Coins += p.vpToCoins
 	}
 	if p.burn > 0 {
 		if err := resources.BurnPower(p.burn); err != nil {
@@ -107,16 +117,18 @@ func (p replayAutoCostPlan) Apply(resources *ResourcePool) error {
 	return nil
 }
 
-func planReplayAutoCost(resources *ResourcePool, cost factions.Cost) (replayAutoCostPlan, bool) {
-	if resources == nil {
+func planReplayAutoCost(player *Player, cost factions.Cost) (replayAutoCostPlan, bool) {
+	if player == nil || player.Resources == nil {
 		return replayAutoCostPlan{}, false
 	}
+	resources := player.Resources
 	if resources.CanAfford(cost) {
 		return replayAutoCostPlan{}, true
 	}
 
 	clone := resources.Clone()
 	plan := replayAutoCostPlan{}
+	victoryPoints := player.VictoryPoints
 	reservedPower := cost.Power
 
 	ensureSpendablePower := func(required int) bool {
@@ -195,6 +207,21 @@ func planReplayAutoCost(resources *ResourcePool, cost factions.Cost) (replayAuto
 		plan.workersToCoins += amount
 		return true
 	}
+	convertAlchemistsVPToCoins := func(amount int) bool {
+		if amount <= 0 {
+			return true
+		}
+		if player.Faction == nil || player.Faction.GetType() != models.FactionAlchemists {
+			return false
+		}
+		if victoryPoints < amount {
+			return false
+		}
+		victoryPoints -= amount
+		clone.Coins += amount
+		plan.vpToCoins += amount
+		return true
+	}
 
 	if priestShortfall := cost.Priests - clone.Priests; priestShortfall > 0 {
 		if !convertPowerToPriests(priestShortfall) {
@@ -215,6 +242,14 @@ func planReplayAutoCost(resources *ResourcePool, cost factions.Cost) (replayAuto
 	}
 
 	if coinShortfall := cost.Coins - clone.Coins; coinShortfall > 0 {
+		if player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
+			useVP := minInt(coinShortfall, victoryPoints)
+			if useVP > 0 && !convertAlchemistsVPToCoins(useVP) {
+				return replayAutoCostPlan{}, false
+			}
+		}
+
+		coinShortfall = cost.Coins - clone.Coins
 		availableWorkers := maxInt(0, clone.Workers-cost.Workers)
 		useWorkers := minInt(coinShortfall, availableWorkers)
 		if useWorkers > 0 && !convertWorkersToCoins(useWorkers) {

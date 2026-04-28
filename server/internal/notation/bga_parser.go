@@ -72,18 +72,22 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reBuildDwellingSetup := regexp.MustCompile(`(.*) places a (?:Dwelling|Faction Stronghold) \[(.*)\]`) // Setup is single line
 	reBuildDwellingGameStart := regexp.MustCompile(`(.*) builds a Dwelling for`)
 	reUpgradeStart := regexp.MustCompile(`(.*) upgrades a (.*) to a (.*) for`)
-	reTransformStart := regexp.MustCompile(`(.*) transforms a Terrain space(?:.* → (.*))? for`)
+	reTransformStart := regexp.MustCompile(`(.*) transforms a Terrain space(?:.* → (.*))?\sfor\s`)
 
 	// Single-line Action Starts (Updated)
 	rePowerAction := regexp.MustCompile(`(.*) spends (\d+) power to (?:get|collect) (.*) \(Power action\)`)
 	reLeechGets := regexp.MustCompile(`(.*) gets (\d+) power via Structures \[(.*)\]`)
 	reLeechPays := regexp.MustCompile(`(.*) pays (\d+) VP and gets (\d+) power via Structures \[(.*)\]`)
 	reLeechCap := regexp.MustCompile(`(.*) Power gain via Structures is capped from (\d+) power to (\d+) power`)
+	reShapeshiftersPaidPower := regexp.MustCompile(`(?i)(.*) pays 1 VP to gain 1 power in Bowl 3 \(Shapeshifters ability\)`)
+	reShapeshiftersFreePower := regexp.MustCompile(`(?i)(.*) gets 1 power \(Shapeshifters Ability\)`)
+	reShapeshiftersDeclinePower := regexp.MustCompile(`(?i)(.*) declines gaining a new power in Bowl 3 \(Shapeshifters Ability\)`)
 	reBurn := regexp.MustCompile(`(.*) sacrificed (\d+) power in Bowl 2 to get (\d+) power from Bowl 2 to Bowl 3`)
 	reFavorTileStart := regexp.MustCompile(`(.*) takes a Favor tile`)
 	reConspiratorsReturnFavor := regexp.MustCompile(`(.*) gives back a Favor tile and loses (\d+) Cult points \(Conspirators Stronghold\)`)
 	reCancelMove := regexp.MustCompile(`(.*) cancels their move`)
 	reWitchesRide := regexp.MustCompile(`(.*) builds a Dwelling for free \(Witches Ride\) \[(.*)\]`)
+	reSnowShamansPassUpgrade := regexp.MustCompile(`(.*) advances on the (Shipping|Exchange) Track for free and earns \d+ VP \(Snow Shamans ability\)`)
 	reExchangeTrack := regexp.MustCompile(`(.*) advances on the Exchange Track for (.*) and earns (\d+) VP`)
 	reIncomeTrack := regexp.MustCompile(`(.*) advances on the Income Track for (.*) and earns (\d+) VP`)
 	reTownFound := regexp.MustCompile(`(.*) founds a Town \[(.*)\]`)
@@ -95,6 +99,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reSwarmlingStronghold := regexp.MustCompile(`(.*) upgrades a Dwelling to a Trading house for free \(Swarmlings Stronghold\) \[(.*)\]`)
 	reNomadsStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* for free \(Nomads Stronghold\).*\[(.*)\]`)
 	reSelkiesStronghold := regexp.MustCompile(`(.*) transforms a Terrain space.* \(Selkies Stronghold\) \[(.*)\]`)
+	reRiverwalkersStrongholdBridge := regexp.MustCompile(`(.*) builds? a Bridge \(Riverwalkers Stronghold\) \[(.*)\]`)
 	reShapeshiftersStronghold := regexp.MustCompile(`(.*) changes .* Home Terrain to ([A-Za-z]+) for Power \(Shapeshifters Stronghold\)`)
 	reCMDoubleTurn := regexp.MustCompile(`(.*) takes a double-turn \(Chaos Magicians Stronghold\)`)
 	reHalflingsSpades := regexp.MustCompile(`(.*) gets 3 Spades to Transform and Build \(Halflings Stronghold\)`)
@@ -107,6 +112,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reTimeTravelersStrongholdAction := regexp.MustCompile(`(.*) moves (\d+) power from Bowl I to Bowl III \(Stronghold Action\)`)
 	reChildrenStrongholdTokens := regexp.MustCompile(`(.*) sacrifices Power to place (\d+) power on the game board \(Children Of The Wyrm Stronghold\) \[(R~[A-I]\d+)\](?: \+ \[(R~[A-I]\d+)\])?`)
 	reSpecialActionSpade := regexp.MustCompile(`(.*) gains 1 spade\(s\) \(Special action\)`)
+	reRiverwalkersUnlock := regexp.MustCompile(`(.*) spends (?:(\d+) power \+ )?(\d+) coins? to unlock 1 Priests from (.*) Terrain cycle \(Riverwalkers ability\) \((Income|Power action)\)`)
 	reGoblinsTreasure := regexp.MustCompile(`(.*) spends Markers to gain (\d+) (coins|workers|power) \(Goblins ability\)`)
 	reDjinniSwapCults := regexp.MustCompile(`(.*) spends Markers to swap the Cult of (.*) and Cult of (.*) tracks \(Djinni ability\)`)
 	reTreasurersSafeDeposit := regexp.MustCompile(`(.*) places (.*) into their Safe \((.*)\)`)
@@ -317,6 +323,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 
 		if line == "~ Cleanup phase ~" {
 			p.inIncomePhase = false
+			p.items = append(p.items, CleanupPhaseItem{})
 			continue
 		}
 
@@ -480,6 +487,10 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 			}
 			p.handleSelkiesStronghold(playerID, coordStr, getTerrainTypeFromName(targetTerrainName))
 
+		} else if matches := reRiverwalkersStrongholdBridge.FindStringSubmatch(line); len(matches) > 2 {
+			playerID := p.getPlayerID(matches[1])
+			p.handleFreeBridge(playerID, matches[2], "Riverwalkers Stronghold")
+
 		} else if matches := reShapeshiftersStronghold.FindStringSubmatch(line); len(matches) > 2 {
 			playerID := p.getPlayerID(matches[1])
 			p.handleShapeshiftersStronghold(playerID, matches[2])
@@ -543,6 +554,9 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		} else if matches := reSpecialActionSpade.FindStringSubmatch(line); len(matches) > 1 {
 			playerID := p.getPlayerID(matches[1])
 			p.handleSpecialActionSpade(playerID)
+
+		} else if matches := reRiverwalkersUnlock.FindStringSubmatch(line); len(matches) > 5 {
+			p.handleRiverwalkersUnlock(matches[1], matches[2], matches[3], matches[4], matches[5])
 
 		} else if matches := reGoblinsTreasure.FindStringSubmatch(line); len(matches) > 3 {
 			playerID := p.getPlayerID(matches[1])
@@ -650,6 +664,15 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 				p.handleZeroCapLeech(playerName)
 			}
 
+		} else if matches := reShapeshiftersPaidPower.FindStringSubmatch(line); len(matches) > 1 {
+			p.handleShapeshiftersLeechBonus(matches[1], true, false)
+
+		} else if matches := reShapeshiftersFreePower.FindStringSubmatch(line); len(matches) > 1 {
+			p.handleShapeshiftersLeechBonus(matches[1], false, false)
+
+		} else if matches := reShapeshiftersDeclinePower.FindStringSubmatch(line); len(matches) > 1 {
+			p.handleShapeshiftersLeechBonus(matches[1], false, true)
+
 		} else if matches := rePass.FindStringSubmatch(line); len(matches) > 1 {
 			// fmt.Printf("Matched Pass: %s\n", line)
 			p.handlePass(matches[1])
@@ -657,6 +680,9 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 		} else if matches := rePriest.FindStringSubmatch(line); len(matches) > 2 {
 			// fmt.Printf("Matched Priest: %s\n", line)
 			p.handleSendPriest(matches[1], matches[2])
+
+		} else if matches := reSnowShamansPassUpgrade.FindStringSubmatch(line); len(matches) > 2 {
+			p.handleSnowShamansPassUpgrade(matches[1], matches[2])
 
 		} else if matches := reShipping.FindStringSubmatch(line); len(matches) > 1 {
 			// fmt.Printf("Matched Shipping: %s\n", line)
@@ -925,6 +951,37 @@ func (p *BGAParser) handleAdvanceShipping(playerName string) {
 	p.items = append(p.items, ActionItem{Action: action})
 }
 
+func (p *BGAParser) handleSnowShamansPassUpgrade(playerName, trackName string) {
+	playerID := p.getPlayerID(playerName)
+	if playerID == "" {
+		return
+	}
+	upgrade := game.SnowShamansPassUpgradeDigging
+	if strings.EqualFold(strings.TrimSpace(trackName), "Shipping") {
+		upgrade = game.SnowShamansPassUpgradeShipping
+	}
+	p.items = append(p.items, ActionItem{
+		Action: &LogSnowShamansPassUpgradeAction{
+			PlayerID: playerID,
+			Upgrade:  upgrade,
+		},
+	})
+}
+
+func (p *BGAParser) handleShapeshiftersLeechBonus(playerName string, paid bool, declined bool) {
+	playerID := p.getPlayerID(playerName)
+	if playerID == "" {
+		return
+	}
+	p.items = append(p.items, ActionItem{
+		Action: &LogShapeshiftersLeechBonusAction{
+			PlayerID: playerID,
+			Paid:     paid,
+			Declined: declined,
+		},
+	})
+}
+
 func (p *BGAParser) handleLeech(playerName, coordStr string, amount int, cost int, accepted bool) {
 	playerID := p.getPlayerID(playerName)
 	sourcePlayerID := p.getLeechSourcePlayer(coordStr)
@@ -1083,6 +1140,9 @@ func (p *BGAParser) cancelLikelyFollowedByReplacement(playerName string) bool {
 		if strings.HasPrefix(line, prefix) {
 			suffix := strings.TrimSpace(strings.TrimPrefix(line, prefix))
 			if strings.HasPrefix(suffix, "gives back a Favor tile") || strings.HasPrefix(suffix, "takes a Favor tile") {
+				return false
+			}
+			if strings.HasPrefix(suffix, "passes") {
 				return false
 			}
 			return true
@@ -1326,6 +1386,35 @@ func (p *BGAParser) handleTreasurersSafeDeposit(playerID, resourceStr, reason st
 		resources[models.ResourceWorker],
 		resources[models.ResourcePriest],
 	)
+
+	if strings.EqualFold(strings.TrimSpace(reason), "income") && p.inIncomePhase {
+		p.items = append(p.items, ActionItem{
+			Action: &LogPostIncomeAction{Action: action},
+		})
+		return
+	}
+
+	p.items = append(p.items, ActionItem{Action: action})
+}
+
+func (p *BGAParser) handleRiverwalkersUnlock(playerName, powerStr, coinStr, terrainName, reason string) {
+	playerID := p.getPlayerID(playerName)
+	if playerID == "" {
+		return
+	}
+
+	powerCost := 0
+	if strings.TrimSpace(powerStr) != "" {
+		powerCost, _ = strconv.Atoi(powerStr)
+	}
+	coinCost, _ := strconv.Atoi(coinStr)
+	action := &LogRiverwalkersUnlockAction{
+		PlayerID:   playerID,
+		Terrain:    getTerrainTypeFromName(terrainName),
+		CoinCost:   coinCost,
+		PowerCost:  powerCost,
+		SourceText: reason,
+	}
 
 	if strings.EqualFold(strings.TrimSpace(reason), "income") && p.inIncomePhase {
 		p.items = append(p.items, ActionItem{
@@ -1773,7 +1862,7 @@ func (p *BGAParser) handleBonusCardSpade(playerID, line string) {
 
 			// Try to parse target terrain from the line
 			// "transforms a Terrain space lakes → swamp for"
-			reTransform := regexp.MustCompile(`transforms a Terrain space .* → (.*) for`)
+			reTransform := regexp.MustCompile(`transforms a Terrain space .* → (.*)\sfor\s`)
 			if matches := reTransform.FindStringSubmatch(line); len(matches) > 1 {
 				targetTerrainName := strings.TrimSpace(matches[1])
 				var terrainCode string
@@ -2434,6 +2523,23 @@ func (p *BGAParser) handleEngineersBridge(playerID, coordStr string) {
 	})
 }
 
+func (p *BGAParser) handleFreeBridge(playerID, coordStr, reason string) {
+	parts := strings.Split(coordStr, "-")
+	if len(parts) != 2 {
+		return
+	}
+	hex1 := p.parseCoord(parts[0])
+	hex2 := p.parseCoord(parts[1])
+	p.items = append(p.items, ActionItem{
+		Action: &LogFreeBridgeAction{
+			PlayerID:   playerID,
+			BridgeHex1: hex1,
+			BridgeHex2: hex2,
+			Reason:     reason,
+		},
+	})
+}
+
 func (p *BGAParser) handleArchitectsMoveBridge(playerID, fromCoordStr, toCoordStr string) {
 	fromParts := strings.Split(fromCoordStr, "-")
 	toParts := strings.Split(toCoordStr, "-")
@@ -2538,7 +2644,7 @@ func (p *BGAParser) handleTimeTravelersStrongholdAction(playerID string, amount 
 }
 
 func (p *BGAParser) handleSpecialActionSpade(playerID string) {
-	if playerID != "Prospectors" {
+	if playerID != "Prospectors" && playerID != "Dragonlords" && playerID != "Acolytes" && playerID != "Firewalkers" {
 		return
 	}
 

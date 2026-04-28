@@ -1,0 +1,47 @@
+scoring_tiles:
+  - SCORE9
+  - SCORE4
+  - SCORE6
+  - SCORE2
+  - SCORE3
+  - SCORE8
+bonus_cards:
+  - BON-SPD
+  - BON-4C
+  - BON-6C
+  - BON-SHIP
+  - BON-TP
+  - BON-DW
+  - BON-SHIP-VP
+fire_ice_final_scoring_tile: cluster
+bonus_card_selections:
+  "0":
+    Shapeshifters: BON-4C
+    "Snow Shamans": BON-SHIP-VP
+    Alchemists: BON-SHIP
+    Dragonlords: BON-SPD
+  "1":
+    Shapeshifters: BON-SHIP-VP
+    "Snow Shamans": BON-6C
+    Alchemists: BON-SPD
+    Dragonlords: BON-4C
+  "2":
+    Shapeshifters: BON-TP
+    "Snow Shamans": BON-DW
+    Alchemists: BON-6C
+    Dragonlords: BON-SPD
+  "3":
+    Shapeshifters: BON-SHIP-VP
+    "Snow Shamans": BON-SPD
+    Alchemists: BON-TP
+    Dragonlords: BON-4C
+  "4":
+    Shapeshifters: BON-TP
+    "Snow Shamans": BON-SHIP
+    Alchemists: BON-6C
+    Dragonlords: BON-DW
+  "5":
+    Shapeshifters: BON-SHIP-VP
+    "Snow Shamans": BON-6C
+    Alchemists: BON-TP
+    Dragonlords: BON-4C

@@ -199,6 +199,9 @@ func (gs *GameState) ResolveShapeshiftersLeechBonus(eventID int) {
 	if !isShapeshifters(player) {
 		return
 	}
+	if gs.ReplayMode != nil && gs.ReplayMode["__bga__"] {
+		return
+	}
 	if bonus.AcceptedCount == 0 && bonus.DeclinedCount == 0 {
 		return
 	}

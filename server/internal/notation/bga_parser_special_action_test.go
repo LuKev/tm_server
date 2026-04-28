@@ -1133,6 +1133,48 @@ Nafghar declines doing Conversions
 	}
 }
 
+func TestBGAParser_DragonlordsBonusCardSpadeBecomesSpecialAction(t *testing.T) {
+	content := `
+Game board: Fire & Ice
+Grovast is playing the Dragonlords Faction (with 40 VP Starting VPs)
+~ Every player has chosen a Faction and receives the matching starting resources. ~
+~ Action phase ~
+Grovast gains 1 spade(s) (Special action)
+Grovast spends 1 spade(s) to gain 1 power in Bowl 1 (Dragonlords ability)
+Grovast declines doing Conversions
+***** Final Scoring *****
+`
+
+	parser := NewBGAParser(content)
+	items, err := parser.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse: %v", err)
+	}
+
+	var bonusSpadeAction *game.SpecialAction
+	for _, item := range items {
+		actionItem, ok := item.(ActionItem)
+		if !ok {
+			continue
+		}
+		action, ok := actionItem.Action.(*game.SpecialAction)
+		if !ok {
+			continue
+		}
+		if action.ActionType == game.SpecialActionBonusCardSpade {
+			bonusSpadeAction = action
+			break
+		}
+	}
+
+	if bonusSpadeAction == nil {
+		t.Fatal("Did not find Dragonlords bonus card spade action")
+	}
+	if bonusSpadeAction.PlayerID != "Dragonlords" {
+		t.Fatalf("Dragonlords bonus card spade PlayerID = %q, want %q", bonusSpadeAction.PlayerID, "Dragonlords")
+	}
+}
+
 func TestBGAParser_ConspiratorsStrongholdSwap_FromRealBgaGame(t *testing.T) {
 	content := `
 Game board: Base Game
