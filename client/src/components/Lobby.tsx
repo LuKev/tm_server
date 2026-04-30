@@ -264,14 +264,6 @@ export function Lobby(): React.ReactElement {
               >
                 Create
               </button>
-              <button
-                data-testid="lobby-refresh-games-top"
-                onClick={() => { sendMessage({ type: 'list_games' }) }}
-                disabled={!isConnected}
-                className="lobby-button lobby-button-secondary"
-              >
-                Refresh
-              </button>
             </div>
 
             {newGameMapId === 'custom' && (
