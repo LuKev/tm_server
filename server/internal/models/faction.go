@@ -212,6 +212,23 @@ func (f FactionType) IsFanFaction() bool {
 	}
 }
 
+func (f FactionType) IsFireIceFaction() bool {
+	switch f {
+	case FactionIceMaidens,
+		FactionYetis,
+		FactionDragonlords,
+		FactionAcolytes,
+		FactionShapeshifters,
+		FactionRiverwalkers,
+		FactionFirewalkers,
+		FactionSelkies,
+		FactionSnowShamans:
+		return true
+	default:
+		return false
+	}
+}
+
 // FactionTypeFromString converts a string representation to FactionType
 func FactionTypeFromString(s string) FactionType {
 	switch s {

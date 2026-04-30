@@ -7,6 +7,7 @@ interface FactionSelectorProps {
     isMyTurn: boolean
     currentPlayerPosition: number
     enableFanFactions: boolean
+    enableFireIceFactions: boolean
 }
 
 export function FactionSelector({
@@ -15,9 +16,11 @@ export function FactionSelector({
     isMyTurn,
     currentPlayerPosition,
     enableFanFactions,
+    enableFireIceFactions,
 }: FactionSelectorProps): React.ReactElement {
     const allFactions = FACTIONS
         .filter((faction) => enableFanFactions || !faction.isFanFaction)
+        .filter((faction) => enableFireIceFactions || !faction.isFireIceFaction)
         .map((faction) => faction.type)
 
     // Get colors of selected factions to disable same-color factions

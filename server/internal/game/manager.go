@@ -14,13 +14,14 @@ import (
 
 // CreateGameOptions controls game creation behavior.
 type CreateGameOptions struct {
-	RandomizeTurnOrder bool
-	SetupMode          SetupMode
-	TurnTimer          *TurnTimerConfig
-	MapID              board.MapID
-	EnableFanFactions  bool
-	FireIceScoring     FireIceFinalScoringSetting
-	CustomMap          *board.CustomMapDefinition
+	RandomizeTurnOrder    bool
+	SetupMode             SetupMode
+	TurnTimer             *TurnTimerConfig
+	MapID                 board.MapID
+	EnableFanFactions     bool
+	EnableFireIceFactions bool
+	FireIceScoring        FireIceFinalScoringSetting
+	CustomMap             *board.CustomMapDefinition
 }
 
 // ActionMeta provides metadata for action execution.
@@ -884,6 +885,7 @@ func (m *Manager) CreateGameWithOptions(id string, playerIDs []string, opts Crea
 	}
 	gs.SetupMode = setupMode
 	gs.EnableFanFactions = opts.EnableFanFactions
+	gs.EnableFireIceFactions = opts.EnableFireIceFactions
 	fireIceSetting := normalizeFireIceFinalScoringSetting(opts.FireIceScoring)
 	gs.FireIceFinalScoringSetting = fireIceSetting
 	gs.FireIceFinalScoringTile = resolveFireIceFinalScoringTile(fireIceSetting, rand.New(rand.NewSource(time.Now().UnixNano())))
@@ -1101,6 +1103,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 		"revision":                   revision,
 		"mapId":                      gs.Map.ID,
 		"enableFanFactions":          gs.EnableFanFactions,
+		"enableFireIceFactions":      gs.EnableFireIceFactions,
 		"fireIceFinalScoringSetting": gs.FireIceFinalScoringSetting,
 		"fireIceFinalScoringTile":    gs.FireIceFinalScoringTile,
 		"phase":                      gs.Phase,

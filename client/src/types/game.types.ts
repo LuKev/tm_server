@@ -289,6 +289,7 @@ export interface GameState {
   id: string
   mapId?: string
   enableFanFactions?: boolean
+  enableFireIceFactions?: boolean
   fireIceFinalScoringSetting?: 'off' | 'on' | 'random'
   fireIceFinalScoringTile?: 'distance' | 'stronghold_sanctuary' | 'edge' | 'cluster' | ''
   revision?: number

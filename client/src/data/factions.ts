@@ -8,6 +8,7 @@ export interface FactionData {
     color: string // Tailwind color name (e.g. 'red', 'blue')
     description: string
     isFanFaction?: boolean
+    isFireIceFaction?: boolean
 }
 
 export const FACTIONS: FactionData[] = [
@@ -256,6 +257,7 @@ export const FACTIONS: FactionData[] = [
         homeTerrain: 'Ice',
         color: 'cyan',
         description: 'Ice faction that starts with a favor tile and scores temples after building the stronghold.',
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Yetis,
@@ -264,6 +266,7 @@ export const FACTIONS: FactionData[] = [
         homeTerrain: 'Ice',
         color: 'cyan',
         description: 'Ice faction with discounted power actions and a stronghold that reuses occupied power actions.',
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Dragonlords,
@@ -272,6 +275,7 @@ export const FACTIONS: FactionData[] = [
         homeTerrain: 'Volcano',
         color: 'orange',
         description: 'Volcano faction that removes power tokens instead of using spades to create volcano terrain.',
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Acolytes,
@@ -280,6 +284,7 @@ export const FACTIONS: FactionData[] = [
         homeTerrain: 'Volcano',
         color: 'orange',
         description: 'Volcano faction that spends cult steps instead of spades to transform terrain.',
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Shapeshifters,
@@ -288,6 +293,7 @@ export const FACTIONS: FactionData[] = [
         homeTerrain: 'Variable',
         color: 'stone',
         description: 'Colorless faction that chooses and can later shift its home terrain.',
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Riverwalkers,
@@ -296,6 +302,7 @@ export const FACTIONS: FactionData[] = [
         homeTerrain: 'Variable',
         color: 'stone',
         description: 'Colorless faction that walks unlocked terrain types instead of terraforming.',
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Firewalkers,
@@ -305,6 +312,7 @@ export const FACTIONS: FactionData[] = [
         color: 'orange',
         description: 'Fan volcano faction that pays victory points to transform terrain into lava.',
         isFanFaction: true,
+        isFireIceFaction: true,
     },
     {
         id: FactionType.Selkies,
@@ -314,6 +322,7 @@ export const FACTIONS: FactionData[] = [
         color: 'cyan',
         description: 'Fan ice faction that can build special dwellings on river hexes.',
         isFanFaction: true,
+        isFireIceFaction: true,
     },
     {
         id: FactionType.SnowShamans,
@@ -323,5 +332,6 @@ export const FACTIONS: FactionData[] = [
         color: 'cyan',
         description: 'Fan ice faction that advances shipping or digging when passing.',
         isFanFaction: true,
+        isFireIceFaction: true,
     }
 ]

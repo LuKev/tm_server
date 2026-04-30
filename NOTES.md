@@ -144,6 +144,9 @@
     - default is `false`
     - client faction-pick and auction nomination UIs filter fan factions when disabled
     - server faction selection / auction nomination validation also rejects fan factions when disabled
+  - 2026-04-29 lobby option split:
+    - `enableFireIceFactions` is separate from `enableFanFactions` and gates Fire & Ice faction colors: ice, volcano, and colorless
+    - fan Fire & Ice factions require both toggles
   - Green-faction mechanic clarifications implemented:
     - `Chash Dallah` start on income-track level `0`, which grants `+2 coins` at income time
     - `Chash Dallah` track advancements cost `2 workers + 2 coins`

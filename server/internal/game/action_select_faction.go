@@ -120,6 +120,9 @@ func isAllowedFaction(gs *GameState, f models.FactionType) bool {
 	if !isKnownFaction(f) {
 		return false
 	}
+	if gs != nil && !gs.EnableFireIceFactions && f.IsFireIceFaction() {
+		return false
+	}
 	if gs != nil && !gs.EnableFanFactions && f.IsFanFaction() {
 		return false
 	}

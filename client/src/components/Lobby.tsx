@@ -15,6 +15,7 @@ interface GameInfo {
   host: string
   mapId: string
   enableFanFactions?: boolean
+  enableFireIceFactions?: boolean
   fireIceScoring?: 'off' | 'on' | 'random'
   customMap?: CustomMapDefinition
   started?: boolean
@@ -80,6 +81,7 @@ export function Lobby(): React.ReactElement {
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
   const [enableFanFactions, setEnableFanFactions] = useState(false)
+  const [enableFireIceFactions, setEnableFireIceFactions] = useState(false)
   const [fireIceScoring, setFireIceScoring] = useState<'off' | 'on' | 'random'>('off')
   const [lobbyError, setLobbyError] = useState<string | null>(null)
 
@@ -148,6 +150,7 @@ export function Lobby(): React.ReactElement {
         creator: trimmedPlayerName,
         mapId: newGameMapId,
         enableFanFactions,
+        enableFireIceFactions,
         fireIceScoring,
         customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
       },
@@ -178,7 +181,6 @@ export function Lobby(): React.ReactElement {
         <div className="lobby-header">
           <p className="lobby-kicker">TM Lobby</p>
           <h1 className="lobby-title">Terra Mystica Online</h1>
-          <p className="lobby-subtitle">Create an open table, fill the seats, then launch the game.</p>
           <div className="lobby-status">
             <span className={`lobby-status-dot ${getStatusColorClass()}`}></span>
             <span className="lobby-status-label">{connectionStatus}</span>
@@ -187,7 +189,7 @@ export function Lobby(): React.ReactElement {
 
         <div className="lobby-panel">
           <div className="lobby-section">
-            <label className="lobby-label" htmlFor="lobby-player-name">Player Name</label>
+            <label className="lobby-label" htmlFor="lobby-player-name">Player</label>
             <input
               id="lobby-player-name"
               type="text"
@@ -195,7 +197,7 @@ export function Lobby(): React.ReactElement {
               value={playerName}
               onChange={(e) => { setPlayerName(e.target.value) }}
               className="lobby-input"
-              placeholder="Enter your name"
+              placeholder="Name"
             />
           </div>
 
@@ -207,9 +209,9 @@ export function Lobby(): React.ReactElement {
 
           {joinedGame && (
             <div className="lobby-banner">
-              <span className="lobby-banner-title">Current seat</span>
-              <span>You are seated in <strong>{joinedGame.name}</strong>.</span>
-              <span>Leave it before joining or creating another open game.</span>
+              <span className="lobby-banner-title">Current game</span>
+              <span>Seated in <strong>{joinedGame.name}</strong>.</span>
+              <span>Leave to join or create another game.</span>
             </div>
           )}
 
@@ -217,9 +219,7 @@ export function Lobby(): React.ReactElement {
             <div className="lobby-section-heading">
               <div>
                 <h2>Create Game</h2>
-                <p>New tables automatically seat the creator as the host.</p>
               </div>
-              <span className="lobby-note">IDs are generated automatically</span>
             </div>
 
             <div className="lobby-create-grid">
@@ -292,7 +292,7 @@ export function Lobby(): React.ReactElement {
                   checked={randomizeTurnOrder}
                   onChange={(e) => { setRandomizeTurnOrder(e.target.checked) }}
                 />
-                <span>Randomize turn order on start</span>
+                <span>Random turn order</span>
               </label>
 
               <label className="lobby-field-stack">
@@ -304,10 +304,21 @@ export function Lobby(): React.ReactElement {
                   className="lobby-select"
                   disabled={!isConnected}
                 >
-                  <option value="snellman">Snellman (Pick Factions)</option>
+                  <option value="snellman">Snellman</option>
                   <option value="auction">Auction</option>
-                  <option value="fast_auction">Fast Auction</option>
+                  <option value="fast_auction">Fast auction</option>
                 </select>
+              </label>
+
+              <label className="lobby-checkbox-row">
+                <input
+                  type="checkbox"
+                  data-testid="lobby-enable-fire-ice-factions"
+                  checked={enableFireIceFactions}
+                  onChange={(e) => { setEnableFireIceFactions(e.target.checked) }}
+                  disabled={!isConnected || joinedGameId !== null}
+                />
+                <span>F&amp;I factions</span>
               </label>
 
               <label className="lobby-checkbox-row">
@@ -316,12 +327,13 @@ export function Lobby(): React.ReactElement {
                   data-testid="lobby-enable-fan-factions"
                   checked={enableFanFactions}
                   onChange={(e) => { setEnableFanFactions(e.target.checked) }}
+                  disabled={!isConnected || joinedGameId !== null}
                 />
-                <span>Enable fan factions</span>
+                <span>Fan factions</span>
               </label>
 
               <label className="lobby-field-stack">
-                <span className="lobby-label">Fire &amp; Ice final scoring</span>
+                <span className="lobby-label">F&amp;I final scoring</span>
                 <select
                   data-testid="lobby-fire-ice-scoring"
                   value={fireIceScoring}
@@ -331,7 +343,7 @@ export function Lobby(): React.ReactElement {
                 >
                   <option value="off">Off</option>
                   <option value="on">On</option>
-                  <option value="random">Random (50/50)</option>
+                  <option value="random">Random</option>
                 </select>
               </label>
 
@@ -348,7 +360,7 @@ export function Lobby(): React.ReactElement {
                 {turnTimerEnabled && (
                   <div className="lobby-create-grid">
                     <label className="lobby-field-stack">
-                      <span className="lobby-label">Initial minutes</span>
+                      <span className="lobby-label">Minutes</span>
                       <input
                         type="number"
                         data-testid="lobby-turn-timer-minutes"
@@ -363,7 +375,7 @@ export function Lobby(): React.ReactElement {
                       />
                     </label>
                     <label className="lobby-field-stack">
-                      <span className="lobby-label">Increment seconds</span>
+                      <span className="lobby-label">Increment (sec)</span>
                       <input
                         type="number"
                         data-testid="lobby-turn-timer-increment"
@@ -387,7 +399,6 @@ export function Lobby(): React.ReactElement {
             <div className="lobby-section-heading">
               <div>
                 <h2>Open Games</h2>
-                <p>Only games that have not started are shown here.</p>
               </div>
               <button
                 data-testid="lobby-refresh-games-list"
@@ -400,7 +411,7 @@ export function Lobby(): React.ReactElement {
             </div>
 
             {openGames.length === 0 ? (
-              <p className="lobby-empty">No open games. Create one above.</p>
+              <p className="lobby-empty">No open games.</p>
             ) : (
               <div className="lobby-games">
                 {openGames.map((g) => {
@@ -423,16 +434,19 @@ export function Lobby(): React.ReactElement {
                               Map: {displayMapName}
                             </span>
                             <span className="lobby-tag lobby-tag-muted">
-                              Fan Factions: {g.enableFanFactions ? 'On' : 'Off'}
+                              F&amp;I factions: {g.enableFireIceFactions ? 'On' : 'Off'}
                             </span>
                             <span className="lobby-tag lobby-tag-muted">
-                              F+I: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
+                              Fan factions: {g.enableFanFactions ? 'On' : 'Off'}
+                            </span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              F&amp;I scoring: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
                             </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>
                         </div>
                         <div className="lobby-player-line">
-                          <span>Players {String(g.players.length)}/{String(g.maxPlayers)}</span>
+                          <span>{String(g.players.length)}/{String(g.maxPlayers)} players</span>
                           <span>{g.players.join(', ') || 'No players yet'}</span>
                         </div>
                         {g.mapId === 'custom' && g.customMap && (
@@ -464,7 +478,7 @@ export function Lobby(): React.ReactElement {
                             disabled={!isConnected || !trimmedPlayerName || isFull || joinBlockedByOtherSeat}
                             className="lobby-button lobby-button-accent"
                           >
-                            {joinBlockedByOtherSeat ? 'Leave Current Game First' : 'Join'}
+                            {joinBlockedByOtherSeat ? 'Leave current game' : 'Join'}
                           </button>
                         )}
 
@@ -486,7 +500,7 @@ export function Lobby(): React.ReactElement {
                           disabled={!isConnected || !isFull || !isHost}
                           className="lobby-button lobby-button-success"
                         >
-                          {isFull ? (isHost ? 'Start' : 'Host Starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
+                          {isFull ? (isHost ? 'Start' : 'Host starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
                         </button>
                       </div>
                     </div>
@@ -500,12 +514,11 @@ export function Lobby(): React.ReactElement {
             <div className="lobby-section-heading">
               <div>
                 <h2>Started Games</h2>
-                <p>Started tables remain visible here and can be opened in read-only spectator mode.</p>
               </div>
             </div>
 
             {startedGames.length === 0 ? (
-              <p className="lobby-empty">No started games yet.</p>
+              <p className="lobby-empty">No started games.</p>
             ) : (
               <div className="lobby-games">
                 {startedGames.map((g) => {
@@ -523,15 +536,20 @@ export function Lobby(): React.ReactElement {
                           <div className="lobby-tag-row">
                             <span className="lobby-tag">{g.id}</span>
                             <span className="lobby-tag lobby-tag-muted">Map: {displayMapName}</span>
-                            <span className="lobby-tag lobby-tag-muted">Started</span>
                             <span className="lobby-tag lobby-tag-muted">
-                              F+I: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
+                              F&amp;I factions: {g.enableFireIceFactions ? 'On' : 'Off'}
+                            </span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              Fan factions: {g.enableFanFactions ? 'On' : 'Off'}
+                            </span>
+                            <span className="lobby-tag lobby-tag-muted">
+                              F&amp;I scoring: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
                             </span>
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>
                         </div>
                         <div className="lobby-player-line">
-                          <span>Players {String(g.players.length)}/{String(g.maxPlayers)}</span>
+                          <span>{String(g.players.length)}/{String(g.maxPlayers)} players</span>
                           <span>{g.players.join(', ') || 'No players listed'}</span>
                         </div>
                         {g.mapId === 'custom' && g.customMap && (

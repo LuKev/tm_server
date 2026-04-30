@@ -21,17 +21,18 @@ var (
 )
 
 type GameMeta struct {
-	ID                string                     `json:"id"`
-	Name              string                     `json:"name"`
-	Host              string                     `json:"host"`
-	MapID             string                     `json:"mapId"`
-	EnableFanFactions bool                       `json:"enableFanFactions"`
-	FireIceScoring    string                     `json:"fireIceScoring"`
-	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
-	Players           []string                   `json:"players"`
-	MaxPlayers        int                        `json:"maxPlayers"`
-	Started           bool                       `json:"started"`
-	CreatedAt         time.Time                  `json:"createdAt"`
+	ID                    string                     `json:"id"`
+	Name                  string                     `json:"name"`
+	Host                  string                     `json:"host"`
+	MapID                 string                     `json:"mapId"`
+	EnableFanFactions     bool                       `json:"enableFanFactions"`
+	EnableFireIceFactions bool                       `json:"enableFireIceFactions"`
+	FireIceScoring        string                     `json:"fireIceScoring"`
+	CustomMap             *board.CustomMapDefinition `json:"customMap,omitempty"`
+	Players               []string                   `json:"players"`
+	MaxPlayers            int                        `json:"maxPlayers"`
+	Started               bool                       `json:"started"`
+	CreatedAt             time.Time                  `json:"createdAt"`
 }
 
 // Manager maintains a list of open games for joining
@@ -62,7 +63,7 @@ func cloneGameMeta(in *GameMeta) *GameMeta {
 	return &out
 }
 
-func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition, enableFanFactions bool, fireIceScoring string) (*GameMeta, error) {
+func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID string, customMap *board.CustomMapDefinition, enableFanFactions bool, enableFireIceFactions bool, fireIceScoring string) (*GameMeta, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -94,16 +95,17 @@ func (m *Manager) CreateGame(name string, maxPlayers int, host string, mapID str
 		fireIceScoring = "off"
 	}
 	g := &GameMeta{
-		ID:                id,
-		Name:              name,
-		Host:              host,
-		MapID:             string(normalizedMapID),
-		EnableFanFactions: enableFanFactions,
-		FireIceScoring:    fireIceScoring,
-		CustomMap:         board.CloneCustomMapDefinition(customMap),
-		MaxPlayers:        maxPlayers,
-		CreatedAt:         time.Now(),
-		Players:           make([]string, 0, maxPlayers),
+		ID:                    id,
+		Name:                  name,
+		Host:                  host,
+		MapID:                 string(normalizedMapID),
+		EnableFanFactions:     enableFanFactions,
+		EnableFireIceFactions: enableFireIceFactions,
+		FireIceScoring:        fireIceScoring,
+		CustomMap:             board.CloneCustomMapDefinition(customMap),
+		MaxPlayers:            maxPlayers,
+		CreatedAt:             time.Now(),
+		Players:               make([]string, 0, maxPlayers),
 	}
 	m.games[id] = g
 	if host != "" {

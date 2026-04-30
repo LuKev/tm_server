@@ -982,9 +982,10 @@ export const Game = () => {
 
     return FACTIONS
       .filter((faction) => (gameState?.enableFanFactions ?? false) || !faction.isFanFaction)
+      .filter((faction) => (gameState?.enableFireIceFactions ?? false) || !faction.isFireIceFaction)
       .filter((faction) => !nominated.has(faction.type) && !nominatedColors.has(faction.color))
       .map((faction) => faction.type)
-  }, [auctionState?.nominationOrder, gameState?.enableFanFactions, setupMode])
+  }, [auctionState?.nominationOrder, gameState?.enableFanFactions, gameState?.enableFireIceFactions, setupMode])
 
   const currentPlayerPosition = useMemo(() => {
     if (!gameState?.turnOrder || !localPlayerId) return 1
@@ -2808,6 +2809,7 @@ export const Game = () => {
             isMyTurn={isMyTurn}
             currentPlayerPosition={currentPlayerPosition}
             enableFanFactions={gameState?.enableFanFactions ?? false}
+            enableFireIceFactions={gameState?.enableFireIceFactions ?? false}
           />
         )}
 

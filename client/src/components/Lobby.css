@@ -29,13 +29,6 @@
   letter-spacing: -0.04em;
 }
 
-.lobby-subtitle {
-  max-width: 46rem;
-  margin: 12px 0 0;
-  color: rgba(247, 239, 228, 0.76);
-  font-size: 1rem;
-}
-
 .lobby-status {
   display: inline-flex;
   align-items: center;
@@ -110,16 +103,6 @@
 .lobby-section-heading h2 {
   margin: 0;
   font-size: 1.3rem;
-}
-
-.lobby-section-heading p {
-  margin: 6px 0 0;
-  color: rgba(247, 239, 228, 0.66);
-}
-
-.lobby-note {
-  font-size: 0.85rem;
-  color: rgba(247, 239, 228, 0.56);
 }
 
 .lobby-label {

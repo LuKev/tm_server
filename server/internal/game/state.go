@@ -23,6 +23,7 @@ type GameState struct {
 	Phase                            GamePhase                             `json:"phase"`
 	SetupMode                        SetupMode                             `json:"setupMode"`
 	EnableFanFactions                bool                                  `json:"enableFanFactions"`
+	EnableFireIceFactions            bool                                  `json:"enableFireIceFactions"`
 	FireIceFinalScoringSetting       FireIceFinalScoringSetting            `json:"fireIceFinalScoringSetting"`
 	FireIceFinalScoringTile          FireIceFinalScoringTile               `json:"fireIceFinalScoringTile,omitempty"`
 	SetupSubphase                    SetupSubphase                         `json:"setupSubphase"`

@@ -51,13 +51,14 @@ type inboundMsg struct {
 }
 
 type createGamePayload struct {
-	Name              string                     `json:"name"`
-	MaxPlayers        int                        `json:"maxPlayers"`
-	Creator           string                     `json:"creator"`
-	MapID             string                     `json:"mapId,omitempty"`
-	EnableFanFactions bool                       `json:"enableFanFactions,omitempty"`
-	FireIceScoring    string                     `json:"fireIceScoring,omitempty"`
-	CustomMap         *board.CustomMapDefinition `json:"customMap,omitempty"`
+	Name                  string                     `json:"name"`
+	MaxPlayers            int                        `json:"maxPlayers"`
+	Creator               string                     `json:"creator"`
+	MapID                 string                     `json:"mapId,omitempty"`
+	EnableFanFactions     bool                       `json:"enableFanFactions,omitempty"`
+	EnableFireIceFactions bool                       `json:"enableFireIceFactions,omitempty"`
+	FireIceScoring        string                     `json:"fireIceScoring,omitempty"`
+	CustomMap             *board.CustomMapDefinition `json:"customMap,omitempty"`
 }
 
 type joinGamePayload struct {
@@ -632,13 +633,14 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 	}
 
 	err := c.deps.Games.CreateGameWithOptions(p.GameID, meta.Players, game.CreateGameOptions{
-		RandomizeTurnOrder: randomize,
-		SetupMode:          setupMode,
-		TurnTimer:          turnTimer,
-		MapID:              board.NormalizeMapID(meta.MapID),
-		EnableFanFactions:  meta.EnableFanFactions,
-		FireIceScoring:     game.FireIceFinalScoringSetting(strings.TrimSpace(meta.FireIceScoring)),
-		CustomMap:          board.CloneCustomMapDefinition(meta.CustomMap),
+		RandomizeTurnOrder:    randomize,
+		SetupMode:             setupMode,
+		TurnTimer:             turnTimer,
+		MapID:                 board.NormalizeMapID(meta.MapID),
+		EnableFanFactions:     meta.EnableFanFactions,
+		EnableFireIceFactions: meta.EnableFireIceFactions,
+		FireIceScoring:        game.FireIceFinalScoringSetting(strings.TrimSpace(meta.FireIceScoring)),
+		CustomMap:             board.CloneCustomMapDefinition(meta.CustomMap),
 	})
 	if err != nil && !strings.Contains(err.Error(), "game already exists") {
 		log.Printf("error creating game: %v", err)
@@ -695,6 +697,7 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 		p.MapID,
 		p.CustomMap,
 		p.EnableFanFactions,
+		p.EnableFireIceFactions,
 		fireIceScoring,
 	)
 	if err != nil {

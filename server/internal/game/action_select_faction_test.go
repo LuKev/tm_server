@@ -85,3 +85,66 @@ func TestSelectFaction_AllowsFanFactionWhenEnabled(t *testing.T) {
 		t.Fatalf("expected fan faction to be allowed when enabled: %v", err)
 	}
 }
+
+func TestSelectFaction_RejectsFireIceFactionWhenDisabled(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", nil); err != nil {
+		t.Fatalf("add p1: %v", err)
+	}
+	gs.Phase = PhaseFactionSelection
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.EnableFireIceFactions = false
+
+	action := &SelectFactionAction{
+		PlayerID:    "p1",
+		FactionType: models.FactionRiverwalkers,
+	}
+	if err := action.Validate(gs); err == nil {
+		t.Fatalf("expected Fire & Ice faction to be rejected when disabled")
+	}
+}
+
+func TestSelectFaction_AllowsFireIceFactionWhenEnabled(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", nil); err != nil {
+		t.Fatalf("add p1: %v", err)
+	}
+	gs.Phase = PhaseFactionSelection
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.EnableFireIceFactions = true
+
+	action := &SelectFactionAction{
+		PlayerID:    "p1",
+		FactionType: models.FactionRiverwalkers,
+	}
+	if err := action.Validate(gs); err != nil {
+		t.Fatalf("expected Fire & Ice faction to be allowed when enabled: %v", err)
+	}
+}
+
+func TestSelectFaction_FanFireIceFactionRequiresBothToggles(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", nil); err != nil {
+		t.Fatalf("add p1: %v", err)
+	}
+	gs.Phase = PhaseFactionSelection
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.EnableFanFactions = true
+	gs.EnableFireIceFactions = false
+
+	action := &SelectFactionAction{
+		PlayerID:    "p1",
+		FactionType: models.FactionSelkies,
+	}
+	if err := action.Validate(gs); err == nil {
+		t.Fatalf("expected fan Fire & Ice faction to require Fire & Ice toggle")
+	}
+
+	gs.EnableFireIceFactions = true
+	if err := action.Validate(gs); err != nil {
+		t.Fatalf("expected fan Fire & Ice faction to be allowed with both toggles: %v", err)
+	}
+}
