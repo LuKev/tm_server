@@ -48,6 +48,7 @@ type ConfirmDialog = {
     onClick: () => void
     testId?: string
     className?: string
+    disabled?: boolean
   }>
 }
 
@@ -268,6 +269,7 @@ export const Game = () => {
   const [pendingHex, setPendingHex] = useState<{ q: number; r: number } | null>(null)
   const [hexActionMode, setHexActionMode] = useState<'build' | 'transform_build' | 'transform_only' | null>(null)
   const [selectedTerrain, setSelectedTerrain] = useState<TerrainType>(TerrainType.Plains)
+  const [selectedAcolytesCultTrack, setSelectedAcolytesCultTrack] = useState<CultType>(CultType.Fire)
 
   const [upgradeHex, setUpgradeHex] = useState<{ q: number; r: number } | null>(null)
   const [chaosModalOpen, setChaosModalOpen] = useState(false)
@@ -479,6 +481,20 @@ export const Game = () => {
     const raw = (localPlayer.faction ?? localPlayer.Faction) as unknown
     return resolveFaction(raw)
   }, [localPlayer])
+  const acolytesCultPaymentOptions = useMemo(() => {
+    return CULT_CHOICES.map((choice) => ({
+      ...choice,
+      position: localPlayer?.cults?.[choice.track] ?? 0,
+    }))
+  }, [localPlayer?.cults])
+
+  useEffect(() => {
+    if (localFactionType !== FactionType.Acolytes) return
+    const best = acolytesCultPaymentOptions.reduce((current, option) => (
+      option.position > current.position ? option : current
+    ), acolytesCultPaymentOptions[0])
+    if (best) setSelectedAcolytesCultTrack(best.track)
+  }, [acolytesCultPaymentOptions, localFactionType])
 
   const localHomeTerrain = useMemo(() => {
     const faction = FACTIONS.find((f) => f.id === localFactionType)
@@ -491,8 +507,20 @@ export const Game = () => {
     if (terrain.startsWith('mountain')) return TerrainType.Mountain
     if (terrain.startsWith('wasteland')) return TerrainType.Wasteland
     if (terrain.startsWith('desert')) return TerrainType.Desert
+    if (terrain.startsWith('ice')) return TerrainType.Ice
+    if (terrain.startsWith('volcano')) return TerrainType.Volcano
     return TerrainType.Plains
   }, [localFactionType])
+
+  const transformTerrainChoices = useMemo(() => {
+    if (localHomeTerrain === TerrainType.Ice) {
+      return [{ id: TerrainType.Ice, name: 'Ice' }]
+    }
+    if (localHomeTerrain === TerrainType.Volcano) {
+      return [{ id: TerrainType.Volcano, name: 'Volcano' }]
+    }
+    return TERRAIN_CHOICES
+  }, [localHomeTerrain])
 
   const pendingDecision = (gameState?.pendingDecision ?? null) as Record<string, unknown> | null
   const pendingDecisionType = (pendingDecision?.type as string | undefined) ?? null
@@ -1647,9 +1675,61 @@ export const Game = () => {
     const warning = hasUnspentOptionalActions
       ? ' You still have optional special actions or pending spades available.'
       : ''
-    queueConfirm('Confirm Pass', `Pass and take ${bonusCardLabel(cardType)}?${warning}`, () => {
-      performAction('pass', { bonusCard: cardType })
+    promptPassAction(
+      { bonusCard: cardType },
+      `Pass and take ${bonusCardLabel(cardType)}?${warning}`,
+    )
+  }
+
+  const promptPassAction = (payload: Record<string, unknown>, message: string): void => {
+    const submitPass = (snowShamansUpgrade?: 'digging' | 'shipping'): void => {
+      performAction('pass', {
+        ...payload,
+        ...(snowShamansUpgrade ? { snowShamansUpgrade } : {}),
+      })
       setConfirmDialog(null)
+    }
+
+    if (localFactionType === FactionType.SnowShamans) {
+      const diggingLevel = localPlayer?.digging ?? 0
+      const shippingLevel = localPlayer?.shipping ?? 0
+      const isDiggingMaxed = diggingLevel >= 2
+      const isShippingMaxed = shippingLevel >= 5
+      openChoiceDialog(
+        'Snow Shamans Pass Upgrade',
+        `${message} Choose the free pass upgrade.`,
+        [
+          {
+            label: 'Digging',
+            testId: 'snow-shamans-pass-upgrade-digging',
+            disabled: isDiggingMaxed,
+            onClick: () => { submitPass('digging') },
+          },
+          {
+            label: 'Shipping',
+            testId: 'snow-shamans-pass-upgrade-shipping',
+            disabled: isShippingMaxed,
+            onClick: () => { submitPass('shipping') },
+          },
+          ...(isDiggingMaxed && isShippingMaxed
+            ? [{
+                label: 'No Upgrade',
+                testId: 'snow-shamans-pass-no-upgrade',
+                onClick: () => { submitPass() },
+              }]
+            : []),
+          {
+            label: 'Cancel',
+            testId: 'snow-shamans-pass-upgrade-cancel',
+            onClick: () => { setConfirmDialog(null) },
+          },
+        ],
+      )
+      return
+    }
+
+    queueConfirm('Confirm Pass', message, () => {
+      submitPass()
     }, 'turn_end')
   }
 
@@ -1680,10 +1760,7 @@ export const Game = () => {
     const warning = hasUnspentOptionalActions
       ? ' You still have optional special actions or pending spades available.'
       : ''
-    queueConfirm('Confirm Pass', `Pass this round without selecting a bonus card?${warning}`, () => {
-      performAction('pass', {})
-      setConfirmDialog(null)
-    }, 'turn_end')
+    promptPassAction({}, `Pass this round without selecting a bonus card?${warning}`)
   }
 
   const handleFavorTileClick = (tileType: FavorTileType): void => {
@@ -1931,8 +2008,25 @@ export const Game = () => {
       })
       return
     }
-
     submit(false)
+  }
+
+  const selectedHexTerrain = pendingHex
+    ? gameState?.map?.hexes?.[`${String(pendingHex.q)},${String(pendingHex.r)}`]?.terrain
+    : undefined
+  const isAcolytesVolcanoTransform = localFactionType === FactionType.Acolytes
+    && !!pendingHex
+    && (hexActionMode === 'transform_build' || hexActionMode === 'transform_only')
+    && selectedTerrain === TerrainType.Volcano
+    && selectedHexTerrain !== undefined
+    && selectedHexTerrain !== TerrainType.Volcano
+
+  const withAcolytesCultTrack = (payload: Record<string, unknown>): Record<string, unknown> => {
+    if (!isAcolytesVolcanoTransform) return payload
+    return {
+      ...payload,
+      acolytesCultTrack: selectedAcolytesCultTrack,
+    }
   }
 
   const submitHexModalAction = (): void => {
@@ -1960,11 +2054,11 @@ export const Game = () => {
     }
 
     if (hasPendingSpadesForMe > 0) {
-      performAction('transform_build', {
+      performAction('transform_build', withAcolytesCultTrack({
         hex: pendingHex,
         buildDwelling: hexActionMode !== 'transform_only',
         targetTerrain: selectedTerrain,
-      })
+      }))
       closeHexModal()
       return
     }
@@ -1998,30 +2092,30 @@ export const Game = () => {
     }
 
     if (hexActionMode === 'build') {
-      performAction('transform_build', {
+      performAction('transform_build', withAcolytesCultTrack({
         hex: pendingHex,
         buildDwelling: true,
-      })
+      }))
       closeHexModal()
       return
     }
 
     if (hexActionMode === 'transform_build') {
-      performAction('transform_build', {
+      performAction('transform_build', withAcolytesCultTrack({
         hex: pendingHex,
         buildDwelling: true,
         targetTerrain: selectedTerrain,
-      })
+      }))
       closeHexModal()
       return
     }
 
     if (hexActionMode === 'transform_only') {
-      performAction('transform_build', {
+      performAction('transform_build', withAcolytesCultTrack({
         hex: pendingHex,
         buildDwelling: false,
         targetTerrain: selectedTerrain,
-      })
+      }))
       closeHexModal()
     }
   }
@@ -2063,32 +2157,50 @@ export const Game = () => {
         <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Action</div>
         <div className="text-sm font-semibold text-slate-900">{decisionStripStatus}</div>
       </div>
-	      {confirmDialog ? (
-	        <div className="flex flex-wrap items-center justify-between gap-3">
-	          <div>
-	            <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
-	            <div className="text-sm text-slate-700">{confirmDialog.message}</div>
+      {confirmDialog ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">{confirmDialog.title}</div>
+            <div className="text-sm text-slate-700">{confirmDialog.message}</div>
           </div>
-          <div className="flex items-center gap-2">
-            <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
-	            <button
-	              data-testid="confirm-action-confirm"
-	              className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
-	              onClick={() => {
-	                const onConfirm = confirmDialog?.onConfirm
-	                if (!onConfirm) return
-	                onConfirm()
-	              }}
-	            >
-	              Confirm
-	            </button>
-	          </div>
-	        </div>
-	      ) : powerMode?.type === 'children_place_power_tokens' ? (
-	        <div className="flex flex-wrap items-center justify-between gap-3">
-	          <div>
-	            <div className="text-sm font-semibold text-slate-900">Place Children River Tokens</div>
-	            <div className="text-sm text-slate-700">
+          <div className="flex flex-wrap items-center gap-2">
+            {confirmDialog.actions ? (
+              <>
+                {confirmDialog.actions.map((action) => (
+                  <button
+                    key={action.testId ?? action.label}
+                    data-testid={action.testId}
+                    className={action.className ?? 'rounded border border-slate-300 px-3 py-1 text-sm text-slate-800 hover:bg-slate-100 disabled:bg-slate-100 disabled:text-slate-400'}
+                    disabled={action.disabled}
+                    onClick={action.onClick}
+                  >
+                    {action.label}
+                  </button>
+                ))}
+              </>
+            ) : (
+              <>
+                <button data-testid="confirm-action-cancel" className="rounded bg-gray-200 px-3 py-1 text-sm text-gray-800" onClick={() => { setConfirmDialog(null) }}>Cancel</button>
+                <button
+                  data-testid="confirm-action-confirm"
+                  className="rounded bg-blue-600 px-3 py-1 text-sm text-white"
+                  onClick={() => {
+                    const onConfirm = confirmDialog?.onConfirm
+                    if (!onConfirm) return
+                    onConfirm()
+                  }}
+                >
+                  Confirm
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      ) : powerMode?.type === 'children_place_power_tokens' ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Place Children River Tokens</div>
+            <div className="text-sm text-slate-700">
 	              {selectedChildrenTokenHexes.length === 0
 	                ? 'Select 1 or 2 empty river hexes connected to your buildings or existing river network.'
 	                : `Selected: ${selectedChildrenTokenHexes.map((hex) => formatHexCoord(hex)).join(', ')}`}
@@ -2156,7 +2268,7 @@ export const Game = () => {
                   onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
                   className="rounded border px-2 py-1"
                 >
-                  {TERRAIN_CHOICES.map((t) => (
+                  {transformTerrainChoices.map((t) => (
                     <option key={t.id} value={t.id}>{t.name}</option>
                   ))}
                 </select>
@@ -2195,10 +2307,28 @@ export const Game = () => {
                     onChange={(e) => { setSelectedTerrain(Number(e.target.value) as TerrainType) }}
                     className="rounded border px-2 py-1"
                   >
-                    {TERRAIN_CHOICES.map((t) => (
+                    {transformTerrainChoices.map((t) => (
                       <option key={t.id} value={t.id}>{t.name}</option>
                     ))}
                   </select>
+                </label>
+              )}
+              {isAcolytesVolcanoTransform && (
+                <label className="flex flex-col gap-1 text-sm text-slate-800">
+                  <span className="font-medium">Cult payment track</span>
+                  <select
+                    data-testid="hex-action-acolytes-cult-track"
+                    value={selectedAcolytesCultTrack}
+                    onChange={(e) => { setSelectedAcolytesCultTrack(Number(e.target.value) as CultType) }}
+                    className="rounded border px-2 py-1"
+                  >
+                    {acolytesCultPaymentOptions.map((choice) => (
+                      <option key={choice.track} value={choice.track}>
+                        {choice.label} ({String(choice.position)})
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-slate-500">Acolytes spend 3 or 4 steps from one cult track.</span>
                 </label>
               )}
             </div>
@@ -2354,6 +2484,32 @@ export const Game = () => {
                 {choice.label}
               </button>
             ))}
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'goblins_cult_steps' ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Goblins: Choose Cult Step</div>
+            <div className="text-sm text-slate-700">
+              Select a cult track to advance. Steps remaining: {String(Number(pendingDecision?.stepsRemaining ?? 0))}.
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {CULT_CHOICES.map((choice) => {
+              const position = localPlayer?.cults?.[choice.track] ?? 0
+              return (
+                <button
+                  key={choice.track}
+                  type="button"
+                  data-testid={`goblins-cult-choice-${String(choice.track)}`}
+                  className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 disabled:bg-slate-100 disabled:text-slate-400"
+                  disabled={position >= 10}
+                  onClick={() => { performAction('select_goblins_cult_track', { cultTrack: choice.track }) }}
+                >
+                  {choice.label}
+                </button>
+              )
+            })}
           </div>
         </div>
       ) : hasPendingDecisionForMe && pendingDecisionType === 'riverwalkers_priest_choice' ? (

@@ -84,10 +84,11 @@ func (a *BaseAction) GetPlayerID() string {
 // changed its type to your Home terrain, you may immediately build a Dwelling on that space."
 type TransformAndBuildAction struct {
 	BaseAction
-	TargetHex     board.Hex
-	TargetTerrain models.TerrainType // Optional: target terrain type (if not home terrain)
-	BuildDwelling bool               // Whether to build a dwelling after transforming
-	UseSkip       bool               // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
+	TargetHex         board.Hex
+	TargetTerrain     models.TerrainType // Optional: target terrain type (if not home terrain)
+	BuildDwelling     bool               // Whether to build a dwelling after transforming
+	UseSkip           bool               // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
+	AcolytesCultTrack *CultTrack         // Optional: cult track Acolytes spend from when creating volcano terrain
 }
 
 // NewTransformAndBuildAction creates a new transform and build action
@@ -320,7 +321,7 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 					return 0, 0, 0, 0, fmt.Errorf("not enough power tokens for volcano transform")
 				}
 			case isAcolytes(player):
-				if _, ok := gs.acolytesCultPaymentTrack(player, acolytesCultTransformCost(gs, player, mapHex.Terrain)); !ok {
+				if _, ok := gs.acolytesCultPaymentTrackForSelection(player, acolytesCultTransformCost(gs, player, mapHex.Terrain), a.AcolytesCultTrack); !ok {
 					return 0, 0, 0, 0, fmt.Errorf("not enough cult steps for volcano transform")
 				}
 			case isFirewalkers(player):
@@ -544,7 +545,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 				return err
 			}
 		case isAcolytes(player):
-			if err := gs.spendAcolytesCultSteps(a.PlayerID, acolytesCultTransformCost(gs, player, mapHex.Terrain)); err != nil {
+			if err := gs.spendAcolytesCultStepsFromTrack(a.PlayerID, acolytesCultTransformCost(gs, player, mapHex.Terrain), a.AcolytesCultTrack); err != nil {
 				return err
 			}
 		case isFirewalkers(player):
@@ -1284,7 +1285,8 @@ func (a *AdvanceDiggingAction) Execute(gs *GameState) error {
 // PassAction represents passing for the round
 type PassAction struct {
 	BaseAction
-	BonusCard *BonusCardType // Bonus card selection (required)
+	BonusCard          *BonusCardType          // Bonus card selection (required)
+	SnowShamansUpgrade *SnowShamansPassUpgrade // Optional pass upgrade choice for Snow Shamans
 }
 
 // NewPassAction creates a new pass action
@@ -1340,6 +1342,16 @@ func (a *PassAction) Validate(gs *GameState) error {
 			}
 		}
 	}
+	if a.SnowShamansUpgrade != nil {
+		if !isSnowShamans(player) {
+			return fmt.Errorf("snow shamans pass upgrade is only available to Snow Shamans")
+		}
+		switch *a.SnowShamansUpgrade {
+		case SnowShamansPassUpgradeDigging, SnowShamansPassUpgradeShipping:
+		default:
+			return fmt.Errorf("unknown Snow Shamans pass upgrade %q", *a.SnowShamansUpgrade)
+		}
+	}
 
 	return nil
 }
@@ -1393,6 +1405,11 @@ func (a *PassAction) Execute(gs *GameState) error {
 	}
 
 	gs.ApplyAutoConvertOnPass(a.PlayerID)
+	if a.SnowShamansUpgrade != nil {
+		if err := gs.QueueSnowShamansPassUpgrade(a.PlayerID, *a.SnowShamansUpgrade); err != nil {
+			return err
+		}
+	}
 	applyPostPassBonuses(gs, player)
 
 	return advanceAfterCompletedPass(gs)

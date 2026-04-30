@@ -170,6 +170,84 @@ func TestAcolytesTransformSpendsCultSteps(t *testing.T) {
 	}
 }
 
+func TestAcolytesTransformUsesSelectedCultTrack(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("acolytes", factions.NewAcolytes()); err != nil {
+		t.Fatalf("add acolytes: %v", err)
+	}
+	gs.Phase = PhaseAction
+	gs.TurnOrder = []string{"acolytes"}
+
+	player := gs.GetPlayer("acolytes")
+	player.CultPositions[CultFire] = 6
+	player.CultPositions[CultWater] = 3
+	player.CultPositions[CultEarth] = 5
+	player.CultPositions[CultAir] = 3
+	gs.CultTracks.PlayerPositions["acolytes"][CultFire] = 6
+	gs.CultTracks.PlayerPositions["acolytes"][CultWater] = 3
+	gs.CultTracks.PlayerPositions["acolytes"][CultEarth] = 5
+	gs.CultTracks.PlayerPositions["acolytes"][CultAir] = 3
+
+	target := board.NewHex(0, 0)
+	if err := gs.Map.TransformTerrain(target, models.TerrainForest); err != nil {
+		t.Fatalf("set target: %v", err)
+	}
+
+	track := CultEarth
+	action := NewTransformAndBuildAction("acolytes", target, false, models.TerrainTypeUnknown)
+	action.AcolytesCultTrack = &track
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("acolytes selected-track transform: %v", err)
+	}
+
+	if got := gs.Map.GetHex(target).Terrain; got != models.TerrainVolcano {
+		t.Fatalf("terrain = %v, want Volcano", got)
+	}
+	if got := player.CultPositions[CultEarth]; got != 2 {
+		t.Fatalf("earth cult = %d, want 2", got)
+	}
+	if got := player.CultPositions[CultFire]; got != 6 {
+		t.Fatalf("fire cult = %d, want 6", got)
+	}
+}
+
+func TestAcolytesTransformRejectsInsufficientSelectedCultTrack(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("acolytes", factions.NewAcolytes()); err != nil {
+		t.Fatalf("add acolytes: %v", err)
+	}
+	gs.Phase = PhaseAction
+	gs.TurnOrder = []string{"acolytes"}
+
+	player := gs.GetPlayer("acolytes")
+	player.CultPositions[CultFire] = 6
+	player.CultPositions[CultWater] = 2
+	player.CultPositions[CultEarth] = 5
+	player.CultPositions[CultAir] = 3
+	gs.CultTracks.PlayerPositions["acolytes"][CultFire] = 6
+	gs.CultTracks.PlayerPositions["acolytes"][CultWater] = 2
+	gs.CultTracks.PlayerPositions["acolytes"][CultEarth] = 5
+	gs.CultTracks.PlayerPositions["acolytes"][CultAir] = 3
+
+	target := board.NewHex(0, 0)
+	if err := gs.Map.TransformTerrain(target, models.TerrainForest); err != nil {
+		t.Fatalf("set target: %v", err)
+	}
+
+	track := CultWater
+	action := NewTransformAndBuildAction("acolytes", target, false, models.TerrainTypeUnknown)
+	action.AcolytesCultTrack = &track
+	if err := action.Execute(gs); err == nil {
+		t.Fatalf("expected insufficient selected cult track to fail")
+	}
+	if got := gs.Map.GetHex(target).Terrain; got != models.TerrainForest {
+		t.Fatalf("terrain = %v, want Forest after rejected transform", got)
+	}
+	if got := player.CultPositions[CultWater]; got != 2 {
+		t.Fatalf("water cult = %d, want 2 after rejected transform", got)
+	}
+}
+
 func TestAcolytesReplayCultSpendPreservesCurrentRoundCultRewardTrack(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("acolytes", factions.NewAcolytes()); err != nil {
@@ -749,6 +827,31 @@ func TestSnowShamansPassUsesQueuedShippingUpgrade(t *testing.T) {
 		t.Fatalf("queue pass upgrade: %v", err)
 	}
 	if err := NewPassAction("snow", nil).Execute(gs); err != nil {
+		t.Fatalf("pass: %v", err)
+	}
+
+	if got := player.ShippingLevel; got != 1 {
+		t.Fatalf("shipping level = %d, want 1", got)
+	}
+	if got := player.DiggingLevel; got != 0 {
+		t.Fatalf("digging level = %d, want 0", got)
+	}
+}
+
+func TestSnowShamansPassUsesActionSelectedShippingUpgrade(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("snow", factions.NewSnowShamans()); err != nil {
+		t.Fatalf("add snow shamans: %v", err)
+	}
+	gs.Phase = PhaseAction
+	gs.Round = 6
+	gs.TurnOrder = []string{"snow"}
+
+	player := gs.GetPlayer("snow")
+	upgrade := SnowShamansPassUpgradeShipping
+	action := NewPassAction("snow", nil)
+	action.SnowShamansUpgrade = &upgrade
+	if err := action.Execute(gs); err != nil {
 		t.Fatalf("pass: %v", err)
 	}
 

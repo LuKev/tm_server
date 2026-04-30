@@ -304,19 +304,35 @@ func (gs *GameState) bestAcolytesCultTrackForGain(player *Player) CultTrack {
 }
 
 func (gs *GameState) spendAcolytesCultSteps(playerID string, amount int) error {
+	return gs.spendAcolytesCultStepsFromTrack(playerID, amount, nil)
+}
+
+func (gs *GameState) spendAcolytesCultStepsFromTrack(playerID string, amount int, selectedTrack *CultTrack) error {
 	player := gs.GetPlayer(playerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", playerID)
 	}
-	track, ok := gs.acolytesCultPaymentTrack(player, amount)
+	track, ok := gs.acolytesCultPaymentTrackForSelection(player, amount, selectedTrack)
 	if !ok {
 		return fmt.Errorf("acolytes need %d cult steps on one track", amount)
 	}
 	if _, err := gs.DecreaseCultTrack(playerID, track, amount); err != nil {
 		return err
 	}
-	gs.consumeReplayAcolytesCultPaymentTrack(playerID, track)
+	if selectedTrack == nil {
+		gs.consumeReplayAcolytesCultPaymentTrack(playerID, track)
+	}
 	return nil
+}
+
+func (gs *GameState) acolytesCultPaymentTrackForSelection(player *Player, amount int, selectedTrack *CultTrack) (CultTrack, bool) {
+	if selectedTrack == nil {
+		return gs.acolytesCultPaymentTrack(player, amount)
+	}
+	if !isValidCultTrack(*selectedTrack) || player == nil {
+		return CultFire, false
+	}
+	return *selectedTrack, player.CultPositions[*selectedTrack] >= amount
 }
 
 func (gs *GameState) acolytesCultPaymentTrack(player *Player, amount int) (CultTrack, bool) {

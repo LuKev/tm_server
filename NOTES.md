@@ -48,6 +48,7 @@
   - Firewalkers board-data correction from BGA replay validation: no base worker income; dwelling worker blanks at the 4th and 8th dwellings; second temple gives `+2VP` income instead of a priest; stronghold costs `4W + 8C`, gives `+2PW` income, and after built gives `+1VP` per direct building cluster when passing.
   - Firewalkers cannot upgrade digging. Their VP marker is stored server-side as `firewalkersBlockerVp` and should be shown beside regular VP in both the player summary bar and detailed player board.
   - Firewalkers BGA "moves their VP marker forward to gain power" log lines move the separate blocker marker upward and grant power; they do not spend scored VP directly. Volcano transforms spend scored VP only from the gap above that marker.
+  - Current client-side Fire/Ice and selected fan-faction support is mostly generic metadata plus a few special widgets: faction selector/type/color/cult-marker/board data know the new factions; lobby exposes `enableFanFactions` and Fire & Ice final scoring; shipping/digging display hides digging for non-digging factions and shows temporary `BON-SHIP`; bespoke UI exists for Riverwalkers priest choices, Shapeshifters terrain shifts, Selkies stronghold targeting, Snow Shamans pass-upgrade selection, Acolytes volcano cult-payment selection, Firewalkers marker display, Chash track advancement, Goblins treasure/pending cult steps, Treasurers treasury, Children/Djinni resource markers, and Prospectors spade-to-priest shortcuts. Known front-end gap: the faction selector's local color map lacks `cyan`/`orange`/`stone` button colors.
   - The Bazel `bga_test --url` path still cannot find `scripts/fetch_bga_log.py` from runfiles; direct `python3 scripts/fetch_bga_log.py <table> --output ...` works.
 
 - 2026-04-18 Railway server build gotcha:
@@ -96,9 +97,9 @@
     - `Kingdom of Ember`
   - Initial Fire/Ice/Colorless implementation caveats:
     - the setup hex selected by Ice/Volcano/colorless factions determines their starting terrain behavior when the UI does not provide a dedicated terrain-choice step
-    - `Snow Shamans` pass upgrade currently auto-prioritizes digging before shipping because there is no UI choice step yet
-    - `Acolytes` volcano transforms auto-use the first affordable cult track because there is no UI choice step yet
-    - `Riverwalkers` live terrain unlocks are still exposed as a free conversion shortcut; BGA replay parsing handles the logged income/power-action terrain-cycle unlock forms separately.
+    - superseded by current implementation: `Snow Shamans` pass upgrade now has a frontend pass prompt that sends `snowShamansUpgrade`
+    - superseded by current implementation: `Acolytes` volcano transforms now show a frontend cult-track payment prompt that sends `acolytesCultTrack`
+    - superseded by current implementation: `Riverwalkers` live terrain unlocks now resolve through the pending priest-choice UI, not free conversion buttons; BGA replay parsing still handles the logged income/power-action terrain-cycle unlock forms separately.
     - `Shapeshifters` automatically pay `1VP` for the errata power-token option when at least one opponent accepts leech and the VP is available; the exact optional prompt is not UI-backed yet
     - `Shapeshifters` stronghold terrain shift is a normal turn action and can be used multiple times per round
   - Original Fire & Ice board-data reminder:

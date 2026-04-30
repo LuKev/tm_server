@@ -1063,11 +1063,18 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			}
 			targetTerrain = terrain
 		}
+		acolytesCultTrack, err := parseOptionalCultTrack(getParam, "acolytesCultTrack", "acolytesPaymentCultTrack")
+		if err != nil {
+			return nil, err
+		}
 		if useSkip {
 			a := game.NewTransformAndBuildActionWithSkip(seatID, hex, buildDwelling, targetTerrain)
+			a.AcolytesCultTrack = acolytesCultTrack
 			return a, nil
 		}
-		return game.NewTransformAndBuildAction(seatID, hex, buildDwelling, targetTerrain), nil
+		a := game.NewTransformAndBuildAction(seatID, hex, buildDwelling, targetTerrain)
+		a.AcolytesCultTrack = acolytesCultTrack
+		return a, nil
 
 	case "upgrade_building":
 		hex, err := parseHexParam("hex", "targetHex")
@@ -1218,7 +1225,16 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
-		return game.NewPassAction(seatID, bonusCard), nil
+		passAction := game.NewPassAction(seatID, bonusCard)
+		if raw, ok := getParam("snowShamansUpgrade", "passUpgrade"); ok {
+			upgrade, err := parseStringRaw(raw)
+			if err != nil {
+				return nil, fmt.Errorf("invalid snowShamansUpgrade: %w", err)
+			}
+			value := game.SnowShamansPassUpgrade(upgrade)
+			passAction.SnowShamansUpgrade = &value
+		}
+		return passAction, nil
 
 	case "confirm_turn":
 		return game.NewConfirmTurnAction(seatID), nil
@@ -1515,6 +1531,24 @@ func parseCultTrack(getParam func(...string) (json.RawMessage, bool)) (game.Cult
 		}
 	}
 	return game.CultUnknown, fmt.Errorf("missing or invalid cult track")
+}
+
+func parseOptionalCultTrack(getParam func(...string) (json.RawMessage, bool), keys ...string) (*game.CultTrack, error) {
+	raw, ok := getParam(keys...)
+	if !ok {
+		return nil, nil
+	}
+	if v, err := parseIntRaw(raw); err == nil {
+		track := game.CultTrack(v)
+		return &track, nil
+	}
+	if s, err := parseStringRaw(raw); err == nil {
+		track := game.CultTrackFromString(strings.Title(strings.ToLower(strings.TrimSpace(s))))
+		if track != game.CultUnknown {
+			return &track, nil
+		}
+	}
+	return nil, fmt.Errorf("invalid cult track")
 }
 
 func parseCultTrackList(getParam func(...string) (json.RawMessage, bool)) ([]game.CultTrack, error) {

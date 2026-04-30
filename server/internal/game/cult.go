@@ -44,6 +44,10 @@ func CultTrackFromString(s string) CultTrack {
 	}
 }
 
+func isValidCultTrack(track CultTrack) bool {
+	return track == CultFire || track == CultWater || track == CultEarth || track == CultAir
+}
+
 // CultTrackState tracks all players' positions on all cult tracks
 type CultTrackState struct {
 	// Map of playerID -> cult track -> position (0-10)
