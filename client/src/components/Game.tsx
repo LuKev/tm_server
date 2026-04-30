@@ -111,6 +111,13 @@ const CULT_CHOICES: Array<{ track: CultType; label: string }> = [
   { track: CultType.Air, label: 'Air' },
 ]
 
+type RiverwalkersPriestTerrainOption = {
+  terrain: TerrainType
+  cost: number
+  unlocked: boolean
+  affordable: boolean
+}
+
 const CHAOS_ACTION_TYPES = [
   'transform_build',
   'upgrade_building',
@@ -557,6 +564,38 @@ export const Game = () => {
       priests: Number(pendingDecision?.availablePriests ?? 0),
     }
   }, [pendingDecision, pendingDecisionType])
+  const riverwalkersPriestChoice = useMemo(() => {
+    if (pendingDecisionType !== 'riverwalkers_priest_choice') {
+      return {
+        canTakePriest: false,
+        coins: 0,
+        priestsRemaining: 0,
+        terrainOptions: [] as RiverwalkersPriestTerrainOption[],
+      }
+    }
+    const rawOptions = (pendingDecision?.terrainOptions as unknown[]) ?? []
+    const terrainOptions = rawOptions.flatMap((value) => {
+      if (value == null || typeof value !== 'object') return [] as RiverwalkersPriestTerrainOption[]
+      const option = value as Record<string, unknown>
+      const terrain = Number(option.terrain)
+      const cost = Number(option.cost)
+      if (!Number.isInteger(terrain) || terrain < TerrainType.Plains || terrain > TerrainType.Desert || !Number.isFinite(cost)) {
+        return [] as RiverwalkersPriestTerrainOption[]
+      }
+      return [{
+        terrain: terrain as TerrainType,
+        cost,
+        unlocked: option.unlocked === true,
+        affordable: option.affordable === true,
+      }]
+    })
+    return {
+      canTakePriest: pendingDecision?.canTakePriest === true,
+      coins: Number(pendingDecision?.coins ?? 0),
+      priestsRemaining: Number(pendingDecision?.priestsRemaining ?? 0),
+      terrainOptions,
+    }
+  }, [pendingDecision, pendingDecisionType])
   const pendingLeechOffersForMe = useMemo(() => {
     if (!localPlayerId) return [] as Array<Record<string, unknown>>
     const pending = gameState?.pendingLeechOffers ?? {}
@@ -637,6 +676,8 @@ export const Game = () => {
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a cult track.')
       case 'djinni_start_cult_choice':
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose a starting cult track.')
+      case 'riverwalkers_priest_choice':
+        return actorText([pendingDecisionPlayerId ?? ''], 'must choose how to use a Riverwalkers priest.')
       case 'treasurers_deposit':
         return actorText([pendingDecisionPlayerId ?? ''], 'must choose which resources to bank in the Treasury.')
       case 'goblins_cult_steps': {
@@ -2313,6 +2354,43 @@ export const Game = () => {
                 {choice.label}
               </button>
             ))}
+          </div>
+        </div>
+      ) : hasPendingDecisionForMe && pendingDecisionType === 'riverwalkers_priest_choice' ? (
+        <div className="space-y-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Riverwalkers Priest</div>
+            <div className="text-sm text-slate-700">
+              Choose how to use this priest. Unlocking costs 1 coin, or 2 coins for another player's home terrain. Coins: {String(riverwalkersPriestChoice.coins)}.
+              {riverwalkersPriestChoice.priestsRemaining > 1 ? ` Choices remaining: ${String(riverwalkersPriestChoice.priestsRemaining)}.` : ''}
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              data-testid="riverwalkers-priest-choice-take-priest"
+              className="rounded bg-blue-600 px-3 py-2 text-sm text-white disabled:bg-blue-300"
+              disabled={!riverwalkersPriestChoice.canTakePriest}
+              onClick={() => { performAction('select_riverwalkers_priest_choice', { takePriest: true }) }}
+            >
+              Take priest into resources
+            </button>
+            {riverwalkersPriestChoice.terrainOptions.map((option) => {
+              const label = TERRAIN_CHOICES.find((terrain) => terrain.id === option.terrain)?.name ?? `Terrain ${String(option.terrain)}`
+              const disabled = option.unlocked || !option.affordable
+              return (
+                <button
+                  key={option.terrain}
+                  type="button"
+                  data-testid={`riverwalkers-priest-choice-unlock-${label.toLowerCase()}`}
+                  className="rounded border border-slate-300 px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 disabled:bg-slate-100 disabled:text-slate-400"
+                  disabled={disabled}
+                  onClick={() => { performAction('select_riverwalkers_priest_choice', { takePriest: false, terrain: option.terrain }) }}
+                >
+                  {option.unlocked ? `${label} unlocked` : `${label}: ${String(option.cost)} coin${option.cost === 1 ? '' : 's'}`}
+                </button>
+              )
+            })}
           </div>
         </div>
       ) : hasPendingDecisionForMe && pendingDecisionType === 'halflings_spades' && Number((gameState?.pendingHalflingsSpades as Record<string, unknown> | undefined)?.spadesRemaining ?? 0) === 0 ? (

@@ -22,36 +22,37 @@ const (
 	ActionPowerAction
 	ActionSpecialAction
 	ActionPass
-	ActionSetupDwelling                 // Place initial dwelling during setup (no cost, no adjacency)
-	ActionUseCultSpade                  // Use a spade from cult track reward (cleanup phase)
-	ActionAcceptPowerLeech              // Accept a power leech offer
-	ActionDeclinePowerLeech             // Decline a power leech offer
-	ActionSelectFavorTile               // Select a favor tile after Temple/Sanctuary/Auren Stronghold
-	ActionApplyHalflingsSpade           // Apply one of 3 stronghold spades (Halflings only)
-	ActionBuildHalflingsDwelling        // Build dwelling on transformed hex (Halflings optional)
-	ActionSkipHalflingsDwelling         // Skip optional dwelling (Halflings)
-	ActionBuildWispsStrongholdDwelling  // Build the free Wisps stronghold lake dwelling
-	ActionUseGoblinsTreasure            // Spend one Goblins treasure token for a reward
-	ActionSelectGoblinsCultTrack        // Resolve Goblins treasure cult-step reward
-	ActionUseDarklingsPriestOrdination  // Convert 0-3 workers to priests (Darklings stronghold, one-time)
-	ActionSelectCultistsCultTrack       // Select cult track for power leech bonus (Cultists only)
-	ActionSelectDjinniStartingCultTrack // Select Djinni starting cult track during setup
-	ActionSelectTreasurersDeposit       // Select how many newly gained resources Treasurers bank
-	ActionSelectArchivistsBonusCard     // Select Archivists' second bonus card after passing with stronghold
-	ActionSelectFaction                 // Select faction at start of game
-	ActionAuctionNominateFaction        // Nominate faction in regular/fast auction setup modes
-	ActionAuctionPlaceBid               // Place bid in regular auction mode
-	ActionFastAuctionSubmitBids         // Submit sealed bid vector in fast auction mode
-	ActionSetupBonusCard                // Select bonus card during setup
-	ActionSelectTownTile                // Select town tile from pending town formation
-	ActionSelectTownCultTop             // Resolve key-limited town cult top choice
-	ActionDiscardPendingSpade           // Discard one pending free spade from a follow-up chain
-	ActionConversion                    // Free conversion action (does not consume main action)
-	ActionBurnPower                     // Free burn action (does not consume main action)
-	ActionEngineersBridge               // Engineers SH special action: build bridge for workers
-	ActionSetPlayerOptions              // Update player UX/automation options
-	ActionConfirmTurn                   // Confirm the current turn before the next player may act
-	ActionUndoTurn                      // Undo the current turn back to the last snapshot
+	ActionSetupDwelling                  // Place initial dwelling during setup (no cost, no adjacency)
+	ActionUseCultSpade                   // Use a spade from cult track reward (cleanup phase)
+	ActionAcceptPowerLeech               // Accept a power leech offer
+	ActionDeclinePowerLeech              // Decline a power leech offer
+	ActionSelectFavorTile                // Select a favor tile after Temple/Sanctuary/Auren Stronghold
+	ActionApplyHalflingsSpade            // Apply one of 3 stronghold spades (Halflings only)
+	ActionBuildHalflingsDwelling         // Build dwelling on transformed hex (Halflings optional)
+	ActionSkipHalflingsDwelling          // Skip optional dwelling (Halflings)
+	ActionBuildWispsStrongholdDwelling   // Build the free Wisps stronghold lake dwelling
+	ActionUseGoblinsTreasure             // Spend one Goblins treasure token for a reward
+	ActionSelectGoblinsCultTrack         // Resolve Goblins treasure cult-step reward
+	ActionUseDarklingsPriestOrdination   // Convert 0-3 workers to priests (Darklings stronghold, one-time)
+	ActionSelectCultistsCultTrack        // Select cult track for power leech bonus (Cultists only)
+	ActionSelectDjinniStartingCultTrack  // Select Djinni starting cult track during setup
+	ActionSelectTreasurersDeposit        // Select how many newly gained resources Treasurers bank
+	ActionSelectRiverwalkersPriestChoice // Resolve Riverwalkers choice when gaining a priest
+	ActionSelectArchivistsBonusCard      // Select Archivists' second bonus card after passing with stronghold
+	ActionSelectFaction                  // Select faction at start of game
+	ActionAuctionNominateFaction         // Nominate faction in regular/fast auction setup modes
+	ActionAuctionPlaceBid                // Place bid in regular auction mode
+	ActionFastAuctionSubmitBids          // Submit sealed bid vector in fast auction mode
+	ActionSetupBonusCard                 // Select bonus card during setup
+	ActionSelectTownTile                 // Select town tile from pending town formation
+	ActionSelectTownCultTop              // Resolve key-limited town cult top choice
+	ActionDiscardPendingSpade            // Discard one pending free spade from a follow-up chain
+	ActionConversion                     // Free conversion action (does not consume main action)
+	ActionBurnPower                      // Free burn action (does not consume main action)
+	ActionEngineersBridge                // Engineers SH special action: build bridge for workers
+	ActionSetPlayerOptions               // Update player UX/automation options
+	ActionConfirmTurn                    // Confirm the current turn before the next player may act
+	ActionUndoTurn                       // Undo the current turn back to the last snapshot
 )
 
 // Action represents a player action
@@ -1539,6 +1540,7 @@ func (gs *GameState) HasLateRoundPendingDecisions() bool {
 		gs.PendingCultistsCultSelection != nil ||
 		gs.PendingGoblinsCultSteps != nil ||
 		gs.PendingTreasurersDeposit != nil ||
+		gs.PendingRiverwalkersPriestChoice != nil ||
 		gs.PendingArchivistsBonusSelection != nil
 }
 
@@ -1552,7 +1554,7 @@ func advanceAfterRoundComplete(gs *GameState) {
 		gs.AwardCultRewardsForRound(justCompletedRound)
 		if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
 			gs.GrantIncome()
-			if gs.PendingTreasurersDeposit == nil {
+			if !gs.HasPendingIncomeDecisions() {
 				gs.StartActionPhase()
 			}
 		}

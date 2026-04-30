@@ -193,7 +193,7 @@ func applyIncome(gs *GameState, player *Player, income BaseIncome) BaseIncome {
 
 	// Apply priest income with 7-priest limit enforcement
 	if income.Priests > 0 {
-		applied.Priests = gs.GainPriests(player.ID, income.Priests)
+		applied.Priests = gs.GainPriestsForReason(player.ID, income.Priests, "income")
 	}
 
 	// Use GainPower to properly cycle power through bowls

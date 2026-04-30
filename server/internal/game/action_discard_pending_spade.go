@@ -73,7 +73,7 @@ func (a *DiscardPendingSpadeAction) Execute(gs *GameState) error {
 		if gs.Phase == PhaseIncome {
 			if _, count := gs.GetPendingCultRewardSpadePlayer(); count == 0 {
 				gs.GrantIncome()
-				if gs.PendingTreasurersDeposit == nil {
+				if !gs.HasPendingIncomeDecisions() {
 					gs.StartActionPhase()
 				}
 			}

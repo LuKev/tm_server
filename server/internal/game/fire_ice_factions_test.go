@@ -429,7 +429,7 @@ func TestRiverwalkersUnlockTerrainBeforeBuilding(t *testing.T) {
 	player := gs.GetPlayer("river")
 	player.Resources.Workers = 3
 	player.Resources.Coins = 10
-	player.Resources.Priests = 1
+	player.Resources.Priests = 0
 	player.UnlockedTerrains = map[models.TerrainType]bool{models.TerrainForest: true}
 
 	start := board.NewHex(0, 0)
@@ -446,11 +446,8 @@ func TestRiverwalkersUnlockTerrainBeforeBuilding(t *testing.T) {
 		t.Fatalf("expected riverwalkers build to require unlocked terrain")
 	}
 
-	unlock := &ConversionAction{
-		BaseAction:     BaseAction{Type: ActionConversion, PlayerID: "river"},
-		ConversionType: ConversionType("riverwalkers_unlock_4"), // Mountain
-		Amount:         1,
-	}
+	gs.GainPriestsForReason("river", 1, "power_action")
+	unlock := NewSelectRiverwalkersPriestChoiceAction("river", false, models.TerrainMountain)
 	if err := unlock.Execute(gs); err != nil {
 		t.Fatalf("unlock mountain: %v", err)
 	}
@@ -466,6 +463,151 @@ func TestRiverwalkersUnlockTerrainBeforeBuilding(t *testing.T) {
 	}
 	if building := gs.Map.GetHex(target).Building; building == nil || building.PlayerID != "river" {
 		t.Fatalf("expected riverwalker dwelling on target, got %+v", building)
+	}
+}
+
+func TestRiverwalkersPriestGainQueuesChoice(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("river", factions.NewRiverwalkers()); err != nil {
+		t.Fatalf("add riverwalkers: %v", err)
+	}
+	player := gs.GetPlayer("river")
+	player.Resources.Coins = 5
+	player.Resources.Priests = 0
+
+	if gained := gs.GainPriestsForReason("river", 1, "income"); gained != 0 {
+		t.Fatalf("immediate priests gained = %d, want 0", gained)
+	}
+	if player.Resources.Priests != 0 {
+		t.Fatalf("priests in resources = %d, want 0 before choice", player.Resources.Priests)
+	}
+	if gs.PendingRiverwalkersPriestChoice == nil {
+		t.Fatalf("expected pending riverwalkers priest choice")
+	}
+	if got := gs.PendingRiverwalkersPriestChoice.PriestsRemaining; got != 1 {
+		t.Fatalf("pending priests = %d, want 1", got)
+	}
+	if err := NewSelectRiverwalkersPriestChoiceAction("river", true, models.TerrainTypeUnknown).Execute(gs); err != nil {
+		t.Fatalf("take priest: %v", err)
+	}
+	if player.Resources.Priests != 1 {
+		t.Fatalf("priests in resources = %d, want 1 after choice", player.Resources.Priests)
+	}
+	if gs.PendingRiverwalkersPriestChoice != nil {
+		t.Fatalf("expected pending choice to clear")
+	}
+}
+
+func TestRiverwalkersPriestChoiceStartsActionPhaseAfterIncome(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("river", factions.NewRiverwalkers()); err != nil {
+		t.Fatalf("add riverwalkers: %v", err)
+	}
+	gs.Phase = PhaseIncome
+	gs.TurnOrder = []string{"river"}
+	player := gs.GetPlayer("river")
+	player.Resources.Coins = 5
+	player.Resources.Priests = 0
+
+	gs.GainPriestsForReason("river", 1, "income")
+	if err := NewSelectRiverwalkersPriestChoiceAction("river", true, models.TerrainTypeUnknown).Execute(gs); err != nil {
+		t.Fatalf("take priest: %v", err)
+	}
+	if gs.Phase != PhaseAction {
+		t.Fatalf("phase = %v, want action", gs.Phase)
+	}
+}
+
+func TestRiverwalkersUnlockCostIgnoresIceAndVolcanoStartingTerrainButCountsShapeshiftersHome(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("river", factions.NewRiverwalkers()); err != nil {
+		t.Fatalf("add riverwalkers: %v", err)
+	}
+	if err := gs.AddPlayer("ice", factions.NewIceMaidens()); err != nil {
+		t.Fatalf("add ice: %v", err)
+	}
+	if err := gs.AddPlayer("dragon", factions.NewDragonlords()); err != nil {
+		t.Fatalf("add dragonlords: %v", err)
+	}
+	ice := gs.GetPlayer("ice")
+	ice.StartingTerrain = models.TerrainMountain
+	ice.HasStartingTerrain = true
+	dragon := gs.GetPlayer("dragon")
+	dragon.StartingTerrain = models.TerrainDesert
+	dragon.HasStartingTerrain = true
+	shapeFaction := factions.NewShapeshifters()
+	gs.Players["shape"] = &Player{
+		ID:                 "shape",
+		Faction:            shapeFaction,
+		Resources:          NewResourcePool(shapeFaction.GetStartingResources()),
+		StartingTerrain:    models.TerrainWasteland,
+		HasStartingTerrain: true,
+	}
+	river := gs.GetPlayer("river")
+
+	if got := gs.riverwalkersUnlockCost(river, models.TerrainMountain); got != 1 {
+		t.Fatalf("ice starting terrain unlock cost = %d, want 1", got)
+	}
+	if got := gs.riverwalkersUnlockCost(river, models.TerrainDesert); got != 1 {
+		t.Fatalf("volcano starting terrain unlock cost = %d, want 1", got)
+	}
+	if got := gs.riverwalkersUnlockCost(river, models.TerrainWasteland); got != 2 {
+		t.Fatalf("shapeshifters home terrain unlock cost = %d, want 2", got)
+	}
+}
+
+func TestVolcanoTransformCostIgnoresIceAndVolcanoStartingTerrainButCountsShapeshiftersHome(t *testing.T) {
+	gs := NewGameState()
+	if err := gs.AddPlayer("dragon", factions.NewDragonlords()); err != nil {
+		t.Fatalf("add dragonlords: %v", err)
+	}
+	if err := gs.AddPlayer("ice", factions.NewIceMaidens()); err != nil {
+		t.Fatalf("add ice: %v", err)
+	}
+	if err := gs.AddPlayer("river", factions.NewRiverwalkers()); err != nil {
+		t.Fatalf("add riverwalkers: %v", err)
+	}
+	ice := gs.GetPlayer("ice")
+	ice.StartingTerrain = models.TerrainMountain
+	ice.HasStartingTerrain = true
+	river := gs.GetPlayer("river")
+	river.StartingTerrain = models.TerrainLake
+	river.HasStartingTerrain = true
+	dragon := gs.GetPlayer("dragon")
+	dragon.StartingTerrain = models.TerrainDesert
+	dragon.HasStartingTerrain = true
+	shapeFaction := factions.NewShapeshifters()
+	gs.Players["shape"] = &Player{
+		ID:                 "shape",
+		Faction:            shapeFaction,
+		Resources:          NewResourcePool(shapeFaction.GetStartingResources()),
+		StartingTerrain:    models.TerrainWasteland,
+		HasStartingTerrain: true,
+	}
+
+	if got := volcanoTransformCost(gs, dragon, models.TerrainMountain); got != 1 {
+		t.Fatalf("dragonlords ice starting terrain cost = %d, want 1", got)
+	}
+	if got := volcanoTransformCost(gs, dragon, models.TerrainLake); got != 1 {
+		t.Fatalf("dragonlords riverwalkers starting terrain cost = %d, want 1", got)
+	}
+	if got := acolytesCultTransformCost(gs, dragon, models.TerrainMountain); got != 3 {
+		t.Fatalf("acolytes ice starting terrain cost = %d, want 3", got)
+	}
+	if got := firewalkersVPTransformCost(gs, dragon, models.TerrainMountain); got != 4 {
+		t.Fatalf("firewalkers ice starting terrain cost = %d, want 4", got)
+	}
+	if got := volcanoTransformCost(gs, dragon, models.TerrainDesert); got != 1 {
+		t.Fatalf("dragonlords volcano starting terrain cost = %d, want 1", got)
+	}
+	if got := volcanoTransformCost(gs, dragon, models.TerrainWasteland); got != 2 {
+		t.Fatalf("dragonlords shapeshifters home terrain cost = %d, want 2", got)
+	}
+	if got := acolytesCultTransformCost(gs, dragon, models.TerrainWasteland); got != 4 {
+		t.Fatalf("acolytes shapeshifters home terrain cost = %d, want 4", got)
+	}
+	if got := firewalkersVPTransformCost(gs, dragon, models.TerrainWasteland); got != 6 {
+		t.Fatalf("firewalkers shapeshifters home terrain cost = %d, want 6", got)
 	}
 }
 

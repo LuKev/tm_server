@@ -12,7 +12,7 @@ type SelectTreasurersDepositAction struct {
 
 func NewSelectTreasurersDepositAction(playerID string, coins, workers, priests int) *SelectTreasurersDepositAction {
 	return &SelectTreasurersDepositAction{
-		BaseAction: BaseAction{Type: ActionSelectTreasurersDeposit, PlayerID: playerID},
+		BaseAction:        BaseAction{Type: ActionSelectTreasurersDeposit, PlayerID: playerID},
 		CoinsToTreasury:   coins,
 		WorkersToTreasury: workers,
 		PriestsToTreasury: priests,
@@ -65,7 +65,7 @@ func (a *SelectTreasurersDepositAction) Execute(gs *GameState) error {
 	player.TreasuryPriests += a.PriestsToTreasury
 
 	gs.advanceTreasurersDepositQueue()
-	if gs.PendingTreasurersDeposit == nil && gs.Phase == PhaseIncome {
+	if !gs.HasPendingIncomeDecisions() && gs.Phase == PhaseIncome {
 		gs.StartActionPhase()
 	}
 	return nil

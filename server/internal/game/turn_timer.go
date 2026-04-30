@@ -132,6 +132,9 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 	if gs.PendingDjinniStartingCultChoice != nil {
 		return []string{gs.PendingDjinniStartingCultChoice.PlayerID}
 	}
+	if gs.PendingRiverwalkersPriestChoice != nil {
+		return []string{gs.PendingRiverwalkersPriestChoice.PlayerID}
+	}
 	if gs.PendingTreasurersDeposit != nil {
 		return []string{gs.PendingTreasurersDeposit.PlayerID}
 	}

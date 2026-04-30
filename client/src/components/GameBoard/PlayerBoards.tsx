@@ -1,6 +1,6 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, TerrainType, type PlayerState, type TurnTimerState } from '../../types/game.types';
+import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState, type TurnTimerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon, ShippingIcon } from '../shared/Icons';
@@ -11,16 +11,6 @@ import { ShippingDiggingDisplay, canShowDiggingForFaction, canShowShippingForFac
 import './PlayerBoards.css';
 import './FavorTiles.css';
 import './TownTiles.css';
-
-const RIVERWALKER_TERRAIN_UNLOCKS = [
-    { terrain: TerrainType.Plains, label: 'Plains' },
-    { terrain: TerrainType.Swamp, label: 'Swamp' },
-    { terrain: TerrainType.Lake, label: 'Lake' },
-    { terrain: TerrainType.Forest, label: 'Forest' },
-    { terrain: TerrainType.Mountain, label: 'Mountain' },
-    { terrain: TerrainType.Wasteland, label: 'Wasteland' },
-    { terrain: TerrainType.Desert, label: 'Desert' },
-] as const;
 
 // Helper to get Stronghold Action Type for a faction
 const getStrongholdActionType = (faction: FactionType): SpecialActionType | null => {
@@ -727,24 +717,6 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                     )}
                                     {factionType === FactionType.Djinni && (
                                         <button data-testid={`player-${playerId}-djinni-lamp`} className="conversion-btn special" onClick={() => { onDjinniLampAction?.(playerId); }} disabled={!isLocalPlayer || !canUseTurnActions || djinniLampTokens <= 0}>Use 1 Lamp</button>
-                                    )}
-                                    {factionType === FactionType.Riverwalkers && (
-                                        <div className="riverwalker-unlocks">
-                                            {RIVERWALKER_TERRAIN_UNLOCKS.map(({ terrain, label }) => {
-                                                const isUnlocked = player.unlockedTerrains?.[terrain] === true;
-                                                return (
-                                                    <button
-                                                        key={terrain}
-                                                        data-testid={`player-${playerId}-riverwalkers-unlock-${label.toLowerCase()}`}
-                                                        className="conversion-btn special"
-                                                        onClick={() => { onConversion?.(playerId, `riverwalkers_unlock_${terrain}`); }}
-                                                        disabled={!isLocalPlayer || !conversionActionsEnabled || isUnlocked}
-                                                    >
-                                                        {isUnlocked ? `${label} unlocked` : `Unlock ${label}`}
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
                                     )}
                                 </div>
                                 <div className="pb-section-title">Towns</div>

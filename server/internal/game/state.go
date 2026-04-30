@@ -61,6 +61,7 @@ type GameState struct {
 	PendingArchivistsBonusSelection  *PendingArchivistsBonusSelection      `json:"pendingArchivistsBonusSelection,omitempty"`
 	PendingTreasurersDeposit         *PendingTreasurersDeposit             `json:"pendingTreasurersDeposit,omitempty"`
 	PendingTreasurersDepositQueue    []*PendingTreasurersDeposit           `json:"-"`
+	PendingRiverwalkersPriestChoice  *PendingRiverwalkersPriestChoice      `json:"pendingRiverwalkersPriestChoice,omitempty"`
 	PendingTownCultTopChoice         *PendingTownCultTopChoice             `json:"pendingTownCultTopChoice"`
 	PendingFreeActionsPlayerID       string                                `json:"pendingFreeActionsPlayerId"`
 	PendingTurnConfirmationPlayerID  string                                `json:"pendingTurnConfirmationPlayerId"`
@@ -158,6 +159,14 @@ type PendingTreasurersDeposit struct {
 	AvailableCoins   int
 	AvailableWorkers int
 	AvailablePriests int
+	Reason           string
+}
+
+// PendingRiverwalkersPriestChoice represents the Riverwalkers choice made
+// immediately when they would gain a priest.
+type PendingRiverwalkersPriestChoice struct {
+	PlayerID         string
+	PriestsRemaining int
 	Reason           string
 }
 
@@ -1601,10 +1610,9 @@ func (gs *GameState) CompleteSetupAndStartRoundOne() {
 
 	gs.Phase = PhaseIncome
 	gs.GrantIncome()
-	if gs.PendingTreasurersDeposit == nil {
-		gs.Phase = PhaseAction
+	if !gs.HasPendingIncomeDecisions() {
+		gs.StartActionPhase()
 	}
-	gs.CurrentPlayerIndex = 0
 	gs.SetupSubphase = SetupSubphaseComplete
 }
 
@@ -1767,11 +1775,17 @@ func (gs *GameState) AllPlayersPassed() bool {
 	return true
 }
 
-// GainPriests grants priests to a player while enforcing the 7-priest limit.
+func (gs *GameState) GainPriests(playerID string, amount int) int {
+	return gs.GainPriestsForReason(playerID, amount, "received")
+}
+
+// GainPriestsForReason grants priests to a player while enforcing the 7-priest limit.
 // Terra Mystica rule: priests in hand + priests on cult action spaces +
 // priests in Treasury <= 7.
-// Returns the actual number of priests gained (may be less than requested)
-func (gs *GameState) GainPriests(playerID string, amount int) int {
+// Riverwalkers do not receive the priest immediately. They choose, at the time
+// the priest is gained, whether to take it into resources or unlock terrain.
+// Returns the actual number of priests added to resources immediately.
+func (gs *GameState) GainPriestsForReason(playerID string, amount int, reason string) int {
 	if amount <= 0 {
 		return 0
 	}
@@ -1780,7 +1794,23 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 	if player == nil {
 		return 0
 	}
+	if isRiverwalkers(player) {
+		gs.queueRiverwalkersPriestChoice(player, amount, reason)
+		return 0
+	}
 
+	return gs.gainPriestsToResources(playerID, amount)
+}
+
+func (gs *GameState) gainPriestsToResources(playerID string, amount int) int {
+	if amount <= 0 {
+		return 0
+	}
+
+	player := gs.GetPlayer(playerID)
+	if player == nil {
+		return 0
+	}
 	totalPriests := gs.GetTotalOwnedPriests(playerID)
 	maxNewPriests := 7 - totalPriests
 
@@ -1797,6 +1827,107 @@ func (gs *GameState) GainPriests(playerID string, amount int) int {
 
 	player.Resources.Priests += priestsToGain
 	return priestsToGain
+}
+
+func (gs *GameState) queueRiverwalkersPriestChoice(player *Player, amount int, reason string) {
+	if gs == nil || player == nil || amount <= 0 {
+		return
+	}
+	if gs.PendingRiverwalkersPriestChoice != nil && gs.PendingRiverwalkersPriestChoice.PlayerID != player.ID {
+		return
+	}
+
+	choiceCount := amount
+	if maxChoices := gs.riverwalkersPriestChoiceCapacity(player); choiceCount > maxChoices {
+		choiceCount = maxChoices
+	}
+	if choiceCount <= 0 {
+		return
+	}
+	if reason == "" {
+		reason = "received"
+	}
+	if gs.PendingRiverwalkersPriestChoice == nil {
+		gs.PendingRiverwalkersPriestChoice = &PendingRiverwalkersPriestChoice{
+			PlayerID:         player.ID,
+			PriestsRemaining: choiceCount,
+			Reason:           reason,
+		}
+		return
+	}
+	gs.PendingRiverwalkersPriestChoice.PriestsRemaining += choiceCount
+	if gs.PendingRiverwalkersPriestChoice.Reason == "" {
+		gs.PendingRiverwalkersPriestChoice.Reason = reason
+	}
+}
+
+func (gs *GameState) riverwalkersPriestChoiceCapacity(player *Player) int {
+	if gs == nil || player == nil {
+		return 0
+	}
+	capacity := gs.RemainingPriestCapacity(player.ID)
+	costs := make([]int, 0, 7)
+	for terrain := models.TerrainPlains; terrain <= models.TerrainDesert; terrain++ {
+		if player.UnlockedTerrains != nil && player.UnlockedTerrains[terrain] {
+			continue
+		}
+		cost := gs.riverwalkersUnlockCost(player, terrain)
+		if cost <= player.Resources.Coins {
+			costs = append(costs, cost)
+		}
+	}
+	sort.Ints(costs)
+	coins := player.Resources.Coins
+	for _, cost := range costs {
+		if coins < cost {
+			break
+		}
+		coins -= cost
+		capacity++
+	}
+	return capacity
+}
+
+func (gs *GameState) riverwalkersCanResolvePriestChoice(player *Player) bool {
+	if gs == nil || player == nil {
+		return false
+	}
+	if gs.RemainingPriestCapacity(player.ID) > 0 {
+		return true
+	}
+	return gs.riverwalkersHasAffordableUnlockOption(player)
+}
+
+func (gs *GameState) riverwalkersHasAffordableUnlockOption(player *Player) bool {
+	if gs == nil || player == nil {
+		return false
+	}
+	for terrain := models.TerrainPlains; terrain <= models.TerrainDesert; terrain++ {
+		if player.UnlockedTerrains != nil && player.UnlockedTerrains[terrain] {
+			continue
+		}
+		if gs.riverwalkersUnlockCost(player, terrain) <= player.Resources.Coins {
+			return true
+		}
+	}
+	return false
+}
+
+func (gs *GameState) consumeRiverwalkersPriestChoice(player *Player) {
+	if gs == nil || gs.PendingRiverwalkersPriestChoice == nil {
+		return
+	}
+	gs.PendingRiverwalkersPriestChoice.PriestsRemaining--
+	if gs.PendingRiverwalkersPriestChoice.PriestsRemaining <= 0 || !gs.riverwalkersCanResolvePriestChoice(player) {
+		gs.PendingRiverwalkersPriestChoice = nil
+	}
+	if gs.Phase == PhaseIncome && !gs.HasPendingIncomeDecisions() {
+		gs.StartActionPhase()
+	}
+}
+
+func (gs *GameState) HasPendingIncomeDecisions() bool {
+	return gs != nil && (gs.PendingTreasurersDeposit != nil || gs.PendingRiverwalkersPriestChoice != nil)
 }
 
 func (gs *GameState) GetTotalOwnedPriests(playerID string) int {
@@ -2057,6 +2188,9 @@ func (gs *GameState) HasPendingActions(playerID string) bool {
 		return true
 	}
 	if gs.PendingTownCultTopChoice != nil && gs.PendingTownCultTopChoice.PlayerID == playerID {
+		return true
+	}
+	if gs.PendingRiverwalkersPriestChoice != nil && gs.PendingRiverwalkersPriestChoice.PlayerID == playerID {
 		return true
 	}
 	if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && hasImmediatePendingTownSelection(pendingTowns) {

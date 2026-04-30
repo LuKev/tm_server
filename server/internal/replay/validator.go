@@ -192,7 +192,9 @@ func (v *GameValidator) handleIncome(entry *LogEntry) error {
 		if !v.IncomeApplied {
 			v.GameState.GrantIncome()
 			v.IncomeApplied = true
-			v.GameState.StartActionPhase() // Transition to action phase
+			if !v.GameState.HasPendingIncomeDecisions() {
+				v.GameState.StartActionPhase() // Transition to action phase
+			}
 		}
 
 		// If there's an action before the marker, process it first

@@ -65,6 +65,7 @@ func (s *GameSimulator) StepForward() error {
 
 	item := s.Actions[s.CurrentIndex]
 	s.autoResolveImplicitZeroTreasurersDeposits(item)
+	s.autoResolveImplicitRiverwalkersPriestChoices(item)
 
 	switch v := item.(type) {
 	case notation.ActionItem:
@@ -127,7 +128,10 @@ func (s *GameSimulator) StepForward() error {
 					if s.CurrentState.PendingCultRewardSpades != nil && len(s.CurrentState.PendingCultRewardSpades) > 0 {
 						s.CurrentState.PendingCultRewardSpades = make(map[string]int)
 					}
-					s.CurrentState.StartActionPhase()
+					s.autoResolveImplicitRiverwalkersPriestChoices(item)
+					if !s.CurrentState.HasPendingIncomeDecisions() {
+						s.CurrentState.StartActionPhase()
+					}
 				}
 			} else if s.incomeGranted && s.CurrentState.Phase == game.PhaseIncome {
 				// Income was granted, but we haven't entered action phase yet (post-income actions).
@@ -136,7 +140,10 @@ func (s *GameSimulator) StepForward() error {
 					if s.CurrentState.PendingCultRewardSpades != nil && len(s.CurrentState.PendingCultRewardSpades) > 0 {
 						s.CurrentState.PendingCultRewardSpades = make(map[string]int)
 					}
-					s.CurrentState.StartActionPhase()
+					s.autoResolveImplicitRiverwalkersPriestChoices(item)
+					if !s.CurrentState.HasPendingIncomeDecisions() {
+						s.CurrentState.StartActionPhase()
+					}
 				}
 			}
 			// Check for missing bonus card in PassAction
@@ -341,6 +348,38 @@ func (s *GameSimulator) autoResolveImplicitZeroTreasurersDeposits(nextItem notat
 			return
 		}
 	}
+}
+
+func (s *GameSimulator) autoResolveImplicitRiverwalkersPriestChoices(nextItem notation.LogItem) {
+	if s == nil || s.CurrentState == nil || s.CurrentState.PendingRiverwalkersPriestChoice == nil {
+		return
+	}
+	if nextItemIsRiverwalkersUnlock(nextItem, s.CurrentState.PendingRiverwalkersPriestChoice) {
+		return
+	}
+	for s.CurrentState.PendingRiverwalkersPriestChoice != nil {
+		playerID := s.CurrentState.PendingRiverwalkersPriestChoice.PlayerID
+		if err := game.NewSelectRiverwalkersPriestChoiceAction(playerID, true, models.TerrainTypeUnknown).Execute(s.CurrentState); err != nil {
+			s.CurrentState.PendingRiverwalkersPriestChoice = nil
+			return
+		}
+	}
+}
+
+func nextItemIsRiverwalkersUnlock(item notation.LogItem, pending *game.PendingRiverwalkersPriestChoice) bool {
+	if pending == nil {
+		return false
+	}
+	actionItem, ok := item.(notation.ActionItem)
+	if !ok || actionItem.Action == nil {
+		return false
+	}
+	action := actionItem.Action
+	if wrapped, ok := action.(*notation.LogPostIncomeAction); ok && wrapped != nil {
+		action = wrapped.Action
+	}
+	unlock, ok := action.(*notation.LogRiverwalkersUnlockAction)
+	return ok && unlock != nil && unlock.PlayerID == pending.PlayerID
 }
 
 func nextItemIsTreasurersDeposit(item notation.LogItem, pending *game.PendingTreasurersDeposit) bool {

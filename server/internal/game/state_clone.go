@@ -72,6 +72,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 	clone.PendingArchivistsBonusSelection = clonePendingArchivistsBonusSelection(gs.PendingArchivistsBonusSelection)
 	clone.PendingTreasurersDeposit = clonePendingTreasurersDeposit(gs.PendingTreasurersDeposit)
 	clone.PendingTreasurersDepositQueue = clonePendingTreasurersDepositQueue(gs.PendingTreasurersDepositQueue)
+	clone.PendingRiverwalkersPriestChoice = clonePendingRiverwalkersPriestChoice(gs.PendingRiverwalkersPriestChoice)
 	clone.PendingTownCultTopChoice = clonePendingTownCultTopChoice(gs.PendingTownCultTopChoice)
 	clone.FinalScoring = cloneFinalScoring(gs.FinalScoring)
 	clone.TurnTimer = cloneTurnTimerState(gs.TurnTimer)
@@ -565,6 +566,14 @@ func clonePendingDjinniStartingCultChoice(src *PendingDjinniStartingCultChoice) 
 }
 
 func clonePendingTreasurersDeposit(src *PendingTreasurersDeposit) *PendingTreasurersDeposit {
+	if src == nil {
+		return nil
+	}
+	dst := *src
+	return &dst
+}
+
+func clonePendingRiverwalkersPriestChoice(src *PendingRiverwalkersPriestChoice) *PendingRiverwalkersPriestChoice {
 	if src == nil {
 		return nil
 	}

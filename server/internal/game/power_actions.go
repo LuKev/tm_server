@@ -185,7 +185,7 @@ func (a *PowerAction) Validate(gs *GameState) error {
 			return err
 		}
 	}
-	if a.ActionType == PowerActionPriest && gs.RemainingPriestCapacity(a.PlayerID) < 1 {
+	if a.ActionType == PowerActionPriest && gs.RemainingPriestCapacity(a.PlayerID) < 1 && (!isRiverwalkers(player) || !gs.riverwalkersHasAffordableUnlockOption(player)) {
 		return fmt.Errorf("cannot take priest power action at the 7-priest limit")
 	}
 	if isProspectors(player) && (a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2) {
@@ -317,7 +317,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		player.BridgesBuilt++
 
 	case PowerActionPriest:
-		gs.GainPriests(a.PlayerID, 1)
+		gs.GainPriestsForReason(a.PlayerID, 1, "power_action")
 
 	case PowerActionWorkers:
 		player.Resources.Workers += 2

@@ -1322,6 +1322,24 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}
 		return game.NewSelectTreasurersDepositAction(seatID, coins, workers, priests), nil
 
+	case "select_riverwalkers_priest_choice":
+		takePriest, err := parseBoolParam(false, "takePriest")
+		if err != nil {
+			return nil, err
+		}
+		terrain := models.TerrainTypeUnknown
+		if !takePriest {
+			rawTerrain, ok := getParam("terrain", "targetTerrain")
+			if !ok {
+				return nil, fmt.Errorf("missing terrain")
+			}
+			terrain, err = parseTerrainTypeRaw(rawTerrain)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return game.NewSelectRiverwalkersPriestChoiceAction(seatID, takePriest, terrain), nil
+
 	case "select_archivists_bonus_card":
 		bonusCard, err := parseBonusCardType(getParam)
 		if err != nil {

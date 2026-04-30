@@ -51,24 +51,14 @@ func (a *ConversionAction) Validate(gs *GameState) error {
 	if a.Amount <= 0 {
 		return fmt.Errorf("conversion amount must be positive")
 	}
-	if terrain, ok, err := parseRiverwalkersUnlockConversion(a.ConversionType); ok {
+	if _, ok, err := parseRiverwalkersUnlockConversion(a.ConversionType); ok {
 		if err != nil {
 			return err
 		}
 		if !isRiverwalkers(player) {
 			return fmt.Errorf("riverwalker terrain unlock is only available to Riverwalkers")
 		}
-		if player.UnlockedTerrains != nil && player.UnlockedTerrains[terrain] {
-			return fmt.Errorf("riverwalkers have already unlocked %s terrain", terrain)
-		}
-		if player.Resources.Priests < 1 {
-			return fmt.Errorf("riverwalkers need 1 priest to unlock terrain")
-		}
-		cost := gs.riverwalkersUnlockCost(player, terrain)
-		if player.Resources.Coins < cost {
-			return fmt.Errorf("not enough coins to unlock terrain: need %d, have %d", cost, player.Resources.Coins)
-		}
-		return nil
+		return fmt.Errorf("riverwalkers terrain unlock must be resolved when gaining a priest")
 	}
 	if a.ConversionType == ConversionWorkerToPriest {
 		return fmt.Errorf("worker to priest conversion is only allowed through Darklings priest ordination")
@@ -78,7 +68,11 @@ func (a *ConversionAction) Validate(gs *GameState) error {
 		if player.Faction.GetType() == models.FactionTheEnlightened && player.HasStrongholdAbility {
 			requiredCapacity = a.Amount * 2
 		}
-		if gs.RemainingPriestCapacity(a.PlayerID) < requiredCapacity {
+		if isRiverwalkers(player) {
+			if gs.riverwalkersPriestChoiceCapacity(player) < requiredCapacity {
+				return fmt.Errorf("not enough priest capacity or terrain unlock options")
+			}
+		} else if gs.RemainingPriestCapacity(a.PlayerID) < requiredCapacity {
 			return fmt.Errorf("not enough priest capacity")
 		}
 	}
@@ -97,15 +91,8 @@ func (a *ConversionAction) Execute(gs *GameState) error {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
 	}
 
-	if terrain, ok, _ := parseRiverwalkersUnlockConversion(a.ConversionType); ok {
-		cost := gs.riverwalkersUnlockCost(player, terrain)
-		player.Resources.Priests--
-		player.Resources.Coins -= cost
-		if player.UnlockedTerrains == nil {
-			player.UnlockedTerrains = make(map[models.TerrainType]bool)
-		}
-		player.UnlockedTerrains[terrain] = true
-		return nil
+	if _, ok, _ := parseRiverwalkersUnlockConversion(a.ConversionType); ok {
+		return fmt.Errorf("riverwalkers terrain unlock must be resolved when gaining a priest")
 	}
 
 	switch a.ConversionType {

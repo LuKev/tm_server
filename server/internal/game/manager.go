@@ -380,6 +380,17 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
+	if gs.PendingRiverwalkersPriestChoice != nil {
+		pendingPlayer := strings.TrimSpace(gs.PendingRiverwalkersPriestChoice.PlayerID)
+		if strings.TrimSpace(playerID) != pendingPlayer {
+			return fmt.Errorf("riverwalkers priest choice required from player %s", gs.PendingRiverwalkersPriestChoice.PlayerID)
+		}
+		if actionType != ActionSelectRiverwalkersPriestChoice {
+			return fmt.Errorf("riverwalkers priest choice pending for player %s", gs.PendingRiverwalkersPriestChoice.PlayerID)
+		}
+		return nil
+	}
+
 	if gs.PendingTreasurersDeposit != nil {
 		pendingPlayer := strings.TrimSpace(gs.PendingTreasurersDeposit.PlayerID)
 		if strings.TrimSpace(playerID) != pendingPlayer {
@@ -524,7 +535,7 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return fmt.Errorf("no pending leech offer for player")
 	}
 
-	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectDjinniStartingCultTrack || actionType == ActionSelectTreasurersDeposit || actionType == ActionSelectGoblinsCultTrack || actionType == ActionSelectArchivistsBonusCard || actionType == ActionDiscardPendingSpade {
+	if actionType == ActionSelectTownCultTop || actionType == ActionSelectFavorTile || actionType == ActionUseDarklingsPriestOrdination || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling || actionType == ActionBuildWispsStrongholdDwelling || actionType == ActionSelectCultistsCultTrack || actionType == ActionSelectDjinniStartingCultTrack || actionType == ActionSelectTreasurersDeposit || actionType == ActionSelectRiverwalkersPriestChoice || actionType == ActionSelectGoblinsCultTrack || actionType == ActionSelectArchivistsBonusCard || actionType == ActionDiscardPendingSpade {
 		return fmt.Errorf("no pending decision for requested action")
 	}
 
@@ -779,6 +790,7 @@ func isPendingResolutionActionType(actionType ActionType) bool {
 		ActionSelectCultistsCultTrack,
 		ActionSelectDjinniStartingCultTrack,
 		ActionSelectTreasurersDeposit,
+		ActionSelectRiverwalkersPriestChoice,
 		ActionSelectGoblinsCultTrack,
 		ActionSelectArchivistsBonusCard,
 		ActionUseCultSpade,
@@ -807,6 +819,7 @@ func actionRequiresTurnOwnership(actionType ActionType) bool {
 		ActionSelectCultistsCultTrack,
 		ActionSelectDjinniStartingCultTrack,
 		ActionSelectTreasurersDeposit,
+		ActionSelectRiverwalkersPriestChoice,
 		ActionSelectGoblinsCultTrack,
 		ActionSelectArchivistsBonusCard,
 		ActionDiscardPendingSpade,
@@ -1161,6 +1174,7 @@ func serializeStateWithRevisionAt(gs *GameState, gameID string, revision int, no
 		"pendingHalflingsSpades":           gs.PendingHalflingsSpades,
 		"pendingDarklingsPriestOrdination": gs.PendingDarklingsPriestOrdination,
 		"pendingCultistsCultSelection":     gs.PendingCultistsCultSelection,
+		"pendingRiverwalkersPriestChoice":  gs.PendingRiverwalkersPriestChoice,
 		"pendingTownCultTopChoice":         gs.PendingTownCultTopChoice,
 		"pendingFreeActionsPlayerId":       gs.PendingFreeActionsPlayerID,
 		"pendingTurnConfirmationPlayerId":  gs.PendingTurnConfirmationPlayerID,
@@ -1287,6 +1301,10 @@ func serializePendingDecision(gs *GameState) interface{} {
 		}
 	}
 
+	if gs.PendingRiverwalkersPriestChoice != nil {
+		return serializeRiverwalkersPriestChoice(gs, gs.PendingRiverwalkersPriestChoice)
+	}
+
 	if gs.PendingTreasurersDeposit != nil {
 		return map[string]interface{}{
 			"type":             "treasurers_deposit",
@@ -1373,6 +1391,36 @@ func serializePendingDecision(gs *GameState) interface{} {
 	}
 
 	return nil
+}
+
+func serializeRiverwalkersPriestChoice(gs *GameState, pending *PendingRiverwalkersPriestChoice) map[string]interface{} {
+	player := gs.GetPlayer(pending.PlayerID)
+	options := make([]map[string]interface{}, 0, 7)
+	if player != nil {
+		for terrain := models.TerrainPlains; terrain <= models.TerrainDesert; terrain++ {
+			cost := gs.riverwalkersUnlockCost(player, terrain)
+			unlocked := player.UnlockedTerrains != nil && player.UnlockedTerrains[terrain]
+			options = append(options, map[string]interface{}{
+				"terrain":    terrain,
+				"cost":       cost,
+				"unlocked":   unlocked,
+				"affordable": !unlocked && player.Resources.Coins >= cost,
+			})
+		}
+	}
+	coins := 0
+	if player != nil && player.Resources != nil {
+		coins = player.Resources.Coins
+	}
+	return map[string]interface{}{
+		"type":             "riverwalkers_priest_choice",
+		"playerId":         pending.PlayerID,
+		"priestsRemaining": pending.PriestsRemaining,
+		"reason":           pending.Reason,
+		"canTakePriest":    player != nil && gs.RemainingPriestCapacity(pending.PlayerID) > 0,
+		"coins":            coins,
+		"terrainOptions":   options,
+	}
 }
 
 func serializeAuctionState(as *AuctionState) interface{} {

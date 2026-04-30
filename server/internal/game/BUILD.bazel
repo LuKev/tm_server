@@ -15,6 +15,7 @@ go_library(
         "action_select_favor_tile.go",
         "action_select_archivists_bonus_card.go",
         "action_select_djinni_starting_cult.go",
+        "action_select_riverwalkers_priest.go",
         "action_select_treasurers_deposit.go",
         "action_select_town_cult_top.go",
         "action_select_town_tile.go",

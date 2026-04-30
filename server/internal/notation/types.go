@@ -1155,6 +1155,9 @@ func (a *LogRiverwalkersUnlockAction) Execute(gs *game.GameState) error {
 			return err
 		}
 	}
+	if gs.PendingRiverwalkersPriestChoice != nil && gs.PendingRiverwalkersPriestChoice.PlayerID == a.PlayerID {
+		return game.NewSelectRiverwalkersPriestChoiceAction(a.PlayerID, false, a.Terrain).Execute(gs)
+	}
 	if strings.EqualFold(strings.TrimSpace(a.SourceText), "income") {
 		if player.Resources.Priests < 1 {
 			return fmt.Errorf("riverwalkers income unlock requires one just-gained priest")
