@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "selfplay",
+    srcs = ["selfplay.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/selfplay",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/actions",
+        "//internal/az/env",
+        "//internal/az/mcts",
+        "//internal/az/model",
+    ],
+)
+
+go_test(
+    name = "selfplay_test",
+    srcs = ["selfplay_test.go"],
+    embed = [":selfplay"],
+    deps = [
+        "//internal/az/mcts",
+        "//internal/az/model",
+    ],
+)

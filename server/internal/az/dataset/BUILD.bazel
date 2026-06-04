@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dataset",
+    srcs = ["dataset.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/dataset",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/selfplay",
+    ],
+)
+
+go_test(
+    name = "dataset_test",
+    srcs = ["dataset_test.go"],
+    embed = [":dataset"],
+    deps = [
+        "//internal/az/selfplay",
+    ],
+)

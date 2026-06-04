@@ -364,10 +364,16 @@ func stringToTerrainType(s string) models.TerrainType {
 		return models.TerrainDesert
 	case "Swamp":
 		return models.TerrainSwamp
-	case "Plain":
+	case "Plain", "Plains":
 		return models.TerrainPlains
+	case "Wasteland":
+		return models.TerrainWasteland
 	case "River":
 		return models.TerrainRiver
+	case "Ice":
+		return models.TerrainIce
+	case "Volcano":
+		return models.TerrainVolcano
 	default:
 		return models.TerrainTypeUnknown
 	}

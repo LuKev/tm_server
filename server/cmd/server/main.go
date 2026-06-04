@@ -30,6 +30,7 @@ func main() {
 	replayMgr := replay.NewReplayManager(scriptDir)
 	replayMgr.SetSourceAnchoredLeechOrdering(true)
 	replayHandler := api.NewReplayHandler(replayMgr)
+	aiHandler := api.NewAIHandler(gameMgr)
 
 	deps := websocket.ServerDeps{
 		Lobby: lobbyMgr,
@@ -55,6 +56,7 @@ func main() {
 
 	// Register replay routes
 	replayHandler.RegisterRoutes(router)
+	aiHandler.RegisterRoutes(router)
 
 	// Start server
 	addr := strings.TrimSpace(os.Getenv("PORT"))

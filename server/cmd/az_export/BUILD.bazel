@@ -1,0 +1,11 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+
+go_binary(
+    name = "az_export",
+    srcs = ["main.go"],
+    importpath = "github.com/lukev/tm_server/cmd/az_export",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/dataset",
+    ],
+)

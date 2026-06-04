@@ -128,3 +128,60 @@ func TestSnapshotRoundTrip(t *testing.T) {
 		t.Errorf("Hex1 Building mismatch: expected Dwelling, got %v", parsedHex1.Building)
 	}
 }
+
+func TestParseSnapshotAcceptsGeneratedPluralPlainsTerrain(t *testing.T) {
+	snapshot := `Round: 1
+Phase: Action
+MapType: base
+Turn: Cultists
+TurnOrder: [Cultists, Witches]
+PassOrder: []
+
+Players:
+  Cultists:
+    VP: 20
+    Res: 3w 0p 10c / 0/7/5
+    Keys: 0
+    Shipping: 0
+    Digging: 0
+    Cult: 1/0/1/2
+    Map: 3,4:D
+    Bridges:
+    Towns:
+    Bonus: None
+    Favor:
+    StrongholdAction: None
+
+  Witches:
+    VP: 20
+    Res: 3w 0p 10c / 0/7/5
+    Keys: 0
+    Shipping: 0
+    Digging: 0
+    Cult: 0/0/0/2
+    Map: 3,5:D
+    Bridges:
+    Towns:
+    Bonus: None
+    Favor:
+    StrongholdAction: None
+
+Map:
+  9,4: Plains
+
+State:
+  ScoringTiles:
+  Bonuses:
+  Favors:
+  Towns:
+  PowerActions:
+  CultBoard:
+`
+	parsed, err := ParseSnapshot(snapshot)
+	if err != nil {
+		t.Fatalf("ParseSnapshot failed: %v", err)
+	}
+	if terrain := parsed.Map.GetHex(board.NewHex(9, 4)).Terrain; terrain != models.TerrainPlains {
+		t.Fatalf("terrain = %v, want Plains", terrain)
+	}
+}

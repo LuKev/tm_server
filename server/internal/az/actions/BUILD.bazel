@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "actions",
+    srcs = ["actions.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/actions",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/game",
+        "//internal/game/board",
+        "//internal/models",
+    ],
+)
+
+go_test(
+    name = "actions_test",
+    srcs = ["actions_test.go"],
+    deps = [
+        ":actions",
+        "//internal/az/env",
+    ],
+)

@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "env",
+    srcs = ["env.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/env",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/actions",
+        "//internal/game",
+        "//internal/game/board",
+        "//internal/game/factions",
+        "//internal/models",
+        "//internal/replay",
+    ],
+)
+
+go_test(
+    name = "env_test",
+    srcs = ["env_test.go"],
+    embed = [":env"],
+    deps = [
+        "//internal/replay",
+    ],
+)

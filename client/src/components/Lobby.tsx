@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Bot } from 'lucide-react'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
 import { DEFAULT_MAP_CATALOG } from '../data/mapCatalog'
@@ -181,9 +182,15 @@ export function Lobby(): React.ReactElement {
         <div className="lobby-header">
           <p className="lobby-kicker">TM Lobby</p>
           <h1 className="lobby-title">Terra Mystica Online</h1>
-          <div className="lobby-status">
-            <span className={`lobby-status-dot ${getStatusColorClass()}`}></span>
-            <span className="lobby-status-label">{connectionStatus}</span>
+          <div className="lobby-header-row">
+            <div className="lobby-status">
+              <span className={`lobby-status-dot ${getStatusColorClass()}`}></span>
+              <span className="lobby-status-label">{connectionStatus}</span>
+            </div>
+            <button className="lobby-button lobby-button-secondary" onClick={() => { void navigate('/ai') }}>
+              <Bot size={18} />
+              <span>AI</span>
+            </button>
           </div>
         </div>
 

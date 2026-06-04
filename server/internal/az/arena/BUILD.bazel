@@ -1,0 +1,24 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "arena",
+    srcs = ["arena.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/arena",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/actions",
+        "//internal/az/env",
+        "//internal/az/mcts",
+        "//internal/az/model",
+    ],
+)
+
+go_test(
+    name = "arena_test",
+    srcs = ["arena_test.go"],
+    embed = [":arena"],
+    deps = [
+        "//internal/az/mcts",
+        "//internal/az/model",
+    ],
+)

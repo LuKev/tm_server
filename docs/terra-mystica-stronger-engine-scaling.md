@@ -1,0 +1,181 @@
+# Scaling The 1v1 AlphaZero Engine
+
+## Objective
+
+The current 1v1 engine proves the full AlphaZero loop: live-engine legal actions, MCTS, self-play JSONL, dataset export, torch training, HTTP inference, arena gating, and bot execution. The next goal is to make that loop strong enough to improve across repeated runs.
+
+Strength comes from four properties:
+
+1. High-volume self-play with measured throughput.
+2. Diverse positions that cover factions, round assets, board shapes, and late-game states.
+3. A model architecture that uses board structure instead of treating every feature as unrelated scalar input.
+4. Evaluation that is reproducible and statistically harder to fool.
+
+## Implemented Scaling Surfaces
+
+- `az_selfplay -metrics=/path/metrics.json` writes throughput, branching, phase timing, scenario counts, completed/truncated games, and records-per-second.
+- `training_mix` samples both deterministic base scenarios and randomized scenarios.
+- `randomized_base` samples base-game faction pairs, seat order, starting dwelling anchors, scoring tiles, and bonus cards.
+- `az_loop` runs self-play shards concurrently and writes per-iteration `report.json` with self-play metrics, dataset paths, runtime info, MCTS config, incumbent source, and arena result.
+- Arena reports now include scenario counts, average plies, search simulations, win-rate standard error, and 95% confidence interval.
+- `az_loop` maintains `ratings.json` with lightweight Elo-style ratings for candidates, incumbents, and retained baselines.
+- `az_loop` and `az_eval` report a structured promotion decision. Use `-promote_min_games` and `-promote_ci95_lower_bound` when a run should require statistical confidence, not only a raw win-rate threshold.
+- `az_eval` compares any table or HTTP candidate against a table, HTTP, or heuristic baseline without running the full train loop.
+- `az_train_torch --architecture=hex` uses observation shape `[global, hexes, per_hex]` to encode hexes with shared weights and pool board embeddings into policy/value heads.
+- `az_infer_torch` serves both `/evaluate` and `/evaluate_batch`, and exposes checkpoint schema/shape/architecture on `/healthz`.
+- `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`.
+
+## Recommended Run Ladder
+
+Start with tiny smoke runs after code changes:
+
+```bash
+cd server
+bazel run //cmd/az_selfplay:az_selfplay -- \
+  -scenario=training_mix \
+  -episodes=2 \
+  -max_plies=20 \
+  -sims=4 \
+  -batch_size=2 \
+  -metrics=/tmp/tm_az_smoke_metrics.json \
+  -output=/tmp/tm_az_smoke_selfplay.jsonl
+```
+
+Then run a small local iteration:
+
+```bash
+cd server
+bazel run //cmd/az_loop:az_loop -- \
+  -work_dir=/tmp/tm_az_runs \
+  -iterations=2 \
+  -episodes=40 \
+  -shards=4 \
+  -scenario=training_mix \
+  -sims=16 \
+  -batch_size=4 \
+  -max_plies=120 \
+  -arena_games=16 \
+  -promote_win_rate=0.55 \
+  -promote_min_games=16 \
+  -promote_ci95_lower_bound=0.45
+```
+
+Export and train a neural candidate:
+
+```bash
+cd server
+bazel run //cmd/az_train_torch:az_train_torch -- \
+  --samples=/tmp/tm_az_runs/iter_0001/samples.jsonl \
+  --manifest=/tmp/tm_az_runs/iter_0001/dataset_manifest.json \
+  --vocab=/tmp/tm_az_runs/iter_0001/action_vocab.json \
+  --output=/tmp/tm_az_policy_value.pt \
+  --architecture=hex \
+  --epochs=5 \
+  --hidden_size=256
+```
+
+Serve and generate neural self-play:
+
+```bash
+cd server
+bazel run //cmd/az_infer_torch:az_infer_torch -- \
+  --checkpoint=/tmp/tm_az_policy_value.pt \
+  --host=127.0.0.1 \
+  --port=9097
+```
+
+In another shell:
+
+```bash
+cd server
+bazel run //cmd/az_selfplay:az_selfplay -- \
+  -scenario=training_mix \
+  -episodes=200 \
+  -max_plies=160 \
+  -sims=32 \
+  -batch_size=8 \
+  -model_url=http://127.0.0.1:9097/evaluate \
+  -metrics=/tmp/tm_az_neural_metrics.json \
+  -output=/tmp/tm_az_neural_selfplay.jsonl
+```
+
+Generate replay-derived midgame seeds:
+
+```bash
+cd server
+bazel run //cmd/az_replay_seeds:az_replay_seeds -- \
+  -input=/path/to/replay.txt \
+  -format=snellman \
+  -every=20 \
+  -max=200 \
+  -output=/tmp/tm_az_replay_seeds.jsonl
+```
+
+Generate a broader seed set from a replay fixture directory:
+
+```bash
+cd server
+bazel run //cmd/az_replay_seeds:az_replay_seeds -- \
+  -input_dir=internal/replay/testdata/snellman_batch \
+  -pattern='*.txt' \
+  -format=snellman \
+  -every=20 \
+  -max=1000 \
+  -max_per_replay=50 \
+  -output=/tmp/tm_az_replay_seed_batch.jsonl
+```
+
+Use those seeds as a scenario source:
+
+```bash
+cd server
+bazel run //cmd/az_selfplay:az_selfplay -- \
+  -scenario=snapshots:/tmp/tm_az_replay_seed_batch.jsonl \
+  -episodes=100 \
+  -max_plies=120 \
+  -sims=32 \
+  -batch_size=8 \
+  -output=/tmp/tm_az_replay_seed_selfplay.jsonl
+```
+
+Evaluate a retained model directly:
+
+```bash
+cd server
+bazel run //cmd/az_eval:az_eval -- \
+  -candidate_model=/tmp/tm_az_runs/iter_0005/candidate_model.json \
+  -baseline_model=/tmp/tm_az_runs/best_model.json \
+  -scenario=training_mix \
+  -games=100 \
+  -sims=32 \
+  -batch_size=4 \
+  -max_plies=160 \
+  -promote_win_rate=0.55 \
+  -promote_min_games=50 \
+  -promote_ci95_lower_bound=0.50 \
+  -output=/tmp/tm_az_eval_iter_0005.json
+```
+
+## Promotion Discipline
+
+Do not promote only because a candidate wins one tiny match. Use:
+
+- `training_mix` or an explicit comma-separated scenario suite.
+- At least 50 arena games for local checks, 200+ for serious promotion.
+- Fixed seeds recorded in `report.json`.
+- A promotion threshold that considers confidence interval width. A candidate with `winRate=0.56` over 8 games is not meaningfully proven.
+- `-promote_min_games` for minimum sample size and `-promote_ci95_lower_bound` for lower-bound confidence gating.
+- `ratings.json` as a long-lived trend signal, not as a substitute for arena confidence on a promotion decision.
+
+## Metrics To Watch
+
+- `recordsPerSecond`: primary self-play throughput.
+- `averageBranchingFactor`: catches action-surface explosions.
+- `legalMillis / searchMillis / applyMillis`: shows whether legality, MCTS, or model inference is the bottleneck.
+- `truncatedGames`: high truncation means value targets are mostly heuristic margins, not real terminal outcomes.
+- `scenarioCounts`: confirms the run did not collapse to one scenario bucket.
+
+## Remaining Work
+
+- Add ONNX or in-process inference if HTTP latency dominates.
+- Add setup/auction self-play once the action surface is cheap enough for those phases.

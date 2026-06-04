@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "mcts",
+    srcs = ["mcts.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/mcts",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/actions",
+        "//internal/az/env",
+        "//internal/az/model",
+    ],
+)
+
+go_test(
+    name = "mcts_test",
+    srcs = ["mcts_test.go"],
+    embed = [":mcts"],
+    deps = [
+        "//internal/az/env",
+        "//internal/az/model",
+    ],
+)

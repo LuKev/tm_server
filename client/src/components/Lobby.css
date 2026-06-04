@@ -70,6 +70,13 @@
   font-size: 0.95rem;
 }
 
+.lobby-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .lobby-panel {
   display: grid;
   gap: 24px;
@@ -185,6 +192,10 @@
 .lobby-button {
   border: 1px solid transparent;
   padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-weight: 700;
   color: #fff8ef;
   transition: transform 140ms ease, filter 140ms ease, background 140ms ease;

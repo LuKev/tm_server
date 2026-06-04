@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "train",
+    srcs = ["train.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/train",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/model",
+        "//internal/az/selfplay",
+    ],
+)
+
+go_test(
+    name = "train_test",
+    srcs = ["train_test.go"],
+    embed = [":train"],
+    deps = [
+        "//internal/az/selfplay",
+    ],
+)

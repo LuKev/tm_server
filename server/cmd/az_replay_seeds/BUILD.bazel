@@ -1,0 +1,13 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+
+go_binary(
+    name = "az_replay_seeds",
+    srcs = ["main.go"],
+    importpath = "github.com/lukev/tm_server/cmd/az_replay_seeds",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/env",
+        "//internal/game",
+        "//internal/replay",
+    ],
+)

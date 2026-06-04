@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary")
+
+go_binary(
+    name = "az_train",
+    srcs = ["main.go"],
+    importpath = "github.com/lukev/tm_server/cmd/az_train",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//internal/az/model",
+        "//internal/az/train",
+    ],
+)
