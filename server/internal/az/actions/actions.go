@@ -232,6 +232,9 @@ func pendingCandidates(gs *game.GameState, playerID string) []Option {
 
 func mainTurnCandidates(gs *game.GameState, playerID string) []Option {
 	var out []Option
+	if player := gs.GetPlayer(playerID); player != nil && player.HasPassed {
+		return out
+	}
 	if gs.Phase == game.PhaseFactionSelection {
 		for _, faction := range baseFactions() {
 			out = append(out, option(playerID, "select_faction", fmt.Sprintf("Select %s", faction), &game.SelectFactionAction{PlayerID: playerID, FactionType: faction}, "faction", int(faction)))

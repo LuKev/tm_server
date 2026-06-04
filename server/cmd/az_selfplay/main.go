@@ -18,6 +18,7 @@ func main() {
 	flag.IntVar(&config.Episodes, "episodes", 1, "number of self-play episodes")
 	flag.IntVar(&config.MaxPlies, "max_plies", 200, "maximum plies per episode")
 	flag.StringVar(&config.Scenario, "scenario", "base_nomads_witches", "built-in scenario name")
+	flag.IntVar(&config.Workers, "workers", 1, "parallel self-play game workers")
 	flag.IntVar(&config.Search.Simulations, "sims", 64, "MCTS simulations per move")
 	flag.IntVar(&config.Search.BatchSize, "batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
 	flag.Float64Var(&config.Search.CPUCT, "cpuct", 1.5, "PUCT exploration constant")
@@ -30,6 +31,7 @@ func main() {
 	metricsPath := flag.String("metrics", "", "optional metrics JSON output path")
 	modelPath := flag.String("model", "", "optional table model JSON used as evaluator")
 	modelURL := flag.String("model_url", "", "optional HTTP policy/value evaluator URL")
+	progress := flag.Bool("progress", false, "write per-game progress JSON lines to stderr")
 	listScenarios := flag.Bool("list_scenarios", false, "print available built-in scenario names")
 	flag.Parse()
 	if *listScenarios {
@@ -52,6 +54,9 @@ func main() {
 	})
 	if err != nil {
 		exitf("load evaluator: %v", err)
+	}
+	if *progress {
+		config.ProgressWriter = os.Stderr
 	}
 	metrics, err := selfplay.RunWithMetrics(writer, evaluator, config)
 	if err != nil {

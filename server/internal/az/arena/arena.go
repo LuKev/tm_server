@@ -1,9 +1,12 @@
 package arena
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"math"
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/lukev/tm_server/internal/az/actions"
@@ -13,11 +16,13 @@ import (
 )
 
 type Config struct {
-	Games      int
-	MaxPlies   int
-	Scenario   string
-	Search     mcts.Config
-	RandomSeed int64
+	Games          int
+	MaxPlies       int
+	Scenario       string
+	Workers        int
+	ProgressWriter io.Writer
+	Search         mcts.Config
+	RandomSeed     int64
 }
 
 type Result struct {
@@ -32,6 +37,10 @@ type Result struct {
 	AveragePlies      float64        `json:"averagePlies"`
 	ScenarioCounts    map[string]int `json:"scenarioCounts,omitempty"`
 	SearchSimulations int            `json:"searchSimulations"`
+	ElapsedMillis     int64          `json:"elapsedMillis,omitempty"`
+	SearchMillis      int64          `json:"searchMillis,omitempty"`
+	SearchNanos       int64          `json:"searchNanos,omitempty"`
+	Workers           int            `json:"workers,omitempty"`
 }
 
 type PromotionPolicy struct {
@@ -69,64 +78,54 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 	if config.RandomSeed == 0 {
 		config.RandomSeed = time.Now().UnixNano()
 	}
-	rng := rand.New(rand.NewSource(config.RandomSeed))
+	if config.Workers <= 0 {
+		config.Workers = 1
+	}
+	if config.Workers > config.Games {
+		config.Workers = config.Games
+	}
+	started := time.Now()
 	result := Result{
 		ScenarioCounts:    make(map[string]int),
 		SearchSimulations: config.Search.Simulations,
+		Workers:           config.Workers,
 	}
-	for gameIndex := 0; gameIndex < config.Games; gameIndex++ {
-		position, scenarioName, err := env.SampleScenario(config.Scenario, rng)
-		if err != nil {
-			return result, err
+	jobs := make(chan int)
+	results := make(chan gameResult)
+	var wg sync.WaitGroup
+	for workerID := 0; workerID < config.Workers; workerID++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+			for gameIndex := range jobs {
+				results <- evaluateGame(gameIndex, workerID, candidate, baseline, config)
+			}
+		}(workerID)
+	}
+	go func() {
+		for gameIndex := 0; gameIndex < config.Games; gameIndex++ {
+			jobs <- gameIndex
 		}
-		result.ScenarioCounts[scenarioName]++
-		candidatePlayer := "p1"
-		if gameIndex%2 == 1 {
-			candidatePlayer = "p2"
+		close(jobs)
+		wg.Wait()
+		close(results)
+	}()
+	var firstErr error
+	for game := range results {
+		if game.err != nil {
+			if firstErr == nil {
+				firstErr = game.err
+			}
+			continue
 		}
-		plies := 0
-		for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
-			plies++
-			legal := position.LegalActions()
-			if len(legal) == 0 {
-				break
-			}
-			currentPlayer := legal[0].PlayerID
-			evaluator := baseline
-			if currentPlayer == candidatePlayer {
-				evaluator = candidate
-			}
-			searchConfig := config.Search
-			if searchConfig.RandomSeed == 0 {
-				searchConfig.RandomSeed = rng.Int63()
-			}
-			searchConfig.Temperature = 0
-			search := mcts.Search(position, evaluator, searchConfig)
-			selected := selectAction(search.Actions)
-			if selected.ID == "" {
-				break
-			}
-			option, ok := actionByID(legal, selected.ID)
-			if !ok {
-				return result, fmt.Errorf("selected illegal action %s", selected.ID)
-			}
-			position, err = position.Apply(option)
-			if err != nil {
-				return result, err
-			}
+		mergeGameResult(&result, game)
+		if config.ProgressWriter != nil {
+			writeProgress(config.ProgressWriter, game, result, time.Since(started), config.Games)
 		}
-		margin := position.ValueFor(candidatePlayer)
-		result.Games++
-		result.AveragePlies += float64(plies)
-		result.AverageMargin += margin
-		switch {
-		case margin > 0.01:
-			result.CandidateWins++
-		case margin < -0.01:
-			result.BaselineWins++
-		default:
-			result.Draws++
-		}
+	}
+	result.ElapsedMillis = time.Since(started).Milliseconds()
+	if firstErr != nil {
+		return result, firstErr
 	}
 	if result.Games > 0 {
 		result.AverageMargin /= float64(result.Games)
@@ -137,6 +136,118 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 		result.WinRateCI95 = [2]float64{math.Max(0, result.WinRate-margin), math.Min(1, result.WinRate+margin)}
 	}
 	return result, nil
+}
+
+type gameResult struct {
+	gameIndex       int
+	workerID        int
+	scenario        string
+	candidatePlayer string
+	plies           int
+	margin          float64
+	searchNanos     int64
+	elapsed         time.Duration
+	err             error
+}
+
+func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, config Config) gameResult {
+	started := time.Now()
+	rng := rand.New(rand.NewSource(gameSeed(config.RandomSeed, gameIndex)))
+	position, scenarioName, err := env.SampleScenario(config.Scenario, rng)
+	if err != nil {
+		return gameResult{gameIndex: gameIndex, workerID: workerID, err: err}
+	}
+	candidatePlayer := "p1"
+	if gameIndex%2 == 1 {
+		candidatePlayer = "p2"
+	}
+	out := gameResult{
+		gameIndex:       gameIndex,
+		workerID:        workerID,
+		scenario:        scenarioName,
+		candidatePlayer: candidatePlayer,
+	}
+	for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
+		out.plies++
+		legal := position.LegalActions()
+		if len(legal) == 0 {
+			break
+		}
+		currentPlayer := legal[0].PlayerID
+		evaluator := baseline
+		if currentPlayer == candidatePlayer {
+			evaluator = candidate
+		}
+		searchConfig := config.Search
+		if searchConfig.RandomSeed == 0 {
+			searchConfig.RandomSeed = rng.Int63()
+		}
+		searchConfig.Temperature = 0
+		searchStarted := time.Now()
+		search := mcts.Search(position, evaluator, searchConfig)
+		out.searchNanos += time.Since(searchStarted).Nanoseconds()
+		selected := selectAction(search.Actions)
+		if selected.ID == "" {
+			break
+		}
+		option, ok := actionByID(legal, selected.ID)
+		if !ok {
+			out.err = fmt.Errorf("selected illegal action %s", selected.ID)
+			return out
+		}
+		position, err = position.Apply(option)
+		if err != nil {
+			out.err = err
+			return out
+		}
+	}
+	out.margin = position.ValueFor(candidatePlayer)
+	out.elapsed = time.Since(started)
+	return out
+}
+
+func mergeGameResult(result *Result, game gameResult) {
+	result.Games++
+	result.ScenarioCounts[game.scenario]++
+	result.AveragePlies += float64(game.plies)
+	result.AverageMargin += game.margin
+	result.SearchNanos += game.searchNanos
+	result.SearchMillis = result.SearchNanos / int64(time.Millisecond)
+	switch {
+	case game.margin > 0.01:
+		result.CandidateWins++
+	case game.margin < -0.01:
+		result.BaselineWins++
+	default:
+		result.Draws++
+	}
+}
+
+func writeProgress(writer io.Writer, game gameResult, result Result, elapsed time.Duration, totalGames int) {
+	progress := map[string]interface{}{
+		"event":             "arena_game",
+		"game":              game.gameIndex,
+		"worker":            game.workerID,
+		"scenario":          game.scenario,
+		"candidatePlayer":   game.candidatePlayer,
+		"plies":             game.plies,
+		"margin":            game.margin,
+		"gameElapsedMillis": game.elapsed.Milliseconds(),
+		"completedGames":    result.Games,
+		"totalGames":        totalGames,
+		"elapsedMillis":     elapsed.Milliseconds(),
+		"candidateWins":     result.CandidateWins,
+		"baselineWins":      result.BaselineWins,
+		"draws":             result.Draws,
+	}
+	raw, err := json.Marshal(progress)
+	if err == nil {
+		_, _ = fmt.Fprintln(writer, string(raw))
+	}
+}
+
+func gameSeed(base int64, gameIndex int) int64 {
+	return base + int64(gameIndex+1)*1000003
 }
 
 func DecidePromotion(result Result, policy PromotionPolicy) PromotionDecision {

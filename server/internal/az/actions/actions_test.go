@@ -73,3 +73,21 @@ func TestLegalActionsExcludeFreeConversions(t *testing.T) {
 		}
 	}
 }
+
+func TestLegalActionsExcludeMainTurnActionsForPassedPlayer(t *testing.T) {
+	position, err := env.BuiltInScenario("base_nomads_witches")
+	if err != nil {
+		t.Fatalf("BuiltInScenario failed: %v", err)
+	}
+	current := position.State.GetCurrentPlayer()
+	if current == nil {
+		t.Fatal("expected current player")
+	}
+	current.HasPassed = true
+	legal := actions.LegalActions(position.State)
+	for _, option := range legal {
+		if option.PlayerID == current.ID {
+			t.Fatalf("passed current player should not receive main-turn action: %s", option.ID)
+		}
+	}
+}

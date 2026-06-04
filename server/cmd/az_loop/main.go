@@ -44,6 +44,9 @@ type runConfig struct {
 	Iterations            int         `json:"iterations"`
 	Episodes              int         `json:"episodes"`
 	Shards                int         `json:"shards"`
+	SelfPlayWorkers       int         `json:"selfPlayWorkers,omitempty"`
+	ArenaWorkers          int         `json:"arenaWorkers,omitempty"`
+	Progress              bool        `json:"progress,omitempty"`
 	Scenario              string      `json:"scenario"`
 	MaxPlies              int         `json:"maxPlies"`
 	Search                mcts.Config `json:"search"`
@@ -85,6 +88,9 @@ func main() {
 	iterations := flag.Int("iterations", 1, "training iterations")
 	episodes := flag.Int("episodes", 8, "self-play episodes per iteration")
 	shards := flag.Int("shards", 1, "parallel self-play shards per iteration")
+	selfPlayWorkers := flag.Int("selfplay_workers", 1, "parallel episode workers inside each self-play shard")
+	arenaWorkers := flag.Int("arena_workers", 1, "parallel arena game workers")
+	progress := flag.Bool("progress", false, "write per-game self-play and arena progress JSON to stderr")
 	scenario := flag.String("scenario", "random_base", "scenario name, random_base, or comma-separated scenario set")
 	maxPlies := flag.Int("max_plies", 120, "maximum plies per self-play game")
 	sims := flag.Int("sims", 8, "MCTS simulations per move")
@@ -108,6 +114,12 @@ func main() {
 	}
 	if *shards <= 0 {
 		exitf("-shards must be positive")
+	}
+	if *selfPlayWorkers <= 0 {
+		exitf("-selfplay_workers must be positive")
+	}
+	if *arenaWorkers <= 0 {
+		exitf("-arena_workers must be positive")
 	}
 	if err := os.MkdirAll(*workDir, 0755); err != nil {
 		exitf("create work dir: %v", err)
@@ -135,12 +147,15 @@ func main() {
 			Temperature: 1,
 			MaxDepth:    *maxDepth,
 		}
+		progressOut := progressWriter(*progress)
 		selfPlayMetrics, err := generateSelfPlay(selfPlayPath, incumbent, selfplay.Config{
-			Episodes:   *episodes,
-			MaxPlies:   *maxPlies,
-			Scenario:   *scenario,
-			RandomSeed: *seed + int64(iteration*1000),
-			Search:     searchConfig,
+			Episodes:       *episodes,
+			MaxPlies:       *maxPlies,
+			Scenario:       *scenario,
+			Workers:        *selfPlayWorkers,
+			ProgressWriter: progressOut,
+			RandomSeed:     *seed + int64(iteration*1000),
+			Search:         searchConfig,
 		}, *shards)
 		if err != nil {
 			exitf("self-play iteration %d: %v", iteration, err)
@@ -165,10 +180,12 @@ func main() {
 			exitf("export dataset: %v", err)
 		}
 		arenaResult, err := arena.Evaluate(candidate, incumbent, arena.Config{
-			Games:      *arenaGames,
-			MaxPlies:   *maxPlies,
-			Scenario:   *scenario,
-			RandomSeed: *seed + int64(iteration*1000) + 77,
+			Games:          *arenaGames,
+			MaxPlies:       *maxPlies,
+			Scenario:       *scenario,
+			Workers:        *arenaWorkers,
+			ProgressWriter: progressOut,
+			RandomSeed:     *seed + int64(iteration*1000) + 77,
 			Search: mcts.Config{
 				Simulations: *sims,
 				BatchSize:   *batchSize,
@@ -225,6 +242,9 @@ func main() {
 				Iterations:            *iterations,
 				Episodes:              *episodes,
 				Shards:                *shards,
+				SelfPlayWorkers:       *selfPlayWorkers,
+				ArenaWorkers:          *arenaWorkers,
+				Progress:              *progress,
 				Scenario:              *scenario,
 				MaxPlies:              *maxPlies,
 				Search:                searchConfig,
@@ -251,6 +271,7 @@ func main() {
 }
 
 func generateSelfPlay(path string, evaluator model.Evaluator, config selfplay.Config, shards int) (selfplay.Metrics, error) {
+	started := time.Now()
 	remaining := config.Episodes
 	shardConfigs := make([]selfplay.Config, 0, shards)
 	shardPaths := make([]string, 0, shards)
@@ -310,6 +331,7 @@ func generateSelfPlay(path string, evaluator model.Evaluator, config selfplay.Co
 	for _, shardPath := range shardPaths {
 		_ = os.Remove(shardPath)
 	}
+	total.ElapsedMillis = time.Since(started).Milliseconds()
 	return finalizeMergedMetrics(total), nil
 }
 
@@ -347,10 +369,13 @@ func mergeMetrics(total, shard selfplay.Metrics) selfplay.Metrics {
 	total.CompletedGames += shard.CompletedGames
 	total.TruncatedGames += shard.TruncatedGames
 	total.TerminalGames += shard.TerminalGames
-	total.ElapsedMillis += shard.ElapsedMillis
 	total.LegalMillis += shard.LegalMillis
 	total.SearchMillis += shard.SearchMillis
 	total.ApplyMillis += shard.ApplyMillis
+	total.LegalNanos += shard.LegalNanos
+	total.SearchNanos += shard.SearchNanos
+	total.ApplyNanos += shard.ApplyNanos
+	total.Workers += shard.Workers
 	if shard.MaxFinalRound > total.MaxFinalRound {
 		total.MaxFinalRound = shard.MaxFinalRound
 	}
@@ -402,11 +427,32 @@ func mergeIntMap(total, shard map[string]int) {
 }
 
 func finalizeMergedMetrics(metrics selfplay.Metrics) selfplay.Metrics {
+	metrics.LegalMillis = metrics.LegalNanos / int64(time.Millisecond)
+	metrics.SearchMillis = metrics.SearchNanos / int64(time.Millisecond)
+	metrics.ApplyMillis = metrics.ApplyNanos / int64(time.Millisecond)
 	elapsedSeconds := float64(metrics.ElapsedMillis) / 1000.0
 	if elapsedSeconds > 0 {
 		metrics.RecordsPerSecond = float64(metrics.Records) / elapsedSeconds
 	}
 	return metrics
+}
+
+type lockedWriter struct {
+	mu     sync.Mutex
+	writer io.Writer
+}
+
+func (w *lockedWriter) Write(p []byte) (int, error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.writer.Write(p)
+}
+
+func progressWriter(enabled bool) io.Writer {
+	if !enabled {
+		return nil
+	}
+	return &lockedWriter{writer: os.Stderr}
 }
 
 func loadRatings(path string) ratingsFile {

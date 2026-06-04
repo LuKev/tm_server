@@ -49,6 +49,7 @@ func main() {
 	scenario := flag.String("scenario", "training_mix", "scenario name, snapshot source, or comma-separated scenario set")
 	games := flag.Int("games", 20, "arena games")
 	maxPlies := flag.Int("max_plies", 160, "maximum plies per game")
+	workers := flag.Int("workers", 1, "parallel arena game workers")
 	sims := flag.Int("sims", 32, "MCTS simulations per move")
 	batchSize := flag.Int("batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
 	maxDepth := flag.Int("max_depth", 120, "MCTS simulation max depth")
@@ -56,6 +57,7 @@ func main() {
 	promoteMinGames := flag.Int("promote_min_games", 0, "minimum arena games for the promotion decision report; 0 disables")
 	promoteCI95LowerBound := flag.Float64("promote_ci95_lower_bound", 0, "minimum 95% confidence interval lower bound for the promotion decision report; 0 disables")
 	seed := flag.Int64("seed", 1, "random seed")
+	progress := flag.Bool("progress", false, "write per-game progress JSON lines to stderr")
 	flag.Parse()
 
 	if (*candidateModel == "" && *candidateURL == "") || (*candidateModel != "" && *candidateURL != "") {
@@ -75,11 +77,13 @@ func main() {
 		MaxDepth:    *maxDepth,
 	}
 	result, err := arena.Evaluate(candidate, baseline, arena.Config{
-		Games:      *games,
-		MaxPlies:   *maxPlies,
-		Scenario:   *scenario,
-		RandomSeed: *seed,
-		Search:     search,
+		Games:          *games,
+		MaxPlies:       *maxPlies,
+		Scenario:       *scenario,
+		Workers:        *workers,
+		ProgressWriter: progressWriter(*progress),
+		RandomSeed:     *seed,
+		Search:         search,
 	})
 	if err != nil {
 		exitf("arena: %v", err)
@@ -118,6 +122,13 @@ func main() {
 	}
 	_, _ = os.Stdout.Write(raw)
 	_, _ = fmt.Fprintln(os.Stdout)
+}
+
+func progressWriter(enabled bool) *os.File {
+	if !enabled {
+		return nil
+	}
+	return os.Stderr
 }
 
 func loadEvaluator(path, url string) model.Evaluator {

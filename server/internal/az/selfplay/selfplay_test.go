@@ -37,3 +37,35 @@ func TestRunWritesJSONLRecords(t *testing.T) {
 		t.Fatalf("expected branching metrics: %#v", metrics)
 	}
 }
+
+func TestRunWithWorkersWritesRecords(t *testing.T) {
+	var buf bytes.Buffer
+	metrics, err := RunWithMetrics(&buf, model.NewHeuristicEvaluator(), Config{
+		Episodes:   4,
+		MaxPlies:   2,
+		Scenario:   "training_mix",
+		Workers:    2,
+		RandomSeed: 3,
+		Search: mcts.Config{
+			Simulations: 0,
+			CPUCT:       1.5,
+			Temperature: 1,
+			MaxDepth:    1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run failed: %v", err)
+	}
+	if metrics.Episodes != 4 || metrics.CompletedGames != 4 {
+		t.Fatalf("unexpected worker metrics: %#v", metrics)
+	}
+	if metrics.Workers != 2 {
+		t.Fatalf("workers = %d, want 2", metrics.Workers)
+	}
+	if got := strings.TrimSpace(buf.String()); got == "" {
+		t.Fatal("expected JSONL output")
+	}
+	if metrics.LegalNanos <= 0 || metrics.SearchNanos <= 0 || metrics.ApplyNanos <= 0 {
+		t.Fatalf("expected nanosecond timing metrics: %#v", metrics)
+	}
+}

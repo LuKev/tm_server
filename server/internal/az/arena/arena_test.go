@@ -29,6 +29,34 @@ func TestEvaluateReturnsGames(t *testing.T) {
 	}
 }
 
+func TestEvaluateWithWorkersReturnsGames(t *testing.T) {
+	result, err := Evaluate(model.NewHeuristicEvaluator(), model.NewHeuristicEvaluator(), Config{
+		Games:      4,
+		MaxPlies:   1,
+		Scenario:   "training_mix",
+		Workers:    2,
+		RandomSeed: 3,
+		Search: mcts.Config{
+			Simulations: 0,
+			CPUCT:       1.5,
+			Temperature: 0,
+			MaxDepth:    1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Evaluate failed: %v", err)
+	}
+	if result.Games != 4 {
+		t.Fatalf("games = %d, want 4", result.Games)
+	}
+	if result.Workers != 2 {
+		t.Fatalf("workers = %d, want 2", result.Workers)
+	}
+	if result.SearchNanos <= 0 {
+		t.Fatalf("expected search timing metrics: %#v", result)
+	}
+}
+
 func TestDecidePromotionUsesConfidenceGate(t *testing.T) {
 	decision := DecidePromotion(Result{
 		Games:       100,
