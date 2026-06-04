@@ -16,7 +16,7 @@ Strength comes from four properties:
 - `az_selfplay -metrics=/path/metrics.json` writes throughput, branching, phase timing, scenario counts, final round/phase counts, action-type counts, completed/truncated games, worker count, nanosecond timing, and records-per-second.
 - `az_selfplay -workers=N -progress` runs games in parallel and writes per-game JSON progress to stderr.
 - `az_selfplay -compact_records` omits debug state snapshots from JSONL rows while preserving observation, legal-action, policy, action, and outcome fields.
-- `az_selfplay -reuse_tree` reuses the selected MCTS subtree between real moves during self-play.
+- `az_selfplay -reuse_tree` keeps the tree API active but currently advances to a fresh root after each real move. A larger self-play run exposed stale pending-decision actions when expanded subtrees were reused without state identity checks.
 - `az_selfplay -global_batch_size=N` merges concurrent evaluator batches across self-play workers before calling the wrapped batch evaluator.
 - `az_buffer` builds replay buffers from multiple JSONL sources. Repeat `-source`, optionally as `path@limit`, to stream full sources and deterministic-reservoir-sample capped historical pools.
 - `training_mix` samples both deterministic base scenarios and randomized scenarios.
@@ -81,6 +81,25 @@ The current clean normal-pass performance pass keeps pass visible and uses four 
   - Runtime was `387424ms` with `workers=4`, `averagePlies=86.88`, `averageMargin=0.0565`.
 
 The clean candidate is directionally better than the historical h512 checkpoint in this 50-game gate, but it is not statistically proven. The next quality target is diagnosing the randomized scenarios that still truncate at 400 plies.
+
+## Promotion Result
+
+The next promotion cycle used the clean h512 checkpoint as the baseline and generated a fresh 60-game neural MCTS batch without subtree reuse:
+
+- Self-play: `/tmp/tm_az_promotion_20260604/selfplay_60g.jsonl`
+  - `5070` records from `60` games, `sims=8`, `batch_size=8`, `workers=4`, `max_plies=400`.
+  - Terminal quality: `58/60` terminal games, `2` truncations, `finalRoundCounts={"2":1,"4":1,"6":58}`.
+  - Throughput: `17.98` records/sec.
+- Candidate buffer: `/tmp/tm_az_promotion_20260604/replay_buffer_candidate.jsonl`
+  - `32180` records: existing clean normal-pass mixed buffer plus the fresh 60-game batch.
+  - Export: `/tmp/tm_az_promotion_20260604/export` with `32180` samples and `6715` actions.
+- Candidate checkpoint: `/tmp/tm_az_promotion_20260604/tm_az_policy_value_h512_candidate.pt`
+  - h512 hex model, `4` epochs, final loss `1.4700`.
+- Promotion gate: `/tmp/tm_az_promotion_20260604/arena_100g_candidate_vs_baseline.json`
+  - `100` games, `sims=8`, `batch_size=8`, `workers=4`, seed `4401`.
+  - Candidate score: `63-35-2`, win rate `0.64`, 95% CI `[0.54592, 0.73408]`.
+  - Promotion policy: `minGames=100`, `minWinRate=0.5`, `minCi95LowerBound=0.45`.
+  - Result: promoted.
 
 The full-game h512 promotion gate compared the full-game checkpoint against the earlier h512 mixed checkpoint:
 

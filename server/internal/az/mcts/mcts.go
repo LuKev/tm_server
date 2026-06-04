@@ -85,25 +85,14 @@ func (t *Tree) Search(evaluator model.Evaluator, config Config) Result {
 	return searchResult(rootPlayer, ranked, config.Simulations)
 }
 
-func (t *Tree) Advance(actionID string, position *env.Position) {
+func (t *Tree) Advance(_ string, position *env.Position) {
 	if t == nil {
 		return
 	}
-	if t.root != nil {
-		for _, child := range t.root.children {
-			if child != nil && child.action.ID == actionID {
-				child.parent = nil
-				child.position = position
-				child.playerID = ""
-				if position != nil {
-					child.playerID = position.CurrentPlayerID()
-				}
-				child.noisy = false
-				t.root = child
-				return
-			}
-		}
-	}
+	// Reusing expanded child subtrees can surface stale pending-decision actions
+	// when live-engine resolution has equivalent-looking but not identical
+	// state. Keep the API safe by advancing to a fresh root until state
+	// identity/revision checks are available for subtree reuse.
 	t.root = newRootNode(position)
 }
 
