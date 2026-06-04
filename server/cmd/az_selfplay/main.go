@@ -18,7 +18,6 @@ func main() {
 	flag.IntVar(&config.Episodes, "episodes", 1, "number of self-play episodes")
 	flag.IntVar(&config.MaxPlies, "max_plies", 200, "maximum plies per episode")
 	flag.StringVar(&config.Scenario, "scenario", "base_nomads_witches", "built-in scenario name")
-	flag.IntVar(&config.MinPassRound, "min_pass_round", 0, "suppress pass actions before this round for curriculum self-play; 0 disables")
 	flag.IntVar(&config.Search.Simulations, "sims", 64, "MCTS simulations per move")
 	flag.IntVar(&config.Search.BatchSize, "batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
 	flag.Float64Var(&config.Search.CPUCT, "cpuct", 1.5, "PUCT exploration constant")

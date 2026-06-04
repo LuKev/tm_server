@@ -71,30 +71,6 @@ func TestSampleScenarioRandomBase(t *testing.T) {
 	}
 }
 
-func TestPositionMinPassRoundSuppressesEarlyPass(t *testing.T) {
-	position, err := BuiltInScenario("base_nomads_witches")
-	if err != nil {
-		t.Fatalf("BuiltInScenario failed: %v", err)
-	}
-	position.MinPassRound = position.State.Round + 1
-	legal := position.LegalActions()
-	if len(legal) == 0 {
-		t.Fatal("expected non-pass legal actions")
-	}
-	for _, option := range legal {
-		if option.Type == "pass" || option.Type == "pass_final" {
-			t.Fatalf("pass should be suppressed before min pass round: %s", option.ID)
-		}
-	}
-	next, err := position.Apply(legal[0])
-	if err != nil {
-		t.Fatalf("Apply failed: %v", err)
-	}
-	if next.MinPassRound != position.MinPassRound {
-		t.Fatalf("min pass round did not propagate: got %d want %d", next.MinPassRound, position.MinPassRound)
-	}
-}
-
 func TestSampleScenarioTrainingMixIncludesRoundAssets(t *testing.T) {
 	position, name, err := SampleScenario("training_mix", rand.New(rand.NewSource(2)))
 	if err != nil {

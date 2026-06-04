@@ -14,18 +14,17 @@ import (
 )
 
 type report struct {
-	StartedAt    string                  `json:"startedAt"`
-	FinishedAt   string                  `json:"finishedAt"`
-	Candidate    evaluatorRef            `json:"candidate"`
-	Baseline     evaluatorRef            `json:"baseline"`
-	Scenario     string                  `json:"scenario"`
-	MaxPlies     int                     `json:"maxPlies"`
-	MinPassRound int                     `json:"minPassRound,omitempty"`
-	Search       mcts.Config             `json:"search"`
-	RandomSeed   int64                   `json:"randomSeed"`
-	Result       arena.Result            `json:"result"`
-	Promotion    arena.PromotionDecision `json:"promotion"`
-	Runtime      runtimeInfo             `json:"runtime"`
+	StartedAt  string                  `json:"startedAt"`
+	FinishedAt string                  `json:"finishedAt"`
+	Candidate  evaluatorRef            `json:"candidate"`
+	Baseline   evaluatorRef            `json:"baseline"`
+	Scenario   string                  `json:"scenario"`
+	MaxPlies   int                     `json:"maxPlies"`
+	Search     mcts.Config             `json:"search"`
+	RandomSeed int64                   `json:"randomSeed"`
+	Result     arena.Result            `json:"result"`
+	Promotion  arena.PromotionDecision `json:"promotion"`
+	Runtime    runtimeInfo             `json:"runtime"`
 }
 
 type evaluatorRef struct {
@@ -50,7 +49,6 @@ func main() {
 	scenario := flag.String("scenario", "training_mix", "scenario name, snapshot source, or comma-separated scenario set")
 	games := flag.Int("games", 20, "arena games")
 	maxPlies := flag.Int("max_plies", 160, "maximum plies per game")
-	minPassRound := flag.Int("min_pass_round", 0, "suppress pass actions before this round for curriculum evaluation; 0 disables")
 	sims := flag.Int("sims", 32, "MCTS simulations per move")
 	batchSize := flag.Int("batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
 	maxDepth := flag.Int("max_depth", 120, "MCTS simulation max depth")
@@ -77,27 +75,25 @@ func main() {
 		MaxDepth:    *maxDepth,
 	}
 	result, err := arena.Evaluate(candidate, baseline, arena.Config{
-		Games:        *games,
-		MaxPlies:     *maxPlies,
-		Scenario:     *scenario,
-		MinPassRound: *minPassRound,
-		RandomSeed:   *seed,
-		Search:       search,
+		Games:      *games,
+		MaxPlies:   *maxPlies,
+		Scenario:   *scenario,
+		RandomSeed: *seed,
+		Search:     search,
 	})
 	if err != nil {
 		exitf("arena: %v", err)
 	}
 	out := report{
-		StartedAt:    startedAt.UTC().Format(time.RFC3339),
-		FinishedAt:   time.Now().UTC().Format(time.RFC3339),
-		Candidate:    evaluatorRef{ModelPath: *candidateModel, ModelURL: *candidateURL, Kind: evaluatorKind(*candidateModel, *candidateURL, false)},
-		Baseline:     evaluatorRef{ModelPath: *baselineModel, ModelURL: *baselineURL, Kind: evaluatorKind(*baselineModel, *baselineURL, true)},
-		Scenario:     *scenario,
-		MaxPlies:     *maxPlies,
-		MinPassRound: *minPassRound,
-		Search:       search,
-		RandomSeed:   *seed,
-		Result:       result,
+		StartedAt:  startedAt.UTC().Format(time.RFC3339),
+		FinishedAt: time.Now().UTC().Format(time.RFC3339),
+		Candidate:  evaluatorRef{ModelPath: *candidateModel, ModelURL: *candidateURL, Kind: evaluatorKind(*candidateModel, *candidateURL, false)},
+		Baseline:   evaluatorRef{ModelPath: *baselineModel, ModelURL: *baselineURL, Kind: evaluatorKind(*baselineModel, *baselineURL, true)},
+		Scenario:   *scenario,
+		MaxPlies:   *maxPlies,
+		Search:     search,
+		RandomSeed: *seed,
+		Result:     result,
 		Promotion: arena.DecidePromotion(result, arena.PromotionPolicy{
 			MinWinRate:        *promoteWinRate,
 			MinGames:          *promoteMinGames,

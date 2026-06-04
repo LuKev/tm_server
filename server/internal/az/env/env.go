@@ -22,7 +22,6 @@ import (
 type Position struct {
 	State        *game.GameState  `json:"-"`
 	RootPlayerID string           `json:"rootPlayerId"`
-	MinPassRound int              `json:"minPassRound,omitempty"`
 	legal        []actions.Option `json:"-"`
 	legalLoaded  bool             `json:"-"`
 }
@@ -114,27 +113,10 @@ func (p *Position) LegalActions() []actions.Option {
 		return nil
 	}
 	if !p.legalLoaded {
-		p.legal = p.filterLegalActions(actions.LegalActions(p.State))
+		p.legal = actions.LegalActions(p.State)
 		p.legalLoaded = true
 	}
 	return append([]actions.Option(nil), p.legal...)
-}
-
-func (p *Position) filterLegalActions(legal []actions.Option) []actions.Option {
-	if p == nil || p.State == nil || p.MinPassRound <= 0 || p.State.Round >= p.MinPassRound {
-		return legal
-	}
-	filtered := make([]actions.Option, 0, len(legal))
-	for _, option := range legal {
-		if option.Type == "pass" || option.Type == "pass_final" {
-			continue
-		}
-		filtered = append(filtered, option)
-	}
-	if len(filtered) == 0 {
-		return legal
-	}
-	return filtered
 }
 
 // Apply returns a new position after applying option.
@@ -146,7 +128,7 @@ func (p *Position) Apply(option actions.Option) (*Position, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Position{State: next, RootPlayerID: p.RootPlayerID, MinPassRound: p.MinPassRound}, nil
+	return &Position{State: next, RootPlayerID: p.RootPlayerID}, nil
 }
 
 // IsTerminal reports whether the state has ended or the legal action surface is empty.
