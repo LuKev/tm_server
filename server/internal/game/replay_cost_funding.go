@@ -61,10 +61,10 @@ func (gs *GameState) prepareReplayAutoConversions(player *Player, cost factions.
 }
 
 func (gs *GameState) allowsReplayAutoConversions(cost factions.Cost) bool {
-	if gs == nil || gs.ReplayMode == nil || !gs.ReplayMode["__replay__"] {
+	if gs == nil || gs.ReplayMode == nil {
 		return false
 	}
-	if !gs.ReplayMode["__bga__"] {
+	if !gs.ReplayMode["__az_auto_conversions__"] && !(gs.ReplayMode["__replay__"] && gs.ReplayMode["__bga__"]) {
 		return false
 	}
 	// Keep replay auto-funding scoped to non-power costs. Logged power spending

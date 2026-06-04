@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "buffer",
+    srcs = ["buffer.go"],
+    importpath = "github.com/lukev/tm_server/internal/az/buffer",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "buffer_test",
+    srcs = ["buffer_test.go"],
+    embed = [":buffer"],
+)

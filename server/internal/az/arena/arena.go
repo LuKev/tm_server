@@ -13,11 +13,12 @@ import (
 )
 
 type Config struct {
-	Games      int
-	MaxPlies   int
-	Scenario   string
-	Search     mcts.Config
-	RandomSeed int64
+	Games        int
+	MaxPlies     int
+	Scenario     string
+	MinPassRound int
+	Search       mcts.Config
+	RandomSeed   int64
 }
 
 type Result struct {
@@ -79,6 +80,7 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 		if err != nil {
 			return result, err
 		}
+		position.MinPassRound = config.MinPassRound
 		result.ScenarioCounts[scenarioName]++
 		candidatePlayer := "p1"
 		if gameIndex%2 == 1 {

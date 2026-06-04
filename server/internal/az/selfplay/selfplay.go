@@ -14,11 +14,12 @@ import (
 )
 
 type Config struct {
-	Episodes   int
-	MaxPlies   int
-	Scenario   string
-	Search     mcts.Config
-	RandomSeed int64
+	Episodes     int
+	MaxPlies     int
+	Scenario     string
+	MinPassRound int
+	Search       mcts.Config
+	RandomSeed   int64
 }
 
 type Metrics struct {
@@ -103,6 +104,7 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 		if err != nil {
 			return metrics, err
 		}
+		position.MinPassRound = config.MinPassRound
 		metrics.Episodes++
 		metrics.ScenarioCounts[scenarioName]++
 		var records []Record

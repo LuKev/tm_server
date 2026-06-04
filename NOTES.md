@@ -1628,3 +1628,10 @@
 - 2026-04-24 concise notation direction:
   - Goal: any supported game, including Fire & Ice maps and implemented fan factions, should be serializable to concise notation and replayable from that concise text without depending on original BGA/Snellman text.
   - Current gap to remember: BGA imports parse directly to replay actions and only generate concise text for display; concise parser/generator needs explicit round-trip coverage for fan-faction headers, map settings, and fan/F&I special action tokens before concise can be treated as canonical replay storage.
+- 2026-06-04 AZ full-game scaling pass:
+  - Do not enable broad `ReplayMode["__replay__"]` for AZ clone execution; it suppresses automatic round advancement after pass. AZ clone auto-funding now uses only `ReplayMode["__az_auto_conversions__"]` so replay cost funding works without replay pass semantics.
+  - `az_selfplay` and `az_eval` both support `-min_pass_round`; use `-min_pass_round=6 -max_plies=400` for full-game curriculum data/gates when early-pass policy collapse would otherwise dominate.
+  - `az_buffer` builds deterministic mixed replay buffers from repeated `-source` flags, including capped historical pools with `path@limit`.
+  - Current useful local full-game artifacts live under `/tmp/tm_az_scale_next`: `neural_mcts_s8_50g_h512mixed_minpass6.jsonl` (`4272` records, `49/50` terminal round-6 games), `replay_buffer_mixed_fullgames.jsonl` (`26337` records), and `tm_az_policy_value_h512_mixed_fullgames.pt`.
+  - The 50-game full-game h512 gate did not promote (`23-27`, `winRate=0.46`, CI `[0.322,0.598]`), but it is now a real full-game gate with `averagePlies=88.54`.
+  - Throughput bottleneck is MCTS/evaluator calls, not export/training: the 50-game full-game sims=8 self-play run produced `5.58` records/sec and `searchMillis=416092` of `elapsedMillis=766069`.

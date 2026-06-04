@@ -65,6 +65,7 @@ func ApplyToClone(gs *game.GameState, action game.Action) (*game.GameState, erro
 	}
 	clone := gs.CloneForUndo()
 	disableConfirmations(clone)
+	enableReplayAutoConversions(clone)
 	mgr := game.NewManager()
 	mgr.CreateGameWithState("__az__", clone)
 	if _, err := mgr.ExecuteActionWithMeta("__az__", action, game.ActionMeta{ExpectedRevision: -1}); err != nil {
@@ -89,6 +90,16 @@ func disableConfirmations(gs *game.GameState) {
 		}
 		player.Options.ConfirmActions = false
 	}
+}
+
+func enableReplayAutoConversions(gs *game.GameState) {
+	if gs == nil {
+		return
+	}
+	if gs.ReplayMode == nil {
+		gs.ReplayMode = make(map[string]bool)
+	}
+	gs.ReplayMode["__az_auto_conversions__"] = true
 }
 
 func generateCandidates(gs *game.GameState) []Option {
@@ -256,7 +267,7 @@ func mainTurnCandidates(gs *game.GameState, playerID string) []Option {
 	}
 	out = append(out, powerActionCandidates(gs, playerID)...)
 	out = append(out, specialActionCandidates(gs, playerID)...)
-	out = append(out, conversionCandidates(gs, playerID)...)
+	out = append(out, strategicConversionCandidates(gs, playerID)...)
 	for _, card := range allBonusCards() {
 		c := card
 		out = append(out, option(playerID, "pass", fmt.Sprintf("Pass for bonus %d", card), game.NewPassAction(playerID, &c), "pass", int(card)))
@@ -470,24 +481,17 @@ func ownedBuildingHexes(gs *game.GameState, playerID string, buildingType models
 	return out
 }
 
-func conversionCandidates(gs *game.GameState, playerID string) []Option {
+func strategicConversionCandidates(gs *game.GameState, playerID string) []Option {
 	var out []Option
 	player := gs.GetPlayer(playerID)
 	if player == nil || player.Resources == nil || player.Resources.Power == nil {
 		return out
 	}
-	maxAmounts := map[game.ConversionType]int{
-		game.ConversionPowerToCoin:    player.Resources.Power.Bowl3,
-		game.ConversionPowerToWorker:  player.Resources.Power.Bowl3 / 3,
-		game.ConversionPowerToPriest:  player.Resources.Power.Bowl3 / 5,
-		game.ConversionPriestToWorker: player.Resources.Priests,
-		game.ConversionWorkerToCoin:   player.Resources.Workers,
-	}
+	maxAmounts := map[game.ConversionType]int{}
 	if player.Faction != nil && player.Faction.GetType() == models.FactionTheEnlightened {
 		maxAmounts[game.ConversionCoinToPower] = player.Resources.Coins
 	}
 	if player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
-		maxAmounts[game.ConversionAlchVPToCoin] = player.VictoryPoints
 		maxAmounts[game.ConversionAlchCoinToVP] = player.Resources.Coins / 2
 	}
 	for _, conv := range sortedConversions(maxAmounts) {
@@ -498,12 +502,6 @@ func conversionCandidates(gs *game.GameState, playerID string) []Option {
 				Amount:         amount,
 			}, "conversion", string(conv), amount))
 		}
-	}
-	for amount := 1; amount <= minInt(8, player.Resources.Power.Bowl2/2); amount++ {
-		out = append(out, option(playerID, "burn", fmt.Sprintf("Burn %d", amount), &game.BurnPowerAction{
-			BaseAction: game.BaseAction{Type: game.ActionBurnPower, PlayerID: playerID},
-			Amount:     amount,
-		}, "burn", amount))
 	}
 	return out
 }

@@ -60,3 +60,16 @@ func TestLegalActionsIncludeExecutablePass(t *testing.T) {
 	}
 	t.Fatal("expected at least one legal pass action")
 }
+
+func TestLegalActionsExcludeFreeConversions(t *testing.T) {
+	position, err := env.BuiltInScenario("base_nomads_witches")
+	if err != nil {
+		t.Fatalf("BuiltInScenario failed: %v", err)
+	}
+	legal := actions.LegalActions(position.State)
+	for _, option := range legal {
+		if option.Type == "conversion" || option.Type == "burn" {
+			t.Fatalf("free conversion action should be pruned from AZ surface: %s", option.ID)
+		}
+	}
+}
