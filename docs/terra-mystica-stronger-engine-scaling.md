@@ -29,7 +29,7 @@ Strength comes from four properties:
 - `az_loop` and `az_eval` report a structured promotion decision. Use `-promote_min_games` and `-promote_ci95_lower_bound` when a run should require statistical confidence, not only a raw win-rate threshold.
 - `az_eval` compares any table or HTTP candidate against a table, HTTP, or heuristic baseline without running the full train loop.
 - `az_train_torch --architecture=hex` uses observation shape `[global, hexes, per_hex]` to encode hexes with shared weights and pool board embeddings into policy/value heads.
-- `az_infer_torch` serves both `/evaluate` and `/evaluate_batch`, exposes checkpoint schema/shape/architecture on `/healthz`, suppresses access logs by default, and exposes `--torch-threads` / `--torch-interop-threads` for CPU-thread tuning.
+- `az_infer_torch` serves `/evaluate`, `/evaluate_batch`, `/evaluate_binary`, and `/evaluate_batch_binary`; exposes checkpoint schema/shape/architecture on `/healthz`; suppresses access logs by default; and exposes `--torch-threads` / `--torch-interop-threads` for CPU-thread tuning.
 - `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`. Use `-summary` to write seed coverage counts by source, round, phase, player count, root faction, and faction presence.
 
 ## Current Local Milestone
@@ -316,7 +316,12 @@ Current local throughput observations:
   - `-compact_records -reuse_tree -global_batch_size=32`: `1123` records, `98.735s`, `11.37` records/sec, output `15MB`.
   - `workers=8`, compact/tree/global batch: `1123` records, `103.434s`, `10.86` records/sec.
   - Torch server with `--torch-threads=1 --torch-interop-threads=1`: `1122` records, `98.612s`, `11.38` records/sec.
-- Compact records are useful for storage/I/O, but this benchmark did not show material neural self-play throughput improvement from compact records, tree reuse, global batching, higher workers, or Torch thread tuning. The remaining real speed path is likely in-process/ONNX inference or a deeper search/evaluator redesign.
+- The second performance pass added binary float32 evaluator transport and MCTS batch-leaf deduplication.
+  - Binary transport only: `1122` records, `96.925s`, `11.58` records/sec.
+  - Binary transport plus MCTS leaf dedupe: `1122` records, `91.878s`, `12.21` records/sec.
+  - Binary transport plus leaf dedupe plus compact/tree/global-batch knobs: `1123` records, `90.141s`, `12.46` records/sec, output `15MB`.
+  - Final root-binary rerun measured `12.36` records/sec, so treat `12.46` as the best observed local run and `12.2-12.4` as the realistic current range on this benchmark.
+- Compact records are useful for storage/I/O. The measured throughput gain came primarily from deduplicating repeated MCTS leaf evaluations inside a batch, with a smaller contribution from binary evaluator transport. The remaining larger speed path is still likely in-process/ONNX inference or a deeper search/evaluator redesign.
 
 ## Remaining Work
 

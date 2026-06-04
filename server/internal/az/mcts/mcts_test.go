@@ -50,6 +50,25 @@ func TestSearchUsesBatchEvaluator(t *testing.T) {
 	}
 }
 
+func TestBatchSearchDeduplicatesRepeatedLeafEvaluations(t *testing.T) {
+	position, err := env.BuiltInScenario("base_nomads_witches")
+	if err != nil {
+		t.Fatalf("BuiltInScenario failed: %v", err)
+	}
+	evaluator := &countingBatchEvaluator{fallback: model.NewHeuristicEvaluator()}
+	Search(position, evaluator, Config{
+		Simulations: 8,
+		BatchSize:   8,
+		CPUCT:       1.5,
+		Temperature: 1,
+		RandomSeed:  1,
+		MaxDepth:    1,
+	})
+	if evaluator.maxBatchPositions >= 8 {
+		t.Fatalf("batch positions = %d, want fewer than 8 duplicate leaf evaluations", evaluator.maxBatchPositions)
+	}
+}
+
 func TestSearchZeroSimulationsUsesPolicyPriors(t *testing.T) {
 	position, err := env.BuiltInScenario("base_nomads_witches")
 	if err != nil {
@@ -117,8 +136,9 @@ func TestTreeCanAdvanceToSelectedChild(t *testing.T) {
 }
 
 type countingBatchEvaluator struct {
-	fallback   *model.HeuristicEvaluator
-	batchCalls int
+	fallback          *model.HeuristicEvaluator
+	batchCalls        int
+	maxBatchPositions int
 }
 
 func (e *countingBatchEvaluator) Evaluate(position *env.Position, legal []actions.Option, perspectivePlayerID string) model.Evaluation {
@@ -127,5 +147,8 @@ func (e *countingBatchEvaluator) Evaluate(position *env.Position, legal []action
 
 func (e *countingBatchEvaluator) EvaluateBatch(positions []*env.Position, legal [][]actions.Option, perspectivePlayerID string) []model.Evaluation {
 	e.batchCalls++
+	if len(positions) > e.maxBatchPositions {
+		e.maxBatchPositions = len(positions)
+	}
 	return e.fallback.EvaluateBatch(positions, legal, perspectivePlayerID)
 }

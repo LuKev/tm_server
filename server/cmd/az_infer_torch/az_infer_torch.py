@@ -2,6 +2,7 @@
 """Serve a PyTorch policy/value checkpoint for Go MCTS."""
 
 import argparse
+import base64
 import importlib.util
 import json
 import os
@@ -168,6 +169,49 @@ class InferenceService:
             responses.append({"priors": priors, "value": float(values[row][0])})
         return responses
 
+    def evaluate_binary(self, request: dict) -> dict:
+        return self.evaluate_many_binary(request)[0]
+
+    def evaluate_many_binary(self, request: dict) -> list[dict]:
+        count = int(request.get("count", 0))
+        input_size = int(request.get("inputSize", 0))
+        if count <= 0:
+            return []
+        if input_size <= 0:
+            raise ValueError("binary request requires positive inputSize")
+        raw = base64.b64decode(request.get("features", ""))
+        expected = count * input_size * 4
+        if len(raw) != expected:
+            raise ValueError(f"binary features length {len(raw)} != expected {expected}")
+        features = torch.frombuffer(bytearray(raw), dtype=torch.float32).reshape(count, input_size)
+        if input_size < self.input_size:
+            pad = torch.zeros((count, self.input_size - input_size), dtype=torch.float32)
+            features = torch.cat([features, pad], dim=1)
+        elif input_size > self.input_size:
+            features = features[:, : self.input_size]
+        legal_by_request = list(request.get("legalActions", []))
+        if len(legal_by_request) != count:
+            raise ValueError("legalActions count does not match feature count")
+        known_by_request = []
+        for legal_actions in legal_by_request:
+            known_by_request.append([(action_id, self.index_by_action[action_id]) for action_id in legal_actions if action_id in self.index_by_action])
+        responses = []
+        with torch.no_grad():
+            logits_batch, values = self.net(features)
+        for row, legal_actions, known in zip(range(count), legal_by_request, known_by_request):
+            logits = logits_batch[row]
+            priors = {}
+            if known:
+                indices = torch.tensor([index for _, index in known], dtype=torch.long)
+                probs = torch.softmax(logits.index_select(0, indices), dim=0)
+                for (action_id, _), prob in zip(known, probs):
+                    priors[action_id] = float(prob)
+            else:
+                uniform = 1.0 / max(1, len(legal_actions))
+                priors = {action_id: uniform for action_id in legal_actions}
+            responses.append({"priors": priors, "value": float(values[row][0])})
+        return responses
+
 def make_handler(service: InferenceService, access_log: bool):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -183,7 +227,7 @@ def make_handler(service: InferenceService, access_log: bool):
             self.wfile.write(raw)
 
         def do_POST(self):
-            if self.path not in ("/evaluate", "/evaluate_batch"):
+            if self.path not in ("/evaluate", "/evaluate_batch", "/evaluate_binary", "/evaluate_batch_binary"):
                 self.send_response(404)
                 self.end_headers()
                 return
@@ -195,6 +239,10 @@ def make_handler(service: InferenceService, access_log: bool):
                     if not isinstance(requests, list):
                         raise ValueError("batch request must be a list or {requests: [...]}")
                     response = {"responses": service.evaluate_many(requests)}
+                elif self.path == "/evaluate_batch_binary":
+                    response = {"responses": service.evaluate_many_binary(request)}
+                elif self.path == "/evaluate_binary":
+                    response = service.evaluate_binary(request)
                 else:
                     response = service.evaluate(request)
                 raw = json.dumps(response).encode("utf-8")

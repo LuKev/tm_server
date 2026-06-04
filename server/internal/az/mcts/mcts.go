@@ -266,13 +266,34 @@ func runBatchSimulations(root *node, evaluator model.BatchEvaluator, rootPlayer 
 	if len(leaves) == 0 {
 		return
 	}
-	evals := evaluator.EvaluateBatch(positions, legals, rootPlayer)
-	for i, leaf := range leaves {
+	uniqueLeaves := make([]selectedLeaf, 0, len(leaves))
+	uniquePositions := make([]*env.Position, 0, len(positions))
+	uniqueLegals := make([][]actions.Option, 0, len(legals))
+	uniqueIndex := make(map[*node]int, len(leaves))
+	leafIndexes := make([]int, 0, len(leaves))
+	for _, leaf := range leaves {
+		index, ok := uniqueIndex[leaf.node]
+		if !ok {
+			index = len(uniqueLeaves)
+			uniqueIndex[leaf.node] = index
+			uniqueLeaves = append(uniqueLeaves, leaf)
+			uniquePositions = append(uniquePositions, leaf.node.position)
+			uniqueLegals = append(uniqueLegals, leaf.legal)
+		}
+		leafIndexes = append(leafIndexes, index)
+	}
+	evals := evaluator.EvaluateBatch(uniquePositions, uniqueLegals, rootPlayer)
+	evalByLeaf := make([]model.Evaluation, len(uniqueLeaves))
+	for i, leaf := range uniqueLeaves {
 		eval := model.Evaluation{Value: leaf.node.position.ValueFor(rootPlayer)}
 		if i < len(evals) {
 			eval = evals[i]
 		}
+		evalByLeaf[i] = eval
 		expandWithEvaluation(leaf.node, leaf.legal, eval)
+	}
+	for i, leaf := range leaves {
+		eval := evalByLeaf[leafIndexes[i]]
 		backpropagate(leaf.path, eval.Value)
 	}
 }
