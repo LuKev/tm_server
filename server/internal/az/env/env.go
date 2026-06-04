@@ -46,9 +46,16 @@ type Scenario struct {
 }
 
 type SnapshotSeed struct {
-	Name         string `json:"name"`
-	RootPlayerID string `json:"rootPlayerId"`
-	Snapshot     string `json:"snapshot"`
+	Name         string   `json:"name"`
+	RootPlayerID string   `json:"rootPlayerId"`
+	Snapshot     string   `json:"snapshot"`
+	Source       string   `json:"source,omitempty"`
+	ActionIndex  int      `json:"actionIndex,omitempty"`
+	Round        int      `json:"round,omitempty"`
+	Phase        string   `json:"phase,omitempty"`
+	PlayerCount  int      `json:"playerCount,omitempty"`
+	RootFaction  string   `json:"rootFaction,omitempty"`
+	Factions     []string `json:"factions,omitempty"`
 }
 
 var baseScenarioTemplates = []Scenario{

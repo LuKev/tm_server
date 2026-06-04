@@ -23,7 +23,7 @@ Strength comes from four properties:
 - `az_eval` compares any table or HTTP candidate against a table, HTTP, or heuristic baseline without running the full train loop.
 - `az_train_torch --architecture=hex` uses observation shape `[global, hexes, per_hex]` to encode hexes with shared weights and pool board embeddings into policy/value heads.
 - `az_infer_torch` serves both `/evaluate` and `/evaluate_batch`, and exposes checkpoint schema/shape/architecture on `/healthz`.
-- `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`.
+- `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`. Use `-summary` to write seed coverage counts by source, round, phase, player count, root faction, and faction presence.
 
 ## Recommended Run Ladder
 
@@ -122,8 +122,11 @@ bazel run //cmd/az_replay_seeds:az_replay_seeds -- \
   -every=20 \
   -max=1000 \
   -max_per_replay=50 \
-  -output=/tmp/tm_az_replay_seed_batch.jsonl
+  -output=/tmp/tm_az_replay_seed_batch.jsonl \
+  -summary=/tmp/tm_az_replay_seed_batch_summary.json
 ```
+
+Inspect the summary before training. A useful seed pool should have nonzero coverage across multiple roots, rounds, and phases; otherwise a strong model can overfit to a narrow midgame distribution.
 
 Use those seeds as a scenario source:
 

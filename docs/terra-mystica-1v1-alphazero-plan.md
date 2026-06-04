@@ -28,7 +28,7 @@ The implementation intentionally reuses the existing game engine rather than cre
 - `server/cmd/az_export`: exports samples, action vocabulary, and dataset manifest for a neural trainer.
 - `server/cmd/az_eval`: evaluates a candidate table/HTTP evaluator against a baseline table/HTTP/heuristic evaluator.
 - `server/cmd/az_loop`: iterative generate/train/arena/promote loop.
-- `server/cmd/az_replay_seeds`: exports replay-derived generated snapshots as self-play seed JSONL from a single replay file or replay fixture directory.
+- `server/cmd/az_replay_seeds`: exports replay-derived generated snapshots as self-play seed JSONL from a single replay file or replay fixture directory, with optional seed coverage summary output.
 - `server/cmd/az_train_torch`: minimal PyTorch policy/value trainer for exported samples.
 - `server/cmd/az_infer_torch`: HTTP policy/value inference server for trained PyTorch checkpoints.
 - `POST /api/ai/suggest`: MCTS-backed ranked move suggestions from a live game, pasted snapshot, or built-in scenario.
@@ -74,6 +74,8 @@ Each starts with 2 players, round-1 action phase, confirm-actions disabled, and 
 - `terminal` / `truncated`: whether the game ended naturally or hit the configured ply cap
 
 The table model trains directly against this shape. `az_export` converts the same JSONL into sparse neural samples with `legalActionIndices`, `policyTargets`, a sorted action vocabulary, and a dataset manifest. The PyTorch trainer reads the flat vector size from the manifest and stores the observation schema/shape in the checkpoint; `az_infer_torch` exposes that metadata on `GET /healthz`.
+
+Replay-derived snapshot seed JSONL may include optional metadata such as source path, replay action index, round, phase, player count, root faction, and factions present. The self-play loader treats those fields as audit metadata; the live position still comes from parsing the `snapshot` text.
 
 ## Bot Execution API
 
