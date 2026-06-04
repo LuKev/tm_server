@@ -168,7 +168,7 @@ class InferenceService:
             responses.append({"priors": priors, "value": float(values[row][0])})
         return responses
 
-def make_handler(service: InferenceService):
+def make_handler(service: InferenceService, access_log: bool):
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path != "/healthz":
@@ -212,7 +212,8 @@ def make_handler(service: InferenceService):
                 self.wfile.write(raw)
 
         def log_message(self, fmt, *args):
-            print(fmt % args, file=sys.stderr)
+            if access_log:
+                print(fmt % args, file=sys.stderr)
 
     return Handler
 
@@ -223,9 +224,16 @@ def main() -> int:
     parser.add_argument("--vocab", default="")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=9097)
+    parser.add_argument("--access-log", action="store_true", help="write HTTP access logs to stderr")
+    parser.add_argument("--torch-threads", type=int, default=1, help="PyTorch intra-op CPU threads")
+    parser.add_argument("--torch-interop-threads", type=int, default=1, help="PyTorch inter-op CPU threads")
     args = parser.parse_args()
+    if args.torch_threads > 0:
+        torch.set_num_threads(args.torch_threads)
+    if args.torch_interop_threads > 0:
+        torch.set_num_interop_threads(args.torch_interop_threads)
     service = InferenceService(Path(args.checkpoint), Path(args.vocab) if args.vocab else None)
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(service))
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(service, args.access_log))
     print(f"serving torch evaluator on http://{args.host}:{args.port}/evaluate", file=sys.stderr)
     try:
         server.serve_forever()

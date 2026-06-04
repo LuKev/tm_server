@@ -47,6 +47,10 @@ type runConfig struct {
 	SelfPlayWorkers       int         `json:"selfPlayWorkers,omitempty"`
 	ArenaWorkers          int         `json:"arenaWorkers,omitempty"`
 	Progress              bool        `json:"progress,omitempty"`
+	CompactRecords        bool        `json:"compactRecords,omitempty"`
+	ReuseTree             bool        `json:"reuseTree,omitempty"`
+	GlobalBatchSize       int         `json:"globalBatchSize,omitempty"`
+	GlobalBatchDelayMS    int         `json:"globalBatchDelayMs,omitempty"`
 	Scenario              string      `json:"scenario"`
 	MaxPlies              int         `json:"maxPlies"`
 	Search                mcts.Config `json:"search"`
@@ -91,6 +95,10 @@ func main() {
 	selfPlayWorkers := flag.Int("selfplay_workers", 1, "parallel episode workers inside each self-play shard")
 	arenaWorkers := flag.Int("arena_workers", 1, "parallel arena game workers")
 	progress := flag.Bool("progress", false, "write per-game self-play and arena progress JSON to stderr")
+	compactRecords := flag.Bool("compact_records", false, "omit debug state snapshots from self-play JSONL records")
+	reuseTree := flag.Bool("reuse_tree", false, "reuse the selected MCTS subtree between moves in each self-play game")
+	globalBatchSize := flag.Int("global_batch_size", 0, "merge concurrent evaluator batches up to this size; 0 disables")
+	globalBatchDelay := flag.Int("global_batch_delay_ms", 1, "maximum delay before flushing a partial global evaluator batch")
 	scenario := flag.String("scenario", "random_base", "scenario name, random_base, or comma-separated scenario set")
 	maxPlies := flag.Int("max_plies", 120, "maximum plies per self-play game")
 	sims := flag.Int("sims", 8, "MCTS simulations per move")
@@ -139,6 +147,7 @@ func main() {
 			incumbentURL = *baseModelURL
 		}
 		incumbent := loadEvaluator(incumbentPath, incumbentURL)
+		incumbent = model.NewAsyncBatchEvaluator(incumbent, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
 		selfPlayPath := filepath.Join(iterDir, "selfplay.jsonl")
 		searchConfig := mcts.Config{
 			Simulations: *sims,
@@ -154,6 +163,8 @@ func main() {
 			Scenario:       *scenario,
 			Workers:        *selfPlayWorkers,
 			ProgressWriter: progressOut,
+			CompactRecords: *compactRecords,
+			ReuseTree:      *reuseTree,
 			RandomSeed:     *seed + int64(iteration*1000),
 			Search:         searchConfig,
 		}, *shards)
@@ -245,6 +256,10 @@ func main() {
 				SelfPlayWorkers:       *selfPlayWorkers,
 				ArenaWorkers:          *arenaWorkers,
 				Progress:              *progress,
+				CompactRecords:        *compactRecords,
+				ReuseTree:             *reuseTree,
+				GlobalBatchSize:       *globalBatchSize,
+				GlobalBatchDelayMS:    *globalBatchDelay,
 				Scenario:              *scenario,
 				MaxPlies:              *maxPlies,
 				Search:                searchConfig,

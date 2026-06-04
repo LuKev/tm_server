@@ -52,6 +52,8 @@ func main() {
 	workers := flag.Int("workers", 1, "parallel arena game workers")
 	sims := flag.Int("sims", 32, "MCTS simulations per move")
 	batchSize := flag.Int("batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
+	globalBatchSize := flag.Int("global_batch_size", 0, "merge concurrent evaluator batches up to this size; 0 disables")
+	globalBatchDelay := flag.Int("global_batch_delay_ms", 1, "maximum delay before flushing a partial global evaluator batch")
 	maxDepth := flag.Int("max_depth", 120, "MCTS simulation max depth")
 	promoteWinRate := flag.Float64("promote_win_rate", 0.55, "minimum arena score for the promotion decision report")
 	promoteMinGames := flag.Int("promote_min_games", 0, "minimum arena games for the promotion decision report; 0 disables")
@@ -69,6 +71,8 @@ func main() {
 	startedAt := time.Now()
 	candidate := loadEvaluator(*candidateModel, *candidateURL)
 	baseline := loadEvaluator(*baselineModel, *baselineURL)
+	candidate = model.NewAsyncBatchEvaluator(candidate, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
+	baseline = model.NewAsyncBatchEvaluator(baseline, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
 	search := mcts.Config{
 		Simulations: *sims,
 		BatchSize:   *batchSize,

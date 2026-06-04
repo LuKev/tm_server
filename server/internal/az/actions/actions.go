@@ -124,7 +124,7 @@ func pendingCandidates(gs *game.GameState, playerID string) []Option {
 		}
 	}
 	if gs.PendingFavorTileSelection != nil && gs.PendingFavorTileSelection.PlayerID == playerID {
-		for _, tile := range allFavorTiles() {
+		for _, tile := range availableFavorTiles(gs) {
 			out = append(out, option(playerID, "favor", fmt.Sprintf("Take favor %d", tile), &game.SelectFavorTileAction{
 				BaseAction: game.BaseAction{Type: game.ActionSelectFavorTile, PlayerID: playerID},
 				TileType:   tile,
@@ -133,7 +133,7 @@ func pendingCandidates(gs *game.GameState, playerID string) []Option {
 	}
 	if pendingTowns := gs.PendingTownFormations[playerID]; len(pendingTowns) > 0 {
 		anchors := townAnchors(pendingTowns[0])
-		for _, tile := range allTownTiles() {
+		for _, tile := range availableTownTiles(gs) {
 			for _, anchor := range anchors {
 				hex := anchor
 				out = append(out, option(playerID, "town", fmt.Sprintf("Take town tile %d", tile), &game.SelectTownTileAction{
@@ -271,11 +271,13 @@ func mainTurnCandidates(gs *game.GameState, playerID string) []Option {
 	out = append(out, powerActionCandidates(gs, playerID)...)
 	out = append(out, specialActionCandidates(gs, playerID)...)
 	out = append(out, strategicConversionCandidates(gs, playerID)...)
-	for _, card := range allBonusCards() {
+	for _, card := range availablePassCards(gs, playerID) {
 		c := card
 		out = append(out, option(playerID, "pass", fmt.Sprintf("Pass for bonus %d", card), game.NewPassAction(playerID, &c), "pass", int(card)))
 	}
-	out = append(out, option(playerID, "pass_final", "Pass final round", game.NewPassAction(playerID, nil), "pass_final"))
+	if gs.Round >= 6 {
+		out = append(out, option(playerID, "pass_final", "Pass final round", game.NewPassAction(playerID, nil), "pass_final"))
+	}
 	return out
 }
 
@@ -299,11 +301,24 @@ func upgradeCandidates(gs *game.GameState, playerID string) []Option {
 		if mapHex == nil || mapHex.Building == nil || mapHex.Building.PlayerID != playerID {
 			continue
 		}
-		for _, building := range []models.BuildingType{models.BuildingTradingHouse, models.BuildingTemple, models.BuildingSanctuary, models.BuildingStronghold} {
+		for _, building := range upgradeDestinations(mapHex.Building.Type) {
 			out = append(out, option(playerID, "upgrade", fmt.Sprintf("Upgrade %d,%d to %s", hex.Q, hex.R, building), game.NewUpgradeBuildingAction(playerID, hex, building), "upgrade", hex.Q, hex.R, int(building)))
 		}
 	}
 	return out
+}
+
+func upgradeDestinations(from models.BuildingType) []models.BuildingType {
+	switch from {
+	case models.BuildingDwelling:
+		return []models.BuildingType{models.BuildingTradingHouse}
+	case models.BuildingTradingHouse:
+		return []models.BuildingType{models.BuildingTemple, models.BuildingStronghold}
+	case models.BuildingTemple:
+		return []models.BuildingType{models.BuildingSanctuary}
+	default:
+		return nil
+	}
 }
 
 func powerActionCandidates(gs *game.GameState, playerID string) []Option {
@@ -468,6 +483,54 @@ func hasFavor(gs *game.GameState, playerID string, tile game.FavorTileType) bool
 		return false
 	}
 	return gs.FavorTiles.HasTileType(playerID, tile)
+}
+
+func availableFavorTiles(gs *game.GameState) []game.FavorTileType {
+	if gs == nil || gs.FavorTiles == nil {
+		return allFavorTiles()
+	}
+	out := make([]game.FavorTileType, 0, len(gs.FavorTiles.Available))
+	for tile, count := range gs.FavorTiles.Available {
+		if count > 0 {
+			out = append(out, tile)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
+
+func availableTownTiles(gs *game.GameState) []models.TownTileType {
+	if gs == nil || gs.TownTiles == nil {
+		return allTownTiles()
+	}
+	out := make([]models.TownTileType, 0, len(gs.TownTiles.Available))
+	for tile, count := range gs.TownTiles.Available {
+		if count > 0 {
+			out = append(out, tile)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
+}
+
+func availablePassCards(gs *game.GameState, playerID string) []game.BonusCardType {
+	if gs == nil || gs.BonusCards == nil {
+		return allBonusCards()
+	}
+	seen := make(map[game.BonusCardType]bool)
+	out := make([]game.BonusCardType, 0, len(gs.BonusCards.Available)+1)
+	for card := range gs.BonusCards.Available {
+		seen[card] = true
+		out = append(out, card)
+	}
+	for _, card := range gs.BonusCards.GetPlayerCards(playerID) {
+		if !seen[card] {
+			seen[card] = true
+			out = append(out, card)
+		}
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i] < out[j] })
+	return out
 }
 
 func ownedBuildingHexes(gs *game.GameState, playerID string, buildingType models.BuildingType) []board.Hex {

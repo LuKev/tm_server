@@ -51,12 +51,77 @@ type node struct {
 	action   actions.Option
 	children []*node
 	expanded bool
+	noisy    bool
+}
+
+// Tree keeps the selected subtree between real moves. It is intended for
+// self-play where the same evaluator controls both players.
+type Tree struct {
+	root *node
+}
+
+func NewTree(position *env.Position) *Tree {
+	return &Tree{root: newRootNode(position)}
+}
+
+func (t *Tree) Search(evaluator model.Evaluator, config Config) Result {
+	if evaluator == nil {
+		evaluator = model.NewHeuristicEvaluator()
+	}
+	if t == nil || t.root == nil || t.root.position == nil {
+		return Search(nil, evaluator, config)
+	}
+	prepareConfig(&config)
+	rng := rand.New(rand.NewSource(config.RandomSeed))
+	rootPlayer := rootPlayerID(t.root.position)
+	if !t.root.expanded {
+		expand(t.root, evaluator, rootPlayer)
+	}
+	if !t.root.noisy {
+		applyRootNoise(t.root, config, rng)
+		t.root.noisy = true
+	}
+	ranked := runSearch(t.root, evaluator, rootPlayer, config)
+	return searchResult(rootPlayer, ranked, config.Simulations)
+}
+
+func (t *Tree) Advance(actionID string, position *env.Position) {
+	if t == nil {
+		return
+	}
+	if t.root != nil {
+		for _, child := range t.root.children {
+			if child != nil && child.action.ID == actionID {
+				child.parent = nil
+				child.position = position
+				child.playerID = ""
+				if position != nil {
+					child.playerID = position.CurrentPlayerID()
+				}
+				child.noisy = false
+				t.root = child
+				return
+			}
+		}
+	}
+	t.root = newRootNode(position)
 }
 
 func Search(position *env.Position, evaluator model.Evaluator, config Config) Result {
 	if evaluator == nil {
 		evaluator = model.NewHeuristicEvaluator()
 	}
+	prepareConfig(&config)
+	rng := rand.New(rand.NewSource(config.RandomSeed))
+	rootPlayer := rootPlayerID(position)
+	root := newRootNode(position)
+	expand(root, evaluator, rootPlayer)
+	applyRootNoise(root, config, rng)
+	ranked := runSearch(root, evaluator, rootPlayer, config)
+	return searchResult(rootPlayer, ranked, config.Simulations)
+}
+
+func prepareConfig(config *Config) {
 	if config.Simulations < 0 {
 		config.Simulations = 64
 	}
@@ -72,14 +137,28 @@ func Search(position *env.Position, evaluator model.Evaluator, config Config) Re
 	if config.RandomSeed == 0 {
 		config.RandomSeed = time.Now().UnixNano()
 	}
-	rng := rand.New(rand.NewSource(config.RandomSeed))
+}
+
+func newRootNode(position *env.Position) *node {
+	playerID := ""
+	if position != nil {
+		playerID = position.CurrentPlayerID()
+	}
+	return &node{position: position, playerID: playerID, prior: 1}
+}
+
+func rootPlayerID(position *env.Position) string {
+	if position == nil {
+		return ""
+	}
 	rootPlayer := position.RootPlayerID
 	if rootPlayer == "" {
 		rootPlayer = position.CurrentPlayerID()
 	}
-	root := &node{position: position, playerID: position.CurrentPlayerID(), prior: 1}
-	expand(root, evaluator, rootPlayer)
-	applyRootNoise(root, config, rng)
+	return rootPlayer
+}
+
+func runSearch(root *node, evaluator model.Evaluator, rootPlayer string, config Config) []RankedAction {
 	var ranked []RankedAction
 	if config.Simulations == 0 {
 		ranked = rankedPolicyChildren(root)
@@ -99,10 +178,14 @@ func Search(position *env.Position, evaluator model.Evaluator, config Config) Re
 	if ranked == nil {
 		ranked = rankedChildren(root, config.Temperature)
 	}
+	return ranked
+}
+
+func searchResult(rootPlayer string, ranked []RankedAction, simulations int) Result {
 	result := Result{
 		RootPlayerID: rootPlayer,
 		Actions:      ranked,
-		Simulations:  config.Simulations,
+		Simulations:  simulations,
 	}
 	if len(ranked) > 0 {
 		result.Selected = ranked[0]

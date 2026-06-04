@@ -76,6 +76,46 @@ func TestSearchZeroSimulationsUsesPolicyPriors(t *testing.T) {
 	}
 }
 
+func TestTreeCanAdvanceToSelectedChild(t *testing.T) {
+	position, err := env.BuiltInScenario("base_nomads_witches")
+	if err != nil {
+		t.Fatalf("BuiltInScenario failed: %v", err)
+	}
+	tree := NewTree(position)
+	result := tree.Search(model.NewHeuristicEvaluator(), Config{
+		Simulations: 2,
+		CPUCT:       1.5,
+		Temperature: 1,
+		RandomSeed:  1,
+		MaxDepth:    2,
+	})
+	if result.Selected.ID == "" {
+		t.Fatal("expected selected action")
+	}
+	var selected actions.Option
+	for _, option := range position.LegalActions() {
+		if option.ID == result.Selected.ID {
+			selected = option
+			break
+		}
+	}
+	next, err := position.Apply(selected)
+	if err != nil {
+		t.Fatalf("apply selected action: %v", err)
+	}
+	tree.Advance(selected.ID, next)
+	nextResult := tree.Search(model.NewHeuristicEvaluator(), Config{
+		Simulations: 1,
+		CPUCT:       1.5,
+		Temperature: 1,
+		RandomSeed:  2,
+		MaxDepth:    2,
+	})
+	if len(nextResult.Actions) == 0 {
+		t.Fatal("expected ranked actions after advancing tree")
+	}
+}
+
 type countingBatchEvaluator struct {
 	fallback   *model.HeuristicEvaluator
 	batchCalls int

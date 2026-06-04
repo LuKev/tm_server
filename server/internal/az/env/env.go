@@ -281,6 +281,12 @@ func (p *Position) Observation() Observation {
 
 // SnapshotJSON emits a deterministic JSON snapshot for training records.
 func (p *Position) SnapshotJSON() string {
+	return p.SnapshotJSONWithObservation(p.Observation())
+}
+
+// SnapshotJSONWithObservation emits the same compact debug snapshot as
+// SnapshotJSON while reusing an observation the caller already computed.
+func (p *Position) SnapshotJSONWithObservation(observation Observation) string {
 	if p == nil || p.State == nil {
 		return "{}"
 	}
@@ -290,8 +296,8 @@ func (p *Position) SnapshotJSON() string {
 		"phase":             p.State.Phase,
 		"turn":              p.CurrentPlayerID(),
 		"observationSchema": ObservationSchema,
-		"observationShape":  p.Observation().Shape,
-		"encoding":          p.Encode(),
+		"observationShape":  observation.Shape,
+		"encoding":          observation.Features,
 	}
 	raw, _ := json.Marshal(payload)
 	return string(raw)

@@ -15,6 +15,9 @@ Strength comes from four properties:
 
 - `az_selfplay -metrics=/path/metrics.json` writes throughput, branching, phase timing, scenario counts, final round/phase counts, action-type counts, completed/truncated games, worker count, nanosecond timing, and records-per-second.
 - `az_selfplay -workers=N -progress` runs games in parallel and writes per-game JSON progress to stderr.
+- `az_selfplay -compact_records` omits debug state snapshots from JSONL rows while preserving observation, legal-action, policy, action, and outcome fields.
+- `az_selfplay -reuse_tree` reuses the selected MCTS subtree between real moves during self-play.
+- `az_selfplay -global_batch_size=N` merges concurrent evaluator batches across self-play workers before calling the wrapped batch evaluator.
 - `az_buffer` builds replay buffers from multiple JSONL sources. Repeat `-source`, optionally as `path@limit`, to stream full sources and deterministic-reservoir-sample capped historical pools.
 - `training_mix` samples both deterministic base scenarios and randomized scenarios.
 - `randomized_base` samples base-game faction pairs, seat order, starting dwelling anchors, scoring tiles, and bonus cards.
@@ -22,11 +25,11 @@ Strength comes from four properties:
 - Arena reports now include scenario counts, average plies, search simulations, win-rate standard error, and 95% confidence interval.
 - `az_eval -workers=N -progress` runs arena games in parallel and writes per-game JSON progress to stderr.
 - `az_loop` maintains `ratings.json` with lightweight Elo-style ratings for candidates, incumbents, and retained baselines.
-- `az_loop -selfplay_workers=N -arena_workers=N -progress` carries the worker/progress path through the full loop. Its merged self-play throughput now uses wall-clock shard elapsed time, while search/legal/apply timing remains summed worker time.
+- `az_loop -selfplay_workers=N -arena_workers=N -progress -compact_records -reuse_tree -global_batch_size=N` carries the worker/progress/compact/tree/global-batch path through the full loop. Its merged self-play throughput now uses wall-clock shard elapsed time, while search/legal/apply timing remains summed worker time.
 - `az_loop` and `az_eval` report a structured promotion decision. Use `-promote_min_games` and `-promote_ci95_lower_bound` when a run should require statistical confidence, not only a raw win-rate threshold.
 - `az_eval` compares any table or HTTP candidate against a table, HTTP, or heuristic baseline without running the full train loop.
 - `az_train_torch --architecture=hex` uses observation shape `[global, hexes, per_hex]` to encode hexes with shared weights and pool board embeddings into policy/value heads.
-- `az_infer_torch` serves both `/evaluate` and `/evaluate_batch`, and exposes checkpoint schema/shape/architecture on `/healthz`.
+- `az_infer_torch` serves both `/evaluate` and `/evaluate_batch`, exposes checkpoint schema/shape/architecture on `/healthz`, suppresses access logs by default, and exposes `--torch-threads` / `--torch-interop-threads` for CPU-thread tuning.
 - `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`. Use `-summary` to write seed coverage counts by source, round, phase, player count, root faction, and faction presence.
 
 ## Current Local Milestone
@@ -308,11 +311,15 @@ Current local throughput observations:
 - Export/training are usable at 27k rows: export produced `27110` samples / `6169` actions; h512 training took `212` batches per epoch.
 - MCTS generation dominates. The historical single-worker 50-game full-game sims=8 batch produced `5.58` records/sec. The clean four-worker 50-game batch produced `17.28` records/sec.
 - HTTP evaluator overhead is still material. Four-worker arena reduced the 50-game h512 gate from about `12.5` minutes to `6.46` minutes, but search/evaluator time still dominates wall-clock runtime.
-- Next optimization targets should be scenario-level truncation diagnostics, quieter torch HTTP logging, in-process/ONNX inference, and reducing HTTP JSON overhead around batched evaluation.
+- The first opt-in micro-optimization benchmark used 12 games, `training_mix`, `max_plies=400`, `sims=8`, `batch_size=8`, `workers=4`, seed `3101`, and the clean h512 checkpoint.
+  - Baseline: `1122` records, `98.895s`, `11.35` records/sec, output `27MB`.
+  - `-compact_records -reuse_tree -global_batch_size=32`: `1123` records, `98.735s`, `11.37` records/sec, output `15MB`.
+  - `workers=8`, compact/tree/global batch: `1123` records, `103.434s`, `10.86` records/sec.
+  - Torch server with `--torch-threads=1 --torch-interop-threads=1`: `1122` records, `98.612s`, `11.38` records/sec.
+- Compact records are useful for storage/I/O, but this benchmark did not show material neural self-play throughput improvement from compact records, tree reuse, global batching, higher workers, or Torch thread tuning. The remaining real speed path is likely in-process/ONNX inference or a deeper search/evaluator redesign.
 
 ## Remaining Work
 
 - Add ONNX or in-process inference if HTTP latency dominates.
 - Add scenario-level truncation reports so long randomized games can be separated from model weakness.
-- Reduce torch evaluator access-log noise during large worker runs.
 - Add setup/auction self-play once the action surface is cheap enough for those phases.

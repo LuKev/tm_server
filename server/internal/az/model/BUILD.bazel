@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "model",
     srcs = [
+        "async_batch.go",
         "http.go",
         "loader.go",
         "model.go",
@@ -18,7 +19,10 @@ go_library(
 
 go_test(
     name = "model_test",
-    srcs = ["http_test.go"],
+    srcs = [
+        "async_batch_test.go",
+        "http_test.go",
+    ],
     embed = [":model"],
     deps = [
         "//internal/az/env",

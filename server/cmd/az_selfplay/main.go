@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/lukev/tm_server/internal/az/env"
 	"github.com/lukev/tm_server/internal/az/mcts"
@@ -19,6 +20,8 @@ func main() {
 	flag.IntVar(&config.MaxPlies, "max_plies", 200, "maximum plies per episode")
 	flag.StringVar(&config.Scenario, "scenario", "base_nomads_witches", "built-in scenario name")
 	flag.IntVar(&config.Workers, "workers", 1, "parallel self-play game workers")
+	flag.BoolVar(&config.CompactRecords, "compact_records", false, "omit debug state snapshots from self-play JSONL records")
+	flag.BoolVar(&config.ReuseTree, "reuse_tree", false, "reuse the selected MCTS subtree between moves in each self-play game")
 	flag.IntVar(&config.Search.Simulations, "sims", 64, "MCTS simulations per move")
 	flag.IntVar(&config.Search.BatchSize, "batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
 	flag.Float64Var(&config.Search.CPUCT, "cpuct", 1.5, "PUCT exploration constant")
@@ -31,6 +34,8 @@ func main() {
 	metricsPath := flag.String("metrics", "", "optional metrics JSON output path")
 	modelPath := flag.String("model", "", "optional table model JSON used as evaluator")
 	modelURL := flag.String("model_url", "", "optional HTTP policy/value evaluator URL")
+	globalBatchSize := flag.Int("global_batch_size", 0, "merge concurrent evaluator batches up to this size; 0 disables")
+	globalBatchDelay := flag.Int("global_batch_delay_ms", 1, "maximum delay before flushing a partial global evaluator batch")
 	progress := flag.Bool("progress", false, "write per-game progress JSON lines to stderr")
 	listScenarios := flag.Bool("list_scenarios", false, "print available built-in scenario names")
 	flag.Parse()
@@ -55,6 +60,7 @@ func main() {
 	if err != nil {
 		exitf("load evaluator: %v", err)
 	}
+	evaluator = model.NewAsyncBatchEvaluator(evaluator, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
 	if *progress {
 		config.ProgressWriter = os.Stderr
 	}

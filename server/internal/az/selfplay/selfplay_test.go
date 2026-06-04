@@ -2,6 +2,7 @@ package selfplay
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -35,6 +36,38 @@ func TestRunWritesJSONLRecords(t *testing.T) {
 	}
 	if metrics.AverageBranchingFactor <= 0 {
 		t.Fatalf("expected branching metrics: %#v", metrics)
+	}
+}
+
+func TestRunCompactRecordsOmitStateSnapshot(t *testing.T) {
+	var buf bytes.Buffer
+	_, err := RunWithMetrics(&buf, model.NewHeuristicEvaluator(), Config{
+		Episodes:       1,
+		MaxPlies:       1,
+		Scenario:       "base_nomads_witches",
+		CompactRecords: true,
+		ReuseTree:      true,
+		RandomSeed:     1,
+		Search: mcts.Config{
+			Simulations: 1,
+			CPUCT:       1.5,
+			Temperature: 1,
+			RandomSeed:  2,
+			MaxDepth:    1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run failed: %v", err)
+	}
+	var raw map[string]interface{}
+	if err := json.Unmarshal([]byte(strings.TrimSpace(buf.String())), &raw); err != nil {
+		t.Fatalf("decode record: %v", err)
+	}
+	if _, ok := raw["state"]; ok {
+		t.Fatal("compact record should omit state snapshot")
+	}
+	if _, ok := raw["encoding"]; !ok {
+		t.Fatal("compact record should keep encoding")
 	}
 }
 

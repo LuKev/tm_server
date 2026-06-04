@@ -20,6 +20,8 @@ type Config struct {
 	Scenario       string
 	Workers        int
 	ProgressWriter io.Writer
+	CompactRecords bool
+	ReuseTree      bool
 	Search         mcts.Config
 	RandomSeed     int64
 }
@@ -59,7 +61,7 @@ type Record struct {
 	RootPlayerID      string             `json:"rootPlayerId"`
 	Round             int                `json:"round,omitempty"`
 	Phase             string             `json:"phase,omitempty"`
-	State             string             `json:"state"`
+	State             string             `json:"state,omitempty"`
 	Encoding          []float64          `json:"encoding"`
 	ObservationSchema string             `json:"observationSchema,omitempty"`
 	ObservationShape  []int              `json:"observationShape,omitempty"`
@@ -176,6 +178,10 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 	metrics.ScenarioCounts[scenarioName]++
 	var records []Record
 	lastActionType := ""
+	var tree *mcts.Tree
+	if config.ReuseTree {
+		tree = mcts.NewTree(position)
+	}
 	for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
 		legalStarted := time.Now()
 		legal := position.LegalActions()
@@ -189,7 +195,12 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 			searchConfig.RandomSeed = rng.Int63()
 		}
 		searchStarted := time.Now()
-		result := mcts.Search(position, evaluator, searchConfig)
+		var result mcts.Result
+		if tree != nil {
+			result = tree.Search(evaluator, searchConfig)
+		} else {
+			result = mcts.Search(position, evaluator, searchConfig)
+		}
 		metrics.SearchNanos += time.Since(searchStarted).Nanoseconds()
 		selected := selectAction(result, rng)
 		if selected.ID == "" {
@@ -208,7 +219,6 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 			RootPlayerID:      position.RootPlayerID,
 			Round:             position.State.Round,
 			Phase:             phaseName(position.State.Phase),
-			State:             position.SnapshotJSON(),
 			Encoding:          observation.Features,
 			ObservationSchema: observation.Schema,
 			ObservationShape:  observation.Shape,
@@ -221,12 +231,18 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 		if ply == 0 {
 			record.FeatureNames = observation.FeatureNames
 		}
+		if !config.CompactRecords {
+			record.State = position.SnapshotJSONWithObservation(observation)
+		}
 		records = append(records, record)
 		applyStarted := time.Now()
 		position, err = position.Apply(action)
 		metrics.ApplyNanos += time.Since(applyStarted).Nanoseconds()
 		if err != nil {
 			return episodeResult{episode: episode, workerID: workerID, metrics: metrics, err: err}
+		}
+		if tree != nil {
+			tree.Advance(action.ID, position)
 		}
 	}
 	truncated := !position.IsTerminal() && len(records) >= config.MaxPlies
