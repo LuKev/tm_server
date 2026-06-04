@@ -28,6 +28,12 @@ type Metrics struct {
 	TruncatedGames         int            `json:"truncatedGames"`
 	TerminalGames          int            `json:"terminalGames"`
 	ScenarioCounts         map[string]int `json:"scenarioCounts"`
+	FinalRoundCounts       map[string]int `json:"finalRoundCounts,omitempty"`
+	FinalPhaseCounts       map[string]int `json:"finalPhaseCounts,omitempty"`
+	TerminalPhaseCounts    map[string]int `json:"terminalPhaseCounts,omitempty"`
+	TruncatedPhaseCounts   map[string]int `json:"truncatedPhaseCounts,omitempty"`
+	ActionTypeCounts       map[string]int `json:"actionTypeCounts,omitempty"`
+	LastActionTypeCounts   map[string]int `json:"lastActionTypeCounts,omitempty"`
 	ElapsedMillis          int64          `json:"elapsedMillis"`
 	LegalMillis            int64          `json:"legalMillis"`
 	SearchMillis           int64          `json:"searchMillis"`
@@ -35,6 +41,7 @@ type Metrics struct {
 	AveragePliesPerEpisode float64        `json:"averagePliesPerEpisode"`
 	AverageBranchingFactor float64        `json:"averageBranchingFactor"`
 	RecordsPerSecond       float64        `json:"recordsPerSecond"`
+	MaxFinalRound          int            `json:"maxFinalRound,omitempty"`
 }
 
 type Record struct {
@@ -43,6 +50,8 @@ type Record struct {
 	Scenario          string             `json:"scenario"`
 	PlayerID          string             `json:"playerId"`
 	RootPlayerID      string             `json:"rootPlayerId"`
+	Round             int                `json:"round,omitempty"`
+	Phase             string             `json:"phase,omitempty"`
 	State             string             `json:"state"`
 	Encoding          []float64          `json:"encoding"`
 	ObservationSchema string             `json:"observationSchema,omitempty"`
@@ -63,7 +72,15 @@ func Run(writer io.Writer, evaluator model.Evaluator, config Config) error {
 
 func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) (Metrics, error) {
 	started := time.Now()
-	metrics := Metrics{ScenarioCounts: make(map[string]int)}
+	metrics := Metrics{
+		ScenarioCounts:       make(map[string]int),
+		FinalRoundCounts:     make(map[string]int),
+		FinalPhaseCounts:     make(map[string]int),
+		TerminalPhaseCounts:  make(map[string]int),
+		TruncatedPhaseCounts: make(map[string]int),
+		ActionTypeCounts:     make(map[string]int),
+		LastActionTypeCounts: make(map[string]int),
+	}
 	if writer == nil {
 		return metrics, fmt.Errorf("nil writer")
 	}
@@ -90,6 +107,7 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 		metrics.ScenarioCounts[scenarioName]++
 		var records []Record
 		truncated := false
+		lastActionType := ""
 		for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
 			legalStarted := time.Now()
 			legal := position.LegalActions()
@@ -120,6 +138,8 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 				Scenario:          scenarioName,
 				PlayerID:          action.PlayerID,
 				RootPlayerID:      position.RootPlayerID,
+				Round:             position.State.Round,
+				Phase:             phaseName(position.State.Phase),
 				State:             position.SnapshotJSON(),
 				Encoding:          observation.Features,
 				ObservationSchema: observation.Schema,
@@ -128,6 +148,8 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 				Policy:            policyMap(result.Actions),
 				ActionID:          action.ID,
 			}
+			metrics.ActionTypeCounts[action.Type]++
+			lastActionType = action.Type
 			if ply == 0 {
 				record.FeatureNames = observation.FeatureNames
 			}
@@ -142,13 +164,29 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 		if !position.IsTerminal() && len(records) >= config.MaxPlies {
 			truncated = true
 		}
+		finalRound := 0
+		finalPhase := "unknown"
+		if position != nil && position.State != nil {
+			finalRound = position.State.Round
+			finalPhase = phaseName(position.State.Phase)
+		}
+		metrics.FinalRoundCounts[fmt.Sprint(finalRound)]++
+		metrics.FinalPhaseCounts[finalPhase]++
+		if finalRound > metrics.MaxFinalRound {
+			metrics.MaxFinalRound = finalRound
+		}
 		metrics.Records += len(records)
 		metrics.CompletedGames++
 		if truncated {
 			metrics.TruncatedGames++
+			metrics.TruncatedPhaseCounts[finalPhase]++
 		}
 		if position.IsTerminal() {
 			metrics.TerminalGames++
+			metrics.TerminalPhaseCounts[finalPhase]++
+		}
+		if lastActionType != "" {
+			metrics.LastActionTypeCounts[lastActionType]++
 		}
 		for i := range records {
 			records[i].Outcome = position.ValueFor(records[i].PlayerID)
@@ -171,6 +209,25 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 		metrics.RecordsPerSecond = float64(metrics.Records) / elapsedSeconds
 	}
 	return metrics, nil
+}
+
+func phaseName(phase interface{}) string {
+	switch fmt.Sprint(phase) {
+	case "0":
+		return "setup"
+	case "1":
+		return "faction_selection"
+	case "2":
+		return "income"
+	case "3":
+		return "action"
+	case "4":
+		return "cleanup"
+	case "5":
+		return "end"
+	default:
+		return fmt.Sprint(phase)
+	}
 }
 
 func selectAction(result mcts.Result, rng *rand.Rand) mcts.RankedAction {

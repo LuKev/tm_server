@@ -339,6 +339,7 @@ func mergeMetrics(total, shard selfplay.Metrics) selfplay.Metrics {
 	if total.ScenarioCounts == nil {
 		total.ScenarioCounts = make(map[string]int)
 	}
+	ensureSelfPlayMetricMaps(&total)
 	weightedBranching := total.AverageBranchingFactor * float64(total.Records)
 	weightedPlies := total.AveragePliesPerEpisode * float64(total.Episodes)
 	total.Episodes += shard.Episodes
@@ -350,11 +351,20 @@ func mergeMetrics(total, shard selfplay.Metrics) selfplay.Metrics {
 	total.LegalMillis += shard.LegalMillis
 	total.SearchMillis += shard.SearchMillis
 	total.ApplyMillis += shard.ApplyMillis
+	if shard.MaxFinalRound > total.MaxFinalRound {
+		total.MaxFinalRound = shard.MaxFinalRound
+	}
 	weightedBranching += shard.AverageBranchingFactor * float64(shard.Records)
 	weightedPlies += shard.AveragePliesPerEpisode * float64(shard.Episodes)
 	for scenario, count := range shard.ScenarioCounts {
 		total.ScenarioCounts[scenario] += count
 	}
+	mergeIntMap(total.FinalRoundCounts, shard.FinalRoundCounts)
+	mergeIntMap(total.FinalPhaseCounts, shard.FinalPhaseCounts)
+	mergeIntMap(total.TerminalPhaseCounts, shard.TerminalPhaseCounts)
+	mergeIntMap(total.TruncatedPhaseCounts, shard.TruncatedPhaseCounts)
+	mergeIntMap(total.ActionTypeCounts, shard.ActionTypeCounts)
+	mergeIntMap(total.LastActionTypeCounts, shard.LastActionTypeCounts)
 	if total.Records > 0 {
 		total.AverageBranchingFactor = weightedBranching / float64(total.Records)
 	}
@@ -362,6 +372,33 @@ func mergeMetrics(total, shard selfplay.Metrics) selfplay.Metrics {
 		total.AveragePliesPerEpisode = weightedPlies / float64(total.Episodes)
 	}
 	return total
+}
+
+func ensureSelfPlayMetricMaps(metrics *selfplay.Metrics) {
+	if metrics.FinalRoundCounts == nil {
+		metrics.FinalRoundCounts = make(map[string]int)
+	}
+	if metrics.FinalPhaseCounts == nil {
+		metrics.FinalPhaseCounts = make(map[string]int)
+	}
+	if metrics.TerminalPhaseCounts == nil {
+		metrics.TerminalPhaseCounts = make(map[string]int)
+	}
+	if metrics.TruncatedPhaseCounts == nil {
+		metrics.TruncatedPhaseCounts = make(map[string]int)
+	}
+	if metrics.ActionTypeCounts == nil {
+		metrics.ActionTypeCounts = make(map[string]int)
+	}
+	if metrics.LastActionTypeCounts == nil {
+		metrics.LastActionTypeCounts = make(map[string]int)
+	}
+}
+
+func mergeIntMap(total, shard map[string]int) {
+	for key, count := range shard {
+		total[key] += count
+	}
 }
 
 func finalizeMergedMetrics(metrics selfplay.Metrics) selfplay.Metrics {

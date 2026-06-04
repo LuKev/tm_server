@@ -581,6 +581,8 @@ func configureRoundAssets(gs *game.GameState, players []string, rng *rand.Rand, 
 		}
 		_, _ = gs.BonusCards.TakeBonusCard(playerID, card)
 	}
+	gs.BonusCards.AddCoinsToLeftoverCards()
+	gs.BonusCards.PlayerHasCard = make(map[string]bool)
 }
 
 func playerScore(gs *game.GameState, playerID string) int {

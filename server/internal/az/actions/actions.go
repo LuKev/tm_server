@@ -205,7 +205,7 @@ func pendingCandidates(gs *game.GameState, playerID string) []Option {
 		}
 	}
 	if player, count := gs.GetPendingSpadeFollowupPlayer(); player == playerID && count > 0 {
-		out = append(out, transformCandidates(gs, playerID, "pending_spade")...)
+		out = append(out, transformCandidates(gs, playerID, "pending_spade", true)...)
 		out = append(out, option(playerID, "discard_spade", "Discard pending spade", game.NewDiscardPendingSpadeAction(playerID, 1), "discard_spade"))
 	}
 	if player, count := gs.GetPendingCultRewardSpadePlayer(); player == playerID && count > 0 {
@@ -240,7 +240,7 @@ func mainTurnCandidates(gs *game.GameState, playerID string) []Option {
 	if gs.Phase != game.PhaseAction {
 		return out
 	}
-	out = append(out, transformCandidates(gs, playerID, "transform")...)
+	out = append(out, transformCandidates(gs, playerID, "transform", false)...)
 	out = append(out, upgradeCandidates(gs, playerID)...)
 	out = append(out, option(playerID, "advance_shipping", "Advance shipping", game.NewAdvanceShippingAction(playerID), "shipping"))
 	out = append(out, option(playerID, "advance_digging", "Advance digging", game.NewAdvanceDiggingAction(playerID), "digging"))
@@ -265,14 +265,14 @@ func mainTurnCandidates(gs *game.GameState, playerID string) []Option {
 	return out
 }
 
-func transformCandidates(gs *game.GameState, playerID, kind string) []Option {
+func transformCandidates(gs *game.GameState, playerID, kind string, includeTransformOnly bool) []Option {
 	var out []Option
 	for _, hex := range actionTargetHexes(gs, playerID) {
 		for _, terrain := range buildableTerrains() {
-			out = append(out,
-				option(playerID, kind, fmt.Sprintf("Transform %d,%d to %s", hex.Q, hex.R, terrain), game.NewTransformAndBuildAction(playerID, hex, false, terrain), kind, hex.Q, hex.R, int(terrain), 0),
-				option(playerID, kind+"_build", fmt.Sprintf("Transform/build %d,%d", hex.Q, hex.R), game.NewTransformAndBuildAction(playerID, hex, true, terrain), kind+"_build", hex.Q, hex.R, int(terrain), 1),
-			)
+			if includeTransformOnly {
+				out = append(out, option(playerID, kind, fmt.Sprintf("Transform %d,%d to %s", hex.Q, hex.R, terrain), game.NewTransformAndBuildAction(playerID, hex, false, terrain), kind, hex.Q, hex.R, int(terrain), 0))
+			}
+			out = append(out, option(playerID, kind+"_build", fmt.Sprintf("Transform/build %d,%d", hex.Q, hex.R), game.NewTransformAndBuildAction(playerID, hex, true, terrain), kind+"_build", hex.Q, hex.R, int(terrain), 1))
 		}
 	}
 	return out

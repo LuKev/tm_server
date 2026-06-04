@@ -13,7 +13,7 @@ Strength comes from four properties:
 
 ## Implemented Scaling Surfaces
 
-- `az_selfplay -metrics=/path/metrics.json` writes throughput, branching, phase timing, scenario counts, completed/truncated games, and records-per-second.
+- `az_selfplay -metrics=/path/metrics.json` writes throughput, branching, phase timing, scenario counts, final round/phase counts, action-type counts, completed/truncated games, and records-per-second.
 - `training_mix` samples both deterministic base scenarios and randomized scenarios.
 - `randomized_base` samples base-game faction pairs, seat order, starting dwelling anchors, scoring tiles, and bonus cards.
 - `az_loop` runs self-play shards concurrently and writes per-iteration `report.json` with self-play metrics, dataset paths, runtime info, MCTS config, incumbent source, and arena result.
@@ -24,6 +24,39 @@ Strength comes from four properties:
 - `az_train_torch --architecture=hex` uses observation shape `[global, hexes, per_hex]` to encode hexes with shared weights and pool board embeddings into policy/value heads.
 - `az_infer_torch` serves both `/evaluate` and `/evaluate_batch`, and exposes checkpoint schema/shape/architecture on `/healthz`.
 - `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`. Use `-summary` to write seed coverage counts by source, round, phase, player count, root faction, and faction presence.
+
+## Current Local Milestone
+
+The local full-game scaling milestone now has two distinct datasets:
+
+- Policy-prior bootstrap: `/tmp/tm_az_scale_100k/loop/iter_0001/selfplay.jsonl`
+  - `100000` records, `max_plies=400`, `training_mix`, generated with `-sims=0`.
+  - Use this for pipeline scale and broad supervised warm-starts, not as MCTS-improved data.
+- Neural MCTS batch: `/tmp/tm_az_scale_next/neural_mcts_s8_selfplay.jsonl`
+  - `2065` records from 20 full games, `max_plies=400`, `sims=8`, `batch_size=8`, no truncations.
+  - Metrics: all 20 games reached `finalRoundCounts={"6":20}` and `finalPhaseCounts={"end":20}`.
+  - Export: `/tmp/tm_az_scale_next/mcts_s8_export`.
+  - Candidate checkpoint: `/tmp/tm_az_scale_next/tm_az_policy_value_h256_mcts_s8.pt`.
+
+The first promotion smoke compared the MCTS-trained candidate against the 100k bootstrap checkpoint:
+
+```bash
+cd server
+bazel run //cmd/az_eval:az_eval -- \
+  -candidate_url=http://127.0.0.1:9105/evaluate \
+  -baseline_url=http://127.0.0.1:9104/evaluate \
+  -scenario=training_mix \
+  -games=8 \
+  -max_plies=400 \
+  -sims=8 \
+  -batch_size=8 \
+  -promote_min_games=8 \
+  -promote_win_rate=0.5 \
+  -seed=1001 \
+  -output=/tmp/tm_az_scale_next/arena_h256_mcts_s8_vs_h256_100k.json
+```
+
+Result: candidate score `3/8` (`winRate=0.375`), so it did not promote. This is a working gate, not a model-strength failure by itself; 8 games is only a smoke.
 
 ## Recommended Run Ladder
 
