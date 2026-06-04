@@ -31,27 +31,25 @@ if stdlib_cmd.exists():
 try:
     import torch
     from torch import nn
-    from torch.utils.data import DataLoader, Dataset
+    from torch.utils.data import DataLoader, IterableDataset
 except ModuleNotFoundError as exc:
     print("PyTorch is required for az_train_torch. Install torch in the Bazel Python runtime.", file=sys.stderr)
     raise SystemExit(2) from exc
 
 
-class JsonlDataset(Dataset):
+class JsonlDataset(IterableDataset):
     def __init__(self, path: Path, input_size: int, action_count: int):
-        self.rows = []
+        self.path = path
         self.input_size = input_size
         self.action_count = action_count
-        with path.open("r", encoding="utf-8") as handle:
+
+    def __iter__(self):
+        with self.path.open("r", encoding="utf-8") as handle:
             for line in handle:
                 if line.strip():
-                    self.rows.append(json.loads(line))
+                    yield self.row_to_sample(json.loads(line))
 
-    def __len__(self):
-        return len(self.rows)
-
-    def __getitem__(self, index):
-        row = self.rows[index]
+    def row_to_sample(self, row):
         features = list(row["encoding"])
         if len(features) < self.input_size:
             features.extend([0.0] * (self.input_size - len(features)))
@@ -162,9 +160,10 @@ def main() -> int:
     vocab_path = Path(args.vocab) if args.vocab else Path(manifest["vocabPath"])
     action_vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
     dataset = JsonlDataset(Path(args.samples), int(manifest["encodingSize"]), int(manifest["actionCount"]))
-    if len(dataset) == 0:
+    sample_count = int(manifest.get("sampleCount", 0))
+    if sample_count == 0:
         raise SystemExit("empty dataset")
-    loader = DataLoader(dataset, batch_size=args.batch_size, shuffle=True)
+    loader = DataLoader(dataset, batch_size=args.batch_size)
     observation_shape = manifest.get("observationShape", [])
     architecture = args.architecture
     if architecture == "hex" and len(observation_shape) != 3:
@@ -173,6 +172,7 @@ def main() -> int:
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
     for epoch in range(args.epochs):
         total = 0.0
+        batches = 0
         for batch in loader:
             logits, value = net(batch["features"])
             loss = policy_loss(logits, batch["policy"], batch["legal"]) + nn.functional.mse_loss(value, batch["value"])
@@ -180,7 +180,8 @@ def main() -> int:
             loss.backward()
             optimizer.step()
             total += float(loss.detach())
-        print(json.dumps({"epoch": epoch + 1, "loss": total / max(1, len(loader))}), file=sys.stderr)
+            batches += 1
+        print(json.dumps({"epoch": epoch + 1, "loss": total / max(1, batches), "batches": batches}), file=sys.stderr)
     torch.save(
         {
             "state_dict": net.state_dict(),

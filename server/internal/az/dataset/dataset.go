@@ -64,11 +64,13 @@ func Export(config ExportConfig) (Manifest, error) {
 	if config.ManifestPath == "" {
 		return Manifest{}, fmt.Errorf("manifest path is required")
 	}
-	records, err := readRecords(config.Input)
+	vocab, manifest, err := scanManifest(config.Input)
 	if err != nil {
 		return Manifest{}, err
 	}
-	vocab := buildVocab(records)
+	manifest.Input = config.Input
+	manifest.SamplesPath = config.SamplesPath
+	manifest.VocabPath = config.VocabPath
 	indexByAction := make(map[string]int, len(vocab))
 	for i, actionID := range vocab {
 		indexByAction[actionID] = i
@@ -79,28 +81,7 @@ func Export(config ExportConfig) (Manifest, error) {
 	}
 	defer sampleFile.Close()
 	encoder := json.NewEncoder(sampleFile)
-	manifest := Manifest{
-		Version:     1,
-		Input:       config.Input,
-		SamplesPath: config.SamplesPath,
-		VocabPath:   config.VocabPath,
-		SampleCount: len(records),
-		ActionCount: len(vocab),
-		Scenarios:   scenarios(records),
-	}
-	for _, record := range records {
-		if len(record.Encoding) > manifest.EncodingSize {
-			manifest.EncodingSize = len(record.Encoding)
-		}
-		if manifest.ObservationSchema == "" && record.ObservationSchema != "" {
-			manifest.ObservationSchema = record.ObservationSchema
-		}
-		if len(manifest.ObservationShape) == 0 && len(record.ObservationShape) > 0 {
-			manifest.ObservationShape = append([]int(nil), record.ObservationShape...)
-		}
-		if len(manifest.FeatureNames) == 0 && len(record.FeatureNames) > 0 {
-			manifest.FeatureNames = append([]string(nil), record.FeatureNames...)
-		}
+	if err := scanRecords(config.Input, func(record selfplay.Record) error {
 		sample := Sample{
 			Scenario:           record.Scenario,
 			Episode:            record.Episode,
@@ -116,8 +97,11 @@ func Export(config ExportConfig) (Manifest, error) {
 			Truncated:          record.Truncated,
 		}
 		if err := encoder.Encode(sample); err != nil {
-			return Manifest{}, err
+			return err
 		}
+		return nil
+	}); err != nil {
+		return Manifest{}, err
 	}
 	if err := writeJSON(config.VocabPath, vocab); err != nil {
 		return Manifest{}, err
@@ -128,41 +112,103 @@ func Export(config ExportConfig) (Manifest, error) {
 	return manifest, nil
 }
 
-func readRecords(path string) ([]selfplay.Record, error) {
+func scanManifest(path string) ([]string, Manifest, error) {
+	seenActions := make(map[string]bool)
+	seenScenarios := make(map[string]bool)
+	manifest := Manifest{Version: 1}
+	if err := scanManifestRecords(path, func(record manifestRecord) error {
+		manifest.SampleCount++
+		if manifest.ObservationSchema == "" && record.ObservationSchema != "" {
+			manifest.ObservationSchema = record.ObservationSchema
+		}
+		if len(manifest.ObservationShape) == 0 && len(record.ObservationShape) > 0 {
+			manifest.ObservationShape = append([]int(nil), record.ObservationShape...)
+		}
+		if manifest.EncodingSize == 0 && len(record.ObservationShape) == 3 {
+			manifest.EncodingSize = record.ObservationShape[0] + record.ObservationShape[1]*record.ObservationShape[2]
+		}
+		if len(manifest.FeatureNames) == 0 && len(record.FeatureNames) > 0 {
+			manifest.FeatureNames = append([]string(nil), record.FeatureNames...)
+		}
+		if record.Scenario != "" {
+			seenScenarios[record.Scenario] = true
+		}
+		for _, actionID := range record.LegalActions {
+			seenActions[actionID] = true
+		}
+		for actionID := range record.Policy {
+			seenActions[actionID] = true
+		}
+		if record.ActionID != "" {
+			seenActions[record.ActionID] = true
+		}
+		return nil
+	}); err != nil {
+		return nil, Manifest{}, err
+	}
+	if manifest.SampleCount == 0 {
+		return nil, Manifest{}, fmt.Errorf("no records in %s", path)
+	}
+	vocab := sortedKeys(seenActions)
+	manifest.ActionCount = len(vocab)
+	manifest.Scenarios = sortedKeys(seenScenarios)
+	return vocab, manifest, nil
+}
+
+type manifestRecord struct {
+	Scenario          string             `json:"scenario"`
+	ObservationSchema string             `json:"observationSchema,omitempty"`
+	ObservationShape  []int              `json:"observationShape,omitempty"`
+	FeatureNames      []string           `json:"featureNames,omitempty"`
+	LegalActions      []string           `json:"legalActions"`
+	Policy            map[string]float64 `json:"policy"`
+	ActionID          string             `json:"actionId"`
+}
+
+func scanManifestRecords(path string, visit func(manifestRecord) error) error {
 	file, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer file.Close()
-	var records []selfplay.Record
+	scanner := bufio.NewScanner(file)
+	scanner.Buffer(make([]byte, 0, 1024*1024), 32*1024*1024)
+	for scanner.Scan() {
+		var record manifestRecord
+		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
+			return err
+		}
+		if err := visit(record); err != nil {
+			return err
+		}
+	}
+	return scanner.Err()
+}
+
+func scanRecords(path string, visit func(selfplay.Record) error) error {
+	file, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
 	scanner := bufio.NewScanner(file)
 	scanner.Buffer(make([]byte, 0, 1024*1024), 32*1024*1024)
 	for scanner.Scan() {
 		var record selfplay.Record
 		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
-			return nil, err
+			return err
 		}
-		records = append(records, record)
+		if err := visit(record); err != nil {
+			return err
+		}
 	}
-	return records, scanner.Err()
+	return scanner.Err()
 }
 
-func buildVocab(records []selfplay.Record) []string {
-	seen := make(map[string]bool)
-	for _, record := range records {
-		for _, actionID := range record.LegalActions {
-			seen[actionID] = true
-		}
-		for actionID := range record.Policy {
-			seen[actionID] = true
-		}
-		if record.ActionID != "" {
-			seen[record.ActionID] = true
-		}
-	}
+func sortedKeys(seen map[string]bool) []string {
 	out := make([]string, 0, len(seen))
-	for actionID := range seen {
-		out = append(out, actionID)
+	for key := range seen {
+		out = append(out, key)
 	}
 	sort.Strings(out)
 	return out
@@ -189,21 +235,6 @@ func policyTargets(policy map[string]float64, indexByAction map[string]int) []Po
 	sort.Slice(out, func(i, j int) bool {
 		return out[i].ActionIndex < out[j].ActionIndex
 	})
-	return out
-}
-
-func scenarios(records []selfplay.Record) []string {
-	seen := make(map[string]bool)
-	for _, record := range records {
-		if record.Scenario != "" {
-			seen[record.Scenario] = true
-		}
-	}
-	out := make([]string, 0, len(seen))
-	for scenario := range seen {
-		out = append(out, scenario)
-	}
-	sort.Strings(out)
 	return out
 }
 

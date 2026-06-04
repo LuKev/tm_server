@@ -57,7 +57,7 @@ func Search(position *env.Position, evaluator model.Evaluator, config Config) Re
 	if evaluator == nil {
 		evaluator = model.NewHeuristicEvaluator()
 	}
-	if config.Simulations <= 0 {
+	if config.Simulations < 0 {
 		config.Simulations = 64
 	}
 	if config.CPUCT <= 0 {
@@ -80,7 +80,10 @@ func Search(position *env.Position, evaluator model.Evaluator, config Config) Re
 	root := &node{position: position, playerID: position.CurrentPlayerID(), prior: 1}
 	expand(root, evaluator, rootPlayer)
 	applyRootNoise(root, config, rng)
-	if batchEvaluator, ok := evaluator.(model.BatchEvaluator); ok && config.BatchSize > 1 {
+	var ranked []RankedAction
+	if config.Simulations == 0 {
+		ranked = rankedPolicyChildren(root)
+	} else if batchEvaluator, ok := evaluator.(model.BatchEvaluator); ok && config.BatchSize > 1 {
 		for i := 0; i < config.Simulations; i += config.BatchSize {
 			limit := config.BatchSize
 			if remaining := config.Simulations - i; remaining < limit {
@@ -93,14 +96,16 @@ func Search(position *env.Position, evaluator model.Evaluator, config Config) Re
 			runSimulation(root, evaluator, rootPlayer, config, 0)
 		}
 	}
-	actions := rankedChildren(root, config.Temperature)
+	if ranked == nil {
+		ranked = rankedChildren(root, config.Temperature)
+	}
 	result := Result{
 		RootPlayerID: rootPlayer,
-		Actions:      actions,
+		Actions:      ranked,
 		Simulations:  config.Simulations,
 	}
-	if len(actions) > 0 {
-		result.Selected = actions[0]
+	if len(ranked) > 0 {
+		result.Selected = ranked[0]
 	}
 	return result
 }
@@ -339,6 +344,33 @@ func rankedChildren(root *node, temperature float64) []RankedAction {
 		if out[i].Visits != out[j].Visits {
 			return out[i].Visits > out[j].Visits
 		}
+		if out[i].Prob != out[j].Prob {
+			return out[i].Prob > out[j].Prob
+		}
+		return out[i].ID < out[j].ID
+	})
+	return out
+}
+
+func rankedPolicyChildren(root *node) []RankedAction {
+	if root == nil || len(root.children) == 0 {
+		return nil
+	}
+	out := make([]RankedAction, 0, len(root.children))
+	for _, child := range root.children {
+		out = append(out, RankedAction{
+			ID:     child.action.ID,
+			Type:   child.action.Type,
+			Label:  child.action.Label,
+			Player: child.action.PlayerID,
+			Visits: 0,
+			Prior:  child.prior,
+			Q:      0,
+			Prob:   child.prior,
+			Meta:   child.action.Meta,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool {
 		if out[i].Prob != out[j].Prob {
 			return out[i].Prob > out[j].Prob
 		}

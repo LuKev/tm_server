@@ -50,6 +50,32 @@ func TestSearchUsesBatchEvaluator(t *testing.T) {
 	}
 }
 
+func TestSearchZeroSimulationsUsesPolicyPriors(t *testing.T) {
+	position, err := env.BuiltInScenario("base_nomads_witches")
+	if err != nil {
+		t.Fatalf("BuiltInScenario failed: %v", err)
+	}
+	result := Search(position, model.NewHeuristicEvaluator(), Config{
+		Simulations: 0,
+		CPUCT:       1.5,
+		Temperature: 1,
+		RandomSeed:  1,
+		MaxDepth:    1,
+	})
+	if result.Simulations != 0 {
+		t.Fatalf("simulations = %d, want 0", result.Simulations)
+	}
+	if len(result.Actions) == 0 {
+		t.Fatal("expected policy-ranked actions")
+	}
+	if result.Actions[0].Visits != 0 {
+		t.Fatalf("visits = %d, want 0 in policy-prior mode", result.Actions[0].Visits)
+	}
+	if result.Actions[0].Prob <= 0 {
+		t.Fatalf("probability = %v, want positive prior probability", result.Actions[0].Prob)
+	}
+}
+
 type countingBatchEvaluator struct {
 	fallback   *model.HeuristicEvaluator
 	batchCalls int
