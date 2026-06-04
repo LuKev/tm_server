@@ -122,11 +122,21 @@ bazel run //cmd/az_replay_seeds:az_replay_seeds -- \
   -every=20 \
   -max=1000 \
   -max_per_replay=50 \
+  -phase=Action \
   -output=/tmp/tm_az_replay_seed_batch.jsonl \
   -summary=/tmp/tm_az_replay_seed_batch_summary.json
 ```
 
 Inspect the summary before training. A useful seed pool should have nonzero coverage across multiple roots, rounds, and phases; otherwise a strong model can overfit to a narrow midgame distribution.
+
+Use filters to build narrower curriculum pools when needed:
+
+- `-phase=Action` or `-phase=Income`
+- `-min_round=2 -max_round=5`
+- `-player_count=2` or `-player_count=4`
+- `-root_faction=Cultists`
+
+The summary includes `skippedByReason` so it is clear when filters are too tight.
 
 Use those seeds as a scenario source:
 

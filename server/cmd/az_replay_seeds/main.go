@@ -25,6 +25,11 @@ func main() {
 	every := flag.Int("every", 20, "emit one seed every N replay actions")
 	maxSeeds := flag.Int("max", 200, "maximum seeds to emit")
 	maxPerReplay := flag.Int("max_per_replay", 0, "maximum seeds per replay file; 0 disables the per-replay cap")
+	phaseFilter := flag.String("phase", "", "optional phase filter, e.g. Action, Income, Cleanup")
+	rootFactionFilter := flag.String("root_faction", "", "optional root/current faction filter")
+	playerCountFilter := flag.Int("player_count", 0, "optional exact player-count filter; 0 disables")
+	minRound := flag.Int("min_round", 0, "optional minimum round filter; 0 disables")
+	maxRound := flag.Int("max_round", 0, "optional maximum round filter; 0 disables")
 	scriptDir := flag.String("script_dir", "", "script/import scratch directory; defaults to temp dir")
 	flag.Parse()
 
@@ -39,6 +44,22 @@ func main() {
 	}
 	if *maxPerReplay < 0 {
 		exitf("-max_per_replay must be non-negative")
+	}
+	if *playerCountFilter < 0 {
+		exitf("-player_count must be non-negative")
+	}
+	if *minRound < 0 || *maxRound < 0 {
+		exitf("-min_round and -max_round must be non-negative")
+	}
+	if *minRound > 0 && *maxRound > 0 && *minRound > *maxRound {
+		exitf("-min_round cannot exceed -max_round")
+	}
+	filter := seedFilter{
+		Phase:       *phaseFilter,
+		RootFaction: *rootFactionFilter,
+		PlayerCount: *playerCountFilter,
+		MinRound:    *minRound,
+		MaxRound:    *maxRound,
 	}
 	inputs, err := replayInputs(*input, *inputDir, *pattern)
 	if err != nil {
@@ -71,7 +92,7 @@ func main() {
 		writer = file
 	}
 	encoder := json.NewEncoder(writer)
-	summary := newSeedSummary(inputs, *every, *maxSeeds, *maxPerReplay)
+	summary := newSeedSummary(inputs, *every, *maxSeeds, *maxPerReplay, filter)
 	totalWritten := 0
 	for index, path := range inputs {
 		remaining := *maxSeeds - totalWritten
@@ -86,7 +107,7 @@ func main() {
 		if len(inputs) > 1 {
 			baseGameID = fmt.Sprintf("%s_%04d_%s", baseGameID, index+1, sanitizeName(filepath.Base(path)))
 		}
-		written, err := emitReplaySeeds(encoder, summary, dir, path, *format, baseGameID, *every, perReplayLimit)
+		written, err := emitReplaySeeds(encoder, summary, filter, dir, path, *format, baseGameID, *every, perReplayLimit)
 		if err != nil {
 			exitf("%s: %v", path, err)
 		}
@@ -106,7 +127,10 @@ type seedSummary struct {
 	RequestedMax     int            `json:"requestedMax"`
 	MaxPerReplay     int            `json:"maxPerReplay,omitempty"`
 	Every            int            `json:"every"`
+	Filter           seedFilter     `json:"filter,omitempty"`
 	Seeds            int            `json:"seeds"`
+	Skipped          int            `json:"skipped"`
+	SkippedByReason  map[string]int `json:"skippedByReason,omitempty"`
 	BySource         map[string]int `json:"bySource"`
 	ByRound          map[string]int `json:"byRound"`
 	ByPhase          map[string]int `json:"byPhase"`
@@ -115,13 +139,23 @@ type seedSummary struct {
 	ByFactionPresent map[string]int `json:"byFactionPresent"`
 }
 
-func newSeedSummary(inputs []string, every, maxSeeds, maxPerReplay int) *seedSummary {
+type seedFilter struct {
+	Phase       string `json:"phase,omitempty"`
+	RootFaction string `json:"rootFaction,omitempty"`
+	PlayerCount int    `json:"playerCount,omitempty"`
+	MinRound    int    `json:"minRound,omitempty"`
+	MaxRound    int    `json:"maxRound,omitempty"`
+}
+
+func newSeedSummary(inputs []string, every, maxSeeds, maxPerReplay int, filter seedFilter) *seedSummary {
 	return &seedSummary{
 		Version:          1,
 		InputCount:       len(inputs),
 		RequestedMax:     maxSeeds,
 		MaxPerReplay:     maxPerReplay,
 		Every:            every,
+		Filter:           filter.normalized(),
+		SkippedByReason:  make(map[string]int),
 		BySource:         make(map[string]int),
 		ByRound:          make(map[string]int),
 		ByPhase:          make(map[string]int),
@@ -159,7 +193,7 @@ func replayInputs(input, inputDir, pattern string) ([]string, error) {
 	return inputs, nil
 }
 
-func emitReplaySeeds(encoder *json.Encoder, summary *seedSummary, scriptDir, inputPath, format, gameID string, every, maxSeeds int) (int, error) {
+func emitReplaySeeds(encoder *json.Encoder, summary *seedSummary, filter seedFilter, scriptDir, inputPath, format, gameID string, every, maxSeeds int) (int, error) {
 	raw, err := os.ReadFile(inputPath)
 	if err != nil {
 		return 0, fmt.Errorf("read input: %w", err)
@@ -200,6 +234,10 @@ func emitReplaySeeds(encoder *json.Encoder, summary *seedSummary, scriptDir, inp
 			RootFaction:  factionName(gs, root),
 			Factions:     factionNames(gs),
 		}
+		if ok, reason := filter.matches(seed); !ok {
+			recordSkipped(summary, reason)
+			continue
+		}
 		if err := encoder.Encode(seed); err != nil {
 			return written, fmt.Errorf("write seed: %w", err)
 		}
@@ -207,6 +245,32 @@ func emitReplaySeeds(encoder *json.Encoder, summary *seedSummary, scriptDir, inp
 		written++
 	}
 	return written, nil
+}
+
+func (filter seedFilter) normalized() seedFilter {
+	filter.Phase = strings.TrimSpace(filter.Phase)
+	filter.RootFaction = strings.TrimSpace(filter.RootFaction)
+	return filter
+}
+
+func (filter seedFilter) matches(seed env.SnapshotSeed) (bool, string) {
+	filter = filter.normalized()
+	if filter.Phase != "" && !strings.EqualFold(seed.Phase, filter.Phase) {
+		return false, "phase"
+	}
+	if filter.RootFaction != "" && !strings.EqualFold(seed.RootFaction, filter.RootFaction) {
+		return false, "rootFaction"
+	}
+	if filter.PlayerCount > 0 && seed.PlayerCount != filter.PlayerCount {
+		return false, "playerCount"
+	}
+	if filter.MinRound > 0 && seed.Round < filter.MinRound {
+		return false, "minRound"
+	}
+	if filter.MaxRound > 0 && seed.Round > filter.MaxRound {
+		return false, "maxRound"
+	}
+	return true, ""
 }
 
 func recordSummary(summary *seedSummary, seed env.SnapshotSeed) {
@@ -222,6 +286,14 @@ func recordSummary(summary *seedSummary, seed env.SnapshotSeed) {
 	for _, faction := range seed.Factions {
 		increment(summary.ByFactionPresent, faction)
 	}
+}
+
+func recordSkipped(summary *seedSummary, reason string) {
+	if summary == nil {
+		return
+	}
+	summary.Skipped++
+	increment(summary.SkippedByReason, reason)
 }
 
 func increment(counts map[string]int, key string) {

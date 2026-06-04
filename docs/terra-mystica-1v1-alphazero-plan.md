@@ -75,7 +75,7 @@ Each starts with 2 players, round-1 action phase, confirm-actions disabled, and 
 
 The table model trains directly against this shape. `az_export` converts the same JSONL into sparse neural samples with `legalActionIndices`, `policyTargets`, a sorted action vocabulary, and a dataset manifest. The PyTorch trainer reads the flat vector size from the manifest and stores the observation schema/shape in the checkpoint; `az_infer_torch` exposes that metadata on `GET /healthz`.
 
-Replay-derived snapshot seed JSONL may include optional metadata such as source path, replay action index, round, phase, player count, root faction, and factions present. The self-play loader treats those fields as audit metadata; the live position still comes from parsing the `snapshot` text.
+Replay-derived snapshot seed JSONL may include optional metadata such as source path, replay action index, round, phase, player count, root faction, and factions present. The self-play loader treats those fields as audit metadata; the live position still comes from parsing the `snapshot` text. `az_replay_seeds` can also filter generated seeds by phase, root faction, player count, and round bounds while reporting skipped candidates by reason in the summary file.
 
 ## Bot Execution API
 
