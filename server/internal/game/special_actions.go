@@ -1413,9 +1413,12 @@ func (a *SpecialAction) validateMermaidsRiverTown(gs *GameState, player *Player)
 	if a.TargetHex == nil {
 		return fmt.Errorf("river hex must be specified")
 	}
+	mapHex := gs.Map.GetHex(*a.TargetHex)
+	if mapHex == nil || mapHex.Terrain != models.TerrainRiver {
+		return fmt.Errorf("mermaids river town target must be a river hex")
+	}
 
-	// The river hex should already be set up in game state
-	// Validation of actual town formation is handled by the town system
+	// Validation of actual town formation is handled by the town system.
 	return nil
 }
 
@@ -1454,6 +1457,9 @@ func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) 
 			}
 			for _, pending := range gs.PendingTownFormations[a.PlayerID] {
 				if pending == nil || !sameTownComponent(pending.Hexes, connected) {
+					continue
+				}
+				if pending.SkippedRiverHex != nil {
 					continue
 				}
 				pending.SkippedRiverHex = a.TargetHex

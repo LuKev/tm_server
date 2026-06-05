@@ -56,6 +56,61 @@ func TestAurenCultAdvance_Basic(t *testing.T) {
 	}
 }
 
+func TestMermaidsRiverTownRejectsRepeatedNoOpConnect(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewMermaids()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+
+	river := board.NewHex(0, 0)
+	hexes := []board.Hex{
+		board.NewHex(1, 0),
+		board.NewHex(2, 0),
+		board.NewHex(-1, 0),
+		board.NewHex(-2, 0),
+	}
+	for _, hex := range append([]board.Hex{river}, hexes...) {
+		if gs.Map.GetHex(hex) == nil {
+			gs.Map.Hexes[hex] = &board.MapHex{Coord: hex}
+		}
+	}
+	gs.Map.GetHex(river).Terrain = models.TerrainRiver
+	gs.Map.RiverHexes[river] = true
+	for _, hex := range hexes {
+		gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
+		gs.Map.PlaceBuilding(hex, &models.Building{
+			Type:       models.BuildingTradingHouse,
+			Faction:    faction.GetType(),
+			PlayerID:   "player1",
+			PowerValue: 2,
+		})
+	}
+
+	if err := NewMermaidsRiverTownAction("player1", hexes[0]).Execute(gs); err == nil {
+		t.Fatalf("Mermaids river town accepted a non-river target")
+	}
+
+	action := NewMermaidsRiverTownAction("player1", river)
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("first river town connect failed: %v", err)
+	}
+	if got := len(gs.PendingTownFormations["player1"]); got != 1 {
+		t.Fatalf("pending towns after first connect = %d, want 1", got)
+	}
+	pending := gs.PendingTownFormations["player1"][0]
+	if pending.SkippedRiverHex == nil || *pending.SkippedRiverHex != river || !pending.CanBeDelayed {
+		t.Fatalf("first connect did not create delayed river town: %#v", pending)
+	}
+
+	if err := action.Execute(gs); err == nil {
+		t.Fatalf("repeating the same delayed river town connect succeeded; want no-op rejection")
+	}
+	if got := len(gs.PendingTownFormations["player1"]); got != 1 {
+		t.Fatalf("pending towns after repeated connect = %d, want 1", got)
+	}
+}
+
 func TestAurenCultAdvance_MaxPosition(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()

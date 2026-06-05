@@ -398,7 +398,7 @@ func specialActionCandidates(gs *game.GameState, playerID string) []Option {
 		}
 	}
 	if faction == models.FactionMermaids {
-		for _, hex := range actionTargetHexes(gs, playerID) {
+		for _, hex := range sortedRiverHexes(gs) {
 			out = append(out, option(playerID, "special_mermaids_town", "Mermaids river town", game.NewMermaidsRiverTownAction(playerID, hex), "special_mermaids_town", hex.Q, hex.R))
 		}
 	}
@@ -627,6 +627,21 @@ func sortedHexes(gs *game.GameState) []board.Hex {
 		return hexes[i].R < hexes[j].R
 	})
 	return hexes
+}
+
+func sortedRiverHexes(gs *game.GameState) []board.Hex {
+	if gs == nil || gs.Map == nil {
+		return nil
+	}
+	all := sortedHexes(gs)
+	rivers := make([]board.Hex, 0)
+	for _, hex := range all {
+		mh := gs.Map.GetHex(hex)
+		if mh != nil && mh.Terrain == models.TerrainRiver {
+			rivers = append(rivers, hex)
+		}
+	}
+	return rivers
 }
 
 func actionTargetHexes(gs *game.GameState, playerID string) []board.Hex {

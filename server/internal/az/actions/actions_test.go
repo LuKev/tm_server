@@ -5,6 +5,10 @@ import (
 
 	"github.com/lukev/tm_server/internal/az/actions"
 	"github.com/lukev/tm_server/internal/az/env"
+	"github.com/lukev/tm_server/internal/game"
+	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 func TestLegalActionsAreExecutableOnScenario(t *testing.T) {
@@ -88,6 +92,50 @@ func TestLegalActionsExcludeMainTurnActionsForPassedPlayer(t *testing.T) {
 	for _, option := range legal {
 		if option.PlayerID == current.ID {
 			t.Fatalf("passed current player should not receive main-turn action: %s", option.ID)
+		}
+	}
+}
+
+func TestLegalActionsExcludeRepeatedMermaidsRiverTownConnect(t *testing.T) {
+	gs := game.NewGameState()
+	faction := factions.NewMermaids()
+	if err := gs.AddPlayer("p1", faction); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	gs.Phase = game.PhaseAction
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+
+	river := board.NewHex(0, 0)
+	hexes := []board.Hex{
+		board.NewHex(1, 0),
+		board.NewHex(2, 0),
+		board.NewHex(-1, 0),
+		board.NewHex(-2, 0),
+	}
+	for _, hex := range append([]board.Hex{river}, hexes...) {
+		if gs.Map.GetHex(hex) == nil {
+			gs.Map.Hexes[hex] = &board.MapHex{Coord: hex}
+		}
+	}
+	gs.Map.GetHex(river).Terrain = models.TerrainRiver
+	gs.Map.RiverHexes[river] = true
+	for _, hex := range hexes {
+		gs.Map.GetHex(hex).Terrain = faction.GetHomeTerrain()
+		gs.Map.PlaceBuilding(hex, &models.Building{
+			Type:       models.BuildingTradingHouse,
+			Faction:    faction.GetType(),
+			PlayerID:   "p1",
+			PowerValue: 2,
+		})
+	}
+
+	if err := game.NewMermaidsRiverTownAction("p1", river).Execute(gs); err != nil {
+		t.Fatalf("first river town connect failed: %v", err)
+	}
+	for _, option := range actions.LegalActions(gs) {
+		if option.Type == "special_mermaids_town" {
+			t.Fatalf("repeated Mermaids river town connect should not be legal: %s", option.ID)
 		}
 	}
 }

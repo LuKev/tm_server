@@ -18,5 +18,9 @@ go_test(
     deps = [
         ":actions",
         "//internal/az/env",
+        "//internal/game",
+        "//internal/game/board",
+        "//internal/game/factions:factions",
+        "//internal/models:models",
     ],
 )
