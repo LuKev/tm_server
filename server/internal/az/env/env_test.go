@@ -31,6 +31,46 @@ func TestBuiltInScenarioHasLegalActionsAndApplies(t *testing.T) {
 	}
 }
 
+func TestBaseOrderedMatchupScenariosCoverLegalBasePairs(t *testing.T) {
+	scenarios := BaseOrderedMatchupScenarios()
+	if len(scenarios) != 168 {
+		t.Fatalf("ordered base matchups = %d, want 168", len(scenarios))
+	}
+	seen := make(map[string]bool, len(scenarios))
+	for _, scenario := range scenarios {
+		if seen[scenario] {
+			t.Fatalf("duplicate matchup scenario: %s", scenario)
+		}
+		seen[scenario] = true
+	}
+	if !seen["matchup:Nomads:Witches"] || !seen["matchup:Witches:Nomads"] {
+		t.Fatalf("expected both ordered Nomads/Witches matchups in scenario set")
+	}
+}
+
+func TestSampleScenarioMatchupMetadata(t *testing.T) {
+	position, name, err := SampleScenario("matchup:Nomads:Witches", rand.New(rand.NewSource(1)))
+	if err != nil {
+		t.Fatalf("SampleScenario failed: %v", err)
+	}
+	if name != "matchup:Nomads:Witches" {
+		t.Fatalf("scenario name = %s, want matchup:Nomads:Witches", name)
+	}
+	if position.Metadata.OrderedMatchup != "Nomads_vs_Witches" {
+		t.Fatalf("ordered matchup = %s", position.Metadata.OrderedMatchup)
+	}
+	if position.Metadata.UnorderedMatchup != "Nomads_vs_Witches" {
+		t.Fatalf("unordered matchup = %s", position.Metadata.UnorderedMatchup)
+	}
+	next, err := position.Apply(position.LegalActions()[0])
+	if err != nil {
+		t.Fatalf("Apply failed: %v", err)
+	}
+	if next.Metadata.OrderedMatchup != position.Metadata.OrderedMatchup {
+		t.Fatalf("metadata was not preserved across apply: %#v", next.Metadata)
+	}
+}
+
 func TestObservationIncludesBoardSchema(t *testing.T) {
 	position, err := BuiltInScenario("base_nomads_witches")
 	if err != nil {

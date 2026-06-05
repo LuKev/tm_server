@@ -57,6 +57,33 @@ func TestEvaluateWithWorkersReturnsGames(t *testing.T) {
 	}
 }
 
+func TestEvaluateMatrixReportsMatchupsAndTruncation(t *testing.T) {
+	result, err := Evaluate(model.NewHeuristicEvaluator(), model.NewHeuristicEvaluator(), Config{
+		Games:      2,
+		MaxPlies:   1,
+		Scenario:   "matrix:base_ordered",
+		RandomSeed: 4,
+		Search: mcts.Config{
+			Simulations: 0,
+			CPUCT:       1.5,
+			Temperature: 0,
+			MaxDepth:    1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Evaluate failed: %v", err)
+	}
+	if len(result.OrderedMatchupCounts) != 2 {
+		t.Fatalf("expected two ordered matchup counts, got %#v", result.OrderedMatchupCounts)
+	}
+	if len(result.UnorderedMatchupStats) == 0 {
+		t.Fatalf("expected unordered matchup stats")
+	}
+	if result.TerminalGames+result.TruncatedGames == 0 {
+		t.Fatalf("expected terminal or truncation reporting: %#v", result)
+	}
+}
+
 func TestDecidePromotionUsesConfidenceGate(t *testing.T) {
 	decision := DecidePromotion(Result{
 		Games:       100,

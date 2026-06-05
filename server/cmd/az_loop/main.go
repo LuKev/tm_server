@@ -100,7 +100,7 @@ func main() {
 	globalBatchSize := flag.Int("global_batch_size", 0, "merge concurrent evaluator batches up to this size; 0 disables")
 	globalBatchDelay := flag.Int("global_batch_delay_ms", 1, "maximum delay before flushing a partial global evaluator batch")
 	scenario := flag.String("scenario", "random_base", "scenario name, random_base, or comma-separated scenario set")
-	maxPlies := flag.Int("max_plies", 120, "maximum plies per self-play game")
+	maxPlies := flag.Int("max_plies", 500, "maximum plies per self-play game")
 	sims := flag.Int("sims", 8, "MCTS simulations per move")
 	batchSize := flag.Int("batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")
 	maxDepth := flag.Int("max_depth", 80, "MCTS simulation max depth")
@@ -399,6 +399,9 @@ func mergeMetrics(total, shard selfplay.Metrics) selfplay.Metrics {
 	for scenario, count := range shard.ScenarioCounts {
 		total.ScenarioCounts[scenario] += count
 	}
+	mergeIntMap(total.OrderedMatchupCounts, shard.OrderedMatchupCounts)
+	mergeIntMap(total.UnorderedMatchupCounts, shard.UnorderedMatchupCounts)
+	mergeIntMap(total.RootFactionCounts, shard.RootFactionCounts)
 	mergeIntMap(total.FinalRoundCounts, shard.FinalRoundCounts)
 	mergeIntMap(total.FinalPhaseCounts, shard.FinalPhaseCounts)
 	mergeIntMap(total.TerminalPhaseCounts, shard.TerminalPhaseCounts)
@@ -417,6 +420,15 @@ func mergeMetrics(total, shard selfplay.Metrics) selfplay.Metrics {
 func ensureSelfPlayMetricMaps(metrics *selfplay.Metrics) {
 	if metrics.FinalRoundCounts == nil {
 		metrics.FinalRoundCounts = make(map[string]int)
+	}
+	if metrics.OrderedMatchupCounts == nil {
+		metrics.OrderedMatchupCounts = make(map[string]int)
+	}
+	if metrics.UnorderedMatchupCounts == nil {
+		metrics.UnorderedMatchupCounts = make(map[string]int)
+	}
+	if metrics.RootFactionCounts == nil {
+		metrics.RootFactionCounts = make(map[string]int)
 	}
 	if metrics.FinalPhaseCounts == nil {
 		metrics.FinalPhaseCounts = make(map[string]int)

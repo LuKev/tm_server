@@ -26,21 +26,41 @@ type Config struct {
 }
 
 type Result struct {
-	Games             int            `json:"games"`
-	CandidateWins     int            `json:"candidateWins"`
-	BaselineWins      int            `json:"baselineWins"`
-	Draws             int            `json:"draws"`
-	WinRate           float64        `json:"winRate"`
-	WinRateStdErr     float64        `json:"winRateStdErr"`
-	WinRateCI95       [2]float64     `json:"winRateCi95"`
-	AverageMargin     float64        `json:"averageMargin"`
-	AveragePlies      float64        `json:"averagePlies"`
-	ScenarioCounts    map[string]int `json:"scenarioCounts,omitempty"`
-	SearchSimulations int            `json:"searchSimulations"`
-	ElapsedMillis     int64          `json:"elapsedMillis,omitempty"`
-	SearchMillis      int64          `json:"searchMillis,omitempty"`
-	SearchNanos       int64          `json:"searchNanos,omitempty"`
-	Workers           int            `json:"workers,omitempty"`
+	Games                 int                      `json:"games"`
+	CandidateWins         int                      `json:"candidateWins"`
+	BaselineWins          int                      `json:"baselineWins"`
+	Draws                 int                      `json:"draws"`
+	WinRate               float64                  `json:"winRate"`
+	WinRateStdErr         float64                  `json:"winRateStdErr"`
+	WinRateCI95           [2]float64               `json:"winRateCi95"`
+	AverageMargin         float64                  `json:"averageMargin"`
+	AveragePlies          float64                  `json:"averagePlies"`
+	TerminalGames         int                      `json:"terminalGames"`
+	TruncatedGames        int                      `json:"truncatedGames"`
+	ScenarioCounts        map[string]int           `json:"scenarioCounts,omitempty"`
+	OrderedMatchupCounts  map[string]int           `json:"orderedMatchupCounts,omitempty"`
+	UnorderedMatchupStats map[string]MatchupResult `json:"unorderedMatchupStats,omitempty"`
+	FinalRoundCounts      map[string]int           `json:"finalRoundCounts,omitempty"`
+	FinalPhaseCounts      map[string]int           `json:"finalPhaseCounts,omitempty"`
+	TerminalPhaseCounts   map[string]int           `json:"terminalPhaseCounts,omitempty"`
+	TruncatedPhaseCounts  map[string]int           `json:"truncatedPhaseCounts,omitempty"`
+	SearchSimulations     int                      `json:"searchSimulations"`
+	ElapsedMillis         int64                    `json:"elapsedMillis,omitempty"`
+	SearchMillis          int64                    `json:"searchMillis,omitempty"`
+	SearchNanos           int64                    `json:"searchNanos,omitempty"`
+	Workers               int                      `json:"workers,omitempty"`
+}
+
+type MatchupResult struct {
+	Games          int     `json:"games"`
+	CandidateWins  int     `json:"candidateWins"`
+	BaselineWins   int     `json:"baselineWins"`
+	Draws          int     `json:"draws"`
+	WinRate        float64 `json:"winRate"`
+	AverageMargin  float64 `json:"averageMargin"`
+	AveragePlies   float64 `json:"averagePlies"`
+	TerminalGames  int     `json:"terminalGames"`
+	TruncatedGames int     `json:"truncatedGames"`
 }
 
 type PromotionPolicy struct {
@@ -73,7 +93,7 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 		config.Games = 2
 	}
 	if config.MaxPlies <= 0 {
-		config.MaxPlies = 200
+		config.MaxPlies = 500
 	}
 	if config.RandomSeed == 0 {
 		config.RandomSeed = time.Now().UnixNano()
@@ -86,9 +106,15 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 	}
 	started := time.Now()
 	result := Result{
-		ScenarioCounts:    make(map[string]int),
-		SearchSimulations: config.Search.Simulations,
-		Workers:           config.Workers,
+		ScenarioCounts:        make(map[string]int),
+		OrderedMatchupCounts:  make(map[string]int),
+		UnorderedMatchupStats: make(map[string]MatchupResult),
+		FinalRoundCounts:      make(map[string]int),
+		FinalPhaseCounts:      make(map[string]int),
+		TerminalPhaseCounts:   make(map[string]int),
+		TruncatedPhaseCounts:  make(map[string]int),
+		SearchSimulations:     config.Search.Simulations,
+		Workers:               config.Workers,
 	}
 	jobs := make(chan int)
 	results := make(chan gameResult)
@@ -142,9 +168,14 @@ type gameResult struct {
 	gameIndex       int
 	workerID        int
 	scenario        string
+	metadata        env.ScenarioMetadata
 	candidatePlayer string
 	plies           int
 	margin          float64
+	finalRound      int
+	finalPhase      string
+	terminal        bool
+	truncated       bool
 	searchNanos     int64
 	elapsed         time.Duration
 	err             error
@@ -153,7 +184,8 @@ type gameResult struct {
 func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, config Config) gameResult {
 	started := time.Now()
 	rng := rand.New(rand.NewSource(gameSeed(config.RandomSeed, gameIndex)))
-	position, scenarioName, err := env.SampleScenario(config.Scenario, rng)
+	scenarioRequest := env.ScheduledScenario(config.Scenario, gameIndex)
+	position, scenarioName, err := env.SampleScenario(scenarioRequest, rng)
 	if err != nil {
 		return gameResult{gameIndex: gameIndex, workerID: workerID, err: err}
 	}
@@ -165,7 +197,11 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 		gameIndex:       gameIndex,
 		workerID:        workerID,
 		scenario:        scenarioName,
+		metadata:        position.Metadata,
 		candidatePlayer: candidatePlayer,
+	}
+	if out.metadata.Scenario == "" {
+		out.metadata.Scenario = scenarioName
 	}
 	for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
 		out.plies++
@@ -202,6 +238,12 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 		}
 	}
 	out.margin = position.ValueFor(candidatePlayer)
+	if position != nil && position.State != nil {
+		out.finalRound = position.State.Round
+		out.finalPhase = phaseName(position.State.Phase)
+	}
+	out.terminal = position.IsTerminal()
+	out.truncated = !out.terminal && out.plies >= config.MaxPlies
 	out.elapsed = time.Since(started)
 	return out
 }
@@ -209,10 +251,47 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 func mergeGameResult(result *Result, game gameResult) {
 	result.Games++
 	result.ScenarioCounts[game.scenario]++
+	if game.metadata.OrderedMatchup != "" {
+		result.OrderedMatchupCounts[game.metadata.OrderedMatchup]++
+	}
 	result.AveragePlies += float64(game.plies)
 	result.AverageMargin += game.margin
 	result.SearchNanos += game.searchNanos
 	result.SearchMillis = result.SearchNanos / int64(time.Millisecond)
+	result.FinalRoundCounts[fmt.Sprint(game.finalRound)]++
+	result.FinalPhaseCounts[game.finalPhase]++
+	if game.terminal {
+		result.TerminalGames++
+		result.TerminalPhaseCounts[game.finalPhase]++
+	}
+	if game.truncated {
+		result.TruncatedGames++
+		result.TruncatedPhaseCounts[game.finalPhase]++
+	}
+	matchupKey := game.metadata.UnorderedMatchup
+	if matchupKey != "" {
+		stats := result.UnorderedMatchupStats[matchupKey]
+		previousGames := stats.Games
+		stats.Games++
+		stats.AveragePlies = runningAverage(stats.AveragePlies, float64(game.plies), previousGames)
+		stats.AverageMargin = runningAverage(stats.AverageMargin, game.margin, previousGames)
+		if game.terminal {
+			stats.TerminalGames++
+		}
+		if game.truncated {
+			stats.TruncatedGames++
+		}
+		switch {
+		case game.margin > 0.01:
+			stats.CandidateWins++
+		case game.margin < -0.01:
+			stats.BaselineWins++
+		default:
+			stats.Draws++
+		}
+		stats.WinRate = (float64(stats.CandidateWins) + 0.5*float64(stats.Draws)) / float64(stats.Games)
+		result.UnorderedMatchupStats[matchupKey] = stats
+	}
 	switch {
 	case game.margin > 0.01:
 		result.CandidateWins++
@@ -223,14 +302,28 @@ func mergeGameResult(result *Result, game gameResult) {
 	}
 }
 
+func runningAverage(current, next float64, previousCount int) float64 {
+	if previousCount <= 0 {
+		return next
+	}
+	return (current*float64(previousCount) + next) / float64(previousCount+1)
+}
+
 func writeProgress(writer io.Writer, game gameResult, result Result, elapsed time.Duration, totalGames int) {
 	progress := map[string]interface{}{
 		"event":             "arena_game",
 		"game":              game.gameIndex,
 		"worker":            game.workerID,
 		"scenario":          game.scenario,
+		"orderedMatchup":    game.metadata.OrderedMatchup,
+		"unorderedMatchup":  game.metadata.UnorderedMatchup,
+		"rootFaction":       game.metadata.RootFaction,
 		"candidatePlayer":   game.candidatePlayer,
 		"plies":             game.plies,
+		"finalRound":        game.finalRound,
+		"finalPhase":        game.finalPhase,
+		"terminal":          game.terminal,
+		"truncated":         game.truncated,
 		"margin":            game.margin,
 		"gameElapsedMillis": game.elapsed.Milliseconds(),
 		"completedGames":    result.Games,
@@ -243,6 +336,25 @@ func writeProgress(writer io.Writer, game gameResult, result Result, elapsed tim
 	raw, err := json.Marshal(progress)
 	if err == nil {
 		_, _ = fmt.Fprintln(writer, string(raw))
+	}
+}
+
+func phaseName(phase interface{}) string {
+	switch fmt.Sprint(phase) {
+	case "0":
+		return "setup"
+	case "1":
+		return "faction_selection"
+	case "2":
+		return "income"
+	case "3":
+		return "action"
+	case "4":
+		return "cleanup"
+	case "5":
+		return "end"
+	default:
+		return fmt.Sprint(phase)
 	}
 }
 

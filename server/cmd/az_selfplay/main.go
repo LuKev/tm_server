@@ -17,7 +17,7 @@ import (
 func main() {
 	var config selfplay.Config
 	flag.IntVar(&config.Episodes, "episodes", 1, "number of self-play episodes")
-	flag.IntVar(&config.MaxPlies, "max_plies", 200, "maximum plies per episode")
+	flag.IntVar(&config.MaxPlies, "max_plies", 500, "maximum plies per episode")
 	flag.StringVar(&config.Scenario, "scenario", "base_nomads_witches", "built-in scenario name")
 	flag.IntVar(&config.Workers, "workers", 1, "parallel self-play game workers")
 	flag.BoolVar(&config.CompactRecords, "compact_records", false, "omit debug state snapshots from self-play JSONL records")

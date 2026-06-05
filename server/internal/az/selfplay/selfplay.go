@@ -33,6 +33,9 @@ type Metrics struct {
 	TruncatedGames         int            `json:"truncatedGames"`
 	TerminalGames          int            `json:"terminalGames"`
 	ScenarioCounts         map[string]int `json:"scenarioCounts"`
+	OrderedMatchupCounts   map[string]int `json:"orderedMatchupCounts,omitempty"`
+	UnorderedMatchupCounts map[string]int `json:"unorderedMatchupCounts,omitempty"`
+	RootFactionCounts      map[string]int `json:"rootFactionCounts,omitempty"`
 	FinalRoundCounts       map[string]int `json:"finalRoundCounts,omitempty"`
 	FinalPhaseCounts       map[string]int `json:"finalPhaseCounts,omitempty"`
 	TerminalPhaseCounts    map[string]int `json:"terminalPhaseCounts,omitempty"`
@@ -57,6 +60,10 @@ type Record struct {
 	Episode           int                `json:"episode"`
 	Ply               int                `json:"ply"`
 	Scenario          string             `json:"scenario"`
+	Factions          []string           `json:"factions,omitempty"`
+	RootFaction       string             `json:"rootFaction,omitempty"`
+	OrderedMatchup    string             `json:"orderedMatchup,omitempty"`
+	UnorderedMatchup  string             `json:"unorderedMatchup,omitempty"`
 	PlayerID          string             `json:"playerId"`
 	RootPlayerID      string             `json:"rootPlayerId"`
 	Round             int                `json:"round,omitempty"`
@@ -92,7 +99,7 @@ func RunWithMetrics(writer io.Writer, evaluator model.Evaluator, config Config) 
 		config.Episodes = 1
 	}
 	if config.MaxPlies <= 0 {
-		config.MaxPlies = 200
+		config.MaxPlies = 500
 	}
 	if config.RandomSeed == 0 {
 		config.RandomSeed = time.Now().UnixNano()
@@ -162,6 +169,7 @@ type episodeResult struct {
 	finalPhase string
 	terminal   bool
 	truncated  bool
+	metadata   env.ScenarioMetadata
 	elapsed    time.Duration
 	err        error
 }
@@ -170,12 +178,26 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 	started := time.Now()
 	metrics := newMetrics()
 	rng := rand.New(rand.NewSource(episodeSeed(config.RandomSeed, episode)))
-	position, scenarioName, err := env.SampleScenario(config.Scenario, rng)
+	scenarioRequest := env.ScheduledScenario(config.Scenario, episode)
+	position, scenarioName, err := env.SampleScenario(scenarioRequest, rng)
 	if err != nil {
 		return episodeResult{episode: episode, workerID: workerID, metrics: metrics, err: err}
 	}
+	metadata := position.Metadata
+	if metadata.Scenario == "" {
+		metadata.Scenario = scenarioName
+	}
 	metrics.Episodes = 1
 	metrics.ScenarioCounts[scenarioName]++
+	if metadata.OrderedMatchup != "" {
+		metrics.OrderedMatchupCounts[metadata.OrderedMatchup]++
+	}
+	if metadata.UnorderedMatchup != "" {
+		metrics.UnorderedMatchupCounts[metadata.UnorderedMatchup]++
+	}
+	if metadata.RootFaction != "" {
+		metrics.RootFactionCounts[metadata.RootFaction]++
+	}
 	var records []Record
 	lastActionType := ""
 	var tree *mcts.Tree
@@ -215,6 +237,10 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 			Episode:           episode,
 			Ply:               ply,
 			Scenario:          scenarioName,
+			Factions:          append([]string(nil), metadata.Factions...),
+			RootFaction:       metadata.RootFaction,
+			OrderedMatchup:    metadata.OrderedMatchup,
+			UnorderedMatchup:  metadata.UnorderedMatchup,
 			PlayerID:          action.PlayerID,
 			RootPlayerID:      position.RootPlayerID,
 			Round:             position.State.Round,
@@ -283,19 +309,23 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 		finalPhase: finalPhase,
 		terminal:   terminal,
 		truncated:  truncated,
+		metadata:   metadata,
 		elapsed:    time.Since(started),
 	}
 }
 
 func newMetrics() Metrics {
 	return Metrics{
-		ScenarioCounts:       make(map[string]int),
-		FinalRoundCounts:     make(map[string]int),
-		FinalPhaseCounts:     make(map[string]int),
-		TerminalPhaseCounts:  make(map[string]int),
-		TruncatedPhaseCounts: make(map[string]int),
-		ActionTypeCounts:     make(map[string]int),
-		LastActionTypeCounts: make(map[string]int),
+		ScenarioCounts:         make(map[string]int),
+		OrderedMatchupCounts:   make(map[string]int),
+		UnorderedMatchupCounts: make(map[string]int),
+		RootFactionCounts:      make(map[string]int),
+		FinalRoundCounts:       make(map[string]int),
+		FinalPhaseCounts:       make(map[string]int),
+		TerminalPhaseCounts:    make(map[string]int),
+		TruncatedPhaseCounts:   make(map[string]int),
+		ActionTypeCounts:       make(map[string]int),
+		LastActionTypeCounts:   make(map[string]int),
 	}
 }
 
@@ -313,6 +343,9 @@ func mergeMetrics(total *Metrics, part Metrics) {
 		total.MaxFinalRound = part.MaxFinalRound
 	}
 	mergeStringInt(total.ScenarioCounts, part.ScenarioCounts)
+	mergeStringInt(total.OrderedMatchupCounts, part.OrderedMatchupCounts)
+	mergeStringInt(total.UnorderedMatchupCounts, part.UnorderedMatchupCounts)
+	mergeStringInt(total.RootFactionCounts, part.RootFactionCounts)
 	mergeStringInt(total.FinalRoundCounts, part.FinalRoundCounts)
 	mergeStringInt(total.FinalPhaseCounts, part.FinalPhaseCounts)
 	mergeStringInt(total.TerminalPhaseCounts, part.TerminalPhaseCounts)
@@ -348,6 +381,9 @@ func writeProgress(writer io.Writer, result episodeResult, metrics Metrics, elap
 		"event":             "selfplay_game",
 		"episode":           result.episode,
 		"worker":            result.workerID,
+		"orderedMatchup":    result.metadata.OrderedMatchup,
+		"unorderedMatchup":  result.metadata.UnorderedMatchup,
+		"rootFaction":       result.metadata.RootFaction,
 		"records":           len(result.records),
 		"finalRound":        result.finalRound,
 		"finalPhase":        result.finalPhase,

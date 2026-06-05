@@ -48,7 +48,7 @@ func main() {
 	output := flag.String("output", "", "optional JSON report output path; stdout when empty")
 	scenario := flag.String("scenario", "training_mix", "scenario name, snapshot source, or comma-separated scenario set")
 	games := flag.Int("games", 20, "arena games")
-	maxPlies := flag.Int("max_plies", 160, "maximum plies per game")
+	maxPlies := flag.Int("max_plies", 500, "maximum plies per game")
 	workers := flag.Int("workers", 1, "parallel arena game workers")
 	sims := flag.Int("sims", 32, "MCTS simulations per move")
 	batchSize := flag.Int("batch_size", 1, "MCTS neural evaluation batch size when evaluator supports it")

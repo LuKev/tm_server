@@ -22,11 +22,22 @@ import (
 type Position struct {
 	State        *game.GameState  `json:"-"`
 	RootPlayerID string           `json:"rootPlayerId"`
+	Metadata     ScenarioMetadata `json:"metadata,omitempty"`
 	legal        []actions.Option `json:"-"`
 	legalLoaded  bool             `json:"-"`
 }
 
 const ObservationSchema = "tm_az_board_v1"
+
+// ScenarioMetadata carries the matchup identity through cloned positions and
+// training records so matrix runs can prove faction coverage after the fact.
+type ScenarioMetadata struct {
+	Scenario         string   `json:"scenario,omitempty"`
+	Factions         []string `json:"factions,omitempty"`
+	RootFaction      string   `json:"rootFaction,omitempty"`
+	OrderedMatchup   string   `json:"orderedMatchup,omitempty"`
+	UnorderedMatchup string   `json:"unorderedMatchup,omitempty"`
+}
 
 // Observation is the flat feature vector plus enough metadata for training
 // tools to verify they are consuming the same schema that self-play emitted.
@@ -104,7 +115,7 @@ func NewPosition(gs *game.GameState, rootPlayerID string) *Position {
 	if gs != nil {
 		clone = gs.CloneForUndo()
 	}
-	return &Position{State: clone, RootPlayerID: rootPlayerID}
+	return &Position{State: clone, RootPlayerID: rootPlayerID, Metadata: metadataFromState("", clone, rootPlayerID)}
 }
 
 // LegalActions returns the legal action surface for this position.
@@ -128,7 +139,7 @@ func (p *Position) Apply(option actions.Option) (*Position, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Position{State: next, RootPlayerID: p.RootPlayerID}, nil
+	return &Position{State: next, RootPlayerID: p.RootPlayerID, Metadata: p.Metadata}, nil
 }
 
 // IsTerminal reports whether the state has ended or the legal action surface is empty.
@@ -332,10 +343,50 @@ func ScenarioNames() []string {
 	}
 	names = append(names, "random_base")
 	names = append(names, "randomized_base")
+	names = append(names, "matrix:base_ordered")
+	names = append(names, "matchup:Nomads:Witches")
 	names = append(names, "snapshots:/path/to/snapshot_seeds.jsonl")
 	names = append(names, "training_mix")
 	sort.Strings(names)
 	return names
+}
+
+// ScenarioSet expands named matrix suites into explicit scenario names. Callers
+// can schedule these by episode/game index for deterministic faction coverage.
+func ScenarioSet(name string) []string {
+	switch strings.TrimSpace(name) {
+	case "matrix:base_ordered", "base_ordered_matrix":
+		return BaseOrderedMatchupScenarios()
+	default:
+		return nil
+	}
+}
+
+// ScheduledScenario returns the concrete scenario for an episode or arena game.
+func ScheduledScenario(name string, index int) string {
+	scenarios := ScenarioSet(name)
+	if len(scenarios) == 0 {
+		return name
+	}
+	if index < 0 {
+		index = 0
+	}
+	return scenarios[index%len(scenarios)]
+}
+
+// BaseOrderedMatchupScenarios returns every legal ordered base-faction pair.
+// Same-faction and same-home-terrain pairs are excluded, matching auction rules.
+func BaseOrderedMatchupScenarios() []string {
+	scenarios := make([]string, 0, len(baseFactionPool)*len(baseFactionPool))
+	for _, first := range baseFactionPool {
+		for _, second := range baseFactionPool {
+			if !validBaseFactionPair(first, second) {
+				continue
+			}
+			scenarios = append(scenarios, matchupScenarioName(first, second))
+		}
+	}
+	return scenarios
 }
 
 // SampleScenario returns a deterministic scenario by name, a sampled scenario
@@ -383,6 +434,13 @@ func SampleScenario(name string, rng *rand.Rand) (*Position, string, error) {
 	if strings.HasPrefix(name, "snapshots:") {
 		return sampleSnapshotScenario(name, rng)
 	}
+	if strings.HasPrefix(name, "matchup:") {
+		position, err := matchupScenarioPosition(name, rng)
+		return position, name, err
+	}
+	if scheduled := ScheduledScenario(name, 0); scheduled != name {
+		return SampleScenario(scheduled, rng)
+	}
 	position, err := BuiltInScenario(name)
 	return position, name, err
 }
@@ -421,7 +479,28 @@ func scenarioPosition(s Scenario, rng *rand.Rand, randomizeRoundAssets bool) (*P
 		}
 	}
 	configureRoundAssets(gs, s.Players[:], rng, randomizeRoundAssets)
-	return &Position{State: gs, RootPlayerID: s.Players[0]}, nil
+	return &Position{
+		State:        gs,
+		RootPlayerID: s.Players[0],
+		Metadata:     metadataFromScenario(s, s.Name),
+	}, nil
+}
+
+func matchupScenarioPosition(name string, rng *rand.Rand) (*Position, error) {
+	first, second, err := parseMatchupScenario(name)
+	if err != nil {
+		return nil, err
+	}
+	startingHexes, err := sampleStartingHexes(rng)
+	if err != nil {
+		return nil, err
+	}
+	return scenarioPosition(Scenario{
+		Name:        matchupScenarioName(first, second),
+		Players:     [2]string{"p1", "p2"},
+		Factions:    [2]models.FactionType{first, second},
+		StartingHex: startingHexes,
+	}, rng, true)
 }
 
 func randomizedScenarioPosition(rng *rand.Rand) (*Position, error) {
@@ -473,7 +552,9 @@ func sampleSnapshotScenario(name string, rng *rand.Rand) (*Position, string, err
 	if scenarioName == "" {
 		scenarioName = "snapshot"
 	}
-	return NewPosition(gs, rootPlayerID), scenarioName, nil
+	position := NewPosition(gs, rootPlayerID)
+	position.Metadata = metadataFromSnapshotSeed(scenarioName, seed, gs, rootPlayerID)
+	return position, scenarioName, nil
 }
 
 func normalizeSnapshotState(gs *game.GameState) {
@@ -635,19 +716,112 @@ var baseFactionPool = []models.FactionType{
 
 func sampleFactionPair(rng *rand.Rand) [2]models.FactionType {
 	first := baseFactionPool[rng.Intn(len(baseFactionPool))]
-	firstHome := factions.NewFaction(first).GetHomeTerrain()
 	candidates := make([]models.FactionType, 0, len(baseFactionPool))
 	for _, candidate := range baseFactionPool {
-		if candidate == first {
-			continue
-		}
-		if factions.NewFaction(candidate).GetHomeTerrain() == firstHome {
+		if !validBaseFactionPair(first, candidate) {
 			continue
 		}
 		candidates = append(candidates, candidate)
 	}
 	second := candidates[rng.Intn(len(candidates))]
 	return [2]models.FactionType{first, second}
+}
+
+func validBaseFactionPair(first, second models.FactionType) bool {
+	if first == second || first == models.FactionUnknown || second == models.FactionUnknown {
+		return false
+	}
+	return factions.NewFaction(first).GetHomeTerrain() != factions.NewFaction(second).GetHomeTerrain()
+}
+
+func parseMatchupScenario(name string) (models.FactionType, models.FactionType, error) {
+	parts := strings.Split(strings.TrimSpace(name), ":")
+	if len(parts) != 3 || parts[0] != "matchup" {
+		return models.FactionUnknown, models.FactionUnknown, fmt.Errorf("matchup scenario must be matchup:FactionA:FactionB")
+	}
+	first := parseBaseFaction(parts[1])
+	second := parseBaseFaction(parts[2])
+	if !validBaseFactionPair(first, second) {
+		return first, second, fmt.Errorf("invalid base faction matchup: %s vs %s", parts[1], parts[2])
+	}
+	return first, second, nil
+}
+
+func parseBaseFaction(name string) models.FactionType {
+	normalized := strings.ReplaceAll(strings.TrimSpace(name), " ", "")
+	for _, faction := range baseFactionPool {
+		if strings.EqualFold(normalized, strings.ReplaceAll(faction.String(), " ", "")) {
+			return faction
+		}
+	}
+	return models.FactionUnknown
+}
+
+func matchupScenarioName(first, second models.FactionType) string {
+	return fmt.Sprintf("matchup:%s:%s", first.String(), second.String())
+}
+
+func metadataFromScenario(s Scenario, scenarioName string) ScenarioMetadata {
+	factionNames := []string{s.Factions[0].String(), s.Factions[1].String()}
+	return ScenarioMetadata{
+		Scenario:         scenarioName,
+		Factions:         factionNames,
+		RootFaction:      factionNames[0],
+		OrderedMatchup:   orderedMatchup(factionNames),
+		UnorderedMatchup: unorderedMatchup(factionNames),
+	}
+}
+
+func metadataFromSnapshotSeed(scenarioName string, seed SnapshotSeed, gs *game.GameState, rootPlayerID string) ScenarioMetadata {
+	metadata := metadataFromState(scenarioName, gs, rootPlayerID)
+	if len(seed.Factions) > 0 {
+		metadata.Factions = append([]string(nil), seed.Factions...)
+		metadata.OrderedMatchup = orderedMatchup(metadata.Factions)
+		metadata.UnorderedMatchup = unorderedMatchup(metadata.Factions)
+	}
+	if strings.TrimSpace(seed.RootFaction) != "" {
+		metadata.RootFaction = strings.TrimSpace(seed.RootFaction)
+	}
+	return metadata
+}
+
+func metadataFromState(scenarioName string, gs *game.GameState, rootPlayerID string) ScenarioMetadata {
+	metadata := ScenarioMetadata{Scenario: scenarioName}
+	if gs == nil {
+		return metadata
+	}
+	ids := sortedPlayerIDs(gs)
+	metadata.Factions = make([]string, 0, len(ids))
+	for _, id := range ids {
+		player := gs.GetPlayer(id)
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		name := player.Faction.GetType().String()
+		metadata.Factions = append(metadata.Factions, name)
+		if id == rootPlayerID {
+			metadata.RootFaction = name
+		}
+	}
+	metadata.OrderedMatchup = orderedMatchup(metadata.Factions)
+	metadata.UnorderedMatchup = unorderedMatchup(metadata.Factions)
+	return metadata
+}
+
+func orderedMatchup(factions []string) string {
+	if len(factions) < 2 {
+		return ""
+	}
+	return fmt.Sprintf("%s_vs_%s", factions[0], factions[1])
+}
+
+func unorderedMatchup(factionNames []string) string {
+	if len(factionNames) < 2 {
+		return ""
+	}
+	names := append([]string(nil), factionNames[:2]...)
+	sort.Strings(names)
+	return fmt.Sprintf("%s_vs_%s", names[0], names[1])
 }
 
 func sampleStartingHexes(rng *rand.Rand) ([2][]board.Hex, error) {

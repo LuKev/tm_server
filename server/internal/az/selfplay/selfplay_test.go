@@ -102,3 +102,37 @@ func TestRunWithWorkersWritesRecords(t *testing.T) {
 		t.Fatalf("expected nanosecond timing metrics: %#v", metrics)
 	}
 }
+
+func TestRunMatrixScenarioRecordsMatchupMetadata(t *testing.T) {
+	var buf bytes.Buffer
+	metrics, err := RunWithMetrics(&buf, model.NewHeuristicEvaluator(), Config{
+		Episodes:       2,
+		MaxPlies:       1,
+		Scenario:       "matrix:base_ordered",
+		CompactRecords: true,
+		RandomSeed:     5,
+		Search: mcts.Config{
+			Simulations: 0,
+			CPUCT:       1.5,
+			Temperature: 1,
+			MaxDepth:    1,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Run failed: %v", err)
+	}
+	if len(metrics.OrderedMatchupCounts) != 2 {
+		t.Fatalf("expected two ordered matchup counts, got %#v", metrics.OrderedMatchupCounts)
+	}
+	lines := strings.Split(strings.TrimSpace(buf.String()), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("records = %d, want 2", len(lines))
+	}
+	var first Record
+	if err := json.Unmarshal([]byte(lines[0]), &first); err != nil {
+		t.Fatalf("decode record: %v", err)
+	}
+	if first.OrderedMatchup == "" || len(first.Factions) != 2 || first.RootFaction == "" {
+		t.Fatalf("record missing matchup metadata: %#v", first)
+	}
+}
