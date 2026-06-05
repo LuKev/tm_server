@@ -10,6 +10,7 @@ import argparse
 import importlib.util
 import json
 import os
+import random
 import sys
 from pathlib import Path
 
@@ -38,16 +39,39 @@ except ModuleNotFoundError as exc:
 
 
 class JsonlDataset(IterableDataset):
-    def __init__(self, path: Path, input_size: int, action_count: int):
+    def __init__(self, path: Path, input_size: int, action_count: int, shuffle_buffer: int = 0, seed: int = 1):
         self.path = path
         self.input_size = input_size
         self.action_count = action_count
+        self.shuffle_buffer = shuffle_buffer
+        self.seed = seed
+        self.iteration = 0
 
     def __iter__(self):
+        if self.shuffle_buffer <= 1:
+            with self.path.open("r", encoding="utf-8") as handle:
+                for line in handle:
+                    if line.strip():
+                        yield self.row_to_sample(json.loads(line))
+            return
+        iteration = self.iteration
+        self.iteration += 1
+        rng = random.Random(self.seed + iteration)
+        buffer = []
         with self.path.open("r", encoding="utf-8") as handle:
             for line in handle:
-                if line.strip():
-                    yield self.row_to_sample(json.loads(line))
+                if not line.strip():
+                    continue
+                buffer.append(line)
+                if len(buffer) >= self.shuffle_buffer:
+                    index = rng.randrange(len(buffer))
+                    selected = buffer[index]
+                    buffer[index] = buffer[-1]
+                    buffer.pop()
+                    yield self.row_to_sample(json.loads(selected))
+        rng.shuffle(buffer)
+        for line in buffer:
+            yield self.row_to_sample(json.loads(line))
 
     def row_to_sample(self, row):
         features = list(row["encoding"])
@@ -137,6 +161,76 @@ def build_model(architecture: str, input_size: int, action_count: int, hidden_si
     raise ValueError(f"unknown architecture: {architecture}")
 
 
+def action_key(action):
+    return json.dumps(action, sort_keys=True, separators=(",", ":"))
+
+
+def load_init_checkpoint(
+    net,
+    checkpoint,
+    expected,
+    observation_shape,
+    action_vocab,
+    allow_action_mismatch,
+    new_action_logit,
+):
+    strict_expected = dict(expected)
+    if allow_action_mismatch:
+        strict_expected.pop("action_count", None)
+    for key, value in strict_expected.items():
+        if checkpoint.get(key) != value:
+            raise SystemExit(f"init checkpoint {key}={checkpoint.get(key)!r} does not match expected {value!r}")
+    if checkpoint.get("observation_shape", []) != observation_shape:
+        raise SystemExit(
+            f"init checkpoint observation_shape={checkpoint.get('observation_shape', [])!r} "
+            f"does not match expected {observation_shape!r}"
+        )
+    if checkpoint.get("action_count") == expected["action_count"]:
+        net.load_state_dict(checkpoint["state_dict"])
+        return {"mode": "strict", "matched_policy_actions": expected["action_count"]}
+    if not allow_action_mismatch:
+        raise SystemExit(
+            f"init checkpoint action_count={checkpoint.get('action_count')} "
+            f"does not match expected {expected['action_count']}"
+        )
+
+    current_state = net.state_dict()
+    source_state = checkpoint["state_dict"]
+    copied_tensors = 0
+    for name, tensor in source_state.items():
+        if name.startswith("policy."):
+            continue
+        if name in current_state and current_state[name].shape == tensor.shape:
+            current_state[name] = tensor
+            copied_tensors += 1
+
+    if "policy.weight" in current_state and "policy.bias" in current_state:
+        current_state["policy.weight"].zero_()
+        current_state["policy.bias"].fill_(new_action_logit)
+
+    old_vocab = checkpoint.get("action_vocab", [])
+    old_index = {action_key(action): index for index, action in enumerate(old_vocab)}
+    matched_policy_actions = 0
+    if "policy.weight" in current_state and "policy.weight" in source_state:
+        for new_index, action in enumerate(action_vocab):
+            old_action_index = old_index.get(action_key(action))
+            if old_action_index is None:
+                continue
+            current_state["policy.weight"][new_index] = source_state["policy.weight"][old_action_index]
+            current_state["policy.bias"][new_index] = source_state["policy.bias"][old_action_index]
+            matched_policy_actions += 1
+
+    net.load_state_dict(current_state)
+    return {
+        "mode": "transfer_action_mismatch",
+        "source_action_count": checkpoint.get("action_count"),
+        "target_action_count": expected["action_count"],
+        "matched_policy_actions": matched_policy_actions,
+        "copied_non_policy_tensors": copied_tensors,
+        "new_action_logit": new_action_logit,
+    }
+
+
 def policy_loss(logits, policy_targets, legal_mask):
     masked = logits.masked_fill(legal_mask <= 0, -1e9)
     log_probs = torch.log_softmax(masked, dim=1)
@@ -154,12 +248,32 @@ def main() -> int:
     parser.add_argument("--hidden_size", type=int, default=128)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--architecture", choices=["hex", "mlp"], default="hex")
+    parser.add_argument("--init_checkpoint", default="", help="optional compatible checkpoint to initialize from")
+    parser.add_argument(
+        "--init_allow_action_mismatch",
+        action="store_true",
+        help="transfer compatible layers and matching policy rows when init checkpoint action_count differs",
+    )
+    parser.add_argument(
+        "--init_new_action_logit",
+        type=float,
+        default=-8.0,
+        help="initial policy bias for unmatched actions when transferring across action vocabularies",
+    )
+    parser.add_argument("--shuffle_buffer", type=int, default=0, help="bounded streaming shuffle buffer; 0 disables")
+    parser.add_argument("--seed", type=int, default=1, help="random seed for bounded shuffle")
     args = parser.parse_args()
 
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
     vocab_path = Path(args.vocab) if args.vocab else Path(manifest["vocabPath"])
     action_vocab = json.loads(vocab_path.read_text(encoding="utf-8"))
-    dataset = JsonlDataset(Path(args.samples), int(manifest["encodingSize"]), int(manifest["actionCount"]))
+    dataset = JsonlDataset(
+        Path(args.samples),
+        int(manifest["encodingSize"]),
+        int(manifest["actionCount"]),
+        shuffle_buffer=args.shuffle_buffer,
+        seed=args.seed,
+    )
     sample_count = int(manifest.get("sampleCount", 0))
     if sample_count == 0:
         raise SystemExit("empty dataset")
@@ -169,6 +283,27 @@ def main() -> int:
     if architecture == "hex" and len(observation_shape) != 3:
         architecture = "mlp"
     net = build_model(architecture, dataset.input_size, dataset.action_count, args.hidden_size, observation_shape)
+    init_checkpoint_path = Path(args.init_checkpoint) if args.init_checkpoint else None
+    init_checkpoint = None
+    init_report = {"mode": "none"}
+    if init_checkpoint_path is not None:
+        init_checkpoint = torch.load(init_checkpoint_path, map_location="cpu")
+        expected = {
+            "input_size": dataset.input_size,
+            "action_count": dataset.action_count,
+            "hidden_size": args.hidden_size,
+            "architecture": architecture,
+        }
+        init_report = load_init_checkpoint(
+            net,
+            init_checkpoint,
+            expected,
+            observation_shape,
+            action_vocab,
+            args.init_allow_action_mismatch,
+            args.init_new_action_logit,
+        )
+        print(json.dumps({"initCheckpoint": str(init_checkpoint_path), **init_report}), file=sys.stderr)
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
     for epoch in range(args.epochs):
         total = 0.0
@@ -193,6 +328,10 @@ def main() -> int:
             "observation_shape": manifest.get("observationShape", []),
             "manifest": manifest,
             "action_vocab": action_vocab,
+            "init_checkpoint": str(init_checkpoint_path) if init_checkpoint_path is not None else "",
+            "init_report": init_report,
+            "shuffle_buffer": args.shuffle_buffer,
+            "seed": args.seed,
         },
         args.output,
     )
