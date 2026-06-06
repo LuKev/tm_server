@@ -31,6 +31,11 @@ interface LobbyMessage {
   payload?: unknown
 }
 
+type StartedGamePayload = {
+  gameId?: string
+  playerId?: string
+}
+
 type LobbyErrorPayload = string | {
   error?: string
   gameId?: string
@@ -118,6 +123,7 @@ export function Lobby(): React.ReactElement {
     return true
   }), [enableFanFactions, enableFireIceFactions])
   const factionSelectionValid = opponentType !== 'model' || humanFaction !== modelFaction
+  const effectiveNewGameName = newGameName.trim() || (opponentType === 'model' && trimmedPlayerName ? `${trimmedPlayerName} vs Model` : '')
 
   useEffect(() => {
     if (gameState?.id && activePlayerName !== '' && gameState.players[activePlayerName] && gameState.started) {
@@ -139,9 +145,18 @@ export function Lobby(): React.ReactElement {
         setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
       } else if (msg.type === 'game_left') {
         setLobbyError(null)
+      } else if (msg.type === 'model_game_started') {
+        const payload = (msg.payload ?? {}) as StartedGamePayload
+        if (payload.playerId) {
+          useGameStore.getState().setLocalPlayerId(payload.playerId)
+        }
+        if (payload.gameId) {
+          setLobbyError(null)
+          void navigate(`/game/${payload.gameId}`)
+        }
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, navigate])
 
   useEffect(() => {
     if (isConnected) {
@@ -187,13 +202,40 @@ export function Lobby(): React.ReactElement {
   }
 
   const handleCreateGame = (overrides?: { maxPlayers?: number }): void => {
-    if (!trimmedPlayerName || !newGameName.trim() || joinedGameId || !factionSelectionValid) return
+    if (!trimmedPlayerName || !effectiveNewGameName || joinedGameId || !factionSelectionValid) return
     useGameStore.getState().setLocalPlayerId(trimmedPlayerName)
     setLobbyError(null)
+    if (opponentType === 'model') {
+      sendMessage({
+        type: 'create_and_start_model_game',
+        payload: {
+          name: effectiveNewGameName,
+          maxPlayers: 2,
+          creator: trimmedPlayerName,
+          mapId: newGameMapId,
+          enableFanFactions,
+          enableFireIceFactions,
+          fireIceScoring,
+          customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
+          modelOpponent: {
+            enabled: true,
+            humanFaction,
+            botFaction: modelFaction,
+            simulations: MODEL_STRENGTHS[modelStrength].simulations,
+            cpuct: 1.5,
+            temperature: 0,
+            maxDepth: 500,
+            moveDelayMs: 350,
+          },
+        },
+      })
+      setNewGameName('')
+      return
+    }
     sendMessage({
       type: 'create_game',
       payload: {
-        name: newGameName.trim(),
+        name: effectiveNewGameName,
         maxPlayers: opponentType === 'model' ? 2 : (overrides?.maxPlayers ?? newGameMaxPlayers),
         creator: trimmedPlayerName,
         mapId: newGameMapId,
@@ -288,7 +330,7 @@ export function Lobby(): React.ReactElement {
                 value={newGameName}
                 onChange={(e) => { setNewGameName(e.target.value) }}
                 className="lobby-input"
-                placeholder="Game Name"
+                placeholder={opponentType === 'model' ? 'Game name (optional)' : 'Game Name'}
                 disabled={!isConnected || joinedGameId !== null}
               />
               <select
@@ -318,10 +360,10 @@ export function Lobby(): React.ReactElement {
               <button
                 data-testid="lobby-create-game"
                 onClick={() => { handleCreateGame() }}
-                disabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null || !factionSelectionValid}
+                disabled={!isConnected || !trimmedPlayerName || !effectiveNewGameName || joinedGameId !== null || !factionSelectionValid}
                 className="lobby-button lobby-button-primary"
               >
-                Create
+                {opponentType === 'model' ? 'Start AI Game' : 'Create'}
               </button>
             </div>
 
@@ -401,7 +443,7 @@ export function Lobby(): React.ReactElement {
                 value={customMapDefinition}
                 onChange={setCustomMapDefinition}
                 onCreateGame={() => { handleCreateGame() }}
-                createGameDisabled={!isConnected || !trimmedPlayerName || !newGameName.trim() || joinedGameId !== null || !factionSelectionValid}
+                createGameDisabled={!isConnected || !trimmedPlayerName || !effectiveNewGameName || joinedGameId !== null || !factionSelectionValid}
                 disabled={!isConnected || joinedGameId !== null}
               />
             )}
@@ -424,7 +466,7 @@ export function Lobby(): React.ReactElement {
                   value={setupMode}
                   onChange={(e) => { setSetupMode(e.target.value as 'snellman' | 'auction' | 'fast_auction') }}
                   className="lobby-select"
-                  disabled={!isConnected || opponentType === 'model'}
+                  disabled={!isConnected || joinedGameId !== null || opponentType === 'model'}
                 >
                   <option value="snellman">Snellman</option>
                   <option value="auction">Auction</option>

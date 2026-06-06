@@ -276,6 +276,9 @@ func (c *Client) handleInboundMessage(env inboundMsg) {
 	case "create_game":
 		c.handleCreateGame(env.Payload)
 
+	case "create_and_start_model_game":
+		c.handleCreateAndStartModelGame(env.Payload)
+
 	case "join_game":
 		c.handleJoinGame(env.Payload)
 
@@ -811,12 +814,8 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
 	}
-	fireIceScoring := strings.ToLower(strings.TrimSpace(p.FireIceScoring))
-	switch fireIceScoring {
-	case "", string(game.FireIceFinalScoringOff):
-		fireIceScoring = string(game.FireIceFinalScoringOff)
-	case string(game.FireIceFinalScoringOn), string(game.FireIceFinalScoringRandom):
-	default:
+	fireIceScoring, err := normalizeFireIceScoringPayload(p.FireIceScoring)
+	if err != nil {
 		c.sendActionRejected("", "invalid_fire_ice_scoring", fmt.Sprintf("unsupported Fire & Ice scoring option: %s", p.FireIceScoring))
 		return
 	}
@@ -855,6 +854,128 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 		c.send <- createdMsg
 	}
 	c.broadcastLobbyState()
+}
+
+func (c *Client) handleCreateAndStartModelGame(payload json.RawMessage) {
+	var p createGamePayload
+	if err := json.Unmarshal(payload, &p); err != nil {
+		log.Printf("create_and_start_model_game payload error: %v", err)
+		return
+	}
+	if p.ModelOpponent == nil || !p.ModelOpponent.Enabled {
+		c.sendActionRejected("", "missing_model_opponent", "model opponent settings are required")
+		return
+	}
+	creator := strings.TrimSpace(p.Creator)
+	if creator == "" {
+		c.sendActionRejected("", "missing_creator", "player name is required")
+		return
+	}
+	fireIceScoring, err := normalizeFireIceScoringPayload(p.FireIceScoring)
+	if err != nil {
+		c.sendActionRejected("", "invalid_fire_ice_scoring", fmt.Sprintf("unsupported Fire & Ice scoring option: %s", p.FireIceScoring))
+		return
+	}
+
+	meta, err := c.deps.Lobby.CreateGame(
+		p.Name,
+		2,
+		creator,
+		p.MapID,
+		p.CustomMap,
+		p.EnableFanFactions,
+		p.EnableFireIceFactions,
+		fireIceScoring,
+	)
+	if err != nil {
+		c.sendLobbyError(err)
+		return
+	}
+
+	botPlayerID := modelBotPlayerID(meta.ID)
+	if err := c.deps.Lobby.JoinGame(meta.ID, botPlayerID); err != nil {
+		c.sendLobbyError(err)
+		return
+	}
+	if updated, ok := c.deps.Lobby.GetGame(meta.ID); ok {
+		meta = updated
+	}
+
+	p.ModelOpponent.PlayerID = botPlayerID
+	botConfig, humanFaction, hasModelOpponent := normalizeModelOpponentStart(p.ModelOpponent, meta.ID, creator)
+	if !hasModelOpponent {
+		c.sendActionRejected("", "missing_model_opponent", "model opponent settings are required")
+		return
+	}
+
+	c.bindSeat(meta.ID, creator)
+	if c.hub != nil {
+		c.hub.JoinGame(c, meta.ID)
+	}
+
+	err = c.deps.Games.CreateGameWithOptions(meta.ID, meta.Players, game.CreateGameOptions{
+		RandomizeTurnOrder:    false,
+		SetupMode:             game.SetupModeSnellman,
+		MapID:                 board.NormalizeMapID(meta.MapID),
+		EnableFanFactions:     meta.EnableFanFactions,
+		EnableFireIceFactions: meta.EnableFireIceFactions,
+		FireIceScoring:        game.FireIceFinalScoringSetting(strings.TrimSpace(meta.FireIceScoring)),
+		CustomMap:             board.CloneCustomMapDefinition(meta.CustomMap),
+	})
+	if err != nil && !strings.Contains(err.Error(), "game already exists") {
+		log.Printf("error creating model game: %v", err)
+		c.sendError("create_game_failed")
+		return
+	}
+	if err := c.prepareModelGame(meta.ID, creator, botConfig, humanFaction); err != nil {
+		log.Printf("error preparing model game: %v", err)
+		c.sendActionRejected("", "model_game_setup_failed", err.Error())
+		return
+	}
+	if err := c.deps.Lobby.StartGame(meta.ID); err != nil {
+		log.Printf("error marking model game started: %v", err)
+		c.sendError("create_game_failed")
+		return
+	}
+
+	startedMsg, _ := json.Marshal(map[string]any{
+		"type": "model_game_started",
+		"payload": map[string]string{
+			"gameId":   meta.ID,
+			"playerId": creator,
+		},
+	})
+	c.send <- startedMsg
+
+	gameState := c.deps.Games.SerializeGameState(meta.ID)
+	if gameState != nil {
+		gameStateMsg, _ := json.Marshal(map[string]any{
+			"type":    "game_state_update",
+			"payload": gameState,
+		})
+		if c.hub != nil {
+			c.hub.BroadcastToGame(meta.ID, gameStateMsg)
+		} else {
+			c.send <- gameStateMsg
+		}
+	}
+	if c.deps.Bots != nil {
+		c.deps.Bots.RegisterGame(meta.ID, botConfig)
+		c.deps.Bots.Trigger(meta.ID, c.hub)
+	}
+	c.broadcastLobbyState()
+}
+
+func normalizeFireIceScoringPayload(value string) (string, error) {
+	fireIceScoring := strings.ToLower(strings.TrimSpace(value))
+	switch fireIceScoring {
+	case "", string(game.FireIceFinalScoringOff):
+		return string(game.FireIceFinalScoringOff), nil
+	case string(game.FireIceFinalScoringOn), string(game.FireIceFinalScoringRandom):
+		return fireIceScoring, nil
+	default:
+		return "", fmt.Errorf("unsupported Fire & Ice scoring option: %s", value)
+	}
 }
 
 func (c *Client) handleJoinGame(payload json.RawMessage) {
