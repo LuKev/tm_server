@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "websocket",
     srcs = [
+        "bot.go",
         "client.go",
         "hub.go",
         "handler.go",
@@ -10,6 +11,10 @@ go_library(
     importpath = "github.com/lukev/tm_server/internal/websocket",
     visibility = ["//visibility:public"],
     deps = [
+        "//internal/az/actions",
+        "//internal/az/env",
+        "//internal/az/mcts",
+        "//internal/az/model",
         "//internal/game",
         "//internal/game/board",
         "//internal/lobby",
@@ -31,6 +36,7 @@ go_test(
         "testdata/4pLeague_S69_D1L1_G7.txt",
     ],
     srcs = [
+        "bot_test.go",
         "e2e_integration_test.go",
         "golden_snellman_e2e_test.go",
         "hub_test.go",

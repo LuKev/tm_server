@@ -54,6 +54,13 @@ type ConfirmDialog = {
 
 type HexCoord = { q: number; r: number }
 
+type BotStatus = {
+  gameId: string
+  playerId: string
+  thinking: boolean
+  lastMove?: string
+}
+
 const DEFAULT_PLAYER_OPTIONS: PlayerOptions = {
   autoLeechMode: 'off',
   autoConvertOnPass: false,
@@ -280,6 +287,7 @@ export const Game = () => {
   const [selectedTownCultTracks, setSelectedTownCultTracks] = useState<CultType[]>([])
   const [auctionBidInputs, setAuctionBidInputs] = useState<Record<string, number>>({})
   const [fastAuctionBidInputs, setFastAuctionBidInputs] = useState<Record<string, number>>({})
+  const [botStatus, setBotStatus] = useState<BotStatus | null>(null)
   const [conspiratorsSwapModalOpen, setConspiratorsSwapModalOpen] = useState(false)
   const [conspiratorsReturnTile, setConspiratorsReturnTile] = useState<number | ''>('')
   const [conspiratorsNewTile, setConspiratorsNewTile] = useState<number | ''>('')
@@ -383,10 +391,23 @@ export const Game = () => {
       return
     }
 
+    if (msg.type === 'bot_status') {
+      const payload = (msg.payload ?? {}) as Partial<BotStatus>
+      if (typeof payload.gameId === 'string' && payload.gameId === gameId && typeof payload.playerId === 'string') {
+        setBotStatus({
+          gameId: payload.gameId,
+          playerId: payload.playerId,
+          thinking: !!payload.thinking,
+          lastMove: typeof payload.lastMove === 'string' ? payload.lastMove : undefined,
+        })
+      }
+      return
+    }
+
     if (msg.type === 'action_accepted') {
       setErrorMessage(null)
     }
-  }, [lastMessage])
+  }, [gameId, lastMessage])
 
   useEffect(() => {
     if (!errorMessage) return
@@ -427,6 +448,9 @@ export const Game = () => {
 
   const currentPlayerId = gameState?.turnOrder?.[gameState.currentTurn]
   const isMyTurn = !!localPlayerId && currentPlayerId === localPlayerId
+  const modelPlayerId = useMemo(() => (
+    gameState?.turnOrder?.find((playerId) => playerId.startsWith('TM-AZ-')) ?? null
+  ), [gameState?.turnOrder])
   const setupMode = (gameState?.setupMode ?? 'snellman') as 'snellman' | 'auction' | 'fast_auction'
   const auctionState = (gameState?.auctionState ?? null) as
     | {
@@ -2675,6 +2699,17 @@ export const Game = () => {
         {isSpectator && (
           <div className="mb-3 rounded border border-sky-300 bg-sky-50 px-4 py-2 text-sm text-sky-900" data-testid="spectator-banner">
             Spectator mode. You can watch this game, but you cannot take actions.
+          </div>
+        )}
+
+        {modelPlayerId && (
+          <div className="mb-3 rounded border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm text-indigo-950" data-testid="model-opponent-banner">
+            <span className="font-semibold">Model opponent:</span>{' '}
+            {botStatus?.playerId === modelPlayerId && botStatus.thinking
+              ? `${modelPlayerId} is thinking...`
+              : botStatus?.playerId === modelPlayerId && botStatus.lastMove
+                ? `${modelPlayerId} played ${botStatus.lastMove}.`
+                : `${modelPlayerId} is seated.`}
           </div>
         )}
 

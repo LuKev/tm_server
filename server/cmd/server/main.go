@@ -22,6 +22,7 @@ func main() {
 	// Create managers
 	gameMgr := game.NewManager()
 	lobbyMgr := lobby.NewManager()
+	botMgr := websocket.NewBotManager(gameMgr)
 	// Get scripts directory from environment or default to relative path
 	scriptDir := os.Getenv("SCRIPTS_DIR")
 	if scriptDir == "" {
@@ -35,6 +36,7 @@ func main() {
 	deps := websocket.ServerDeps{
 		Lobby: lobbyMgr,
 		Games: gameMgr,
+		Bots:  botMgr,
 	}
 
 	// Set up router

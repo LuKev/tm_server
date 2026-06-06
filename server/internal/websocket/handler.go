@@ -23,6 +23,7 @@ var upgrader = websocket.Upgrader{
 type ServerDeps struct {
 	Lobby *lobby.Manager
 	Games *game.Manager
+	Bots  *BotManager
 }
 
 // ServeWs handles websocket requests from the peer.

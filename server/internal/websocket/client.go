@@ -59,6 +59,7 @@ type createGamePayload struct {
 	EnableFireIceFactions bool                       `json:"enableFireIceFactions,omitempty"`
 	FireIceScoring        string                     `json:"fireIceScoring,omitempty"`
 	CustomMap             *board.CustomMapDefinition `json:"customMap,omitempty"`
+	ModelOpponent         *modelOpponentPayload      `json:"modelOpponent,omitempty"`
 }
 
 type joinGamePayload struct {
@@ -72,12 +73,26 @@ type leaveGamePayload struct {
 }
 
 type startGamePayload struct {
-	GameID             string `json:"gameID"`
-	RandomizeTurnOrder *bool  `json:"randomizeTurnOrder,omitempty"`
-	SetupMode          string `json:"setupMode,omitempty"`
-	TurnTimerEnabled   *bool  `json:"turnTimerEnabled,omitempty"`
-	TurnTimerSeconds   *int   `json:"turnTimerSeconds,omitempty"`
-	TurnTimerIncrement *int   `json:"turnTimerIncrementSeconds,omitempty"`
+	GameID             string                `json:"gameID"`
+	RandomizeTurnOrder *bool                 `json:"randomizeTurnOrder,omitempty"`
+	SetupMode          string                `json:"setupMode,omitempty"`
+	TurnTimerEnabled   *bool                 `json:"turnTimerEnabled,omitempty"`
+	TurnTimerSeconds   *int                  `json:"turnTimerSeconds,omitempty"`
+	TurnTimerIncrement *int                  `json:"turnTimerIncrementSeconds,omitempty"`
+	ModelOpponent      *modelOpponentPayload `json:"modelOpponent,omitempty"`
+}
+
+type modelOpponentPayload struct {
+	Enabled      bool    `json:"enabled,omitempty"`
+	PlayerID     string  `json:"playerId,omitempty"`
+	HumanFaction int     `json:"humanFaction,omitempty"`
+	BotFaction   int     `json:"botFaction,omitempty"`
+	Simulations  int     `json:"simulations,omitempty"`
+	BatchSize    int     `json:"batchSize,omitempty"`
+	CPUCT        float64 `json:"cpuct,omitempty"`
+	Temperature  float64 `json:"temperature,omitempty"`
+	MaxDepth     int     `json:"maxDepth,omitempty"`
+	MoveDelayMs  int     `json:"moveDelayMs,omitempty"`
 }
 
 type lobbyStateMsg struct {
@@ -549,6 +564,7 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		log.Printf("error parsing start_game payload: %v", err)
 		return
 	}
+	botConfig, humanFaction, hasModelOpponent := normalizeModelOpponentStart(p.ModelOpponent, p.GameID, c.seatForGame(p.GameID))
 
 	meta, ok := c.deps.Lobby.GetGame(p.GameID)
 	if !ok {
@@ -607,6 +623,10 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		c.sendActionRejected("", "invalid_setup_mode", fmt.Sprintf("unsupported setup mode: %s", p.SetupMode))
 		return
 	}
+	if hasModelOpponent {
+		randomize = false
+		setupMode = game.SetupModeSnellman
+	}
 
 	var turnTimer *game.TurnTimerConfig
 	if p.TurnTimerEnabled != nil && *p.TurnTimerEnabled {
@@ -647,6 +667,13 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		c.sendError("create_game_failed")
 		return
 	}
+	if hasModelOpponent {
+		if err := c.prepareModelGame(p.GameID, startSeat, botConfig, humanFaction); err != nil {
+			log.Printf("error preparing model game: %v", err)
+			c.sendActionRejected("", "model_game_setup_failed", err.Error())
+			return
+		}
+	}
 	if err := c.deps.Lobby.StartGame(p.GameID); err != nil {
 		log.Printf("error marking game started: %v", err)
 		c.sendError("create_game_failed")
@@ -667,8 +694,108 @@ func (c *Client) handleStartGame(payload json.RawMessage) {
 		})
 		c.hub.BroadcastToGame(p.GameID, gameStateMsg)
 	}
+	if hasModelOpponent && c.deps.Bots != nil {
+		c.deps.Bots.RegisterGame(p.GameID, botConfig)
+		c.deps.Bots.Trigger(p.GameID, c.hub)
+	}
 
 	c.broadcastLobbyState()
+}
+
+func (c *Client) prepareModelGame(gameID, humanPlayerID string, botConfig BotGameConfig, humanFaction models.FactionType) error {
+	if botConfig.PlayerID == "" {
+		return fmt.Errorf("missing model player")
+	}
+	if botConfig.Faction == models.FactionUnknown {
+		return fmt.Errorf("missing model faction")
+	}
+	if humanFaction == models.FactionUnknown {
+		return fmt.Errorf("missing human faction")
+	}
+	if humanFaction == botConfig.Faction {
+		return fmt.Errorf("human and model factions must be different")
+	}
+
+	confirmActions := false
+	revision, ok := c.deps.Games.GetRevision(gameID)
+	if !ok {
+		return fmt.Errorf("game not found: %s", gameID)
+	}
+	if _, err := c.deps.Games.ExecuteActionWithMeta(gameID, game.NewSetPlayerOptionsAction(botConfig.PlayerID, nil, nil, &confirmActions, nil), game.ActionMeta{
+		ActionID:         fmt.Sprintf("model-options:%s:%d", botConfig.PlayerID, revision),
+		ExpectedRevision: revision,
+		SeatID:           botConfig.PlayerID,
+	}); err != nil {
+		return fmt.Errorf("disable model confirmations: %w", err)
+	}
+
+	fixedFactions := map[string]models.FactionType{
+		humanPlayerID:      humanFaction,
+		botConfig.PlayerID: botConfig.Faction,
+	}
+	for i := 0; i < len(fixedFactions); i++ {
+		gs, ok := c.deps.Games.GetGame(gameID)
+		if !ok || gs == nil {
+			return fmt.Errorf("game not found: %s", gameID)
+		}
+		if gs.Phase != game.PhaseFactionSelection || gs.SetupMode != game.SetupModeSnellman {
+			return nil
+		}
+		current := gs.GetCurrentPlayer()
+		if current == nil {
+			return nil
+		}
+		faction, ok := fixedFactions[current.ID]
+		if !ok || faction == models.FactionUnknown {
+			return nil
+		}
+		revision, ok := c.deps.Games.GetRevision(gameID)
+		if !ok {
+			return fmt.Errorf("game not found: %s", gameID)
+		}
+		if _, err := c.deps.Games.ExecuteActionWithMeta(gameID, &game.SelectFactionAction{
+			PlayerID:    current.ID,
+			FactionType: faction,
+		}, game.ActionMeta{
+			ActionID:         fmt.Sprintf("fixed-faction:%s:%d", current.ID, revision),
+			ExpectedRevision: revision,
+			SeatID:           current.ID,
+		}); err != nil {
+			return fmt.Errorf("select fixed faction for %s: %w", current.ID, err)
+		}
+	}
+	return nil
+}
+
+func normalizeModelOpponentStart(payload *modelOpponentPayload, gameID, humanPlayerID string) (BotGameConfig, models.FactionType, bool) {
+	if payload == nil || !payload.Enabled {
+		return BotGameConfig{}, models.FactionUnknown, false
+	}
+	playerID := strings.TrimSpace(payload.PlayerID)
+	expectedID := modelBotPlayerID(gameID)
+	if playerID == "" || playerID != expectedID {
+		playerID = expectedID
+	}
+	config := normalizeBotConfig(BotGameConfig{
+		PlayerID:    playerID,
+		Faction:     models.FactionType(payload.BotFaction),
+		Simulations: payload.Simulations,
+		BatchSize:   payload.BatchSize,
+		CPUCT:       payload.CPUCT,
+		Temperature: payload.Temperature,
+		MaxDepth:    payload.MaxDepth,
+		MoveDelayMs: payload.MoveDelayMs,
+	})
+	_ = humanPlayerID
+	return config, models.FactionType(payload.HumanFaction), true
+}
+
+func modelBotPlayerID(gameID string) string {
+	gameID = strings.TrimSpace(gameID)
+	if gameID == "" {
+		return "TM-AZ"
+	}
+	return "TM-AZ-" + gameID
 }
 
 func (c *Client) handleCreateGame(payload json.RawMessage) {
@@ -676,6 +803,10 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if err := json.Unmarshal(payload, &p); err != nil {
 		log.Printf("create_game payload error: %v", err)
 		return
+	}
+	hasModelOpponent := p.ModelOpponent != nil && p.ModelOpponent.Enabled
+	if hasModelOpponent {
+		p.MaxPlayers = 2
 	}
 	if p.MaxPlayers <= 0 {
 		p.MaxPlayers = 5
@@ -703,6 +834,16 @@ func (c *Client) handleCreateGame(payload json.RawMessage) {
 	if err != nil {
 		c.sendLobbyError(err)
 		return
+	}
+	if hasModelOpponent {
+		botPlayerID := modelBotPlayerID(meta.ID)
+		if err := c.deps.Lobby.JoinGame(meta.ID, botPlayerID); err != nil {
+			c.sendLobbyError(err)
+			return
+		}
+		if updated, ok := c.deps.Lobby.GetGame(meta.ID); ok {
+			meta = updated
+		}
 	}
 	if p.Creator != "" {
 		c.bindSeat(meta.ID, p.Creator)
@@ -852,6 +993,9 @@ func (c *Client) handlePerformAction(payload json.RawMessage) {
 			"payload": pendingDecision,
 		})
 		c.hub.BroadcastToGame(gameID, decisionMsg)
+	}
+	if c.deps.Bots != nil {
+		c.deps.Bots.Trigger(gameID, c.hub)
 	}
 }
 
