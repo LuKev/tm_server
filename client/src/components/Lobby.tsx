@@ -236,18 +236,13 @@ export function Lobby(): React.ReactElement {
       type: 'create_game',
       payload: {
         name: effectiveNewGameName,
-        maxPlayers: opponentType === 'model' ? 2 : (overrides?.maxPlayers ?? newGameMaxPlayers),
+        maxPlayers: overrides?.maxPlayers ?? newGameMaxPlayers,
         creator: trimmedPlayerName,
         mapId: newGameMapId,
         enableFanFactions,
         enableFireIceFactions,
         fireIceScoring,
         customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
-        modelOpponent: opponentType === 'model'
-          ? {
-            enabled: true,
-          }
-          : undefined,
       },
     })
     setNewGameName('')
