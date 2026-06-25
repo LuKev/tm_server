@@ -2051,11 +2051,12 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 	// (e.g. Transform calls NextTurn, then Build calls NextTurn)
 	prevSuppress := gs.SuppressTurnAdvance
 	gs.SuppressTurnAdvance = true
+	succeeded := false
 	defer func() {
 		gs.SuppressTurnAdvance = prevSuppress
 		// Advance turn once at the end of the compound action if it contains a legal main action.
 		// Reaction-only compound rows (e.g. "+AIR. Leech 2 from witches") must not advance turn.
-		if hasMain && !prevSuppress {
+		if succeeded && hasMain && !prevSuppress {
 			gs.NextTurn()
 		}
 	}()
@@ -2094,6 +2095,7 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 			}
 		}
 	}
+	succeeded = true
 	return nil
 }
 

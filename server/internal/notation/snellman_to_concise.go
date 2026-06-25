@@ -107,6 +107,34 @@ func convertSnellmanToConcise(content string, linear bool, enforceLinearSourceOr
 	turnActionRow := -1
 	turnActionCol := -1
 	turnBaseRow := 0
+	resetTurnTracking := func() {
+		actionsAddedThisTurn = make(map[string]bool)
+		turnMainActionRow = make(map[string]int)
+		turnActionRow = -1
+		turnActionCol = -1
+		turnBaseRow = 0
+		if currentRound != nil {
+			turnBaseRow = len(currentRound.Rows)
+		}
+	}
+	startRound := func(roundNum int) {
+		turnOrder := computeRoundTurnOrder(rounds, factions, maintainPlayerOrder, variableTurnOrder)
+		currentRound = &snellmanRoundData{
+			Number:    roundNum,
+			Rows:      []map[string]string{},
+			TurnOrder: make([]string, len(turnOrder)),
+			PassOrder: []string{},
+		}
+		copy(currentRound.TurnOrder, turnOrder)
+		rounds = append(rounds, currentRound)
+		lastMainActionRow = make(map[string]int)
+		lastLeechSourceRow = make(map[string]int)
+		leechAnchorSource = make(map[int]map[string]string)
+		roundLeechAnchors[currentRound] = leechAnchorSource
+		lastEventRow = make(map[string]int)
+		rowLockedForMain = make(map[int]bool)
+		resetTurnTracking()
+	}
 	cultLeechPattern := regexp.MustCompile(`^\+(EARTH|WATER|FIRE|AIR)\.\s*Leech`)
 	cultPassPattern := regexp.MustCompile(`(?i)^\+(EARTH|WATER|FIRE|AIR)\.\s*(pass\s+.+)$`)
 	scoringPattern := regexp.MustCompile(`(?i)^round\s+\d+\s+scoring\b`)
@@ -177,27 +205,7 @@ func convertSnellmanToConcise(content string, linear bool, enforceLinearSourceOr
 
 				// Start new round if needed
 				if currentRound == nil || currentRound.Number != roundNum {
-					turnOrder := computeRoundTurnOrder(rounds, factions, maintainPlayerOrder, variableTurnOrder)
-
-					currentRound = &snellmanRoundData{
-						Number:    roundNum,
-						Rows:      []map[string]string{},
-						TurnOrder: make([]string, len(turnOrder)),
-						PassOrder: []string{},
-					}
-					copy(currentRound.TurnOrder, turnOrder)
-					rounds = append(rounds, currentRound)
-					actionsAddedThisTurn = make(map[string]bool)
-					turnMainActionRow = make(map[string]int)
-					lastMainActionRow = make(map[string]int)
-					lastLeechSourceRow = make(map[string]int)
-					leechAnchorSource = make(map[int]map[string]string)
-					roundLeechAnchors[currentRound] = leechAnchorSource
-					lastEventRow = make(map[string]int)
-					rowLockedForMain = make(map[int]bool)
-					turnActionRow = -1
-					turnActionCol = -1
-					turnBaseRow = len(currentRound.Rows)
+					startRound(roundNum)
 				}
 			}
 			inSetupPhase = false
@@ -245,34 +253,10 @@ func convertSnellmanToConcise(content string, linear bool, enforceLinearSourceOr
 
 				// Start new round if needed
 				if currentRound == nil || currentRound.Number != roundNum {
-					turnOrder := computeRoundTurnOrder(rounds, factions, maintainPlayerOrder, variableTurnOrder)
-
-					currentRound = &snellmanRoundData{
-						Number:    roundNum,
-						Rows:      []map[string]string{},
-						TurnOrder: make([]string, len(turnOrder)),
-						PassOrder: []string{},
-					}
-					copy(currentRound.TurnOrder, turnOrder)
-					rounds = append(rounds, currentRound)
-					actionsAddedThisTurn = make(map[string]bool)
-					turnMainActionRow = make(map[string]int)
-					lastMainActionRow = make(map[string]int)
-					lastLeechSourceRow = make(map[string]int)
-					leechAnchorSource = make(map[int]map[string]string)
-					roundLeechAnchors[currentRound] = leechAnchorSource
-					lastEventRow = make(map[string]int)
-					rowLockedForMain = make(map[int]bool)
-					turnActionRow = -1
-					turnActionCol = -1
-					turnBaseRow = len(currentRound.Rows)
+					startRound(roundNum)
 				} else {
 					// Same round, new turn: reset per-turn merge tracking.
-					actionsAddedThisTurn = make(map[string]bool)
-					turnMainActionRow = make(map[string]int)
-					turnActionRow = -1
-					turnActionCol = -1
-					turnBaseRow = len(currentRound.Rows)
+					resetTurnTracking()
 				}
 			}
 			inSetupPhase = false

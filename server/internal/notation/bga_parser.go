@@ -33,6 +33,30 @@ type BGAParser struct {
 	pendingConspiratorsFavorLoss map[string]int
 }
 
+type bgaSpecialActionPatterns struct {
+	giantsStronghold             *regexp.Regexp
+	swarmlingStronghold          *regexp.Regexp
+	nomadsStronghold             *regexp.Regexp
+	selkiesStronghold            *regexp.Regexp
+	riverwalkersStrongholdBridge *regexp.Regexp
+	shapeshiftersStronghold      *regexp.Regexp
+	cmDoubleTurn                 *regexp.Regexp
+	halflingsSpades              *regexp.Regexp
+	workersBridge                *regexp.Regexp
+	architectsBridge             *regexp.Regexp
+	architectsMoveBridge         *regexp.Regexp
+	wispsStrongholdDwelling      *regexp.Regexp
+	enlightenedStrongholdAction  *regexp.Regexp
+	prospectorsStrongholdAction  *regexp.Regexp
+	timeTravelersStronghold      *regexp.Regexp
+	childrenStrongholdTokens     *regexp.Regexp
+	specialActionSpade           *regexp.Regexp
+	riverwalkersUnlock           *regexp.Regexp
+	goblinsTreasure              *regexp.Regexp
+	djinniSwapCults              *regexp.Regexp
+	treasurersSafeDeposit        *regexp.Regexp
+}
+
 func NewBGAParser(content string) *BGAParser {
 	// Split content into lines
 	scanner := bufio.NewScanner(strings.NewReader(content))
@@ -116,6 +140,30 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	reGoblinsTreasure := regexp.MustCompile(`(.*) spends Markers to gain (\d+) (coins|workers|power) \(Goblins ability\)`)
 	reDjinniSwapCults := regexp.MustCompile(`(.*) spends Markers to swap the Cult of (.*) and Cult of (.*) tracks \(Djinni ability\)`)
 	reTreasurersSafeDeposit := regexp.MustCompile(`(.*) places (.*) into their Safe \((.*)\)`)
+
+	specialPatterns := bgaSpecialActionPatterns{
+		giantsStronghold:             reGiantsStronghold,
+		swarmlingStronghold:          reSwarmlingStronghold,
+		nomadsStronghold:             reNomadsStronghold,
+		selkiesStronghold:            reSelkiesStronghold,
+		riverwalkersStrongholdBridge: reRiverwalkersStrongholdBridge,
+		shapeshiftersStronghold:      reShapeshiftersStronghold,
+		cmDoubleTurn:                 reCMDoubleTurn,
+		halflingsSpades:              reHalflingsSpades,
+		workersBridge:                reWorkersBridge,
+		architectsBridge:             reArchitectsBridge,
+		architectsMoveBridge:         reArchitectsMoveBridge,
+		wispsStrongholdDwelling:      reWispsStrongholdDwelling,
+		enlightenedStrongholdAction:  reEnlightenedStrongholdAction,
+		prospectorsStrongholdAction:  reProspectorsStrongholdAction,
+		timeTravelersStronghold:      reTimeTravelersStrongholdAction,
+		childrenStrongholdTokens:     reChildrenStrongholdTokens,
+		specialActionSpade:           reSpecialActionSpade,
+		riverwalkersUnlock:           reRiverwalkersUnlock,
+		goblinsTreasure:              reGoblinsTreasure,
+		djinniSwapCults:              reDjinniSwapCults,
+		treasurersSafeDeposit:        reTreasurersSafeDeposit,
+	}
 
 	reConversionLine := regexp.MustCompile(`(.*) does some Conversions \(spent: (.*); collects: (.*)\)`)
 
@@ -461,114 +509,7 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 				p.handleBuildDwelling(matches[1], coordStr, false)
 			}
 
-		} else if matches := reGiantsStronghold.FindStringSubmatch(line); len(matches) > 2 {
-			// Giants Stronghold: transforms terrain for free
-			playerID := p.getPlayerID(matches[1])
-			coordStr := matches[2]
-			p.handleGiantsStronghold(playerID, coordStr)
-
-		} else if matches := reSwarmlingStronghold.FindStringSubmatch(line); len(matches) > 2 {
-			// Swarmlings Stronghold: free Trading House upgrade
-			playerID := p.getPlayerID(matches[1])
-			coordStr := matches[2]
-			p.handleSwarmlingStronghold(playerID, coordStr)
-
-		} else if matches := reNomadsStronghold.FindStringSubmatch(line); len(matches) > 2 {
-			// Nomads Stronghold (Sandstorm): transform any hex to desert for free
-			playerID := p.getPlayerID(matches[1])
-			coordStr := matches[2]
-			p.handleNomadsStronghold(playerID, coordStr)
-
-		} else if matches := reSelkiesStronghold.FindStringSubmatch(line); len(matches) > 2 {
-			playerID := p.getPlayerID(matches[1])
-			coordStr, targetTerrainName := p.extractTransformInfoFromLine(line)
-			if coordStr == "" {
-				coordStr = matches[2]
-			}
-			p.handleSelkiesStronghold(playerID, coordStr, getTerrainTypeFromName(targetTerrainName))
-
-		} else if matches := reRiverwalkersStrongholdBridge.FindStringSubmatch(line); len(matches) > 2 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleFreeBridge(playerID, matches[2], "Riverwalkers Stronghold")
-
-		} else if matches := reShapeshiftersStronghold.FindStringSubmatch(line); len(matches) > 2 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleShapeshiftersStronghold(playerID, matches[2])
-
-		} else if matches := reCMDoubleTurn.FindStringSubmatch(line); len(matches) > 1 {
-			// Chaos Magicians Stronghold: double-turn
-			playerID := p.getPlayerID(matches[1])
-			p.handleCMDoubleTurn(playerID)
-
-		} else if matches := reHalflingsSpades.FindStringSubmatch(line); len(matches) > 1 {
-			// Halflings Stronghold: 3 spades for transform
-			playerID := p.getPlayerID(matches[1])
-			p.handleHalflingsStrongholdSpades(playerID)
-
-		} else if matches := reHalflingsSpades.FindStringSubmatch(line); len(matches) > 1 {
-			// Halflings Stronghold: 3 spades for transform
-			playerID := p.getPlayerID(matches[1])
-			p.handleHalflingsStrongholdSpades(playerID)
-
-		} else if matches := reWorkersBridge.FindStringSubmatch(line); len(matches) > 2 {
-			// Engineers/Atlanteans reusable bridge action
-			playerID := p.getPlayerID(matches[1])
-			coordStr := matches[2]
-			p.handleEngineersBridge(playerID, coordStr)
-
-		} else if matches := reArchitectsBridge.FindStringSubmatch(line); len(matches) > 2 {
-			playerID := p.getPlayerID(matches[1])
-			coordStr := matches[2]
-			p.handleEngineersBridge(playerID, coordStr)
-
-		} else if matches := reArchitectsMoveBridge.FindStringSubmatch(line); len(matches) > 3 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleArchitectsMoveBridge(playerID, matches[2], matches[3])
-
-		} else if matches := reWispsStrongholdDwelling.FindStringSubmatch(line); len(matches) > 2 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleWispsStrongholdDwelling(playerID, matches[2])
-
-		} else if matches := reEnlightenedStrongholdAction.FindStringSubmatch(line); len(matches) > 1 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleEnlightenedStrongholdAction(playerID)
-
-		} else if matches := reProspectorsStrongholdAction.FindStringSubmatch(line); len(matches) > 1 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleProspectorsStrongholdAction(playerID)
-
-		} else if matches := reTimeTravelersStrongholdAction.FindStringSubmatch(line); len(matches) > 2 {
-			playerID := p.getPlayerID(matches[1])
-			amount, _ := strconv.Atoi(matches[2])
-			p.handleTimeTravelersStrongholdAction(playerID, amount)
-
-		} else if matches := reChildrenStrongholdTokens.FindStringSubmatch(line); len(matches) > 3 {
-			playerID := p.getPlayerID(matches[1])
-			count, _ := strconv.Atoi(matches[2])
-			coords := []string{matches[3]}
-			if len(matches) > 4 && strings.TrimSpace(matches[4]) != "" {
-				coords = append(coords, matches[4])
-			}
-			p.handleChildrenStrongholdTokens(playerID, count, coords)
-
-		} else if matches := reSpecialActionSpade.FindStringSubmatch(line); len(matches) > 1 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleSpecialActionSpade(playerID)
-
-		} else if matches := reRiverwalkersUnlock.FindStringSubmatch(line); len(matches) > 5 {
-			p.handleRiverwalkersUnlock(matches[1], matches[2], matches[3], matches[4], matches[5])
-
-		} else if matches := reGoblinsTreasure.FindStringSubmatch(line); len(matches) > 3 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleGoblinsTreasure(playerID, matches[3])
-
-		} else if matches := reDjinniSwapCults.FindStringSubmatch(line); len(matches) > 3 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleDjinniSwapCults(playerID, matches[2], matches[3])
-
-		} else if matches := reTreasurersSafeDeposit.FindStringSubmatch(line); len(matches) > 3 {
-			playerID := p.getPlayerID(matches[1])
-			p.handleTreasurersSafeDeposit(playerID, matches[2], matches[3])
+		} else if p.handleSpecialActionLine(line, specialPatterns) {
 
 		} else if matches := reUpgradeStart.FindStringSubmatch(line); len(matches) > 3 {
 			// fmt.Printf("Matched Upgrade Start: %s\n", line)
@@ -720,6 +661,124 @@ func (p *BGAParser) Parse() ([]LogItem, error) {
 	}
 
 	return p.items, nil
+}
+
+func (p *BGAParser) handleSpecialActionLine(line string, patterns bgaSpecialActionPatterns) bool {
+	if matches := patterns.giantsStronghold.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleGiantsStronghold(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.swarmlingStronghold.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleSwarmlingStronghold(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.nomadsStronghold.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleNomadsStronghold(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.selkiesStronghold.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		coordStr, targetTerrainName := p.extractTransformInfoFromLine(line)
+		if coordStr == "" {
+			coordStr = matches[2]
+		}
+		p.handleSelkiesStronghold(playerID, coordStr, getTerrainTypeFromName(targetTerrainName))
+		return true
+	}
+	if matches := patterns.riverwalkersStrongholdBridge.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleFreeBridge(playerID, matches[2], "Riverwalkers Stronghold")
+		return true
+	}
+	if matches := patterns.shapeshiftersStronghold.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleShapeshiftersStronghold(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.cmDoubleTurn.FindStringSubmatch(line); len(matches) > 1 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleCMDoubleTurn(playerID)
+		return true
+	}
+	if matches := patterns.halflingsSpades.FindStringSubmatch(line); len(matches) > 1 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleHalflingsStrongholdSpades(playerID)
+		return true
+	}
+	if matches := patterns.workersBridge.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleEngineersBridge(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.architectsBridge.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleEngineersBridge(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.architectsMoveBridge.FindStringSubmatch(line); len(matches) > 3 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleArchitectsMoveBridge(playerID, matches[2], matches[3])
+		return true
+	}
+	if matches := patterns.wispsStrongholdDwelling.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleWispsStrongholdDwelling(playerID, matches[2])
+		return true
+	}
+	if matches := patterns.enlightenedStrongholdAction.FindStringSubmatch(line); len(matches) > 1 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleEnlightenedStrongholdAction(playerID)
+		return true
+	}
+	if matches := patterns.prospectorsStrongholdAction.FindStringSubmatch(line); len(matches) > 1 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleProspectorsStrongholdAction(playerID)
+		return true
+	}
+	if matches := patterns.timeTravelersStronghold.FindStringSubmatch(line); len(matches) > 2 {
+		playerID := p.getPlayerID(matches[1])
+		amount, _ := strconv.Atoi(matches[2])
+		p.handleTimeTravelersStrongholdAction(playerID, amount)
+		return true
+	}
+	if matches := patterns.childrenStrongholdTokens.FindStringSubmatch(line); len(matches) > 3 {
+		playerID := p.getPlayerID(matches[1])
+		count, _ := strconv.Atoi(matches[2])
+		coords := []string{matches[3]}
+		if len(matches) > 4 && strings.TrimSpace(matches[4]) != "" {
+			coords = append(coords, matches[4])
+		}
+		p.handleChildrenStrongholdTokens(playerID, count, coords)
+		return true
+	}
+	if matches := patterns.specialActionSpade.FindStringSubmatch(line); len(matches) > 1 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleSpecialActionSpade(playerID)
+		return true
+	}
+	if matches := patterns.riverwalkersUnlock.FindStringSubmatch(line); len(matches) > 5 {
+		p.handleRiverwalkersUnlock(matches[1], matches[2], matches[3], matches[4], matches[5])
+		return true
+	}
+	if matches := patterns.goblinsTreasure.FindStringSubmatch(line); len(matches) > 3 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleGoblinsTreasure(playerID, matches[3])
+		return true
+	}
+	if matches := patterns.djinniSwapCults.FindStringSubmatch(line); len(matches) > 3 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleDjinniSwapCults(playerID, matches[2], matches[3])
+		return true
+	}
+	if matches := patterns.treasurersSafeDeposit.FindStringSubmatch(line); len(matches) > 3 {
+		playerID := p.getPlayerID(matches[1])
+		p.handleTreasurersSafeDeposit(playerID, matches[2], matches[3])
+		return true
+	}
+	return false
 }
 
 func (p *BGAParser) handleBuildDwelling(playerName, coordStr string, isSetup bool) {

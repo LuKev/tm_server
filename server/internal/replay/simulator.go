@@ -27,19 +27,16 @@ type GameSimulator struct {
 
 // NewGameSimulator creates a new simulator
 func NewGameSimulator(initialState *game.GameState, actions []notation.LogItem) *GameSimulator {
-	// Deep copy initial state for current state
-	// For now, we assume initialState is fresh and we can just use it as base
-	// But we need a deep copy mechanism if we want to reset.
-	// Let's assume game.NewGameState() gives us a fresh empty state,
-	// and we might need to re-apply setup if initialState had setup.
-
-	// Better: Store the initial state as a snapshot.
-	// But game.GameState might not be easily deep-copyable without a helper.
-	// We'll implement a simple copy or serialization/deserialization later if needed.
+	initialSnapshot := initialState
+	currentSnapshot := initialState
+	if initialState != nil {
+		initialSnapshot = initialState.CloneForUndo()
+		currentSnapshot = initialState.CloneForUndo()
+	}
 
 	sim := &GameSimulator{
-		InitialState:               initialState, // Warning: Reference
-		CurrentState:               initialState, // Warning: Reference
+		InitialState:               initialSnapshot,
+		CurrentState:               currentSnapshot,
 		Actions:                    actions,
 		CurrentIndex:               0,
 		History:                    make([]*game.GameState, 0),
@@ -47,10 +44,6 @@ func NewGameSimulator(initialState *game.GameState, actions []notation.LogItem) 
 		incomeGranted:              false,
 		lastTreasurersIncomeOffers: make(map[string]*game.PendingTreasurersDeposit),
 	}
-
-	// Save initial state to history
-	// sim.History = append(sim.History, deepCopy(initialState))
-
 	return sim
 }
 
@@ -168,12 +161,13 @@ func (s *GameSimulator) StepForward() error {
 				beforePriests = player.Resources.Priests
 			}
 
-			// Execute the action against the current state
+			actionSnapshot := s.CurrentState.CloneForUndo()
 			if err := v.Action.Execute(s.CurrentState); err != nil {
 				if shouldIgnoreMissingDeclineLeechAtFullPower(v.Action, s.CurrentState, err) {
 					s.CurrentIndex++
 					return nil
 				}
+				s.CurrentState = actionSnapshot
 				return fmt.Errorf("action execution failed at index %d (%T %#v): %w", s.CurrentIndex, v.Action, v.Action, err)
 			}
 			game.MaybeQueueTreasurersDepositAfterAction(s.CurrentState, v.Action, beforeCoins, beforeWorkers, beforePriests)

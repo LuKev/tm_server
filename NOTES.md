@@ -19,6 +19,12 @@
   - Legal action enumeration intentionally over-generates only after cheap faction/card/resource gates, then executes candidates through the live engine on cloned states. Avoid adding broad candidate surfaces (especially special actions or conversions) without cheap gates first. MCTS uses cached legal actions and lazy child materialization; one-simulation API smoke on the built-in 1v1 scenario measured around 0.24s after this change.
   - In this worktree, `client/node_modules` is a symlink to `/Users/kevin/projects/tm_server/client/node_modules`; keep it available before running `bazel test //:client_build_test --test_output=errors`.
 
+- 2026-06-24 code-quality cleanup:
+  - Replay simulator action execution is now transaction-like for action failures: `GameSimulator.StepForward` snapshots `CurrentState` before `Action.Execute` and restores it on non-ignored execution errors. `LogCompoundAction` only advances turn after all sub-actions succeed.
+  - BGA parser faction/special-action matching is centralized in `handleSpecialActionLine`; keep new faction-specific BGA log patterns in that helper instead of adding more branches to the main `Parse` loop.
+  - Client pending-decision decoding and required-action text now live in `client/src/utils/pendingDecision.ts`; add new pending-decision type/status behavior there instead of expanding `Game.tsx`.
+  - Snellman round-start bookkeeping in `ConvertSnellmanToConciseForReplay` is centralized through shared round/turn reset helpers so leech-anchor maps and row-placement trackers reset consistently.
+
 - 2026-04-24 Railway deploy:
   - `server/nixpacks.toml` was restored to Railway's original direct `go build -o out ./cmd/server` path after the WebSocket compile error was fixed. Local verification in this repo should still use Bazel, with `bazel build //cmd/server:server` as the quickest compile check.
 

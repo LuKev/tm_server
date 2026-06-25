@@ -10,6 +10,24 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+type compoundTestAction struct {
+	playerID string
+	typ      game.ActionType
+	execute  func(*game.GameState) error
+}
+
+func (a compoundTestAction) GetType() game.ActionType { return a.typ }
+func (a compoundTestAction) GetPlayerID() string      { return a.playerID }
+func (a compoundTestAction) Validate(*game.GameState) error {
+	return nil
+}
+func (a compoundTestAction) Execute(gs *game.GameState) error {
+	if a.execute == nil {
+		return nil
+	}
+	return a.execute(gs)
+}
+
 func TestLogCompoundAction_AllowsAuxiliaryOnlySequence(t *testing.T) {
 	gs := game.NewGameState()
 	playerID := "p1"
@@ -34,6 +52,35 @@ func TestLogCompoundAction_AllowsAuxiliaryOnlySequence(t *testing.T) {
 
 	if err := compound.Execute(gs); err != nil {
 		t.Fatalf("compound.Execute(auxiliary-only) error = %v, want nil", err)
+	}
+}
+
+func TestLogCompoundAction_DoesNotAdvanceTurnOnFailedMainAction(t *testing.T) {
+	gs := game.NewGameState()
+	for _, playerID := range []string{"p1", "p2"} {
+		gs.Players[playerID] = &game.Player{ID: playerID, Resources: game.NewResourcePool()}
+	}
+	gs.TurnOrder = []string{"p1", "p2"}
+	gs.CurrentPlayerIndex = 0
+	gs.Phase = game.PhaseAction
+
+	compound := &LogCompoundAction{
+		Actions: []game.Action{
+			compoundTestAction{
+				playerID: "p1",
+				typ:      game.ActionTransformAndBuild,
+				execute: func(*game.GameState) error {
+					return fmt.Errorf("forced failure")
+				},
+			},
+		},
+	}
+
+	if err := compound.Execute(gs); err == nil {
+		t.Fatalf("compound.Execute() error = nil, want forced failure")
+	}
+	if gs.CurrentPlayerIndex != 0 {
+		t.Fatalf("CurrentPlayerIndex = %d, want 0 after failed compound action", gs.CurrentPlayerIndex)
 	}
 }
 
