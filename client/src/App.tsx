@@ -4,7 +4,7 @@ import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
 import { Replay } from './components/Replay';
 import { ImportGame } from './components/ImportGame';
-import { AIWorkbench } from './components/AI/AIWorkbench';
+import { PlayAIPage } from './components/AI/PlayAIPage';
 import './App.css'
 
 function AppShell(): React.ReactElement {
@@ -24,7 +24,7 @@ function AppShell(): React.ReactElement {
       <Routes>
         <Route path="/" element={<Lobby />} />
         <Route path="/import" element={<ImportGame />} />
-        <Route path="/ai" element={<AIWorkbench />} />
+        <Route path="/ai" element={<PlayAIPage />} />
         <Route path="/game/:gameId" element={<Game />} />
         <Route path="/replay/:gameId" element={<Replay />} />
       </Routes>
@@ -34,7 +34,8 @@ function AppShell(): React.ReactElement {
 
 function App(): React.ReactElement {
   // Get base path from environment, default to '/' for local dev
-  const basePath = import.meta.env.VITE_BASE_PATH || '/';
+  const configuredBasePath = (import.meta.env as Record<string, unknown>).VITE_BASE_PATH;
+  const basePath = typeof configuredBasePath === 'string' && configuredBasePath.length > 0 ? configuredBasePath : '/';
 
   return (
     <WebSocketProvider>

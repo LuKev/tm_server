@@ -95,6 +95,22 @@
   gap: 14px;
 }
 
+.lobby-ai-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid rgba(93, 211, 158, 0.2);
+  border-radius: 18px;
+  background: rgba(93, 211, 158, 0.08);
+}
+
+.lobby-ai-entry h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
 .lobby-section-split {
   padding-top: 24px;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
@@ -370,6 +386,10 @@
   }
 
   .lobby-section-heading {
+    display: grid;
+  }
+
+  .lobby-ai-entry {
     display: grid;
   }
 

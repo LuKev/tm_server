@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bot } from 'lucide-react'
+import { Swords } from 'lucide-react'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
 import { DEFAULT_MAP_CATALOG } from '../data/mapCatalog'
@@ -9,8 +9,7 @@ import { CustomMapEditor } from './CustomMapEditor'
 import { buildCustomMapHexes, createEmptyCustomMapDefinition } from '../utils/customMapUtils'
 import { HexGridCanvas } from './GameBoard/HexGridCanvas'
 import './Lobby.css'
-import { FACTIONS } from '../data/factions'
-import { FactionType } from '../types/game.types'
+import { modelPlayerIdForGame } from './AI/modelGame'
 
 interface GameInfo {
   id: string
@@ -31,7 +30,7 @@ interface LobbyMessage {
   payload?: unknown
 }
 
-type StartedGamePayload = {
+interface StartedGamePayload {
   gameId?: string
   playerId?: string
 }
@@ -40,17 +39,6 @@ type LobbyErrorPayload = string | {
   error?: string
   gameId?: string
 }
-
-type OpponentType = 'human' | 'model'
-type ModelStrength = 'fast' | 'balanced' | 'strong'
-
-const MODEL_STRENGTHS: Record<ModelStrength, { label: string; simulations: number }> = {
-  fast: { label: 'Fast', simulations: 16 },
-  balanced: { label: 'Balanced', simulations: 64 },
-  strong: { label: 'Strong', simulations: 160 },
-}
-
-const modelPlayerIdForGame = (gameId: string): string => `TM-AZ-${gameId}`
 
 function formatLobbyError(payload: LobbyErrorPayload): string {
   if (typeof payload === 'string') {
@@ -99,10 +87,6 @@ export function Lobby(): React.ReactElement {
   const [turnTimerEnabled, setTurnTimerEnabled] = useState(false)
   const [turnTimerMinutes, setTurnTimerMinutes] = useState(25)
   const [turnTimerIncrementSeconds, setTurnTimerIncrementSeconds] = useState(0)
-  const [opponentType, setOpponentType] = useState<OpponentType>('human')
-  const [humanFaction, setHumanFaction] = useState<FactionType>(FactionType.Nomads)
-  const [modelFaction, setModelFaction] = useState<FactionType>(FactionType.Witches)
-  const [modelStrength, setModelStrength] = useState<ModelStrength>('balanced')
   const [enableFanFactions, setEnableFanFactions] = useState(false)
   const [enableFireIceFactions, setEnableFireIceFactions] = useState(false)
   const [fireIceScoring, setFireIceScoring] = useState<'off' | 'on' | 'random'>('off')
@@ -117,13 +101,7 @@ export function Lobby(): React.ReactElement {
   const joinedGameId = joinedGame?.id ?? null
   const openGames = useMemo(() => games.filter((game) => !game.started), [games])
   const startedGames = useMemo(() => games.filter((game) => !!game.started), [games])
-  const selectableFactions = useMemo(() => FACTIONS.filter((faction) => {
-    if (faction.isFanFaction && !enableFanFactions) return false
-    if (faction.isFireIceFaction && !enableFireIceFactions) return false
-    return true
-  }), [enableFanFactions, enableFireIceFactions])
-  const factionSelectionValid = opponentType !== 'model' || humanFaction !== modelFaction
-  const effectiveNewGameName = newGameName.trim() || (opponentType === 'model' && trimmedPlayerName ? `${trimmedPlayerName} vs Model` : '')
+  const effectiveNewGameName = newGameName.trim()
 
   useEffect(() => {
     if (gameState?.id && activePlayerName !== '' && gameState.players[activePlayerName] && gameState.started) {
@@ -164,30 +142,6 @@ export function Lobby(): React.ReactElement {
     }
   }, [isConnected, sendMessage])
 
-  useEffect(() => {
-    if (selectableFactions.length === 0) return
-    if (!selectableFactions.some((faction) => faction.id === humanFaction)) {
-      setHumanFaction(selectableFactions[0].id)
-    }
-    if (!selectableFactions.some((faction) => faction.id === modelFaction)) {
-      setModelFaction(selectableFactions.find((faction) => faction.id !== humanFaction)?.id ?? selectableFactions[0].id)
-    }
-  }, [humanFaction, modelFaction, selectableFactions])
-
-  useEffect(() => {
-    if (opponentType !== 'model' || humanFaction !== modelFaction) return
-    const replacement = selectableFactions.find((faction) => faction.id !== humanFaction)
-    if (replacement) {
-      setModelFaction(replacement.id)
-    }
-  }, [humanFaction, modelFaction, opponentType, selectableFactions])
-
-  useEffect(() => {
-    if (opponentType === 'model') {
-      setSetupMode('snellman')
-    }
-  }, [opponentType])
-
   const getStatusColorClass = (): string => {
     switch (connectionStatus) {
       case 'connected':
@@ -202,36 +156,9 @@ export function Lobby(): React.ReactElement {
   }
 
   const handleCreateGame = (overrides?: { maxPlayers?: number }): void => {
-    if (!trimmedPlayerName || !effectiveNewGameName || joinedGameId || !factionSelectionValid) return
+    if (!trimmedPlayerName || !effectiveNewGameName || joinedGameId) return
     useGameStore.getState().setLocalPlayerId(trimmedPlayerName)
     setLobbyError(null)
-    if (opponentType === 'model') {
-      sendMessage({
-        type: 'create_and_start_model_game',
-        payload: {
-          name: effectiveNewGameName,
-          maxPlayers: 2,
-          creator: trimmedPlayerName,
-          mapId: newGameMapId,
-          enableFanFactions,
-          enableFireIceFactions,
-          fireIceScoring,
-          customMap: newGameMapId === 'custom' ? customMapDefinition : undefined,
-          modelOpponent: {
-            enabled: true,
-            humanFaction,
-            botFaction: modelFaction,
-            simulations: MODEL_STRENGTHS[modelStrength].simulations,
-            cpuct: 1.5,
-            temperature: 0,
-            maxDepth: 500,
-            moveDelayMs: 350,
-          },
-        },
-      })
-      setNewGameName('')
-      return
-    }
     sendMessage({
       type: 'create_game',
       payload: {
@@ -276,14 +203,24 @@ export function Lobby(): React.ReactElement {
               <span className={`lobby-status-dot ${getStatusColorClass()}`}></span>
               <span className="lobby-status-label">{connectionStatus}</span>
             </div>
-            <button className="lobby-button lobby-button-secondary" onClick={() => { void navigate('/ai') }}>
-              <Bot size={18} />
-              <span>AI</span>
-            </button>
           </div>
         </div>
 
         <div className="lobby-panel">
+          <div className="lobby-ai-entry">
+            <div>
+              <h2>Play vs AI</h2>
+            </div>
+            <button
+              className="lobby-button lobby-button-primary"
+              data-testid="lobby-play-ai"
+              onClick={() => { void navigate('/ai') }}
+            >
+              <Swords size={18} />
+              <span>Play vs AI</span>
+            </button>
+          </div>
+
           <div className="lobby-section">
             <label className="lobby-label" htmlFor="lobby-player-name">Player</label>
             <input
@@ -325,7 +262,7 @@ export function Lobby(): React.ReactElement {
                 value={newGameName}
                 onChange={(e) => { setNewGameName(e.target.value) }}
                 className="lobby-input"
-                placeholder={opponentType === 'model' ? 'Game name (optional)' : 'Game Name'}
+                placeholder="Game Name"
                 disabled={!isConnected || joinedGameId !== null}
               />
               <select
@@ -341,10 +278,10 @@ export function Lobby(): React.ReactElement {
               </select>
               <select
                 data-testid="lobby-max-players"
-                value={opponentType === 'model' ? 2 : newGameMaxPlayers}
+                value={newGameMaxPlayers}
                 onChange={(e) => { setNewGameMaxPlayers(Number(e.target.value)) }}
                 className="lobby-select"
-                disabled={!isConnected || joinedGameId !== null || opponentType === 'model'}
+                disabled={!isConnected || joinedGameId !== null}
               >
                 <option value={1}>1 player</option>
                 <option value={2}>2 players</option>
@@ -355,90 +292,19 @@ export function Lobby(): React.ReactElement {
               <button
                 data-testid="lobby-create-game"
                 onClick={() => { handleCreateGame() }}
-                disabled={!isConnected || !trimmedPlayerName || !effectiveNewGameName || joinedGameId !== null || !factionSelectionValid}
+                disabled={!isConnected || !trimmedPlayerName || !effectiveNewGameName || joinedGameId !== null}
                 className="lobby-button lobby-button-primary"
               >
-                {opponentType === 'model' ? 'Start AI Game' : 'Create'}
+                Create
               </button>
             </div>
-
-            <div className="lobby-create-grid">
-              <label className="lobby-field-stack">
-                <span className="lobby-label">Opponent</span>
-                <select
-                  data-testid="lobby-opponent-type"
-                  value={opponentType}
-                  onChange={(e) => { setOpponentType(e.target.value as OpponentType) }}
-                  className="lobby-select"
-                  disabled={!isConnected || joinedGameId !== null}
-                >
-                  <option value="human">Human</option>
-                  <option value="model">Model</option>
-                </select>
-              </label>
-
-              {opponentType === 'model' && (
-                <>
-                  <label className="lobby-field-stack">
-                    <span className="lobby-label">Your faction</span>
-                    <select
-                      data-testid="lobby-human-faction"
-                      value={humanFaction}
-                      onChange={(e) => { setHumanFaction(Number(e.target.value) as FactionType) }}
-                      className="lobby-select"
-                      disabled={!isConnected || joinedGameId !== null}
-                    >
-                      {selectableFactions.map((faction) => (
-                        <option key={faction.id} value={faction.id}>{faction.name}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="lobby-field-stack">
-                    <span className="lobby-label">Model faction</span>
-                    <select
-                      data-testid="lobby-model-faction"
-                      value={modelFaction}
-                      onChange={(e) => { setModelFaction(Number(e.target.value) as FactionType) }}
-                      className="lobby-select"
-                      disabled={!isConnected || joinedGameId !== null}
-                    >
-                      {selectableFactions.map((faction) => (
-                        <option key={faction.id} value={faction.id} disabled={faction.id === humanFaction}>{faction.name}</option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className="lobby-field-stack">
-                    <span className="lobby-label">Model strength</span>
-                    <select
-                      data-testid="lobby-model-strength"
-                      value={modelStrength}
-                      onChange={(e) => { setModelStrength(e.target.value as ModelStrength) }}
-                      className="lobby-select"
-                      disabled={!isConnected || joinedGameId !== null}
-                    >
-                      {(Object.entries(MODEL_STRENGTHS) as Array<[ModelStrength, { label: string; simulations: number }]>).map(([value, config]) => (
-                        <option key={value} value={value}>{config.label}</option>
-                      ))}
-                    </select>
-                  </label>
-                </>
-              )}
-            </div>
-
-            {opponentType === 'model' && !factionSelectionValid && (
-              <div className="lobby-alert" role="alert">
-                Choose two different factions.
-              </div>
-            )}
 
             {newGameMapId === 'custom' && (
               <CustomMapEditor
                 value={customMapDefinition}
                 onChange={setCustomMapDefinition}
                 onCreateGame={() => { handleCreateGame() }}
-                createGameDisabled={!isConnected || !trimmedPlayerName || !effectiveNewGameName || joinedGameId !== null || !factionSelectionValid}
+                createGameDisabled={!isConnected || !trimmedPlayerName || !effectiveNewGameName || joinedGameId !== null}
                 disabled={!isConnected || joinedGameId !== null}
               />
             )}
@@ -461,7 +327,7 @@ export function Lobby(): React.ReactElement {
                   value={setupMode}
                   onChange={(e) => { setSetupMode(e.target.value as 'snellman' | 'auction' | 'fast_auction') }}
                   className="lobby-select"
-                  disabled={!isConnected || joinedGameId !== null || opponentType === 'model'}
+                  disabled={!isConnected || joinedGameId !== null}
                 >
                   <option value="snellman">Snellman</option>
                   <option value="auction">Auction</option>
@@ -656,26 +522,13 @@ export function Lobby(): React.ReactElement {
                                 turnTimerEnabled,
                                 turnTimerSeconds: Math.max(1, Math.trunc(turnTimerMinutes * 60)),
                                 turnTimerIncrementSeconds: Math.max(0, Math.trunc(turnTimerIncrementSeconds)),
-                                modelOpponent: isModelGame
-                                  ? {
-                                    enabled: true,
-                                    playerId: modelPlayerId,
-                                    humanFaction,
-                                    botFaction: modelFaction,
-                                    simulations: MODEL_STRENGTHS[modelStrength].simulations,
-                                    cpuct: 1.5,
-                                    temperature: 0,
-                                    maxDepth: 500,
-                                    moveDelayMs: 350,
-                                  }
-                                  : undefined,
                               },
                             })
                           }}
-                          disabled={!isConnected || !isFull || !isHost || (isModelGame && !factionSelectionValid)}
+                          disabled={!isConnected || !isFull || !isHost || isModelGame}
                           className="lobby-button lobby-button-success"
                         >
-                          {isFull ? (isHost ? 'Start' : 'Host starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
+                          {isModelGame ? 'Use AI page' : isFull ? (isHost ? 'Start' : 'Host starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
                         </button>
                       </div>
                     </div>
