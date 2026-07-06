@@ -242,14 +242,6 @@ func planReplayAutoCost(player *Player, cost factions.Cost) (replayAutoCostPlan,
 	}
 
 	if coinShortfall := cost.Coins - clone.Coins; coinShortfall > 0 {
-		if player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
-			useVP := minInt(coinShortfall, victoryPoints)
-			if useVP > 0 && !convertAlchemistsVPToCoins(useVP) {
-				return replayAutoCostPlan{}, false
-			}
-		}
-
-		coinShortfall = cost.Coins - clone.Coins
 		availableWorkers := maxInt(0, clone.Workers-cost.Workers)
 		useWorkers := minInt(coinShortfall, availableWorkers)
 		if useWorkers > 0 && !convertWorkersToCoins(useWorkers) {
@@ -269,7 +261,17 @@ func planReplayAutoCost(player *Player, cost factions.Cost) (replayAutoCostPlan,
 
 		coinShortfall = cost.Coins - clone.Coins
 		if coinShortfall > 0 && !convertPowerToCoins(coinShortfall) {
-			return replayAutoCostPlan{}, false
+			if player.Faction == nil || player.Faction.GetType() != models.FactionAlchemists {
+				return replayAutoCostPlan{}, false
+			}
+		}
+
+		coinShortfall = cost.Coins - clone.Coins
+		if coinShortfall > 0 && player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
+			useVP := minInt(coinShortfall, victoryPoints)
+			if useVP > 0 && !convertAlchemistsVPToCoins(useVP) {
+				return replayAutoCostPlan{}, false
+			}
 		}
 	}
 

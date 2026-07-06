@@ -557,9 +557,9 @@ func strategicConversionCandidates(gs *game.GameState, playerID string) []Option
 	if player.Faction != nil && player.Faction.GetType() == models.FactionTheEnlightened {
 		maxAmounts[game.ConversionCoinToPower] = player.Resources.Coins
 	}
-	if player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
-		maxAmounts[game.ConversionAlchCoinToVP] = player.Resources.Coins / 2
-	}
+	addPowerConversionIfLeechCapacityImproves(player, maxAmounts, game.ConversionPowerToCoin, 1)
+	addPowerConversionIfLeechCapacityImproves(player, maxAmounts, game.ConversionPowerToWorker, 3)
+	addPowerConversionIfLeechCapacityImproves(player, maxAmounts, game.ConversionPowerToPriest, 5)
 	for _, conv := range sortedConversions(maxAmounts) {
 		for amount := 1; amount <= minInt(8, maxAmounts[conv]); amount++ {
 			out = append(out, option(playerID, "conversion", fmt.Sprintf("Convert %s x%d", conv, amount), &game.ConversionAction{
@@ -570,6 +570,30 @@ func strategicConversionCandidates(gs *game.GameState, playerID string) []Option
 		}
 	}
 	return out
+}
+
+func addPowerConversionIfLeechCapacityImproves(player *game.Player, maxAmounts map[game.ConversionType]int, conversion game.ConversionType, powerPerAmount int) {
+	if player == nil || player.Resources == nil || player.Resources.Power == nil || powerPerAmount <= 0 {
+		return
+	}
+	maxAmount := player.Resources.Power.Bowl3 / powerPerAmount
+	if maxAmount <= 0 {
+		return
+	}
+	before := leechCapacity(player.Resources.Power)
+	spentPower := maxAmount * powerPerAmount
+	after := before + 2*spentPower
+	if after <= before {
+		return
+	}
+	maxAmounts[conversion] = maxAmount
+}
+
+func leechCapacity(power *game.PowerSystem) int {
+	if power == nil {
+		return 0
+	}
+	return power.Bowl2 + 2*power.Bowl1
 }
 
 func sortedConversions(maxAmounts map[game.ConversionType]int) []game.ConversionType {

@@ -37,14 +37,7 @@ type BotManager struct {
 }
 
 func NewBotManager(games *game.Manager) *BotManager {
-	evaluator, err := model.LoadEvaluator(model.EvaluatorConfig{
-		TableModelPath: os.Getenv("TM_AZ_MODEL_PATH"),
-		HTTPURL:        os.Getenv("TM_AZ_MODEL_URL"),
-	})
-	if err != nil {
-		log.Printf("bot evaluator unavailable, falling back to heuristic evaluator: %v", err)
-		evaluator = model.NewHeuristicEvaluator()
-	}
+	evaluator := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: os.Getenv("TM_AZ_MODEL_URL")})
 	return &BotManager{
 		games:     games,
 		evaluator: evaluator,

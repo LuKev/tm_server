@@ -32,7 +32,6 @@ func main() {
 	flag.Int64Var(&config.RandomSeed, "seed", 0, "random seed")
 	output := flag.String("output", "", "output JSONL path; stdout when empty")
 	metricsPath := flag.String("metrics", "", "optional metrics JSON output path")
-	modelPath := flag.String("model", "", "optional table model JSON used as evaluator")
 	modelURL := flag.String("model_url", "", "optional HTTP policy/value evaluator URL")
 	globalBatchSize := flag.Int("global_batch_size", 0, "merge concurrent evaluator batches up to this size; 0 disables")
 	globalBatchDelay := flag.Int("global_batch_delay_ms", 1, "maximum delay before flushing a partial global evaluator batch")
@@ -53,13 +52,7 @@ func main() {
 		defer file.Close()
 		writer = file
 	}
-	evaluator, err := model.LoadEvaluator(model.EvaluatorConfig{
-		TableModelPath: *modelPath,
-		HTTPURL:        *modelURL,
-	})
-	if err != nil {
-		exitf("load evaluator: %v", err)
-	}
+	evaluator := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: *modelURL})
 	evaluator = model.NewAsyncBatchEvaluator(evaluator, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
 	if *progress {
 		config.ProgressWriter = os.Stderr

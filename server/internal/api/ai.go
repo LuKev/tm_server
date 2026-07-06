@@ -21,13 +21,7 @@ type AIHandler struct {
 }
 
 func NewAIHandler(games *game.Manager) *AIHandler {
-	evaluator, err := model.LoadEvaluator(model.EvaluatorConfig{
-		TableModelPath: os.Getenv("TM_AZ_MODEL_PATH"),
-		HTTPURL:        os.Getenv("TM_AZ_MODEL_URL"),
-	})
-	if err != nil {
-		evaluator = model.NewHeuristicEvaluator()
-	}
+	evaluator := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: os.Getenv("TM_AZ_MODEL_URL")})
 	return &AIHandler{games: games, evaluator: evaluator}
 }
 

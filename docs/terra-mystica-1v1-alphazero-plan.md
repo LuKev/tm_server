@@ -20,14 +20,11 @@ The implementation intentionally reuses the existing game engine rather than cre
 - `server/internal/az/model`: evaluator interface plus a bootstrap heuristic evaluator.
 - `server/internal/az/mcts`: PUCT search with root noise, visit-count policy output, lazy child expansion, and cached legal actions on positions.
 - `server/internal/az/selfplay`: JSONL self-play generator.
-- `server/internal/az/train`: table-model trainer from self-play JSONL.
 - `server/internal/az/arena`: candidate-vs-incumbent evaluation gate.
 - `server/internal/az/dataset`: neural-ready sparse dataset and action-vocabulary exporter.
 - `server/cmd/az_selfplay`: Bazel-backed self-play CLI.
-- `server/cmd/az_train`: Bazel-backed trainer for a lightweight table policy/value model from JSONL records.
 - `server/cmd/az_export`: exports samples, action vocabulary, and dataset manifest for a neural trainer.
-- `server/cmd/az_eval`: evaluates a candidate table/HTTP evaluator against a baseline table/HTTP/heuristic evaluator.
-- `server/cmd/az_loop`: iterative generate/train/arena/promote loop.
+- `server/cmd/az_eval`: evaluates a candidate HTTP evaluator against a baseline HTTP or heuristic evaluator.
 - `server/cmd/az_replay_seeds`: exports replay-derived generated snapshots as self-play seed JSONL from a single replay file or replay fixture directory, with optional seed coverage summary output.
 - `server/cmd/az_train_torch`: minimal PyTorch policy/value trainer for exported samples.
 - `server/cmd/az_infer_torch`: HTTP policy/value inference server for trained PyTorch checkpoints.
@@ -73,7 +70,7 @@ Each starts with 2 players, round-1 action phase, confirm-actions disabled, and 
 - `outcome`: final normalized value from that record player's perspective
 - `terminal` / `truncated`: whether the game ended naturally or hit the configured ply cap
 
-The table model trains directly against this shape. `az_export` converts the same JSONL into sparse neural samples with `legalActionIndices`, `policyTargets`, a sorted action vocabulary, and a dataset manifest. The PyTorch trainer reads the flat vector size from the manifest and stores the observation schema/shape in the checkpoint; `az_infer_torch` exposes that metadata on `GET /healthz`.
+`az_export` converts JSONL self-play into sparse neural samples with `legalActionIndices`, `policyTargets`, a sorted action vocabulary, and a dataset manifest. The PyTorch trainer reads the flat vector size from the manifest and stores the observation schema/shape in the checkpoint; `az_infer_torch` exposes that metadata on `GET /healthz`.
 
 Replay-derived snapshot seed JSONL may include optional metadata such as source path, replay action index, round, phase, player count, root faction, and factions present. The self-play loader treats those fields as audit metadata; the live position still comes from parsing the `snapshot` text. `az_replay_seeds` can also filter generated seeds by phase, root faction, player count, and round bounds while reporting skipped candidates by reason in the summary file.
 
@@ -98,7 +95,7 @@ Use Bazel only:
 ```bash
 cd server
 bazel test //internal/az/... --test_output=errors
-bazel build //cmd/az_selfplay:az_selfplay //cmd/az_train:az_train //cmd/az_loop:az_loop //cmd/az_export:az_export //cmd/az_eval:az_eval //cmd/az_replay_seeds:az_replay_seeds
+bazel build //cmd/az_selfplay:az_selfplay //cmd/az_export:az_export //cmd/az_eval:az_eval //cmd/az_replay_seeds:az_replay_seeds //cmd/az_train_torch:az_train_torch //cmd/az_infer_torch:az_infer_torch
 bazel run //cmd/az_selfplay:az_selfplay -- -list_scenarios
 bazel run //cmd/az_selfplay:az_selfplay -- -scenario=training_mix -episodes=1 -max_plies=20 -sims=16 -batch_size=4 -metrics=/tmp/tm_az_metrics.json
 ```
@@ -109,36 +106,6 @@ For any frontend changes:
 cd server
 bazel test //:client_build_test --test_output=errors
 ```
-
-Train and use a table evaluator:
-
-```bash
-cd server
-bazel run //cmd/az_selfplay:az_selfplay -- -scenario=random_base -episodes=10 -max_plies=120 -sims=32 -output=/tmp/tm_az_selfplay.jsonl
-bazel run //cmd/az_train:az_train -- -input=/tmp/tm_az_selfplay.jsonl -output=/tmp/tm_az_model.json
-TM_AZ_MODEL_PATH=/tmp/tm_az_model.json bazel run //cmd/server:server
-```
-
-Run the iterative table-model self-play loop:
-
-```bash
-cd server
-bazel run //cmd/az_loop:az_loop -- \
-  -work_dir=/tmp/tm_az_runs \
-  -iterations=3 \
-  -episodes=20 \
-  -shards=4 \
-  -scenario=training_mix \
-  -sims=16 \
-  -batch_size=4 \
-  -max_plies=120 \
-  -arena_games=8 \
-  -promote_win_rate=0.55 \
-  -promote_min_games=8 \
-  -promote_ci95_lower_bound=0.45
-```
-
-`az_loop` writes both the legacy top-level `promoted` boolean and a structured `promotion` decision with the gate policy, win rate, confidence interval, and blocking reasons.
 
 Export neural-ready samples:
 
@@ -194,16 +161,21 @@ cd server
 TM_AZ_MODEL_URL=http://127.0.0.1:9097/evaluate bazel run //cmd/server:server
 ```
 
-`az_loop` can use a served neural model as the incumbent before any promoted Go table model exists:
+Evaluate a served candidate against either a served incumbent or the heuristic fallback:
 
 ```bash
 cd server
-bazel run //cmd/az_loop:az_loop -- \
-  -work_dir=/tmp/tm_az_runs \
-  -iterations=1 \
-  -episodes=20 \
-  -scenario=random_base \
-  -base_model_url=http://127.0.0.1:9097/evaluate
+bazel run //cmd/az_eval:az_eval -- \
+  -candidate_url=http://127.0.0.1:9098/evaluate \
+  -baseline_url=http://127.0.0.1:9097/evaluate \
+  -scenario=training_mix \
+  -games=168 \
+  -sims=32 \
+  -batch_size=8 \
+  -workers=4 \
+  -promote_win_rate=0.55 \
+  -promote_min_games=168 \
+  -promote_ci95_lower_bound=0.45
 ```
 
 ## Open Scaling Work

@@ -12,6 +12,7 @@ import (
 	"github.com/lukev/tm_server/internal/az/env"
 	"github.com/lukev/tm_server/internal/az/mcts"
 	"github.com/lukev/tm_server/internal/az/model"
+	"github.com/lukev/tm_server/internal/az/stats"
 )
 
 type Config struct {
@@ -27,33 +28,34 @@ type Config struct {
 }
 
 type Metrics struct {
-	Episodes               int            `json:"episodes"`
-	Records                int            `json:"records"`
-	CompletedGames         int            `json:"completedGames"`
-	TruncatedGames         int            `json:"truncatedGames"`
-	TerminalGames          int            `json:"terminalGames"`
-	ScenarioCounts         map[string]int `json:"scenarioCounts"`
-	OrderedMatchupCounts   map[string]int `json:"orderedMatchupCounts,omitempty"`
-	UnorderedMatchupCounts map[string]int `json:"unorderedMatchupCounts,omitempty"`
-	RootFactionCounts      map[string]int `json:"rootFactionCounts,omitempty"`
-	FinalRoundCounts       map[string]int `json:"finalRoundCounts,omitempty"`
-	FinalPhaseCounts       map[string]int `json:"finalPhaseCounts,omitempty"`
-	TerminalPhaseCounts    map[string]int `json:"terminalPhaseCounts,omitempty"`
-	TruncatedPhaseCounts   map[string]int `json:"truncatedPhaseCounts,omitempty"`
-	ActionTypeCounts       map[string]int `json:"actionTypeCounts,omitempty"`
-	LastActionTypeCounts   map[string]int `json:"lastActionTypeCounts,omitempty"`
-	ElapsedMillis          int64          `json:"elapsedMillis"`
-	LegalMillis            int64          `json:"legalMillis"`
-	SearchMillis           int64          `json:"searchMillis"`
-	ApplyMillis            int64          `json:"applyMillis"`
-	LegalNanos             int64          `json:"legalNanos,omitempty"`
-	SearchNanos            int64          `json:"searchNanos,omitempty"`
-	ApplyNanos             int64          `json:"applyNanos,omitempty"`
-	AveragePliesPerEpisode float64        `json:"averagePliesPerEpisode"`
-	AverageBranchingFactor float64        `json:"averageBranchingFactor"`
-	RecordsPerSecond       float64        `json:"recordsPerSecond"`
-	MaxFinalRound          int            `json:"maxFinalRound,omitempty"`
-	Workers                int            `json:"workers,omitempty"`
+	Episodes               int                `json:"episodes"`
+	Records                int                `json:"records"`
+	CompletedGames         int                `json:"completedGames"`
+	TruncatedGames         int                `json:"truncatedGames"`
+	TerminalGames          int                `json:"terminalGames"`
+	ScenarioCounts         map[string]int     `json:"scenarioCounts"`
+	OrderedMatchupCounts   map[string]int     `json:"orderedMatchupCounts,omitempty"`
+	UnorderedMatchupCounts map[string]int     `json:"unorderedMatchupCounts,omitempty"`
+	RootFactionCounts      map[string]int     `json:"rootFactionCounts,omitempty"`
+	R1BuildRatesByFaction  stats.R1BuildRates `json:"r1BuildRatesByFaction,omitempty"`
+	FinalRoundCounts       map[string]int     `json:"finalRoundCounts,omitempty"`
+	FinalPhaseCounts       map[string]int     `json:"finalPhaseCounts,omitempty"`
+	TerminalPhaseCounts    map[string]int     `json:"terminalPhaseCounts,omitempty"`
+	TruncatedPhaseCounts   map[string]int     `json:"truncatedPhaseCounts,omitempty"`
+	ActionTypeCounts       map[string]int     `json:"actionTypeCounts,omitempty"`
+	LastActionTypeCounts   map[string]int     `json:"lastActionTypeCounts,omitempty"`
+	ElapsedMillis          int64              `json:"elapsedMillis"`
+	LegalMillis            int64              `json:"legalMillis"`
+	SearchMillis           int64              `json:"searchMillis"`
+	ApplyMillis            int64              `json:"applyMillis"`
+	LegalNanos             int64              `json:"legalNanos,omitempty"`
+	SearchNanos            int64              `json:"searchNanos,omitempty"`
+	ApplyNanos             int64              `json:"applyNanos,omitempty"`
+	AveragePliesPerEpisode float64            `json:"averagePliesPerEpisode"`
+	AverageBranchingFactor float64            `json:"averageBranchingFactor"`
+	RecordsPerSecond       float64            `json:"recordsPerSecond"`
+	MaxFinalRound          int                `json:"maxFinalRound,omitempty"`
+	Workers                int                `json:"workers,omitempty"`
 }
 
 type Record struct {
@@ -201,6 +203,7 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 	var records []Record
 	lastActionType := ""
 	var tree *mcts.Tree
+	r1Tracker := stats.NewR1BuildTracker(playerIDs(position))
 	if config.ReuseTree {
 		tree = mcts.NewTree(position)
 	}
@@ -267,10 +270,13 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 		if err != nil {
 			return episodeResult{episode: episode, workerID: workerID, metrics: metrics, err: err}
 		}
+		r1Tracker.Observe(position.State)
 		if tree != nil {
 			tree.Advance(action.ID, position)
 		}
 	}
+	r1Tracker.Finalize(position.State)
+	stats.AddR1BuildSamples(metrics.R1BuildRatesByFaction, r1Tracker.Samples())
 	truncated := !position.IsTerminal() && len(records) >= config.MaxPlies
 	finalRound := 0
 	finalPhase := "unknown"
@@ -320,6 +326,7 @@ func newMetrics() Metrics {
 		OrderedMatchupCounts:   make(map[string]int),
 		UnorderedMatchupCounts: make(map[string]int),
 		RootFactionCounts:      make(map[string]int),
+		R1BuildRatesByFaction:  make(stats.R1BuildRates),
 		FinalRoundCounts:       make(map[string]int),
 		FinalPhaseCounts:       make(map[string]int),
 		TerminalPhaseCounts:    make(map[string]int),
@@ -346,6 +353,7 @@ func mergeMetrics(total *Metrics, part Metrics) {
 	mergeStringInt(total.OrderedMatchupCounts, part.OrderedMatchupCounts)
 	mergeStringInt(total.UnorderedMatchupCounts, part.UnorderedMatchupCounts)
 	mergeStringInt(total.RootFactionCounts, part.RootFactionCounts)
+	stats.MergeR1BuildRates(total.R1BuildRatesByFaction, part.R1BuildRatesByFaction)
 	mergeStringInt(total.FinalRoundCounts, part.FinalRoundCounts)
 	mergeStringInt(total.FinalPhaseCounts, part.FinalPhaseCounts)
 	mergeStringInt(total.TerminalPhaseCounts, part.TerminalPhaseCounts)
@@ -462,6 +470,19 @@ func actionIDs(options []actions.Option) []string {
 	out := make([]string, 0, len(options))
 	for _, option := range options {
 		out = append(out, option.ID)
+	}
+	return out
+}
+
+func playerIDs(position *env.Position) []string {
+	if position == nil || position.State == nil {
+		return nil
+	}
+	out := make([]string, 0, len(position.State.Players))
+	for _, player := range position.State.Players {
+		if player != nil && player.ID != "" {
+			out = append(out, player.ID)
+		}
 	}
 	return out
 }

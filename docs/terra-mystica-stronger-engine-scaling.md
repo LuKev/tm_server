@@ -11,6 +11,143 @@ Strength comes from four properties:
 3. A model architecture that uses board structure instead of treating every feature as unrelated scalar input.
 4. Evaluation that is reproducible and statistically harder to fool.
 
+## Next Strength Gameplan
+
+The next goal is a stronger promoted checkpoint, not just a bigger pile of rows. The current evidence says the loop is working, but iteration time is dominated by neural MCTS self-play and arena games. Export and h512 training are not the limiting phases yet. Modal compute is useful, but primarily for parallel self-play and arena shards; use GPU only when training larger models or larger exported buffers.
+
+Track round-1 Temple/Sanctuary and Stronghold rates in `docs/terra-mystica-ai-r1-build-rates.md` for each retained model. These rates are an early-game proxy, especially for factions such as Giants and Swarmlings where stronger play should usually build an early Temple or Stronghold.
+
+### 2026-06-29 Local Fast-Lane Result
+
+The retained `/tmp` checkpoints from earlier runs were missing, so the pre-Modal pass rebuilt a local baseline from heuristic MCTS and trained one neural h512 candidate:
+
+- Iter0 heuristic self-play: `/tmp/tm_az_local_fastlane_20260629/iter0/selfplay.jsonl`
+  - `168/168` terminal games, `9512` records, `sims=8`, `workers=4`, `recordsPerSecond=3.65`.
+  - Exported `9512` samples and trained `/tmp/tm_az_local_fastlane_20260629/iter0/tm_az_h512_iter0.pt`.
+- Iter1 neural self-play: `/tmp/tm_az_local_fastlane_20260629/iter1/selfplay.jsonl`
+  - `84/84` terminal games, `4853` records, `sims=8`, `workers=4`, HTTP torch evaluator, `recordsPerSecond=15.66`.
+  - This is about `4.3x` faster than the heuristic baseline generation path for this run.
+  - Combined iter0+iter1 buffer exported `14365` samples and trained `/tmp/tm_az_local_fastlane_20260629/iter1/tm_az_h512_iter1_candidate.pt`.
+- Smoke arena: `/tmp/tm_az_local_fastlane_20260629/eval/arena_iter1_vs_iter0_84.json`
+  - Candidate scored `46-38`, win rate `54.8%`, 95% CI `[44.1%, 65.4%]`.
+  - Did not promote because the lower confidence bound was below the `45%` threshold.
+- Ordered arena: `/tmp/tm_az_local_fastlane_20260629/eval/arena_iter1_vs_iter0_168.json`
+  - Candidate scored `84-80-4`, win rate `51.2%`, 95% CI `[43.6%, 58.7%]`, `0` truncations.
+  - Did not promote. Keep the candidate as an experiment artifact, not as the incumbent.
+
+The run proves the optimized local path is much faster once a neural evaluator exists, but the R1 Temple/Stronghold proxy is still weak. Giants and Swarmlings remain far below the expected mature-engine range, so the next pre-Modal work should bias toward better search targets and targeted early-game data before larger model experiments.
+
+### 1. Freeze A Trustworthy Baseline
+
+Do not rely on old `/tmp` checkpoint paths as durable incumbents. The previously documented promoted h512 paths were missing during the 2026-06-29 local pass, so the next promoted checkpoint should be copied to a durable project artifact location, object store, or Modal volume before it is treated as the incumbent. Keep the previous promoted model as a retained baseline whenever the artifact is actually available so regressions are visible.
+
+Required baseline checks:
+
+- `matrix:base_ordered`, `168` games minimum, `max_plies=500`, `0` truncations expected.
+- `training_mix`, at least `200` games for a serious promotion gate, because randomized assets catch failures that a single ordered matrix pass can miss.
+- A smaller targeted suite for known weak or historically fragile matchups, especially any matchup involving Mermaids or any future scenario with truncations.
+- Promotion should require `-promote_min_games` and `-promote_ci95_lower_bound`, not only raw win rate.
+
+### 2. Shorten Iterations Before Scaling Volume
+
+Use a two-lane loop:
+
+- Fast lane: local or small Modal run, `336-840` ordered-matrix games, `sims=8`, h512 transfer training at conservative LR, then an `84`-game ordered smoke arena. This catches bad data/code/model changes in hours.
+- Promotion gate: do not promote from an `84`-game smoke result. Any candidate considered for promotion should get at least a `168`-game arena gate.
+- Strength lane: Modal run, `10k-20k` ordered-matrix plus targeted games, optionally `sims=16` for part of the batch, h512 or h768 transfer training, then `336+` arena games split across `matrix:base_ordered` and `training_mix`.
+
+Do not jump straight to very large self-play if the fast lane is flat. The 5k pass already proved volume helps when the data is clean and complete; the next gain should come from better data mix and higher-quality search targets.
+
+### 3. Spend More Compute Where It Buys Strength
+
+Use this priority order:
+
+1. More complete neural MCTS self-play from the current incumbent.
+2. Targeted oversampling of weak matchup/scenario buckets found by arena reports.
+3. Higher search simulations on a smaller, high-quality batch.
+4. Larger model/training experiments only after the current h512 loop still improves with more data.
+
+Current rough sizing from local observations:
+
+- The realistic local h512 neural self-play range is around `12-18` records/sec depending benchmark and scenario mix.
+- Full ordered games usually produce roughly `60-100` training records each.
+- `10k` games is roughly `0.6M-1.0M` rows. On one local machine that is plausibly an overnight-to-day run; on `16` Modal CPU workers it should become a short multi-hour run plus startup/upload overhead.
+- `50k` games is the first scale where Modal compute is clearly justified if the `10k-20k` run promotes cleanly.
+
+### 4. Modal Execution Shape
+
+Use Modal as a sharded job runner, not as a new training architecture:
+
+1. Build or install the Bazel server workspace in a Modal image.
+2. Put the incumbent checkpoint and output directory on a Modal volume or object store.
+3. For each self-play shard, start `az_infer_torch` locally in the container, then run `az_selfplay` with:
+   - `-scenario=matrix:base_ordered` or a targeted comma-separated scenario suite
+   - `-compact_records`
+   - `-workers=4` unless benchmarking shows the instance prefers fewer workers
+   - `-sims=8` for volume batches; `-sims=16` or `32` for smaller quality batches
+   - `-batch_size=8`
+   - `-global_batch_size=32`
+   - `-model_url=http://127.0.0.1:<port>/evaluate`
+4. Write one JSONL and one metrics JSON per shard.
+5. Merge with `az_buffer`, export with `az_export`, and train with `az_train_torch --init_checkpoint --init_allow_action_mismatch`.
+6. Run arena shards the same way, with candidate and incumbent inference servers local to each worker.
+
+For cost control, run one calibration shard first and compute rows/sec, games/hour, truncation rate, and cost/game before launching the full batch.
+
+### 5. Improve Data Quality Per Row
+
+The next self-play buffer should be mixed intentionally:
+
+- Keep all clean complete games from the current promoted lineage.
+- Add fresh `matrix:base_ordered` games so every legal ordered base matchup is represented.
+- Add targeted weak-matchup games from arena losses, not only from truncations.
+- Add replay-derived snapshot seeds for round-2 through round-5 action positions once their coverage summary shows enough faction/round diversity.
+- Cap older or weaker data with `az_buffer path@limit` so the buffer does not become dominated by stale bootstrap policy targets.
+
+Preferred next buffer shape:
+
+- `512k` current promoted-lineage rows.
+- `600k-1M` fresh ordered-matrix rows.
+- `100k-300k` targeted weak-matchup rows.
+- Optional `100k-300k` replay-seed continuation rows after seed coverage is audited.
+
+### 6. Training Experiments
+
+Run training experiments as a small grid, not one-off guesses:
+
+- h512 transfer, LR `1e-5`, `5-8` epochs.
+- h512 transfer, LR `5e-6`, `5-8` epochs if the first run overfits or regresses.
+- h768 or h1024 only after h512 still promotes from the larger buffer.
+- Keep `--init_new_action_logit` conservative when action vocab grows.
+
+The current hex model is probably good enough for the next scale step, but it is still a shallow mean/max pooled board encoder. If larger data stops helping, the next architecture work should be a real adjacency-aware board encoder or residual hex encoder before spending much more on raw self-play.
+
+### 7. Promotion Gates
+
+Use three gates:
+
+1. Smoke gate: `84` games across selected scenarios, used only to reject obvious failures.
+2. Ordered gate: `168` or `336` games on `matrix:base_ordered`, fixed seed, `max_plies=500`, `0` truncations.
+3. Serious gate: `200-500` games across `training_mix` plus targeted weak buckets, with confidence lower bound enabled.
+
+Promotion should require:
+
+- raw win rate above incumbent,
+- `95%` CI lower bound at or above the configured threshold,
+- no material truncation regression,
+- no scenario bucket collapse,
+- average margin not obviously worse in the candidate's losing buckets.
+
+### 8. Highest-Leverage Code Work
+
+If we want faster iterations before or alongside Modal:
+
+- Add first-class run manifests that capture checkpoint path, scenario mix, seeds, shard counts, command flags, git SHA, and artifact paths.
+- Add arena bucket reports by matchup/scenario so targeted oversampling is automatic.
+- Add a Modal runner script that launches calibrated self-play shards, merges outputs, exports, trains, and runs arena gates.
+- Revisit in-process or ONNX inference only after measuring Modal shard throughput; HTTP is still overhead, but not the only bottleneck.
+- Keep subtree reuse disabled for strength runs until state identity checks make it safe.
+
 ## Implemented Scaling Surfaces
 
 - `az_selfplay -metrics=/path/metrics.json` writes throughput, branching, phase timing, scenario counts, final round/phase counts, action-type counts, completed/truncated games, worker count, nanosecond timing, and records-per-second.
@@ -21,16 +158,19 @@ Strength comes from four properties:
 - `az_buffer` builds replay buffers from multiple JSONL sources. Repeat `-source`, optionally as `path@limit`, to stream full sources and deterministic-reservoir-sample capped historical pools.
 - `training_mix` samples both deterministic base scenarios and randomized scenarios.
 - `randomized_base` samples base-game faction pairs, seat order, starting dwelling anchors, scoring tiles, and bonus cards.
-- `az_loop` runs self-play shards concurrently and writes per-iteration `report.json` with self-play metrics, dataset paths, runtime info, MCTS config, incumbent source, and arena result.
 - Arena reports now include scenario counts, average plies, search simulations, win-rate standard error, and 95% confidence interval.
 - `az_eval -workers=N -progress` runs arena games in parallel and writes per-game JSON progress to stderr.
-- `az_loop` maintains `ratings.json` with lightweight Elo-style ratings for candidates, incumbents, and retained baselines.
-- `az_loop -selfplay_workers=N -arena_workers=N -progress -compact_records -reuse_tree -global_batch_size=N` carries the worker/progress/compact/tree/global-batch path through the full loop. Its merged self-play throughput now uses wall-clock shard elapsed time, while search/legal/apply timing remains summed worker time.
-- `az_loop` and `az_eval` report a structured promotion decision. Use `-promote_min_games` and `-promote_ci95_lower_bound` when a run should require statistical confidence, not only a raw win-rate threshold.
-- `az_eval` compares any table or HTTP candidate against a table, HTTP, or heuristic baseline without running the full train loop.
+- `az_eval` reports a structured promotion decision. Use `-promote_min_games` and `-promote_ci95_lower_bound` when a run should require statistical confidence, not only a raw win-rate threshold.
+- `az_eval` compares an HTTP candidate against an HTTP baseline, or against the heuristic fallback when no baseline URL is supplied.
 - `az_train_torch --architecture=hex` uses observation shape `[global, hexes, per_hex]` to encode hexes with shared weights and pool board embeddings into policy/value heads.
 - `az_infer_torch` serves `/evaluate`, `/evaluate_batch`, `/evaluate_binary`, and `/evaluate_batch_binary`; exposes checkpoint schema/shape/architecture on `/healthz`; suppresses access logs by default; and exposes `--torch-threads` / `--torch-interop-threads` for CPU-thread tuning.
 - `az_replay_seeds` imports one replay text file or a directory of replay text files and emits generated snapshot seeds. Self-play can sample them with `-scenario=snapshots:/path/to/seeds.jsonl`. Use `-summary` to write seed coverage counts by source, round, phase, player count, root faction, and faction presence.
+
+## Conversion Pruning Policy
+
+AZ should prune free conversions that produce the same strategic position with strictly fewer resources. Do not emit standalone `priest -> worker`, `worker -> coin`, or Alchemists `2C -> 1VP` search actions. Replay/AZ auto-funding may still use `priest -> worker`, `worker -> coin`, and Alchemists `1VP -> 1C`, but only when required to pay the concrete action cost and only up to the shortfall.
+
+Power conversions are different because spending Bowl III power into Bowl I can increase future leech capacity. Keep `power -> coin`, `power -> worker`, and `power -> priest` candidates when they move Bowl III power and therefore allow additional future leech. In AZ self-play this is canonicalized as a pre-action conversion before the main action; the live game engine still supports equivalent post-action free conversions through the normal confirmation window.
 
 ## Current Local Milestone
 
@@ -158,26 +298,31 @@ bazel run //cmd/az_selfplay:az_selfplay -- \
   -output=/tmp/tm_az_smoke_selfplay.jsonl
 ```
 
-Then run a small local iteration:
+Then run a small local neural iteration:
 
 ```bash
 cd server
-bazel run //cmd/az_loop:az_loop -- \
-  -work_dir=/tmp/tm_az_runs \
-  -iterations=2 \
-  -episodes=40 \
-  -shards=4 \
+bazel run //cmd/az_selfplay:az_selfplay -- \
   -scenario=training_mix \
+  -episodes=40 \
   -sims=16 \
   -batch_size=4 \
   -max_plies=120 \
-  -selfplay_workers=2 \
-  -arena_workers=4 \
+  -workers=2 \
   -progress \
-  -arena_games=16 \
-  -promote_win_rate=0.55 \
-  -promote_min_games=16 \
-  -promote_ci95_lower_bound=0.45
+  -metrics=/tmp/tm_az_runs/iter_0001/selfplay_metrics.json \
+  -output=/tmp/tm_az_runs/iter_0001/selfplay.jsonl
+```
+
+Export the self-play records:
+
+```bash
+cd server
+bazel run //cmd/az_export:az_export -- \
+  -input=/tmp/tm_az_runs/iter_0001/selfplay.jsonl \
+  -samples=/tmp/tm_az_runs/iter_0001/samples.jsonl \
+  -vocab=/tmp/tm_az_runs/iter_0001/action_vocab.json \
+  -manifest=/tmp/tm_az_runs/iter_0001/dataset_manifest.json
 ```
 
 Export and train a neural candidate:
@@ -291,8 +436,8 @@ Evaluate a retained model directly:
 ```bash
 cd server
 bazel run //cmd/az_eval:az_eval -- \
-  -candidate_model=/tmp/tm_az_runs/iter_0005/candidate_model.json \
-  -baseline_model=/tmp/tm_az_runs/best_model.json \
+  -candidate_url=http://127.0.0.1:9098/evaluate \
+  -baseline_url=http://127.0.0.1:9097/evaluate \
   -scenario=training_mix \
   -games=100 \
   -sims=32 \
@@ -311,7 +456,7 @@ bazel run //cmd/az_eval:az_eval -- \
 Do not promote only because a candidate wins one tiny match. Use:
 
 - `training_mix` or an explicit comma-separated scenario suite.
-- At least 50 arena games for local checks, 200+ for serious promotion.
+- Use `84` arena games for local smoke checks. Use at least `168` arena games for promotion candidates, and `200+` for serious promotion when runtime allows.
 - Fixed seeds recorded in `report.json`.
 - A promotion threshold that considers confidence interval width. A candidate with `winRate=0.56` over 8 games is not meaningfully proven.
 - `-promote_min_games` for minimum sample size and `-promote_ci95_lower_bound` for lower-bound confidence gating.

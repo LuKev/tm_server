@@ -86,7 +86,7 @@ func TestUpgradeBuildingAction_NormalModeStillRequiresExplicitConversions(t *tes
 	}
 }
 
-func TestUpgradeBuildingAction_ReplayAutoConvertsAlchemistsVPToCoinsBeforeWorkers(t *testing.T) {
+func TestUpgradeBuildingAction_ReplayDoesNotAutoConvertAlchemistsVPWhenAffordable(t *testing.T) {
 	gs := NewGameState()
 	gs.ReplayMode = map[string]bool{"__replay__": true, "__bga__": true}
 	gs.Phase = PhaseAction
@@ -118,8 +118,8 @@ func TestUpgradeBuildingAction_ReplayAutoConvertsAlchemistsVPToCoinsBeforeWorker
 		t.Fatalf("execute temple upgrade: %v", err)
 	}
 
-	if got := player.VictoryPoints; got != 29 {
-		t.Fatalf("VP after replay funding = %d, want 29", got)
+	if got := player.VictoryPoints; got != 30 {
+		t.Fatalf("VP after replay funding = %d, want 30", got)
 	}
 	if got := player.Resources.Coins; got != 0 {
 		t.Fatalf("coins after replay funding = %d, want 0", got)
@@ -127,8 +127,8 @@ func TestUpgradeBuildingAction_ReplayAutoConvertsAlchemistsVPToCoinsBeforeWorker
 	if got := player.Resources.Workers; got != 0 {
 		t.Fatalf("workers after replay funding = %d, want 0", got)
 	}
-	if got := player.Resources.Priests; got != 1 {
-		t.Fatalf("priests after replay funding = %d, want 1", got)
+	if got := player.Resources.Priests; got != 0 {
+		t.Fatalf("priests after replay funding = %d, want 0", got)
 	}
 }
 
@@ -180,4 +180,95 @@ func TestTransformAndBuildAction_ReplayAutoConvertsPowerToWorker(t *testing.T) {
 	if got := player.Resources.Power.Bowl1; got != 3 {
 		t.Fatalf("bowl I after replay build = %d, want 3", got)
 	}
+}
+
+func TestPlanReplayAutoCostSkipsConversionsWhenAlreadyAffordable(t *testing.T) {
+	player := replayFundingPlayer(t, factions.NewWitches())
+	player.Resources.Coins = 5
+	player.Resources.Workers = 3
+	player.Resources.Priests = 1
+	player.Resources.Power = NewPowerSystem(0, 0, 3)
+
+	plan, ok := planReplayAutoCost(player, factions.Cost{Coins: 5, Workers: 2})
+	if !ok {
+		t.Fatal("expected cost to be affordable")
+	}
+	if plan != (replayAutoCostPlan{}) {
+		t.Fatalf("plan = %+v, want no conversions", plan)
+	}
+}
+
+func TestPlanReplayAutoCostUsesPriestToWorkerOnlyForWorkerShortfall(t *testing.T) {
+	player := replayFundingPlayer(t, factions.NewWitches())
+	player.Resources.Coins = 10
+	player.Resources.Workers = 2
+	player.Resources.Priests = 1
+	player.Resources.Power = NewPowerSystem(0, 0, 3)
+
+	plan, ok := planReplayAutoCost(player, factions.Cost{Coins: 10, Workers: 3})
+	if !ok {
+		t.Fatal("expected cost to be affordable with priest conversion")
+	}
+	if plan.priestsToWorker != 1 {
+		t.Fatalf("plan = %+v, want priest_to_worker only for worker shortfall", plan)
+	}
+}
+
+func TestPlanReplayAutoCostUsesWorkerToCoinOnlyForCoinShortfall(t *testing.T) {
+	player := replayFundingPlayer(t, factions.NewWitches())
+	player.Resources.Coins = 4
+	player.Resources.Workers = 3
+	player.Resources.Priests = 0
+	player.Resources.Power = NewPowerSystem(0, 0, 1)
+
+	plan, ok := planReplayAutoCost(player, factions.Cost{Coins: 5, Workers: 2})
+	if !ok {
+		t.Fatal("expected cost to be affordable with worker conversion")
+	}
+	if plan.workersToCoins != 1 {
+		t.Fatalf("plan = %+v, want worker_to_coin only for coin shortfall", plan)
+	}
+}
+
+func TestPlanReplayAutoCostAlchemistsDoNotSpendVPWhenSurplusWorkersCanFundCoins(t *testing.T) {
+	player := replayFundingPlayer(t, factions.NewAlchemists())
+	player.VictoryPoints = 20
+	player.Resources.Coins = 4
+	player.Resources.Workers = 3
+	player.Resources.Priests = 0
+	player.Resources.Power = NewPowerSystem(0, 0, 0)
+
+	plan, ok := planReplayAutoCost(player, factions.Cost{Coins: 5, Workers: 2})
+	if !ok {
+		t.Fatal("expected cost to be affordable with worker conversion")
+	}
+	if plan.vpToCoins != 0 || plan.workersToCoins != 1 {
+		t.Fatalf("plan = %+v, want worker_to_coin and no VP_to_coin", plan)
+	}
+}
+
+func TestPlanReplayAutoCostAlchemistsSpendVPOnlyWhenNeededForCoins(t *testing.T) {
+	player := replayFundingPlayer(t, factions.NewAlchemists())
+	player.VictoryPoints = 20
+	player.Resources.Coins = 4
+	player.Resources.Workers = 2
+	player.Resources.Priests = 0
+	player.Resources.Power = NewPowerSystem(0, 0, 0)
+
+	plan, ok := planReplayAutoCost(player, factions.Cost{Coins: 5, Workers: 2})
+	if !ok {
+		t.Fatal("expected cost to be affordable with VP conversion")
+	}
+	if plan.vpToCoins != 1 || plan.workersToCoins != 0 {
+		t.Fatalf("plan = %+v, want VP_to_coin only as last resort", plan)
+	}
+}
+
+func replayFundingPlayer(t *testing.T, faction factions.Faction) *Player {
+	t.Helper()
+	gs := NewGameState()
+	if err := gs.AddPlayer("p1", faction); err != nil {
+		t.Fatalf("add player: %v", err)
+	}
+	return gs.GetPlayer("p1")
 }

@@ -28,9 +28,8 @@ type report struct {
 }
 
 type evaluatorRef struct {
-	ModelPath string `json:"modelPath,omitempty"`
-	ModelURL  string `json:"modelUrl,omitempty"`
-	Kind      string `json:"kind"`
+	ModelURL string `json:"modelUrl,omitempty"`
+	Kind     string `json:"kind"`
 }
 
 type runtimeInfo struct {
@@ -41,9 +40,7 @@ type runtimeInfo struct {
 }
 
 func main() {
-	candidateModel := flag.String("candidate_model", "", "candidate table model JSON path")
 	candidateURL := flag.String("candidate_url", "", "candidate HTTP evaluator URL")
-	baselineModel := flag.String("baseline_model", "", "baseline table model JSON path")
 	baselineURL := flag.String("baseline_url", "", "baseline HTTP evaluator URL")
 	output := flag.String("output", "", "optional JSON report output path; stdout when empty")
 	scenario := flag.String("scenario", "training_mix", "scenario name, snapshot source, or comma-separated scenario set")
@@ -62,15 +59,15 @@ func main() {
 	progress := flag.Bool("progress", false, "write per-game progress JSON lines to stderr")
 	flag.Parse()
 
-	if (*candidateModel == "" && *candidateURL == "") || (*candidateModel != "" && *candidateURL != "") {
-		exitf("provide exactly one of -candidate_model or -candidate_url")
+	if *candidateURL == "" {
+		exitf("provide -candidate_url")
 	}
 	if *games <= 0 {
 		exitf("-games must be positive")
 	}
 	startedAt := time.Now()
-	candidate := loadEvaluator(*candidateModel, *candidateURL)
-	baseline := loadEvaluator(*baselineModel, *baselineURL)
+	candidate := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: *candidateURL})
+	baseline := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: *baselineURL})
 	candidate = model.NewAsyncBatchEvaluator(candidate, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
 	baseline = model.NewAsyncBatchEvaluator(baseline, *globalBatchSize, time.Duration(*globalBatchDelay)*time.Millisecond)
 	search := mcts.Config{
@@ -95,8 +92,8 @@ func main() {
 	out := report{
 		StartedAt:  startedAt.UTC().Format(time.RFC3339),
 		FinishedAt: time.Now().UTC().Format(time.RFC3339),
-		Candidate:  evaluatorRef{ModelPath: *candidateModel, ModelURL: *candidateURL, Kind: evaluatorKind(*candidateModel, *candidateURL, false)},
-		Baseline:   evaluatorRef{ModelPath: *baselineModel, ModelURL: *baselineURL, Kind: evaluatorKind(*baselineModel, *baselineURL, true)},
+		Candidate:  evaluatorRef{ModelURL: *candidateURL, Kind: "http"},
+		Baseline:   evaluatorRef{ModelURL: *baselineURL, Kind: evaluatorKind(*baselineURL, true)},
 		Scenario:   *scenario,
 		MaxPlies:   *maxPlies,
 		Search:     search,
@@ -135,23 +132,10 @@ func progressWriter(enabled bool) *os.File {
 	return os.Stderr
 }
 
-func loadEvaluator(path, url string) model.Evaluator {
-	evaluator, err := model.LoadEvaluator(model.EvaluatorConfig{
-		TableModelPath: path,
-		HTTPURL:        url,
-	})
-	if err == nil {
-		return evaluator
-	}
-	return model.NewHeuristicEvaluator()
-}
-
-func evaluatorKind(path, url string, fallback bool) string {
+func evaluatorKind(url string, fallback bool) string {
 	switch {
 	case url != "":
 		return "http"
-	case path != "":
-		return "table"
 	case fallback:
 		return "heuristic"
 	default:

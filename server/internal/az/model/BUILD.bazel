@@ -7,7 +7,6 @@ go_library(
         "http.go",
         "loader.go",
         "model.go",
-        "table.go",
     ],
     importpath = "github.com/lukev/tm_server/internal/az/model",
     visibility = ["//visibility:public"],

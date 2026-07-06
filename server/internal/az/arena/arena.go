@@ -13,6 +13,7 @@ import (
 	"github.com/lukev/tm_server/internal/az/env"
 	"github.com/lukev/tm_server/internal/az/mcts"
 	"github.com/lukev/tm_server/internal/az/model"
+	"github.com/lukev/tm_server/internal/az/stats"
 )
 
 type Config struct {
@@ -26,29 +27,31 @@ type Config struct {
 }
 
 type Result struct {
-	Games                 int                      `json:"games"`
-	CandidateWins         int                      `json:"candidateWins"`
-	BaselineWins          int                      `json:"baselineWins"`
-	Draws                 int                      `json:"draws"`
-	WinRate               float64                  `json:"winRate"`
-	WinRateStdErr         float64                  `json:"winRateStdErr"`
-	WinRateCI95           [2]float64               `json:"winRateCi95"`
-	AverageMargin         float64                  `json:"averageMargin"`
-	AveragePlies          float64                  `json:"averagePlies"`
-	TerminalGames         int                      `json:"terminalGames"`
-	TruncatedGames        int                      `json:"truncatedGames"`
-	ScenarioCounts        map[string]int           `json:"scenarioCounts,omitempty"`
-	OrderedMatchupCounts  map[string]int           `json:"orderedMatchupCounts,omitempty"`
-	UnorderedMatchupStats map[string]MatchupResult `json:"unorderedMatchupStats,omitempty"`
-	FinalRoundCounts      map[string]int           `json:"finalRoundCounts,omitempty"`
-	FinalPhaseCounts      map[string]int           `json:"finalPhaseCounts,omitempty"`
-	TerminalPhaseCounts   map[string]int           `json:"terminalPhaseCounts,omitempty"`
-	TruncatedPhaseCounts  map[string]int           `json:"truncatedPhaseCounts,omitempty"`
-	SearchSimulations     int                      `json:"searchSimulations"`
-	ElapsedMillis         int64                    `json:"elapsedMillis,omitempty"`
-	SearchMillis          int64                    `json:"searchMillis,omitempty"`
-	SearchNanos           int64                    `json:"searchNanos,omitempty"`
-	Workers               int                      `json:"workers,omitempty"`
+	Games                          int                      `json:"games"`
+	CandidateWins                  int                      `json:"candidateWins"`
+	BaselineWins                   int                      `json:"baselineWins"`
+	Draws                          int                      `json:"draws"`
+	WinRate                        float64                  `json:"winRate"`
+	WinRateStdErr                  float64                  `json:"winRateStdErr"`
+	WinRateCI95                    [2]float64               `json:"winRateCi95"`
+	AverageMargin                  float64                  `json:"averageMargin"`
+	AveragePlies                   float64                  `json:"averagePlies"`
+	TerminalGames                  int                      `json:"terminalGames"`
+	TruncatedGames                 int                      `json:"truncatedGames"`
+	ScenarioCounts                 map[string]int           `json:"scenarioCounts,omitempty"`
+	OrderedMatchupCounts           map[string]int           `json:"orderedMatchupCounts,omitempty"`
+	UnorderedMatchupStats          map[string]MatchupResult `json:"unorderedMatchupStats,omitempty"`
+	CandidateR1BuildRatesByFaction stats.R1BuildRates       `json:"candidateR1BuildRatesByFaction,omitempty"`
+	BaselineR1BuildRatesByFaction  stats.R1BuildRates       `json:"baselineR1BuildRatesByFaction,omitempty"`
+	FinalRoundCounts               map[string]int           `json:"finalRoundCounts,omitempty"`
+	FinalPhaseCounts               map[string]int           `json:"finalPhaseCounts,omitempty"`
+	TerminalPhaseCounts            map[string]int           `json:"terminalPhaseCounts,omitempty"`
+	TruncatedPhaseCounts           map[string]int           `json:"truncatedPhaseCounts,omitempty"`
+	SearchSimulations              int                      `json:"searchSimulations"`
+	ElapsedMillis                  int64                    `json:"elapsedMillis,omitempty"`
+	SearchMillis                   int64                    `json:"searchMillis,omitempty"`
+	SearchNanos                    int64                    `json:"searchNanos,omitempty"`
+	Workers                        int                      `json:"workers,omitempty"`
 }
 
 type MatchupResult struct {
@@ -106,15 +109,17 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 	}
 	started := time.Now()
 	result := Result{
-		ScenarioCounts:        make(map[string]int),
-		OrderedMatchupCounts:  make(map[string]int),
-		UnorderedMatchupStats: make(map[string]MatchupResult),
-		FinalRoundCounts:      make(map[string]int),
-		FinalPhaseCounts:      make(map[string]int),
-		TerminalPhaseCounts:   make(map[string]int),
-		TruncatedPhaseCounts:  make(map[string]int),
-		SearchSimulations:     config.Search.Simulations,
-		Workers:               config.Workers,
+		ScenarioCounts:                 make(map[string]int),
+		OrderedMatchupCounts:           make(map[string]int),
+		UnorderedMatchupStats:          make(map[string]MatchupResult),
+		CandidateR1BuildRatesByFaction: make(stats.R1BuildRates),
+		BaselineR1BuildRatesByFaction:  make(stats.R1BuildRates),
+		FinalRoundCounts:               make(map[string]int),
+		FinalPhaseCounts:               make(map[string]int),
+		TerminalPhaseCounts:            make(map[string]int),
+		TruncatedPhaseCounts:           make(map[string]int),
+		SearchSimulations:              config.Search.Simulations,
+		Workers:                        config.Workers,
 	}
 	jobs := make(chan int)
 	results := make(chan gameResult)
@@ -165,20 +170,22 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 }
 
 type gameResult struct {
-	gameIndex       int
-	workerID        int
-	scenario        string
-	metadata        env.ScenarioMetadata
-	candidatePlayer string
-	plies           int
-	margin          float64
-	finalRound      int
-	finalPhase      string
-	terminal        bool
-	truncated       bool
-	searchNanos     int64
-	elapsed         time.Duration
-	err             error
+	gameIndex          int
+	workerID           int
+	scenario           string
+	metadata           env.ScenarioMetadata
+	candidatePlayer    string
+	plies              int
+	margin             float64
+	finalRound         int
+	finalPhase         string
+	terminal           bool
+	truncated          bool
+	searchNanos        int64
+	candidateR1Samples []stats.R1BuildSample
+	baselineR1Samples  []stats.R1BuildSample
+	elapsed            time.Duration
+	err                error
 }
 
 func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, config Config) gameResult {
@@ -203,6 +210,7 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 	if out.metadata.Scenario == "" {
 		out.metadata.Scenario = scenarioName
 	}
+	r1Tracker := stats.NewR1BuildTracker(playerIDs(position))
 	for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
 		out.plies++
 		legal := position.LegalActions()
@@ -236,6 +244,15 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 			out.err = err
 			return out
 		}
+		r1Tracker.Observe(position.State)
+	}
+	r1Tracker.Finalize(position.State)
+	for _, sample := range r1Tracker.Samples() {
+		if sample.PlayerID == candidatePlayer {
+			out.candidateR1Samples = append(out.candidateR1Samples, sample)
+		} else {
+			out.baselineR1Samples = append(out.baselineR1Samples, sample)
+		}
 	}
 	out.margin = position.ValueFor(candidatePlayer)
 	if position != nil && position.State != nil {
@@ -268,6 +285,8 @@ func mergeGameResult(result *Result, game gameResult) {
 		result.TruncatedGames++
 		result.TruncatedPhaseCounts[game.finalPhase]++
 	}
+	stats.AddR1BuildSamples(result.CandidateR1BuildRatesByFaction, game.candidateR1Samples)
+	stats.AddR1BuildSamples(result.BaselineR1BuildRatesByFaction, game.baselineR1Samples)
 	matchupKey := game.metadata.UnorderedMatchup
 	if matchupKey != "" {
 		stats := result.UnorderedMatchupStats[matchupKey]
@@ -401,4 +420,17 @@ func actionByID(options []actions.Option, id string) (actions.Option, bool) {
 		}
 	}
 	return actions.Option{}, false
+}
+
+func playerIDs(position *env.Position) []string {
+	if position == nil || position.State == nil {
+		return nil
+	}
+	out := make([]string, 0, len(position.State.Players))
+	for _, player := range position.State.Players {
+		if player != nil && player.ID != "" {
+			out = append(out, player.ID)
+		}
+	}
+	return out
 }

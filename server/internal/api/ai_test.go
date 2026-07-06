@@ -13,7 +13,6 @@ import (
 )
 
 func TestAIExecutePreviewAndConfirm(t *testing.T) {
-	t.Setenv("TM_AZ_MODEL_PATH", "")
 	t.Setenv("TM_AZ_MODEL_URL", "")
 
 	position, err := env.BuiltInScenario("base_nomads_witches")
