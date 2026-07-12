@@ -688,6 +688,12 @@ func playerScore(gs *game.GameState, playerID string) int {
 	return player.VictoryPoints
 }
 
+// FinalScoreFor returns the authoritative score used by AZ outcomes, including
+// end-game scoring once the game is complete.
+func FinalScoreFor(gs *game.GameState, playerID string) int {
+	return playerScore(gs, playerID)
+}
+
 func sortedPlayerIDs(gs *game.GameState) []string {
 	ids := make([]string, 0, len(gs.Players))
 	for id := range gs.Players {

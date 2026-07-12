@@ -28,34 +28,44 @@ type Config struct {
 }
 
 type Metrics struct {
-	Episodes               int                `json:"episodes"`
-	Records                int                `json:"records"`
-	CompletedGames         int                `json:"completedGames"`
-	TruncatedGames         int                `json:"truncatedGames"`
-	TerminalGames          int                `json:"terminalGames"`
-	ScenarioCounts         map[string]int     `json:"scenarioCounts"`
-	OrderedMatchupCounts   map[string]int     `json:"orderedMatchupCounts,omitempty"`
-	UnorderedMatchupCounts map[string]int     `json:"unorderedMatchupCounts,omitempty"`
-	RootFactionCounts      map[string]int     `json:"rootFactionCounts,omitempty"`
-	R1BuildRatesByFaction  stats.R1BuildRates `json:"r1BuildRatesByFaction,omitempty"`
-	FinalRoundCounts       map[string]int     `json:"finalRoundCounts,omitempty"`
-	FinalPhaseCounts       map[string]int     `json:"finalPhaseCounts,omitempty"`
-	TerminalPhaseCounts    map[string]int     `json:"terminalPhaseCounts,omitempty"`
-	TruncatedPhaseCounts   map[string]int     `json:"truncatedPhaseCounts,omitempty"`
-	ActionTypeCounts       map[string]int     `json:"actionTypeCounts,omitempty"`
-	LastActionTypeCounts   map[string]int     `json:"lastActionTypeCounts,omitempty"`
-	ElapsedMillis          int64              `json:"elapsedMillis"`
-	LegalMillis            int64              `json:"legalMillis"`
-	SearchMillis           int64              `json:"searchMillis"`
-	ApplyMillis            int64              `json:"applyMillis"`
-	LegalNanos             int64              `json:"legalNanos,omitempty"`
-	SearchNanos            int64              `json:"searchNanos,omitempty"`
-	ApplyNanos             int64              `json:"applyNanos,omitempty"`
-	AveragePliesPerEpisode float64            `json:"averagePliesPerEpisode"`
-	AverageBranchingFactor float64            `json:"averageBranchingFactor"`
-	RecordsPerSecond       float64            `json:"recordsPerSecond"`
-	MaxFinalRound          int                `json:"maxFinalRound,omitempty"`
-	Workers                int                `json:"workers,omitempty"`
+	Episodes               int                   `json:"episodes"`
+	Records                int                   `json:"records"`
+	CompletedGames         int                   `json:"completedGames"`
+	TruncatedGames         int                   `json:"truncatedGames"`
+	TerminalGames          int                   `json:"terminalGames"`
+	ScenarioCounts         map[string]int        `json:"scenarioCounts"`
+	OrderedMatchupCounts   map[string]int        `json:"orderedMatchupCounts,omitempty"`
+	UnorderedMatchupCounts map[string]int        `json:"unorderedMatchupCounts,omitempty"`
+	RootFactionCounts      map[string]int        `json:"rootFactionCounts,omitempty"`
+	R1BuildRatesByFaction  stats.R1BuildRates    `json:"r1BuildRatesByFaction,omitempty"`
+	FinalScoresByFaction   stats.FinalScoreRates `json:"finalScoresByFaction,omitempty"`
+	FinalScoreSamples      int                   `json:"finalScoreSamples,omitempty"`
+	FinalScoreTotal        int                   `json:"finalScoreTotal,omitempty"`
+	WinningScoreTotal      int                   `json:"winningScoreTotal,omitempty"`
+	LosingScoreTotal       int                   `json:"losingScoreTotal,omitempty"`
+	ScoreMarginTotal       int                   `json:"scoreMarginTotal,omitempty"`
+	AverageFinalScore      float64               `json:"averageFinalScore,omitempty"`
+	AverageWinningScore    float64               `json:"averageWinningScore,omitempty"`
+	AverageLosingScore     float64               `json:"averageLosingScore,omitempty"`
+	AverageScoreMargin     float64               `json:"averageScoreMargin,omitempty"`
+	FinalRoundCounts       map[string]int        `json:"finalRoundCounts,omitempty"`
+	FinalPhaseCounts       map[string]int        `json:"finalPhaseCounts,omitempty"`
+	TerminalPhaseCounts    map[string]int        `json:"terminalPhaseCounts,omitempty"`
+	TruncatedPhaseCounts   map[string]int        `json:"truncatedPhaseCounts,omitempty"`
+	ActionTypeCounts       map[string]int        `json:"actionTypeCounts,omitempty"`
+	LastActionTypeCounts   map[string]int        `json:"lastActionTypeCounts,omitempty"`
+	ElapsedMillis          int64                 `json:"elapsedMillis"`
+	LegalMillis            int64                 `json:"legalMillis"`
+	SearchMillis           int64                 `json:"searchMillis"`
+	ApplyMillis            int64                 `json:"applyMillis"`
+	LegalNanos             int64                 `json:"legalNanos,omitempty"`
+	SearchNanos            int64                 `json:"searchNanos,omitempty"`
+	ApplyNanos             int64                 `json:"applyNanos,omitempty"`
+	AveragePliesPerEpisode float64               `json:"averagePliesPerEpisode"`
+	AverageBranchingFactor float64               `json:"averageBranchingFactor"`
+	RecordsPerSecond       float64               `json:"recordsPerSecond"`
+	MaxFinalRound          int                   `json:"maxFinalRound,omitempty"`
+	Workers                int                   `json:"workers,omitempty"`
 }
 
 type Record struct {
@@ -278,6 +288,7 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 	}
 	r1Tracker.Finalize(position.State)
 	stats.AddR1BuildSamples(metrics.R1BuildRatesByFaction, r1Tracker.Samples())
+	addFinalScores(&metrics, position)
 	truncated := !position.IsTerminal() && len(records) >= config.MaxPlies
 	finalRound := 0
 	finalPhase := "unknown"
@@ -328,6 +339,7 @@ func newMetrics() Metrics {
 		UnorderedMatchupCounts: make(map[string]int),
 		RootFactionCounts:      make(map[string]int),
 		R1BuildRatesByFaction:  make(stats.R1BuildRates),
+		FinalScoresByFaction:   make(stats.FinalScoreRates),
 		FinalRoundCounts:       make(map[string]int),
 		FinalPhaseCounts:       make(map[string]int),
 		TerminalPhaseCounts:    make(map[string]int),
@@ -355,6 +367,12 @@ func mergeMetrics(total *Metrics, part Metrics) {
 	mergeStringInt(total.UnorderedMatchupCounts, part.UnorderedMatchupCounts)
 	mergeStringInt(total.RootFactionCounts, part.RootFactionCounts)
 	stats.MergeR1BuildRates(total.R1BuildRatesByFaction, part.R1BuildRatesByFaction)
+	stats.MergeFinalScoreRates(total.FinalScoresByFaction, part.FinalScoresByFaction)
+	total.FinalScoreSamples += part.FinalScoreSamples
+	total.FinalScoreTotal += part.FinalScoreTotal
+	total.WinningScoreTotal += part.WinningScoreTotal
+	total.LosingScoreTotal += part.LosingScoreTotal
+	total.ScoreMarginTotal += part.ScoreMarginTotal
 	mergeStringInt(total.FinalRoundCounts, part.FinalRoundCounts)
 	mergeStringInt(total.FinalPhaseCounts, part.FinalPhaseCounts)
 	mergeStringInt(total.TerminalPhaseCounts, part.TerminalPhaseCounts)
@@ -379,10 +397,46 @@ func finalizeMetrics(metrics *Metrics) {
 	if metrics.Records > 0 {
 		metrics.AverageBranchingFactor /= float64(metrics.Records)
 	}
+	if metrics.FinalScoreSamples > 0 {
+		metrics.AverageFinalScore = float64(metrics.FinalScoreTotal) / float64(metrics.FinalScoreSamples)
+	}
+	if metrics.CompletedGames > 0 {
+		metrics.AverageWinningScore = float64(metrics.WinningScoreTotal) / float64(metrics.CompletedGames)
+		metrics.AverageLosingScore = float64(metrics.LosingScoreTotal) / float64(metrics.CompletedGames)
+		metrics.AverageScoreMargin = float64(metrics.ScoreMarginTotal) / float64(metrics.CompletedGames)
+	}
 	elapsedSeconds := float64(metrics.ElapsedMillis) / 1000.0
 	if elapsedSeconds > 0 {
 		metrics.RecordsPerSecond = float64(metrics.Records) / elapsedSeconds
 	}
+}
+
+func addFinalScores(metrics *Metrics, position *env.Position) {
+	if metrics == nil || position == nil || position.State == nil || !position.IsTerminal() {
+		return
+	}
+	scores := make([]int, 0, len(position.State.Players))
+	for _, playerID := range playerIDs(position) {
+		player := position.State.GetPlayer(playerID)
+		if player == nil || player.Faction == nil {
+			continue
+		}
+		score := env.FinalScoreFor(position.State, playerID)
+		scores = append(scores, score)
+		metrics.FinalScoreSamples++
+		metrics.FinalScoreTotal += score
+		stats.AddFinalScore(metrics.FinalScoresByFaction, player.Faction.GetType().String(), score)
+	}
+	if len(scores) != 2 {
+		return
+	}
+	winning, losing := scores[0], scores[1]
+	if losing > winning {
+		winning, losing = losing, winning
+	}
+	metrics.WinningScoreTotal += winning
+	metrics.LosingScoreTotal += losing
+	metrics.ScoreMarginTotal += winning - losing
 }
 
 func writeProgress(writer io.Writer, result episodeResult, metrics Metrics, elapsed time.Duration, totalEpisodes int) {

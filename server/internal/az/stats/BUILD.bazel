@@ -2,7 +2,10 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "stats",
-    srcs = ["r1_build.go"],
+    srcs = [
+        "final_score.go",
+        "r1_build.go",
+    ],
     importpath = "github.com/lukev/tm_server/internal/az/stats",
     visibility = ["//visibility:public"],
     deps = [

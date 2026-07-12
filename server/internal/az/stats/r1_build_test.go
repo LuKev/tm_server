@@ -73,3 +73,20 @@ func TestR1BuildTrackerFinalizeSkipsGamesThatRemainInRoundOne(t *testing.T) {
 		t.Fatalf("Finalize captured %d samples before round 1 ended", got)
 	}
 }
+
+func TestFinalScoreRatesMergeWeightedAverages(t *testing.T) {
+	left := FinalScoreRates{}
+	AddFinalScore(left, "Giants", 100)
+	AddFinalScore(left, "Giants", 80)
+	right := FinalScoreRates{}
+	AddFinalScore(right, "Giants", 50)
+	AddFinalScore(right, "Nomads", 70)
+
+	MergeFinalScoreRates(left, right)
+	if got := left["Giants"].AverageScore; got != 230.0/3.0 {
+		t.Fatalf("Giants average score = %v, want %v", got, 230.0/3.0)
+	}
+	if got := left["Nomads"].AverageScore; got != 70 {
+		t.Fatalf("Nomads average score = %v, want 70", got)
+	}
+}

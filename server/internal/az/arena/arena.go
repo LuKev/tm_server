@@ -35,6 +35,13 @@ type Result struct {
 	WinRateStdErr                  float64                  `json:"winRateStdErr"`
 	WinRateCI95                    [2]float64               `json:"winRateCi95"`
 	AverageMargin                  float64                  `json:"averageMargin"`
+	CandidateAverageScore          float64                  `json:"candidateAverageScore"`
+	BaselineAverageScore           float64                  `json:"baselineAverageScore"`
+	AverageScoreDifference         float64                  `json:"averageScoreDifference"`
+	CandidateScoreTotal            int                      `json:"candidateScoreTotal"`
+	BaselineScoreTotal             int                      `json:"baselineScoreTotal"`
+	CandidateFinalScoresByFaction  stats.FinalScoreRates    `json:"candidateFinalScoresByFaction,omitempty"`
+	BaselineFinalScoresByFaction   stats.FinalScoreRates    `json:"baselineFinalScoresByFaction,omitempty"`
 	AveragePlies                   float64                  `json:"averagePlies"`
 	TerminalGames                  int                      `json:"terminalGames"`
 	TruncatedGames                 int                      `json:"truncatedGames"`
@@ -114,6 +121,8 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 		UnorderedMatchupStats:          make(map[string]MatchupResult),
 		CandidateR1BuildRatesByFaction: make(stats.R1BuildRates),
 		BaselineR1BuildRatesByFaction:  make(stats.R1BuildRates),
+		CandidateFinalScoresByFaction:  make(stats.FinalScoreRates),
+		BaselineFinalScoresByFaction:   make(stats.FinalScoreRates),
 		FinalRoundCounts:               make(map[string]int),
 		FinalPhaseCounts:               make(map[string]int),
 		TerminalPhaseCounts:            make(map[string]int),
@@ -161,6 +170,9 @@ func Evaluate(candidate, baseline model.Evaluator, config Config) (Result, error
 	if result.Games > 0 {
 		result.AverageMargin /= float64(result.Games)
 		result.AveragePlies /= float64(result.Games)
+		result.CandidateAverageScore = float64(result.CandidateScoreTotal) / float64(result.Games)
+		result.BaselineAverageScore = float64(result.BaselineScoreTotal) / float64(result.Games)
+		result.AverageScoreDifference = result.CandidateAverageScore - result.BaselineAverageScore
 		result.WinRate = (float64(result.CandidateWins) + 0.5*float64(result.Draws)) / float64(result.Games)
 		result.WinRateStdErr = math.Sqrt(result.WinRate * (1 - result.WinRate) / float64(result.Games))
 		margin := 1.96 * result.WinRateStdErr
@@ -177,6 +189,10 @@ type gameResult struct {
 	candidatePlayer    string
 	plies              int
 	margin             float64
+	candidateScore     int
+	baselineScore      int
+	candidateFaction   string
+	baselineFaction    string
 	finalRound         int
 	finalPhase         string
 	terminal           bool
@@ -256,6 +272,18 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 		}
 	}
 	out.margin = position.ValueFor(candidatePlayer)
+	out.candidateScore = env.FinalScoreFor(position.State, candidatePlayer)
+	baselinePlayer := "p1"
+	if candidatePlayer == "p1" {
+		baselinePlayer = "p2"
+	}
+	out.baselineScore = env.FinalScoreFor(position.State, baselinePlayer)
+	if player := position.State.GetPlayer(candidatePlayer); player != nil && player.Faction != nil {
+		out.candidateFaction = player.Faction.GetType().String()
+	}
+	if player := position.State.GetPlayer(baselinePlayer); player != nil && player.Faction != nil {
+		out.baselineFaction = player.Faction.GetType().String()
+	}
 	if position != nil && position.State != nil {
 		out.finalRound = position.State.Round
 		out.finalPhase = phaseName(position.State.Phase)
@@ -274,6 +302,10 @@ func mergeGameResult(result *Result, game gameResult) {
 	}
 	result.AveragePlies += float64(game.plies)
 	result.AverageMargin += game.margin
+	result.CandidateScoreTotal += game.candidateScore
+	result.BaselineScoreTotal += game.baselineScore
+	stats.AddFinalScore(result.CandidateFinalScoresByFaction, game.candidateFaction, game.candidateScore)
+	stats.AddFinalScore(result.BaselineFinalScoresByFaction, game.baselineFaction, game.baselineScore)
 	result.SearchNanos += game.searchNanos
 	result.SearchMillis = result.SearchNanos / int64(time.Millisecond)
 	result.FinalRoundCounts[fmt.Sprint(game.finalRound)]++
@@ -345,6 +377,8 @@ func writeProgress(writer io.Writer, game gameResult, result Result, elapsed tim
 		"terminal":          game.terminal,
 		"truncated":         game.truncated,
 		"margin":            game.margin,
+		"candidateScore":    game.candidateScore,
+		"baselineScore":     game.baselineScore,
 		"gameElapsedMillis": game.elapsed.Milliseconds(),
 		"completedGames":    result.Games,
 		"totalGames":        totalGames,
