@@ -50,3 +50,15 @@ Each cell is `Temple or Sanctuary / Stronghold`; every faction has 24 self-play 
 - Absolute VP did not improve monotonically. Iteration 5 won the arena gate despite a `-0.11` average VP change.
 - Round-1 Temple rates remain low and noisy. Iteration 5 Giants improved to `20.8%`, but Swarmlings remained `8.3%`.
 - No faction built a round-1 Stronghold in any of the 1,680 tracked player-seats across these five cycles. The current training scale is not teaching the desired opening priorities.
+
+## Direct Iteration 5 vs Iteration 1 Check
+
+A separate 168-game `matrix:base_ordered` arena compared the final promoted iteration 5 directly with iteration 1 at 8 simulations:
+
+- Iteration 5: 86 wins.
+- Iteration 1: 81 wins.
+- Draws: 1.
+- Iteration 5 score: 51.49%, 95% CI `[43.93%, 59.05%]`.
+- Average final VP: 82.84 for iteration 5 versus 82.58 for iteration 1, a `+0.26 VP` difference.
+
+This direct comparison does not establish a meaningful improvement over iteration 1. The successive one-step promotion results did not compound into a clear end-to-end gain, indicating that the current 168-game gate is vulnerable to noise, non-transitive policies, or repeated fine-tuning drift.
