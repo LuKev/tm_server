@@ -65,6 +65,9 @@ func main() {
 	if *games <= 0 {
 		exitf("-games must be positive")
 	}
+	if (*promoteMinGames > 0 || *promoteCI95LowerBound > 0) && (*scenario == "matrix:base_ordered" || *scenario == "base_ordered_matrix") {
+		exitf("matrix:base_ordered is not balanced for promotion; use -scenario=matrix:base_paired")
+	}
 	startedAt := time.Now()
 	candidate := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: *candidateURL})
 	baseline := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: *baselineURL})

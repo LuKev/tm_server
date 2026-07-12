@@ -5,6 +5,7 @@ import (
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/replay"
@@ -45,6 +46,33 @@ func TestBaseOrderedMatchupScenariosCoverLegalBasePairs(t *testing.T) {
 	}
 	if !seen["matchup:Nomads:Witches"] || !seen["matchup:Witches:Nomads"] {
 		t.Fatalf("expected both ordered Nomads/Witches matchups in scenario set")
+	}
+}
+
+func TestBasePairedMatchupScenariosBalanceCandidateFactions(t *testing.T) {
+	scenarios := BasePairedMatchupScenarios()
+	if len(scenarios) != 168 {
+		t.Fatalf("paired base matchups = %d, want 168", len(scenarios))
+	}
+	candidateFactionCounts := make(map[string]int)
+	for i := 0; i < len(scenarios); i += 2 {
+		if scenarios[i] != scenarios[i+1] {
+			t.Fatalf("games %d and %d are not a pair: %q != %q", i, i+1, scenarios[i], scenarios[i+1])
+		}
+		parts := strings.Split(strings.TrimPrefix(scenarios[i], "matchup:"), ":")
+		if len(parts) != 2 {
+			t.Fatalf("invalid paired scenario %q", scenarios[i])
+		}
+		candidateFactionCounts[parts[0]]++
+		candidateFactionCounts[parts[1]]++
+	}
+	if len(candidateFactionCounts) != 14 {
+		t.Fatalf("candidate faction count = %d, want 14", len(candidateFactionCounts))
+	}
+	for faction, count := range candidateFactionCounts {
+		if count != 12 {
+			t.Fatalf("candidate games for %s = %d, want 12", faction, count)
+		}
 	}
 }
 

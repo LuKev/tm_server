@@ -344,6 +344,7 @@ func ScenarioNames() []string {
 	names = append(names, "random_base")
 	names = append(names, "randomized_base")
 	names = append(names, "matrix:base_ordered")
+	names = append(names, "matrix:base_paired")
 	names = append(names, "matchup:Nomads:Witches")
 	names = append(names, "snapshots:/path/to/snapshot_seeds.jsonl")
 	names = append(names, "training_mix")
@@ -357,9 +358,29 @@ func ScenarioSet(name string) []string {
 	switch strings.TrimSpace(name) {
 	case "matrix:base_ordered", "base_ordered_matrix":
 		return BaseOrderedMatchupScenarios()
+	case "matrix:base_paired", "base_paired_matrix":
+		return BasePairedMatchupScenarios()
 	default:
 		return nil
 	}
+}
+
+// BasePairedMatchupScenarios returns each legal unordered faction pair twice.
+// Arena candidate ownership alternates by game index, so adjacent duplicates
+// make both models play the same faction seats once per pair.
+func BasePairedMatchupScenarios() []string {
+	scenarios := make([]string, 0, len(BaseOrderedMatchupScenarios()))
+	for firstIndex, first := range baseFactionPool {
+		for secondIndex := firstIndex + 1; secondIndex < len(baseFactionPool); secondIndex++ {
+			second := baseFactionPool[secondIndex]
+			if !validBaseFactionPair(first, second) {
+				continue
+			}
+			name := matchupScenarioName(first, second)
+			scenarios = append(scenarios, name, name)
+		}
+	}
+	return scenarios
 }
 
 // ScheduledScenario returns the concrete scenario for an episode or arena game.

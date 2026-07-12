@@ -48,7 +48,7 @@ Do not rely on old `/tmp` checkpoint paths as durable incumbents. The previously
 
 Required baseline checks:
 
-- `matrix:base_ordered`, `168` games minimum, `max_plies=500`, `0` truncations expected.
+- `matrix:base_paired`, `168` games minimum, `max_plies=500`, `0` truncations expected. This is 84 legal faction pairs played twice with candidate/incumbent ownership swapped; do not use `matrix:base_ordered` for promotion.
 - `training_mix`, at least `200` games for a serious promotion gate, because randomized assets catch failures that a single ordered matrix pass can miss.
 - A smaller targeted suite for known weak or historically fragile matchups, especially any matchup involving Mermaids or any future scenario with truncations.
 - Promotion should require `-promote_min_games` and `-promote_ci95_lower_bound`, not only raw win rate.
@@ -59,7 +59,7 @@ Use a two-lane loop:
 
 - Fast lane: local or small Modal run, `336-840` ordered-matrix games, `sims=8`, h512 transfer training at conservative LR, then an `84`-game ordered smoke arena. This catches bad data/code/model changes in hours.
 - Promotion gate: do not promote from an `84`-game smoke result. Any candidate considered for promotion should get at least a `168`-game arena gate.
-- Strength lane: Modal run, `10k-20k` ordered-matrix plus targeted games, optionally `sims=16` for part of the batch, h512 or h768 transfer training, then `336+` arena games split across `matrix:base_ordered` and `training_mix`.
+- Strength lane: Modal run, `10k-20k` ordered-matrix plus targeted games, optionally `sims=16` for part of the batch, h512 or h768 transfer training, then `336+` arena games split across `matrix:base_paired` and `training_mix`.
 
 Do not jump straight to very large self-play if the fast lane is flat. The 5k pass already proved volume helps when the data is clean and complete; the next gain should come from better data mix and higher-quality search targets.
 
@@ -132,7 +132,7 @@ The current hex model is probably good enough for the next scale step, but it is
 Use three gates:
 
 1. Smoke gate: `84` games across selected scenarios, used only to reject obvious failures.
-2. Ordered gate: `168` or `336` games on `matrix:base_ordered`, fixed seed, `max_plies=500`, `0` truncations.
+2. Paired gate: `168` or `336` games on `matrix:base_paired`, fixed seed, `max_plies=500`, `0` truncations.
 3. Serious gate: `200-500` games across `training_mix` plus targeted weak buckets, with confidence lower bound enabled.
 
 Promotion should require:

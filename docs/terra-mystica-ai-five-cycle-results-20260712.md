@@ -62,3 +62,7 @@ A separate 168-game `matrix:base_ordered` arena compared the final promoted iter
 - Average final VP: 82.84 for iteration 5 versus 82.58 for iteration 1, a `+0.26 VP` difference.
 
 This direct comparison does not establish a meaningful improvement over iteration 1. The successive one-step promotion results did not compound into a clear end-to-end gain, indicating that the current 168-game gate is vulnerable to noise, non-transitive policies, or repeated fine-tuning drift.
+
+The old arena schedule was subsequently found to be unpaired: candidate ownership alternated by game index while ordered faction matchups were generated in faction-pool order. Candidate faction exposure varied from 6 to 18 games per faction, making the gate unnecessarily sensitive to faction and seat interactions.
+
+A corrected 168-game `matrix:base_paired` arena uses 84 legal faction pairs twice each, with candidate and incumbent swapping ownership while faction seats stay fixed. Under this corrected gate, iteration 5 scored **90-74-4** against iteration 1: **54.76%**, 95% CI `[47.24%, 62.29%]`, and `+1.79 VP`. This supports a modest improvement, but not a marked one, and it remains just below the 55% point threshold.

@@ -90,7 +90,7 @@ for ITER in 2 3 4 5 6; do
   "$EVAL" \
     -candidate_url="http://127.0.0.1:$NEXT_PORT" \
     -baseline_url="http://127.0.0.1:$INCUMBENT_PORT" \
-    -scenario=matrix:base_ordered -games=168 -workers=8 -sims=8 \
+    -scenario=matrix:base_paired -games=168 -workers=8 -sims=8 \
     -batch_size=8 -global_batch_size=64 -global_batch_delay_ms=2 \
     -max_depth=120 -max_plies=500 -seed=$((20260740 + ITER)) \
     -promote_win_rate=0.55 -promote_min_games=168 \
