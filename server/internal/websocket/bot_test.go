@@ -50,6 +50,24 @@ func TestPrepareModelGame_AppliesFixedFactionsAndBotOptions(t *testing.T) {
 	}
 }
 
+func TestBotCanAct_WaitsForHumanTurnConfirmation(t *testing.T) {
+	gs := game.NewGameState()
+	gs.PendingTurnConfirmationPlayerID = "human"
+	gs.PendingTurnConfirmationSnapshot = game.NewGameState()
+
+	if botCanAct(gs, "model") {
+		t.Fatal("bot should wait while the human owns the turn confirmation window")
+	}
+	if !botCanAct(gs, "human") {
+		t.Fatal("pending player should remain eligible to resolve its confirmation window")
+	}
+
+	gs.ClearPendingTurnConfirmation()
+	if !botCanAct(gs, "model") {
+		t.Fatal("bot should act after the confirmation window is cleared")
+	}
+}
+
 func TestHandleCreateAndStartModelGame_StartsPlayableGame(t *testing.T) {
 	games := game.NewManager()
 	lobbies := lobby.NewManager()

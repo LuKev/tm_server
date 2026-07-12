@@ -96,6 +96,10 @@ func (b *BotManager) run(gameID string, hub *Hub) {
 			b.broadcastStatus(hub, gameID, config.PlayerID, false, "")
 			return
 		}
+		if !botCanAct(gs, config.PlayerID) {
+			b.broadcastStatus(hub, gameID, config.PlayerID, false, "")
+			return
+		}
 		revision, ok := b.games.GetRevision(gameID)
 		if !ok {
 			return
@@ -137,6 +141,14 @@ func (b *BotManager) run(gameID string, hub *Hub) {
 		time.Sleep(25 * time.Millisecond)
 	}
 	log.Printf("bot action loop reached safety limit for game %s", gameID)
+}
+
+func botCanAct(gs *game.GameState, playerID string) bool {
+	if gs == nil || strings.TrimSpace(playerID) == "" {
+		return false
+	}
+	pendingPlayerID := strings.TrimSpace(gs.PendingTurnConfirmationPlayerID)
+	return pendingPlayerID == "" || pendingPlayerID == strings.TrimSpace(playerID)
 }
 
 func (b *BotManager) configFor(gameID string) (BotGameConfig, bool) {
