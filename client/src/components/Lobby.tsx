@@ -105,6 +105,7 @@ export function Lobby(): React.ReactElement {
 
   useEffect(() => {
     if (gameState?.id && activePlayerName !== '' && gameState.players[activePlayerName] && gameState.started) {
+      useGameStore.getState().bindLocalPlayerToGame(gameState.id, activePlayerName)
       void navigate(`/game/${gameState.id}`)
     }
   }, [activePlayerName, gameState, navigate])
@@ -125,7 +126,9 @@ export function Lobby(): React.ReactElement {
         setLobbyError(null)
       } else if (msg.type === 'model_game_started') {
         const payload = (msg.payload ?? {}) as StartedGamePayload
-        if (payload.playerId) {
+        if (payload.playerId && payload.gameId) {
+          useGameStore.getState().bindLocalPlayerToGame(payload.gameId, payload.playerId)
+        } else if (payload.playerId) {
           useGameStore.getState().setLocalPlayerId(payload.playerId)
         }
         if (payload.gameId) {

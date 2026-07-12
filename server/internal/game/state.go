@@ -71,15 +71,16 @@ type GameState struct {
 	PendingPostActionSpecialActions  map[string]map[SpecialActionType]bool `json:"-"`
 	TurnTimer                        *TurnTimerState                       `json:"turnTimer,omitempty"`
 	ReplayMode                       map[string]bool                       `json:"replayMode"`
-	ReplayAcolytesCultTracks         map[string][]CultTrack                `json:"-"`
-	ReplayAcolytesCultTrackIndex     map[string]int                        `json:"-"`
-	ReplayRiverBuildHexes            map[string][]board.Hex                `json:"-"`
-	ReplayRiverBuildHexIndex         map[string]int                        `json:"-"`
-	ReplayCultSpadeBuildHexes        map[string]map[board.Hex]bool         `json:"-"`
-	PendingSnowShamansPassUpgrade    map[string]SnowShamansPassUpgrade     `json:"-"`
-	FinalScoring                     map[string]*PlayerFinalScore          `json:"finalScoring"`
-	SuppressTurnAdvance              bool                                  `json:"-"`
-	RiverTownHex                     *board.Hex                            `json:"-"` // For Mermaids river town formation
+	allowAZAutoConversions           bool
+	ReplayAcolytesCultTracks         map[string][]CultTrack            `json:"-"`
+	ReplayAcolytesCultTrackIndex     map[string]int                    `json:"-"`
+	ReplayRiverBuildHexes            map[string][]board.Hex            `json:"-"`
+	ReplayRiverBuildHexIndex         map[string]int                    `json:"-"`
+	ReplayCultSpadeBuildHexes        map[string]map[board.Hex]bool     `json:"-"`
+	PendingSnowShamansPassUpgrade    map[string]SnowShamansPassUpgrade `json:"-"`
+	FinalScoring                     map[string]*PlayerFinalScore      `json:"finalScoring"`
+	SuppressTurnAdvance              bool                              `json:"-"`
+	RiverTownHex                     *board.Hex                        `json:"-"` // For Mermaids river town formation
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection

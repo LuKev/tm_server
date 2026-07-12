@@ -15,6 +15,13 @@ type replayAutoCostPlan struct {
 	powerToWorkers  int
 	workersToCoins  int
 	powerToCoins    int
+	steps           []replayAutoCostStep
+}
+
+type replayAutoCostStep struct {
+	burn       int
+	conversion ConversionType
+	amount     int
 }
 
 func (gs *GameState) canAffordWithReplayAutoConversions(player *Player, cost factions.Cost) bool {
@@ -24,7 +31,7 @@ func (gs *GameState) canAffordWithReplayAutoConversions(player *Player, cost fac
 	if !gs.allowsReplayAutoConversions(cost) {
 		return player.Resources.CanAfford(cost)
 	}
-	_, ok := planReplayAutoCost(player, cost)
+	_, ok := planReplayAutoCost(gs, player, cost)
 	return ok
 }
 
@@ -36,11 +43,11 @@ func (gs *GameState) spendWithReplayAutoConversions(player *Player, cost faction
 		return player.Resources.Spend(cost)
 	}
 
-	plan, ok := planReplayAutoCost(player, cost)
+	plan, ok := planReplayAutoCost(gs, player, cost)
 	if !ok {
 		return player.Resources.Spend(cost)
 	}
-	if err := plan.Apply(player); err != nil {
+	if err := plan.Apply(gs, player); err != nil {
 		return err
 	}
 	return player.Resources.Spend(cost)
@@ -53,18 +60,19 @@ func (gs *GameState) prepareReplayAutoConversions(player *Player, cost factions.
 	if !gs.allowsReplayAutoConversions(cost) {
 		return nil
 	}
-	plan, ok := planReplayAutoCost(player, cost)
+	plan, ok := planReplayAutoCost(gs, player, cost)
 	if !ok {
 		return nil
 	}
-	return plan.Apply(player)
+	return plan.Apply(gs, player)
 }
 
 func (gs *GameState) allowsReplayAutoConversions(cost factions.Cost) bool {
-	if gs == nil || gs.ReplayMode == nil {
+	if gs == nil {
 		return false
 	}
-	if !gs.ReplayMode["__az_auto_conversions__"] && !(gs.ReplayMode["__replay__"] && gs.ReplayMode["__bga__"]) {
+	replayAutoConversions := gs.ReplayMode != nil && gs.ReplayMode["__replay__"] && gs.ReplayMode["__bga__"]
+	if !gs.allowAZAutoConversions && !replayAutoConversions {
 		return false
 	}
 	// Keep replay auto-funding scoped to non-power costs. Logged power spending
@@ -72,155 +80,142 @@ func (gs *GameState) allowsReplayAutoConversions(cost factions.Cost) bool {
 	return cost.Power == 0
 }
 
-func (p replayAutoCostPlan) Apply(player *Player) error {
-	if player == nil || player.Resources == nil {
-		return fmt.Errorf("nil resources")
+// EnableAZAutoConversionsForClone enables funding only on a disposable AZ state clone.
+func EnableAZAutoConversionsForClone(gs *GameState) {
+	if gs != nil {
+		gs.allowAZAutoConversions = true
 	}
-	resources := player.Resources
-	if p.vpToCoins > 0 {
-		if player.VictoryPoints < p.vpToCoins {
-			return fmt.Errorf("not enough VP for Alchemists coin conversion")
+}
+
+func (p replayAutoCostPlan) Apply(gs *GameState, player *Player) error {
+	if gs == nil || player == nil || player.Resources == nil {
+		return fmt.Errorf("nil game state or resources")
+	}
+	for _, step := range p.steps {
+		if step.burn > 0 {
+			if err := (&BurnPowerAction{BaseAction: BaseAction{Type: ActionBurnPower, PlayerID: player.ID}, Amount: step.burn}).Execute(gs); err != nil {
+				return err
+			}
+			continue
 		}
-		player.VictoryPoints -= p.vpToCoins
-		resources.Coins += p.vpToCoins
-	}
-	if p.burn > 0 {
-		if err := resources.BurnPower(p.burn); err != nil {
-			return err
+		if step.amount <= 0 {
+			continue
 		}
-	}
-	if p.powerToPriests > 0 {
-		if err := resources.ConvertPowerToPriests(p.powerToPriests); err != nil {
-			return err
+		action := &ConversionAction{
+			BaseAction:     BaseAction{Type: ActionConversion, PlayerID: player.ID},
+			ConversionType: step.conversion,
+			Amount:         step.amount,
 		}
-	}
-	if p.priestsToWorker > 0 {
-		if err := resources.ConvertPriestToWorker(p.priestsToWorker); err != nil {
-			return err
-		}
-	}
-	if p.powerToWorkers > 0 {
-		if err := resources.ConvertPowerToWorkers(p.powerToWorkers); err != nil {
-			return err
-		}
-	}
-	if p.workersToCoins > 0 {
-		if err := resources.ConvertWorkerToCoin(p.workersToCoins); err != nil {
-			return err
-		}
-	}
-	if p.powerToCoins > 0 {
-		if err := resources.ConvertPowerToCoins(p.powerToCoins); err != nil {
+		if err := action.Execute(gs); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func planReplayAutoCost(player *Player, cost factions.Cost) (replayAutoCostPlan, bool) {
-	if player == nil || player.Resources == nil {
+func planReplayAutoCost(gs *GameState, player *Player, cost factions.Cost) (replayAutoCostPlan, bool) {
+	if gs == nil || player == nil || player.Resources == nil {
 		return replayAutoCostPlan{}, false
 	}
-	resources := player.Resources
-	if resources.CanAfford(cost) {
+	if player.Resources.CanAfford(cost) {
 		return replayAutoCostPlan{}, true
 	}
-
-	clone := resources.Clone()
+	cloneState := gs.CloneForUndo()
+	clonePlayer := cloneState.GetPlayer(player.ID)
+	if clonePlayer == nil || clonePlayer.Resources == nil {
+		return replayAutoCostPlan{}, false
+	}
+	clone := clonePlayer.Resources
 	plan := replayAutoCostPlan{}
-	victoryPoints := player.VictoryPoints
-	reservedPower := cost.Power
+
+	applyBurn := func(amount int) bool {
+		if amount <= 0 {
+			return true
+		}
+		action := &BurnPowerAction{BaseAction: BaseAction{Type: ActionBurnPower, PlayerID: player.ID}, Amount: amount}
+		if err := action.Execute(cloneState); err != nil {
+			return false
+		}
+		plan.burn += amount
+		plan.steps = append(plan.steps, replayAutoCostStep{burn: amount})
+		return true
+	}
+	applyConversion := func(conversion ConversionType, amount int) bool {
+		if amount <= 0 {
+			return true
+		}
+		action := &ConversionAction{
+			BaseAction:     BaseAction{Type: ActionConversion, PlayerID: player.ID},
+			ConversionType: conversion,
+			Amount:         amount,
+		}
+		if err := action.Execute(cloneState); err != nil {
+			return false
+		}
+		switch conversion {
+		case ConversionPowerToPriest:
+			plan.powerToPriests += amount
+		case ConversionPowerToWorker:
+			plan.powerToWorkers += amount
+		case ConversionPowerToCoin:
+			plan.powerToCoins += amount
+		case ConversionPriestToWorker:
+			plan.priestsToWorker += amount
+		case ConversionWorkerToCoin:
+			plan.workersToCoins += amount
+		case ConversionAlchVPToCoin:
+			plan.vpToCoins += amount
+		}
+		plan.steps = append(plan.steps, replayAutoCostStep{conversion: conversion, amount: amount})
+		return true
+	}
 
 	ensureSpendablePower := func(required int) bool {
 		needed := required - clone.Power.Bowl3
 		if needed <= 0 {
 			return true
 		}
-		if !clone.Power.CanBurn(needed) {
-			return false
+		burnAmount := needed
+		if clonePlayer.Faction != nil && clonePlayer.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+			burnAmount = (needed + 1) / 2
 		}
-		if err := clone.Power.BurnPower(needed); err != nil {
-			return false
-		}
-		plan.burn += needed
-		return true
+		return applyBurn(burnAmount) && clone.Power.Bowl3 >= required
 	}
-	convertPowerToPriests := func(amount int) bool {
-		if amount <= 0 {
+	powerConversionYield := func() int {
+		if clonePlayer.Faction != nil && clonePlayer.Faction.GetType() == models.FactionTheEnlightened && clonePlayer.HasStrongholdAbility {
+			return 2
+		}
+		return 1
+	}
+	convertPowerToPriests := func(shortfall int) bool {
+		if shortfall <= 0 || isRiverwalkers(clonePlayer) {
+			return shortfall <= 0
+		}
+		amount := (shortfall + powerConversionYield() - 1) / powerConversionYield()
+		if !ensureSpendablePower(amount * 5) {
+			return false
+		}
+		return applyConversion(ConversionPowerToPriest, amount)
+	}
+	convertPowerToWorkers := func(shortfall int) bool {
+		if shortfall <= 0 {
 			return true
 		}
-		required := reservedPower + amount*5
-		if !ensureSpendablePower(required) {
+		amount := (shortfall + powerConversionYield() - 1) / powerConversionYield()
+		if !ensureSpendablePower(amount * 3) {
 			return false
 		}
-		if err := clone.ConvertPowerToPriests(amount); err != nil {
-			return false
-		}
-		plan.powerToPriests += amount
-		return true
+		return applyConversion(ConversionPowerToWorker, amount)
 	}
-	convertPowerToWorkers := func(amount int) bool {
-		if amount <= 0 {
+	convertPowerToCoins := func(shortfall int) bool {
+		if shortfall <= 0 {
 			return true
 		}
-		required := reservedPower + amount*3
-		if !ensureSpendablePower(required) {
+		amount := (shortfall + powerConversionYield() - 1) / powerConversionYield()
+		if !ensureSpendablePower(amount) {
 			return false
 		}
-		if err := clone.ConvertPowerToWorkers(amount); err != nil {
-			return false
-		}
-		plan.powerToWorkers += amount
-		return true
-	}
-	convertPowerToCoins := func(amount int) bool {
-		if amount <= 0 {
-			return true
-		}
-		required := reservedPower + amount
-		if !ensureSpendablePower(required) {
-			return false
-		}
-		if err := clone.ConvertPowerToCoins(amount); err != nil {
-			return false
-		}
-		plan.powerToCoins += amount
-		return true
-	}
-	convertPriestsToWorkers := func(amount int) bool {
-		if amount <= 0 {
-			return true
-		}
-		if err := clone.ConvertPriestToWorker(amount); err != nil {
-			return false
-		}
-		plan.priestsToWorker += amount
-		return true
-	}
-	convertWorkersToCoins := func(amount int) bool {
-		if amount <= 0 {
-			return true
-		}
-		if err := clone.ConvertWorkerToCoin(amount); err != nil {
-			return false
-		}
-		plan.workersToCoins += amount
-		return true
-	}
-	convertAlchemistsVPToCoins := func(amount int) bool {
-		if amount <= 0 {
-			return true
-		}
-		if player.Faction == nil || player.Faction.GetType() != models.FactionAlchemists {
-			return false
-		}
-		if victoryPoints < amount {
-			return false
-		}
-		victoryPoints -= amount
-		clone.Coins += amount
-		plan.vpToCoins += amount
-		return true
+		return applyConversion(ConversionPowerToCoin, amount)
 	}
 
 	if priestShortfall := cost.Priests - clone.Priests; priestShortfall > 0 {
@@ -231,12 +226,19 @@ func planReplayAutoCost(player *Player, cost factions.Cost) (replayAutoCostPlan,
 
 	if workerShortfall := cost.Workers - clone.Workers; workerShortfall > 0 {
 		availablePriests := maxInt(0, clone.Priests-cost.Priests)
-		usePriests := minInt(workerShortfall, availablePriests)
-		if usePriests > 0 && !convertPriestsToWorkers(usePriests) {
+		workerYield := 1
+		if clonePlayer.Faction != nil && clonePlayer.Faction.GetType() == models.FactionDynionGeifr {
+			workerYield = 2
+		}
+		usePriests := minInt(availablePriests, (workerShortfall+workerYield-1)/workerYield)
+		if usePriests > 0 && !applyConversion(ConversionPriestToWorker, usePriests) {
 			return replayAutoCostPlan{}, false
 		}
 		workerShortfall = cost.Workers - clone.Workers
 		if workerShortfall > 0 && !convertPowerToWorkers(workerShortfall) {
+			return replayAutoCostPlan{}, false
+		}
+		if clone.Workers < cost.Workers {
 			return replayAutoCostPlan{}, false
 		}
 	}
@@ -244,32 +246,39 @@ func planReplayAutoCost(player *Player, cost factions.Cost) (replayAutoCostPlan,
 	if coinShortfall := cost.Coins - clone.Coins; coinShortfall > 0 {
 		availableWorkers := maxInt(0, clone.Workers-cost.Workers)
 		useWorkers := minInt(coinShortfall, availableWorkers)
-		if useWorkers > 0 && !convertWorkersToCoins(useWorkers) {
+		if useWorkers > 0 && !applyConversion(ConversionWorkerToCoin, useWorkers) {
 			return replayAutoCostPlan{}, false
 		}
 
 		coinShortfall = cost.Coins - clone.Coins
-		if coinShortfall > 0 {
-			availablePriests := maxInt(0, clone.Priests-cost.Priests)
-			usePriests := minInt(coinShortfall, availablePriests)
-			if usePriests > 0 {
-				if !convertPriestsToWorkers(usePriests) || !convertWorkersToCoins(usePriests) {
-					return replayAutoCostPlan{}, false
-				}
-			}
+		availablePriests := maxInt(0, clone.Priests-cost.Priests)
+		coinsPerPriest := 1
+		if clonePlayer.Faction != nil && clonePlayer.Faction.GetType() == models.FactionDynionGeifr {
+			coinsPerPriest = 2
 		}
-
-		coinShortfall = cost.Coins - clone.Coins
-		if coinShortfall > 0 && !convertPowerToCoins(coinShortfall) {
-			if player.Faction == nil || player.Faction.GetType() != models.FactionAlchemists {
+		usePriests := minInt(availablePriests, (coinShortfall+coinsPerPriest-1)/coinsPerPriest)
+		if usePriests > 0 {
+			workersBefore := clone.Workers
+			if !applyConversion(ConversionPriestToWorker, usePriests) {
+				return replayAutoCostPlan{}, false
+			}
+			coinShortfall = cost.Coins - clone.Coins
+			availableNewWorkers := maxInt(0, clone.Workers-maxInt(cost.Workers, workersBefore))
+			useNewWorkers := minInt(coinShortfall, availableNewWorkers)
+			if useNewWorkers > 0 && !applyConversion(ConversionWorkerToCoin, useNewWorkers) {
 				return replayAutoCostPlan{}, false
 			}
 		}
 
 		coinShortfall = cost.Coins - clone.Coins
-		if coinShortfall > 0 && player.Faction != nil && player.Faction.GetType() == models.FactionAlchemists {
-			useVP := minInt(coinShortfall, victoryPoints)
-			if useVP > 0 && !convertAlchemistsVPToCoins(useVP) {
+		if coinShortfall > 0 && !convertPowerToCoins(coinShortfall) && (clonePlayer.Faction == nil || clonePlayer.Faction.GetType() != models.FactionAlchemists) {
+			return replayAutoCostPlan{}, false
+		}
+
+		coinShortfall = cost.Coins - clone.Coins
+		if coinShortfall > 0 && clonePlayer.Faction != nil && clonePlayer.Faction.GetType() == models.FactionAlchemists {
+			useVP := minInt(coinShortfall, clonePlayer.VictoryPoints)
+			if useVP > 0 && !applyConversion(ConversionAlchVPToCoin, useVP) {
 				return replayAutoCostPlan{}, false
 			}
 		}

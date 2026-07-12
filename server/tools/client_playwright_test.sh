@@ -55,6 +55,7 @@ export TM_PLAYWRIGHT_CLIENT_COMMAND="./node_modules/.bin/vite --configLoader nat
 export TM_PLAYWRIGHT_CAPTURE="${TM_PLAYWRIGHT_CAPTURE:-0}"
 export PLAYWRIGHT_HTML_OUTPUT_DIR="${TEST_TMPDIR}/playwright-report"
 export VITE_BACKEND_PORT="${TM_PLAYWRIGHT_SERVER_PORT}"
+export VITE_ENABLE_TEST_HOOKS="1"
 export VITE_CACHE_DIR="${TEST_TMPDIR}/vite-cache"
 
 cmd=(

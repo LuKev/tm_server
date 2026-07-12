@@ -77,6 +77,24 @@ func TestManagerTurnConfirmation_RequiresExplicitConfirmBeforeNextPlayerActs(t *
 	}
 }
 
+func TestManagerGetGameSnapshotPreservesTurnConfirmation(t *testing.T) {
+	gs := NewGameState()
+	gs.BeginPendingTurnConfirmation("human", gs.CloneForUndo())
+	mgr := NewManager()
+	mgr.CreateGameWithState("game", gs)
+
+	snapshot, revision, ok := mgr.GetGameSnapshot("game")
+	if !ok || snapshot == nil {
+		t.Fatal("expected game snapshot")
+	}
+	if revision != 0 {
+		t.Fatalf("revision = %d, want 0", revision)
+	}
+	if !snapshot.HasPendingTurnConfirmation() || snapshot.PendingTurnConfirmationPlayerID != "human" {
+		t.Fatalf("snapshot lost turn confirmation: player=%q hasPending=%v", snapshot.PendingTurnConfirmationPlayerID, snapshot.HasPendingTurnConfirmation())
+	}
+}
+
 func TestManagerTurnConfirmation_DisablingConfirmClearsPendingWindow(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("actor", factions.NewCultists()); err != nil {

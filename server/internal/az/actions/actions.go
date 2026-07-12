@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
@@ -18,6 +19,7 @@ type Option struct {
 	Type     string            `json:"type"`
 	Label    string            `json:"label"`
 	Meta     map[string]string `json:"meta,omitempty"`
+	Params   map[string]any    `json:"params,omitempty"`
 	Action   game.Action       `json:"-"`
 }
 
@@ -93,13 +95,7 @@ func disableConfirmations(gs *game.GameState) {
 }
 
 func enableReplayAutoConversions(gs *game.GameState) {
-	if gs == nil {
-		return
-	}
-	if gs.ReplayMode == nil {
-		gs.ReplayMode = make(map[string]bool)
-	}
-	gs.ReplayMode["__az_auto_conversions__"] = true
+	game.EnableAZAutoConversionsForClone(gs)
 }
 
 func generateCandidates(gs *game.GameState) []Option {
@@ -190,6 +186,11 @@ func pendingCandidates(gs *game.GameState, playerID string) []Option {
 	if gs.PendingGoblinsCultSteps != nil && gs.PendingGoblinsCultSteps.PlayerID == playerID {
 		for _, track := range allCultTracks() {
 			out = append(out, option(playerID, "goblins_cult", fmt.Sprintf("Goblins choose %d", track), game.NewSelectGoblinsCultTrackAction(playerID, track), "goblins_cult", int(track)))
+		}
+	}
+	if gs.PendingArchivistsBonusSelection != nil && gs.PendingArchivistsBonusSelection.PlayerID == playerID {
+		for _, card := range allBonusCards() {
+			out = append(out, option(playerID, "archivists_bonus", fmt.Sprintf("Archivists take bonus %d", card), game.NewSelectArchivistsBonusCardAction(playerID, card), "archivists_bonus", int(card)))
 		}
 	}
 	if gs.PendingHalflingsSpades != nil && gs.PendingHalflingsSpades.PlayerID == playerID {
@@ -620,7 +621,49 @@ func option(playerID, typ, label string, action game.Action, parts ...interface{
 		PlayerID: playerID,
 		Type:     typ,
 		Label:    label,
+		Params:   actionParams(action),
 		Action:   action,
+	}
+}
+
+func actionParams(action game.Action) map[string]any {
+	if action == nil {
+		return nil
+	}
+	raw, err := json.Marshal(action)
+	if err != nil {
+		return nil
+	}
+	params := make(map[string]any)
+	if err := json.Unmarshal(raw, &params); err != nil {
+		return nil
+	}
+	normalized, _ := normalizeParamValue(params).(map[string]any)
+	delete(normalized, "type")
+	delete(normalized, "playerID")
+	delete(normalized, "playerId")
+	return normalized
+}
+
+func normalizeParamValue(value any) any {
+	switch typed := value.(type) {
+	case map[string]any:
+		normalized := make(map[string]any, len(typed))
+		for key, child := range typed {
+			if key != "" {
+				key = strings.ToLower(key[:1]) + key[1:]
+			}
+			normalized[key] = normalizeParamValue(child)
+		}
+		return normalized
+	case []any:
+		normalized := make([]any, len(typed))
+		for i, child := range typed {
+			normalized[i] = normalizeParamValue(child)
+		}
+		return normalized
+	default:
+		return value
 	}
 }
 

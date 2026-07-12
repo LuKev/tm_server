@@ -1,5 +1,5 @@
 import { useParams } from 'react-router-dom'
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useRef, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
 import { ScoringTiles } from './GameBoard/ScoringTiles'
 import { TownTiles } from './GameBoard/TownTiles'
@@ -242,9 +242,11 @@ const isActionPhase = (phase?: GamePhase): boolean => phase === GamePhase.Action
 
 export const Game = () => {
   const { gameId } = useParams()
-  const { isConnected, sendMessage, lastMessage } = useWebSocket()
+  const { isConnected, connectionGeneration, sendMessage, lastMessage } = useWebSocket()
   const gameState = useGameStore((state) => state.gameState)
   const localPlayerId = useGameStore((state) => state.localPlayerId)
+  const gamePlayerId = useGameStore((state) => gameId ? state.playerIdsByGame[gameId] : undefined)
+  const lastGameStateRequestRef = useRef<string | null>(null)
 
   const { submitAction, submitSetupDwelling, submitSelectFaction } = useActionService()
 
@@ -328,10 +330,17 @@ export const Game = () => {
   } = useGameLayout(gameState, numCards, 'game')
 
   useEffect(() => {
-    if (isConnected && gameId && (!gameState || gameState.id !== gameId)) {
-      sendMessage({ type: 'get_game_state', payload: { gameID: gameId, playerID: localPlayerId } })
+    if (isConnected && connectionGeneration > 0 && gameId) {
+      const playerId = gamePlayerId ?? localPlayerId
+      if (gamePlayerId && localPlayerId !== gamePlayerId) {
+        useGameStore.getState().setLocalPlayerId(gamePlayerId)
+      }
+      const requestKey = `${connectionGeneration}:${gameId}:${playerId ?? ''}`
+      if (lastGameStateRequestRef.current === requestKey) return
+      lastGameStateRequestRef.current = requestKey
+      sendMessage({ type: 'get_game_state', payload: { gameID: gameId, playerID: playerId } })
     }
-  }, [isConnected, gameId, gameState, localPlayerId, sendMessage])
+  }, [connectionGeneration, gameId, gamePlayerId, isConnected, localPlayerId, sendMessage])
 
   useEffect(() => {
     if (!import.meta.env.DEV || typeof window === 'undefined') return

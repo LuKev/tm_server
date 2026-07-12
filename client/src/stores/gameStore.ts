@@ -7,6 +7,7 @@ interface GameStore {
   // State
   gameState: GameState | null;
   localPlayerId: string | null;
+  playerIdsByGame: Record<string, string>;
 
   // Computed getters
   getCurrentPlayer: () => PlayerState | null;
@@ -15,6 +16,7 @@ interface GameStore {
   // Actions
   setGameState: (state: GameState) => void;
   setLocalPlayerId: (id: string) => void;
+  bindLocalPlayerToGame: (gameId: string, playerId: string) => void;
   updateGameState: (updater: (draft: GameState) => void) => void;
   reset: () => void;
 }
@@ -27,6 +29,7 @@ export const useGameStore = create<GameStore>()(
       // Initial state
       gameState: null,
       localPlayerId: null,
+      playerIdsByGame: {},
 
       // Computed getters
       getCurrentPlayer: () => {
@@ -51,6 +54,13 @@ export const useGameStore = create<GameStore>()(
         set({ localPlayerId });
       },
 
+      bindLocalPlayerToGame: (gameId, playerId) => {
+        set((state) => {
+          state.localPlayerId = playerId;
+          state.playerIdsByGame[gameId] = playerId;
+        });
+      },
+
       updateGameState: (updater) => {
         set((state) => {
           if (state.gameState) {
@@ -60,12 +70,12 @@ export const useGameStore = create<GameStore>()(
       },
 
       reset: () => {
-        set({ gameState: null, localPlayerId: null });
+        set({ gameState: null, localPlayerId: null, playerIdsByGame: {} });
       },
     })),
     {
       name: 'tm-game-storage', // unique name
-      partialize: (state) => ({ localPlayerId: state.localPlayerId }), // only persist localPlayerId
+      partialize: (state) => ({ localPlayerId: state.localPlayerId, playerIdsByGame: state.playerIdsByGame }),
     }
   )
 );

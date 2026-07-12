@@ -39,6 +39,7 @@ type RankedAction struct {
 	Q      float64           `json:"q"`
 	Prob   float64           `json:"prob"`
 	Meta   map[string]string `json:"meta,omitempty"`
+	Params map[string]any    `json:"params,omitempty"`
 }
 
 type node struct {
@@ -431,6 +432,7 @@ func rankedChildren(root *node, temperature float64) []RankedAction {
 			Q:      q,
 			Prob:   prob,
 			Meta:   child.action.Meta,
+			Params: child.action.Params,
 		})
 	}
 	sort.Slice(out, func(i, j int) bool {
@@ -461,6 +463,7 @@ func rankedPolicyChildren(root *node) []RankedAction {
 			Q:      0,
 			Prob:   child.prior,
 			Meta:   child.action.Meta,
+			Params: child.action.Params,
 		})
 	}
 	sort.Slice(out, func(i, j int) bool {

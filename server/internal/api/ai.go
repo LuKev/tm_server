@@ -149,12 +149,11 @@ func (h *AIHandler) handleExecute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "gameId is required", http.StatusBadRequest)
 		return
 	}
-	gs, ok := h.games.GetGame(req.GameID)
+	gs, revision, ok := h.games.GetGameSnapshot(req.GameID)
 	if !ok || gs == nil {
 		http.Error(w, fmt.Sprintf("game not found: %s", req.GameID), http.StatusBadRequest)
 		return
 	}
-	revision, _ := h.games.GetRevision(req.GameID)
 	position := env.NewPosition(gs, req.RootPlayerID)
 	legal := position.LegalActions()
 	if len(legal) == 0 {
@@ -205,8 +204,9 @@ func (h *AIHandler) handleExecute(w http.ResponseWriter, r *http.Request) {
 			expectedRevision = *req.ExpectedRevision
 		}
 		actionResult, err := h.games.ExecuteActionWithMeta(req.GameID, option.Action, game.ActionMeta{
-			ActionID:         req.ActionRequestID,
-			ExpectedRevision: expectedRevision,
+			ActionID:               req.ActionRequestID,
+			ExpectedRevision:       expectedRevision,
+			AllowAZAutoConversions: true,
 		})
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusConflict)
@@ -237,7 +237,7 @@ func (h *AIHandler) resolveState(req aiSuggestRequest) (*game.GameState, error) 
 		}
 		return position.State, nil
 	}
-	gs, ok := h.games.GetGame(req.GameID)
+	gs, _, ok := h.games.GetGameSnapshot(req.GameID)
 	if !ok || gs == nil {
 		return nil, fmt.Errorf("game not found: %s", req.GameID)
 	}

@@ -9,6 +9,7 @@ interface WebSocketMessage {
 
 interface WebSocketContextType {
   isConnected: boolean
+  connectionGeneration: number
   sendMessage: (message: unknown) => void
   lastMessage: unknown
   connectionStatus: 'connecting' | 'connected' | 'disconnected' | 'error'
@@ -32,6 +33,7 @@ interface WebSocketProviderProps {
 type TestWebSocketWindow = Window & {
   __TM_TEST_IS_CONNECTED__?: () => boolean
   __TM_TEST_SEND_MESSAGE__?: (message: unknown) => void
+  __TM_TEST_CLOSE_WEBSOCKET__?: () => void
 }
 
 export const websocketURL = (location: Location, configuredAPIURL?: string): string => {
@@ -43,6 +45,7 @@ export const websocketURL = (location: Location, configuredAPIURL?: string): str
 
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false)
+  const [connectionGeneration, setConnectionGeneration] = useState(0)
   const [lastMessage, setLastMessage] = useState<unknown>(null)
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected')
   const wsRef = useRef<WebSocket | null>(null)
@@ -54,6 +57,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     if (!ws) {
       testWindow.__TM_TEST_IS_CONNECTED__ = () => false
       testWindow.__TM_TEST_SEND_MESSAGE__ = undefined
+      testWindow.__TM_TEST_CLOSE_WEBSOCKET__ = undefined
       return
     }
     testWindow.__TM_TEST_IS_CONNECTED__ = () => ws.readyState === WebSocket.OPEN
@@ -64,6 +68,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
       const payload = typeof message === 'string' ? message : JSON.stringify(message)
       ws.send(payload)
     }
+    testWindow.__TM_TEST_CLOSE_WEBSOCKET__ = import.meta.env.VITE_ENABLE_TEST_HOOKS === '1' ? () => ws.close() : undefined
   }, [])
 
   const connect = useCallback(() => {
@@ -85,6 +90,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     ws.onopen = () => {
       if (wsRef.current !== ws) return
       setIsConnected(true)
+      setConnectionGeneration((generation) => generation + 1)
       setConnectionStatus('connected')
     }
 
@@ -151,7 +157,7 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
   }, [connect, installTestHooks])
 
   return (
-    <WebSocketContext.Provider value={{ isConnected, sendMessage, lastMessage, connectionStatus }}>
+    <WebSocketContext.Provider value={{ isConnected, connectionGeneration, sendMessage, lastMessage, connectionStatus }}>
       {children}
     </WebSocketContext.Provider>
   )

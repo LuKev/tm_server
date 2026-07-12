@@ -105,7 +105,8 @@ export class WsBot {
 
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
-      const msg = await this.waitForType('game_state_update', Math.min(1_500, deadline - Date.now()))
+      const msg = await this.waitForType('game_state_update', Math.min(1_500, deadline - Date.now())).catch(() => null)
+      if (!msg) continue
       const state = (msg.payload ?? {}) as WsMessage
       const id = String(state.id ?? '')
       if (id !== gameID) {

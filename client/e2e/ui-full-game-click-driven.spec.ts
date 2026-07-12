@@ -1041,3 +1041,158 @@ test.describe('Golden Full-Game Click-Driven Completion', () => {
     })
   }
 })
+
+const policyActionTypeToUIType = (type: string): string => {
+  const exact: Record<string, string> = {
+    faction: 'select_faction',
+    setup_bonus: 'setup_bonus_card',
+    leech_accept: 'accept_leech',
+    leech_decline: 'decline_leech',
+    cult_priest: 'send_priest',
+    upgrade: 'upgrade_building',
+    shipping: 'advance_shipping',
+    digging: 'advance_digging',
+    cult_spade: 'use_cult_spade',
+    discard_spade: 'discard_pending_spade',
+    discard_cult_spade: 'discard_pending_spade',
+  }
+  if (exact[type]) return exact[type]
+  if (type === 'power' || type.startsWith('power_')) return 'power_action_claim'
+  if (type.startsWith('special_')) return 'special_action_use'
+  return type
+}
+
+const getModelGameActor = (snapshot: JsonObject | undefined): string => {
+  const pending = getPendingDecisionInfo(snapshot)
+  if (pending.playerId !== '') return pending.playerId
+  const setupSubphase = String(snapshot?.setupSubphase ?? '')
+  if (setupSubphase === 'dwellings') {
+    const order = snapshot?.setupDwellingOrder
+    const index = Number(snapshot?.setupDwellingIndex ?? -1)
+    if (Array.isArray(order) && Number.isInteger(index) && index >= 0 && index < order.length) {
+      return String(order[index] ?? '')
+    }
+  }
+  if (setupSubphase === 'bonus_cards') {
+    const order = snapshot?.setupBonusOrder
+    const index = Number(snapshot?.setupBonusIndex ?? -1)
+    if (Array.isArray(order) && Number.isInteger(index) && index >= 0 && index < order.length) {
+      return String(order[index] ?? '')
+    }
+  }
+  return getCurrentTurnPlayerId(snapshot)
+}
+
+test.describe('Play vs AI Full Game', () => {
+  test.setTimeout(3_600_000)
+
+  test('@nightly completes a neural model game through human UI clicks', async ({ page, request }) => {
+    test.skip(
+      process.env.TM_ENABLE_NEURAL_FULL_GAME_E2E !== '1',
+      'requires an explicitly configured neural evaluator',
+    )
+    expect(process.env.TM_AZ_REQUIRE_NEURAL).toBe('true')
+    const serverPort = process.env.TM_PLAYWRIGHT_SERVER_PORT ?? '8080'
+    const statusResponse = await request.get(`http://127.0.0.1:${serverPort}/api/ai/status`)
+    expect(statusResponse.ok(), await statusResponse.text()).toBeTruthy()
+    const status = await statusResponse.json() as { mode?: string; neural?: boolean }
+    expect(status).toMatchObject({ mode: 'neural', neural: true })
+
+    await page.goto('/')
+    await expect(page.getByTestId('lobby-screen')).toBeVisible()
+    await page.getByTestId('lobby-play-ai').click()
+    await expect(page.getByTestId('play-ai-screen')).toBeVisible()
+    await page.getByTestId('ai-model-strength').selectOption('fast')
+    await page.getByTestId('ai-start-game').click()
+    await expect(page).toHaveURL(/\/game\/\d+$/, { timeout: 30_000 })
+
+    const gameID = new URL(page.url()).pathname.split('/').filter(Boolean).at(-1) ?? ''
+    const humanPlayerID = await page.evaluate(() => {
+      const testWindow = window as Window & { __TM_TEST_GET_LOCAL_PLAYER_ID__?: () => string | null }
+      return testWindow.__TM_TEST_GET_LOCAL_PLAYER_ID__?.() ?? ''
+    })
+    expect(gameID).not.toBe('')
+    expect(humanPlayerID).not.toBe('')
+
+    const observer = await WsBot.connect(realServerWsURL())
+    const trace: Array<Record<string, unknown>> = []
+    try {
+      observer.send('get_game_state', { gameID, playerID: humanPlayerID })
+      let state = await observer.waitForRevision(gameID, 0, 20_000)
+
+      for (let step = 0; step < 2_000; step++) {
+        if (Number(state.phase ?? -1) === 5) {
+          await expect(page.getByTestId('player-summary-bar')).toBeVisible()
+          return
+        }
+
+        const revision = Number(state.revision ?? -1)
+        const pending = getPendingDecisionInfo(state)
+        if (
+          pending.playerId === humanPlayerID
+          && (pending.type === 'post_action_free_actions' || pending.type === 'turn_confirmation')
+        ) {
+          await waitForPageToMatchSnapshot(page, state, gameID, humanPlayerID)
+          await clickByTestId(page, 'turn-end-confirm')
+          state = await observer.waitForRevision(gameID, revision + 1, 30_000)
+          trace.push({ step, revision, actor: humanPlayerID, type: 'confirm_turn' })
+          continue
+        }
+
+        const actor = getModelGameActor(state)
+        if (actor !== humanPlayerID) {
+          state = await observer.waitForRevision(gameID, revision + 1, 120_000).catch((error) => {
+            throw new Error(`model did not advance revision=${String(revision)} actor=${actor} human=${humanPlayerID} setupSubphase=${String(state.setupSubphase ?? '')} setupDwellingIndex=${String(state.setupDwellingIndex ?? '')} setupDwellingOrder=${JSON.stringify(state.setupDwellingOrder ?? null)} pending=${JSON.stringify(state.pendingDecision ?? null)}: ${error instanceof Error ? error.message : String(error)}`)
+          })
+          continue
+        }
+
+        const response = await request.post(`http://127.0.0.1:${serverPort}/api/ai/suggest`, {
+          data: {
+            gameId: gameID,
+            rootPlayerId: humanPlayerID,
+            topN: 20,
+            search: { simulations: 8, batchSize: 8, temperature: 0, maxDepth: 200, randomSeed: step + 1 },
+          },
+        })
+        expect(response.ok(), await response.text()).toBeTruthy()
+        const suggestion = await response.json() as { result?: { selected?: JsonObject; actions?: JsonObject[] } }
+        const ranked = [suggestion.result?.selected, ...(suggestion.result?.actions ?? [])]
+          .filter((candidate): candidate is JsonObject => candidate !== undefined)
+
+        let executed = false
+        const failures: string[] = []
+        for (const candidate of ranked) {
+          const policyType = String(candidate.type ?? '')
+          const action: GoldenAction = {
+            playerId: String(candidate.playerId ?? ''),
+            type: policyActionTypeToUIType(policyType),
+            params: asRecord(candidate.params),
+          }
+          if (action.playerId !== humanPlayerID) continue
+          try {
+            await waitForPageToMatchSnapshot(page, state, gameID, humanPlayerID)
+            if (!await clickAction(page, observer, gameID, action)) continue
+            state = await observer.waitForRevision(gameID, revision + 1, 30_000)
+            trace.push({ step, revision, policyType, actionType: action.type, actionId: candidate.id })
+            executed = true
+            break
+          } catch (error) {
+            failures.push(`${String(candidate.id ?? policyType)}: ${error instanceof Error ? error.message : String(error)}`)
+          }
+        }
+        if (!executed) {
+          throw new Error(`no ranked neural action was executable through the UI at revision ${String(revision)}: ${failures.join(' | ')} trace=${JSON.stringify(trace.slice(-20))}`)
+        }
+
+        const actionError = page.getByTestId('action-error-message')
+        if (await actionError.count() > 0 && await actionError.isVisible()) {
+          throw new Error(`UI action error at revision ${String(revision)}: ${await actionError.innerText()}`)
+        }
+      }
+      throw new Error(`full model game exceeded step limit: ${JSON.stringify(trace.slice(-30))}`)
+    } finally {
+      observer.close()
+    }
+  })
+})

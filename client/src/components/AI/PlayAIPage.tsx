@@ -95,7 +95,9 @@ export function PlayAIPage(): ReactElement {
     }
     if (msg.type === 'model_game_started') {
       const payload = (msg.payload ?? {}) as StartedGamePayload
-      if (payload.playerId) {
+      if (payload.playerId && payload.gameId) {
+        useGameStore.getState().bindLocalPlayerToGame(payload.gameId, payload.playerId)
+      } else if (payload.playerId) {
         useGameStore.getState().setLocalPlayerId(payload.playerId)
       }
       if (payload.gameId) {

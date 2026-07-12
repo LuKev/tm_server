@@ -26,9 +26,10 @@ type CreateGameOptions struct {
 
 // ActionMeta provides metadata for action execution.
 type ActionMeta struct {
-	ActionID         string
-	ExpectedRevision int
-	SeatID           string
+	ActionID               string
+	ExpectedRevision       int
+	SeatID                 string
+	AllowAZAutoConversions bool
 }
 
 // ActionResult reports action execution outcome.
@@ -84,6 +85,22 @@ func (m *Manager) GetGame(id string) (*GameState, bool) {
 	defer m.mu.RUnlock()
 	g, ok := m.games[id]
 	return g, ok
+}
+
+// GetGameSnapshot returns a state clone and its matching revision atomically.
+func (m *Manager) GetGameSnapshot(id string) (*GameState, int, bool) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	gs, ok := m.games[id]
+	if !ok || gs == nil {
+		return nil, 0, false
+	}
+	clone := gs.CloneForUndo()
+	clone.PendingTurnConfirmationPlayerID = gs.PendingTurnConfirmationPlayerID
+	if gs.PendingTurnConfirmationSnapshot != nil {
+		clone.PendingTurnConfirmationSnapshot = gs.PendingTurnConfirmationSnapshot.CloneForUndo()
+	}
+	return clone, m.revisions[id], true
 }
 
 // GetRevision returns the current revision for a game.
@@ -211,6 +228,8 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if meta.ExpectedRevision >= 0 && meta.ExpectedRevision != currentRevision {
 		return nil, &RevisionMismatchError{Expected: meta.ExpectedRevision, Current: currentRevision}
 	}
+	restoreAutoConversions := setScopedAZAutoConversions(gs, meta.AllowAZAutoConversions)
+	defer restoreAutoConversions()
 
 	if err := validateActionTurnAndPendingState(gs, action); err != nil {
 		return nil, fmt.Errorf("action turn validation failed: %w", err)
@@ -247,6 +266,17 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	return &ActionResult{Revision: currentRevision, Duplicate: false}, nil
+}
+
+func setScopedAZAutoConversions(gs *GameState, enabled bool) func() {
+	if gs == nil || !enabled {
+		return func() {}
+	}
+	previous := gs.allowAZAutoConversions
+	gs.allowAZAutoConversions = true
+	return func() {
+		gs.allowAZAutoConversions = previous
+	}
 }
 
 func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, beforeCoins, beforeWorkers, beforePriests int) {

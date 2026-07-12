@@ -47,6 +47,26 @@ func TestLegalActionsExcludeMainTurnTransformOnly(t *testing.T) {
 	}
 }
 
+func TestLegalActionsExposeStructuredActionParams(t *testing.T) {
+	position, err := env.BuiltInScenario("base_nomads_witches")
+	if err != nil {
+		t.Fatalf("BuiltInScenario failed: %v", err)
+	}
+	for _, option := range actions.LegalActions(position.State) {
+		if option.Type != "transform_build" {
+			continue
+		}
+		if _, ok := option.Params["targetHex"].(map[string]any); !ok {
+			t.Fatalf("transform/build params missing structured targetHex: %#v", option.Params)
+		}
+		if _, ok := option.Params["playerId"]; ok {
+			t.Fatalf("action envelope playerId leaked into params: %#v", option.Params)
+		}
+		return
+	}
+	t.Fatal("expected transform/build action")
+}
+
 func TestLegalActionsIncludeExecutablePass(t *testing.T) {
 	position, err := env.BuiltInScenario("base_nomads_witches")
 	if err != nil {
@@ -242,6 +262,56 @@ func TestLegalActionsExcludeMainTurnActionsForPassedPlayer(t *testing.T) {
 	for _, option := range legal {
 		if option.PlayerID == current.ID {
 			t.Fatalf("passed current player should not receive main-turn action: %s", option.ID)
+		}
+	}
+}
+
+func TestLegalActionsIncludeArchivistsPendingBonusSelection(t *testing.T) {
+	gs := game.NewGameState()
+	if err := gs.AddPlayer("p1", factions.NewArchivists()); err != nil {
+		t.Fatalf("AddPlayer failed: %v", err)
+	}
+	gs.Phase = game.PhaseAction
+	gs.TurnOrder = []string{"p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.BonusCards.SetAvailableBonusCards([]game.BonusCardType{
+		game.BonusCard6Coins,
+		game.BonusCardCultAdvance,
+		game.BonusCardShipping,
+	})
+	gs.BonusCards.PlayerCards["p1"] = game.BonusCardSpade
+	gs.BonusCards.PlayerHasCard["p1"] = true
+	gs.PendingArchivistsBonusSelection = &game.PendingArchivistsBonusSelection{
+		PlayerID:      "p1",
+		ReturnedCards: []game.BonusCardType{game.BonusCard6Coins},
+	}
+
+	want := map[string]game.BonusCardType{
+		"p1:archivists_bonus:1": game.BonusCardShipping,
+		"p1:archivists_bonus:7": game.BonusCardCultAdvance,
+	}
+	legal := actions.LegalActions(gs)
+	if len(legal) != len(want) {
+		t.Fatalf("legal actions = %v, want exactly %d Archivists bonus selections", legal, len(want))
+	}
+	for _, option := range legal {
+		card, ok := want[option.ID]
+		if !ok {
+			t.Fatalf("unexpected legal action %s (%s)", option.ID, option.Type)
+		}
+		if option.Type != "archivists_bonus" {
+			t.Fatalf("action %s type = %q, want archivists_bonus", option.ID, option.Type)
+		}
+		action, ok := option.Action.(*game.SelectArchivistsBonusCardAction)
+		if !ok || action.BonusCard != card {
+			t.Fatalf("action %s = %#v, want Archivists bonus card %d", option.ID, option.Action, card)
+		}
+		next, err := actions.ApplyToClone(gs, option.Action)
+		if err != nil {
+			t.Fatalf("Archivists bonus action %s did not apply: %v", option.ID, err)
+		}
+		if next.PendingArchivistsBonusSelection != nil {
+			t.Fatalf("Archivists bonus action %s did not clear pending selection", option.ID)
 		}
 	}
 }

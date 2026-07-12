@@ -68,6 +68,64 @@ func TestBotCanAct_WaitsForHumanTurnConfirmation(t *testing.T) {
 	}
 }
 
+func TestBotManagerTrigger_RetriesAfterRunningSearch(t *testing.T) {
+	manager := &BotManager{
+		games:   game.NewManager(),
+		configs: map[string]BotGameConfig{"game": {PlayerID: "model"}},
+		running: make(map[string]bool),
+		dirty:   make(map[string]bool),
+	}
+	hub := NewHub()
+	started := make(chan int, 2)
+	release := make(chan struct{}, 2)
+	manager.runGame = func(string, *Hub) {
+		started <- 1
+		<-release
+	}
+
+	manager.Trigger("game", hub)
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("first bot run did not start")
+	}
+
+	manager.Trigger("game", hub)
+	select {
+	case <-started:
+		t.Fatal("retrigger started a concurrent bot run")
+	case <-time.After(25 * time.Millisecond):
+	}
+
+	release <- struct{}{}
+	select {
+	case <-started:
+	case <-time.After(time.Second):
+		t.Fatal("retrigger was lost after the first bot run exited")
+	}
+
+	select {
+	case <-started:
+		t.Fatal("more than one retry started")
+	case <-time.After(25 * time.Millisecond):
+	}
+	release <- struct{}{}
+
+	deadline := time.Now().Add(time.Second)
+	for {
+		manager.mu.Lock()
+		running := manager.running["game"]
+		manager.mu.Unlock()
+		if !running {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("bot worker did not exit after retry")
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
 func TestHandleCreateAndStartModelGame_StartsPlayableGame(t *testing.T) {
 	games := game.NewManager()
 	lobbies := lobby.NewManager()

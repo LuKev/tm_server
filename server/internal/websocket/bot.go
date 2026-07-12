@@ -36,6 +36,8 @@ type BotManager struct {
 	mu      sync.Mutex
 	configs map[string]BotGameConfig
 	running map[string]bool
+	dirty   map[string]bool
+	runGame func(string, *Hub)
 }
 
 func NewBotManager(games *game.Manager) *BotManager {
@@ -46,6 +48,7 @@ func NewBotManager(games *game.Manager) *BotManager {
 		requireNeural: strings.EqualFold(strings.TrimSpace(os.Getenv("TM_AZ_REQUIRE_NEURAL")), "true"),
 		configs:       make(map[string]BotGameConfig),
 		running:       make(map[string]bool),
+		dirty:         make(map[string]bool),
 	}
 }
 
@@ -69,6 +72,7 @@ func (b *BotManager) Trigger(gameID string, hub *Hub) {
 		return
 	}
 	if b.running[gameID] {
+		b.dirty[gameID] = true
 		b.mu.Unlock()
 		return
 	}
@@ -76,12 +80,23 @@ func (b *BotManager) Trigger(gameID string, hub *Hub) {
 	b.mu.Unlock()
 
 	go func() {
-		defer func() {
+		for {
+			if b.runGame != nil {
+				b.runGame(gameID, hub)
+			} else {
+				b.run(gameID, hub)
+			}
+
 			b.mu.Lock()
+			if b.dirty[gameID] {
+				delete(b.dirty, gameID)
+				b.mu.Unlock()
+				continue
+			}
 			delete(b.running, gameID)
 			b.mu.Unlock()
-		}()
-		b.run(gameID, hub)
+			return
+		}
 	}()
 }
 
@@ -91,17 +106,13 @@ func (b *BotManager) run(gameID string, hub *Hub) {
 		if !ok {
 			return
 		}
-		gs, ok := b.games.GetGame(gameID)
+		gs, revision, ok := b.games.GetGameSnapshot(gameID)
 		if !ok || gs == nil || gs.Phase == game.PhaseEnd {
 			b.broadcastStatus(hub, gameID, config.PlayerID, false, "")
 			return
 		}
 		if !botCanAct(gs, config.PlayerID) {
 			b.broadcastStatus(hub, gameID, config.PlayerID, false, "")
-			return
-		}
-		revision, ok := b.games.GetRevision(gameID)
-		if !ok {
 			return
 		}
 		position := env.NewPosition(gs, config.PlayerID)
@@ -123,11 +134,16 @@ func (b *BotManager) run(gameID string, hub *Hub) {
 			return
 		}
 		result, err := b.games.ExecuteActionWithMeta(gameID, option.Action, game.ActionMeta{
-			ActionID:         fmt.Sprintf("bot:%s:%d:%s", config.PlayerID, revision, option.ID),
-			ExpectedRevision: revision,
-			SeatID:           config.PlayerID,
+			ActionID:               fmt.Sprintf("bot:%s:%d:%s", config.PlayerID, revision, option.ID),
+			ExpectedRevision:       revision,
+			SeatID:                 config.PlayerID,
+			AllowAZAutoConversions: true,
 		})
 		if err != nil {
+			if _, stale := err.(*game.RevisionMismatchError); stale {
+				b.Trigger(gameID, hub)
+				return
+			}
 			b.broadcastStatus(hub, gameID, config.PlayerID, false, err.Error())
 			log.Printf("bot action execution failed for game %s: %v", gameID, err)
 			return
