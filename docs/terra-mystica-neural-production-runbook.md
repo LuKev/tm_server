@@ -6,8 +6,9 @@ The website is running a neural opponent only when all of the following are true
 
 1. A retained PyTorch checkpoint has a recorded parent, training buffer, git SHA,
    training command, and arena result.
-2. The checkpoint is stored outside `/tmp` in durable local storage and in a
-   remote artifact store or Modal volume.
+2. The checkpoint is stored outside `/tmp` in durable local storage and in the
+   user's Google One-backed Drive folder `Terra Mystica AI/models/<model-id>/`.
+   A hash-identical copy may be mirrored to a Modal volume for serving.
 3. `az_infer_torch` serves that exact checkpoint and `/healthz` reports its
    architecture, observation schema, input size, and action count.
 4. The website backend has `TM_AZ_MODEL_URL` set to that service's `/evaluate`
@@ -32,8 +33,8 @@ Because the prior incumbent is gone, rebuild from self-play only. Do not label
 the surviving fresh checkpoint as the old model.
 
 1. Create a durable run directory such as
-   `artifacts/az/runs/<run-id>/` (gitignored) and a remote Modal volume named
-   `tm-az-artifacts`.
+   `artifacts/az/runs/<run-id>/` (gitignored), a Google Drive model package, and
+   a serving mirror in the Modal volume `tm-az-models`.
 2. Run a small neural bootstrap using the surviving fresh checkpoint only if its
    manifest, action vocabulary, and observation schema validate. Otherwise train
    a new h512 bootstrap from fresh self-play.
@@ -46,7 +47,8 @@ the surviving fresh checkpoint as the old model.
    parent. Both candidate and baseline URLs are mandatory.
 6. Copy the accepted checkpoint, action vocabulary, metrics, arena report, R1
    build-rate report, and manifest into `artifacts/az/models/<model-id>/`, then
-   upload the whole directory to the Modal volume before changing `current`.
+   upload the whole package to Google Drive and verify its file sizes and hashes
+   before changing `current`. Mirror the pinned checkpoint to Modal for serving.
 
 The first recovered model will be weaker than the lost June incumbent. Its job
 is to re-establish a trustworthy, reproducible neural lineage. Subsequent
@@ -116,8 +118,9 @@ Deployment verification:
 
 ## Operational Guardrails
 
-- `/tmp` is scratch space only. A promotion is incomplete until remote upload
-  and read-back validation succeed.
+- `/tmp` is scratch space only. While checkpoints remain small, Google Drive
+  under the user's Google One plan is the durable source of record. A promotion
+  is incomplete until Drive upload and read-back validation succeed.
 - Never run a promotion arena without both `-candidate_url` and `-baseline_url`.
 - Never infer lineage from filenames. Store SHA-256 hashes in the run manifest.
 - Keep the prior promoted model so rollback is one configuration change.

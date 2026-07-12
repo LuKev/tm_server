@@ -9,8 +9,9 @@ const backendPort = process.env.VITE_BACKEND_PORT ?? process.env.TM_PLAYWRIGHT_S
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  // Base path is configurable for subpath deployments. Railway production serves at root.
-  base: process.env.VITE_BASE_PATH || '/',
+  // Router paths and static asset paths are separate on the dedicated Railway host.
+  // VITE_BASE_PATH remains the React Router basename; assets are served at root.
+  base: process.env.VITE_ASSET_BASE_PATH || '/',
   cacheDir: process.env.VITE_CACHE_DIR || 'node_modules/.vite',
   resolve: {
     alias: {

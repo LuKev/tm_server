@@ -12,6 +12,10 @@ The checked-in Railway config is unchanged:
 - `server/nixpacks.toml` builds the backend from `server/` and starts `./out`.
 - `client/nixpacks.toml` runs `npm run build`, copies `Caddyfile` into `dist/`,
   and starts Caddy.
+- The production client keeps `VITE_BASE_PATH=/tm` for React Router, while Vite
+  assets stay at `/assets` unless `VITE_ASSET_BASE_PATH` is explicitly set.
+  Using `VITE_BASE_PATH` as the Vite asset base makes the production page blank
+  because the static server rewrites `/tm/assets/*` to the SPA document.
 
 For the deployed server to play with a neural checkpoint, set:
 
