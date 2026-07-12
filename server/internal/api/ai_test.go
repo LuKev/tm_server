@@ -70,6 +70,25 @@ func TestAIExecutePreviewAndConfirm(t *testing.T) {
 	}
 }
 
+func TestAIStatusReportsHeuristicAsUnavailable(t *testing.T) {
+	t.Setenv("TM_AZ_MODEL_URL", "")
+	router := mux.NewRouter()
+	NewAIHandler(game.NewManager()).RegisterRoutes(router)
+	req := httptest.NewRequest(http.MethodGet, "/api/ai/status", nil)
+	resp := httptest.NewRecorder()
+	router.ServeHTTP(resp, req)
+	if resp.Code != http.StatusServiceUnavailable {
+		t.Fatalf("status = %d, want %d", resp.Code, http.StatusServiceUnavailable)
+	}
+	var body map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if body["mode"] != "heuristic" || body["neural"] != false {
+		t.Fatalf("unexpected body: %#v", body)
+	}
+}
+
 func postAIExecute(t *testing.T, handler http.Handler, payload map[string]interface{}) aiExecuteResponse {
 	t.Helper()
 	raw, err := json.Marshal(payload)

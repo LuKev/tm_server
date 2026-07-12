@@ -50,6 +50,41 @@ func TestHTTPEvaluatorFallsBack(t *testing.T) {
 	}
 }
 
+func TestProbeHTTPReturnsCheckpointMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/healthz" {
+			t.Fatalf("path = %q, want /healthz", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(HTTPHealth{
+			OK:                true,
+			InputSize:         128,
+			ActionCount:       11340,
+			Architecture:      "hex",
+			ObservationSchema: "tm_az_board_v1",
+			ObservationShape:  []int{32, 65, 4},
+		})
+	}))
+	defer server.Close()
+
+	health, err := ProbeHTTP(server.URL+"/evaluate", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if health.Architecture != "hex" || health.ActionCount != 11340 {
+		t.Fatalf("unexpected health: %#v", health)
+	}
+}
+
+func TestProbeHTTPRejectsIncompleteMetadata(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_ = json.NewEncoder(w).Encode(HTTPHealth{OK: true})
+	}))
+	defer server.Close()
+	if _, err := ProbeHTTP(server.URL+"/evaluate", nil); err == nil {
+		t.Fatal("expected incomplete health metadata to fail")
+	}
+}
+
 func TestHTTPEvaluatorUsesBatchEndpoint(t *testing.T) {
 	position, err := env.BuiltInScenario("base_nomads_witches")
 	if err != nil {

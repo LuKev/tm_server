@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -28,8 +29,9 @@ type BotGameConfig struct {
 }
 
 type BotManager struct {
-	games     *game.Manager
-	evaluator model.Evaluator
+	games         *game.Manager
+	evaluator     model.Evaluator
+	requireNeural bool
 
 	mu      sync.Mutex
 	configs map[string]BotGameConfig
@@ -39,10 +41,11 @@ type BotManager struct {
 func NewBotManager(games *game.Manager) *BotManager {
 	evaluator := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: os.Getenv("TM_AZ_MODEL_URL")})
 	return &BotManager{
-		games:     games,
-		evaluator: evaluator,
-		configs:   make(map[string]BotGameConfig),
-		running:   make(map[string]bool),
+		games:         games,
+		evaluator:     evaluator,
+		requireNeural: strings.EqualFold(strings.TrimSpace(os.Getenv("TM_AZ_REQUIRE_NEURAL")), "true"),
+		configs:       make(map[string]BotGameConfig),
+		running:       make(map[string]bool),
 	}
 }
 
@@ -155,6 +158,7 @@ func (b *BotManager) chooseAction(position *env.Position, legal []actions.Option
 		}
 	}
 
+	failures := model.FailureCount(b.evaluator)
 	result := mcts.Search(position, b.evaluator, mcts.Config{
 		Simulations: config.Simulations,
 		BatchSize:   config.BatchSize,
@@ -162,6 +166,9 @@ func (b *BotManager) chooseAction(position *env.Position, legal []actions.Option
 		Temperature: config.Temperature,
 		MaxDepth:    config.MaxDepth,
 	})
+	if b.requireNeural && model.FailureCount(b.evaluator) != failures {
+		return actions.Option{}, "", fmt.Errorf("neural evaluator failed during search")
+	}
 	if result.Selected.ID == "" {
 		return actions.Option{}, "", fmt.Errorf("search did not select an action")
 	}

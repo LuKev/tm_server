@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/gorilla/mux"
 	"github.com/lukev/tm_server/internal/az/actions"
@@ -16,19 +17,46 @@ import (
 )
 
 type AIHandler struct {
-	games     *game.Manager
-	evaluator model.Evaluator
+	games         *game.Manager
+	evaluator     model.Evaluator
+	modelURL      string
+	requireNeural bool
 }
 
 func NewAIHandler(games *game.Manager) *AIHandler {
-	evaluator := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: os.Getenv("TM_AZ_MODEL_URL")})
-	return &AIHandler{games: games, evaluator: evaluator}
+	modelURL := os.Getenv("TM_AZ_MODEL_URL")
+	evaluator := model.LoadEvaluator(model.EvaluatorConfig{HTTPURL: modelURL})
+	return &AIHandler{
+		games: games, evaluator: evaluator, modelURL: modelURL,
+		requireNeural: strings.EqualFold(strings.TrimSpace(os.Getenv("TM_AZ_REQUIRE_NEURAL")), "true"),
+	}
 }
 
 func (h *AIHandler) RegisterRoutes(router *mux.Router) {
 	s := router.PathPrefix("/api/ai").Subrouter()
 	s.HandleFunc("/suggest", h.handleSuggest).Methods("POST")
 	s.HandleFunc("/execute", h.handleExecute).Methods("POST")
+	s.HandleFunc("/status", h.handleStatus).Methods("GET")
+}
+
+func (h *AIHandler) handleStatus(w http.ResponseWriter, _ *http.Request) {
+	response := map[string]any{"mode": "heuristic", "neural": false}
+	status := http.StatusServiceUnavailable
+	if h.modelURL != "" {
+		health, err := model.ProbeHTTP(h.modelURL, nil)
+		if err != nil {
+			response["mode"] = "neural_unavailable"
+			response["error"] = err.Error()
+		} else {
+			response["mode"] = "neural"
+			response["neural"] = true
+			response["model"] = health
+			status = http.StatusOK
+		}
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 type aiSuggestRequest struct {
@@ -85,7 +113,12 @@ func (h *AIHandler) handleSuggest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	position := env.NewPosition(gs, req.RootPlayerID)
+	failures := model.FailureCount(h.evaluator)
 	result := mcts.Search(position, h.evaluator, req.Search)
+	if h.requireNeural && model.FailureCount(h.evaluator) != failures {
+		http.Error(w, "neural evaluator failed during search", http.StatusServiceUnavailable)
+		return
+	}
 	if req.TopN > 0 && len(result.Actions) > req.TopN {
 		result.Actions = result.Actions[:req.TopN]
 	}
@@ -128,7 +161,12 @@ func (h *AIHandler) handleExecute(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "no legal actions", http.StatusBadRequest)
 		return
 	}
+	failures := model.FailureCount(h.evaluator)
 	result := mcts.Search(position, h.evaluator, req.Search)
+	if h.requireNeural && model.FailureCount(h.evaluator) != failures {
+		http.Error(w, "neural evaluator failed during search", http.StatusServiceUnavailable)
+		return
+	}
 	selected := result.Selected
 	if req.ActionID != "" {
 		ranked, ok := rankedActionByID(result.Actions, req.ActionID)

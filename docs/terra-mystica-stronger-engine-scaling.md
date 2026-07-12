@@ -11,6 +11,11 @@ Strength comes from four properties:
 3. A model architecture that uses board structure instead of treating every feature as unrelated scalar input.
 4. Evaluation that is reproducible and statistically harder to fool.
 
+The canonical recovery-to-production procedure is
+`docs/terra-mystica-neural-production-runbook.md`. In particular, the current
+website is not considered neural until its backend runs with
+`TM_AZ_REQUIRE_NEURAL=true` and `/api/ai/status` reports `mode=neural`.
+
 ## Next Strength Gameplan
 
 The next goal is a stronger promoted checkpoint, not just a bigger pile of rows. The current evidence says the loop is working, but iteration time is dominated by neural MCTS self-play and arena games. Export and h512 training are not the limiting phases yet. Modal compute is useful, but primarily for parallel self-play and arena shards; use GPU only when training larger models or larger exported buffers.
@@ -19,7 +24,7 @@ Track round-1 Temple/Sanctuary and Stronghold rates in `docs/terra-mystica-ai-r1
 
 ### 2026-06-29 Local Fast-Lane Result
 
-The retained `/tmp` checkpoints from earlier runs were missing, so the pre-Modal pass rebuilt a local baseline from heuristic MCTS and trained one neural h512 candidate:
+The retained `/tmp` checkpoints from earlier runs were missing, so the pre-Modal pass rebuilt a local baseline from heuristic MCTS and trained one neural h512 candidate. These are recovery experiments, not a continuation of the former promoted lineage:
 
 - Iter0 heuristic self-play: `/tmp/tm_az_local_fastlane_20260629/iter0/selfplay.jsonl`
   - `168/168` terminal games, `9512` records, `sims=8`, `workers=4`, `recordsPerSecond=3.65`.

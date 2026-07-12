@@ -17,11 +17,17 @@ For the deployed server to play with a neural checkpoint, set:
 
 ```text
 TM_AZ_MODEL_URL=https://<inference-service>/evaluate
+TM_AZ_REQUIRE_NEURAL=true
 ```
 
-If `TM_AZ_MODEL_URL` is not set or is unavailable at server start, the bot
-manager falls back to the heuristic evaluator. That keeps Railway deploys
-healthy, but the opponent is not the promoted neural model.
+With `TM_AZ_REQUIRE_NEURAL=true`, backend startup fails unless the inference
+service's `/healthz` endpoint returns valid checkpoint metadata. Verify
+`GET /api/ai/status` returns `mode=neural` after every deploy. Without the
+require flag, missing or failed inference can still use the heuristic evaluator;
+that mode is for development only.
+
+The end-to-end training, durable promotion, inference deployment, and website
+verification process is in `terra-mystica-neural-production-runbook.md`.
 
 ## Local Verification
 

@@ -5,8 +5,10 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"math"
 	"net/http"
+	"net/url"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -14,6 +16,44 @@ import (
 	"github.com/lukev/tm_server/internal/az/actions"
 	"github.com/lukev/tm_server/internal/az/env"
 )
+
+type HTTPHealth struct {
+	OK                bool   `json:"ok"`
+	InputSize         int    `json:"inputSize"`
+	ActionCount       int    `json:"actionCount"`
+	Architecture      string `json:"architecture"`
+	ObservationSchema string `json:"observationSchema"`
+	ObservationShape  []int  `json:"observationShape"`
+}
+
+func ProbeHTTP(rawURL string, client *http.Client) (HTTPHealth, error) {
+	parsed, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || parsed.Scheme == "" || parsed.Host == "" {
+		return HTTPHealth{}, fmt.Errorf("invalid neural evaluator URL %q", rawURL)
+	}
+	parsed.Path = "/healthz"
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	if client == nil {
+		client = &http.Client{Timeout: 5 * time.Second}
+	}
+	resp, err := client.Get(parsed.String())
+	if err != nil {
+		return HTTPHealth{}, fmt.Errorf("probe neural evaluator: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return HTTPHealth{}, fmt.Errorf("probe neural evaluator: status %s", resp.Status)
+	}
+	var health HTTPHealth
+	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
+		return HTTPHealth{}, fmt.Errorf("decode neural evaluator health: %w", err)
+	}
+	if !health.OK || health.InputSize <= 0 || health.ActionCount <= 0 || health.Architecture == "" {
+		return HTTPHealth{}, fmt.Errorf("neural evaluator returned incomplete health metadata")
+	}
+	return health, nil
+}
 
 type HTTPEvaluator struct {
 	URL            string
@@ -23,6 +63,21 @@ type HTTPEvaluator struct {
 	Client         *http.Client
 	Fallback       Evaluator
 	binaryDisabled atomic.Bool
+	failures       atomic.Uint64
+}
+
+func (e *HTTPEvaluator) FailureCount() uint64 {
+	if e == nil {
+		return 0
+	}
+	return e.failures.Load()
+}
+
+func FailureCount(evaluator Evaluator) uint64 {
+	if monitored, ok := evaluator.(interface{ FailureCount() uint64 }); ok {
+		return monitored.FailureCount()
+	}
+	return 0
 }
 
 type httpEvaluateRequest struct {
@@ -264,6 +319,9 @@ func binaryBatchRequest(positions []*env.Position, legal [][]actions.Option, per
 }
 
 func fallbackEval(e *HTTPEvaluator, position *env.Position, legal []actions.Option, perspectivePlayerID string) Evaluation {
+	if e != nil {
+		e.failures.Add(1)
+	}
 	if e != nil && e.Fallback != nil {
 		return e.Fallback.Evaluate(position, legal, perspectivePlayerID)
 	}
@@ -271,6 +329,9 @@ func fallbackEval(e *HTTPEvaluator, position *env.Position, legal []actions.Opti
 }
 
 func fallbackBatchEval(e *HTTPEvaluator, positions []*env.Position, legal [][]actions.Option, perspectivePlayerID string) []Evaluation {
+	if e != nil {
+		e.failures.Add(1)
+	}
 	if e != nil {
 		if batch, ok := e.Fallback.(BatchEvaluator); ok {
 			return batch.EvaluateBatch(positions, legal, perspectivePlayerID)

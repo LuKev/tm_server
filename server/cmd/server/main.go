@@ -1,13 +1,16 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gorilla/mux"
 	"github.com/lukev/tm_server/internal/api"
+	"github.com/lukev/tm_server/internal/az/model"
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/lobby"
 	"github.com/lukev/tm_server/internal/replay"
@@ -15,6 +18,9 @@ import (
 )
 
 func main() {
+	if err := verifyRequiredNeuralEvaluator(); err != nil {
+		log.Fatal(err)
+	}
 	// Create WebSocket hub
 	hub := websocket.NewHub()
 	go hub.Run()
@@ -72,6 +78,23 @@ func main() {
 	if err := http.ListenAndServe(addr, router); err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
+}
+
+func verifyRequiredNeuralEvaluator() error {
+	if !strings.EqualFold(strings.TrimSpace(os.Getenv("TM_AZ_REQUIRE_NEURAL")), "true") {
+		return nil
+	}
+	modelURL := strings.TrimSpace(os.Getenv("TM_AZ_MODEL_URL"))
+	if modelURL == "" {
+		return fmt.Errorf("TM_AZ_REQUIRE_NEURAL=true requires TM_AZ_MODEL_URL")
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	health, err := model.ProbeHTTP(modelURL, client)
+	if err != nil {
+		return fmt.Errorf("required neural evaluator is unavailable: %w", err)
+	}
+	log.Printf("neural evaluator ready: architecture=%s actions=%d input=%d schema=%s", health.Architecture, health.ActionCount, health.InputSize, health.ObservationSchema)
+	return nil
 }
 
 func corsMiddleware(next http.Handler) http.Handler {
