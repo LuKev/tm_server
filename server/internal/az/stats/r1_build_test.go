@@ -46,6 +46,9 @@ func TestR1BuildTrackerCapturesFirstPostRoundOneState(t *testing.T) {
 	if got := rates["Giants"].AverageActionsBeforePass; got != 1 {
 		t.Fatalf("Giants actions before pass = %v, want 1", got)
 	}
+	if got := rates["Giants"].BuildingCounts[models.BuildingTemple.String()]; got != 1 {
+		t.Fatalf("Giants Temple builds = %d, want 1", got)
+	}
 	if got := rates["Swarmlings"].PassedBeforeActionRate; got != 1 {
 		t.Fatalf("Swarmlings immediate-pass rate = %v, want 1", got)
 	}
@@ -54,6 +57,38 @@ func TestR1BuildTrackerCapturesFirstPostRoundOneState(t *testing.T) {
 	}
 	if got := rates["Swarmlings"].TempleOrStrongholdRate; got != 1 {
 		t.Fatalf("Swarmlings temple/SH rate = %v, want 1", got)
+	}
+}
+
+func TestR1BuildTrackerCountsEachBuildingTransition(t *testing.T) {
+	gs := &game.GameState{
+		Round: 1,
+		Map:   board.NewTerraMysticaMap(),
+		Players: map[string]*game.Player{
+			"p1": {ID: "p1", Faction: factions.NewGiants()},
+		},
+	}
+	hex := gs.Map.GetHex(board.NewHex(0, 0))
+	tracker := NewR1BuildTracker(gs, []string{"p1"})
+	hex.Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1"}
+	tracker.Observe(gs)
+	hex.Building = &models.Building{Type: models.BuildingTradingHouse, PlayerID: "p1"}
+	tracker.Observe(gs)
+	hex.Building = &models.Building{Type: models.BuildingTemple, PlayerID: "p1"}
+	tracker.Observe(gs)
+	gs.Round = 2
+	tracker.Observe(gs)
+
+	rates := R1BuildRates{}
+	AddR1BuildSamples(rates, tracker.Samples())
+	entry := rates["Giants"]
+	for _, building := range []models.BuildingType{models.BuildingDwelling, models.BuildingTradingHouse, models.BuildingTemple} {
+		if got := entry.BuildingCounts[building.String()]; got != 1 {
+			t.Fatalf("%s builds = %d, want 1", building, got)
+		}
+		if got := entry.AverageBuildings[building.String()]; got != 1 {
+			t.Fatalf("average %s builds = %v, want 1", building, got)
+		}
 	}
 }
 

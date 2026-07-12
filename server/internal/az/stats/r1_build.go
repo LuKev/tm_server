@@ -9,20 +9,22 @@ import (
 )
 
 type R1BuildRate struct {
-	Samples                  int         `json:"samples"`
-	AnyBuildCount            int         `json:"anyBuildCount"`
-	TempleOrSanctuaryCount   int         `json:"templeOrSanctuaryCount"`
-	StrongholdCount          int         `json:"strongholdCount"`
-	TempleOrStrongholdCount  int         `json:"templeOrStrongholdCount"`
-	PassedBeforeActionCount  int         `json:"passedBeforeActionCount"`
-	ActionsBeforePassTotal   int         `json:"actionsBeforePassTotal"`
-	ActionsBeforePassCounts  map[int]int `json:"actionsBeforePassCounts,omitempty"`
-	AnyBuildRate             float64     `json:"anyBuildRate"`
-	TempleOrSanctuaryRate    float64     `json:"templeOrSanctuaryRate"`
-	StrongholdRate           float64     `json:"strongholdRate"`
-	TempleOrStrongholdRate   float64     `json:"templeOrStrongholdRate"`
-	PassedBeforeActionRate   float64     `json:"passedBeforeActionRate"`
-	AverageActionsBeforePass float64     `json:"averageActionsBeforePass"`
+	Samples                  int                `json:"samples"`
+	AnyBuildCount            int                `json:"anyBuildCount"`
+	TempleOrSanctuaryCount   int                `json:"templeOrSanctuaryCount"`
+	StrongholdCount          int                `json:"strongholdCount"`
+	TempleOrStrongholdCount  int                `json:"templeOrStrongholdCount"`
+	PassedBeforeActionCount  int                `json:"passedBeforeActionCount"`
+	ActionsBeforePassTotal   int                `json:"actionsBeforePassTotal"`
+	ActionsBeforePassCounts  map[int]int        `json:"actionsBeforePassCounts,omitempty"`
+	BuildingCounts           map[string]int     `json:"buildingCounts,omitempty"`
+	AverageBuildings         map[string]float64 `json:"averageBuildings,omitempty"`
+	AnyBuildRate             float64            `json:"anyBuildRate"`
+	TempleOrSanctuaryRate    float64            `json:"templeOrSanctuaryRate"`
+	StrongholdRate           float64            `json:"strongholdRate"`
+	TempleOrStrongholdRate   float64            `json:"templeOrStrongholdRate"`
+	PassedBeforeActionRate   float64            `json:"passedBeforeActionRate"`
+	AverageActionsBeforePass float64            `json:"averageActionsBeforePass"`
 }
 
 type R1BuildRates map[string]R1BuildRate
@@ -34,6 +36,7 @@ type R1BuildSample struct {
 	TempleOrSanctuary bool
 	Stronghold        bool
 	ActionsBeforePass int
+	BuildingCounts    map[string]int
 }
 
 // R1BuildTracker captures the first point at which a game has left round 1,
@@ -41,6 +44,8 @@ type R1BuildSample struct {
 type R1BuildTracker struct {
 	playerIDs         []string
 	initialBuildings  map[string]string
+	currentBuildings  map[string]string
+	buildingCounts    map[string]map[string]int
 	actionsBeforePass map[string]int
 	passed            map[string]bool
 	captured          bool
@@ -53,6 +58,8 @@ func NewR1BuildTracker(gs *game.GameState, playerIDs []string) *R1BuildTracker {
 	return &R1BuildTracker{
 		playerIDs:         ids,
 		initialBuildings:  buildingStates(gs),
+		currentBuildings:  buildingStates(gs),
+		buildingCounts:    make(map[string]map[string]int),
 		actionsBeforePass: make(map[string]int),
 		passed:            make(map[string]bool),
 	}
@@ -70,7 +77,11 @@ func (t *R1BuildTracker) ObserveAction(round int, playerID, actionType string) {
 }
 
 func (t *R1BuildTracker) Observe(gs *game.GameState) {
-	if t == nil || t.captured || gs == nil || gs.Round <= 1 {
+	if t == nil || t.captured || gs == nil {
+		return
+	}
+	if gs.Round <= 1 {
+		t.observeBuildingChanges(gs)
 		return
 	}
 	t.captured = true
@@ -108,6 +119,12 @@ func MergeR1BuildRates(dst R1BuildRates, src R1BuildRates) {
 		for actions, count := range part.ActionsBeforePassCounts {
 			total.ActionsBeforePassCounts[actions] += count
 		}
+		if total.BuildingCounts == nil {
+			total.BuildingCounts = make(map[string]int)
+		}
+		for building, count := range part.BuildingCounts {
+			total.BuildingCounts[building] += count
+		}
 		dst[faction] = total
 	}
 	FinalizeR1BuildRates(dst)
@@ -140,6 +157,12 @@ func AddR1BuildSamples(rates R1BuildRates, samples []R1BuildSample) {
 			entry.ActionsBeforePassCounts = make(map[int]int)
 		}
 		entry.ActionsBeforePassCounts[sample.ActionsBeforePass]++
+		if entry.BuildingCounts == nil {
+			entry.BuildingCounts = make(map[string]int)
+		}
+		for building, count := range sample.BuildingCounts {
+			entry.BuildingCounts[building] += count
+		}
 		rates[sample.Faction] = entry
 	}
 	FinalizeR1BuildRates(rates)
@@ -154,6 +177,10 @@ func FinalizeR1BuildRates(rates R1BuildRates) {
 			entry.TempleOrStrongholdRate = float64(entry.TempleOrStrongholdCount) / float64(entry.Samples)
 			entry.PassedBeforeActionRate = float64(entry.PassedBeforeActionCount) / float64(entry.Samples)
 			entry.AverageActionsBeforePass = float64(entry.ActionsBeforePassTotal) / float64(entry.Samples)
+			entry.AverageBuildings = make(map[string]float64, len(entry.BuildingCounts))
+			for building, count := range entry.BuildingCounts {
+				entry.AverageBuildings[building] = float64(count) / float64(entry.Samples)
+			}
 		}
 		rates[faction] = entry
 	}
@@ -166,7 +193,7 @@ func (t *R1BuildTracker) buildSamples(gs *game.GameState) []R1BuildSample {
 		if player == nil || player.Faction == nil {
 			continue
 		}
-		sample := R1BuildSample{PlayerID: playerID, Faction: player.Faction.GetType().String(), ActionsBeforePass: t.actionsBeforePass[playerID]}
+		sample := R1BuildSample{PlayerID: playerID, Faction: player.Faction.GetType().String(), ActionsBeforePass: t.actionsBeforePass[playerID], BuildingCounts: cloneIntMap(t.buildingCounts[playerID])}
 		for _, hex := range gs.Map.Hexes {
 			if hex == nil || hex.Building == nil || hex.Building.PlayerID != playerID {
 				continue
@@ -185,6 +212,40 @@ func (t *R1BuildTracker) buildSamples(gs *game.GameState) []R1BuildSample {
 		out = append(out, sample)
 	}
 	return out
+}
+
+func (t *R1BuildTracker) observeBuildingChanges(gs *game.GameState) {
+	if t == nil || gs == nil || gs.Map == nil {
+		return
+	}
+	next := buildingStates(gs)
+	for _, hex := range gs.Map.Hexes {
+		if hex == nil || hex.Building == nil {
+			continue
+		}
+		key := fmt.Sprintf("%d,%d", hex.Coord.Q, hex.Coord.R)
+		if t.currentBuildings[key] == next[key] {
+			continue
+		}
+		counts := t.buildingCounts[hex.Building.PlayerID]
+		if counts == nil {
+			counts = make(map[string]int)
+			t.buildingCounts[hex.Building.PlayerID] = counts
+		}
+		counts[hex.Building.Type.String()]++
+	}
+	t.currentBuildings = next
+}
+
+func cloneIntMap(src map[string]int) map[string]int {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make(map[string]int, len(src))
+	for key, value := range src {
+		dst[key] = value
+	}
+	return dst
 }
 
 func buildingStates(gs *game.GameState) map[string]string {
