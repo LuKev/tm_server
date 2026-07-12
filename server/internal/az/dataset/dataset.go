@@ -11,10 +11,11 @@ import (
 )
 
 type ExportConfig struct {
-	Input        string
-	SamplesPath  string
-	VocabPath    string
-	ManifestPath string
+	Input         string
+	SamplesPath   string
+	VocabPath     string
+	ManifestPath  string
+	SeedVocabPath string
 }
 
 type PolicyTarget struct {
@@ -68,6 +69,13 @@ func Export(config ExportConfig) (Manifest, error) {
 	if err != nil {
 		return Manifest{}, err
 	}
+	if config.SeedVocabPath != "" {
+		vocab, err = mergeSeedVocab(config.SeedVocabPath, vocab)
+		if err != nil {
+			return Manifest{}, err
+		}
+		manifest.ActionCount = len(vocab)
+	}
 	manifest.Input = config.Input
 	manifest.SamplesPath = config.SamplesPath
 	manifest.VocabPath = config.VocabPath
@@ -110,6 +118,28 @@ func Export(config ExportConfig) (Manifest, error) {
 		return Manifest{}, err
 	}
 	return manifest, nil
+}
+
+func mergeSeedVocab(path string, observed []string) ([]string, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read seed vocab: %w", err)
+	}
+	var seed []string
+	if err := json.Unmarshal(raw, &seed); err != nil {
+		return nil, fmt.Errorf("parse seed vocab: %w", err)
+	}
+	seen := make(map[string]bool, len(seed)+len(observed))
+	for _, actionID := range seed {
+		if actionID == "" || seen[actionID] {
+			return nil, fmt.Errorf("seed vocab contains empty or duplicate action ID %q", actionID)
+		}
+		seen[actionID] = true
+	}
+	for _, actionID := range observed {
+		seen[actionID] = true
+	}
+	return sortedKeys(seen), nil
 }
 
 func scanManifest(path string) ([]string, Manifest, error) {

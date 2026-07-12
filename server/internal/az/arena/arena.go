@@ -210,7 +210,7 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 	if out.metadata.Scenario == "" {
 		out.metadata.Scenario = scenarioName
 	}
-	r1Tracker := stats.NewR1BuildTracker(playerIDs(position))
+	r1Tracker := stats.NewR1BuildTracker(position.State, playerIDs(position))
 	for ply := 0; ply < config.MaxPlies && !position.IsTerminal(); ply++ {
 		out.plies++
 		legal := position.LegalActions()
@@ -239,6 +239,7 @@ func evaluateGame(gameIndex, workerID int, candidate, baseline model.Evaluator, 
 			out.err = fmt.Errorf("selected illegal action %s", selected.ID)
 			return out
 		}
+		r1Tracker.ObserveAction(position.State.Round, option.PlayerID, option.Type)
 		position, err = position.Apply(option)
 		if err != nil {
 			out.err = err

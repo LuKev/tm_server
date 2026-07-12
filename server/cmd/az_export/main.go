@@ -13,12 +13,14 @@ func main() {
 	samples := flag.String("samples", "az_samples.jsonl", "output neural-ready samples JSONL")
 	vocab := flag.String("vocab", "az_action_vocab.json", "output action vocabulary JSON")
 	manifest := flag.String("manifest", "az_dataset_manifest.json", "output dataset manifest JSON")
+	seedVocab := flag.String("seed_vocab", "", "optional existing action vocabulary to preserve and extend")
 	flag.Parse()
 	result, err := dataset.Export(dataset.ExportConfig{
-		Input:        *input,
-		SamplesPath:  *samples,
-		VocabPath:    *vocab,
-		ManifestPath: *manifest,
+		Input:         *input,
+		SamplesPath:   *samples,
+		VocabPath:     *vocab,
+		ManifestPath:  *manifest,
+		SeedVocabPath: *seedVocab,
 	})
 	if err != nil {
 		exitf("export: %v", err)

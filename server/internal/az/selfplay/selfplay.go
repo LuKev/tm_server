@@ -203,7 +203,7 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 	var records []Record
 	lastActionType := ""
 	var tree *mcts.Tree
-	r1Tracker := stats.NewR1BuildTracker(playerIDs(position))
+	r1Tracker := stats.NewR1BuildTracker(position.State, playerIDs(position))
 	if config.ReuseTree {
 		tree = mcts.NewTree(position)
 	}
@@ -256,6 +256,7 @@ func playEpisode(episode, workerID int, evaluator model.Evaluator, config Config
 			ActionID:          action.ID,
 		}
 		metrics.ActionTypeCounts[action.Type]++
+		r1Tracker.ObserveAction(position.State.Round, action.PlayerID, action.Type)
 		lastActionType = action.Type
 		if ply == 0 {
 			record.FeatureNames = observation.FeatureNames

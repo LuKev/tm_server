@@ -1,0 +1,6 @@
+py_binary(
+    name = "az_checkpoint_vocab",
+    srcs = ["az_checkpoint_vocab.py"],
+    main = "az_checkpoint_vocab.py",
+    visibility = ["//visibility:public"],
+)
