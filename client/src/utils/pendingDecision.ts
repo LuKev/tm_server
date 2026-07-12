@@ -106,10 +106,6 @@ export const getDecisionStripStatus = ({
     return `${formatActorList(uniqueIds, players, localPlayerId)} ${uniqueIds.length > 1 ? pluralAction : singularAction}`
   }
 
-  if (orderedPendingLeechResponders.length > 0) {
-    return actorText(orderedPendingLeechResponders, 'must make a leech decision.', 'must make leech decisions.')
-  }
-
   switch (pendingDecision.type) {
     case 'cult_reward_spade':
       return actorText([pendingDecision.playerId ?? ''], 'must use cult spades.')
@@ -160,6 +156,10 @@ export const getDecisionStripStatus = ({
       return actorText(pendingDecision.playerIds, 'must submit bids.', 'must submit bids.')
     default:
       break
+  }
+
+  if (orderedPendingLeechResponders.length > 0) {
+    return actorText(orderedPendingLeechResponders, 'must make a leech decision.', 'must make leech decisions.')
   }
 
   if (phase === GamePhase.FactionSelection) {

@@ -2508,6 +2508,28 @@ export const Game = () => {
             </button>
           </div>
         </div>
+      ) : isTurnConfirmationWindowForMe ? (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-900">Confirm Turn</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              data-testid="turn-end-undo"
+              className="rounded bg-amber-600 px-3 py-1 text-sm text-white"
+              onClick={() => { performAction('undo_turn') }}
+            >
+              Undo
+            </button>
+            <button
+              data-testid="turn-end-confirm"
+              className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
+              onClick={() => { performAction('confirm_turn') }}
+            >
+              Confirm turn
+            </button>
+          </div>
+        </div>
       ) : pendingLeechOffersForMe.length > 0 ? (
         <div className="space-y-2">
           <div className="text-sm font-semibold text-slate-900">Leech Offer</div>
@@ -2546,28 +2568,6 @@ export const Game = () => {
           <div>
             <div className="text-sm font-semibold text-slate-900">Please select a town tile</div>
             <div className="text-sm text-slate-700">A town tile selection is required.</div>
-          </div>
-        </div>
-      ) : isTurnConfirmationWindowForMe ? (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-slate-900">Confirm Turn</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              data-testid="turn-end-undo"
-              className="rounded bg-amber-600 px-3 py-1 text-sm text-white"
-              onClick={() => { performAction('undo_turn') }}
-            >
-              Undo
-            </button>
-            <button
-              data-testid="turn-end-confirm"
-              className="rounded bg-slate-700 px-3 py-1 text-sm text-white"
-              onClick={() => { performAction('confirm_turn') }}
-            >
-              Confirm turn
-            </button>
           </div>
         </div>
       ) : (
