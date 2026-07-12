@@ -7,7 +7,7 @@ import modal
 
 
 MODEL_ID = os.environ.get(
-    "TM_AZ_MODEL_ID", "promoted-h512-selfplay-iter1-20260711"
+    "TM_AZ_MODEL_ID", "promoted-h512-selfplay-iter5-20260712"
 )
 MODEL_ROOT = "/models"
 MODEL_PATH = f"{MODEL_ROOT}/{MODEL_ID}/model.pt"

@@ -22,6 +22,8 @@ The metrics are captured at the first game state after round 1 ends. For each fa
 
 ## Model Summary
 
+The five successive July 12 cycles, including per-faction R1 rates and final-VP changes, are recorded in [`terra-mystica-ai-five-cycle-results-20260712.md`](terra-mystica-ai-five-cycle-results-20260712.md).
+
 | Model | Source | Scenario | Games | Sims | Date | Notes |
 | --- | --- | --- | ---: | ---: | --- | --- |
 | `heuristic_mcts_iter0_selfplay` | `/tmp/tm_az_local_fastlane_20260629/iter0/selfplay_metrics.json` | `matrix:base_ordered` | 168 | 8 | 2026-06-29 | Heuristic MCTS rebuild because retained `/tmp` checkpoints were missing. |
