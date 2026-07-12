@@ -34,6 +34,13 @@ type TestWebSocketWindow = Window & {
   __TM_TEST_SEND_MESSAGE__?: (message: unknown) => void
 }
 
+export const websocketURL = (location: Location, configuredAPIURL?: string): string => {
+  const baseURL = configuredAPIURL?.trim() || location.origin
+  const url = new URL('/api/ws', baseURL)
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
+  return url.toString()
+}
+
 export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }) => {
   const [isConnected, setIsConnected] = useState(false)
   const [lastMessage, setLastMessage] = useState<unknown>(null)
@@ -65,10 +72,11 @@ export const WebSocketProvider: React.FC<WebSocketProviderProps> = ({ children }
     }
 
     setConnectionStatus('connecting')
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host; // This will be kezilu.com in production
-    // Connect to /api/ws which Cloudflare routes to the backend
-    const wsUrl = `${protocol}//${host}/api/ws`;
+    const configuredAPIURL = (import.meta.env as Record<string, unknown>).VITE_API_URL
+    const wsUrl = websocketURL(
+      window.location,
+      typeof configuredAPIURL === 'string' ? configuredAPIURL : undefined,
+    )
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws
