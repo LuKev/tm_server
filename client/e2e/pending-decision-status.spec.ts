@@ -12,7 +12,7 @@ test('turn confirmation takes priority over an opponent leech offer', () => {
 
   const status = getDecisionStripStatus({
     pendingDecision,
-    orderedPendingLeechResponders: ['TM-AZ-2'],
+    orderedPendingLeechResponders: ['opponent'],
     players: undefined,
     localPlayerId,
     pendingHalflingsSpades: undefined,

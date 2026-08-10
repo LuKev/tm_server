@@ -1,6 +1,0 @@
-py_binary(
-    name = "az_infer_torch",
-    srcs = ["az_infer_torch.py"],
-    main = "az_infer_torch.py",
-    visibility = ["//visibility:public"],
-)

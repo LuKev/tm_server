@@ -1,6 +1,0 @@
-py_binary(
-    name = "az_train_torch",
-    srcs = ["az_train_torch.py"],
-    main = "az_train_torch.py",
-    visibility = ["//visibility:public"],
-)

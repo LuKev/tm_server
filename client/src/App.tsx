@@ -4,7 +4,6 @@ import { Lobby } from './components/Lobby';
 import { Game } from './components/Game';
 import { Replay } from './components/Replay';
 import { ImportGame } from './components/ImportGame';
-import { PlayAIPage } from './components/AI/PlayAIPage';
 import './App.css'
 
 function AppShell(): React.ReactElement {
@@ -24,7 +23,6 @@ function AppShell(): React.ReactElement {
       <Routes>
         <Route path="/" element={<Lobby />} />
         <Route path="/import" element={<ImportGame />} />
-        <Route path="/ai" element={<PlayAIPage />} />
         <Route path="/game/:gameId" element={<Game />} />
         <Route path="/replay/:gameId" element={<Replay />} />
       </Routes>

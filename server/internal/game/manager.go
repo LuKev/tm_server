@@ -26,10 +26,9 @@ type CreateGameOptions struct {
 
 // ActionMeta provides metadata for action execution.
 type ActionMeta struct {
-	ActionID               string
-	ExpectedRevision       int
-	SeatID                 string
-	AllowAZAutoConversions bool
+	ActionID         string
+	ExpectedRevision int
+	SeatID           string
 }
 
 // ActionResult reports action execution outcome.
@@ -228,9 +227,6 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if meta.ExpectedRevision >= 0 && meta.ExpectedRevision != currentRevision {
 		return nil, &RevisionMismatchError{Expected: meta.ExpectedRevision, Current: currentRevision}
 	}
-	restoreAutoConversions := setScopedAZAutoConversions(gs, meta.AllowAZAutoConversions)
-	defer restoreAutoConversions()
-
 	if err := validateActionTurnAndPendingState(gs, action); err != nil {
 		return nil, fmt.Errorf("action turn validation failed: %w", err)
 	}
@@ -266,17 +262,6 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	return &ActionResult{Revision: currentRevision, Duplicate: false}, nil
-}
-
-func setScopedAZAutoConversions(gs *GameState, enabled bool) func() {
-	if gs == nil || !enabled {
-		return func() {}
-	}
-	previous := gs.allowAZAutoConversions
-	gs.allowAZAutoConversions = true
-	return func() {
-		gs.allowAZAutoConversions = previous
-	}
 }
 
 func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, beforeCoins, beforeWorkers, beforePriests int) {

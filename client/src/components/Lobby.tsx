@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Swords } from 'lucide-react'
 import { useWebSocket } from '../services/WebSocketContext'
 import { useGameStore } from '../stores/gameStore'
 import { DEFAULT_MAP_CATALOG } from '../data/mapCatalog'
@@ -9,7 +8,6 @@ import { CustomMapEditor } from './CustomMapEditor'
 import { buildCustomMapHexes, createEmptyCustomMapDefinition } from '../utils/customMapUtils'
 import { HexGridCanvas } from './GameBoard/HexGridCanvas'
 import './Lobby.css'
-import { modelPlayerIdForGame } from './AI/modelGame'
 
 interface GameInfo {
   id: string
@@ -28,11 +26,6 @@ interface GameInfo {
 interface LobbyMessage {
   type: string
   payload?: unknown
-}
-
-interface StartedGamePayload {
-  gameId?: string
-  playerId?: string
 }
 
 type LobbyErrorPayload = string | {
@@ -124,17 +117,6 @@ export function Lobby(): React.ReactElement {
         setLobbyError(formatLobbyError((msg.payload ?? '') as LobbyErrorPayload))
       } else if (msg.type === 'game_left') {
         setLobbyError(null)
-      } else if (msg.type === 'model_game_started') {
-        const payload = (msg.payload ?? {}) as StartedGamePayload
-        if (payload.playerId && payload.gameId) {
-          useGameStore.getState().bindLocalPlayerToGame(payload.gameId, payload.playerId)
-        } else if (payload.playerId) {
-          useGameStore.getState().setLocalPlayerId(payload.playerId)
-        }
-        if (payload.gameId) {
-          setLobbyError(null)
-          void navigate(`/game/${payload.gameId}`)
-        }
       }
     }
   }, [lastMessage, navigate])
@@ -210,20 +192,6 @@ export function Lobby(): React.ReactElement {
         </div>
 
         <div className="lobby-panel">
-          <div className="lobby-ai-entry">
-            <div>
-              <h2>Play vs AI</h2>
-            </div>
-            <button
-              className="lobby-button lobby-button-primary"
-              data-testid="lobby-play-ai"
-              onClick={() => { void navigate('/ai') }}
-            >
-              <Swords size={18} />
-              <span>Play vs AI</span>
-            </button>
-          </div>
-
           <div className="lobby-section">
             <label className="lobby-label" htmlFor="lobby-player-name">Player</label>
             <input
@@ -447,8 +415,6 @@ export function Lobby(): React.ReactElement {
                   const isJoined = trimmedPlayerName !== '' && g.players.includes(trimmedPlayerName)
                   const isHost = trimmedPlayerName !== '' && g.host === trimmedPlayerName
                   const joinBlockedByOtherSeat = joinedGameId !== null && joinedGameId !== g.id
-                  const modelPlayerId = g.players.find((player) => player === modelPlayerIdForGame(g.id)) ?? null
-                  const isModelGame = modelPlayerId !== null
                   const displayMapName =
                     g.customMap?.name?.trim()
                     || availableMaps.find((map) => map.id === g.mapId)?.name
@@ -472,7 +438,6 @@ export function Lobby(): React.ReactElement {
                             <span className="lobby-tag lobby-tag-muted">
                               F&amp;I scoring: {g.fireIceScoring === 'random' ? 'Random' : g.fireIceScoring === 'on' ? 'On' : 'Off'}
                             </span>
-                            {isModelGame && <span className="lobby-tag lobby-tag-muted">Opponent: Model</span>}
                             {g.host && <span className="lobby-tag lobby-tag-muted">Host: {g.host}</span>}
                           </div>
                         </div>
@@ -521,17 +486,17 @@ export function Lobby(): React.ReactElement {
                               payload: {
                                 gameID: g.id,
                                 randomizeTurnOrder,
-                                setupMode: isModelGame ? 'snellman' : setupMode,
+                                setupMode,
                                 turnTimerEnabled,
                                 turnTimerSeconds: Math.max(1, Math.trunc(turnTimerMinutes * 60)),
                                 turnTimerIncrementSeconds: Math.max(0, Math.trunc(turnTimerIncrementSeconds)),
                               },
                             })
                           }}
-                          disabled={!isConnected || !isFull || !isHost || isModelGame}
+                          disabled={!isConnected || !isFull || !isHost}
                           className="lobby-button lobby-button-success"
                         >
-                          {isModelGame ? 'Use AI page' : isFull ? (isHost ? 'Start' : 'Host starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
+                          {isFull ? (isHost ? 'Start' : 'Host starts') : `Waiting ${String(g.players.length)}/${String(g.maxPlayers)}`}
                         </button>
                       </div>
                     </div>

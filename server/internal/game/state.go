@@ -71,7 +71,6 @@ type GameState struct {
 	PendingPostActionSpecialActions  map[string]map[SpecialActionType]bool `json:"-"`
 	TurnTimer                        *TurnTimerState                       `json:"turnTimer,omitempty"`
 	ReplayMode                       map[string]bool                       `json:"replayMode"`
-	allowAZAutoConversions           bool
 	ReplayAcolytesCultTracks         map[string][]CultTrack            `json:"-"`
 	ReplayAcolytesCultTrackIndex     map[string]int                    `json:"-"`
 	ReplayRiverBuildHexes            map[string][]board.Hex            `json:"-"`

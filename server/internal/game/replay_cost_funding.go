@@ -72,19 +72,12 @@ func (gs *GameState) allowsReplayAutoConversions(cost factions.Cost) bool {
 		return false
 	}
 	replayAutoConversions := gs.ReplayMode != nil && gs.ReplayMode["__replay__"] && gs.ReplayMode["__bga__"]
-	if !gs.allowAZAutoConversions && !replayAutoConversions {
+	if !replayAutoConversions {
 		return false
 	}
 	// Keep replay auto-funding scoped to non-power costs. Logged power spending
 	// already has dedicated replay handling via explicit burn/power actions.
 	return cost.Power == 0
-}
-
-// EnableAZAutoConversionsForClone enables funding only on a disposable AZ state clone.
-func EnableAZAutoConversionsForClone(gs *GameState) {
-	if gs != nil {
-		gs.allowAZAutoConversions = true
-	}
 }
 
 func (p replayAutoCostPlan) Apply(gs *GameState, player *Player) error {

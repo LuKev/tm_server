@@ -182,39 +182,6 @@ func TestTransformAndBuildAction_ReplayAutoConvertsPowerToWorker(t *testing.T) {
 	}
 }
 
-func TestManagerAZAutoConversionsAreScopedToOneAction(t *testing.T) {
-	gs := NewGameState()
-	gs.Phase = PhaseAction
-	gs.TurnOrder = []string{"acolytes"}
-	if err := gs.AddPlayer("acolytes", factions.NewAcolytes()); err != nil {
-		t.Fatalf("add player: %v", err)
-	}
-	player := gs.GetPlayer("acolytes")
-	player.Resources.Coins = 8
-	player.Resources.Workers = 3
-	player.Resources.Power = NewPowerSystem(0, 2, 8)
-	hex := board.NewHex(0, 0)
-	if err := gs.Map.TransformTerrain(hex, models.TerrainVolcano); err != nil {
-		t.Fatalf("set terrain: %v", err)
-	}
-	gs.Map.PlaceBuilding(hex, &models.Building{Type: models.BuildingTemple, PlayerID: "acolytes", Faction: models.FactionAcolytes, PowerValue: 2})
-
-	mgr := NewManager()
-	mgr.CreateGameWithState("az", gs)
-	if _, err := mgr.ExecuteActionWithMeta("az", NewUpgradeBuildingAction("acolytes", hex, models.BuildingSanctuary), ActionMeta{
-		ExpectedRevision:       -1,
-		AllowAZAutoConversions: true,
-	}); err != nil {
-		t.Fatalf("execute AZ-funded sanctuary upgrade: %v", err)
-	}
-	if gs.ReplayMode != nil {
-		t.Fatalf("scoped AZ funding leaked replay mode into live state: %#v", gs.ReplayMode)
-	}
-	if got := gs.Map.GetHex(hex).Building.Type; got != models.BuildingSanctuary {
-		t.Fatalf("building type = %v, want sanctuary", got)
-	}
-}
-
 func TestPlanReplayAutoCostSkipsConversionsWhenAlreadyAffordable(t *testing.T) {
 	gs, player := replayFundingStateAndPlayer(t, factions.NewWitches())
 	player.Resources.Coins = 5
@@ -372,18 +339,6 @@ func TestPlanReplayAutoCostDoesNotBypassRiverwalkersPriestChoice(t *testing.T) {
 	player.Resources.Power = NewPowerSystem(0, 0, 5)
 	if plan, ok := planReplayAutoCost(gs, player, factions.Cost{Priests: 1}); ok {
 		t.Fatalf("unexpected Riverwalkers auto-priest plan: %+v", plan)
-	}
-}
-
-func TestAZAutoConversionCapabilityIsNotCloned(t *testing.T) {
-	gs := NewGameState()
-	EnableAZAutoConversionsForClone(gs)
-	clone := gs.CloneForUndo()
-	if !gs.allowAZAutoConversions {
-		t.Fatal("source capability was not enabled")
-	}
-	if clone.allowAZAutoConversions {
-		t.Fatal("AZ auto-conversion capability leaked into clone")
 	}
 }
 

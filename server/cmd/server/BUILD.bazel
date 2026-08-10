@@ -7,7 +7,6 @@ go_library(
     visibility = ["//visibility:private"],
     deps = [
         "//internal/api",
-		"//internal/az/model",
         "//internal/game",
         "//internal/lobby",
         "//internal/replay",
