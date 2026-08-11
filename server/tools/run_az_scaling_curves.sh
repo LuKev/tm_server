@@ -23,6 +23,7 @@ actions="${TM_AZ_CURVE_ACTIONS:-128}"
 warmup="${TM_AZ_CURVE_WARMUP:-5}"
 iterations="${TM_AZ_CURVE_ITERATIONS:-20}"
 torch_threads="${TM_AZ_TORCH_THREADS:-1}"
+arena_games_per_batch="${TM_AZ_ARENA_GAMES_PER_BATCH:-8}"
 allow_random="${TM_AZ_CURVE_ALLOW_RANDOM:-0}"
 
 if [[ -z "${checkpoint}" && "${allow_random}" != "1" ]]; then
@@ -63,6 +64,7 @@ for candidate_simulations in ${search_budgets}; do
     --inference-device "${device}" \
     --inference-torch-threads "${torch_threads}" \
     --output "${output_dir}/search-reports" \
+    --games-per-batch "${arena_games_per_batch}" \
     --cases "${cases}" \
     --candidate-simulations "${candidate_simulations}" \
     --baseline-simulations "${baseline_simulations}" \

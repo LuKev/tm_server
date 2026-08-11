@@ -1,7 +1,7 @@
 # 1v1 Terra Mystica AlphaZero Plan
 
-Status: implemented through Milestone 5's local scaling foundations; full-scale
-large-checkpoint experiments remain to be run.
+Status: implemented through Milestone 5's local scaling foundations; the
+ordered large-checkpoint experiment campaign is in progress.
 
 Implementation status (updated 2026-08-10): Milestones 0 through 4 are
 complete. The base-rules contract, serial/batch-shaped PUCT, versioned relative
@@ -441,26 +441,75 @@ production-scale training run.
 The fixed `tm-v0-paired-v2` holdout now contains 28 reserved setups, covers all
 14 base factions, and includes both faction orders for every selected matchup.
 Full-suite and ordered-prefix identities are derived from the exact cases and
-rejected when their contents do not match the name. Evaluation format 4 records
-separate candidate and baseline simulation budgets, so a search curve changes
-one agent's compute instead of silently changing both sides.
+rejected when their contents do not match the name. Evaluation format 5 records
+separate candidate and baseline simulation budgets, the bounded games per
+batch, and infrastructure failures, so a search curve changes one agent's
+compute without silently changing both sides or losing a failed attempt.
 `//:run_az_scaling_curves` produces large-model batch measurements and immutable
 paired arena reports for the default 1/8/32/128 candidate budgets against the
 same checkpoint at a fixed one-simulation budget. The production runner
 requires that checkpoint, verifies that its embedded shape matches the requested
 model, and records its model ID and SHA in every batch artifact; random mode is
 explicitly smoke-only. Model identity and search-role identity are separate in
-format 4, so this comparison isolates search compute instead of changing the
+format 5, so this comparison isolates search compute instead of changing the
 network or both agents' budgets. Its Bazel smoke test executes an actual model
 probe and complete paired arena case. That smoke proves the path, not playing
 strength.
 
-The remaining scaling sequence is:
+The ordered scaling experiment sequence is:
 
-1. run the full batch/search curves against a trained large checkpoint and an
-   immutable engine commit, retaining VP/calibration as well as score;
-2. introduce a shared inference service or distributed actors only when local
-   GPU batch fill and actor throughput demonstrate that they are required.
+1. Run a two-cycle large-model accelerator pilot. Prove actor-to-learner latest
+   adoption, collect complete per-stage JSON, and choose learner work in
+   examples per available replay ply rather than a fixed step count.
+2. Sweep inference and training batch sizes against that exact checkpoint.
+   Choose the smallest batch near the measured throughput knee; do not infer a
+   production batch size from synthetic random weights or a different shape.
+3. Sweep bounded local actor concurrency at a fixed network and search budget.
+   Measure games/hour, GPU batch fill, queue/service latency, decisions/game,
+   and simulator work so concurrency is not selected from GPU utilization
+   alone.
+4. Run the same-checkpoint paired search curve at candidate budgets
+   1/8/32/128 against a fixed one-simulation anchor on the reserved holdout.
+   Retain score, final VP, margin, Brier calibration, openings, and paired
+   uncertainty; the comparison changes search compute, not model identity.
+5. Sweep learner intensity (examples per replay ply) and replay-window size.
+   Reject settings that improve sampled training loss while worsening held-out
+   Brier, causing value saturation, or destabilizing policy entropy.
+6. Sweep self-play simulation budgets with data volume and learner intensity
+   fixed. Select the lowest budget whose downstream checkpoint strength and
+   calibration are not materially worse, rather than assuming the paper's 800
+   simulations transfers directly to Terra Mystica.
+7. Run balanced data-scale checkpoints at 168, 672, and 2,688 games, preserving
+   the 168 ordered legal base-faction matchups and separating setup seeds from
+   search/model RNG seeds. Compare learning curves per generated game and per
+   wall-clock hour.
+8. Evaluate surviving configurations on the full 28-case paired holdout and
+   larger reserved extensions, then against uniform, the previous checkpoint,
+   and the best frozen checkpoint. A promotion conclusion needs both seats,
+   absolute VP, calibration, natural completion, and uncertainty.
+9. Decide the next architecture from the measurements. Add one shared GPU
+   inference service plus more CPU actors only if local actors cannot fill the
+   selected batch without unacceptable queue latency. Add distributed storage
+   or actors only if generation, rather than learner or evaluation, is the
+   measured bottleneck.
+
+The first 8-game/two-cycle large-MPS pilot completed the mechanics but was
+intentionally too small for strength claims. It exposed two immediate controls:
+25 learner steps meant 800 sampled examples after only 318 first-cycle plies,
+and the resulting checkpoint saturated its value output and roughly doubled
+decisions/game in the next self-play cycle. Learner work is therefore now
+expressible as examples per replay ply. The same pilot also showed serial arena
+evaluation dominating wall time, so paired games now advance in lockstep and
+batch neural/search requests without changing each game's seed or action
+sequence. Both changes require deterministic-equivalence and end-to-end smoke
+gates before the pilot is repeated.
+
+Every campaign run owns a new directory and immutable configuration manifest;
+the continual runner refuses a nonempty directory rather than mixing shards or
+checkpoint lineage. Each actor, learner, and arena stage atomically retains its
+stdout, stderr, and exit status even when the stage fails. Learner admission
+also requires every trajectory's engine commit to equal the requested training
+commit. These are experiment-integrity constraints, not deployment machinery.
 
 ### First optimize the simulator
 

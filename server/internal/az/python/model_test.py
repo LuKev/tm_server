@@ -21,7 +21,7 @@ from torch.nn import functional as F
 from batching import collate_positions
 from benchmark import benchmark as run_model_benchmark
 import learner as learner_module
-from learner import Example, ReplayWindow, load_replay, losses, train
+from learner import Example, ReplayWindow, load_replay, losses, resolve_training_steps, train
 from model import DEBUG_CONFIG, LARGE_CONFIG, MAIN_CONFIG, HexConv2d, TerraMysticaNet, checkpoint_manifest, load_checkpoint, publish_checkpoint, resolve_device, resolve_model_config, save_checkpoint
 from schema import (
     ACTION_FEATURE_NAMES,
@@ -262,6 +262,27 @@ class RepresentationTest(unittest.TestCase):
         self.assertGreaterEqual(large_parameters, 25_000_000)
         self.assertLessEqual(large_parameters, 40_000_000)
 
+    def test_training_work_can_be_bound_to_replay_plies(self) -> None:
+        self.assertEqual(resolve_training_steps(
+            replay_plies=318, batch_size=32, steps=None, examples_per_replay_ply=0.25,
+        ), 3)
+        self.assertEqual(resolve_training_steps(
+            replay_plies=318, batch_size=32, steps=None, examples_per_replay_ply=1,
+        ), 10)
+        self.assertEqual(resolve_training_steps(
+            replay_plies=318, batch_size=32, steps=None, examples_per_replay_ply=None,
+        ), 100)
+        with self.assertRaisesRegex(ValueError, "mutually exclusive"):
+            resolve_training_steps(
+                replay_plies=318, batch_size=32, steps=2, examples_per_replay_ply=1,
+            )
+        for steps, ratio in ((0, None), (None, 0), (None, float("inf"))):
+            with self.assertRaises(ValueError):
+                resolve_training_steps(
+                    replay_plies=318, batch_size=32, steps=steps,
+                    examples_per_replay_ply=ratio,
+                )
+
     def test_model_benchmark_is_bound_to_checkpoint_identity_and_shape(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             torch.manual_seed(41)
@@ -479,11 +500,11 @@ class RepresentationTest(unittest.TestCase):
             path = Path(directory) / f"trajectory-{digest}.json.gz"
             path.write_bytes(compressed)
             with mock.patch.object(learner_module, "encode_position", wraps=encode_position) as encode_mock:
-                lazy_probe = load_replay([path], cache_games=1)
+                lazy_probe = load_replay([path], expected_engine_commit="test", cache_games=1)
                 self.assertEqual(encode_mock.call_count, 0)
                 lazy_probe._example(0, 0)
                 self.assertEqual(encode_mock.call_count, 1)
-            replay = load_replay([path], cache_games=1)
+            replay = load_replay([path], expected_engine_commit="test", cache_games=1)
             self.assertEqual(replay.game_count, 1)
             self.assertEqual(replay.ply_count, 1)
             self.assertEqual(replay.resident_game_count, 0)
@@ -501,6 +522,7 @@ class RepresentationTest(unittest.TestCase):
                 ("decision seat", lambda value: value["steps"][0].__setitem__("decision_seat", 1)),
                 ("inconsistent result", lambda value: value["steps"][0].__setitem__("outcome", 0)),
                 ("engine commit", lambda value: value["manifest"].__setitem__("engine_commit", "")),
+                ("engine commit mismatch", lambda value: value["manifest"].__setitem__("engine_commit", "other")),
                 ("model identity", lambda value: value["manifest"].__setitem__("model_id", "")),
                 ("checkpoint identity", lambda value: value["manifest"].__setitem__("model_id", "model-" + "a" * 64)),
             ]
@@ -512,14 +534,16 @@ class RepresentationTest(unittest.TestCase):
                 corrupt_path = Path(directory) / f"trajectory-{corrupt_hash}.json.gz"
                 corrupt_path.write_bytes(corrupt_bytes)
                 with self.assertRaisesRegex(ValueError, expected):
-                    load_replay([corrupt_path])
+                    load_replay([corrupt_path], expected_engine_commit="test")
             second_trajectory = copy.deepcopy(trajectory)
             second_trajectory["manifest"]["seed"] = 4
             second_bytes = gzip.compress(json.dumps(second_trajectory, separators=(",", ":")).encode(), mtime=0)
             second_hash = hashlib.sha256(second_bytes).hexdigest()
             second_path = Path(directory) / f"trajectory-{second_hash}.json.gz"
             second_path.write_bytes(second_bytes)
-            bounded = load_replay([path, second_path], cache_games=1)
+            bounded = load_replay(
+                [path, second_path], expected_engine_commit="test", cache_games=1
+            )
             self.assertEqual(bounded.resident_game_count, 0)
             bounded._example(0, 0)
             bounded._example(1, 0)

@@ -17,4 +17,21 @@ TM_AZ_ACTOR_GAMES_PER_BATCH=1 TM_AZ_REPLAY_CACHE_GAMES=1 "${runner}" "${selfplay
 test "$(find "${run_dir}/replay" -name 'trajectory-*.json.gz' -type f | wc -l | tr -d ' ')" = 4
 test "$(find "${run_dir}/checkpoints" -name 'checkpoint-*.pt' -type f | wc -l | tr -d ' ')" = 2
 test "$(find "${run_dir}/evaluation" -name 'evaluation-*.json' -type f | wc -l | tr -d ' ')" = 3
+test "$(find "${run_dir}/metrics" -name '*.stdout.json' -type f | wc -l | tr -d ' ')" = 7
+test "$(find "${run_dir}/metrics" -name '*.status.json' -type f | wc -l | tr -d ' ')" = 7
+test "$(find "${run_dir}/metrics" -name '*.status.json' -type f -exec grep -L '"exit_code":0' {} + | wc -l | tr -d ' ')" = 0
+test -r "${run_dir}/run-manifest.txt"
+if "${runner}" "${selfplay}" "${inference}" "${learner}" "${evaluator}" "${run_dir}" smoke 1 1 1 1 1 debug; then
+  echo "runner unexpectedly reused a nonempty run directory" >&2
+  exit 1
+fi
+
+failed_run_dir="${TEST_TMPDIR}/failed-run"
+if "${runner}" "${selfplay}" "${TEST_TMPDIR}/missing-inference" "${learner}" "${evaluator}" "${failed_run_dir}" smoke 1 1 1 1 1 debug; then
+  echo "runner unexpectedly completed a failed stage" >&2
+  exit 1
+fi
+test -s "${failed_run_dir}/metrics/cycle-1/selfplay.stderr.log"
+grep -q '"exit_code":[1-9]' "${failed_run_dir}/metrics/cycle-1/selfplay.status.json"
+test ! -e "${failed_run_dir}/checkpoints/latest.json"
 test -s "${run_dir}/checkpoints/latest.json"

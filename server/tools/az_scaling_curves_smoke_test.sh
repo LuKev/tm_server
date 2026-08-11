@@ -25,7 +25,7 @@ search_report=("${output}"/search-reports/evaluation-*.json)
 search_summary="${output}/search-summaries/candidate-1-baseline-1.json"
 [[ -s "${batch_report}" && -s "${search_report[0]}" && -s "${search_summary}" ]]
 grep -q '"model_config": "debug"' "${batch_report}"
-grep -q '"format_version":4' "${search_report[0]}"
+grep -q '"format_version":5' "${search_report[0]}"
 grep -q '"holdout_suite_id":"tm-v0-paired-v2-prefix-1"' "${search_report[0]}"
 grep -q '"candidate_simulations":1' "${search_report[0]}"
 grep -q '"baseline_simulations":1' "${search_report[0]}"

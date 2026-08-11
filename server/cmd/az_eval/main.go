@@ -31,6 +31,7 @@ func main() {
 		candidateSims       = flag.Int("candidate-simulations", 0, "candidate MCTS simulations; zero uses --simulations")
 		baselineSims        = flag.Int("baseline-simulations", 0, "baseline MCTS simulations; zero uses --simulations")
 		caseCount           = flag.Int("cases", 0, "number of fixed holdout cases; zero uses all")
+		gamesPerBatch       = flag.Int("games-per-batch", 8, "maximum concurrent arena games; must be even")
 		maxPlies            = flag.Int("max-plies", 2000, "natural-completion tripwire")
 	)
 	flag.Parse()
@@ -97,19 +98,22 @@ func main() {
 	report, err := az.RunPairedArena(ctx, candidate, baseline, cases, az.ArenaConfig{
 		HoldoutSuiteID:       holdoutSuiteID,
 		CandidateSimulations: candidateBudget, BaselineSimulations: baselineBudget,
-		CPUCT: 1.5, MaxPlies: *maxPlies,
+		GamesPerBatch: *gamesPerBatch, CPUCT: 1.5, MaxPlies: *maxPlies,
 	}, *engineCommit)
-	if err != nil {
+	if err != nil && report.FormatVersion != az.EvaluationFormatVersion {
 		fatal(err)
 	}
-	ref, err := az.WriteArenaReport(*output, report)
-	if err != nil {
-		fatal(err)
+	ref, writeErr := az.WriteArenaReport(*output, report)
+	if writeErr != nil {
+		fatal(writeErr)
 	}
 	if err := json.NewEncoder(os.Stdout).Encode(struct {
 		Report  az.ReportRef    `json:"report"`
 		Summary az.ArenaSummary `json:"summary"`
 	}{Report: ref, Summary: report.Summary}); err != nil {
+		fatal(err)
+	}
+	if err != nil {
 		fatal(err)
 	}
 	if !report.Summary.StrengthValid {

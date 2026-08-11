@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -12,13 +13,35 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+type batchingArenaEvaluator struct {
+	id       string
+	maxBatch int
+	err      error
+}
+
+func (e *batchingArenaEvaluator) ModelID() string { return e.id }
+
+func (e *batchingArenaEvaluator) Evaluate(_ context.Context, requests []EvaluationRequest) ([]EvaluationResult, error) {
+	if e.err != nil {
+		return nil, e.err
+	}
+	if len(requests) > e.maxBatch {
+		e.maxBatch = len(requests)
+	}
+	results := make([]EvaluationResult, len(requests))
+	for index, request := range requests {
+		results[index].PolicyLogits = make([]float32, len(request.Actions))
+	}
+	return results, nil
+}
+
 func TestArenaSummaryUsesPairedSeatsAndComparableDiagnostics(t *testing.T) {
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion,
 		EngineCommit:  "test-commit",
 		CandidateID:   "candidate",
 		BaselineID:    "baseline",
-		Config:        ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 8, BaselineSimulations: 4},
+		Config:        ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
 		Cases: []ArenaCase{
 			{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants},
 			{Seed: 2, First: models.FactionNomads, Second: models.FactionGiants},
@@ -90,7 +113,7 @@ func TestArenaFailureReportPersistsWithoutClaimingStrength(t *testing.T) {
 	failed.TripwireHits = 1
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: "test", CandidateID: "candidate", BaselineID: "baseline",
-		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 8, BaselineSimulations: 4},
+		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
 		Cases:  []ArenaCase{{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants}},
 		Games:  []ArenaGame{complete, failed},
 	}
@@ -108,7 +131,7 @@ func TestArenaDuplicateStateInvalidatesStrength(t *testing.T) {
 	first.DuplicateStates = 1
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: "test", CandidateID: "candidate", BaselineID: "baseline",
-		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 8, BaselineSimulations: 4},
+		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
 		Cases:  []ArenaCase{{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants}},
 		Games:  []ArenaGame{first, testArenaGame(1, 1, [2]int{90, 100})},
 	}
@@ -124,7 +147,7 @@ func TestArenaDuplicateStateInvalidatesStrength(t *testing.T) {
 func TestArenaReportAllowsSameNetworkAtDifferentSearchBudgets(t *testing.T) {
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: "test", CandidateID: "same-model", BaselineID: "same-model",
-		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 32, BaselineSimulations: 1},
+		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateSimulations: 32, BaselineSimulations: 1, GamesPerBatch: 2},
 		Cases:  []ArenaCase{{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants}},
 		Games: []ArenaGame{
 			testArenaGame(1, 0, [2]int{100, 90}),
@@ -230,13 +253,90 @@ func TestHoldoutSeedsAreUnique(t *testing.T) {
 
 func TestArenaUsesPerAgentSearchBudgets(t *testing.T) {
 	config := ArenaConfig{CandidateSimulations: 64, BaselineSimulations: 8}
-	for candidateSeat := 0; candidateSeat < 2; candidateSeat++ {
-		if got := simulationsForSeat(config, candidateSeat, candidateSeat); got != 64 {
-			t.Fatalf("candidate seat %d budget=%d", candidateSeat, got)
+	if got := searchBudgetForAgent(config, arenaCandidateAgent); got != 64 {
+		t.Fatalf("candidate budget=%d", got)
+	}
+	if got := searchBudgetForAgent(config, arenaBaselineAgent); got != 8 {
+		t.Fatalf("baseline budget=%d", got)
+	}
+}
+
+func TestArenaRejectsNegativeBatchBound(t *testing.T) {
+	evaluator := &batchingArenaEvaluator{id: "test"}
+	_, err := RunPairedArena(context.Background(), evaluator, evaluator, HoldoutCases()[:1], ArenaConfig{
+		HoldoutSuiteID: "test-suite", CandidateSimulations: 1, BaselineSimulations: 1,
+		GamesPerBatch: -2,
+	}, "test")
+	if err == nil || !strings.Contains(err.Error(), "cannot be negative") {
+		t.Fatalf("negative arena batch bound was accepted: %v", err)
+	}
+}
+
+func TestBatchedArenaMatchesIndependentGames(t *testing.T) {
+	config := ArenaConfig{
+		HoldoutSuiteID: "test-suite", CandidateSimulations: 1, BaselineSimulations: 1,
+		GamesPerBatch: 2, CPUCT: 1.5, MaxPlies: 2000,
+	}
+	makeRuntimes := func() []arenaRuntime {
+		runtimes := make([]arenaRuntime, 0, 4)
+		for _, arenaCase := range HoldoutCases()[:2] {
+			for candidateSeat := 0; candidateSeat < 2; candidateSeat++ {
+				position, err := NewBaseGame(arenaCase.Seed, arenaCase.First, arenaCase.Second)
+				if err != nil {
+					t.Fatal(err)
+				}
+				agents := [2]string{arenaBaselineAgent, arenaBaselineAgent}
+				agents[candidateSeat] = arenaCandidateAgent
+				runtime, err := newArenaRuntime(position, arenaCase, agents, candidateSeat)
+				if err != nil {
+					t.Fatal(err)
+				}
+				runtimes = append(runtimes, runtime)
+			}
 		}
-		if got := simulationsForSeat(config, 1-candidateSeat, candidateSeat); got != 8 {
-			t.Fatalf("baseline seat %d budget=%d", 1-candidateSeat, got)
+		return runtimes
+	}
+	batchedEvaluator := &batchingArenaEvaluator{id: "batched"}
+	report, err := RunPairedArena(
+		context.Background(), batchedEvaluator, batchedEvaluator, HoldoutCases()[:2], config, "test",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	batched := report.Games
+	serialEvaluator := &batchingArenaEvaluator{id: "serial"}
+	serial := make([]ArenaGame, 0, len(batched))
+	for _, runtime := range makeRuntimes() {
+		results, err := playArenaBatch(context.Background(), []arenaRuntime{runtime}, map[string]Evaluator{
+			arenaCandidateAgent: serialEvaluator, arenaBaselineAgent: serialEvaluator,
+		}, config)
+		if err != nil {
+			t.Fatal(err)
 		}
+		serial = append(serial, results[0])
+	}
+	if !reflect.DeepEqual(batched, serial) {
+		t.Fatal("batched arena changed deterministic game results")
+	}
+	if batchedEvaluator.maxBatch != config.GamesPerBatch || serialEvaluator.maxBatch != 1 {
+		t.Fatalf("inference batches: batched=%d serial=%d", batchedEvaluator.maxBatch, serialEvaluator.maxBatch)
+	}
+}
+
+func TestArenaInfrastructureFailureIsPersistable(t *testing.T) {
+	evaluator := &batchingArenaEvaluator{id: "broken", err: fmt.Errorf("inference unavailable")}
+	report, err := RunPairedArena(context.Background(), evaluator, evaluator, HoldoutCases()[:2], ArenaConfig{
+		HoldoutSuiteID: "test-suite", CandidateSimulations: 1, BaselineSimulations: 1,
+		GamesPerBatch: 2,
+	}, "test")
+	if err == nil || !strings.Contains(err.Error(), "inference unavailable") {
+		t.Fatalf("missing infrastructure error: %v", err)
+	}
+	if len(report.Games) != 4 || report.Summary.InfrastructureFailures != 4 || report.Summary.StrengthValid {
+		t.Fatalf("infrastructure failure was not preserved: %+v", report.Summary)
+	}
+	if _, err := WriteArenaReport(t.TempDir(), report); err != nil {
+		t.Fatalf("infrastructure failure report was rejected: %v", err)
 	}
 }
 

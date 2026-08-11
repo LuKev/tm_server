@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import gzip
 import hashlib
 import json
+import math
 from pathlib import Path
 import random
 import re
@@ -122,7 +123,9 @@ class ReplayWindow:
         return sum(len(game) if isinstance(game, list) else game.ply_count for game in self.games)
 
 
-def _verify_manifest(trajectory: dict[str, Any], path: Path) -> tuple[int, int]:
+def _verify_manifest(
+    trajectory: dict[str, Any], path: Path, expected_engine_commit: str
+) -> tuple[int, int]:
     manifest = trajectory.get("manifest") or {}
     expected = {
         "format_version": TRAJECTORY_FORMAT_VERSION,
@@ -133,8 +136,11 @@ def _verify_manifest(trajectory: dict[str, Any], path: Path) -> tuple[int, int]:
     actual = {key: manifest.get(key) for key in expected}
     if actual != expected:
         raise ValueError(f"trajectory schema mismatch in {path}: got {actual}, want {expected}")
-    if not manifest.get("engine_commit"):
-        raise ValueError(f"trajectory in {path} is missing engine commit")
+    if manifest.get("engine_commit") != expected_engine_commit:
+        raise ValueError(
+            f"trajectory engine commit mismatch in {path}: "
+            f"got {manifest.get('engine_commit')!r}, want {expected_engine_commit!r}"
+        )
     if not manifest.get("model_id"):
         raise ValueError(f"trajectory in {path} is missing model identity")
     factions = manifest.get("factions") or []
@@ -163,10 +169,10 @@ def _example_from_validated_trajectory(trajectory: dict[str, Any], step_index: i
     )
 
 
-def _validate_shard(path: str | Path) -> ShardGame:
+def _validate_shard(path: str | Path, expected_engine_commit: str) -> ShardGame:
     raw_path = Path(path).resolve()
     trajectory = _read_trajectory(raw_path)
-    matchup = _verify_manifest(trajectory, raw_path)
+    matchup = _verify_manifest(trajectory, raw_path, expected_engine_commit)
     manifest = trajectory["manifest"]
     checkpoint_sha256 = str(manifest.get("checkpoint_sha256") or "")
     if str(manifest.get("model_id", "")).startswith("model-") and not re.fullmatch(r"[0-9a-f]{64}", checkpoint_sha256):
@@ -226,11 +232,13 @@ def _validate_shard(path: str | Path) -> ShardGame:
     return ShardGame(path=raw_path, matchup=matchup, ply_count=len(steps))
 
 
-def load_replay(paths: list[str | Path], *, cache_games: int = 8) -> ReplayWindow:
+def load_replay(
+    paths: list[str | Path], *, expected_engine_commit: str, cache_games: int = 8
+) -> ReplayWindow:
     games: list[ShardGame] = []
     matchups: list[tuple[int, int]] = []
     for path in sorted(Path(value).resolve() for value in paths):
-        game = _validate_shard(path)
+        game = _validate_shard(path, expected_engine_commit)
         games.append(game)
         matchups.append(game.matchup)
     return ReplayWindow(games, matchups, cache_games=cache_games)
@@ -252,6 +260,26 @@ def alpha_zero_loss(
     policy_loss = -(target_policy * F.log_softmax(logits, dim=-1)).sum(dim=-1).mean()
     value_loss = F.mse_loss(values, target_value)
     return policy_loss + value_loss, policy_loss, value_loss
+
+
+def resolve_training_steps(
+    *, replay_plies: int, batch_size: int, steps: int | None,
+    examples_per_replay_ply: float | None,
+) -> int:
+    if replay_plies <= 0 or batch_size <= 0:
+        raise ValueError("replay plies and batch size must be positive")
+    if steps is not None and examples_per_replay_ply is not None:
+        raise ValueError("steps and examples per replay ply are mutually exclusive")
+    if steps is not None:
+        if steps <= 0:
+            raise ValueError("steps must be positive when specified")
+        return steps
+    if examples_per_replay_ply is not None:
+        if not math.isfinite(examples_per_replay_ply) or examples_per_replay_ply <= 0:
+            raise ValueError("examples per replay ply must be finite and positive when specified")
+        requested_examples = math.ceil(examples_per_replay_ply * replay_plies)
+        return max(1, math.ceil(requested_examples / batch_size))
+    return 100
 
 
 def losses(model: TerraMysticaNet, examples: list[Example], device: torch.device | str = "cpu") -> dict[str, float]:
@@ -318,7 +346,8 @@ def main() -> None:
     parser.add_argument("--engine-commit", required=True)
     parser.add_argument("--window-shards", type=int, default=10000)
     parser.add_argument("--replay-cache-games", type=int, default=8)
-    parser.add_argument("--steps", type=int, default=100)
+    parser.add_argument("--steps", type=int)
+    parser.add_argument("--examples-per-replay-ply", type=float)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
@@ -362,13 +391,24 @@ def main() -> None:
     else:
         parent_model_id = "random-" + model_fingerprint(model)
     replay_started = time.perf_counter()
-    replay = load_replay(paths, cache_games=args.replay_cache_games)
+    replay = load_replay(
+        paths, expected_engine_commit=args.engine_commit, cache_games=args.replay_cache_games
+    )
     replay_load_seconds = time.perf_counter() - replay_started
+    try:
+        training_steps = resolve_training_steps(
+            replay_plies=replay.ply_count,
+            batch_size=args.batch_size,
+            steps=args.steps,
+            examples_per_replay_ply=args.examples_per_replay_ply,
+        )
+    except ValueError as error:
+        parser.error(str(error))
     training_started = time.perf_counter()
     metrics = train(
         model,
         replay,
-        steps=args.steps,
+        steps=training_steps,
         batch_size=args.batch_size,
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
@@ -376,7 +416,7 @@ def main() -> None:
         device=device,
     )
     training_seconds = time.perf_counter() - training_started
-    training_examples = args.steps * args.batch_size
+    training_examples = training_steps * args.batch_size
     training_throughput = {
         "examples": training_examples,
         "seconds": training_seconds,
@@ -403,8 +443,10 @@ def main() -> None:
             "validation_seconds": replay_load_seconds,
         },
         "training": {
-            "steps": args.steps,
+            "steps": training_steps,
             "batch_size": args.batch_size,
+            "requested_examples_per_replay_ply": args.examples_per_replay_ply,
+            "actual_examples_per_replay_ply": training_examples / replay.ply_count,
             "learning_rate": args.learning_rate,
             "weight_decay": args.weight_decay,
             **training_throughput,
@@ -418,6 +460,8 @@ def main() -> None:
     )
     print(json.dumps({
         "checkpoint": published["path"], "model_id": published["model_id"],
+        "steps": training_steps,
+        "actual_examples_per_replay_ply": training_examples / replay.ply_count,
         "throughput": training_throughput, **metrics,
     }, sort_keys=True))
 

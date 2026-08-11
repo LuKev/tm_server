@@ -23,14 +23,72 @@ learner_device="${TM_AZ_LEARNER_DEVICE:-${inference_device}}"
 torch_threads="${TM_AZ_TORCH_THREADS:-1}"
 actor_games_per_batch="${TM_AZ_ACTOR_GAMES_PER_BATCH:-8}"
 replay_cache_games="${TM_AZ_REPLAY_CACHE_GAMES:-8}"
+arena_games_per_batch="${TM_AZ_ARENA_GAMES_PER_BATCH:-8}"
+examples_per_replay_ply="${TM_AZ_EXAMPLES_PER_REPLAY_PLY:-}"
+if [[ -d "${run_dir}" && -n "$(find "${run_dir}" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
+  echo "refusing to reuse nonempty run directory: ${run_dir}" >&2
+  exit 1
+fi
+
 checkpoint_dir="${run_dir}/checkpoints"
 replay_root="${run_dir}/replay"
 evaluation_dir="${run_dir}/evaluation"
-mkdir -p "${checkpoint_dir}" "${replay_root}" "${evaluation_dir}"
+metrics_root="${run_dir}/metrics"
+mkdir -p "${checkpoint_dir}" "${replay_root}" "${evaluation_dir}" "${metrics_root}"
+
+manifest="${run_dir}/run-manifest.txt"
+if [[ -e "${manifest}" ]]; then
+  echo "refusing to overwrite run manifest: ${manifest}" >&2
+  exit 1
+fi
+{
+  printf 'format_version=1\n'
+  printf 'engine_commit=%s\n' "${engine_commit}"
+  printf 'cycles=%s\n' "${cycles}"
+  printf 'games_per_cycle=%s\n' "${games}"
+  printf 'simulations=%s\n' "${simulations}"
+  printf 'train_steps=%s\n' "${train_steps}"
+  printf 'examples_per_replay_ply=%s\n' "${examples_per_replay_ply}"
+  printf 'evaluation_cases=%s\n' "${eval_cases}"
+  printf 'model_config=%s\n' "${model_config}"
+  printf 'inference_device=%s\n' "${inference_device}"
+  printf 'learner_device=%s\n' "${learner_device}"
+  printf 'torch_threads=%s\n' "${torch_threads}"
+  printf 'actor_games_per_batch=%s\n' "${actor_games_per_batch}"
+  printf 'arena_games_per_batch=%s\n' "${arena_games_per_batch}"
+  printf 'replay_cache_games=%s\n' "${replay_cache_games}"
+} >"${manifest}.tmp"
+mv "${manifest}.tmp" "${manifest}"
+chmod 0444 "${manifest}"
+
+run_stage() {
+  local stage_dir="$1"
+  local stage="$2"
+  shift 2
+  local stdout_path="${stage_dir}/${stage}.stdout.json"
+  local stderr_path="${stage_dir}/${stage}.stderr.log"
+  local status_path="${stage_dir}/${stage}.status.json"
+  local exit_code
+  set +e
+  "$@" >"${stdout_path}.tmp" 2>"${stderr_path}.tmp"
+  exit_code=$?
+  set -e
+  cat "${stdout_path}.tmp"
+  cat "${stderr_path}.tmp" >&2
+  mv "${stdout_path}.tmp" "${stdout_path}"
+  mv "${stderr_path}.tmp" "${stderr_path}"
+  printf '{"format_version":1,"stage":"%s","exit_code":%d,"stdout":"%s","stderr":"%s"}\n' \
+    "${stage}" "${exit_code}" "$(basename "${stdout_path}")" "$(basename "${stderr_path}")" >"${status_path}.tmp"
+  mv "${status_path}.tmp" "${status_path}"
+  chmod 0444 "${stdout_path}" "${stderr_path}" "${status_path}"
+  return "${exit_code}"
+}
 
 replay_args=()
 for ((cycle = 1; cycle <= cycles; cycle++)); do
   cycle_replay="${replay_root}/cycle-${cycle}"
+  cycle_metrics="${metrics_root}/cycle-${cycle}"
+  mkdir -p "${cycle_metrics}"
   actor_checkpoint=(--checkpoint "")
   learner_parent=(--initial-checkpoint "")
   previous_reference="${checkpoint_dir}/previous.json"
@@ -40,7 +98,7 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     cp "${checkpoint_dir}/latest.json" "${previous_reference}"
   fi
 
-  "${selfplay}" \
+  run_stage "${cycle_metrics}" selfplay "${selfplay}" \
     --inference "${inference}" \
     "${actor_checkpoint[@]}" \
     --model-config "${model_config}" \
@@ -55,7 +113,11 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --engine-commit "${engine_commit}"
   replay_args+=(--input "${cycle_replay}")
 
-  "${learner}" \
+  learner_work=(--steps "${train_steps}")
+  if [[ -n "${examples_per_replay_ply}" ]]; then
+    learner_work=(--examples-per-replay-ply "${examples_per_replay_ply}")
+  fi
+  run_stage "${cycle_metrics}" learner "${learner}" \
     "${replay_args[@]}" \
     "${learner_parent[@]}" \
     --model-config "${model_config}" \
@@ -63,12 +125,12 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --torch-threads "${torch_threads}" \
     --output-dir "${checkpoint_dir}" \
     --engine-commit "${engine_commit}" \
-    --steps "${train_steps}" \
+    "${learner_work[@]}" \
     --replay-cache-games "${replay_cache_games}" \
     --model-seed 0 \
     --seed "${cycle}"
 
-  "${evaluator}" \
+  run_stage "${cycle_metrics}" uniform-evaluation "${evaluator}" \
     --inference "${inference}" \
     --candidate-latest "${checkpoint_dir}/latest.json" \
     --model-config "${model_config}" \
@@ -76,11 +138,12 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --inference-torch-threads "${torch_threads}" \
     --baseline-uniform \
     --output "${evaluation_dir}" \
+    --games-per-batch "${arena_games_per_batch}" \
     --cases "${eval_cases}" \
     --simulations "${simulations}" \
     --engine-commit "${engine_commit}"
   if [[ -f "${previous_reference}" ]]; then
-    "${evaluator}" \
+    run_stage "${cycle_metrics}" previous-evaluation "${evaluator}" \
       --inference "${inference}" \
       --candidate-latest "${checkpoint_dir}/latest.json" \
       --baseline-latest "${previous_reference}" \
@@ -88,6 +151,7 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
       --inference-device "${inference_device}" \
       --inference-torch-threads "${torch_threads}" \
       --output "${evaluation_dir}" \
+      --games-per-batch "${arena_games_per_batch}" \
       --cases "${eval_cases}" \
       --simulations "${simulations}" \
       --engine-commit "${engine_commit}"

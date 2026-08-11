@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	EvaluationFormatVersion = 4
+	EvaluationFormatVersion = 5
 	HoldoutSuiteID          = "tm-v0-paired-v2"
 	arenaCandidateAgent     = "candidate"
 	arenaBaselineAgent      = "baseline"
@@ -86,6 +86,7 @@ type ArenaConfig struct {
 	HoldoutSuiteID       string  `json:"holdout_suite_id"`
 	CandidateSimulations int     `json:"candidate_simulations"`
 	BaselineSimulations  int     `json:"baseline_simulations"`
+	GamesPerBatch        int     `json:"games_per_batch"`
 	CPUCT                float64 `json:"c_puct"`
 	MaxPlies             int     `json:"max_plies"`
 }
@@ -106,18 +107,19 @@ type ArenaDecision struct {
 }
 
 type ArenaGame struct {
-	Seed            int64                 `json:"seed"`
-	Factions        [2]models.FactionType `json:"factions"`
-	AgentBySeat     [2]string             `json:"agent_by_seat"`
-	CandidateSeat   int                   `json:"candidate_seat"`
-	FinalVP         [2]int                `json:"final_vp"`
-	PlyCount        int                   `json:"ply_count"`
-	Completed       bool                  `json:"completed"`
-	Failure         string                `json:"failure,omitempty"`
-	InvalidActions  int                   `json:"invalid_actions"`
-	TripwireHits    int                   `json:"tripwire_hits"`
-	DuplicateStates int                   `json:"duplicate_states"`
-	Decisions       []ArenaDecision       `json:"decisions"`
+	Seed                   int64                 `json:"seed"`
+	Factions               [2]models.FactionType `json:"factions"`
+	AgentBySeat            [2]string             `json:"agent_by_seat"`
+	CandidateSeat          int                   `json:"candidate_seat"`
+	FinalVP                [2]int                `json:"final_vp"`
+	PlyCount               int                   `json:"ply_count"`
+	Completed              bool                  `json:"completed"`
+	Failure                string                `json:"failure,omitempty"`
+	InvalidActions         int                   `json:"invalid_actions"`
+	TripwireHits           int                   `json:"tripwire_hits"`
+	InfrastructureFailures int                   `json:"infrastructure_failures"`
+	DuplicateStates        int                   `json:"duplicate_states"`
+	Decisions              []ArenaDecision       `json:"decisions"`
 }
 
 type Proportion struct {
@@ -142,36 +144,37 @@ type PhaseDiagnostic struct {
 }
 
 type ArenaSummary struct {
-	RatingMethod       string                                `json:"rating_method"`
-	ConfidenceMethod   string                                `json:"confidence_interval_method"`
-	CalibrationMetric  string                                `json:"calibration_metric"`
-	EntropyUnits       string                                `json:"policy_entropy_units"`
-	Games              int                                   `json:"games"`
-	CompletePairs      int                                   `json:"complete_pairs"`
-	StrengthValid      bool                                  `json:"strength_valid"`
-	Wins               Proportion                            `json:"wins"`
-	Draws              Proportion                            `json:"draws"`
-	Losses             Proportion                            `json:"losses"`
-	ScoreRate          float64                               `json:"score_rate"`
-	ScoreLow95         float64                               `json:"score_low_95"`
-	ScoreHigh95        float64                               `json:"score_high_95"`
-	PairedUncertainty  string                                `json:"paired_uncertainty_method"`
-	Elo                float64                               `json:"elo_vs_baseline"`
-	AverageCandidateVP float64                               `json:"average_candidate_vp"`
-	AverageBaselineVP  float64                               `json:"average_baseline_vp"`
-	AverageWinningVP   float64                               `json:"average_winning_vp"`
-	AverageLosingVP    float64                               `json:"average_losing_vp"`
-	AverageVPMargin    float64                               `json:"average_vp_margin"`
-	ByMatchup          map[string]SplitSummary               `json:"by_ordered_matchup"`
-	BySeat             map[string]SplitSummary               `json:"by_candidate_seat"`
-	SetupActions       map[string]map[string]int             `json:"setup_actions_by_agent"`
-	Round1Actions      map[string]map[string]int             `json:"round_1_actions_by_agent"`
-	Round1Buildings    map[string]map[string]int             `json:"round_1_buildings_by_agent"`
-	DiagnosticsByAgent map[string]map[string]PhaseDiagnostic `json:"diagnostics_by_agent_and_phase"`
-	NaturalCompletions int                                   `json:"natural_completions"`
-	InvalidActions     int                                   `json:"invalid_actions"`
-	DuplicateStates    int                                   `json:"duplicate_states"`
-	TripwireHits       int                                   `json:"tripwire_hits"`
+	RatingMethod           string                                `json:"rating_method"`
+	ConfidenceMethod       string                                `json:"confidence_interval_method"`
+	CalibrationMetric      string                                `json:"calibration_metric"`
+	EntropyUnits           string                                `json:"policy_entropy_units"`
+	Games                  int                                   `json:"games"`
+	CompletePairs          int                                   `json:"complete_pairs"`
+	StrengthValid          bool                                  `json:"strength_valid"`
+	Wins                   Proportion                            `json:"wins"`
+	Draws                  Proportion                            `json:"draws"`
+	Losses                 Proportion                            `json:"losses"`
+	ScoreRate              float64                               `json:"score_rate"`
+	ScoreLow95             float64                               `json:"score_low_95"`
+	ScoreHigh95            float64                               `json:"score_high_95"`
+	PairedUncertainty      string                                `json:"paired_uncertainty_method"`
+	Elo                    float64                               `json:"elo_vs_baseline"`
+	AverageCandidateVP     float64                               `json:"average_candidate_vp"`
+	AverageBaselineVP      float64                               `json:"average_baseline_vp"`
+	AverageWinningVP       float64                               `json:"average_winning_vp"`
+	AverageLosingVP        float64                               `json:"average_losing_vp"`
+	AverageVPMargin        float64                               `json:"average_vp_margin"`
+	ByMatchup              map[string]SplitSummary               `json:"by_ordered_matchup"`
+	BySeat                 map[string]SplitSummary               `json:"by_candidate_seat"`
+	SetupActions           map[string]map[string]int             `json:"setup_actions_by_agent"`
+	Round1Actions          map[string]map[string]int             `json:"round_1_actions_by_agent"`
+	Round1Buildings        map[string]map[string]int             `json:"round_1_buildings_by_agent"`
+	DiagnosticsByAgent     map[string]map[string]PhaseDiagnostic `json:"diagnostics_by_agent_and_phase"`
+	NaturalCompletions     int                                   `json:"natural_completions"`
+	InvalidActions         int                                   `json:"invalid_actions"`
+	DuplicateStates        int                                   `json:"duplicate_states"`
+	TripwireHits           int                                   `json:"tripwire_hits"`
+	InfrastructureFailures int                                   `json:"infrastructure_failures"`
 }
 
 type ArenaReport struct {
@@ -217,29 +220,52 @@ func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []
 	if config.MaxPlies <= 0 {
 		config.MaxPlies = 2000
 	}
+	if config.GamesPerBatch < 0 {
+		return ArenaReport{}, fmt.Errorf("arena games per batch cannot be negative")
+	}
+	if config.GamesPerBatch == 0 {
+		config.GamesPerBatch = 8
+	}
+	if config.GamesPerBatch%2 != 0 {
+		return ArenaReport{}, fmt.Errorf("arena games per batch must be positive and even so seat-swapped pairs stay together")
+	}
 	agents := map[string]Evaluator{arenaCandidateAgent: candidate, arenaBaselineAgent: baseline}
 	games := make([]ArenaGame, 0, len(cases)*2)
-	for _, item := range cases {
-		for candidateSeat := 0; candidateSeat < 2; candidateSeat++ {
-			position, err := NewBaseGame(item.Seed, item.First, item.Second)
-			if err != nil {
-				return ArenaReport{}, err
-			}
-			agentBySeat := [2]string{arenaBaselineAgent, arenaBaselineAgent}
-			agentBySeat[candidateSeat] = arenaCandidateAgent
-			gameResult, err := playArenaGame(ctx, position, item, agentBySeat, candidateSeat, agents, config)
-			if err != nil {
-				return ArenaReport{}, fmt.Errorf("seed %d candidate seat %d: %w", item.Seed, candidateSeat, err)
-			}
-			games = append(games, gameResult)
-		}
-	}
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: engineCommit,
 		CandidateID: candidateID, CandidateCheckpointSHA256: evaluatorCheckpointHash(candidate),
 		BaselineID: baselineID, BaselineCheckpointSHA256: evaluatorCheckpointHash(baseline),
-		Config: config, Cases: append([]ArenaCase(nil), cases...), Games: games,
+		Config: config, Cases: append([]ArenaCase(nil), cases...),
 	}
+	casesPerBatch := config.GamesPerBatch / 2
+	for start := 0; start < len(cases); start += casesPerBatch {
+		end := min(start+casesPerBatch, len(cases))
+		runtimes := make([]arenaRuntime, 0, (end-start)*2)
+		for _, item := range cases[start:end] {
+			for candidateSeat := 0; candidateSeat < 2; candidateSeat++ {
+				position, err := NewBaseGame(item.Seed, item.First, item.Second)
+				if err != nil {
+					return ArenaReport{}, err
+				}
+				agentBySeat := [2]string{arenaBaselineAgent, arenaBaselineAgent}
+				agentBySeat[candidateSeat] = arenaCandidateAgent
+				runtime, err := newArenaRuntime(position, item, agentBySeat, candidateSeat)
+				if err != nil {
+					return ArenaReport{}, err
+				}
+				runtimes = append(runtimes, runtime)
+			}
+		}
+		batch, err := playArenaBatch(ctx, runtimes, agents, config)
+		games = append(games, batch...)
+		if err != nil {
+			games = append(games, infrastructureFailureGames(cases[end:], err)...)
+			report.Games = games
+			report.Summary = summarizeArena(report)
+			return report, err
+		}
+	}
+	report.Games = games
 	report.Summary = summarizeArena(report)
 	return report, nil
 }
@@ -259,99 +285,217 @@ func evaluatorModelID(evaluator Evaluator) (string, error) {
 	return identified.ModelID(), nil
 }
 
-func playArenaGame(ctx context.Context, position *GamePosition, arenaCase ArenaCase, agentBySeat [2]string, candidateSeat int, agents map[string]Evaluator, config ArenaConfig) (ArenaGame, error) {
-	state := position.StateClone()
-	playerIDs := [2]string{state.TurnOrder[0], state.TurnOrder[1]}
-	seatByID := map[string]int{playerIDs[0]: 0, playerIDs[1]: 1}
-	result := ArenaGame{
-		Seed: arenaCase.Seed, Factions: [2]models.FactionType{arenaCase.First, arenaCase.Second},
-		AgentBySeat: agentBySeat, CandidateSeat: candidateSeat,
-	}
-	seen := make(map[Hash128]bool)
-	for !position.IsTerminal() {
-		if len(result.Decisions) >= config.MaxPlies {
-			result.PlyCount = len(result.Decisions)
-			result.TripwireHits = 1
-			result.Failure = fmt.Sprintf("natural-completion tripwire at %d plies", config.MaxPlies)
-			return result, nil
-		}
-		owner := string(position.DecisionPlayer())
-		seat, ok := seatByID[owner]
-		if !ok {
-			return ArenaGame{}, fmt.Errorf("unknown decision owner %q", owner)
-		}
-		hash := position.CanonicalHash()
-		if seen[hash] {
-			result.DuplicateStates++
-		}
-		seen[hash] = true
-		actions := position.LegalActions()
-		if len(actions) == 0 {
-			result.PlyCount = len(result.Decisions)
-			result.InvalidActions = 1
-			result.Failure = "non-terminal position has no legal actions"
-			return result, nil
-		}
-		predictions := make([]AgentPrediction, 0, len(agents))
-		agentIDs := make([]string, 0, len(agents))
-		for agentID := range agents {
-			agentIDs = append(agentIDs, agentID)
-		}
-		sort.Strings(agentIDs)
-		for _, agentID := range agentIDs {
-			evaluations, err := agents[agentID].Evaluate(ctx, []EvaluationRequest{{Position: position.Clone(), Actions: actions}})
-			if err != nil || len(evaluations) != 1 {
-				return ArenaGame{}, fmt.Errorf("evaluate %s: results=%d error=%v", agentID, len(evaluations), err)
-			}
-			if err := validateEvaluation(evaluations[0], len(actions)); err != nil {
-				return ArenaGame{}, fmt.Errorf("evaluate %s: %w", agentID, err)
-			}
-			predictions = append(predictions, AgentPrediction{
-				AgentID: agentID, Value: evaluations[0].Value,
-				PolicyEntropy: probabilityEntropy(softmax(evaluations[0].PolicyLogits)),
-			})
-		}
-		search, err := NewMCTS(agents[agentBySeat[seat]], SearchConfig{
-			Simulations: simulationsForSeat(config, seat, candidateSeat), CPUCT: config.CPUCT,
-			Seed: arenaCase.Seed + int64(len(result.Decisions)),
-		})
-		if err != nil {
-			return ArenaGame{}, err
-		}
-		searchResult, err := search.Search(ctx, position)
-		if err != nil {
-			return ArenaGame{}, err
-		}
-		action, err := searchResult.SelectAction(0, nil)
-		if err != nil {
-			return ArenaGame{}, err
-		}
-		before := position.StateClone()
-		result.Decisions = append(result.Decisions, ArenaDecision{
-			Seat: seat, Phase: before.Phase, Round: before.Round, StateHash: hash.String(),
-			Action: action, Predictions: predictions,
-		})
-		if err := position.Apply(action); err != nil {
-			result.PlyCount = len(result.Decisions)
-			result.InvalidActions = 1
-			result.Failure = fmt.Sprintf("apply emitted action: %v", err)
-			return result, nil
-		}
-	}
-	for seat, playerID := range playerIDs {
-		vp, ok := position.FinalVP(PlayerID(playerID))
-		if !ok {
-			return ArenaGame{}, fmt.Errorf("missing final VP for seat %d", seat)
-		}
-		result.FinalVP[seat] = vp
-	}
-	result.PlyCount = len(result.Decisions)
-	result.Completed = true
-	return result, nil
+type arenaRuntime struct {
+	position  *GamePosition
+	playerIDs [2]string
+	seatByID  map[string]int
+	result    ArenaGame
+	seen      map[Hash128]bool
+	finished  bool
 }
 
-func simulationsForSeat(config ArenaConfig, seat, candidateSeat int) int {
-	if seat == candidateSeat {
+type arenaDecisionContext struct {
+	gameIndex   int
+	seat        int
+	hash        Hash128
+	phase       game.GamePhase
+	round       int
+	actions     []SearchAction
+	predictions []AgentPrediction
+}
+
+func newArenaRuntime(position *GamePosition, arenaCase ArenaCase, agentBySeat [2]string, candidateSeat int) (arenaRuntime, error) {
+	state := position.StateClone()
+	if state == nil || len(state.TurnOrder) != 2 {
+		return arenaRuntime{}, fmt.Errorf("arena position does not have two seats")
+	}
+	playerIDs := [2]string{state.TurnOrder[0], state.TurnOrder[1]}
+	return arenaRuntime{
+		position: position, playerIDs: playerIDs,
+		seatByID: map[string]int{playerIDs[0]: 0, playerIDs[1]: 1},
+		result: ArenaGame{
+			Seed: arenaCase.Seed, Factions: [2]models.FactionType{arenaCase.First, arenaCase.Second},
+			AgentBySeat: agentBySeat, CandidateSeat: candidateSeat,
+		},
+		seen: make(map[Hash128]bool),
+	}, nil
+}
+
+func playArenaBatch(ctx context.Context, games []arenaRuntime, agents map[string]Evaluator, config ArenaConfig) ([]ArenaGame, error) {
+	agentIDs := []string{arenaBaselineAgent, arenaCandidateAgent}
+	for {
+		decisions := make([]arenaDecisionContext, 0, len(games))
+		for gameIndex := range games {
+			runtime := &games[gameIndex]
+			if runtime.finished {
+				continue
+			}
+			if runtime.position.IsTerminal() {
+				if err := finishArenaRuntime(runtime); err != nil {
+					return failArenaBatch(games, fmt.Errorf("seed %d candidate seat %d: %w", runtime.result.Seed, runtime.result.CandidateSeat, err))
+				}
+				continue
+			}
+			if len(runtime.result.Decisions) >= config.MaxPlies {
+				runtime.result.PlyCount = len(runtime.result.Decisions)
+				runtime.result.TripwireHits = 1
+				runtime.result.Failure = fmt.Sprintf("natural-completion tripwire at %d plies", config.MaxPlies)
+				runtime.finished = true
+				continue
+			}
+			owner := string(runtime.position.DecisionPlayer())
+			seat, ok := runtime.seatByID[owner]
+			if !ok {
+				return failArenaBatch(games, fmt.Errorf("seed %d: unknown decision owner %q", runtime.result.Seed, owner))
+			}
+			hash := runtime.position.CanonicalHash()
+			if runtime.seen[hash] {
+				runtime.result.DuplicateStates++
+			}
+			runtime.seen[hash] = true
+			actions := runtime.position.LegalActions()
+			if len(actions) == 0 {
+				runtime.result.PlyCount = len(runtime.result.Decisions)
+				runtime.result.InvalidActions = 1
+				runtime.result.Failure = "non-terminal position has no legal actions"
+				runtime.finished = true
+				continue
+			}
+			state := runtime.position.StateClone()
+			decisions = append(decisions, arenaDecisionContext{
+				gameIndex: gameIndex, seat: seat, hash: hash, phase: state.Phase, round: state.Round,
+				actions: actions, predictions: make([]AgentPrediction, 0, len(agents)),
+			})
+		}
+		if len(decisions) == 0 {
+			break
+		}
+
+		for _, agentID := range agentIDs {
+			requests := make([]EvaluationRequest, len(decisions))
+			for index, decision := range decisions {
+				requests[index] = EvaluationRequest{Position: games[decision.gameIndex].position.Clone(), Actions: decision.actions}
+			}
+			evaluations, err := agents[agentID].Evaluate(ctx, requests)
+			if err != nil || len(evaluations) != len(requests) {
+				return failArenaBatch(games, fmt.Errorf("evaluate %s: results=%d error=%v", agentID, len(evaluations), err))
+			}
+			for index, evaluation := range evaluations {
+				if err := validateEvaluation(evaluation, len(decisions[index].actions)); err != nil {
+					return failArenaBatch(games, fmt.Errorf("evaluate %s: %w", agentID, err))
+				}
+				decisions[index].predictions = append(decisions[index].predictions, AgentPrediction{
+					AgentID: agentID, Value: evaluation.Value,
+					PolicyEntropy: probabilityEntropy(softmax(evaluation.PolicyLogits)),
+				})
+			}
+		}
+
+		for _, agentID := range agentIDs {
+			indices := make([]int, 0, len(decisions))
+			positions := make([]Position, 0, len(decisions))
+			rootSeeds := make([]int64, 0, len(decisions))
+			for index, decision := range decisions {
+				runtime := &games[decision.gameIndex]
+				if runtime.result.AgentBySeat[decision.seat] != agentID {
+					continue
+				}
+				indices = append(indices, index)
+				positions = append(positions, runtime.position)
+				rootSeeds = append(rootSeeds, runtime.result.Seed+int64(len(runtime.result.Decisions)))
+			}
+			if len(indices) == 0 {
+				continue
+			}
+			simulations := searchBudgetForAgent(config, agentID)
+			search, err := NewMCTS(agents[agentID], SearchConfig{
+				Simulations: simulations, CPUCT: config.CPUCT, RootSeeds: rootSeeds,
+			})
+			if err != nil {
+				return failArenaBatch(games, err)
+			}
+			results, err := search.SearchBatch(ctx, positions)
+			if err != nil {
+				return failArenaBatch(games, err)
+			}
+			for resultIndex, result := range results {
+				decision := decisions[indices[resultIndex]]
+				runtime := &games[decision.gameIndex]
+				action, err := result.SelectAction(0, nil)
+				if err != nil {
+					return failArenaBatch(games, err)
+				}
+				runtime.result.Decisions = append(runtime.result.Decisions, ArenaDecision{
+					Seat: decision.seat, Phase: decision.phase, Round: decision.round,
+					StateHash: decision.hash.String(), Action: action, Predictions: decision.predictions,
+				})
+				if err := runtime.position.Apply(action); err != nil {
+					runtime.result.PlyCount = len(runtime.result.Decisions)
+					runtime.result.InvalidActions = 1
+					runtime.result.Failure = fmt.Sprintf("apply emitted action: %v", err)
+					runtime.finished = true
+				}
+			}
+		}
+	}
+	return arenaResults(games), nil
+}
+
+func arenaResults(games []arenaRuntime) []ArenaGame {
+	results := make([]ArenaGame, len(games))
+	for index := range games {
+		results[index] = games[index].result
+	}
+	return results
+}
+
+func failArenaBatch(games []arenaRuntime, err error) ([]ArenaGame, error) {
+	for index := range games {
+		runtime := &games[index]
+		if runtime.finished {
+			continue
+		}
+		runtime.result.PlyCount = len(runtime.result.Decisions)
+		runtime.result.InfrastructureFailures = 1
+		runtime.result.Failure = fmt.Sprintf("arena infrastructure failure: %v", err)
+		runtime.finished = true
+	}
+	return arenaResults(games), err
+}
+
+func infrastructureFailureGames(cases []ArenaCase, err error) []ArenaGame {
+	results := make([]ArenaGame, 0, len(cases)*2)
+	for _, item := range cases {
+		for candidateSeat := 0; candidateSeat < 2; candidateSeat++ {
+			agentBySeat := [2]string{arenaBaselineAgent, arenaBaselineAgent}
+			agentBySeat[candidateSeat] = arenaCandidateAgent
+			results = append(results, ArenaGame{
+				Seed: item.Seed, Factions: [2]models.FactionType{item.First, item.Second},
+				AgentBySeat: agentBySeat, CandidateSeat: candidateSeat,
+				InfrastructureFailures: 1,
+				Failure:                fmt.Sprintf("arena infrastructure failure before game start: %v", err),
+			})
+		}
+	}
+	return results
+}
+
+func finishArenaRuntime(runtime *arenaRuntime) error {
+	for seat, playerID := range runtime.playerIDs {
+		vp, ok := runtime.position.FinalVP(PlayerID(playerID))
+		if !ok {
+			return fmt.Errorf("missing final VP for seat %d", seat)
+		}
+		runtime.result.FinalVP[seat] = vp
+	}
+	runtime.result.PlyCount = len(runtime.result.Decisions)
+	runtime.result.Completed = true
+	runtime.finished = true
+	return nil
+}
+
+func searchBudgetForAgent(config ArenaConfig, agentID string) int {
+	if agentID == arenaCandidateAgent {
 		return config.CandidateSimulations
 	}
 	return config.BaselineSimulations
@@ -396,6 +540,7 @@ func summarizeArena(report ArenaReport) ArenaSummary {
 	for _, gameResult := range report.Games {
 		summary.InvalidActions += gameResult.InvalidActions
 		summary.TripwireHits += gameResult.TripwireHits
+		summary.InfrastructureFailures += gameResult.InfrastructureFailures
 		summary.DuplicateStates += gameResult.DuplicateStates
 		if !gameResult.Completed {
 			continue
@@ -468,7 +613,7 @@ func summarizeArena(report ArenaReport) ArenaSummary {
 	n := float64(summary.NaturalCompletions)
 	intervals := pairedIntervals95(report.Games)
 	summary.CompletePairs = intervals.pairs
-	summary.StrengthValid = summary.NaturalCompletions == len(report.Games) && intervals.pairs*2 == len(report.Games) && summary.InvalidActions == 0 && summary.TripwireHits == 0 && summary.DuplicateStates == 0
+	summary.StrengthValid = summary.NaturalCompletions == len(report.Games) && intervals.pairs*2 == len(report.Games) && summary.InvalidActions == 0 && summary.TripwireHits == 0 && summary.InfrastructureFailures == 0 && summary.DuplicateStates == 0
 	if n == 0 {
 		summary.Wins = Proportion{Low95: intervals.win[0], High95: intervals.win[1]}
 		summary.Draws = Proportion{Low95: intervals.draw[0], High95: intervals.draw[1]}
@@ -684,7 +829,7 @@ func validateArenaReport(report ArenaReport) error {
 	if report.FormatVersion != EvaluationFormatVersion || report.EngineCommit == "" || report.CandidateID == "" || report.BaselineID == "" {
 		return fmt.Errorf("refusing to persist incomplete arena report")
 	}
-	if report.Config.HoldoutSuiteID == "" || report.Config.CandidateSimulations <= 0 || report.Config.BaselineSimulations <= 0 {
+	if report.Config.HoldoutSuiteID == "" || report.Config.CandidateSimulations <= 0 || report.Config.BaselineSimulations <= 0 || report.Config.GamesPerBatch <= 0 || report.Config.GamesPerBatch%2 != 0 {
 		return fmt.Errorf("refusing to persist arena report without versioned search configuration")
 	}
 	if err := validateHoldoutSuiteIdentity(report.Config.HoldoutSuiteID, report.Cases); err != nil {
@@ -708,10 +853,10 @@ func validateArenaReport(report ArenaReport) error {
 		if gameResult.CandidateSeat < 0 || gameResult.CandidateSeat > 1 || gameResult.AgentBySeat[gameResult.CandidateSeat] != arenaCandidateAgent || gameResult.AgentBySeat[1-gameResult.CandidateSeat] != arenaBaselineAgent {
 			return fmt.Errorf("arena report contains a mislabeled game")
 		}
-		if gameResult.Completed && (gameResult.Failure != "" || gameResult.InvalidActions != 0 || gameResult.TripwireHits != 0) {
+		if gameResult.Completed && (gameResult.Failure != "" || gameResult.InvalidActions != 0 || gameResult.TripwireHits != 0 || gameResult.InfrastructureFailures != 0) {
 			return fmt.Errorf("completed arena game contains failure diagnostics")
 		}
-		if !gameResult.Completed && (gameResult.Failure == "" || gameResult.InvalidActions+gameResult.TripwireHits == 0) {
+		if !gameResult.Completed && (gameResult.Failure == "" || gameResult.InvalidActions+gameResult.TripwireHits+gameResult.InfrastructureFailures == 0) {
 			return fmt.Errorf("incomplete arena game is missing durable failure diagnostics")
 		}
 		item, exists := caseBySeed[gameResult.Seed]
