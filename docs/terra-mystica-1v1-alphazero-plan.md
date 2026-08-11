@@ -3,7 +3,7 @@
 Status: implemented through Milestone 5's local scaling foundations; the
 ordered large-checkpoint experiment campaign is in progress.
 
-Implementation status (updated 2026-08-10): Milestones 0 through 4 are
+Implementation status (updated 2026-08-11): Milestones 0 through 4 are
 complete. The base-rules contract, serial/batch-shaped PUCT, versioned relative
 state/action encoder, masked hex-CNN, continual-latest self-play/learner loop,
 and paired evaluator are implemented. The debug and main network shapes are
@@ -584,6 +584,16 @@ observationally dominated by 32 at almost three times its wall time. Treat 32
 as the measured local search-strength peak, reject 128 for this checkpoint, and
 carry eight forward as the efficient self-play candidate pending the separate
 downstream self-play-budget experiment.
+
+The first fixed-replay learner-intensity screen is also complete. Requested
+examples-per-replay-ply ratios 0.10/0.25/0.50/1.00 and newest-only replay
+windows of eight and four games all worsened paired held-out Brier calibration
+against their common parent, including the one-step window-four arm. The small
+score and VP samples were mixed and have wide uncertainty, so no learner
+setting was selected. In accordance with step 7's balanced-data requirement,
+the next experiment first grows the fixed replay from 16 games to all 168
+ordered legal base-faction matchups at eight simulations, then repeats the
+learner screen rather than tuning further on an under-diverse sample.
 
 Every campaign run owns a new directory and immutable configuration manifest;
 the continual runner refuses a nonempty directory rather than mixing shards or

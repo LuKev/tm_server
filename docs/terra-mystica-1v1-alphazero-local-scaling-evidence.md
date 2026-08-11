@@ -144,6 +144,60 @@ or infrastructure failures. The immutable report SHA-256 values for budgets
 `7cff102846dff3592eb45339d341caabb761ca11bcc5187282ec733a38a5ead1`,
 and `3ead27c88bf28970cca5dd9d3ed68491e7395dbe1acf98a5b36b195287e09d39`.
 
+## Learner-intensity and replay-horizon screen
+
+The learner screen restarted every arm from the same cycle-1 checkpoint and
+used the same 16-game, 675-ply replay, SGD configuration, sampler seed, and
+eight-case paired evaluation at eight simulations for both agents. The first
+four arms changed only requested examples per replay ply. The parent checkpoint
+SHA-256 was
+`64c2439be1bf0d78151371b54230672638a8bc9cf9e4b1e3b8cc29679a5e1a12`
+and its model ID was
+`model-5907b2f920cbcb9f315a45a33fe2cf417adc2cab92d2be54295a178f64d17ccc`.
+Each Brier value below is the position-weighted mean across setup and rounds
+1–6, rather than an unweighted mean of phase summaries.
+
+| Requested ratio | Actual ratio | Steps | Diagnostic value loss, before to after | W-D-L | VP margin | Candidate Brier | Parent Brier |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.10 | 0.142 | 3 | 0.996 to 1.351 | 8-1-7 | +3.063 | 0.3470 | 0.2387 |
+| 0.25 | 0.284 | 6 | 0.996 to 1.198 | 7-1-8 | +2.313 | 0.3049 | 0.2364 |
+| 0.50 | 0.521 | 11 | 0.996 to 1.105 | 7-0-9 | -3.750 | 0.2990 | 0.2588 |
+| 1.00 | 1.043 | 22 | 0.996 to 1.361 | 7-0-9 | -6.563 | 0.3263 | 0.2582 |
+
+Every intensity worsened held-out value calibration, so none passed the
+predeclared guardrail. The W-D-L and VP estimates use only 16 games per arm and
+are too uncertain to overrule that consistent calibration result.
+
+The immutable evaluation-report SHA-256 values for requested ratios
+0.10/0.25/0.50/1.00 are respectively
+`e41a0e10644eb14c833b548a54099fe2b8e5748589634d162e7680fc48714529`,
+`a83e48b8266d3ad2dc83d9c66af105b3572933d9d38455749f01f824555bcfee`,
+`fa1c9e7cc06cf3d503e7a0c7e8c6262f468822c992770f62603fedf4120bfb7d`,
+and `43fdf093b7ae517d98c153386e436c501cf7dafa57c6ff79da7266d622f18ffc`.
+The scratch run was created at
+`/tmp/tm-az-exp-9b93ec3/05-learner-intensity-sweep`.
+
+One bounded follow-up tested whether replaying the cycle-1 data already seen by
+the parent caused the failure. At requested ratio 0.10, the newest eight games
+produced two steps and the newest four games produced one. They also failed:
+
+| Replay window | Actual ratio | Steps | W-D-L | VP margin | Candidate Brier | Parent Brier |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 games | 0.179 | 2 | 8-1-7 | +3.125 | 0.3118 | 0.2388 |
+| 4 games | 0.179 | 1 | 7-1-8 | +3.688 | 0.2691 | 0.2377 |
+
+The immutable report SHA-256 values for windows eight and four are
+`7a04d6da9710ad0aacc355d3317787b3d7eead60edef5700eb91fa07ff84a340`
+and `3a51a97a2cd6ebd831bd9ad39e2efa31c37402d8baead74e4706033b1d59995c`.
+The scratch run was created at
+`/tmp/tm-az-exp-9b93ec3/06-replay-window-sweep-ratio-0.10`.
+
+All 96 games across both screens completed naturally with zero invalid
+actions, duplicate states, tripwire hits, or infrastructure failures. The
+screen therefore selects no learner setting. The next learner experiment must
+first increase replay diversity to the complete balanced 168-game ordered
+matchup set; choosing the least-bad tiny-replay arm would violate the gate.
+
 ## Reproduction shape
 
 The pilot was launched through `//:run_az_cycles` with the exact engine commit
@@ -154,5 +208,6 @@ explicit `--mode`/`--optimizer sgd`. Actor points used
 `--simulations 8`, and only `--games-per-batch` changed. All build and test
 operations used Bazel.
 
-Next: sweep learner intensity and replay horizon on fixed replay, screening on
-a small reserved prefix before confirming survivors on the full holdout.
+Next: generate the complete balanced 168-game replay set at the efficient
+eight-simulation self-play budget, then repeat the learner screen on that fixed
+larger dataset before confirming a survivor on the full holdout.
