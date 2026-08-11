@@ -104,6 +104,46 @@ low-latency setting. The mean neural batch of only 4.66 remains far below the
 model's batch-32 kernel knee, but this alone does not justify distribution;
 search and learner-quality experiments come first.
 
+## Same-checkpoint search-compute curve
+
+This curve gives the candidate and anchor the exact same checkpoint and changes
+only MCTS simulations per decision. “32 vs 1,” for example, means 32 tree
+simulations for the candidate's decisions and one for the anchor's decisions;
+it does not mean 32 networks. Every point used all 28 fixed cases, swapped the
+search roles across both seats, and therefore contains 56 complete games.
+
+| Candidate simulations | W-D-L | Score (paired 95% interval) | Candidate VP | Anchor VP | VP margin | Wall time |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 28-0-28 | 0.500 (0.243–0.757) | 64.732 | 64.732 | 0.000 | 347 s |
+| 8 | 34-2-20 | 0.625 (0.368–0.882) | 67.804 | 63.375 | +4.429 | 753 s |
+| 32 | 40-2-14 | 0.732 (0.475–0.989) | 70.875 | 62.375 | +8.500 | 2,108 s |
+| 128 | 39-0-17 | 0.696 (0.440–0.953) | 70.464 | 63.089 | +7.375 | 6,068 s |
+
+The equal-compute control is exactly symmetric in score and VP. Eight and 32
+simulations improve both observed score and absolute VP, and the gains are
+balanced across candidate seats. The intervals remain wide, so this is not a
+statistical claim that any higher budget is certainly stronger than one.
+Nevertheless, 128 is dominated in the observed curve: it took 3,960 additional
+seconds beyond 32 while producing a lower score and 1.125 less VP margin.
+
+Budget 8 cost 2.17 times the control's wall time for +4.429 average VP margin;
+budget 32 cost 2.80 times budget 8 for another +4.071 margin. Budget 128 then
+cost 2.88 times budget 32 and lost 1.125 margin. Use 32 as the measured local
+search-strength peak and reject 128 for this checkpoint. Eight is the efficient
+self-play candidate, but the final self-play setting still requires the planned
+downstream experiment that trains new checkpoints from equal data volume at
+different generation budgets.
+
+All four report identities bind the checkpoint, engine revision, official
+`tm-v0-paired-v2` suite, baseline budget, and eight-game batching. All 224 games
+completed naturally with zero invalid actions, duplicate states, tripwire hits,
+or infrastructure failures. The immutable report SHA-256 values for budgets
+1/8/32/128 are respectively
+`4bf80b29d3ca817db94c50179e8a501b97ad581c3a343a053ff6e7b4ff42ae74`,
+`c33d938cc0dd903ff13111a706012dbac8b814a0bc8cf7ef0cb61b21277e21f6`,
+`7cff102846dff3592eb45339d341caabb761ca11bcc5187282ec733a38a5ead1`,
+and `3ead27c88bf28970cca5dd9d3ed68491e7395dbe1acf98a5b36b195287e09d39`.
+
 ## Reproduction shape
 
 The pilot was launched through `//:run_az_cycles` with the exact engine commit
@@ -114,5 +154,5 @@ explicit `--mode`/`--optimizer sgd`. Actor points used
 `--simulations 8`, and only `--games-per-batch` changed. All build and test
 operations used Bazel.
 
-Next: run the same-checkpoint 1/8/32/128 search-compute curve on the full
-28-case paired holdout, then sweep learner intensity and replay horizon.
+Next: sweep learner intensity and replay horizon on fixed replay, screening on
+a small reserved prefix before confirming survivors on the full holdout.

@@ -574,6 +574,17 @@ or below 1.05%. Use eight as the local throughput default and two as the
 low-latency setting. The mean batch at eight actors is only 4.66, but shared or
 distributed inference remains gated on the search and learner-quality curves.
 
+The full same-checkpoint search curve is also complete in that evidence report.
+Across 56 games per point, candidate budgets 1/8/32/128 against a fixed
+one-simulation anchor produced observed score 0.500/0.625/0.732/0.696, VP
+margin 0/+4.43/+8.50/+7.38, and wall time 347/753/2,108/6,068 seconds. Every
+game completed naturally and every integrity counter remained zero. The paired
+intervals are wide and do not establish statistical superiority, but 128 is
+observationally dominated by 32 at almost three times its wall time. Treat 32
+as the measured local search-strength peak, reject 128 for this checkpoint, and
+carry eight forward as the efficient self-play candidate pending the separate
+downstream self-play-budget experiment.
+
 Every campaign run owns a new directory and immutable configuration manifest;
 the continual runner refuses a nonempty directory rather than mixing shards or
 checkpoint lineage. Each actor, learner, and arena stage atomically retains its
