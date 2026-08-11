@@ -434,6 +434,8 @@ batches 1 and 8. A lifecycle test trains the large model for one accelerator
 step, publishes it immutably, recovers its shape automatically, and performs
 canonical ragged inference. Benchmark, inference, and checkpoint artifacts
 record device, dtype, effective thread count, model shape, and seed/provenance.
+Training-throughput probes must also name and execute the selected learner
+optimizer; an AdamW timing is not evidence for the primary SGD path.
 The continual runner defaults to this `large` profile; its bounded smoke test
 selects `debug` explicitly so functional CI does not masquerade as a
 production-scale training run.

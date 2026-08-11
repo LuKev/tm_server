@@ -60,8 +60,9 @@ def benchmark(
     iterations: int,
     seed: int,
     checkpoint: str | None = None,
+    optimizer_name: str = "sgd",
 ) -> dict[str, object]:
-    if min(batch_size, action_count, iterations) <= 0 or warmup < 0:
+    if min(batch_size, action_count, iterations) <= 0 or warmup < 0 or optimizer_name not in ("sgd", "adamw"):
         raise ValueError("batch size, actions, and iterations must be positive; warmup must be non-negative")
     torch.manual_seed(seed)
     device = resolve_device(device_name)
@@ -77,7 +78,16 @@ def benchmark(
             raise ValueError(f"checkpoint model identity mismatch: {model_id} != {expected_model_id}")
         checkpoint_sha256 = hashlib.sha256(Path(checkpoint).read_bytes()).hexdigest()
     inputs = _inputs(batch_size, action_count, device)
-    optimizer = torch.optim.AdamW(model.parameters()) if mode == "training" else None
+    optimizer = None
+    if mode == "training":
+        if optimizer_name == "sgd":
+            optimizer = torch.optim.SGD(
+                model.parameters(), lr=1e-4, momentum=0.9, weight_decay=1e-4,
+            )
+        else:
+            optimizer = torch.optim.AdamW(
+                model.parameters(), lr=3e-5, weight_decay=1e-4,
+            )
     policy_target = torch.arange(batch_size, device=device) % action_count
     value_target = torch.linspace(-1, 1, batch_size, device=device)
 
@@ -119,6 +129,7 @@ def benchmark(
         "model_id": model_id,
         "checkpoint_sha256": checkpoint_sha256,
         "mode": mode,
+        "optimizer": optimizer_name if mode == "training" else "not_applicable",
         "batch_size": batch_size,
         "legal_actions_per_position": action_count,
         "warmup": warmup,
@@ -135,6 +146,7 @@ def main() -> None:
     parser.add_argument("--checkpoint")
     parser.add_argument("--device", default="cpu", help="cpu, cuda, mps, or auto")
     parser.add_argument("--mode", choices=("inference", "training"), default="inference")
+    parser.add_argument("--optimizer", choices=("sgd", "adamw"), default="sgd")
     parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--actions", type=int, default=128)
     parser.add_argument("--warmup", type=int, default=5)
@@ -156,6 +168,7 @@ def main() -> None:
         iterations=args.iterations,
         seed=args.seed,
         checkpoint=args.checkpoint,
+        optimizer_name=args.optimizer,
     ), sort_keys=True))
 
 

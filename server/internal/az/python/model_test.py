@@ -295,6 +295,12 @@ class RepresentationTest(unittest.TestCase):
             self.assertEqual(result["model_config"], "debug")
             self.assertEqual(result["model_id"], published["model_id"])
             self.assertEqual(result["checkpoint_sha256"], published["checkpoint_sha256"])
+            training = run_model_benchmark(
+                config_name="auto", device_name="cpu", mode="training",
+                batch_size=1, action_count=3, warmup=0, iterations=1, seed=0,
+                checkpoint=published["path"], optimizer_name="sgd",
+            )
+            self.assertEqual(training["optimizer"], "sgd")
             with self.assertRaisesRegex(ValueError, "does not match requested"):
                 run_model_benchmark(
                     config_name="large", device_name="cpu", mode="inference",
