@@ -23,6 +23,7 @@ learner_device="${TM_AZ_LEARNER_DEVICE:-${inference_device}}"
 torch_threads="${TM_AZ_TORCH_THREADS:-1}"
 actor_games_per_batch="${TM_AZ_ACTOR_GAMES_PER_BATCH:-8}"
 replay_cache_games="${TM_AZ_REPLAY_CACHE_GAMES:-8}"
+replay_window_shards="${TM_AZ_REPLAY_WINDOW_SHARDS:-10000}"
 arena_games_per_batch="${TM_AZ_ARENA_GAMES_PER_BATCH:-8}"
 examples_per_replay_ply="${TM_AZ_EXAMPLES_PER_REPLAY_PLY:-}"
 optimizer="${TM_AZ_OPTIMIZER:-sgd}"
@@ -75,6 +76,7 @@ fi
   printf 'actor_games_per_batch=%s\n' "${actor_games_per_batch}"
   printf 'arena_games_per_batch=%s\n' "${arena_games_per_batch}"
   printf 'replay_cache_games=%s\n' "${replay_cache_games}"
+  printf 'replay_window_shards=%s\n' "${replay_window_shards}"
   printf 'optimizer=%s\n' "${optimizer}"
   printf 'learning_rate=%s\n' "${learning_rate}"
   printf 'weight_decay=%s\n' "${weight_decay}"
@@ -148,6 +150,7 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --output-dir "${checkpoint_dir}" \
     --engine-commit "${engine_commit}" \
     "${learner_work[@]}" \
+    --window-shards "${replay_window_shards}" \
     --replay-cache-games "${replay_cache_games}" \
     "${optimizer_args[@]}" \
     --learning-rate "${learning_rate}" \

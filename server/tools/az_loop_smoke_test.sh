@@ -12,7 +12,7 @@ inference="$3"
 learner="$4"
 evaluator="$5"
 run_dir="${TEST_TMPDIR}/az-loop"
-TM_AZ_ACTOR_GAMES_PER_BATCH=1 TM_AZ_REPLAY_CACHE_GAMES=1 "${runner}" "${selfplay}" "${inference}" "${learner}" "${evaluator}" "${run_dir}" test 2 2 1 2 1 debug
+TM_AZ_ACTOR_GAMES_PER_BATCH=1 TM_AZ_REPLAY_CACHE_GAMES=1 TM_AZ_REPLAY_WINDOW_SHARDS=3 "${runner}" "${selfplay}" "${inference}" "${learner}" "${evaluator}" "${run_dir}" test 2 2 1 2 1 debug
 
 test "$(find "${run_dir}/replay" -name 'trajectory-*.json.gz' -type f | wc -l | tr -d ' ')" = 4
 test "$(find "${run_dir}/checkpoints" -name 'checkpoint-*.pt' -type f | wc -l | tr -d ' ')" = 2
@@ -21,6 +21,7 @@ test "$(find "${run_dir}/metrics" -name '*.stdout.json' -type f | wc -l | tr -d 
 test "$(find "${run_dir}/metrics" -name '*.status.json' -type f | wc -l | tr -d ' ')" = 7
 test "$(find "${run_dir}/metrics" -name '*.status.json' -type f -exec grep -L '"exit_code":0' {} + | wc -l | tr -d ' ')" = 0
 test -r "${run_dir}/run-manifest.txt"
+grep -q '^replay_window_shards=3$' "${run_dir}/run-manifest.txt"
 if "${runner}" "${selfplay}" "${inference}" "${learner}" "${evaluator}" "${run_dir}" smoke 1 1 1 1 1 debug; then
   echo "runner unexpectedly reused a nonempty run directory" >&2
   exit 1

@@ -421,6 +421,10 @@ shard enters the window, so corrupt unsampled plies cannot fail training
 nondeterministically. Training batches and the fixed diagnostic set remain
 separate explicit bounds. Checkpoint provenance records replay games/plies,
 cache loads/hits, validation time, and learner examples/second.
+The continual runner exposes the replay horizon as
+`TM_AZ_REPLAY_WINDOW_SHARDS` (default 10,000) and records it in the immutable
+run manifest, so the learner-intensity experiment can vary replay horizon
+without silently changing cache residency or code.
 
 The model/accelerator step also passed correctness and simplicity review. The
 large preset is an AlphaZero-style 20-block, 256-channel residual hex-CNN with
@@ -522,6 +526,38 @@ the next cycle; otherwise cycle boundaries reset SGD momentum or AdamW moments
 and change the algorithm. An optimizer/config change requires an explicit
 recorded reset, and uninterrupted versus checkpoint-resumed training must be
 deterministically equivalent on a fixed data stream.
+
+The mechanically corrected two-cycle SGD pilot kept the large value head finite
+and restored the optimizer state across cycles. At eight simulations, the two
+actor cycles generated 39.75 and 44.63 decisions/game at roughly 429 and 390
+games/hour;
+three and then six SGD steps moved diagnostic value loss from 1.146 to 0.941
+and from 0.996 to 1.198. The latter regression means the next learner-intensity
+experiment still needs held-out calibration rather than choosing from training
+loss. All 24 tiny-pilot arena games completed naturally with zero invalid,
+duplicate, tripwire, or infrastructure failures, but the two-case reports are
+mechanics evidence only.
+Its manifest was later found to contain a mistyped, nonexistent engine commit;
+rerun it from a verified revision before treating its checkpoint or metrics as
+durable evidence.
+
+Exploratory checkpoint-bound large-model probes put the local MPS inference
+knee at batch 32: batches 1/4/8/16/32/64 measured about
+110/221/255/273/287/290 positions/second. Batch 64 adds only about 1.2%
+throughput while doubling batch latency, so 32 is the provisional inference
+throughput setting. Momentum-SGD training batches 1/2/4/8/16/32 measured about
+32/50/69/85/95/102 examples/second, but 32 was the largest point and is not yet
+an established training knee. A fixed eight-game actor sweep at eight
+simulations preserved exactly 68.625 decisions/game at every concurrency.
+Bounds 1/2/4/8 produced roughly 210/229/231/248 games/hour with mean inference
+batches 1.00/1.73/2.90/4.66 and p95 latencies 13.6/20.5/38.6/59.3 ms. Retain
+eight concurrent games only as the fastest observed exploratory point; the
+small 7.4% advantage over four needs a counterbalanced repeat before becoming
+a default. The checkpoint used by these probes was later found to contain a
+mistyped, nonexistent engine revision in its upstream training provenance, so
+these numbers cannot support strength or durable scaling conclusions. Repeat
+the pilot and selected throughput points from a verifiable Git revision before
+the search curve. Distribution remains unjustified.
 
 Every campaign run owns a new directory and immutable configuration manifest;
 the continual runner refuses a nonempty directory rather than mixing shards or
