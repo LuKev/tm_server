@@ -559,6 +559,21 @@ these numbers cannot support strength or durable scaling conclusions. Repeat
 the pilot and selected throughput points from a verifiable Git revision before
 the search curve. Distribution remains unjustified.
 
+That replacement run is now complete and recorded in the
+[local scaling evidence](terra-mystica-1v1-alphazero-local-scaling-evidence.md).
+Its real engine revision matches all 16 shards and two checkpoints; seven
+stages exited cleanly and all 12 pilot arena games completed naturally with no
+integrity failures. The final checkpoint is therefore admissible for controlled
+throughput and same-model search experiments, though the two-case arenas still
+make no strength claim. Clean checkpoint-bound probes establish batch 32 as the
+smallest local near-ceiling point: 99.0% of batch-64 inference throughput and
+98.8% of batch-128 SGD throughput. A forward/reverse fixed-game actor sweep
+produced the same semantic trajectories at every bound and averaged
+208/230/231/247 games/hour for 1/2/4/8 concurrent games, with order spreads at
+or below 1.05%. Use eight as the local throughput default and two as the
+low-latency setting. The mean batch at eight actors is only 4.66, but shared or
+distributed inference remains gated on the search and learner-quality curves.
+
 Every campaign run owns a new directory and immutable configuration manifest;
 the continual runner refuses a nonempty directory rather than mixing shards or
 checkpoint lineage. Each actor, learner, and arena stage atomically retains its
