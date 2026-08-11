@@ -225,7 +225,14 @@ def save_checkpoint(path: str | Path, model: TerraMysticaNet, **extra: Any) -> N
     _write_immutable(Path(path), payload)
 
 
-def publish_checkpoint(directory: str | Path, model: TerraMysticaNet, provenance: dict[str, Any]) -> dict[str, Any]:
+def publish_checkpoint(
+    directory: str | Path,
+    model: TerraMysticaNet,
+    provenance: dict[str, Any],
+    *,
+    optimizer_state: dict[str, Any] | None = None,
+    optimizer_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     output = Path(directory)
     output.mkdir(parents=True, exist_ok=True)
     model_id = "model-" + model_fingerprint(model)
@@ -235,6 +242,11 @@ def publish_checkpoint(directory: str | Path, model: TerraMysticaNet, provenance
         "model_id": model_id,
         "provenance": provenance,
     }
+    if optimizer_state is not None or optimizer_config is not None:
+        if optimizer_state is None or optimizer_config is None:
+            raise ValueError("optimizer state and config must be published together")
+        payload["optimizer_state"] = optimizer_state
+        payload["optimizer_config"] = optimizer_config
     with tempfile.NamedTemporaryFile(prefix=".publish-", suffix=".pt", dir=output, delete=False) as temporary:
         temporary_path = Path(temporary.name)
     temporary_path.unlink()

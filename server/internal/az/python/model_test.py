@@ -362,12 +362,16 @@ class RepresentationTest(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as directory:
             model = TerraMysticaNet(LARGE_CONFIG)
-            metrics = train(
+            metrics, optimizer_state = train(
                 model, replay, steps=1, batch_size=1, learning_rate=1e-4,
                 weight_decay=1e-4, seed=31, device=device,
             )
             self.assertTrue(np.isfinite(list(metrics["after"].values())).all())
-            published = publish_checkpoint(directory, model, {"device": str(device), "test": True})
+            published = publish_checkpoint(
+                directory, model, {"device": str(device), "test": True},
+                optimizer_state=optimizer_state,
+                optimizer_config={"name": "sgd", "learning_rate": 1e-4, "weight_decay": 1e-4, "momentum": 0.9},
+            )
             checkpoint = Path(published["path"])
             self.assertEqual(resolve_model_config("auto", checkpoint), ("large", LARGE_CONFIG))
             del model
@@ -551,7 +555,7 @@ class RepresentationTest(unittest.TestCase):
             bounded._example(0, 0)
             self.assertEqual(bounded.materialization_loads, 3)
             model = TerraMysticaNet(DEBUG_CONFIG)
-            metrics = train(
+            metrics, _ = train(
                 model,
                 replay,
                 steps=50,
@@ -559,6 +563,7 @@ class RepresentationTest(unittest.TestCase):
                 learning_rate=0.003,
                 weight_decay=1e-4,
                 seed=5,
+                optimizer_name="adamw",
             )
             self.assertLessEqual(replay.resident_game_count, 1)
             self.assertGreater(replay.materialization_loads, 0)
@@ -570,6 +575,70 @@ class RepresentationTest(unittest.TestCase):
         self.assertTrue(np.isfinite(list(metrics["after"].values())).all())
         self.assertLess(metrics["after"]["policy"], metrics["before"]["policy"] * 0.1, metrics)
         self.assertLess(metrics["after"]["value"], metrics["before"]["value"], metrics)
+
+    def test_learner_optimizer_contract(self) -> None:
+        payload = _fixture(self.fixture_binary)
+        encoded = encode_position(payload["state"], payload["actions"][:2])
+        replay = ReplayWindow(
+            [[Example(encoded, np.asarray([1.0, 0.0], dtype=np.float32), 1.0)]],
+            [(7, 13)],
+        )
+        for optimizer_name in ("sgd", "adamw"):
+            model = TerraMysticaNet(DEBUG_CONFIG)
+            metrics, _ = train(
+                model, replay, steps=1, batch_size=1, learning_rate=1e-4,
+                weight_decay=1e-4, seed=1, optimizer_name=optimizer_name,
+            )
+            self.assertTrue(np.isfinite(list(metrics["after"].values())).all())
+        with self.assertRaisesRegex(ValueError, "invalid learner hyperparameters"):
+            train(
+                TerraMysticaNet(DEBUG_CONFIG), replay, steps=1, batch_size=1,
+                learning_rate=1e-4, weight_decay=1e-4, seed=1,
+                optimizer_name="unknown",
+            )
+        with self.assertRaisesRegex(ValueError, "invalid learner hyperparameters"):
+            train(
+                TerraMysticaNet(DEBUG_CONFIG), replay, steps=1, batch_size=1,
+                learning_rate=1e-4, weight_decay=1e-4, seed=1,
+                optimizer_name="adamw", momentum=0.9,
+            )
+
+    def test_checkpoint_resume_preserves_optimizer_dynamics(self) -> None:
+        payload = _fixture(self.fixture_binary)
+        encoded = encode_position(payload["state"], payload["actions"][:2])
+        replay = ReplayWindow(
+            [[Example(encoded, np.asarray([1.0, 0.0], dtype=np.float32), 1.0)]],
+            [(7, 13)],
+        )
+        torch.manual_seed(91)
+        initial = TerraMysticaNet(DEBUG_CONFIG)
+        uninterrupted = copy.deepcopy(initial)
+        split = copy.deepcopy(initial)
+        _, uninterrupted_optimizer = train(
+            uninterrupted, replay, steps=4, batch_size=1, learning_rate=1e-4,
+            weight_decay=1e-4, seed=7, optimizer_name="sgd",
+        )
+        _, first_optimizer = train(
+            split, replay, steps=2, batch_size=1, learning_rate=1e-4,
+            weight_decay=1e-4, seed=7, optimizer_name="sgd",
+        )
+        config = {"name": "sgd", "learning_rate": 1e-4, "weight_decay": 1e-4, "momentum": 0.9}
+        with tempfile.TemporaryDirectory() as directory:
+            published = publish_checkpoint(
+                directory, split, {"test": True}, optimizer_state=first_optimizer,
+                optimizer_config=config,
+            )
+            resumed = TerraMysticaNet(DEBUG_CONFIG)
+            checkpoint = load_checkpoint(published["path"], resumed)
+            self.assertEqual(checkpoint["optimizer_config"], config)
+            _, resumed_optimizer = train(
+                resumed, replay, steps=2, batch_size=1, learning_rate=1e-4,
+                weight_decay=1e-4, seed=8, optimizer_name="sgd",
+                optimizer_state=checkpoint["optimizer_state"],
+            )
+        for name, expected in uninterrupted.state_dict().items():
+            torch.testing.assert_close(resumed.state_dict()[name], expected, rtol=0, atol=0)
+        self.assertEqual(resumed_optimizer["param_groups"], uninterrupted_optimizer["param_groups"])
 
     def test_inference_rejects_mislabeled_checkpoint_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

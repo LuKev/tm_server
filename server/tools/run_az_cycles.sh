@@ -25,6 +25,24 @@ actor_games_per_batch="${TM_AZ_ACTOR_GAMES_PER_BATCH:-8}"
 replay_cache_games="${TM_AZ_REPLAY_CACHE_GAMES:-8}"
 arena_games_per_batch="${TM_AZ_ARENA_GAMES_PER_BATCH:-8}"
 examples_per_replay_ply="${TM_AZ_EXAMPLES_PER_REPLAY_PLY:-}"
+optimizer="${TM_AZ_OPTIMIZER:-sgd}"
+learning_rate="${TM_AZ_LEARNING_RATE:-1e-4}"
+weight_decay="${TM_AZ_WEIGHT_DECAY:-1e-4}"
+momentum="${TM_AZ_MOMENTUM:-}"
+optimizer_args=(--optimizer "${optimizer}")
+if [[ "${optimizer}" == "sgd" ]]; then
+  momentum="${momentum:-0.9}"
+  optimizer_args+=(--momentum "${momentum}")
+elif [[ "${optimizer}" == "adamw" ]]; then
+  if [[ -n "${momentum}" ]]; then
+    echo "TM_AZ_MOMENTUM is only valid with TM_AZ_OPTIMIZER=sgd" >&2
+    exit 1
+  fi
+  momentum="not_applicable"
+else
+  echo "TM_AZ_OPTIMIZER must be sgd or adamw" >&2
+  exit 1
+fi
 if [[ -d "${run_dir}" && -n "$(find "${run_dir}" -mindepth 1 -maxdepth 1 -print -quit)" ]]; then
   echo "refusing to reuse nonempty run directory: ${run_dir}" >&2
   exit 1
@@ -57,6 +75,10 @@ fi
   printf 'actor_games_per_batch=%s\n' "${actor_games_per_batch}"
   printf 'arena_games_per_batch=%s\n' "${arena_games_per_batch}"
   printf 'replay_cache_games=%s\n' "${replay_cache_games}"
+  printf 'optimizer=%s\n' "${optimizer}"
+  printf 'learning_rate=%s\n' "${learning_rate}"
+  printf 'weight_decay=%s\n' "${weight_decay}"
+  printf 'momentum=%s\n' "${momentum}"
 } >"${manifest}.tmp"
 mv "${manifest}.tmp" "${manifest}"
 chmod 0444 "${manifest}"
@@ -127,6 +149,9 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --engine-commit "${engine_commit}" \
     "${learner_work[@]}" \
     --replay-cache-games "${replay_cache_games}" \
+    "${optimizer_args[@]}" \
+    --learning-rate "${learning_rate}" \
+    --weight-decay "${weight_decay}" \
     --model-seed 0 \
     --seed "${cycle}"
 

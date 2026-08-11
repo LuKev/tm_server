@@ -302,14 +302,40 @@ def train(
     weight_decay: float,
     seed: int,
     device: torch.device | str = "cpu",
-) -> dict[str, dict[str, float]]:
-    if steps <= 0 or batch_size <= 0 or learning_rate <= 0 or weight_decay < 0:
+    optimizer_name: str = "sgd",
+    momentum: float | None = None,
+    optimizer_state: dict[str, Any] | None = None,
+) -> tuple[dict[str, dict[str, float]], dict[str, Any]]:
+    effective_momentum = 0.9 if optimizer_name == "sgd" and momentum is None else momentum
+    if (
+        steps <= 0
+        or batch_size <= 0
+        or learning_rate <= 0
+        or weight_decay < 0
+        or optimizer_name not in ("sgd", "adamw")
+        or (optimizer_name == "sgd" and (effective_momentum is None or not 0 <= effective_momentum < 1))
+        or (optimizer_name == "adamw" and momentum is not None)
+    ):
         raise ValueError("invalid learner hyperparameters")
     rng = random.Random(seed)
     diagnostic = replay.diagnostic(max(1, min(32, batch_size)))
     model.to(device)
     before = losses(model, diagnostic, device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, weight_decay=weight_decay)
+    if optimizer_name == "sgd":
+        optimizer = torch.optim.SGD(
+            model.parameters(), lr=learning_rate, momentum=effective_momentum,
+            weight_decay=weight_decay,
+        )
+    else:
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=learning_rate, weight_decay=weight_decay,
+        )
+    if optimizer_state is not None:
+        optimizer.load_state_dict(optimizer_state)
+        for state in optimizer.state.values():
+            for key, value in state.items():
+                if isinstance(value, Tensor):
+                    state[key] = value.to(device)
     model.train()
     for _ in range(steps):
         examples = replay.sample(rng, batch_size)
@@ -323,7 +349,18 @@ def train(
     if not all(torch.isfinite(parameter).all() for parameter in model.parameters()):
         raise FloatingPointError("non-finite model parameters after training")
     after = losses(model, diagnostic, device)
-    return {"before": before, "after": after}
+    return {"before": before, "after": after}, optimizer.state_dict()
+
+
+def optimizer_config(
+    name: str, learning_rate: float, weight_decay: float, momentum: float | None
+) -> dict[str, Any]:
+    return {
+        "name": name,
+        "learning_rate": learning_rate,
+        "weight_decay": weight_decay,
+        "momentum": (0.9 if name == "sgd" and momentum is None else momentum),
+    }
 
 
 def resolve_latest(path: str | Path) -> Path:
@@ -349,8 +386,11 @@ def main() -> None:
     parser.add_argument("--steps", type=int)
     parser.add_argument("--examples-per-replay-ply", type=float)
     parser.add_argument("--batch-size", type=int, default=32)
-    parser.add_argument("--learning-rate", type=float, default=1e-3)
+    parser.add_argument("--learning-rate", type=float, default=1e-4)
     parser.add_argument("--weight-decay", type=float, default=1e-4)
+    parser.add_argument("--optimizer", choices=("sgd", "adamw"), default="sgd")
+    parser.add_argument("--momentum", type=float)
+    parser.add_argument("--reset-optimizer", action="store_true")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--model-seed", type=int, default=0)
     parser.add_argument("--device", default="cpu", help="cpu, cuda, mps, or auto")
@@ -381,6 +421,10 @@ def main() -> None:
     config_name, config = resolve_model_config(args.model_config, initial_checkpoint)
     model = TerraMysticaNet(config)
     parent_checkpoint_sha256 = ""
+    parent_optimizer_state = None
+    requested_optimizer_config = optimizer_config(
+        args.optimizer, args.learning_rate, args.weight_decay, args.momentum
+    )
     if initial_checkpoint:
         parent_payload = load_checkpoint(initial_checkpoint, model)
         parent_model_id = str(parent_payload.get("model_id") or "")
@@ -388,8 +432,21 @@ def main() -> None:
         if parent_model_id != expected_parent_model_id:
             raise ValueError(f"parent checkpoint model identity mismatch: {parent_model_id} != {expected_parent_model_id}")
         parent_checkpoint_sha256 = hashlib.sha256(initial_checkpoint.read_bytes()).hexdigest()
+        stored_optimizer_config = parent_payload.get("optimizer_config")
+        stored_optimizer_state = parent_payload.get("optimizer_state")
+        if args.reset_optimizer:
+            parent_optimizer_state = None
+        elif stored_optimizer_config != requested_optimizer_config or stored_optimizer_state is None:
+            raise ValueError(
+                "parent checkpoint optimizer is missing or incompatible; "
+                "use --reset-optimizer for an intentional recorded reset"
+            )
+        else:
+            parent_optimizer_state = stored_optimizer_state
     else:
         parent_model_id = "random-" + model_fingerprint(model)
+        if args.reset_optimizer:
+            parser.error("--reset-optimizer requires an initial checkpoint")
     replay_started = time.perf_counter()
     replay = load_replay(
         paths, expected_engine_commit=args.engine_commit, cache_games=args.replay_cache_games
@@ -405,7 +462,7 @@ def main() -> None:
     except ValueError as error:
         parser.error(str(error))
     training_started = time.perf_counter()
-    metrics = train(
+    metrics, trained_optimizer_state = train(
         model,
         replay,
         steps=training_steps,
@@ -414,6 +471,9 @@ def main() -> None:
         weight_decay=args.weight_decay,
         seed=args.seed,
         device=device,
+        optimizer_name=args.optimizer,
+        momentum=args.momentum,
+        optimizer_state=parent_optimizer_state,
     )
     training_seconds = time.perf_counter() - training_started
     training_examples = training_steps * args.batch_size
@@ -432,6 +492,7 @@ def main() -> None:
         "torch_threads": torch.get_num_threads(),
         "parent_model_id": parent_model_id,
         "parent_checkpoint_sha256": parent_checkpoint_sha256,
+        "optimizer_reset": bool(initial_checkpoint and args.reset_optimizer),
         "replay_shards": [path.name.removeprefix("trajectory-").removesuffix(".json.gz") for path in paths],
         "replay": {
             "games": replay.game_count,
@@ -449,6 +510,8 @@ def main() -> None:
             "actual_examples_per_replay_ply": training_examples / replay.ply_count,
             "learning_rate": args.learning_rate,
             "weight_decay": args.weight_decay,
+            "optimizer": requested_optimizer_config["name"],
+            "momentum": requested_optimizer_config["momentum"],
             **training_throughput,
             **metrics,
         },
@@ -457,6 +520,8 @@ def main() -> None:
         args.output_dir,
         model,
         provenance,
+        optimizer_state=trained_optimizer_state,
+        optimizer_config=requested_optimizer_config,
     )
     print(json.dumps({
         "checkpoint": published["path"], "model_id": published["model_id"],

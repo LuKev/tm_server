@@ -34,4 +34,11 @@ fi
 test -s "${failed_run_dir}/metrics/cycle-1/selfplay.stderr.log"
 grep -q '"exit_code":[1-9]' "${failed_run_dir}/metrics/cycle-1/selfplay.status.json"
 test ! -e "${failed_run_dir}/checkpoints/latest.json"
+
+invalid_optimizer_dir="${TEST_TMPDIR}/invalid-optimizer"
+if TM_AZ_OPTIMIZER=typo "${runner}" "${selfplay}" "${inference}" "${learner}" "${evaluator}" "${invalid_optimizer_dir}" smoke 1 1 1 1 1 debug; then
+  echo "runner unexpectedly accepted an invalid optimizer" >&2
+  exit 1
+fi
+test ! -e "${invalid_optimizer_dir}"
 test -s "${run_dir}/checkpoints/latest.json"

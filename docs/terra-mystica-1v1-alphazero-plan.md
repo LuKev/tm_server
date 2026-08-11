@@ -504,6 +504,23 @@ batch neural/search requests without changing each game's seed or action
 sequence. Both changes require deterministic-equivalence and end-to-end smoke
 gates before the pilot is repeated.
 
+A repeat at only 0.25 requested examples per replay ply still saturated the
+large value head after three AdamW steps at `1e-3`, and the next self-play
+cycle rose from 39.75 to 88.75 decisions/game. A same-initialization/same-replay
+diagnostic localized this to optimizer scale: AdamW through `1e-4` saturated,
+while `3e-5` reduced the diagnostic value loss from 1.146 to 0.958. The primary
+large-model learner now follows the paper's optimizer family—momentum SGD with
+L2 weight decay—while AdamW remains an explicit ablation. A follow-up SGD sweep
+selected `1e-4` as the conservative pilot default: it improved the same
+three-step diagnostic from total/value 3.534/1.146 to 3.333/0.941 without
+saturation. Optimizer, learning rate, applicable momentum, and weight decay are
+checkpoint and run-manifest provenance.
+Optimizer buffers are part of every learner checkpoint and must be restored on
+the next cycle; otherwise cycle boundaries reset SGD momentum or AdamW moments
+and change the algorithm. An optimizer/config change requires an explicit
+recorded reset, and uninterrupted versus checkpoint-resumed training must be
+deterministically equivalent on a fixed data stream.
+
 Every campaign run owns a new directory and immutable configuration manifest;
 the continual runner refuses a nonempty directory rather than mixing shards or
 checkpoint lineage. Each actor, learner, and arena stage atomically retains its
