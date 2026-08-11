@@ -121,6 +121,9 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 	if gs.PendingDarklingsPriestOrdination != nil {
 		return []string{gs.PendingDarklingsPriestOrdination.PlayerID}
 	}
+	if gs.PendingFavorTileSelection != nil {
+		return []string{gs.PendingFavorTileSelection.PlayerID}
+	}
 	if gs.HasPendingLeechOffers() {
 		if playerID := strings.TrimSpace(gs.GetNextBlockingLeechResponder()); playerID != "" {
 			return []string{playerID}
@@ -141,9 +144,6 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 	if gs.PendingArchivistsBonusSelection != nil {
 		return []string{gs.PendingArchivistsBonusSelection.PlayerID}
 	}
-	if gs.PendingFavorTileSelection != nil {
-		return []string{gs.PendingFavorTileSelection.PlayerID}
-	}
 	if gs.PendingHalflingsSpades != nil {
 		return []string{gs.PendingHalflingsSpades.PlayerID}
 	}
@@ -152,6 +152,9 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 	}
 	if playerID, _ := gs.GetPendingCultRewardSpadePlayer(); strings.TrimSpace(playerID) != "" {
 		return []string{playerID}
+	}
+	if pending := gs.PendingChaosMagiciansDoubleTurn; pending != nil && pending.ActionsRemaining > 0 {
+		return []string{pending.PlayerID}
 	}
 	if playerID := strings.TrimSpace(gs.PendingFreeActionsPlayerID); playerID != "" {
 		return []string{playerID}
@@ -168,6 +171,14 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 	}
 
 	return nil
+}
+
+// DecisionPlayerIDs returns the players currently responsible for the next
+// rules decision. Normal and blocking decision states contain exactly one ID;
+// fast auction may contain multiple simultaneous submitters and is outside the
+// initial AlphaZero rules profile.
+func DecisionPlayerIDs(gs *GameState) []string {
+	return activeDecisionPlayerIDs(gs)
 }
 
 func serializeTurnTimer(tt *TurnTimerState, now time.Time) interface{} {

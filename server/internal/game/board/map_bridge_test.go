@@ -45,6 +45,31 @@ func TestBridgeGeometry_Valid(t *testing.T) {
 	}
 }
 
+func TestMermaidsRiverTieBreakIsDeterministic(t *testing.T) {
+	start := NewHex(0, 0)
+	firstRiver := NewHex(1, 0)
+	firstAcross := NewHex(2, 0)
+	secondRiver := NewHex(0, 1)
+	secondAcross := NewHex(0, 2)
+	m := makeMap(map[Hex]models.TerrainType{
+		start: models.TerrainLake, firstRiver: models.TerrainRiver,
+		firstAcross: models.TerrainLake, secondRiver: models.TerrainRiver,
+		secondAcross: models.TerrainLake,
+	})
+	for _, h := range []Hex{start, firstAcross, secondAcross} {
+		m.Hexes[h].Building = &models.Building{
+			Type: models.BuildingDwelling, Faction: models.FactionMermaids,
+			PlayerID: "p0", PowerValue: 1,
+		}
+	}
+	for i := 0; i < 100; i++ {
+		connected, river := m.GetConnectedBuildingsForMermaids(start, "p0")
+		if len(connected) != 2 || river == nil || *river != firstRiver {
+			t.Fatalf("run %d chose nondeterministic river %v with component %v", i, river, connected)
+		}
+	}
+}
+
 func TestBridgeGeometry_InvalidMidpoint(t *testing.T) {
 	h1 := NewHex(0, 0)
 	midA := NewHex(0, -1)

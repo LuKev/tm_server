@@ -40,7 +40,7 @@ func (a *SelectTownTileAction) Validate(gs *GameState) error {
 	if a.TileType == models.TownTile9Points && gs.RemainingPriestCapacity(a.PlayerID) < 1 {
 		return fmt.Errorf("cannot take priest town tile at the 7-priest limit")
 	}
-	pending := pendingTowns[0]
+	pending := pendingTowns[nextPendingTownFormationIndex(pendingTowns)]
 	if pending.SkippedRiverHex != nil {
 		if a.AnchorHex != nil && *a.AnchorHex != *pending.SkippedRiverHex {
 			return fmt.Errorf("mermaids river town must use the skipped river hex as the town tile anchor")
@@ -67,6 +67,15 @@ func (a *SelectTownTileAction) Validate(gs *GameState) error {
 	}
 
 	return nil
+}
+
+func nextPendingTownFormationIndex(pending []*PendingTownFormation) int {
+	for i, formation := range pending {
+		if formation != nil && !formation.CanBeDelayed {
+			return i
+		}
+	}
+	return 0
 }
 
 // Execute performs the town tile selection.

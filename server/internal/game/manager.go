@@ -210,14 +210,6 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	currentRevision := m.revisions[gameID]
-	beforeTurn := captureTurnProgress(gs)
-	undoSnapshot := gs.CloneForUndo()
-	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
-	if player := gs.GetPlayer(action.GetPlayerID()); player != nil && player.Resources != nil {
-		beforeCoins = player.Resources.Coins
-		beforeWorkers = player.Resources.Workers
-		beforePriests = player.Resources.Priests
-	}
 	if meta.ActionID != "" {
 		if _, exists := m.appliedActionID[gameID][meta.ActionID]; exists {
 			return &ActionResult{Revision: currentRevision, Duplicate: true}, nil
@@ -227,27 +219,9 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	if meta.ExpectedRevision >= 0 && meta.ExpectedRevision != currentRevision {
 		return nil, &RevisionMismatchError{Expected: meta.ExpectedRevision, Current: currentRevision}
 	}
-	if err := validateActionTurnAndPendingState(gs, action); err != nil {
-		return nil, fmt.Errorf("action turn validation failed: %w", err)
+	if err := ApplyActionToState(gs, action, StateActionOptions{EnableTurnConfirmation: true}); err != nil {
+		return nil, err
 	}
-
-	maybeExpirePendingFreeActionsWindow(gs, action)
-
-	if err := action.Validate(gs); err != nil {
-		return nil, fmt.Errorf("action validation failed: %w", err)
-	}
-
-	if err := action.Execute(gs); err != nil {
-		return nil, fmt.Errorf("action execution failed: %w", err)
-	}
-	if err := gs.ResolveAutoLeechOffers(); err != nil {
-		return nil, fmt.Errorf("auto leech resolution failed: %w", err)
-	}
-	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
-	updatePendingFreeActionsWindow(gs, action)
-	stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
-	syncTurnConfirmationPreferences(gs, action)
-	refreshTurnConfirmationUndoCheckpoint(gs, action)
 	if gs.TurnTimer != nil {
 		gs.TurnTimer.SyncActivePlayers(activeDecisionPlayerIDs(gs), now)
 	}
@@ -262,6 +236,84 @@ func (m *Manager) ExecuteActionWithMeta(gameID string, action Action, meta Actio
 	}
 
 	return &ActionResult{Revision: currentRevision, Duplicate: false}, nil
+}
+
+// StateActionOptions controls UX-only behavior around an authoritative action.
+// Rules, costs, pending decisions, and turn advancement are identical in every
+// profile; search disables only the human confirm/undo checkpoint.
+type StateActionOptions struct {
+	EnableTurnConfirmation bool
+}
+
+// ApplyActionToState applies an action directly to a GameState using the same
+// validation and post-action lifecycle as Manager. It performs no locking,
+// revision bookkeeping, timers, replay tolerance, or resource funding.
+func ApplyActionToState(gs *GameState, action Action, opts StateActionOptions) error {
+	if gs == nil {
+		return fmt.Errorf("game state is nil")
+	}
+	if action == nil {
+		return fmt.Errorf("action is nil")
+	}
+
+	var beforeTurn turnProgress
+	var undoSnapshot *GameState
+	if opts.EnableTurnConfirmation {
+		beforeTurn = captureTurnProgress(gs)
+		undoSnapshot = gs.CloneForUndo()
+	}
+	beforeCoins, beforeWorkers, beforePriests := 0, 0, 0
+	if player := gs.GetPlayer(action.GetPlayerID()); player != nil && player.Resources != nil {
+		beforeCoins = player.Resources.Coins
+		beforeWorkers = player.Resources.Workers
+		beforePriests = player.Resources.Priests
+	}
+
+	if err := validateActionTurnAndPendingState(gs, action); err != nil {
+		return fmt.Errorf("action turn validation failed: %w", err)
+	}
+	maybeExpirePendingFreeActionsWindow(gs, action)
+	if err := action.Validate(gs); err != nil {
+		return fmt.Errorf("action validation failed: %w", err)
+	}
+	chaosPending := gs.PendingChaosMagiciansDoubleTurn
+	consumeChaosAction := chaosPending != nil && chaosPending.PlayerID == action.GetPlayerID() && isChaosMagiciansMainAction(action)
+	chaosPass := consumeChaosAction && action.GetType() == ActionPass
+	previousSuppress := gs.SuppressTurnAdvance
+	if consumeChaosAction {
+		if chaosPending.ActionsRemaining > 1 && !chaosPass {
+			gs.SuppressTurnAdvance = true
+		} else {
+			// Remove the final pending action before Execute so its ordinary
+			// NextTurn call can advance unless it creates another rules choice.
+			// Passing ends the player's action phase even when it is chosen as
+			// the first action of the double turn, so it also discards any
+			// remaining Chaos action.
+			gs.PendingChaosMagiciansDoubleTurn = nil
+		}
+	}
+	if err := action.Execute(gs); err != nil {
+		gs.SuppressTurnAdvance = previousSuppress
+		if consumeChaosAction {
+			gs.PendingChaosMagiciansDoubleTurn = chaosPending
+		}
+		return fmt.Errorf("action execution failed: %w", err)
+	}
+	gs.SuppressTurnAdvance = previousSuppress
+	if consumeChaosAction && chaosPending.ActionsRemaining > 1 && !chaosPass {
+		chaosPending.ActionsRemaining--
+	}
+	if err := gs.ResolveAutoLeechOffers(); err != nil {
+		return fmt.Errorf("auto leech resolution failed: %w", err)
+	}
+	maybeQueueTreasurersDepositAfterAction(gs, action, beforeCoins, beforeWorkers, beforePriests)
+	updatePendingFreeActionsWindow(gs, action)
+	if opts.EnableTurnConfirmation {
+		stageTurnConfirmation(gs, action, beforeTurn, undoSnapshot)
+		syncTurnConfirmationPreferences(gs, action)
+		refreshTurnConfirmationUndoCheckpoint(gs, action)
+	}
+	return nil
 }
 
 func maybeQueueTreasurersDepositAfterAction(gs *GameState, action Action, beforeCoins, beforeWorkers, beforePriests int) {
@@ -355,6 +407,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
+	if gs.PendingFavorTileSelection != nil {
+		if actionType != ActionSelectFavorTile {
+			return fmt.Errorf("favor tile selection pending for player %s", gs.PendingFavorTileSelection.PlayerID)
+		}
+		if playerID != gs.PendingFavorTileSelection.PlayerID {
+			return fmt.Errorf("favor tile selection required from player %s", gs.PendingFavorTileSelection.PlayerID)
+		}
+		return nil
+	}
+
 	if gs.HasPendingLeechOffers() {
 		expected := gs.GetNextBlockingLeechResponder()
 		if actionType == ActionAcceptPowerLeech || actionType == ActionDeclinePowerLeech {
@@ -367,9 +429,6 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 			return nil
 		}
 		if expected != "" {
-			if canCurrentPlayerContinueFreeActionBeforeLeech(gs, action) {
-				return nil
-			}
 			return fmt.Errorf("leech response pending for player %s", expected)
 		}
 	}
@@ -440,16 +499,6 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
-	if gs.PendingFavorTileSelection != nil {
-		if actionType != ActionSelectFavorTile {
-			return fmt.Errorf("favor tile selection pending for player %s", gs.PendingFavorTileSelection.PlayerID)
-		}
-		if playerID != gs.PendingFavorTileSelection.PlayerID {
-			return fmt.Errorf("favor tile selection required from player %s", gs.PendingFavorTileSelection.PlayerID)
-		}
-		return nil
-	}
-
 	if gs.PendingHalflingsSpades != nil {
 		if playerID != gs.PendingHalflingsSpades.PlayerID {
 			return fmt.Errorf("halflings spade follow-up required from player %s", gs.PendingHalflingsSpades.PlayerID)
@@ -492,6 +541,11 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 
 	if actionType == ActionSelectTownTile {
 		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
+			pending := pendingTowns[nextPendingTownFormationIndex(pendingTowns)]
+			current := gs.GetCurrentPlayer()
+			if pending != nil && pending.CanBeDelayed && (current == nil || current.ID != playerID) {
+				return fmt.Errorf("delayed Mermaid town can only be founded on player %s's turn", playerID)
+			}
 			return nil
 		}
 		return fmt.Errorf("no pending town formation for player %s", playerID)
@@ -510,6 +564,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 
 	if canPlayerUsePendingFreeActionsWindow(gs, action) {
 		return nil
+	}
+
+	if pending := gs.PendingChaosMagiciansDoubleTurn; pending != nil && pending.ActionsRemaining > 0 {
+		if strings.TrimSpace(playerID) != strings.TrimSpace(pending.PlayerID) {
+			return fmt.Errorf("Chaos Magicians extra action required from player %s", pending.PlayerID)
+		}
+		if actionType == ActionConversion || actionType == ActionBurnPower || isChaosMagiciansMainAction(action) {
+			return nil
+		}
+		return fmt.Errorf("Chaos Magicians double turn requires a main action")
 	}
 
 	if gs.Phase == PhaseFactionSelection {
@@ -546,6 +610,12 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	if gs.Phase == PhaseSetup && gs.SetupSubphase == SetupSubphaseBonusCards && actionType != ActionSetupBonusCard {
 		return fmt.Errorf("setup bonus card selection is required")
 	}
+	if gs.Phase == PhaseSetup && gs.SetupSubphase != SetupSubphaseBonusCards && actionType != ActionSetupDwelling {
+		return fmt.Errorf("setup dwelling placement is required")
+	}
+	if gs.Phase == PhaseAction && (actionType == ActionSetupDwelling || actionType == ActionSetupBonusCard || actionType == ActionSelectFaction) {
+		return fmt.Errorf("setup action is not available during the action phase")
+	}
 
 	if actionType == ActionAcceptPowerLeech || actionType == ActionDeclinePowerLeech {
 		return fmt.Errorf("no pending leech offer for player")
@@ -578,17 +648,18 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	return nil
 }
 
-func canCurrentPlayerContinueFreeActionBeforeLeech(gs *GameState, action Action) bool {
-	if gs == nil || action == nil {
-		return false
-	}
-	current := gs.GetCurrentPlayer()
-	if current == nil || current.ID != action.GetPlayerID() {
+func isChaosMagiciansMainAction(action Action) bool {
+	if action == nil {
 		return false
 	}
 	switch action.GetType() {
-	case ActionConversion, ActionBurnPower:
+	case ActionTransformAndBuild, ActionUpgradeBuilding, ActionAdvanceShipping,
+		ActionAdvanceDigging, ActionSendPriestToCult, ActionPowerAction,
+		ActionEngineersBridge, ActionPass:
 		return true
+	case ActionSpecialAction:
+		special, ok := action.(*SpecialAction)
+		return ok && special.ActionType != SpecialActionChaosMagiciansDoubleTurn
 	default:
 		return false
 	}
@@ -654,6 +725,10 @@ func updatePendingFreeActionsWindow(gs *GameState, action Action) {
 		return
 	}
 	if gs.Phase != PhaseAction {
+		gs.PendingFreeActionsPlayerID = ""
+		return
+	}
+	if gs.PendingChaosMagiciansDoubleTurn != nil {
 		gs.PendingFreeActionsPlayerID = ""
 		return
 	}

@@ -241,8 +241,8 @@ func TestTransformAndBuild_TransformOnly(t *testing.T) {
 	gs.Map.GetHex(initialHex).Building = testBuilding("player1", faction.GetType(), models.BuildingDwelling)
 
 	// Transform adjacent hex WITHOUT building (buildDwelling = false)
-	// Use (0,0) which is Forest
 	targetHex := board.NewHex(0, 0)
+	gs.Map.GetHex(targetHex).Terrain = models.TerrainForest
 	action := NewTransformAndBuildAction("player1", targetHex, false, models.TerrainTypeUnknown)
 
 	err := action.Execute(gs)

@@ -8,6 +8,29 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+func setupOwnedPowerBridge(t testing.TB, gs *GameState, playerID string, q int) (board.Hex, board.Hex) {
+	t.Helper()
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction == nil {
+		t.Fatal("bridge fixture requires an assigned player faction")
+	}
+	first := board.NewHex(q, 0)
+	river1 := board.NewHex(q, -1)
+	river2 := board.NewHex(q+1, -1)
+	second := board.NewHex(q+1, -2)
+	gs.Map.Hexes[first] = &board.MapHex{Coord: first, Terrain: player.Faction.GetHomeTerrain(), Building: &models.Building{
+		Type: models.BuildingDwelling, Faction: player.Faction.GetType(), PlayerID: playerID, PowerValue: 1,
+	}}
+	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[river2] = &board.MapHex{Coord: river2, Terrain: models.TerrainRiver}
+	gs.Map.Hexes[second] = &board.MapHex{Coord: second, Terrain: player.Faction.GetHomeTerrain()}
+	delete(gs.Map.RiverHexes, first)
+	delete(gs.Map.RiverHexes, second)
+	gs.Map.RiverHexes[river1] = true
+	gs.Map.RiverHexes[river2] = true
+	return first, second
+}
+
 func TestPowerAction_Bridge(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewHalflings()
@@ -17,7 +40,8 @@ func TestPowerAction_Bridge(t *testing.T) {
 	player.Resources.Power.Bowl3 = 5
 	initialBowl1 := player.Resources.Power.Bowl1
 
-	action := NewPowerAction("player1", PowerActionBridge)
+	first, second := setupOwnedPowerBridge(t, gs, "player1", 10)
+	action := NewPowerActionWithBridge("player1", first, second)
 
 	err := action.Execute(gs)
 	if err != nil {
@@ -40,6 +64,62 @@ func TestPowerAction_Bridge(t *testing.T) {
 	// Verify action is marked as used
 	if gs.PowerActions.IsAvailable(PowerActionBridge) {
 		t.Error("expected bridge action to be marked as used")
+	}
+}
+
+func TestPowerAction_BridgeCoordinatesRequireOwnedEndpoint(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewHalflings()
+	if err := gs.AddPlayer("player1", faction); err != nil {
+		t.Fatal(err)
+	}
+	player := gs.GetPlayer("player1")
+	player.Resources.Power.Bowl3 = 10
+	if err := NewPowerAction("player1", PowerActionBridge).Validate(gs); err == nil {
+		t.Fatal("coordinate-free power bridge was accepted")
+	}
+	partial := NewPowerAction("player1", PowerActionBridge)
+	partialEndpoint := board.NewHex(0, 0)
+	partial.BridgeHex1 = &partialEndpoint
+	if err := partial.Validate(gs); err == nil {
+		t.Fatal("partially specified power bridge was accepted")
+	}
+
+	var first, second board.Hex
+	found := false
+	for h1 := range gs.Map.Hexes {
+		for h2 := range gs.Map.Hexes {
+			if h1 == h2 || gs.Map.ValidateBridgePlacement(h1, h2) != nil {
+				continue
+			}
+			first, second, found = h1, h2, true
+			break
+		}
+		if found {
+			break
+		}
+	}
+	if !found {
+		t.Fatal("base map has no valid bridge placement")
+	}
+
+	remote := NewPowerActionWithBridge("player1", first, second)
+	if err := remote.Validate(gs); err == nil {
+		t.Fatal("power bridge without an owned endpoint was accepted")
+	}
+	gs.Map.GetHex(first).Building = &models.Building{
+		Type: models.BuildingDwelling, Faction: faction.GetType(),
+		PlayerID: "player1", PowerValue: 1,
+	}
+	owned := NewPowerActionWithBridge("player1", first, second)
+	if err := owned.Validate(gs); err != nil {
+		t.Fatalf("power bridge touching an owned structure was rejected: %v", err)
+	}
+	if err := owned.Execute(gs); err != nil {
+		t.Fatalf("execute owned power bridge: %v", err)
+	}
+	if !gs.Map.HasBridge(first, second) {
+		t.Fatal("owned power bridge was not placed")
 	}
 }
 
@@ -466,7 +546,8 @@ func TestPowerAction_OncePerRound(t *testing.T) {
 	player2.Resources.Power.Bowl3 = 10
 
 	// Player1 takes bridge action
-	action1 := NewPowerAction("player1", PowerActionBridge)
+	first, second := setupOwnedPowerBridge(t, gs, "player1", 10)
+	action1 := NewPowerActionWithBridge("player1", first, second)
 	err := action1.Execute(gs)
 	if err != nil {
 		t.Fatalf("expected player1 bridge action to succeed, got error: %v", err)
@@ -496,7 +577,8 @@ func TestPowerAction_ResetBetweenRounds(t *testing.T) {
 	player.Resources.Power.Bowl3 = 20
 
 	// Take bridge action in round 1
-	action1 := NewPowerAction("player1", PowerActionBridge)
+	first1, second1 := setupOwnedPowerBridge(t, gs, "player1", 10)
+	action1 := NewPowerActionWithBridge("player1", first1, second1)
 	err := action1.Execute(gs)
 	if err != nil {
 		t.Fatalf("expected bridge action to succeed, got error: %v", err)
@@ -515,8 +597,9 @@ func TestPowerAction_ResetBetweenRounds(t *testing.T) {
 		t.Error("expected bridge action to be available after new round")
 	}
 
-	// Can take the action again
-	action2 := NewPowerAction("player1", PowerActionBridge)
+	// Can take the action again at a second legal placement.
+	first2, second2 := setupOwnedPowerBridge(t, gs, "player1", 20)
+	action2 := NewPowerActionWithBridge("player1", first2, second2)
 	err = action2.Execute(gs)
 	if err != nil {
 		t.Fatalf("expected bridge action to succeed in round 2, got error: %v", err)
@@ -609,10 +692,14 @@ func TestBridge_ValidGeometry_BaseOrientation(t *testing.T) {
 	hex2 := board.NewHex(1, -2)
 
 	// Set up map
-	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain(), Building: &models.Building{
+		Type: models.BuildingDwelling, Faction: faction.GetType(), PlayerID: "player1", PowerValue: 1,
+	}}
 	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
 	gs.Map.Hexes[river2] = &board.MapHex{Coord: river2, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain(), Building: &models.Building{
+		Type: models.BuildingDwelling, Faction: faction.GetType(), PlayerID: "player1", PowerValue: 1,
+	}}
 	gs.Map.RiverHexes[river1] = true
 	gs.Map.RiverHexes[river2] = true
 
@@ -651,7 +738,9 @@ func TestBridge_ValidGeometry_BidirectionalBridge(t *testing.T) {
 	gs.Map.Hexes[hex1] = &board.MapHex{Coord: hex1, Terrain: faction.GetHomeTerrain()}
 	gs.Map.Hexes[river1] = &board.MapHex{Coord: river1, Terrain: models.TerrainRiver}
 	gs.Map.Hexes[river2] = &board.MapHex{Coord: river2, Terrain: models.TerrainRiver}
-	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain()}
+	gs.Map.Hexes[hex2] = &board.MapHex{Coord: hex2, Terrain: faction.GetHomeTerrain(), Building: &models.Building{
+		Type: models.BuildingDwelling, Faction: faction.GetType(), PlayerID: "player1", PowerValue: 1,
+	}}
 	gs.Map.RiverHexes[river1] = true
 	gs.Map.RiverHexes[river2] = true
 

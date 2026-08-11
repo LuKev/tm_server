@@ -215,6 +215,13 @@ func (a *PowerAction) validateSpadeAction(gs *GameState, player *Player) error {
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
 	}
+	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, effectiveHomeTerrain(player))
+	if err != nil {
+		return err
+	}
+	if distance <= 0 {
+		return fmt.Errorf("spade power action must transform terrain")
+	}
 
 	// Check adjacency (or skip range for Fakirs/Dwarves)
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID)
@@ -243,25 +250,19 @@ func (a *PowerAction) validateBridgeAction(gs *GameState, player *Player) error 
 		return fmt.Errorf("player has already built 3 bridges (maximum)")
 	}
 
-	// If bridge hex coordinates are provided, validate the bridge placement
-	if a.BridgeHex1 != nil && a.BridgeHex2 != nil {
-		// Check if bridge already exists
-		if gs.Map.HasBridge(*a.BridgeHex1, *a.BridgeHex2) {
-			return fmt.Errorf("bridge already exists between these hexes")
-		}
-
-		// Validate hex coordinates are on the map
-		if gs.Map.GetHex(*a.BridgeHex1) == nil {
-			return fmt.Errorf("bridge hex1 is not on the map")
-		}
-		if gs.Map.GetHex(*a.BridgeHex2) == nil {
-			return fmt.Errorf("bridge hex2 is not on the map")
-		}
-
-		// Note: Full geometry validation happens in BuildBridge during Execute
+	if a.BridgeHex1 == nil || a.BridgeHex2 == nil {
+		return fmt.Errorf("bridge power action requires two endpoint coordinates")
 	}
-	// Note: Bridge coordinates are optional for backward compatibility
-	// If not provided, the action just increments the counter
+	if err := gs.Map.ValidateBridgePlacement(*a.BridgeHex1, *a.BridgeHex2); err != nil {
+		return err
+	}
+	first := gs.Map.GetHex(*a.BridgeHex1)
+	second := gs.Map.GetHex(*a.BridgeHex2)
+	firstOwned := first.Building != nil && first.Building.PlayerID == a.PlayerID
+	secondOwned := second.Building != nil && second.Building.PlayerID == a.PlayerID
+	if !firstOwned && !secondOwned {
+		return fmt.Errorf("bridge must connect to at least one of your structures")
+	}
 	return nil
 }
 

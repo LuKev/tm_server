@@ -188,7 +188,7 @@ type PowerLeechOffer struct {
 	VPCost       int // VP cost to accept (usually Amount - 1)
 	FromPlayerID string
 	SourceHex    *board.Hex `json:"sourceHex,omitempty"`
-	EventID      int `json:"eventId"`
+	EventID      int        `json:"eventId"`
 }
 
 // NewPowerLeechOffer creates a power leech offer based on building value and player's power capacity

@@ -133,9 +133,12 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building: %v", a.TargetHex)
 	}
+	targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
+	if mapHex.Terrain == targetTerrain && !a.BuildDwelling {
+		return fmt.Errorf("transform action must transform terrain or build a dwelling")
+	}
 
 	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-		targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
 		requiredSpades, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
 		if err != nil {
 			return err
@@ -1176,9 +1179,12 @@ func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 	if player.Faction.GetType() == models.FactionSnowShamans {
 		return fmt.Errorf("snow shamans advance shipping only when passing")
 	}
+	if player.Faction.GetType() == models.FactionDwarves || player.Faction.GetType() == models.FactionFakirs {
+		return fmt.Errorf("%s cannot advance shipping", player.Faction.GetType())
+	}
 
 	// Check if already at max level
-	if player.ShippingLevel >= 5 {
+	if player.ShippingLevel >= maxShippingLevel(player) {
 		return fmt.Errorf("shipping already at max level")
 	}
 
@@ -1189,6 +1195,20 @@ func (a *AdvanceShippingAction) Validate(gs *GameState) error {
 	}
 
 	return nil
+}
+
+func maxShippingLevel(player *Player) int {
+	if player == nil || player.Faction == nil {
+		return 0
+	}
+	switch player.Faction.GetType() {
+	case models.FactionDwarves, models.FactionFakirs, models.FactionRiverwalkers:
+		return 0
+	case models.FactionMermaids:
+		return 5
+	default:
+		return 3
+	}
 }
 
 // Execute performs the shipping advancement

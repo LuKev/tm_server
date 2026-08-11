@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "az_fixture_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/lukev/tm_server/cmd/az_fixture",
+    testonly = True,
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/az",
+        "//internal/models:models",
+    ],
+)
+
+go_binary(
+    name = "az_fixture",
+    embed = [":az_fixture_lib"],
+    testonly = True,
+    visibility = ["//internal/az:__pkg__"],
+)

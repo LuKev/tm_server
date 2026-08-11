@@ -1,0 +1,114 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+load("@az_pip//:requirements.bzl", "requirement")
+
+go_library(
+    name = "az",
+    srcs = [
+        "arena.go",
+        "checkpoint.go",
+        "enumerate.go",
+        "inference.go",
+        "mcts.go",
+        "position.go",
+        "search_action.go",
+        "selfplay.go",
+        "setup.go",
+        "trajectory.go",
+    ],
+    importpath = "github.com/lukev/tm_server/internal/az",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/game",
+        "//internal/game/board",
+        "//internal/game/factions",
+        "//internal/models:models",
+    ],
+)
+
+go_test(
+    name = "az_test",
+    srcs = [
+        "arena_test.go",
+        "contract_test.go",
+        "inference_test.go",
+        "mcts_test.go",
+        "oracle_test.go",
+        "performance_benchmark_test.go",
+        "position_test.go",
+        "search_action_test.go",
+        "trajectory_test.go",
+    ],
+    embed = [":az"],
+    deps = [
+        "//internal/game",
+        "//internal/game/board",
+        "//internal/game/factions",
+        "//internal/models:models",
+    ],
+)
+
+py_library(
+    name = "python_core",
+    srcs = [
+        "python/__init__.py",
+        "python/batching.py",
+        "python/model.py",
+        "python/schema.py",
+    ],
+    imports = ["python"],
+    deps = [
+        requirement("numpy"),
+        requirement("torch"),
+    ],
+)
+
+py_binary(
+    name = "az_inference",
+    srcs = ["python/inference.py"],
+    legacy_create_init = 0,
+    main = "python/inference.py",
+    visibility = ["//visibility:public"],
+    deps = [":python_core"],
+)
+
+py_binary(
+    name = "az_learner",
+    srcs = ["python/learner.py"],
+    legacy_create_init = 0,
+    main = "python/learner.py",
+    visibility = ["//visibility:public"],
+    deps = [":python_core"],
+)
+
+py_binary(
+    name = "az_model_benchmark",
+    srcs = ["python/benchmark.py"],
+    legacy_create_init = 0,
+    main = "python/benchmark.py",
+    visibility = ["//visibility:public"],
+    deps = [":python_core"],
+)
+
+py_test(
+    name = "python_test",
+    srcs = [
+        "python/benchmark.py",
+        "python/learner.py",
+        "python/model_test.py",
+    ],
+    args = [
+        "$(location //cmd/az_fixture:az_fixture)",
+        "$(location :az_inference)",
+    ],
+    data = [
+        ":az_inference",
+        "//cmd/az_fixture:az_fixture",
+    ],
+    env = {"PYTHONNOUSERSITE": "1"},
+    legacy_create_init = 0,
+    main = "python/model_test.py",
+    deps = [":python_core"],
+    size = "large",
+    timeout = "moderate",
+)

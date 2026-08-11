@@ -54,6 +54,7 @@ type GameState struct {
 	SkipAbilityUsedThisAction        map[string][]board.Hex                `json:"skipAbilityUsedThisAction"`
 	PendingFavorTileSelection        *PendingFavorTileSelection            `json:"pendingFavorTileSelection"`
 	PendingHalflingsSpades           *PendingHalflingsSpades               `json:"pendingHalflingsSpades"`
+	PendingChaosMagiciansDoubleTurn  *PendingChaosMagiciansDoubleTurn      `json:"pendingChaosMagiciansDoubleTurn,omitempty"`
 	PendingGoblinsCultSteps          *PendingGoblinsCultSteps              `json:"pendingGoblinsCultSteps,omitempty"`
 	PendingWispsStrongholdDwelling   *PendingWispsStrongholdDwelling       `json:"pendingWispsStrongholdDwelling,omitempty"`
 	PendingDarklingsPriestOrdination *PendingDarklingsPriestOrdination     `json:"pendingDarklingsPriestOrdination"`
@@ -71,15 +72,15 @@ type GameState struct {
 	PendingPostActionSpecialActions  map[string]map[SpecialActionType]bool `json:"-"`
 	TurnTimer                        *TurnTimerState                       `json:"turnTimer,omitempty"`
 	ReplayMode                       map[string]bool                       `json:"replayMode"`
-	ReplayAcolytesCultTracks         map[string][]CultTrack            `json:"-"`
-	ReplayAcolytesCultTrackIndex     map[string]int                    `json:"-"`
-	ReplayRiverBuildHexes            map[string][]board.Hex            `json:"-"`
-	ReplayRiverBuildHexIndex         map[string]int                    `json:"-"`
-	ReplayCultSpadeBuildHexes        map[string]map[board.Hex]bool     `json:"-"`
-	PendingSnowShamansPassUpgrade    map[string]SnowShamansPassUpgrade `json:"-"`
-	FinalScoring                     map[string]*PlayerFinalScore      `json:"finalScoring"`
-	SuppressTurnAdvance              bool                              `json:"-"`
-	RiverTownHex                     *board.Hex                        `json:"-"` // For Mermaids river town formation
+	ReplayAcolytesCultTracks         map[string][]CultTrack                `json:"-"`
+	ReplayAcolytesCultTrackIndex     map[string]int                        `json:"-"`
+	ReplayRiverBuildHexes            map[string][]board.Hex                `json:"-"`
+	ReplayRiverBuildHexIndex         map[string]int                        `json:"-"`
+	ReplayCultSpadeBuildHexes        map[string]map[board.Hex]bool         `json:"-"`
+	PendingSnowShamansPassUpgrade    map[string]SnowShamansPassUpgrade     `json:"-"`
+	FinalScoring                     map[string]*PlayerFinalScore          `json:"finalScoring"`
+	SuppressTurnAdvance              bool                                  `json:"-"`
+	RiverTownHex                     *board.Hex                            `json:"-"` // For Mermaids river town formation
 }
 
 // PendingTownFormation represents a town that can be formed but awaits tile selection
@@ -113,6 +114,14 @@ type PendingHalflingsSpades struct {
 	PlayerID         string
 	SpadesRemaining  int         // Number of spades left to apply (starts at 3)
 	TransformedHexes []board.Hex // Hexes that have been transformed
+}
+
+// PendingChaosMagiciansDoubleTurn keeps the stronghold ability as two normal
+// decision edges. Blocking choices and opponent reactions are resolved between
+// them instead of being hidden inside one composite action.
+type PendingChaosMagiciansDoubleTurn struct {
+	PlayerID         string `json:"playerId"`
+	ActionsRemaining int    `json:"actionsRemaining"`
 }
 
 // PendingGoblinsCultSteps represents Goblins choosing cult tracks for treasure rewards.
@@ -786,8 +795,8 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 		return fmt.Errorf("no pending town formation for player %s", playerID)
 	}
 
-	// Get the first pending town (FIFO order)
-	pending := pendingTowns[0]
+	pendingIndex := nextPendingTownFormationIndex(pendingTowns)
+	pending := pendingTowns[pendingIndex]
 
 	// Check if tile is available
 	if !gs.TownTiles.IsAvailable(tileType) {
@@ -797,9 +806,10 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 		anchorHex = gs.defaultTownAnchorHex(playerID, pending)
 	}
 
-	// Remove the first pending town formation before applying town benefits so
+	// Remove the selected pending town formation before applying town benefits so
 	// cult position-10 key checks don't treat the current town as unclaimed credit.
-	remaining := pendingTowns[1:]
+	remaining := append([]*PendingTownFormation(nil), pendingTowns[:pendingIndex]...)
+	remaining = append(remaining, pendingTowns[pendingIndex+1:]...)
 	if len(remaining) == 0 {
 		delete(gs.PendingTownFormations, playerID)
 	} else {
@@ -1281,7 +1291,10 @@ func (gs *GameState) isBlockingLeechResponder(playerID string) bool {
 	if player == nil {
 		return true
 	}
-	return !player.HasPassed
+	// Passed players may defer leech while another player is still taking
+	// actions, but every outstanding offer must be resolved before cleanup can
+	// advance the round.
+	return !player.HasPassed || gs.AllPlayersPassed()
 }
 
 func (gs *GameState) HasBlockingPendingLeechOffers() bool {
@@ -1973,9 +1986,12 @@ func (gs *GameState) AdvanceShippingLevel(playerID string) error {
 	if player.Faction.GetType() == models.FactionRiverwalkers {
 		return fmt.Errorf("riverwalkers cannot advance shipping")
 	}
+	if player.Faction.GetType() == models.FactionDwarves || player.Faction.GetType() == models.FactionFakirs {
+		return fmt.Errorf("%s cannot advance shipping", player.Faction.GetType())
+	}
 
 	// Check if already at max level
-	if player.ShippingLevel >= 5 {
+	if player.ShippingLevel >= maxShippingLevel(player) {
 		return fmt.Errorf("shipping already at max level")
 	}
 
@@ -2178,6 +2194,9 @@ func (gs *GameState) HasPendingActions(playerID string) bool {
 		return true
 	}
 	if gs.PendingHalflingsSpades != nil && gs.PendingHalflingsSpades.PlayerID == playerID {
+		return true
+	}
+	if gs.PendingChaosMagiciansDoubleTurn != nil && gs.PendingChaosMagiciansDoubleTurn.PlayerID == playerID {
 		return true
 	}
 	if gs.PendingDarklingsPriestOrdination != nil && gs.PendingDarklingsPriestOrdination.PlayerID == playerID {

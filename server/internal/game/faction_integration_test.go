@@ -1393,10 +1393,9 @@ func TestEngineers_BridgePowerAction(t *testing.T) {
 	player.Resources.Power.Bowl2 = 0
 	player.Resources.Power.Bowl3 = 3
 
-	// Build a bridge using power action
-	// NOTE: Bridge placement requires specifying hex coordinates
-	// For now, just verify the counter increments
-	action := NewPowerAction("player1", PowerActionBridge)
+	// Build a bridge using the board power action.
+	first, second := setupOwnedPowerBridge(t, gs, "player1", 10)
+	action := NewPowerActionWithBridge("player1", first, second)
 	err := action.Execute(gs)
 	if err != nil {
 		t.Fatalf("bridge power action failed: %v", err)
@@ -1635,7 +1634,7 @@ func TestFakirs_CarpetFlightAfterStronghold(t *testing.T) {
 	}
 }
 
-func TestFakirs_CarpetFlightWithPowerAction(t *testing.T) {
+func TestFakirs_CannotUseCarpetFlightOnAdjacentHex(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewFakirs()
 	gs.AddPlayer("player1", faction)
@@ -1661,23 +1660,19 @@ func TestFakirs_CarpetFlightWithPowerAction(t *testing.T) {
 	player.Resources.Workers = 10
 	initialVP := player.VictoryPoints
 
-	// Use spade power action with carpet flight
+	// An explicit skip may not pay for VP on a normally adjacent target.
 	action := NewPowerActionWithTransform("player1", PowerActionSpade1, targetHex, false)
 	action.UseSkip = true
 	err := action.Execute(gs)
-	if err != nil {
-		t.Fatalf("spade power action with carpet flight should work, got error: %v", err)
+	if err == nil {
+		t.Fatal("spade power action accepted carpet flight without skipping a hex")
 	}
 
-	// Verify priest was spent for carpet flight
-	if player.Resources.Priests != 1 {
-		t.Errorf("expected 1 priest remaining, got %d", player.Resources.Priests)
+	if player.Resources.Priests != 2 {
+		t.Errorf("illegal carpet flight spent a priest; got %d", player.Resources.Priests)
 	}
-
-	// Verify VP bonus was awarded (+4 VP)
-	vpGained := player.VictoryPoints - initialVP
-	if vpGained != 4 {
-		t.Errorf("expected +4 VP for carpet flight, got +%d", vpGained)
+	if player.VictoryPoints != initialVP {
+		t.Errorf("illegal carpet flight changed VP by %d", player.VictoryPoints-initialVP)
 	}
 }
 

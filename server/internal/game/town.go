@@ -2,6 +2,7 @@ package game
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
@@ -25,6 +26,20 @@ func NewTownTileState() *TownTileState {
 			models.TownTile9Points:  2, // 2 copies
 			models.TownTile11Points: 1, // 1 copy
 			models.TownTile2Points:  1, // 1 copy
+		},
+	}
+}
+
+// NewBaseTownTileState creates the five town-tile types from the original
+// Terra Mystica rules. Fire & Ice adds the shipping, 11 VP, and 2 VP tiles.
+func NewBaseTownTileState() *TownTileState {
+	return &TownTileState{
+		Available: map[models.TownTileType]int{
+			models.TownTile5Points: 2,
+			models.TownTile6Points: 2,
+			models.TownTile7Points: 2,
+			models.TownTile8Points: 2,
+			models.TownTile9Points: 2,
 		},
 	}
 }
@@ -577,7 +592,18 @@ func (gs *GameState) atlanteansTownTraversalNeighbors(playerID string, current b
 // This is useful when a condition changes (e.g. Fire+2 favor tile) that might allow
 // existing clusters to form towns
 func (gs *GameState) CheckAllTownFormations(playerID string) {
-	for hex, mapHex := range gs.Map.Hexes {
+	hexes := make([]board.Hex, 0, len(gs.Map.Hexes))
+	for hex := range gs.Map.Hexes {
+		hexes = append(hexes, hex)
+	}
+	sort.Slice(hexes, func(i, j int) bool {
+		if hexes[i].R != hexes[j].R {
+			return hexes[i].R < hexes[j].R
+		}
+		return hexes[i].Q < hexes[j].Q
+	})
+	for _, hex := range hexes {
+		mapHex := gs.Map.Hexes[hex]
 		if mapHex.Building != nil && mapHex.Building.PlayerID == playerID && !mapHex.PartOfTown {
 			gs.CheckForTownFormation(playerID, hex)
 		}

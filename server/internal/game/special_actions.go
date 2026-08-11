@@ -682,7 +682,6 @@ func (a *SpecialAction) validateWitchesRide(gs *GameState, player *Player) error
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
 	}
-
 	if mapHex.Terrain != models.TerrainForest {
 		return fmt.Errorf("witches' ride can only build on forest spaces")
 	}
@@ -736,16 +735,28 @@ func (a *SpecialAction) validateChaosMagiciansDoubleTurn(gs *GameState, player *
 		return fmt.Errorf("only Chaos Magicians can use double-turn special action")
 	}
 
+	if a.FirstAction == nil && a.SecondAction == nil {
+		if gs.PendingChaosMagiciansDoubleTurn != nil {
+			return fmt.Errorf("Chaos Magicians double turn is already active")
+		}
+		return nil
+	}
 	if a.FirstAction == nil || a.SecondAction == nil {
-		return fmt.Errorf("both actions must be specified for double-turn")
+		return fmt.Errorf("both actions must be specified for legacy composite double-turn")
 	}
 
-	// Validate both actions
-	if err := a.FirstAction.Validate(gs); err != nil {
+	// Validate sequentially. The first action may change resources, adjacency,
+	// or shared availability needed by the second action.
+	clone := gs.CloneForUndo()
+	clone.SuppressTurnAdvance = true
+	if err := a.FirstAction.Execute(clone); err != nil {
 		return fmt.Errorf("first action invalid: %w", err)
 	}
-
-	if err := a.SecondAction.Validate(gs); err != nil {
+	clone.SuppressTurnAdvance = false
+	if clone.HasPendingActions(a.PlayerID) {
+		return fmt.Errorf("legacy composite double-turn cannot hide an intervening rules decision")
+	}
+	if err := a.SecondAction.Validate(clone); err != nil {
 		return fmt.Errorf("second action invalid: %w", err)
 	}
 
@@ -769,6 +780,9 @@ func (a *SpecialAction) validateGiantsTransform(gs *GameState, player *Player) e
 
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
+	}
+	if mapHex.Terrain == effectiveHomeTerrain(player) {
+		return fmt.Errorf("Giants transform must change terrain")
 	}
 
 	// Check adjacency to player's buildings
@@ -803,6 +817,9 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
+	}
+	if mapHex.Terrain == effectiveHomeTerrain(player) {
+		return fmt.Errorf("sandstorm must change terrain")
 	}
 
 	// Must be directly adjacent (not via bridge or shipping)
@@ -867,24 +884,15 @@ func (a *SpecialAction) validateWater2CultAdvance(gs *GameState) error {
 }
 
 func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) error {
-	// Check if player has the spade bonus card OR if we are in a context where free spade is allowed (e.g. Cult Bonus)
-	// For now, we assume if TargetTerrain is set, it's a Cult Bonus or similar, so we skip the Bonus Card check.
-	// Or we can check if player has BonusCardSpade OR if it's a special override.
-	// Since we are reusing this action for Cult Bonus, we should relax this check if it's not strictly a Bonus Card action.
-	// But the action type is SpecialActionBonusCardSpade.
-	// Maybe we should rename it or add a flag?
-	// For simplicity, let's allow it if TargetTerrain is set (implying explicit override).
-	if a.TargetTerrain == nil {
-		hasSpadeCard := false
-		for _, bonusCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
-			if bonusCard == BonusCardSpade {
-				hasSpadeCard = true
-				break
-			}
+	hasSpadeCard := false
+	for _, bonusCard := range gs.BonusCards.GetPlayerCards(a.PlayerID) {
+		if bonusCard == BonusCardSpade {
+			hasSpadeCard = true
+			break
 		}
-		if !hasSpadeCard {
-			return fmt.Errorf("player does not have the spade bonus card")
-		}
+	}
+	if !hasSpadeCard {
+		return fmt.Errorf("player does not have the spade bonus card")
 	}
 
 	if isRiverwalkers(player) {
@@ -912,6 +920,17 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
+	}
+	targetTerrain := effectiveHomeTerrain(player)
+	if a.TargetTerrain != nil {
+		targetTerrain = *a.TargetTerrain
+	}
+	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	if err != nil {
+		return err
+	}
+	if distance <= 0 {
+		return fmt.Errorf("bonus-card spade must transform terrain")
 	}
 
 	// Check adjacency (or skip range for Fakirs/Dwarves)
@@ -1212,6 +1231,13 @@ func (a *SpecialAction) executeSwarmlingsUpgrade(gs *GameState, player *Player) 
 }
 
 func (a *SpecialAction) executeChaosMagiciansDoubleTurn(gs *GameState) error {
+	if a.FirstAction == nil && a.SecondAction == nil {
+		gs.PendingChaosMagiciansDoubleTurn = &PendingChaosMagiciansDoubleTurn{
+			PlayerID:         a.PlayerID,
+			ActionsRemaining: 2,
+		}
+		return nil
+	}
 	// Execute first action
 	// Suppress turn advance so the turn doesn't change between actions
 	gs.SuppressTurnAdvance = true
@@ -1426,6 +1452,7 @@ func (a *SpecialAction) executeMermaidsRiverTown(gs *GameState, player *Player) 
 	// Record the requested river hex and immediately re-check connected components
 	// for a new town formation. Mermaids connect is only legal if it creates a town.
 	gs.RiverTownHex = a.TargetHex
+	defer func() { gs.RiverTownHex = nil }()
 
 	before := len(gs.PendingTownFormations[a.PlayerID])
 	for _, mapHex := range gs.Map.Hexes {

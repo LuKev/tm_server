@@ -1,10 +1,45 @@
 package factions
 
 import (
+	"encoding/json"
+	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/models"
 )
+
+func TestCloneAllRegisteredFactions(t *testing.T) {
+	for _, original := range NewRegistry().GetAll() {
+		t.Run(fmt.Sprint(original.GetType()), func(t *testing.T) {
+			clone := Clone(original)
+			if reflect.ValueOf(original).Pointer() == reflect.ValueOf(clone).Pointer() {
+				t.Fatal("clone reused faction pointer")
+			}
+			before, err := json.Marshal(original)
+			if err != nil {
+				t.Fatal(err)
+			}
+			after, err := json.Marshal(clone)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(before) != string(after) {
+				t.Fatalf("clone changed faction value: got %s want %s", after, before)
+			}
+
+			mutable, ok := clone.(SetDiggingLevel)
+			if !ok {
+				t.Fatal("registered faction does not expose digging state")
+			}
+			originalCost := original.GetTerraformCost(1)
+			mutable.SetDiggingLevel(2)
+			if original.GetTerraformCost(1) != originalCost {
+				t.Fatal("mutating clone changed original faction")
+			}
+		})
+	}
+}
 
 func TestBaseFaction_GetType(t *testing.T) {
 	f := &BaseFaction{

@@ -232,6 +232,10 @@ func TestArchivistsExtraBonusCardEnablesSpecialAction(t *testing.T) {
 	target := board.NewHex(0, 1)
 	gs.Map.GetHex(origin).Terrain = player.Faction.GetHomeTerrain()
 	gs.Map.GetHex(origin).Building = testBuilding("p1", player.Faction.GetType(), models.BuildingDwelling)
+	gs.Map.GetHex(target).Terrain = models.TerrainSwamp
+	if player.Faction.GetHomeTerrain() == models.TerrainSwamp {
+		gs.Map.GetHex(target).Terrain = models.TerrainPlains
+	}
 
 	gs.BonusCards.PlayerCards["p1"] = BonusCard6Coins
 	gs.BonusCards.PlayerExtraCards["p1"] = []BonusCardType{BonusCardSpade}

@@ -1,6 +1,21 @@
 # 1v1 Terra Mystica AlphaZero Plan
 
-Status: clean-slate design after removal of the previous AlphaZero implementation.
+Status: implemented through Milestone 5's local scaling foundations; full-scale
+large-checkpoint experiments remain to be run.
+
+Implementation status (updated 2026-08-10): Milestones 0 through 4 are
+complete. The base-rules contract, serial/batch-shaped PUCT, versioned relative
+state/action encoder, masked hex-CNN, continual-latest self-play/learner loop,
+and paired evaluator are implemented. The debug and main network shapes are
+approximately 660k and 4.4M parameters. State records, trajectories, and
+checkpoints independently gate rules, state, action, feature-order,
+normalization, coordinate, model, and engine schemas. Every completed
+milestone passed correctness and simplicity adversarial review plus fresh
+uncached Bazel suites. Milestone 5's local scaling foundations are complete:
+the large model and accelerator path, measured simulator optimizations,
+bounded actors/replay, and a versioned scaling-curve harness are implemented.
+The remaining work is running larger experiments that narrow strength
+uncertainty and demonstrate whether shared inference is warranted.
 
 ## 1. Objective
 
@@ -302,6 +317,23 @@ stable champion.
 - A trained network plus search beats its random/uniform ancestor in paired
   games with both seats and identical setup seeds.
 
+### Implemented evidence
+
+- Go actors play authoritative lockstep games against a long-lived Python
+  inference process and publish immutable, hash-chained trajectory shards.
+- The learner validates model, checkpoint, engine, seat, result, and schema
+  provenance; trains the exact policy/value objective with non-finite guards;
+  and atomically publishes immutable checkpoints plus a latest pointer.
+- The scheduler covers all 168 legal ordered distinct-home base-faction
+  matchups. The two-cycle smoke test proves that actors adopt the latest
+  checkpoint between game batches and that the evaluator retains both the
+  uniform and previous-checkpoint anchors.
+- A balanced 168-game complete replay run covered every ordered matchup without
+  truncation. A continuation pass reduced fixed-diagnostic policy loss from
+  1.8049 to 1.6336 and value loss from 0.000655 to 0.000033. On the independent
+  paired holdout in Milestone 4, weighted Brier score improved from the uniform
+  baseline's 0.25 to 0.1769.
+
 ## 8. Milestone 4: evaluate strength without corrupting training
 
 Run evaluation as an independent service. Every comparison uses paired setup
@@ -323,7 +355,112 @@ sample for training diagnostics. Historical human games may later be used as
 an external behavior/position benchmark, but tabula-rasa training should not
 silently mix them into the replay window.
 
+### Evaluation exit evidence
+
+The format-3 paired arena report completed all 16 games across eight reserved
+setup seeds, with each candidate playing both seats against the exact uniform
+anchor. It recorded a 9-0-7 W/D/L, point score 0.5625, and smoothed Elo +41.06,
+with 16 natural completions and zero invalid actions, duplicate states, or
+tripwire hits. The report includes final/winning/losing VP, margin, ordered
+matchup and seat splits, per-agent semantic setup/opening distributions,
+round-1 building types, and Brier/entropy by phase.
+
+This is evidence that the end-to-end system learns and can beat its uniform
+ancestor at the observed point estimate, not yet evidence of reliable playing
+strength. The paired 95% interval is wide at [0.082, 1.0], average VP margin is
+-0.4375, and setup-phase Brier is worse than uniform even though rounds 1-6
+improve. Milestone 5 must increase the evaluation sample and diagnose these
+metrics while scaling compute. The development report used a working-tree
+engine label; regenerate it against an immutable commit before archiving it as
+durable experimental evidence.
+
 ## 9. Milestone 5: scale in the right order
+
+Current status (2026-08-10): the local implementation passed correctness and
+simplicity review. Self-play now reports search/evaluator work, inference queue
+and service time, median/tail latency, batch/cache/trajectory metrics, and
+phase-round-faction splits. Bazel benchmarks cover naturally reached setup,
+rounds 1/3/6, a pending reaction, naturally terminal scoring, and distinct
+batched roots. The first local probe found legal enumeration to be the dominant
+simulator cost: roughly 10 ms/4.8 MB in an early Witches state, 15 ms/6.9 MB in
+a natural round-3 Engineers state, and 51 ms/32 MB in a natural round-6 Fakirs
+state. That evidence gates the next optimization to skip-action enumeration;
+it does not justify copy-on-write, make/unmake, or distributed infrastructure.
+The resulting range/resource prefilter reduced that same round-6 Fakirs case
+to roughly 10.6 ms/6.1 MB and 194 candidates, from 1,013 candidates, while the
+independent exhaustive oracle and full engine/AZ contract suites remained
+green. This is deliberately a candidate-domain reduction, not a second rules
+implementation: the authoritative skip validator still decides legality.
+The next measured cost was the roughly 6.1 ms/0.75 MB canonical record and
+hash. Each immutable position now computes that record once, shares it safely
+with clones, and invalidates it on `Apply`; the neural inference transport
+reuses the same bytes already hashed by MCTS. A cached hash is about 69 ns with
+zero allocation, while an 8-root/8-simulation search probe improved from about
+1.33 s to 1.18 s. The cold canonicalization benchmark remains explicit so this
+cache cannot hide future encoder-state growth.
+
+Actor volume is now independent of its memory/batching bound. `--games` is the
+total workload, while `--games-per-batch` limits lockstep roots and trajectories
+retained at once; each completed batch is immediately published as immutable
+content-addressed shards. The default bound is eight games and the cycle runner
+can override it with `TM_AZ_ACTOR_GAMES_PER_BATCH`. Metrics record batch count
+and peak concurrent games. The final summary retains counters rather than every
+shard reference, and inference percentiles are explicitly recent-window metrics
+over at most 4,096 observations; whole-run counts and durations remain exact.
+The two-cycle smoke runs two games per cycle with a one-game bound, verifies all
+four shards, and still verifies latest-checkpoint adoption plus the
+uniform/recent-anchor reports.
+
+Replay loading is likewise bounded. The learner validates immutable shards one
+at a time, then retains only path/matchup/ply metadata for the selected window.
+An LRU capped by `--replay-cache-games` (runner override
+`TM_AZ_REPLAY_CACHE_GAMES`, default eight) holds decompressed raw games, and
+only sampled plies are encoded into network features. Allocation-free dry
+traversals still validate every encoder-consumed state/action value before a
+shard enters the window, so corrupt unsampled plies cannot fail training
+nondeterministically. Training batches and the fixed diagnostic set remain
+separate explicit bounds. Checkpoint provenance records replay games/plies,
+cache loads/hits, validation time, and learner examples/second.
+
+The model/accelerator step also passed correctness and simplicity review. The
+large preset is an AlphaZero-style 20-block, 256-channel residual hex-CNN with
+29,114,114 parameters, retaining the exact versioned 38-plane spatial input and
+ragged legal-action head. Checkpoints self-describe this shape; explicit model,
+device, and thread mismatches fail the inference handshake. CPU, CUDA, and MPS
+share one FP32 learner/inference implementation. On the development Apple GPU,
+large-model inference measured about 111, 255, and 286 positions/second at
+batches 1, 8, and 32, versus 80 and 108 positions/second on one CPU thread at
+batches 1 and 8. A lifecycle test trains the large model for one accelerator
+step, publishes it immutably, recovers its shape automatically, and performs
+canonical ragged inference. Benchmark, inference, and checkpoint artifacts
+record device, dtype, effective thread count, model shape, and seed/provenance.
+The continual runner defaults to this `large` profile; its bounded smoke test
+selects `debug` explicitly so functional CI does not masquerade as a
+production-scale training run.
+
+The fixed `tm-v0-paired-v2` holdout now contains 28 reserved setups, covers all
+14 base factions, and includes both faction orders for every selected matchup.
+Full-suite and ordered-prefix identities are derived from the exact cases and
+rejected when their contents do not match the name. Evaluation format 4 records
+separate candidate and baseline simulation budgets, so a search curve changes
+one agent's compute instead of silently changing both sides.
+`//:run_az_scaling_curves` produces large-model batch measurements and immutable
+paired arena reports for the default 1/8/32/128 candidate budgets against the
+same checkpoint at a fixed one-simulation budget. The production runner
+requires that checkpoint, verifies that its embedded shape matches the requested
+model, and records its model ID and SHA in every batch artifact; random mode is
+explicitly smoke-only. Model identity and search-role identity are separate in
+format 4, so this comparison isolates search compute instead of changing the
+network or both agents' budgets. Its Bazel smoke test executes an actual model
+probe and complete paired arena case. That smoke proves the path, not playing
+strength.
+
+The remaining scaling sequence is:
+
+1. run the full batch/search curves against a trained large checkpoint and an
+   immutable engine commit, retaining VP/calibration as well as score;
+2. introduce a shared inference service or distributed actors only when local
+   GPU batch fill and actor throughput demonstrate that they are required.
 
 ### First optimize the simulator
 

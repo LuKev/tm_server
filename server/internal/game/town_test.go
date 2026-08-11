@@ -859,3 +859,39 @@ func TestTownFormation_FakirsTownTile4(t *testing.T) {
 		t.Errorf("Fakirs shipping level should remain 0, got %d", player.ShippingLevel)
 	}
 }
+
+func TestCheckAllTownFormationsUsesDeterministicComponentOrder(t *testing.T) {
+	gs := NewGameState()
+	faction := factions.NewWitches()
+	if err := gs.AddPlayer("p0", faction); err != nil {
+		t.Fatal(err)
+	}
+	groups := [][]board.Hex{
+		{board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(2, 0), board.NewHex(3, 0)},
+		{board.NewHex(0, 10), board.NewHex(1, 10), board.NewHex(2, 10), board.NewHex(3, 10)},
+	}
+	for _, group := range groups {
+		for _, h := range group {
+			gs.Map.Hexes[h] = &board.MapHex{Coord: h, Terrain: faction.GetHomeTerrain(), Building: &models.Building{
+				Type: models.BuildingTradingHouse, Faction: faction.GetType(), PlayerID: "p0", PowerValue: 2,
+			}}
+		}
+	}
+
+	gs.CheckAllTownFormations("p0")
+	pending := gs.PendingTownFormations["p0"]
+	if len(pending) != 2 {
+		t.Fatalf("got %d pending towns, want 2", len(pending))
+	}
+	contains := func(hexes []board.Hex, want board.Hex) bool {
+		for _, h := range hexes {
+			if h == want {
+				return true
+			}
+		}
+		return false
+	}
+	if !contains(pending[0].Hexes, groups[0][0]) || !contains(pending[1].Hexes, groups[1][0]) {
+		t.Fatalf("pending town order was not coordinate-stable: %#v", pending)
+	}
+}

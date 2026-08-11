@@ -3,6 +3,7 @@ package board
 import (
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
@@ -206,6 +207,16 @@ func (m *TerraMysticaMap) HasBridge(h1, h2 Hex) bool {
 //     distance-2 offsets: (1,-2), (2,-1), (2,0), (0,2), (-2,2), (-2,0) up to rotation,
 //     and the two intermediate hexes along that edge must both be river hexes.
 func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
+	if err := m.ValidateBridgePlacement(h1, h2); err != nil {
+		return err
+	}
+	m.Bridges[NewBridgeKey(h1, h2)] = playerID
+	return nil
+}
+
+// ValidateBridgePlacement checks immutable board geometry and occupancy for a
+// proposed bridge. Player-specific costs and ownership remain action rules.
+func (m *TerraMysticaMap) ValidateBridgePlacement(h1, h2 Hex) error {
 	if !m.IsValidHex(h1) || !m.IsValidHex(h2) {
 		return fmt.Errorf("cannot build bridge: invalid hex coordinates")
 	}
@@ -223,7 +234,6 @@ func (m *TerraMysticaMap) BuildBridge(h1, h2 Hex, playerID string) error {
 	if _, exists := m.Bridges[key]; exists {
 		return fmt.Errorf("cannot build bridge: bridge already exists")
 	}
-	m.Bridges[key] = playerID
 	return nil
 }
 
@@ -305,7 +315,7 @@ func (m *TerraMysticaMap) IsWithinSkipRange(target Hex, playerID string, skipRan
 			// Check if target is within skip range of this building
 			// Distance should be skip range + 1 (you skip OVER that many hexes)
 			distance := hex.Distance(target)
-			if distance <= skipRange+1 {
+			if distance >= 2 && distance <= skipRange+1 {
 				return true
 			}
 		}
@@ -850,7 +860,17 @@ func (m *TerraMysticaMap) getConnectedBuildingsForMermaids(start Hex, playerID s
 	var bestRiver *Hex
 	bestPower := m.totalBuildingPower(baseComponent)
 
+	rivers := make([]Hex, 0, len(candidateRivers))
 	for river := range candidateRivers {
+		rivers = append(rivers, river)
+	}
+	sort.Slice(rivers, func(i, j int) bool {
+		if rivers[i].R != rivers[j].R {
+			return rivers[i].R < rivers[j].R
+		}
+		return rivers[i].Q < rivers[j].Q
+	})
+	for _, river := range rivers {
 		r := river
 		componentWithSkip := m.collectConnectedBuildingsWithRiver(start, playerID, &r)
 		componentPower := m.totalBuildingPower(componentWithSkip)

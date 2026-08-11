@@ -2,9 +2,107 @@ package factions
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/lukev/tm_server/internal/models"
 )
+
+// SearchState contains faction implementation state that affects rules but is
+// intentionally private and therefore absent from ordinary GameState JSON.
+type SearchState struct {
+	Type             models.FactionType `json:"type"`
+	TerraformCostOne int                `json:"terraform_cost_one"`
+	HasStronghold    bool               `json:"has_stronghold,omitempty"`
+	FlightRange      int                `json:"flight_range,omitempty"`
+	ShippingLevel    int                `json:"shipping_level,omitempty"`
+}
+
+// StateForSearch returns the canonical rules-relevant faction fingerprint.
+func StateForSearch(faction Faction) SearchState {
+	if faction == nil {
+		return SearchState{}
+	}
+	state := SearchState{Type: faction.GetType(), TerraformCostOne: faction.GetTerraformCost(1)}
+	switch typed := faction.(type) {
+	case *Fakirs:
+		state.HasStronghold = typed.HasStronghold()
+		state.FlightRange = typed.GetFlightRange()
+	case *Dwarves:
+		state.HasStronghold = typed.HasStronghold()
+	case *Halflings:
+		state.HasStronghold = typed.hasStronghold
+	case *Darklings:
+		state.HasStronghold = typed.hasStronghold
+	case *Engineers:
+		state.HasStronghold = typed.HasStronghold()
+	case *Mermaids:
+		state.ShippingLevel = typed.GetShippingLevel()
+	}
+	return state
+}
+
+// Clone returns an independent copy of a faction implementation. Faction
+// structs contain mutable rule state (for example digging level), so sharing an
+// interface pointer across GameState clones corrupts search parents and undo
+// snapshots. Current faction implementations contain only value fields.
+func Clone(src Faction) Faction {
+	if src == nil {
+		return nil
+	}
+	switch typed := src.(type) {
+	case *configuredFaction:
+		return cloneConfiguredFaction(typed)
+	case *configuredDiggingFaction:
+		clone := *typed
+		clone.configuredFaction = cloneConfiguredFaction(typed.configuredFaction)
+		return &clone
+	case *configuredShippingFaction:
+		clone := *typed
+		clone.configuredFaction = cloneConfiguredFaction(typed.configuredFaction)
+		return &clone
+	}
+	value := reflect.ValueOf(src)
+	if value.Kind() != reflect.Pointer || value.IsNil() {
+		panic("factions.Clone requires a non-nil faction pointer")
+	}
+	clone := reflect.New(value.Elem().Type())
+	clone.Elem().Set(value.Elem())
+	return clone.Interface().(Faction)
+}
+
+func cloneConfiguredFaction(src *configuredFaction) *configuredFaction {
+	if src == nil {
+		return nil
+	}
+	clone := *src
+	clone.dwellingIncomeSeq = append([]Income(nil), src.dwellingIncomeSeq...)
+	clone.tradingIncomeSeq = append([]Income(nil), src.tradingIncomeSeq...)
+	clone.templeIncomeSeq = append([]Income(nil), src.templeIncomeSeq...)
+	clone.fixedTerraformCost = cloneInt(src.fixedTerraformCost)
+	clone.diggingCost = cloneCost(src.diggingCost)
+	clone.dwellingCost = cloneCost(src.dwellingCost)
+	clone.tradingHouseCost = cloneCost(src.tradingHouseCost)
+	clone.templeCost = cloneCost(src.templeCost)
+	clone.sanctuaryCost = cloneCost(src.sanctuaryCost)
+	clone.strongholdCost = cloneCost(src.strongholdCost)
+	return &clone
+}
+
+func cloneInt(src *int) *int {
+	if src == nil {
+		return nil
+	}
+	value := *src
+	return &value
+}
+
+func cloneCost(src *Cost) *Cost {
+	if src == nil {
+		return nil
+	}
+	value := *src
+	return &value
+}
 
 // Registry holds all available factions
 type Registry struct {

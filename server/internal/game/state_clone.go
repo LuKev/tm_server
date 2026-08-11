@@ -2,6 +2,7 @@ package game
 
 import (
 	"github.com/lukev/tm_server/internal/game/board"
+	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -47,6 +48,10 @@ func (gs *GameState) CloneForUndo() *GameState {
 		PendingSnowShamansPassUpgrade:   cloneSnowShamansPassUpgradeMap(gs.PendingSnowShamansPassUpgrade),
 		SuppressTurnAdvance:             gs.SuppressTurnAdvance,
 		PendingTurnConfirmationPlayerID: "",
+	}
+	if gs.PendingChaosMagiciansDoubleTurn != nil {
+		pending := *gs.PendingChaosMagiciansDoubleTurn
+		clone.PendingChaosMagiciansDoubleTurn = &pending
 	}
 
 	clone.Map = cloneMap(gs.Map)
@@ -127,6 +132,7 @@ func clonePlayer(src *Player) *Player {
 		return nil
 	}
 	dst := *src
+	dst.Faction = factions.Clone(src.Faction)
 	if src.Resources != nil {
 		dst.Resources = src.Resources.Clone()
 	}
@@ -215,6 +221,7 @@ func cloneMap(src *board.TerraMysticaMap) *board.TerraMysticaMap {
 		return nil
 	}
 	dst := &board.TerraMysticaMap{
+		ID:         src.ID,
 		Hexes:      make(map[board.Hex]*board.MapHex, len(src.Hexes)),
 		Bridges:    make(map[board.BridgeKey]string, len(src.Bridges)),
 		RiverHexes: make(map[board.Hex]bool, len(src.RiverHexes)),

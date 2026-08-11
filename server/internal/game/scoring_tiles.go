@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"math/rand"
+	"time"
 
 	"github.com/lukev/tm_server/internal/models"
 )
@@ -181,10 +182,20 @@ func NewScoringTileState() *ScoringTileState {
 // InitializeForGame randomly selects 6 scoring tiles for the game
 // Spades tile cannot be in rounds 5 or 6
 func (sts *ScoringTileState) InitializeForGame() error {
+	return sts.InitializeForGameWithRand(rand.New(rand.NewSource(time.Now().UnixNano())))
+}
+
+// InitializeForGameWithRand selects scoring tiles with caller-controlled
+// randomness. This is the authoritative deterministic setup seam for tests and
+// self-play seeds.
+func (sts *ScoringTileState) InitializeForGameWithRand(rng *rand.Rand) error {
+	if rng == nil {
+		return fmt.Errorf("scoring tile RNG is nil")
+	}
 	allTiles := GetAllScoringTiles()
 
 	// Shuffle tiles
-	rand.Shuffle(len(allTiles), func(i, j int) {
+	rng.Shuffle(len(allTiles), func(i, j int) {
 		allTiles[i], allTiles[j] = allTiles[j], allTiles[i]
 	})
 

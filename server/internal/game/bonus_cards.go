@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 	"math/rand"
+	"sort"
 	"time"
 
 	"github.com/lukev/tm_server/internal/models"
@@ -236,15 +237,39 @@ func NewBonusCardState() *BonusCardState {
 // This should be called during game setup
 // Returns the selected card types
 func (bcs *BonusCardState) SelectRandomBonusCards(playerCount int) []BonusCardType {
+	return bcs.SelectRandomBonusCardsWithRand(playerCount, rand.New(rand.NewSource(time.Now().UnixNano())))
+}
+
+// SelectRandomBonusCardsWithRand uses caller-controlled randomness for
+// deterministic game setup.
+func (bcs *BonusCardState) SelectRandomBonusCardsWithRand(playerCount int, rng *rand.Rand) []BonusCardType {
 	// Get all 10 bonus cards
 	allCards := GetAllBonusCards()
 	allCardTypes := make([]BonusCardType, 0, len(allCards))
 	for cardType := range allCards {
 		allCardTypes = append(allCardTypes, cardType)
 	}
+	sort.Slice(allCardTypes, func(i, j int) bool { return allCardTypes[i] < allCardTypes[j] })
 
+	return bcs.selectRandomBonusCardsFromPool(playerCount, rng, allCardTypes)
+}
+
+// SelectRandomBaseBonusCardsWithRand selects only the nine bonus cards from
+// the original game; BonusCardShippingVP is an expansion/promo card.
+func (bcs *BonusCardState) SelectRandomBaseBonusCardsWithRand(playerCount int, rng *rand.Rand) []BonusCardType {
+	allCardTypes := make([]BonusCardType, 0, 9)
+	for card := BonusCardPriest; card <= BonusCardStrongholdSanctuary; card++ {
+		allCardTypes = append(allCardTypes, card)
+	}
+	return bcs.selectRandomBonusCardsFromPool(playerCount, rng, allCardTypes)
+}
+
+func (bcs *BonusCardState) selectRandomBonusCardsFromPool(playerCount int, rng *rand.Rand, allCardTypes []BonusCardType) []BonusCardType {
+	if rng == nil {
+		return nil
+	}
+	allCardTypes = append([]BonusCardType(nil), allCardTypes...)
 	// Randomly shuffle the cards (Fisher-Yates shuffle).
-	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
 	rng.Shuffle(len(allCardTypes), func(i, j int) {
 		allCardTypes[i], allCardTypes[j] = allCardTypes[j], allCardTypes[i]
 	})

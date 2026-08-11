@@ -66,6 +66,39 @@ func TestAdvanceShipping_AwardsVP(t *testing.T) {
 	}
 }
 
+func TestAdvanceShippingRespectsBaseFactionLimits(t *testing.T) {
+	for _, faction := range []factions.Faction{factions.NewDwarves(), factions.NewFakirs()} {
+		gs := NewGameState()
+		if err := gs.AddPlayer("player", faction); err != nil {
+			t.Fatal(err)
+		}
+		if err := NewAdvanceShippingAction("player").Validate(gs); err == nil {
+			t.Fatalf("%s unexpectedly advanced shipping", faction.GetType())
+		}
+	}
+
+	gs := NewGameState()
+	if err := gs.AddPlayer("player", factions.NewWitches()); err != nil {
+		t.Fatal(err)
+	}
+	gs.GetPlayer("player").ShippingLevel = 3
+	if err := NewAdvanceShippingAction("player").Validate(gs); err == nil {
+		t.Fatal("standard faction advanced past shipping level 3")
+	}
+
+	mermaids := NewGameState()
+	if err := mermaids.AddPlayer("player", factions.NewMermaids()); err != nil {
+		t.Fatal(err)
+	}
+	mermaids.GetPlayer("player").Resources.Coins = 20
+	mermaids.GetPlayer("player").Resources.Priests = 4
+	mermaids.GetPlayer("player").ShippingLevel = 4
+	mermaids.GetPlayer("player").Faction.(*factions.Mermaids).SetShippingLevel(4)
+	if err := NewAdvanceShippingAction("player").Validate(mermaids); err != nil {
+		t.Fatalf("Mermaids should advance from shipping 4 to 5: %v", err)
+	}
+}
+
 func TestAdvanceDigging_AwardsVP(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()

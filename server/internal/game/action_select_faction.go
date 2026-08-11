@@ -45,8 +45,14 @@ func (a *SelectFactionAction) Validate(gs *GameState) error {
 
 	// Check if faction is already taken
 	for _, p := range gs.Players {
-		if p.Faction != nil && p.Faction.GetType() == a.FactionType {
+		if p.Faction == nil {
+			continue
+		}
+		if p.Faction.GetType() == a.FactionType {
 			return fmt.Errorf("faction %s is already taken", a.FactionType)
+		}
+		if p.Faction.GetType().GetFactionColor() == a.FactionType.GetFactionColor() {
+			return fmt.Errorf("faction %s has the same home color as %s", a.FactionType, p.Faction.GetType())
 		}
 	}
 

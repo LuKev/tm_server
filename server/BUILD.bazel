@@ -13,6 +13,18 @@ gazelle(
     command = "update-repos",
 )
 
+sh_binary(
+    name = "run_az_cycles",
+    srcs = ["tools/run_az_cycles.sh"],
+    visibility = ["//visibility:public"],
+)
+
+sh_binary(
+    name = "run_az_scaling_curves",
+    srcs = ["tools/run_az_scaling_curves.sh"],
+    visibility = ["//visibility:public"],
+)
+
 sh_test(
     name = "client_playwright_test",
     srcs = ["tools/client_playwright_test.sh"],
@@ -25,6 +37,46 @@ sh_test(
 sh_test(
     name = "client_build_test",
     srcs = ["tools/client_build_test.sh"],
+    size = "large",
+    timeout = "moderate",
+)
+
+sh_test(
+    name = "az_loop_smoke_test",
+    srcs = ["tools/az_loop_smoke_test.sh"],
+    args = [
+        "$(location :run_az_cycles)",
+        "$(location //cmd/az_selfplay:az_selfplay)",
+        "$(location //internal/az:az_inference)",
+        "$(location //internal/az:az_learner)",
+        "$(location //cmd/az_eval:az_eval)",
+    ],
+    data = [
+        ":run_az_cycles",
+        "//cmd/az_eval:az_eval",
+        "//cmd/az_selfplay:az_selfplay",
+        "//internal/az:az_inference",
+        "//internal/az:az_learner",
+    ],
+    size = "large",
+    timeout = "moderate",
+)
+
+sh_test(
+    name = "az_scaling_curves_smoke_test",
+    srcs = ["tools/az_scaling_curves_smoke_test.sh"],
+    args = [
+        "$(location :run_az_scaling_curves)",
+        "$(location //internal/az:az_model_benchmark)",
+        "$(location //cmd/az_eval:az_eval)",
+        "$(location //internal/az:az_inference)",
+    ],
+    data = [
+        ":run_az_scaling_curves",
+        "//cmd/az_eval:az_eval",
+        "//internal/az:az_inference",
+        "//internal/az:az_model_benchmark",
+    ],
     size = "large",
     timeout = "moderate",
 )
