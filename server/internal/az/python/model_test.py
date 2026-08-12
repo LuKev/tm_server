@@ -475,13 +475,14 @@ class RepresentationTest(unittest.TestCase):
         terminal_hash = hashlib.sha256(terminal_bytes).hexdigest()[:32]
         trajectory = {
             "manifest": {
-                "format_version": 1,
+                "format_version": 2,
                 "rules_version": 1,
                 "state_version": 1,
                 "action_version": 1,
                 "engine_commit": "test",
                 "model_id": "random",
                 "seed": 3,
+                "search_seed": 13,
                 "factions": [7, 13],
             },
             "steps": [
@@ -534,6 +535,7 @@ class RepresentationTest(unittest.TestCase):
                 ("engine commit", lambda value: value["manifest"].__setitem__("engine_commit", "")),
                 ("engine commit mismatch", lambda value: value["manifest"].__setitem__("engine_commit", "other")),
                 ("model identity", lambda value: value["manifest"].__setitem__("model_id", "")),
+                ("search seed", lambda value: value["manifest"].pop("search_seed")),
                 ("checkpoint identity", lambda value: value["manifest"].__setitem__("model_id", "model-" + "a" * 64)),
             ]
             for expected, mutate in mutations:

@@ -24,7 +24,7 @@ from batching import TensorBatch, collate_positions
 from model import MODEL_CONFIGS, TerraMysticaNet, load_checkpoint, model_fingerprint, publish_checkpoint, resolve_device, resolve_model_config
 from schema import ACTION_SCHEMA_VERSION, RULES_VERSION, STATE_SCHEMA_VERSION, EncodedPosition, encode_position, validate_position_schema
 
-TRAJECTORY_FORMAT_VERSION = 1
+TRAJECTORY_FORMAT_VERSION = 2
 _SHARD_NAME = re.compile(r"trajectory-([0-9a-f]{64})\.json\.gz")
 
 
@@ -143,6 +143,9 @@ def _verify_manifest(
         )
     if not manifest.get("model_id"):
         raise ValueError(f"trajectory in {path} is missing model identity")
+    search_seed = manifest.get("search_seed")
+    if not isinstance(search_seed, int) or isinstance(search_seed, bool) or search_seed == 0:
+        raise ValueError(f"trajectory in {path} is missing an exact search seed")
     factions = manifest.get("factions") or []
     if len(factions) != 2:
         raise ValueError(f"trajectory in {path} does not contain two factions")

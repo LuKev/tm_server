@@ -26,6 +26,7 @@ type TrajectoryManifest struct {
 	ModelID          string                `json:"model_id"`
 	CheckpointSHA256 string                `json:"checkpoint_sha256,omitempty"`
 	Seed             int64                 `json:"seed"`
+	SearchSeed       int64                 `json:"search_seed"`
 	Factions         [2]models.FactionType `json:"factions"`
 }
 
@@ -163,6 +164,9 @@ func validateTrajectory(trajectory Trajectory) error {
 	}
 	if manifest.ModelID == "" {
 		return fmt.Errorf("trajectory model ID is required")
+	}
+	if manifest.SearchSeed == 0 {
+		return fmt.Errorf("trajectory search seed is required")
 	}
 	if strings.HasPrefix(manifest.ModelID, "model-") {
 		decoded, err := hex.DecodeString(manifest.CheckpointSHA256)

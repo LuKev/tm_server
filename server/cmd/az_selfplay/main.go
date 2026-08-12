@@ -40,6 +40,8 @@ type selfPlayMetrics struct {
 	Decisions                         int                  `json:"decisions"`
 	DecisionsPerGame                  float64              `json:"decisions_per_game"`
 	ConfiguredSimulations             int                  `json:"configured_simulations_per_decision"`
+	SetupSeedStart                    int64                `json:"setup_seed_start"`
+	SearchSeedStart                   int64                `json:"search_seed_start"`
 	SimulationTraversalsPerSecond     float64              `json:"simulation_traversals_per_second"`
 	EvaluationPositionsPerSecond      float64              `json:"evaluation_positions_per_second"`
 	InferencePositionsPerSecond       float64              `json:"inference_positions_per_second"`
@@ -77,13 +79,14 @@ func main() {
 		simulations      = flag.Int("simulations", 1, "MCTS simulations per decision")
 		temperature      = flag.Float64("temperature", 1, "self-play visit temperature")
 		seed             = flag.Int64("seed", 1, "first deterministic setup seed")
+		searchSeed       = flag.Int64("search-seed", 2000000, "first deterministic search/action seed, independent of setup")
 		maxPlies         = flag.Int("max-plies", 2000, "natural-completion tripwire")
 		noiseEpsilon     = flag.Float64("dirichlet-epsilon", 0.25, "root exploration noise fraction")
 		concentration    = flag.Float64("dirichlet-concentration", 10, "root noise total concentration")
 	)
 	flag.Parse()
-	if *inference == "" || *output == "" || *engineCommit == "" || *games <= 0 || *gamesPerBatch <= 0 {
-		fmt.Fprintln(os.Stderr, "--inference, --output, --engine-commit, positive --games, and positive --games-per-batch are required")
+	if *inference == "" || *output == "" || *engineCommit == "" || *games <= 0 || *gamesPerBatch <= 0 || *searchSeed <= 0 {
+		fmt.Fprintln(os.Stderr, "--inference, --output, --engine-commit, positive --games, positive --games-per-batch, and positive --search-seed are required")
 		os.Exit(2)
 	}
 	resolvedCheckpoint, err := az.ResolveCheckpointReference(*checkpoint, *latest)
@@ -128,9 +131,10 @@ func main() {
 		}
 		positions := make([]*az.GamePosition, batchSize)
 		seeds := make([]int64, batchSize)
+		searchSeeds := make([]int64, batchSize)
 		for localIndex := range positions {
 			globalIndex := batchStart + localIndex
-			seeds[localIndex] = *seed + int64(globalIndex)
+			seeds[localIndex], searchSeeds[localIndex] = selfPlaySeeds(*seed, *searchSeed, globalIndex)
 			matchup := matchups[(offset+globalIndex)%len(matchups)]
 			positions[localIndex], err = az.NewBaseGame(seeds[localIndex], matchup[0], matchup[1])
 			if err != nil {
@@ -140,12 +144,12 @@ func main() {
 
 		generationStarted := time.Now()
 		trajectories, generateErr := az.GenerateSelfPlay(ctx, positions, seeds, evaluator, az.SelfPlayConfig{
+			SearchSeeds: searchSeeds,
 			Search: az.SearchConfig{
 				Simulations:                 *simulations,
 				CPUCT:                       1.5,
 				DirichletTotalConcentration: *concentration,
 				DirichletEpsilon:            *noiseEpsilon,
-				Seed:                        *seed,
 				Telemetry:                   telemetry,
 			},
 			Temperature:      *temperature,
@@ -180,6 +184,8 @@ func main() {
 		ShardWriteSeconds: writeDuration.Seconds(), GamesPerHour: perSecond(shardsWritten, wallDuration) * 3600,
 		Decisions: decisions, DecisionsPerGame: ratio(decisions, shardsWritten),
 		ConfiguredSimulations:             *simulations,
+		SetupSeedStart:                    *seed,
+		SearchSeedStart:                   *searchSeed,
 		SimulationTraversalsPerSecond:     perSecond64(searchStats.SimulationTraversals, generationDuration),
 		EvaluationPositionsPerSecond:      perSecond64(searchStats.EvaluationPositions, generationDuration),
 		InferencePositionsPerSecond:       perSecond64(inferenceStats.Positions, inferenceStats.ServiceDuration),
@@ -238,6 +244,10 @@ func gameBatchEnd(start, total, limit int) int {
 		return total
 	}
 	return end
+}
+
+func selfPlaySeeds(setupSeedStart, searchSeedStart int64, gameIndex int) (int64, int64) {
+	return setupSeedStart + int64(gameIndex), searchSeedStart + int64(gameIndex)
 }
 
 func orderedBaseMatchups() [][2]models.FactionType {

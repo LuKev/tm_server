@@ -245,7 +245,7 @@ func TestHoldoutSeedsAreUnique(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := GenerateSelfPlay(context.Background(), []*GamePosition{position}, []int64{item.Seed}, UniformEvaluator{}, SelfPlayConfig{
-		Search: SearchConfig{Simulations: 1}, EngineCommit: "test",
+		Search: SearchConfig{Simulations: 1}, SearchSeeds: []int64{99}, EngineCommit: "test",
 	}); err == nil || !strings.Contains(err.Error(), "reserved for evaluation holdout") {
 		t.Fatalf("self-play accepted holdout seed: %v", err)
 	}
@@ -258,6 +258,19 @@ func TestArenaUsesPerAgentSearchBudgets(t *testing.T) {
 	}
 	if got := searchBudgetForAgent(config, arenaBaselineAgent); got != 8 {
 		t.Fatalf("baseline budget=%d", got)
+	}
+}
+
+func TestSelfPlayRejectsZeroSearchSeedBeforeGeneration(t *testing.T) {
+	position, err := NewBaseGame(7301, models.FactionNomads, models.FactionWitches)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = GenerateSelfPlay(context.Background(), []*GamePosition{position}, []int64{7301}, UniformEvaluator{}, SelfPlayConfig{
+		Search: SearchConfig{Simulations: 1}, SearchSeeds: []int64{0}, EngineCommit: "test",
+	})
+	if err == nil || !strings.Contains(err.Error(), "search seed must be nonzero") {
+		t.Fatalf("zero search seed was not rejected before generation: %v", err)
 	}
 }
 

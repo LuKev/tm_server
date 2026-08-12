@@ -11,10 +11,11 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
-const TrajectoryFormatVersion = 1
+const TrajectoryFormatVersion = 2
 
 type SelfPlayConfig struct {
 	Search           SearchConfig
+	SearchSeeds      []int64
 	Temperature      float64
 	MaxPlies         int
 	EngineCommit     string
@@ -23,16 +24,17 @@ type SelfPlayConfig struct {
 }
 
 type selfPlayGame struct {
-	position  *GamePosition
-	seed      int64
-	playerIDs [2]string
-	factions  [2]models.FactionType
-	seatByID  map[string]int
-	rng       *rand.Rand
-	steps     []TrajectoryStep
-	state     json.RawMessage
-	stateHash string
-	completed bool
+	position   *GamePosition
+	seed       int64
+	searchSeed int64
+	playerIDs  [2]string
+	factions   [2]models.FactionType
+	seatByID   map[string]int
+	rng        *rand.Rand
+	steps      []TrajectoryStep
+	state      json.RawMessage
+	stateHash  string
+	completed  bool
 }
 
 type identifiedEvaluator interface {
@@ -48,6 +50,14 @@ type checkpointEvaluator interface {
 func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []int64, evaluator Evaluator, config SelfPlayConfig) ([]Trajectory, error) {
 	if len(positions) == 0 || len(positions) != len(seeds) {
 		return nil, fmt.Errorf("positions and seeds must have equal nonzero length")
+	}
+	if len(config.SearchSeeds) != len(positions) {
+		return nil, fmt.Errorf("search seeds and positions must have equal nonzero length")
+	}
+	for index, searchSeed := range config.SearchSeeds {
+		if searchSeed == 0 {
+			return nil, fmt.Errorf("game %d search seed must be nonzero", index)
+		}
 	}
 	if config.Search.Simulations <= 0 {
 		return nil, fmt.Errorf("self-play requires at least one search simulation")
@@ -89,8 +99,8 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 			return nil, err
 		}
 		games[i] = selfPlayGame{
-			position: position, seed: seeds[i], playerIDs: playerIDs, seatByID: seatByID,
-			rng: rand.New(rand.NewSource(seeds[i])), state: canonicalState, stateHash: canonicalStateHash(canonicalState),
+			position: position, seed: seeds[i], searchSeed: config.SearchSeeds[i], playerIDs: playerIDs, seatByID: seatByID,
+			rng: rand.New(rand.NewSource(config.SearchSeeds[i])), state: canonicalState, stateHash: canonicalStateHash(canonicalState),
 			factions: [2]models.FactionType{
 				state.GetPlayer(playerIDs[0]).Faction.GetType(),
 				state.GetPlayer(playerIDs[1]).Faction.GetType(),
@@ -118,7 +128,7 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 		searchConfig := config.Search
 		searchConfig.RootSeeds = make([]int64, len(activeGames))
 		for rootIndex, gameIndex := range activeGames {
-			searchConfig.RootSeeds[rootIndex] = selfPlayRootSeed(config.Search.Seed, games[gameIndex].seed, ply)
+			searchConfig.RootSeeds[rootIndex] = selfPlayRootSeed(games[gameIndex].searchSeed, ply)
 		}
 		search, err := NewMCTS(evaluator, searchConfig)
 		if err != nil {
@@ -198,6 +208,7 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 				FormatVersion: TrajectoryFormatVersion, RulesVersion: 1,
 				StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
 				EngineCommit: config.EngineCommit, ModelID: config.ModelID, Seed: game.seed,
+				SearchSeed:       game.searchSeed,
 				CheckpointSHA256: config.CheckpointSHA256,
 				Factions:         game.factions,
 			},
@@ -208,9 +219,8 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 	return trajectories, nil
 }
 
-func selfPlayRootSeed(baseSeed, gameSeed int64, ply int) int64 {
-	value := splitMix64(uint64(baseSeed) + 0x243f6a8885a308d3)
-	value ^= rotateLeft64(splitMix64(uint64(gameSeed)+0x13198a2e03707344), 21)
+func selfPlayRootSeed(searchSeed int64, ply int) int64 {
+	value := splitMix64(uint64(searchSeed) + 0x243f6a8885a308d3)
 	value ^= rotateLeft64(splitMix64(uint64(ply)+0xa4093822299f31d0), 43)
 	return int64(splitMix64(value))
 }

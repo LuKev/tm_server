@@ -400,17 +400,16 @@ func TestRootNoiseIsIndependentOfBatchCompositionAndOrder(t *testing.T) {
 }
 
 func TestSelfPlayRootSeedSeparatesActorBatchGameAndPly(t *testing.T) {
-	first := selfPlayRootSeed(100, 100, 0)
+	first := selfPlayRootSeed(100, 0)
 	if first == 0 {
-		t.Fatal("matching actor and game seed cancelled to zero")
+		t.Fatal("search seed mapped to zero")
 	}
-	if got := selfPlayRootSeed(100, 100, 0); got != first {
+	if got := selfPlayRootSeed(100, 0); got != first {
 		t.Fatalf("root seed is not deterministic: got %d, want %d", got, first)
 	}
 	cases := []int64{
-		selfPlayRootSeed(101, 101, 0),
-		selfPlayRootSeed(100, 101, 0),
-		selfPlayRootSeed(100, 100, 1),
+		selfPlayRootSeed(101, 0),
+		selfPlayRootSeed(100, 1),
 	}
 	for index, got := range cases {
 		if got == first {

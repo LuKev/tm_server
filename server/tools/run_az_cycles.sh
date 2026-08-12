@@ -66,6 +66,8 @@ fi
   printf 'cycles=%s\n' "${cycles}"
   printf 'games_per_cycle=%s\n' "${games}"
   printf 'simulations=%s\n' "${simulations}"
+  printf 'setup_seed_domain=%s\n' "cycle-indexed from 1000000"
+  printf 'search_seed_domain=%s\n' "cycle-indexed from 2000000"
   printf 'train_steps=%s\n' "${train_steps}"
   printf 'examples_per_replay_ply=%s\n' "${examples_per_replay_ply}"
   printf 'evaluation_cases=%s\n' "${eval_cases}"
@@ -133,6 +135,7 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --games-per-batch "${actor_games_per_batch}" \
     --simulations "${simulations}" \
     --seed "$((1000000 + cycle * games))" \
+    --search-seed "$((2000000 + cycle * games))" \
     --model-seed 0 \
     --engine-commit "${engine_commit}"
   replay_args+=(--input "${cycle_replay}")

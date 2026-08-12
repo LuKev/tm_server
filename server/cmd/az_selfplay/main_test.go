@@ -55,3 +55,27 @@ func TestGameBatchEndBoundsStreamingBatches(t *testing.T) {
 		}
 	}
 }
+
+func TestSelfPlaySeedsUseIndependentDomains(t *testing.T) {
+	setup, search := selfPlaySeeds(1000, 2000, 7)
+	if setup != 1007 || search != 2007 {
+		t.Fatalf("seeds = (%d,%d), want (1007,2007)", setup, search)
+	}
+	_, sameSearch := selfPlaySeeds(9000, 2000, 7)
+	if sameSearch != search {
+		t.Fatalf("changing setup seed changed search seed: got %d, want %d", sameSearch, search)
+	}
+	sameSetup, _ := selfPlaySeeds(1000, 8000, 7)
+	if sameSetup != setup {
+		t.Fatalf("changing search seed changed setup seed: got %d, want %d", sameSetup, setup)
+	}
+}
+
+func TestPositiveSearchSeedRangeCannotCrossZero(t *testing.T) {
+	for index := 0; index < 168; index++ {
+		_, search := selfPlaySeeds(1, 1, index)
+		if search <= 0 {
+			t.Fatalf("positive search seed range crossed zero at game %d: %d", index, search)
+		}
+	}
+}

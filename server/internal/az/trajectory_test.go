@@ -79,6 +79,7 @@ func TestTrajectoryValidationRejectsSemanticCorruption(t *testing.T) {
 		"negative visits":     {func(value *Trajectory) { value.Steps[0].Visits[1] = -1 }, "negative visits"},
 		"engine identity":     {func(value *Trajectory) { value.Manifest.EngineCommit = "" }, "engine commit"},
 		"model identity":      {func(value *Trajectory) { value.Manifest.ModelID = "" }, "model ID"},
+		"search identity":     {func(value *Trajectory) { value.Manifest.SearchSeed = 0 }, "search seed"},
 		"checkpoint identity": {func(value *Trajectory) { value.Manifest.ModelID = "model-" + strings.Repeat("a", 64) }, "checkpoint hash"},
 		"duplicate action":    {func(value *Trajectory) { value.Steps[0].Actions[1] = value.Steps[0].Actions[0] }, "duplicate actions"},
 	}
@@ -138,6 +139,7 @@ func testTrajectory(t *testing.T) Trajectory {
 			EngineCommit:  "test",
 			ModelID:       "random",
 			Seed:          7,
+			SearchSeed:    17,
 			Factions:      [2]models.FactionType{models.FactionNomads, models.FactionWitches},
 		},
 		Steps: []TrajectoryStep{{
