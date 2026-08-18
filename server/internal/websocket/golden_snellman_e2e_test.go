@@ -1427,6 +1427,10 @@ func (r *goldenRunner) canSelectTownTile(playerID string) bool {
 
 func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcoming []game.Action) error {
 	for guard := 0; guard < 12; guard++ {
+		if r.gs.PendingFavorTileSelection != nil && len(upcoming) > 0 &&
+			actionResolvesPendingDecision("favor_tile_selection", r.gs.PendingFavorTileSelection.PlayerID, upcoming[0]) {
+			return nil
+		}
 		pd := asMap(r.state["pendingDecision"])
 		decisionType := asString(pd["type"])
 		playerID := asString(pd["playerId"])
@@ -1454,7 +1458,7 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 			}
 			continue
 		}
-		if len(upcoming) > 0 && r.canUseImmediateLeechResponse(upcoming[0]) {
+		if decisionType == "leech_offer" && len(upcoming) > 0 && r.canUseImmediateLeechResponse(upcoming[0]) {
 			return nil
 		}
 		if decisionType == "cultists_cult_choice" &&
@@ -1464,6 +1468,17 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 				return err
 			}
 			if resolved {
+				continue
+			}
+		}
+		if decisionType == "favor_tile_selection" &&
+			(len(upcoming) == 0 || !actionResolvesPendingDecision(decisionType, playerID, upcoming[0])) {
+			favor := findPendingFavorTileAction(playerID, upcoming)
+			if favor != nil && !r.preExecutedActions[favor] {
+				if err := r.executeActionWithUpcoming(favor, upcoming); err != nil {
+					return err
+				}
+				r.preExecutedActions[favor] = true
 				continue
 			}
 		}

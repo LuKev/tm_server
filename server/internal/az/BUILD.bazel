@@ -9,6 +9,7 @@ go_library(
         "checkpoint.go",
         "enumerate.go",
         "inference.go",
+        "inference_batcher.go",
         "mcts.go",
         "position.go",
         "search_action.go",

@@ -13,8 +13,16 @@ import (
 
 const TrajectoryFormatVersion = 2
 
+type RootSearchMode string
+
+const (
+	RootSearchLockstep   RootSearchMode = "lockstep"
+	RootSearchConcurrent RootSearchMode = "concurrent"
+)
+
 type SelfPlayConfig struct {
 	Search           SearchConfig
+	RootSearchMode   RootSearchMode
 	SearchSeeds      []int64
 	Temperature      float64
 	MaxPlies         int
@@ -45,8 +53,9 @@ type checkpointEvaluator interface {
 	CheckpointSHA256() string
 }
 
-// GenerateSelfPlay runs games in lockstep so each search call batches one root
-// from every unfinished game through the evaluator.
+// GenerateSelfPlay advances games in rounds. RootSearchMode selects the proven
+// lockstep reference or independent concurrent searches whose leaf requests
+// can be combined by a shared BatchingEvaluator.
 func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []int64, evaluator Evaluator, config SelfPlayConfig) ([]Trajectory, error) {
 	if len(positions) == 0 || len(positions) != len(seeds) {
 		return nil, fmt.Errorf("positions and seeds must have equal nonzero length")
@@ -61,6 +70,12 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 	}
 	if config.Search.Simulations <= 0 {
 		return nil, fmt.Errorf("self-play requires at least one search simulation")
+	}
+	if config.RootSearchMode == "" {
+		config.RootSearchMode = RootSearchLockstep
+	}
+	if config.RootSearchMode != RootSearchLockstep && config.RootSearchMode != RootSearchConcurrent {
+		return nil, fmt.Errorf("unsupported root search mode %q", config.RootSearchMode)
 	}
 	if config.EngineCommit == "" {
 		return nil, fmt.Errorf("self-play engine commit is required")
@@ -130,11 +145,17 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 		for rootIndex, gameIndex := range activeGames {
 			searchConfig.RootSeeds[rootIndex] = selfPlayRootSeed(games[gameIndex].searchSeed, ply)
 		}
-		search, err := NewMCTS(evaluator, searchConfig)
-		if err != nil {
-			return nil, err
+		var results []SearchResult
+		var err error
+		if config.RootSearchMode == RootSearchConcurrent {
+			results, err = SearchRootsConcurrent(ctx, evaluator, searchConfig, activePositions)
+		} else {
+			var search *MCTS
+			search, err = NewMCTS(evaluator, searchConfig)
+			if err == nil {
+				results, err = search.SearchBatch(ctx, activePositions)
+			}
 		}
-		results, err := search.SearchBatch(ctx, activePositions)
 		if err != nil {
 			return nil, err
 		}

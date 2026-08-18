@@ -104,6 +104,51 @@ low-latency setting. The mean neural batch of only 4.66 remains far below the
 model's batch-32 kernel knee, but this alone does not justify distribution;
 search and learner-quality experiments come first.
 
+## Shared-inference scheduler replacement
+
+Date: 2026-08-17. This experiment supersedes the lockstep actor default above;
+the older result remains useful as historical evidence. The Go toolchain was
+upgraded to 1.26.6 with rules_go 0.61.1 and Gazelle 0.51.3. Independent MCTS
+roots now feed one bounded inference broker, while the prior barrier-synchronized
+lockstep path remains selectable as the reference.
+
+All four points used the same 32 games, setup seeds 6,100,000 through 6,100,031,
+search seeds 6,200,000 through 6,200,031, eight simulations per decision,
+temperature/noise defaults, the deterministic random large model (20 residual
+blocks, 256 channels, 29,114,114 parameters, FP32), model seed 0, Apple MPS, and
+one PyTorch CPU thread. The broker limit was 32 positions with a 1 ms deadline.
+Only root scheduling and the concurrent-game bound changed. The source base was
+commit `179db284c9c3489cfc98e29a4776275628299bf5`. Because the scheduler was a
+working-tree experiment, the executable identities are the authoritative code
+provenance: the self-play and inference executable SHA-256 values were
+respectively
+`7d4866cc2566e0c63ceb86638be64c18280c954f7226a12aeca1e0c2bfefea93`
+and `c7a02e157258f5ea99c39a2713c733ca7b159e07d92e79cfbbeaab247b920404`.
+
+| Mode | Concurrent games | Wall time | Generation time | Games/hour | Simulations/s | Mean neural batch | Max neural batch | Broker queue p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| Lockstep, no broker | 8 | 266.889 s | 257.375 s | 431.641 | 41.900 | 5.798 | 8 | 0 ms |
+| Shared broker | 8 | 128.851 s | 119.232 s | 894.058 | 90.445 | 2.741 | 7 | 24.490 ms |
+| Shared broker | 16 | 110.699 s | 101.069 s | 1,040.659 | 106.699 | 5.248 | 15 | 50.221 ms |
+| Shared broker | 32 | 106.797 s | 97.141 s | 1,078.686 | 111.014 | 9.783 | 31 | 100.186 ms |
+
+Every point completed the same 1,348 decisions, 10,784 simulation traversals,
+11,798 evaluated positions, and 343,830 legal-action logits. Each produced 32
+immutable shards and 748,571 compressed bytes. The sorted trajectory-filename
+set digest was
+`67f6272e6c7412780cd94da1d64785f6bde1aad7edc5d85bc67adaf04d3f9b3d`
+for every point, proving byte-identical seeded trajectories rather than merely
+matching terminal outcomes. The scratch directories were under
+`/private/tmp/tm-az-batcher-fair-Ur5stP`; the path is not a retention guarantee,
+so the exact provenance and decision metrics are recorded here.
+
+Shared inference is a clear local win: eight concurrent roots are 2.07x the
+reference rate, 16 are 2.41x, and 32 are 2.50x. Sixteen already reaches 96.5%
+of the 32-root rate and is the lower-memory option, but offline self-play uses
+32 by default because elapsed generation time is the primary local objective.
+This does not justify a remote inference service or distributed actors; measure
+local broker saturation again before adding either.
+
 ## Same-checkpoint search-compute curve
 
 This curve gives the candidate and anchor the exact same checkpoint and changes

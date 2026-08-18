@@ -82,6 +82,31 @@ func TestApplyActionToStateMatchesManagerForTurnAndPendingActions(t *testing.T) 
 	})
 }
 
+func TestDelayedMermaidsTownUsesPostActionWindowAsOwnTurn(t *testing.T) {
+	state := NewGameState()
+	if err := state.AddPlayer("mermaids", factions.NewMermaids()); err != nil {
+		t.Fatal(err)
+	}
+	if err := state.AddPlayer("opponent", factions.NewEngineers()); err != nil {
+		t.Fatal(err)
+	}
+	state.TurnOrder = []string{"mermaids", "opponent"}
+	state.CurrentPlayerIndex = 1
+	state.Phase = PhaseAction
+	state.PendingTownFormations["mermaids"] = []*PendingTownFormation{{
+		PlayerID: "mermaids", CanBeDelayed: true,
+	}}
+	action := &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "mermaids"}}
+
+	if err := validateActionTurnAndPendingState(state, action); err == nil {
+		t.Fatal("delayed town was accepted outside the Mermaid player's action window")
+	}
+	state.PendingFreeActionsPlayerID = "mermaids"
+	if err := validateActionTurnAndPendingState(state, action); err != nil {
+		t.Fatalf("delayed town rejected during Mermaid post-action window: %v", err)
+	}
+}
+
 func assertDirectMatchesManager(t *testing.T, base *GameState, directAction, managedAction Action) {
 	t.Helper()
 	direct := base.CloneForUndo()

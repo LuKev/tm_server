@@ -3,7 +3,7 @@
 Status: implemented through Milestone 5's local scaling foundations; the
 ordered large-checkpoint experiment campaign is in progress.
 
-Implementation status (updated 2026-08-11): Milestones 0 through 4 are
+Implementation status (updated 2026-08-17): Milestones 0 through 4 are
 complete. The base-rules contract, serial/batch-shaped PUCT, versioned relative
 state/action encoder, masked hex-CNN, continual-latest self-play/learner loop,
 and paired evaluator are implemented. The debug and main network shapes are
@@ -14,8 +14,11 @@ milestone passed correctness and simplicity adversarial review plus fresh
 uncached Bazel suites. Milestone 5's local scaling foundations are complete:
 the large model and accelerator path, measured simulator optimizations,
 bounded actors/replay, and a versioned scaling-curve harness are implemented.
-The remaining work is running larger experiments that narrow strength
-uncertainty and demonstrate whether shared inference is warranted.
+Shared local inference is now implemented and measured: independent root
+searches feed one bounded MPS inference broker without changing seeded
+trajectories. The remaining work is running larger experiments that narrow
+strength uncertainty and determine when additional actor or inference-process
+parallelism is warranted.
 
 ## 1. Objective
 
@@ -319,8 +322,9 @@ stable champion.
 
 ### Implemented evidence
 
-- Go actors play authoritative lockstep games against a long-lived Python
-  inference process and publish immutable, hash-chained trajectory shards.
+- Go actors play authoritative games against a long-lived Python inference
+  process. Independent roots share bounded neural batches, and completed games
+  publish immutable, hash-chained trajectory shards.
 - The learner validates model, checkpoint, engine, seat, result, and schema
   provenance; trains the exact policy/value objective with non-finite guards;
   and atomically publishes immutable checkpoints plus a latest pointer.
@@ -400,16 +404,32 @@ zero allocation, while an 8-root/8-simulation search probe improved from about
 cache cannot hide future encoder-state growth.
 
 Actor volume is now independent of its memory/batching bound. `--games` is the
-total workload, while `--games-per-batch` limits lockstep roots and trajectories
-retained at once; each completed batch is immediately published as immutable
-content-addressed shards. The default bound is eight games and the cycle runner
-can override it with `TM_AZ_ACTOR_GAMES_PER_BATCH`. Metrics record batch count
-and peak concurrent games. The final summary retains counters rather than every
-shard reference, and inference percentiles are explicitly recent-window metrics
-over at most 4,096 observations; whole-run counts and durations remain exact.
-The two-cycle smoke runs two games per cycle with a one-game bound, verifies all
-four shards, and still verifies latest-checkpoint adoption plus the
-uniform/recent-anchor reports.
+total workload, while `--games-per-batch` limits concurrent roots and
+trajectories retained at once; each completed batch is immediately published
+as immutable content-addressed shards. The measured local default is 32
+concurrent games feeding a single bounded inference broker with a 32-position,
+1 ms flush policy. The cycle runner can override these independently with
+`TM_AZ_ACTOR_GAMES_PER_BATCH`, `TM_AZ_INFERENCE_MAX_BATCH`,
+`TM_AZ_INFERENCE_MAX_WAIT`, and `TM_AZ_ROOT_SEARCH_MODE`. Metrics record both
+configured limits and observed broker fill/queueing. The final summary retains
+counters rather than every shard reference, and inference percentiles are
+explicitly recent-window metrics over at most 4,096 observations; whole-run
+counts and durations remain exact. The two-cycle smoke uses a one-game bound,
+verifies all four shards, and still verifies latest-checkpoint adoption plus
+the uniform/recent-anchor reports.
+
+The scheduling choice was measured on the full 20-block, 256-channel large
+hex-CNN on Apple MPS with eight simulations per decision. Every point processed
+the same 32 setup/search seeds. The lockstep reference with eight concurrent
+games and no shared broker reached 432 games/hour; shared inference reached 894
+games/hour with 8 concurrent roots, 1,041 with 16, and 1,079 with 32. All four variants
+produced the exact same 32 content-addressed trajectory files. This is a
+deterministic random-model throughput experiment, not playing-strength
+evidence. Lockstep remains available as the reference mode; the 32-root default
+is justified by the 2.50x local throughput improvement and should be
+re-profiled when model shape, simulation count, or hardware changes. Exact
+configuration and output metrics are retained in the
+[local scaling evidence](terra-mystica-1v1-alphazero-local-scaling-evidence.md).
 
 Replay loading is likewise bounded. The learner validates immutable shards one
 at a time, then retains only path/matchup/ply metadata for the selected window.
@@ -570,9 +590,11 @@ smallest local near-ceiling point: 99.0% of batch-64 inference throughput and
 98.8% of batch-128 SGD throughput. A forward/reverse fixed-game actor sweep
 produced the same semantic trajectories at every bound and averaged
 208/230/231/247 games/hour for 1/2/4/8 concurrent games, with order spreads at
-or below 1.05%. Use eight as the local throughput default and two as the
-low-latency setting. The mean batch at eight actors is only 4.66, but shared or
-distributed inference remains gated on the search and learner-quality curves.
+or below 1.05%. This older lockstep result is retained as historical evidence.
+It was superseded on 2026-08-17 by the independent-root shared-inference
+experiment above: use 32 concurrent games locally, while retaining lockstep as
+the reference mode. Distributed inference remains gated on evidence that one
+local broker is saturated.
 
 The full same-checkpoint search curve is also complete in that evidence report.
 Across 56 games per point, candidate budgets 1/8/32/128 against a fixed

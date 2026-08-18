@@ -316,6 +316,44 @@ func (m *MCTS) Search(ctx context.Context, position Position) (SearchResult, err
 	return results[0], nil
 }
 
+// SearchRootsConcurrent runs one independent MCTS per root. Concurrent leaf
+// evaluations can be coalesced by a shared BatchingEvaluator, while each root
+// retains exactly the serial tree, cache, seed, and backup semantics.
+func SearchRootsConcurrent(ctx context.Context, evaluator Evaluator, config SearchConfig, positions []Position) ([]SearchResult, error) {
+	if len(positions) == 0 {
+		return nil, nil
+	}
+	if len(config.RootSeeds) != 0 && len(config.RootSeeds) != len(positions) {
+		return nil, fmt.Errorf("got %d root seeds for %d positions", len(config.RootSeeds), len(positions))
+	}
+	results := make([]SearchResult, len(positions))
+	errors := make([]error, len(positions))
+	var wait sync.WaitGroup
+	wait.Add(len(positions))
+	for index, position := range positions {
+		go func(index int, position Position) {
+			defer wait.Done()
+			rootConfig := config
+			if len(config.RootSeeds) != 0 {
+				rootConfig.RootSeeds = []int64{config.RootSeeds[index]}
+			}
+			search, err := NewMCTS(evaluator, rootConfig)
+			if err != nil {
+				errors[index] = err
+				return
+			}
+			results[index], errors[index] = search.Search(ctx, position)
+		}(index, position)
+	}
+	wait.Wait()
+	for index, err := range errors {
+		if err != nil {
+			return nil, fmt.Errorf("search root %d: %w", index, err)
+		}
+	}
+	return results, nil
+}
+
 // SearchBatch runs roots in lockstep and evaluates one selected leaf per
 // non-terminal root in each batch. With a deterministic evaluator and no root
 // noise, each root has the same trace as an independent serial Search.

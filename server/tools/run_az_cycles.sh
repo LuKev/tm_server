@@ -21,7 +21,10 @@ model_config="${12:-large}"
 inference_device="${TM_AZ_INFERENCE_DEVICE:-cpu}"
 learner_device="${TM_AZ_LEARNER_DEVICE:-${inference_device}}"
 torch_threads="${TM_AZ_TORCH_THREADS:-1}"
-actor_games_per_batch="${TM_AZ_ACTOR_GAMES_PER_BATCH:-8}"
+actor_games_per_batch="${TM_AZ_ACTOR_GAMES_PER_BATCH:-32}"
+inference_max_batch="${TM_AZ_INFERENCE_MAX_BATCH:-32}"
+inference_max_wait="${TM_AZ_INFERENCE_MAX_WAIT:-1ms}"
+root_search_mode="${TM_AZ_ROOT_SEARCH_MODE:-concurrent}"
 replay_cache_games="${TM_AZ_REPLAY_CACHE_GAMES:-8}"
 replay_window_shards="${TM_AZ_REPLAY_WINDOW_SHARDS:-10000}"
 arena_games_per_batch="${TM_AZ_ARENA_GAMES_PER_BATCH:-8}"
@@ -76,6 +79,9 @@ fi
   printf 'learner_device=%s\n' "${learner_device}"
   printf 'torch_threads=%s\n' "${torch_threads}"
   printf 'actor_games_per_batch=%s\n' "${actor_games_per_batch}"
+  printf 'inference_max_batch=%s\n' "${inference_max_batch}"
+  printf 'inference_max_wait=%s\n' "${inference_max_wait}"
+  printf 'root_search_mode=%s\n' "${root_search_mode}"
   printf 'arena_games_per_batch=%s\n' "${arena_games_per_batch}"
   printf 'replay_cache_games=%s\n' "${replay_cache_games}"
   printf 'replay_window_shards=%s\n' "${replay_window_shards}"
@@ -130,6 +136,9 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --model-config "${model_config}" \
     --inference-device "${inference_device}" \
     --inference-torch-threads "${torch_threads}" \
+    --inference-max-batch "${inference_max_batch}" \
+    --inference-max-wait "${inference_max_wait}" \
+    --root-search-mode "${root_search_mode}" \
     --output "${cycle_replay}" \
     --games "${games}" \
     --games-per-batch "${actor_games_per_batch}" \

@@ -197,6 +197,24 @@ func (toyValueEvaluator) Evaluate(_ context.Context, requests []EvaluationReques
 	return results, nil
 }
 
+type requestSensitiveEvaluator struct{}
+
+func (requestSensitiveEvaluator) Evaluate(_ context.Context, requests []EvaluationRequest) ([]EvaluationResult, error) {
+	results := make([]EvaluationResult, len(requests))
+	for requestIndex, request := range requests {
+		position, ok := request.Position.(*toyPosition)
+		if !ok {
+			return nil, fmt.Errorf("unexpected position type %T", request.Position)
+		}
+		results[requestIndex].PolicyLogits = make([]float32, len(request.Actions))
+		for actionIndex, action := range request.Actions {
+			results[requestIndex].PolicyLogits[actionIndex] = float32((int(position.spec.id)%7 + 1) * action.Amount)
+		}
+		results[requestIndex].Value = float32(int(position.spec.id)%9-4) / 4
+	}
+	return results, nil
+}
+
 func TestBackupUsesDecisionOwnerIdentity(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -276,6 +294,92 @@ func TestSerialAndBatchedSearchAgree(t *testing.T) {
 	}
 	if !foundBatch {
 		t.Fatalf("evaluator never received a full leaf batch: %v", evaluator.batchSizes)
+	}
+}
+
+func TestSerialLockstepAndConcurrentRootSearchAgree(t *testing.T) {
+	positions := []Position{
+		&toyPosition{spec: variedImmediateChoiceSpec(71, 8, 2)},
+		&toyPosition{spec: variedImmediateChoiceSpec(72, 8, 5)},
+		&toyPosition{spec: variedImmediateChoiceSpec(73, 8, 7)},
+		&toyPosition{spec: variedImmediateChoiceSpec(74, 8, 3)},
+	}
+	config := SearchConfig{
+		Simulations: 32, CPUCT: 1.5,
+		DirichletTotalConcentration: 10, DirichletEpsilon: 0.25,
+		RootSeeds: []int64{101, 202, 303, 404},
+	}
+	evaluator := requestSensitiveEvaluator{}
+	lockstep, err := NewMCTS(evaluator, config)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want, err := lockstep.SearchBatch(context.Background(), positions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	options := []BatchingEvaluatorOptions{
+		{MaxPositions: 1, MaxWait: 0},
+		{MaxPositions: 2, MaxWait: time.Millisecond},
+		{MaxPositions: 8, MaxWait: 2 * time.Millisecond},
+	}
+	for _, option := range options {
+		t.Run(fmt.Sprintf("max_%d_wait_%s", option.MaxPositions, option.MaxWait), func(t *testing.T) {
+			batcher, err := NewBatchingEvaluator(context.Background(), evaluator, option)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got, err := SearchRootsConcurrent(context.Background(), batcher, config, positions)
+			batcher.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(got, want) {
+				t.Fatalf("concurrent roots differ from lockstep roots\ngot=%#v\nwant=%#v", got, want)
+			}
+
+			reorderedPositions := []Position{positions[3], positions[2], positions[1], positions[0]}
+			reorderedConfig := config
+			reorderedConfig.RootSeeds = []int64{404, 303, 202, 101}
+			reorderedBatcher, err := NewBatchingEvaluator(context.Background(), evaluator, option)
+			if err != nil {
+				t.Fatal(err)
+			}
+			reordered, err := SearchRootsConcurrent(context.Background(), reorderedBatcher, reorderedConfig, reorderedPositions)
+			reorderedBatcher.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+			for index := range reordered {
+				if !reflect.DeepEqual(reordered[index], want[len(want)-1-index]) {
+					t.Fatalf("root order changed result %d", index)
+				}
+			}
+		})
+	}
+}
+
+func TestConcurrentRootSearchFillsSharedEvaluatorBatch(t *testing.T) {
+	underlying := &recordingEvaluator{}
+	batcher, err := NewBatchingEvaluator(context.Background(), underlying, BatchingEvaluatorOptions{
+		MaxPositions: 4,
+		MaxWait:      100 * time.Millisecond,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer batcher.Close()
+	positions := []Position{
+		&toyPosition{spec: immediateChoiceSpec(81)},
+		&toyPosition{spec: immediateChoiceSpec(82)},
+		&toyPosition{spec: immediateChoiceSpec(83)},
+		&toyPosition{spec: immediateChoiceSpec(84)},
+	}
+	if _, err := SearchRootsConcurrent(context.Background(), batcher, SearchConfig{Simulations: 1}, positions); err != nil {
+		t.Fatal(err)
+	}
+	if got := underlying.batches(); len(got) == 0 || got[0] != 4 {
+		t.Fatalf("concurrent roots did not fill shared batch: %v", got)
 	}
 }
 
@@ -415,6 +519,50 @@ func TestSelfPlayRootSeedSeparatesActorBatchGameAndPly(t *testing.T) {
 		if got == first {
 			t.Fatalf("root seed collision for distinct input case %d", index)
 		}
+	}
+}
+
+func TestLockstepAndConcurrentSelfPlayProduceIdenticalTrajectories(t *testing.T) {
+	generate := func(mode RootSearchMode) []Trajectory {
+		positions := make([]*GamePosition, 2)
+		var err error
+		positions[0], err = NewBaseGame(7310, models.FactionNomads, models.FactionWitches)
+		if err != nil {
+			t.Fatal(err)
+		}
+		positions[1], err = NewBaseGame(7311, models.FactionEngineers, models.FactionGiants)
+		if err != nil {
+			t.Fatal(err)
+		}
+		batcher, err := NewBatchingEvaluator(context.Background(), UniformEvaluator{}, BatchingEvaluatorOptions{
+			MaxPositions: 8,
+			MaxWait:      time.Millisecond,
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		trajectories, err := GenerateSelfPlay(context.Background(), positions, []int64{7310, 7311}, batcher, SelfPlayConfig{
+			Search: SearchConfig{
+				Simulations:                 1,
+				DirichletTotalConcentration: 10,
+				DirichletEpsilon:            0.25,
+			},
+			RootSearchMode: mode,
+			SearchSeeds:    []int64{9001, 9002},
+			Temperature:    1,
+			MaxPlies:       500,
+			EngineCommit:   "test",
+		})
+		batcher.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		return trajectories
+	}
+	want := generate(RootSearchLockstep)
+	got := generate(RootSearchConcurrent)
+	if !reflect.DeepEqual(got, want) {
+		t.Fatal("concurrent self-play changed same-seed trajectories")
 	}
 }
 

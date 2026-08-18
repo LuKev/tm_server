@@ -543,7 +543,9 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
 			pending := pendingTowns[nextPendingTownFormationIndex(pendingTowns)]
 			current := gs.GetCurrentPlayer()
-			if pending != nil && pending.CanBeDelayed && (current == nil || current.ID != playerID) {
+			ownsActionWindow := current != nil && current.ID == playerID ||
+				strings.TrimSpace(gs.PendingFreeActionsPlayerID) == strings.TrimSpace(playerID)
+			if pending != nil && pending.CanBeDelayed && !ownsActionWindow {
 				return fmt.Errorf("delayed Mermaid town can only be founded on player %s's turn", playerID)
 			}
 			return nil

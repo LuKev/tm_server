@@ -6,7 +6,7 @@ Go backend server for Terra Mystica online multiplayer game.
 
 ### Prerequisites
 - Bazel installed (you have this already)
-- Go 1.21+ (will be downloaded by Bazel if needed)
+- Go 1.26.6 (downloaded and pinned by Bazel)
 
 ### Build the server
 ```bash

@@ -33,60 +33,73 @@ var baseFactions = []models.FactionType{
 }
 
 type selfPlayMetrics struct {
-	WallSeconds                       float64              `json:"wall_seconds"`
-	GenerationSeconds                 float64              `json:"generation_seconds"`
-	ShardWriteSeconds                 float64              `json:"shard_write_seconds"`
-	GamesPerHour                      float64              `json:"games_per_hour"`
-	Decisions                         int                  `json:"decisions"`
-	DecisionsPerGame                  float64              `json:"decisions_per_game"`
-	ConfiguredSimulations             int                  `json:"configured_simulations_per_decision"`
-	SetupSeedStart                    int64                `json:"setup_seed_start"`
-	SearchSeedStart                   int64                `json:"search_seed_start"`
-	SimulationTraversalsPerSecond     float64              `json:"simulation_traversals_per_second"`
-	EvaluationPositionsPerSecond      float64              `json:"evaluation_positions_per_second"`
-	InferencePositionsPerSecond       float64              `json:"inference_positions_per_second"`
-	MeanInferenceBatchSize            float64              `json:"mean_inference_batch_size"`
-	SearchInclusiveWallSeconds        float64              `json:"search_inclusive_wall_seconds"`
-	InferenceCumulativeLatencySeconds float64              `json:"inference_cumulative_latency_seconds"`
-	InferenceServiceSeconds           float64              `json:"inference_service_seconds"`
-	InferenceQueueWaitSeconds         float64              `json:"inference_queue_wait_seconds"`
-	RecentInferenceLatencyP50Millis   float64              `json:"recent_inference_latency_p50_ms"`
-	RecentInferenceLatencyP95Millis   float64              `json:"recent_inference_latency_p95_ms"`
-	RecentInferenceQueueP95Millis     float64              `json:"recent_inference_queue_wait_p95_ms"`
-	EvaluationReuseRate               float64              `json:"evaluation_reuse_rate"`
-	TrajectoryBytes                   int                  `json:"trajectory_bytes"`
-	BytesPerGame                      float64              `json:"bytes_per_game"`
-	GameBatches                       int                  `json:"game_batches"`
-	PeakConcurrentGames               int                  `json:"peak_concurrent_games"`
-	Search                            az.SearchStats       `json:"search"`
-	Inference                         az.InferenceStats    `json:"inference"`
-	InferenceModel                    az.InferenceMetadata `json:"inference_model"`
+	WallSeconds                       float64                   `json:"wall_seconds"`
+	GenerationSeconds                 float64                   `json:"generation_seconds"`
+	ShardWriteSeconds                 float64                   `json:"shard_write_seconds"`
+	GamesPerHour                      float64                   `json:"games_per_hour"`
+	Decisions                         int                       `json:"decisions"`
+	DecisionsPerGame                  float64                   `json:"decisions_per_game"`
+	ConfiguredSimulations             int                       `json:"configured_simulations_per_decision"`
+	ConfiguredRootSearchMode          string                    `json:"configured_root_search_mode"`
+	ConfiguredInferenceMaxBatch       int                       `json:"configured_inference_max_batch"`
+	ConfiguredInferenceMaxWait        string                    `json:"configured_inference_max_wait"`
+	SetupSeedStart                    int64                     `json:"setup_seed_start"`
+	SearchSeedStart                   int64                     `json:"search_seed_start"`
+	SimulationTraversalsPerSecond     float64                   `json:"simulation_traversals_per_second"`
+	EvaluationPositionsPerSecond      float64                   `json:"evaluation_positions_per_second"`
+	InferencePositionsPerSecond       float64                   `json:"inference_positions_per_second"`
+	MeanInferenceBatchSize            float64                   `json:"mean_inference_batch_size"`
+	SearchInclusiveWallSeconds        float64                   `json:"search_inclusive_wall_seconds"`
+	InferenceCumulativeLatencySeconds float64                   `json:"inference_cumulative_latency_seconds"`
+	InferenceServiceSeconds           float64                   `json:"inference_service_seconds"`
+	InferenceQueueWaitSeconds         float64                   `json:"inference_queue_wait_seconds"`
+	RecentInferenceLatencyP50Millis   float64                   `json:"recent_inference_latency_p50_ms"`
+	RecentInferenceLatencyP95Millis   float64                   `json:"recent_inference_latency_p95_ms"`
+	RecentInferenceQueueP95Millis     float64                   `json:"recent_inference_queue_wait_p95_ms"`
+	InferenceBatcherQueueWaitSeconds  float64                   `json:"inference_batcher_queue_wait_seconds"`
+	RecentBatcherQueueP95Millis       float64                   `json:"recent_batcher_queue_wait_p95_ms"`
+	EvaluationReuseRate               float64                   `json:"evaluation_reuse_rate"`
+	TrajectoryBytes                   int                       `json:"trajectory_bytes"`
+	BytesPerGame                      float64                   `json:"bytes_per_game"`
+	GameBatches                       int                       `json:"game_batches"`
+	PeakConcurrentGames               int                       `json:"peak_concurrent_games"`
+	Search                            az.SearchStats            `json:"search"`
+	Inference                         az.InferenceStats         `json:"inference"`
+	InferenceBatcher                  az.BatchingEvaluatorStats `json:"inference_batcher"`
+	InferenceModel                    az.InferenceMetadata      `json:"inference_model"`
 }
 
 func main() {
 	var (
-		inference        = flag.String("inference", "", "path to the az_inference executable")
-		checkpoint       = flag.String("checkpoint", "", "optional model checkpoint")
-		latest           = flag.String("checkpoint-latest", "", "optional atomic latest.json reference")
-		modelConfig      = flag.String("model-config", "auto", "auto, debug, main, or large")
-		modelSeed        = flag.Int64("model-seed", 0, "random initialization seed, independent of setup")
-		inferenceDevice  = flag.String("inference-device", "cpu", "inference device: cpu, cuda, mps, or auto")
-		inferenceThreads = flag.Int("inference-torch-threads", 1, "PyTorch CPU threads; zero keeps the default")
-		output           = flag.String("output", "", "trajectory shard directory")
-		engineCommit     = flag.String("engine-commit", "", "required engine source revision")
-		games            = flag.Int("games", 1, "total number of games")
-		gamesPerBatch    = flag.Int("games-per-batch", 8, "maximum lockstep games retained before shard publication")
-		simulations      = flag.Int("simulations", 1, "MCTS simulations per decision")
-		temperature      = flag.Float64("temperature", 1, "self-play visit temperature")
-		seed             = flag.Int64("seed", 1, "first deterministic setup seed")
-		searchSeed       = flag.Int64("search-seed", 2000000, "first deterministic search/action seed, independent of setup")
-		maxPlies         = flag.Int("max-plies", 2000, "natural-completion tripwire")
-		noiseEpsilon     = flag.Float64("dirichlet-epsilon", 0.25, "root exploration noise fraction")
-		concentration    = flag.Float64("dirichlet-concentration", 10, "root noise total concentration")
+		inference         = flag.String("inference", "", "path to the az_inference executable")
+		checkpoint        = flag.String("checkpoint", "", "optional model checkpoint")
+		latest            = flag.String("checkpoint-latest", "", "optional atomic latest.json reference")
+		modelConfig       = flag.String("model-config", "auto", "auto, debug, main, or large")
+		modelSeed         = flag.Int64("model-seed", 0, "random initialization seed, independent of setup")
+		inferenceDevice   = flag.String("inference-device", "cpu", "inference device: cpu, cuda, mps, or auto")
+		inferenceThreads  = flag.Int("inference-torch-threads", 1, "PyTorch CPU threads; zero keeps the default")
+		inferenceMaxBatch = flag.Int("inference-max-batch", 32, "maximum positions in a shared inference batch")
+		inferenceMaxWait  = flag.Duration("inference-max-wait", time.Millisecond, "maximum wait for a shared inference batch")
+		output            = flag.String("output", "", "trajectory shard directory")
+		engineCommit      = flag.String("engine-commit", "", "required engine source revision")
+		games             = flag.Int("games", 1, "total number of games")
+		gamesPerBatch     = flag.Int("games-per-batch", 32, "maximum concurrent games retained before shard publication")
+		rootSearchMode    = flag.String("root-search-mode", string(az.RootSearchConcurrent), "root search scheduling: lockstep or concurrent")
+		simulations       = flag.Int("simulations", 1, "MCTS simulations per decision")
+		temperature       = flag.Float64("temperature", 1, "self-play visit temperature")
+		seed              = flag.Int64("seed", 1, "first deterministic setup seed")
+		searchSeed        = flag.Int64("search-seed", 2000000, "first deterministic search/action seed, independent of setup")
+		maxPlies          = flag.Int("max-plies", 2000, "natural-completion tripwire")
+		noiseEpsilon      = flag.Float64("dirichlet-epsilon", 0.25, "root exploration noise fraction")
+		concentration     = flag.Float64("dirichlet-concentration", 10, "root noise total concentration")
 	)
 	flag.Parse()
-	if *inference == "" || *output == "" || *engineCommit == "" || *games <= 0 || *gamesPerBatch <= 0 || *searchSeed <= 0 {
-		fmt.Fprintln(os.Stderr, "--inference, --output, --engine-commit, positive --games, positive --games-per-batch, and positive --search-seed are required")
+	if *inference == "" || *output == "" || *engineCommit == "" || *games <= 0 || *gamesPerBatch <= 0 || *searchSeed <= 0 || *inferenceMaxBatch <= 0 || *inferenceMaxWait < 0 {
+		fmt.Fprintln(os.Stderr, "--inference, --output, --engine-commit, positive --games, --games-per-batch, --search-seed, --inference-max-batch, and non-negative --inference-max-wait are required")
+		os.Exit(2)
+	}
+	if mode := az.RootSearchMode(*rootSearchMode); mode != az.RootSearchLockstep && mode != az.RootSearchConcurrent {
+		fmt.Fprintln(os.Stderr, "--root-search-mode must be lockstep or concurrent")
 		os.Exit(2)
 	}
 	resolvedCheckpoint, err := az.ResolveCheckpointReference(*checkpoint, *latest)
@@ -108,6 +121,18 @@ func main() {
 			fmt.Fprintln(os.Stderr, "close inference:", err)
 		}
 	}()
+	batchedEvaluator, err := az.NewBatchingEvaluator(ctx, evaluator, az.BatchingEvaluatorOptions{
+		MaxPositions: *inferenceMaxBatch,
+		MaxWait:      *inferenceMaxWait,
+	})
+	if err != nil {
+		fatal(err)
+	}
+	defer batchedEvaluator.Close()
+	var searchEvaluator az.Evaluator = evaluator
+	if az.RootSearchMode(*rootSearchMode) == az.RootSearchConcurrent {
+		searchEvaluator = batchedEvaluator
+	}
 
 	matchups := orderedBaseMatchups()
 	offset := int(*seed % int64(len(matchups)))
@@ -143,8 +168,9 @@ func main() {
 		}
 
 		generationStarted := time.Now()
-		trajectories, generateErr := az.GenerateSelfPlay(ctx, positions, seeds, evaluator, az.SelfPlayConfig{
-			SearchSeeds: searchSeeds,
+		trajectories, generateErr := az.GenerateSelfPlay(ctx, positions, seeds, searchEvaluator, az.SelfPlayConfig{
+			SearchSeeds:    searchSeeds,
+			RootSearchMode: az.RootSearchMode(*rootSearchMode),
 			Search: az.SearchConfig{
 				Simulations:                 *simulations,
 				CPUCT:                       1.5,
@@ -178,12 +204,16 @@ func main() {
 	wallDuration := time.Since(started)
 	searchStats := telemetry.Snapshot()
 	inferenceStats := evaluator.Stats()
+	batcherStats := batchedEvaluator.Stats()
 	reuseDenominator := searchStats.EvaluationCacheHits + searchStats.EvaluationCacheMisses + searchStats.EvaluationBatchDedupHits
 	metrics := selfPlayMetrics{
 		WallSeconds: wallDuration.Seconds(), GenerationSeconds: generationDuration.Seconds(),
 		ShardWriteSeconds: writeDuration.Seconds(), GamesPerHour: perSecond(shardsWritten, wallDuration) * 3600,
 		Decisions: decisions, DecisionsPerGame: ratio(decisions, shardsWritten),
 		ConfiguredSimulations:             *simulations,
+		ConfiguredRootSearchMode:          *rootSearchMode,
+		ConfiguredInferenceMaxBatch:       *inferenceMaxBatch,
+		ConfiguredInferenceMaxWait:        inferenceMaxWait.String(),
 		SetupSeedStart:                    *seed,
 		SearchSeedStart:                   *searchSeed,
 		SimulationTraversalsPerSecond:     perSecond64(searchStats.SimulationTraversals, generationDuration),
@@ -197,10 +227,12 @@ func main() {
 		RecentInferenceLatencyP50Millis:   durationMillis(inferenceStats.LatencyP50),
 		RecentInferenceLatencyP95Millis:   durationMillis(inferenceStats.LatencyP95),
 		RecentInferenceQueueP95Millis:     durationMillis(inferenceStats.QueueWaitP95),
+		InferenceBatcherQueueWaitSeconds:  batcherStats.QueueWaitDuration.Seconds(),
+		RecentBatcherQueueP95Millis:       durationMillis(batcherStats.QueueWaitP95),
 		EvaluationReuseRate:               ratio64(searchStats.EvaluationCacheHits+searchStats.EvaluationBatchDedupHits, reuseDenominator),
 		TrajectoryBytes:                   trajectoryBytes, BytesPerGame: ratio(trajectoryBytes, shardsWritten),
 		GameBatches: batchCount, PeakConcurrentGames: peakConcurrentGames,
-		Search: searchStats, Inference: inferenceStats, InferenceModel: evaluator.Metadata(),
+		Search: searchStats, Inference: inferenceStats, InferenceBatcher: batcherStats, InferenceModel: evaluator.Metadata(),
 	}
 	if err := json.NewEncoder(os.Stdout).Encode(struct {
 		Games         int             `json:"games"`
