@@ -20,6 +20,8 @@ func main() {
 		baselineCheckpoint  = flag.String("baseline-checkpoint", "", "baseline snapshot; empty uses random initialization")
 		baselineLatest      = flag.String("baseline-latest", "", "baseline latest.json")
 		baselineUniform     = flag.Bool("baseline-uniform", false, "use exact uniform-policy/zero-value ancestor")
+		candidateMode       = flag.String("candidate-mode", "mcts", "candidate decision mode: mcts, policy, random")
+		baselineMode        = flag.String("baseline-mode", "mcts", "baseline decision mode: mcts, policy, random; uniform MCTS is not random play")
 		modelConfig         = flag.String("model-config", "auto", "auto, debug, main, or large")
 		inferenceDevice     = flag.String("inference-device", "cpu", "inference device: cpu, cuda, mps, or auto")
 		inferenceThreads    = flag.Int("inference-torch-threads", 1, "PyTorch CPU threads; zero keeps the default")
@@ -35,8 +37,16 @@ func main() {
 		maxPlies            = flag.Int("max-plies", 2000, "natural-completion tripwire")
 	)
 	flag.Parse()
-	if *inference == "" || *output == "" || *engineCommit == "" {
-		fatal(fmt.Errorf("--inference, --output, and --engine-commit are required"))
+	if *output == "" || *engineCommit == "" {
+		fatal(fmt.Errorf("--output and --engine-commit are required"))
+	}
+	for _, mode := range []string{*candidateMode, *baselineMode} {
+		if mode != "mcts" && mode != "policy" && mode != "random" {
+			fatal(fmt.Errorf("unknown decision mode %q", mode))
+		}
+	}
+	if *inference == "" && (*candidateMode != "random" || (*baselineMode != "random" && !*baselineUniform)) {
+		fatal(fmt.Errorf("--inference is required for neural agents"))
 	}
 	candidatePath, err := az.ResolveCheckpointReference(*candidateCheckpoint, *candidateLatest)
 	if err != nil {
@@ -49,20 +59,27 @@ func main() {
 	if *baselineUniform && baselinePath != "" {
 		fatal(fmt.Errorf("--baseline-uniform cannot be combined with a baseline checkpoint"))
 	}
+	if (*candidateMode == "random" && candidatePath != "") || (*baselineMode == "random" && (baselinePath != "" || *baselineUniform)) {
+		fatal(fmt.Errorf("random mode cannot use a checkpoint or --baseline-uniform"))
+	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	candidate, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, az.PythonEvaluatorOptions{
-		Checkpoint: candidatePath, ModelConfig: *modelConfig, Device: *inferenceDevice,
-		Seed: *candidateSeed, TorchThreads: *inferenceThreads,
-	})
-	if err != nil {
-		fatal(err)
+	var candidate az.Evaluator = az.UniformEvaluator{}
+	if *candidateMode != "random" {
+		process, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, az.PythonEvaluatorOptions{
+			Checkpoint: candidatePath, ModelConfig: *modelConfig, Device: *inferenceDevice,
+			Seed: *candidateSeed, TorchThreads: *inferenceThreads,
+		})
+		if err != nil {
+			fatal(err)
+		}
+		defer process.Close()
+		candidate = process
 	}
-	defer candidate.Close()
 	var baseline az.Evaluator = az.UniformEvaluator{}
-	if !*baselineUniform {
-		if baselinePath == candidatePath && *baselineSeed == *candidateSeed {
+	if !*baselineUniform && *baselineMode != "random" {
+		if *candidateMode != "random" && baselinePath == candidatePath && *baselineSeed == *candidateSeed {
 			baseline = candidate
 		} else {
 			baselineProcess, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, az.PythonEvaluatorOptions{
@@ -96,7 +113,8 @@ func main() {
 		baselineBudget = *simulations
 	}
 	report, err := az.RunPairedArena(ctx, candidate, baseline, cases, az.ArenaConfig{
-		HoldoutSuiteID:       holdoutSuiteID,
+		HoldoutSuiteID: holdoutSuiteID,
+		CandidateMode:  *candidateMode, BaselineMode: *baselineMode,
 		CandidateSimulations: candidateBudget, BaselineSimulations: baselineBudget,
 		GamesPerBatch: *gamesPerBatch, CPUCT: 1.5, MaxPlies: *maxPlies,
 	}, *engineCommit)

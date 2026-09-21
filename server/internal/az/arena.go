@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -18,7 +19,7 @@ import (
 )
 
 const (
-	EvaluationFormatVersion = 5
+	EvaluationFormatVersion = 6
 	HoldoutSuiteID          = "tm-v0-paired-v2"
 	arenaCandidateAgent     = "candidate"
 	arenaBaselineAgent      = "baseline"
@@ -84,12 +85,38 @@ func IsHoldoutSeed(seed int64) bool {
 
 type ArenaConfig struct {
 	HoldoutSuiteID       string  `json:"holdout_suite_id"`
+	CandidateMode        string  `json:"candidate_mode"`
+	BaselineMode         string  `json:"baseline_mode"`
 	CandidateSimulations int     `json:"candidate_simulations"`
 	BaselineSimulations  int     `json:"baseline_simulations"`
 	GamesPerBatch        int     `json:"games_per_batch"`
 	CPUCT                float64 `json:"c_puct"`
 	MaxPlies             int     `json:"max_plies"`
 }
+
+// Empty mode retains the existing MCTS API default. Persist normalized names
+// and zero traversals for non-search baselines so policy-only is never confused
+// with a one-simulation tree search.
+func normalizeArenaMode(mode string, simulations int) (string, int, error) {
+	if mode == "" {
+		mode = "mcts"
+	}
+	switch mode {
+	case "mcts":
+		if simulations <= 0 {
+			return "", 0, fmt.Errorf("MCTS arena simulations must be positive")
+		}
+	case "policy", "random":
+		simulations = 0
+	default:
+		return "", 0, fmt.Errorf("unknown arena mode %q; use mcts, policy, or random", mode)
+	}
+	return mode, simulations, nil
+}
+
+type randomLegalEvaluator struct{ UniformEvaluator }
+
+func (randomLegalEvaluator) ModelID() string { return "random-legal" }
 
 type AgentPrediction struct {
 	AgentID       string  `json:"agent_id"`
@@ -191,6 +218,21 @@ type ArenaReport struct {
 }
 
 func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []ArenaCase, config ArenaConfig, engineCommit string) (ArenaReport, error) {
+	var err error
+	config.CandidateMode, config.CandidateSimulations, err = normalizeArenaMode(config.CandidateMode, config.CandidateSimulations)
+	if err != nil {
+		return ArenaReport{}, err
+	}
+	config.BaselineMode, config.BaselineSimulations, err = normalizeArenaMode(config.BaselineMode, config.BaselineSimulations)
+	if err != nil {
+		return ArenaReport{}, err
+	}
+	if config.CandidateMode == "random" {
+		candidate = randomLegalEvaluator{}
+	}
+	if config.BaselineMode == "random" {
+		baseline = randomLegalEvaluator{}
+	}
 	candidateID, err := evaluatorModelID(candidate)
 	if err != nil {
 		return ArenaReport{}, fmt.Errorf("candidate: %w", err)
@@ -207,9 +249,6 @@ func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []
 	}
 	if err := validateHoldoutSuiteIdentity(config.HoldoutSuiteID, cases); err != nil {
 		return ArenaReport{}, err
-	}
-	if config.CandidateSimulations <= 0 || config.BaselineSimulations <= 0 {
-		return ArenaReport{}, fmt.Errorf("candidate and baseline arena simulations must be positive")
 	}
 	if engineCommit == "" {
 		return ArenaReport{}, fmt.Errorf("arena engine commit is required")
@@ -407,24 +446,19 @@ func playArenaBatch(ctx context.Context, games []arenaRuntime, agents map[string
 			if len(indices) == 0 {
 				continue
 			}
-			simulations := searchBudgetForAgent(config, agentID)
-			search, err := NewMCTS(agents[agentID], SearchConfig{
-				Simulations: simulations, CPUCT: config.CPUCT, RootSeeds: rootSeeds,
-			})
+			mode := config.BaselineMode
+			if agentID == arenaCandidateAgent {
+				mode = config.CandidateMode
+			}
+			actions, err := selectArenaActions(ctx, agents[agentID], mode, SearchConfig{
+				Simulations: searchBudgetForAgent(config, agentID), CPUCT: config.CPUCT, RootSeeds: rootSeeds,
+			}, positions)
 			if err != nil {
 				return failArenaBatch(games, err)
 			}
-			results, err := search.SearchBatch(ctx, positions)
-			if err != nil {
-				return failArenaBatch(games, err)
-			}
-			for resultIndex, result := range results {
+			for resultIndex, action := range actions {
 				decision := decisions[indices[resultIndex]]
 				runtime := &games[decision.gameIndex]
-				action, err := result.SelectAction(0, nil)
-				if err != nil {
-					return failArenaBatch(games, err)
-				}
 				runtime.result.Decisions = append(runtime.result.Decisions, ArenaDecision{
 					Seat: decision.seat, Phase: decision.phase, Round: decision.round,
 					StateHash: decision.hash.String(), Action: action, Predictions: decision.predictions,
@@ -439,6 +473,49 @@ func playArenaBatch(ctx context.Context, games []arenaRuntime, agents map[string
 		}
 	}
 	return arenaResults(games), nil
+}
+
+func selectArenaActions(ctx context.Context, evaluator Evaluator, mode string, config SearchConfig, positions []Position) ([]SearchAction, error) {
+	var err error
+	mode, config.Simulations, err = normalizeArenaMode(mode, config.Simulations)
+	if err != nil {
+		return nil, err
+	}
+	if len(config.RootSeeds) != len(positions) {
+		return nil, fmt.Errorf("arena requires one seed per position")
+	}
+	actions := make([]SearchAction, len(positions))
+	if mode == "random" {
+		for i, position := range positions {
+			legal := append([]SearchAction(nil), position.LegalActions()...)
+			if len(legal) == 0 {
+				return nil, fmt.Errorf("random agent has no legal actions")
+			}
+			sort.Slice(legal, func(a, b int) bool { return legal[a].Key() < legal[b].Key() })
+			actions[i] = legal[rand.New(rand.NewSource(config.RootSeeds[i])).Intn(len(legal))]
+		}
+		return actions, nil
+	}
+	// Zero traversals evaluate the root policy only; no child is applied or
+	// evaluated. The search result's prior argmax supplies the same tie contract.
+	if mode == "policy" {
+		config.DirichletEpsilon = 0
+	}
+	search, err := NewMCTS(evaluator, config)
+	if err != nil {
+		return nil, err
+	}
+	results, err := search.SearchBatch(ctx, positions)
+	if err != nil {
+		return nil, err
+	}
+	for i, result := range results {
+		actions[i], err = result.SelectAction(0, nil)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return actions, nil
 }
 
 func arenaResults(games []arenaRuntime) []ArenaGame {
@@ -829,8 +906,20 @@ func validateArenaReport(report ArenaReport) error {
 	if report.FormatVersion != EvaluationFormatVersion || report.EngineCommit == "" || report.CandidateID == "" || report.BaselineID == "" {
 		return fmt.Errorf("refusing to persist incomplete arena report")
 	}
-	if report.Config.HoldoutSuiteID == "" || report.Config.CandidateSimulations <= 0 || report.Config.BaselineSimulations <= 0 || report.Config.GamesPerBatch <= 0 || report.Config.GamesPerBatch%2 != 0 {
+	if report.Config.HoldoutSuiteID == "" || report.Config.GamesPerBatch <= 0 || report.Config.GamesPerBatch%2 != 0 {
 		return fmt.Errorf("refusing to persist arena report without versioned search configuration")
+	}
+	for _, agent := range []struct {
+		mode        string
+		simulations int
+	}{
+		{report.Config.CandidateMode, report.Config.CandidateSimulations},
+		{report.Config.BaselineMode, report.Config.BaselineSimulations},
+	} {
+		mode, budget, err := normalizeArenaMode(agent.mode, agent.simulations)
+		if err != nil || mode != agent.mode || budget != agent.simulations {
+			return fmt.Errorf("refusing to persist arena report with inconsistent mode/budget")
+		}
 	}
 	if err := validateHoldoutSuiteIdentity(report.Config.HoldoutSuiteID, report.Cases); err != nil {
 		return err

@@ -16,6 +16,8 @@ from torch.nn import functional as F
 
 from schema import MANIFEST, SchemaManifest
 
+ARCHITECTURE_VERSION = 2
+
 
 @dataclass(frozen=True)
 class ModelConfig:
@@ -131,7 +133,7 @@ class TerraMysticaNet(nn.Module):
         self.action_global = nn.Sequential(
             nn.Linear(manifest.global_features, channels), nn.ReLU(),
         )
-        policy_input = manifest.action_features + 3 * channels
+        policy_input = manifest.action_features + 4 * channels
         self.policy = nn.Sequential(
             nn.Linear(policy_input, channels), nn.ReLU(), nn.Linear(channels, 1),
         )
@@ -161,6 +163,9 @@ class TerraMysticaNet(nn.Module):
     ) -> tuple[Tensor, Tensor]:
         trunk, valid_mask = self.trunk(spatial, global_features)
         batch, channels, height, width = trunk.shape
+        masked_sum = (trunk * valid_mask).sum(dim=(2, 3))
+        valid_count = valid_mask.sum(dim=(2, 3)).clamp_min(1)
+        pooled = masked_sum / valid_count
         flat = trunk.reshape(batch, channels, height * width).transpose(1, 2)
         gathered: list[Tensor] = []
         for reference in range(2):
@@ -169,19 +174,18 @@ class TerraMysticaNet(nn.Module):
             cells = torch.gather(flat, 1, safe_indices[:, :, None].expand(-1, -1, channels))
             gathered.append(cells * (indices >= 0)[:, :, None])
         global_action = self.action_global(global_features)[:, None, :].expand(-1, action_features.shape[1], -1)
-        policy_input = torch.cat((action_features, gathered[0], gathered[1], global_action), dim=-1)
+        board_action = pooled[:, None, :].expand(-1, action_features.shape[1], -1)
+        policy_input = torch.cat((action_features, gathered[0], gathered[1], global_action, board_action), dim=-1)
         logits = self.policy(policy_input).squeeze(-1)
         logits = logits.masked_fill(~action_mask, torch.finfo(logits.dtype).min)
 
-        masked_sum = (trunk * valid_mask).sum(dim=(2, 3))
-        valid_count = valid_mask.sum(dim=(2, 3)).clamp_min(1)
-        pooled = masked_sum / valid_count
         value = self.value(torch.cat((pooled, global_features), dim=-1)).squeeze(-1)
         return logits, value
 
 
 def checkpoint_manifest(model: TerraMysticaNet) -> dict[str, Any]:
     return {
+        "architecture_version": ARCHITECTURE_VERSION,
         "schema": model.manifest.as_dict(),
         "model": asdict(model.config),
     }

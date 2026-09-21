@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"hash/fnv"
 	"math"
 	"math/rand"
 	"sort"
@@ -47,6 +48,14 @@ func (UniformEvaluator) Evaluate(_ context.Context, requests []EvaluationRequest
 	return results, nil
 }
 
+// SearchConfig counts simulations as traversals after root evaluation: an
+// S-simulation nonterminal search has exactly S root edge visits. Unvisited
+// edges have Q=0 (first-play urgency); PUCT uses sqrt(max(1, sum edge visits))
+// so even the first traversal follows the policy. Exact score ties use a
+// seed/position/action-key hash, never the candidate list's first element.
+// Dirichlet noise is root-only, with alpha=total concentration/legal count;
+// Seed (or the corresponding RootSeeds entry) controls both noise and ties.
+// Temperature is applied after search by VisitPolicy, not during traversal.
 type SearchConfig struct {
 	Simulations                 int
 	CPUCT                       float64
@@ -180,6 +189,7 @@ func NewMCTS(evaluator Evaluator, config SearchConfig) (*MCTS, error) {
 }
 
 type SearchResult struct {
+	tieSeed        int64
 	RootHash       Hash128
 	DecisionPlayer PlayerID
 	Actions        []SearchAction
@@ -190,7 +200,8 @@ type SearchResult struct {
 }
 
 // VisitPolicy returns the AlphaZero policy target. Temperature zero is a
-// deterministic one-hot argmax for evaluation; positive temperatures use
+// deterministic seeded one-hot argmax for evaluation (visit ties prefer the
+// prior, then a semantic action hash); positive temperatures use
 // N^(1/tau), falling back to priors before any edge has been visited.
 func (r SearchResult) VisitPolicy(temperature float64) ([]float32, error) {
 	if temperature < 0 || math.IsNaN(temperature) || math.IsInf(temperature, 0) {
@@ -205,12 +216,10 @@ func (r SearchResult) VisitPolicy(temperature float64) ([]float32, error) {
 	}
 	if temperature == 0 {
 		best := 0
-		totalVisits := r.Visits[0]
-		for _, visits := range r.Visits[1:] {
-			totalVisits += visits
-		}
 		for i := 1; i < len(r.Visits); i++ {
-			if r.Visits[i] > r.Visits[best] || (totalVisits == 0 && r.Priors[i] > r.Priors[best]) {
+			if r.Visits[i] > r.Visits[best] || (r.Visits[i] == r.Visits[best] &&
+				(r.Priors[i] > r.Priors[best] || (r.Priors[i] == r.Priors[best] &&
+					actionTieRank(r.tieSeed, r.RootHash, r.Actions[i]) > actionTieRank(r.tieSeed, r.RootHash, r.Actions[best])))) {
 				best = i
 			}
 		}
@@ -285,6 +294,7 @@ func (r SearchResult) SelectAction(temperature float64, rng *rand.Rand) (SearchA
 }
 
 type searchNode struct {
+	seed     int64
 	position Position
 	player   PlayerID
 	expanded bool
@@ -293,6 +303,7 @@ type searchNode struct {
 }
 
 type searchEdge struct {
+	tieRank      uint64
 	action       SearchAction
 	parentPlayer PlayerID
 	prior        float64
@@ -355,8 +366,9 @@ func SearchRootsConcurrent(ctx context.Context, evaluator Evaluator, config Sear
 }
 
 // SearchBatch runs roots in lockstep and evaluates one selected leaf per
-// non-terminal root in each batch. With a deterministic evaluator and no root
-// noise, each root has the same trace as an independent serial Search.
+// non-terminal root in each batch. With a deterministic evaluator and the same
+// per-root seed, each root has the same trace as an independent serial Search,
+// including when root noise is enabled.
 func (m *MCTS) SearchBatch(ctx context.Context, positions []Position) ([]SearchResult, error) {
 	if len(positions) == 0 {
 		return nil, nil
@@ -381,7 +393,11 @@ func (m *MCTS) SearchBatch(ctx context.Context, positions []Position) ([]SearchR
 		if position == nil {
 			return nil, fmt.Errorf("position %d is nil", i)
 		}
-		roots[i] = &searchNode{position: position.Clone()}
+		seed := m.config.Seed
+		if len(m.config.RootSeeds) != 0 {
+			seed = m.config.RootSeeds[i]
+		}
+		roots[i] = &searchNode{position: position.Clone(), seed: seed}
 		if collectDimensions {
 			rootDimensions[i] = searchMetricDimension(position)
 			item := m.stats.ByPhaseFaction[rootDimensions[i]]
@@ -456,6 +472,16 @@ func mixSearchSeed(seed int64, hash Hash128) int64 {
 	return int64(value)
 }
 
+func actionTieRank(seed int64, hash Hash128, action SearchAction) uint64 {
+	h := fnv.New64a()
+	var encodedSeed [8]byte
+	binary.LittleEndian.PutUint64(encodedSeed[:], uint64(mixSearchSeed(seed, hash)))
+	_, _ = h.Write(encodedSeed[:])
+	_, _ = h.Write([]byte(action.Key()))
+	// Final avalanche avoids nearby serialized parameters getting nearby ranks.
+	return uint64(mixSearchSeed(int64(h.Sum64()), hash))
+}
+
 func (m *MCTS) selectLeaf(root *searchNode) (*searchNode, []*searchEdge, error) {
 	node := root
 	path := make([]*searchEdge, 0, 16)
@@ -470,7 +496,7 @@ func (m *MCTS) selectLeaf(root *searchNode) (*searchNode, []*searchEdge, error) 
 			if err := next.Apply(edge.action); err != nil {
 				return nil, nil, fmt.Errorf("search applied emitted action %s: %w", edge.action.Key(), err)
 			}
-			edge.child = &searchNode{position: next}
+			edge.child = &searchNode{position: next, seed: node.seed}
 		}
 		node = edge.child
 	}
@@ -482,12 +508,12 @@ func selectPUCTEdge(node *searchNode, cPUCT float64) *searchEdge {
 	for _, edge := range node.edges {
 		totalVisits += edge.visits
 	}
-	sqrtTotal := math.Sqrt(float64(totalVisits))
+	sqrtTotal := math.Sqrt(math.Max(1, float64(totalVisits)))
 	var best *searchEdge
 	bestScore := math.Inf(-1)
 	for _, edge := range node.edges {
 		score := edge.q() + cPUCT*edge.prior*sqrtTotal/float64(1+edge.visits)
-		if score > bestScore {
+		if score > bestScore || (score == bestScore && best != nil && edge.tieRank > best.tieRank) {
 			best, bestScore = edge, score
 		}
 	}
@@ -633,7 +659,8 @@ func expandNode(node *searchNode, actions []SearchAction, evaluation EvaluationR
 	node.value = evaluation.Value
 	node.edges = make([]*searchEdge, len(actions))
 	for i, action := range actions {
-		node.edges[i] = &searchEdge{action: action, parentPlayer: node.player, prior: priors[i]}
+		node.edges[i] = &searchEdge{action: action, parentPlayer: node.player, prior: priors[i],
+			tieRank: actionTieRank(node.seed, node.position.CanonicalHash(), action)}
 	}
 	node.expanded = true
 	return nil
@@ -678,6 +705,7 @@ func backupPath(path []*searchEdge, leaf *searchNode) {
 
 func resultFromRoot(root *searchNode) SearchResult {
 	result := SearchResult{
+		tieSeed:  root.seed,
 		RootHash: root.position.CanonicalHash(), DecisionPlayer: root.player,
 		RootValue: root.value, Actions: make([]SearchAction, len(root.edges)),
 		Priors: make([]float32, len(root.edges)), Visits: make([]int, len(root.edges)),

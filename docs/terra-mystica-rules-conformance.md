@@ -240,7 +240,7 @@ the tests and competition contract, not silently treated as verified official ru
 
 External differential play remains valuable future evidence, not a dependency
 that prevents addressing known rules defects. Representation, search, recovery,
-and evaluation milestones remain unfinished; these rules checks do not authorize
+and evaluation milestone status is maintained in the corrective plan; these rules checks do not authorize
 restarting expensive training or establish model strength.
 
 ## Clarification follow-up verification — 2026-09-20

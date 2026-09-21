@@ -120,9 +120,10 @@ checkpoint files and replay shards remain untouched, but are inadmissible in
 the new lineage. Do not relabel their manifests to bypass rejection.
 
 A fresh lineage starts only after the corrective plan's rules, representation,
-search, recovery, and evaluation gates pass. This rules-only implementation does
-not reopen expensive training. Model/search issues from the review are separate
-unfinished work.
+search, recovery, and evaluation gates pass. The R3 follow-up adds policy
+architecture version 2 and new feature digests; old model manifests are rejected
+even when raw Go schema versions match. Representation evidence and
+recovery/evaluation remain unfinished; these changes do not reopen expensive training.
 
 ## Sources and executable checks
 

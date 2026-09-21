@@ -25,6 +25,11 @@ GRID_WIDTH = 17
 GRID_Q_OFFSET = 4
 AXIAL_NEIGHBORS = ((1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1))
 BRIDGE_DIRECTIONS = ((1, -2), (2, -1), (1, 1), (-1, 2), (-2, 1), (-1, -1))
+# Reachable base 1v1 actions produce one offer before the response barrier.
+# A second slot preserves imported two-offer fixtures; never silently truncate.
+MAX_PENDING_LEECH = 2
+# Seventeen player pieces, at least three buildings per town.
+MAX_PENDING_TOWNS = 5
 
 BASE_ACTION_KINDS = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 26, 30, 31, 32, 33, 34, 35, 36, 40)
 BASE_SPECIALS = (0, 1, 3, 4, 5, 6, 7, 8, 9, 10)
@@ -65,6 +70,7 @@ SPATIAL_FEATURE_NAMES = (
     "pending_halflings_transformed",
     "skip_used_self",
     "skip_used_opponent",
+    *(f"pending_town_{role}_group_{index}" for role in ("self", "opponent") for index in range(MAX_PENDING_TOWNS)),
 )
 
 
@@ -220,6 +226,14 @@ def encode_spatial(state: dict[str, Any], *, validate_only: bool = False) -> np.
         owner = _role(role_name)
         if owner < 0:
             continue
+        mandatory = [item for item in formations or [] if not item.get("CanBeDelayed")]
+        if len(mandatory) > MAX_PENDING_TOWNS:
+            raise ValueError("too many mandatory pending towns for base piece supply")
+        # Canonical Go records sort these groups. Preserve the partition even
+        # when later construction joins two already reserved towns.
+        for index, formation in enumerate(mandatory):
+            for hex_value in formation.get("Hexes") or []:
+                _put_plane(spatial, plane[f"pending_town_{role_name}_group_{index}"], _coord(hex_value))
         for formation in formations or []:
             timing = "delayed" if formation.get("CanBeDelayed") else "immediate"
             plane_name = f"pending_town_{timing}_{role_name}"
@@ -320,6 +334,51 @@ def _player_features(
 def _pending_features(features: _Features, state: dict[str, Any]) -> None:
     offers = state.get("pendingLeechOffers") or {}
     pending_cultists = state.get("pendingCultistsLeech") or {}
+    event_ids: list[str] = []
+    for role_name in ("self", "opponent"):
+        role_offers = offers.get(role_name) or []
+        if len(role_offers) > MAX_PENDING_LEECH:
+            raise ValueError("unsupported pending leech queue beyond base 1v1 response barrier")
+        for offer in role_offers:
+            event_id = str(offer.get("eventId", -1))
+            if event_id not in event_ids:
+                event_ids.append(event_id)
+    for event_id in sorted(pending_cultists, key=int):
+        if event_id not in event_ids:
+            event_ids.append(event_id)
+    if len(event_ids) > 2 * MAX_PENDING_LEECH:
+        raise ValueError("unsupported pending leech event count")
+    for role_name in ("self", "opponent"):
+        role_offers = offers.get(role_name) or []
+        for index in range(MAX_PENDING_LEECH):
+            offer = role_offers[index] if index < len(role_offers) else {}
+            prefix = f"leech_{role_name}_{index}"
+            features.flag(f"{prefix}_present", bool(offer))
+            features.scalar(f"{prefix}_amount", offer.get("Amount"), 12)
+            features.scalar(f"{prefix}_cost", offer.get("VPCost"), 10)
+            features.one_hot(f"{prefix}_source", _role(offer.get("FromPlayerID")), (-1, 0, 1))
+            coordinate = _coord(offer.get("sourceHex"))
+            features.flag(f"{prefix}_hex_present", coordinate is not None)
+            features.scalar(f"{prefix}_q", coordinate[0] if coordinate else 0, 12)
+            features.scalar(f"{prefix}_r", coordinate[1] if coordinate else 0, 8)
+            event_id = str(offer.get("eventId", -1))
+            features.one_hot(f"{prefix}_event", event_ids.index(event_id) if offer else -1, range(-1, 2 * MAX_PENDING_LEECH))
+    for index in range(2 * MAX_PENDING_LEECH):
+        bonus = pending_cultists.get(event_ids[index], {}) if index < len(event_ids) else {}
+        features.flag(f"cultist_event_{index}_present", bool(bonus))
+        features.one_hot(f"cultist_event_{index}_owner", _role(bonus.get("PlayerID")), (-1, 0, 1))
+        for field in ("OffersCreated", "ResolvedCount", "AcceptedCount", "DeclinedCount"):
+            features.scalar(f"cultist_event_{index}_{field}", bonus.get(field), 4)
+    for field, owner_key in (
+        ("pendingFavorTileSelection", "PlayerID"),
+        ("pendingHalflingsSpades", "PlayerID"),
+        ("pendingDarklingsPriestOrdination", "PlayerID"),
+        ("pendingCultistsCultSelection", "PlayerID"),
+        ("pendingTownCultTopChoice", "PlayerID"),
+        ("pendingChaosMagiciansDoubleTurn", "playerId"),
+    ):
+        features.one_hot(f"{field}_owner", _role(_value(state.get(field), owner_key)), (-1, 0, 1))
+    features.one_hot("pending_free_actions_owner", _role(state.get("pendingFreeActionsPlayerId")), (-1, 0, 1))
     for role_name in ("self", "opponent"):
         role_offers = offers.get(role_name) or []
         features.scalar(f"pending_leech_{role_name}_count", len(role_offers), 4)
@@ -554,10 +613,8 @@ def _validate_action(action: dict[str, Any]) -> None:
         elif special == 4:
             allowed.add("subactions")
             subactions = action.get("subactions") or []
-            if len(subactions) not in (0, 2):
-                raise ValueError("Chaos Magicians special requires zero or two subactions")
-            for subaction in subactions:
-                _validate_action(subaction)
+            if subactions:
+                raise ValueError("compound Chaos actions are unsupported: use sequential decision edges")
     elif kind == 8:
         allowed.add("card")
         _required_domain(action, "card", (-1, *BASE_CARDS), -1)
@@ -718,6 +775,7 @@ def encode_actions(actions: list[dict[str, Any]]) -> tuple[np.ndarray, np.ndarra
     gathers: list[tuple[int, int]] = []
     names: tuple[str, ...] | None = None
     for action in actions:
+        _validate_action(action)
         vector, action_names, gather = _action_feature_vector(action)
         assert vector is not None
         if names is not None and action_names != names:

@@ -24,8 +24,15 @@ claims and experiment ordering. Evidence and rationale are in the
   adversarial reviews. Two working interpretations remain tentative and are
   labeled in the contract and tests. External records remain supplemental;
   do not label internal tests independent complete-game validation.
-- R3 onward: not implemented by this rules-focused change. Expensive training
-  remains closed until the subsequent representation/search/recovery gates pass.
+- R3 — in progress: pooled board context in the single policy scorer, architecture
+  compatibility rejection, pending-owner/event/town-partition encoding, exact
+  seeded search tie semantics, and true policy-only/random-legal arena modes are
+  implemented. Controlled gradients, tiny overfit, semantic encoding pairs, and
+  exact search tests pass. See the [representation audit](terra-mystica-representation-audit.md).
+  Remaining: export actual legal pending-decision boundary records into Python
+  conformance tests; synthetic mutation fixtures alone do not close that evidence.
+- R4 onward: not implemented by this follow-up. Expensive training remains closed
+  until representation/search and recovery/evaluation gates pass.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.

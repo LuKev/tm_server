@@ -30,6 +30,7 @@ go_library(
 go_test(
     name = "az_test",
     srcs = [
+        "arena_modes_test.go",
         "arena_test.go",
         "conformance_test.go",
         "contract_test.go",
@@ -91,6 +92,16 @@ py_binary(
     main = "python/benchmark.py",
     visibility = ["//visibility:public"],
     deps = [":python_core"],
+)
+
+py_test(
+    name = "python_encoding_test",
+    srcs = ["python/encoding_audit_test.py"],
+    env = {"PYTHONNOUSERSITE": "1"},
+    legacy_create_init = 0,
+    main = "python/encoding_audit_test.py",
+    deps = [":python_core"],
+    size = "small",
 )
 
 py_test(

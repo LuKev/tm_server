@@ -132,6 +132,173 @@ func TestPUCTFindsKnownOptimalMove(t *testing.T) {
 	}
 }
 
+func TestFreshRootTraversalUsesPrior(t *testing.T) {
+	search, err := NewMCTS(constantValueEvaluator{preferredKey: toyAction(2).Key()}, SearchConfig{Simulations: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := search.Search(context.Background(), &toyPosition{spec: immediateChoiceSpec(121)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(result.Visits, []int{0, 1}) {
+		t.Fatalf("first traversal ignored the strongest prior: %v", result.Visits)
+	}
+}
+
+func TestSearchCandidateOrderingAndSeededTies(t *testing.T) {
+	selected := map[string]bool{}
+	for seed := int64(0); seed < 24; seed++ {
+		for _, simulations := range []int{0, 1, 12} {
+			for _, epsilon := range []float64{0, 0.25} {
+				config := SearchConfig{Simulations: simulations, Seed: seed,
+					DirichletEpsilon: epsilon, DirichletTotalConcentration: 10}
+				var want SearchResult
+				for order := 0; order < 2; order++ {
+					spec := variedImmediateChoiceSpec(122, 6, 4)
+					if order == 1 {
+						node := spec.nodes[0]
+						for i, j := 0, len(node.edges)-1; i < j; i, j = i+1, j-1 {
+							node.edges[i], node.edges[j] = node.edges[j], node.edges[i]
+						}
+						spec.nodes[0] = node
+					}
+					search, err := NewMCTS(UniformEvaluator{}, config)
+					if err != nil {
+						t.Fatal(err)
+					}
+					got, err := search.Search(context.Background(), &toyPosition{spec: spec})
+					if err != nil {
+						t.Fatal(err)
+					}
+					if order == 0 {
+						want = got
+					} else if !reflect.DeepEqual(got, want) {
+						t.Fatalf("candidate order changed seed %d budget %d noise %v", seed, simulations, epsilon)
+					}
+					if simulations == 1 && epsilon == 0 {
+						action, err := got.SelectAction(0, nil)
+						if err != nil {
+							t.Fatal(err)
+						}
+						selected[action.Key()] = true
+					}
+				}
+			}
+		}
+	}
+	if len(selected) < 3 {
+		t.Fatalf("uniform-prior ties still favor a fixed action: %v", selected)
+	}
+}
+
+func TestVisitPolicyTieIsCandidateOrderIndependent(t *testing.T) {
+	first := SearchResult{RootHash: Hash128{123}, tieSeed: 21,
+		Actions: []SearchAction{toyAction(1), toyAction(2), toyAction(3)},
+		Priors:  []float32{0.25, 0.5, 0.5}, Visits: []int{4, 4, 4}}
+	second := first
+	second.Actions = []SearchAction{first.Actions[2], first.Actions[1], first.Actions[0]}
+	second.Priors = []float32{0.5, 0.5, 0.25}
+	for _, budget := range []int{0, 4} {
+		first.Visits = []int{budget, budget, budget}
+		second.Visits = []int{budget, budget, budget}
+		a, err := first.SelectAction(0, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := second.SelectAction(0, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if a.Key() != b.Key() || a.Key() == toyAction(1).Key() {
+			t.Fatalf("tie selection not invariant/prior-aware: %v versus %v", a, b)
+		}
+	}
+}
+
+func TestExactForcedTreeBackupsAndBudget(t *testing.T) {
+	for _, winner := range []PlayerID{"A", "B", ""} {
+		for _, owner := range []PlayerID{"A", "B"} {
+			t.Run(fmt.Sprintf("winner_%s_middle_%s", winner, owner), func(t *testing.T) {
+				spec := &toySpec{id: 124, nodes: map[int]toyNode{
+					0: {player: "A", edges: []toyEdge{{toyAction(1), 1}}},
+					1: {player: owner, value: 0.5, edges: []toyEdge{{toyAction(2), 2}}},
+					2: {terminal: true, winner: winner},
+				}}
+				for _, budget := range []int{0, 1, 2, 9} {
+					evaluator := &countingEvaluator{}
+					search, err := NewMCTS(evaluator, SearchConfig{Simulations: budget})
+					if err != nil {
+						t.Fatal(err)
+					}
+					result, err := search.Search(context.Background(), &toyPosition{spec: spec})
+					if err != nil {
+						t.Fatal(err)
+					}
+					if result.Visits[0] != budget {
+						t.Fatalf("visits %v, want %d", result.Visits, budget)
+					}
+					terminal := (&toyPosition{spec: spec, node: 2}).Outcome("A")
+					wantQ := float32(0)
+					if budget > 1 {
+						wantQ = terminal * float32(budget-1) / float32(budget)
+					}
+					if math.Abs(float64(result.QValues[0]-wantQ)) > 1e-7 {
+						t.Fatalf("budget %d Q=%v want=%v", budget, result.QValues, wantQ)
+					}
+					wantRequests := 1
+					if budget > 0 {
+						wantRequests++
+					}
+					if evaluator.requests != wantRequests {
+						t.Fatalf("evaluated %d positions, want %d", evaluator.requests, wantRequests)
+					}
+				}
+			})
+		}
+	}
+	search, err := NewMCTS(&countingEvaluator{}, SearchConfig{Simulations: 9})
+	if err != nil {
+		t.Fatal(err)
+	}
+	result, err := search.Search(context.Background(), &toyPosition{spec: immediateChoiceSpec(125), node: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Actions) != 0 || search.stats.EvaluationPositions != 0 || search.stats.SimulationTraversals != 0 {
+		t.Fatalf("terminal root performed work or returned actions: %+v %+v", result, search.stats)
+	}
+}
+
+func TestBackupMixedOwnerPathHasExactValues(t *testing.T) {
+	for _, terminal := range []bool{false, true} {
+		for _, winner := range []PlayerID{"A", "B", ""} {
+			path := []*searchEdge{{parentPlayer: "A"}, {parentPlayer: "A"}, {parentPlayer: "B"}, {parentPlayer: "A"}}
+			spec := &toySpec{id: 126, nodes: map[int]toyNode{0: {terminal: terminal, winner: winner}}}
+			leaf := &searchNode{position: &toyPosition{spec: spec}, player: "B", value: 0.75}
+			backupPath(path, leaf)
+			for index, edge := range path {
+				want := float64(-0.75)
+				if edge.parentPlayer == "B" {
+					want = 0.75
+				}
+				if terminal {
+					want = 0
+					if winner != "" {
+						want = -1
+						if edge.parentPlayer == winner {
+							want = 1
+						}
+					}
+				}
+				if edge.visits != 1 || edge.q() != want {
+					t.Fatalf("terminal=%v winner=%s edge=%d: visits=%d Q=%v want=%v", terminal, winner, index, edge.visits, edge.q(), want)
+				}
+			}
+		}
+	}
+}
+
 func TestSearchTelemetryCountsBatchingAndCacheReuse(t *testing.T) {
 	telemetry := &SearchTelemetry{}
 	search, err := NewMCTS(UniformEvaluator{}, SearchConfig{
@@ -705,13 +872,19 @@ func TestPUCTRunsOnConstructedTerraMysticaReactionState(t *testing.T) {
 }
 
 type constantValueEvaluator struct {
-	value float32
+	value        float32
+	preferredKey string
 }
 
 func (e constantValueEvaluator) Evaluate(_ context.Context, requests []EvaluationRequest) ([]EvaluationResult, error) {
 	results := make([]EvaluationResult, len(requests))
 	for i, request := range requests {
 		results[i] = EvaluationResult{PolicyLogits: make([]float32, len(request.Actions)), Value: e.value}
+		for j, action := range request.Actions {
+			if action.Key() == e.preferredKey {
+				results[i].PolicyLogits[j] = 10
+			}
+		}
 	}
 	return results, nil
 }
@@ -746,7 +919,7 @@ func TestBackupUsesDecisionOwnerIdentityOnTerraMysticaStates(t *testing.T) {
 		if child.DecisionPlayer() != "p0" {
 			t.Fatalf("conversion child owner = %q, want p0", child.DecisionPlayer())
 		}
-		search, err := NewMCTS(constantValueEvaluator{value: leafValue}, SearchConfig{Simulations: 1})
+		search, err := NewMCTS(constantValueEvaluator{value: leafValue, preferredKey: actions[0].Key()}, SearchConfig{Simulations: 1})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -782,7 +955,7 @@ func TestBackupUsesDecisionOwnerIdentityOnTerraMysticaStates(t *testing.T) {
 		if child.DecisionPlayer() != "p0" {
 			t.Fatalf("leech child owner = %q, want p0", child.DecisionPlayer())
 		}
-		search, err := NewMCTS(constantValueEvaluator{value: leafValue}, SearchConfig{Simulations: 1})
+		search, err := NewMCTS(constantValueEvaluator{value: leafValue, preferredKey: actions[0].Key()}, SearchConfig{Simulations: 1})
 		if err != nil {
 			t.Fatal(err)
 		}

@@ -22,7 +22,7 @@ from batching import collate_positions
 from benchmark import benchmark as run_model_benchmark
 import learner as learner_module
 from learner import Example, ReplayWindow, load_replay, losses, resolve_training_steps, train
-from model import DEBUG_CONFIG, LARGE_CONFIG, MAIN_CONFIG, HexConv2d, TerraMysticaNet, checkpoint_manifest, load_checkpoint, publish_checkpoint, resolve_device, resolve_model_config, save_checkpoint
+from model import DEBUG_CONFIG, LARGE_CONFIG, MAIN_CONFIG, HexConv2d, ModelConfig, TerraMysticaNet, checkpoint_manifest, load_checkpoint, publish_checkpoint, resolve_device, resolve_model_config, save_checkpoint
 from schema import (
     ACTION_SCHEMA_VERSION,
     ACTION_FEATURE_NAMES,
@@ -129,11 +129,11 @@ class RepresentationTest(unittest.TestCase):
         self.assertEqual(names, ACTION_FEATURE_NAMES)
         self.assertEqual(
             hashlib.sha256("\n".join(SPATIAL_FEATURE_NAMES).encode()).hexdigest(),
-            "62fea181998d7c0742a9774329dcbb3b47cd64bd7ef0e2b1b9f8c6233a7099cd",
+            "e1c62d7060c75f73945a5984d462ebe07c55d571eea86f94c1f985418a01826e",
         )
         self.assertEqual(
             hashlib.sha256("\n".join(GLOBAL_FEATURE_NAMES).encode()).hexdigest(),
-            "0379c72083360b1184ca0212083bdc2bcc63ae55fcc0edd93259d1d7b1801b78",
+            "e190321f03883a2f229d59b5247a693ba12304d70bda8a10d9a5ad0acf15e4c8",
         )
         self.assertEqual(
             hashlib.sha256("\n".join(ACTION_FEATURE_NAMES).encode()).hexdigest(),
@@ -150,12 +150,12 @@ class RepresentationTest(unittest.TestCase):
             ({"kind": 0, "hexes": [first]}, {"kind": 0, "hexes": [second]}),
             ({"kind": 1, "hexes": [first], "building": 1}, {"kind": 1, "hexes": [first], "building": 2}),
             ({"kind": 5, "track": 0, "amount": 2}, {"kind": 5, "track": 1, "amount": 2}),
-            ({"kind": 6, "power": 0}, {"kind": 6, "power": 1}),
+            ({"kind": 6, "power": 0, "hexes": [first, second]}, {"kind": 6, "power": 1}),
             ({"kind": 6, "power": 4, "hexes": [first], "terrain": 1}, {"kind": 6, "power": 4, "hexes": [first], "terrain": 2}),
             ({"kind": 6, "power": 5, "hexes": [first, second], "terrain_2": 1}, {"kind": 6, "power": 5, "hexes": [first, second], "terrain_2": 2}),
             ({"kind": 6, "power": 5, "hexes": [first, second]}, {"kind": 6, "power": 5, "hexes": [first, second], "use_skip_2": True}),
             ({"kind": 6, "power": 1}, {"kind": 6, "power": 1, "decline_reward": True}),
-            ({"kind": 7, "special": 0}, {"kind": 7, "special": 1}),
+            ({"kind": 7, "special": 0}, {"kind": 7, "special": 1, "hexes": [first]}),
             ({"kind": 8, "card": 0}, {"kind": 8, "card": 1}),
             ({"kind": 11, "amount": 1, "amount_2": 0}, {"kind": 11, "amount": 1, "amount_2": 1}),
             ({"kind": 13, "favor_tile": 0}, {"kind": 13, "favor_tile": 1}),
@@ -270,6 +270,79 @@ class RepresentationTest(unittest.TestCase):
         self.assertLessEqual(main_parameters, 5_000_000)
         self.assertGreaterEqual(large_parameters, 25_000_000)
         self.assertLessEqual(large_parameters, 40_000_000)
+
+    def test_nonspatial_policy_has_controlled_board_context_and_gradient(self) -> None:
+        # Isolate the actual stem -> masked pool -> shared policy path. Identity
+        # normalization makes every expected logit analytically calculable.
+        model = TerraMysticaNet(ModelConfig(channels=8, residual_blocks=0))
+        model.stem_norm = torch.nn.Identity()
+        with torch.no_grad():
+            for parameter in model.parameters():
+                parameter.zero_()
+            model.stem.weight[0, 1, 1, 1] = 1
+            pooled_offset = MANIFEST.action_features + 3 * model.config.channels
+            model.policy[0].weight[0, pooled_offset] = 1
+            model.policy[0].weight[0, 0] = 1
+            model.policy[0].bias[0] = -1
+            model.policy[0].weight[1, 0] = 1
+            model.policy[2].weight[0, 0] = 2
+            model.policy[2].weight[0, 1] = -1
+        spatial = torch.zeros(2, MANIFEST.spatial_features, 2, 2)
+        spatial[:, 0, 0, 0] = 1
+        spatial[:, 1, 0, 0] = torch.tensor([0.25, 2.0])
+        spatial[:, 1, 1, 1] = 1000  # Invalid cells must not affect pooling.
+        spatial.requires_grad_()
+        global_features = torch.zeros(2, MANIFEST.global_features)
+        actions = torch.zeros(2, 3, MANIFEST.action_features)
+        actions[:, 1, 0] = 1
+        indices = torch.full((2, 3, 2), -1, dtype=torch.long)
+        mask = torch.tensor([[True, True, False], [True, True, False]])
+        logits, _ = model(spatial, global_features, actions, indices, mask)
+        torch.testing.assert_close(logits[:, :2], torch.tensor([[0.0, -0.5], [2.0, 3.0]]))
+        self.assertEqual(logits.argmax(dim=1).tolist(), [0, 1])
+        self.assertTrue(torch.all(logits[:, 2] == torch.finfo(logits.dtype).min))
+        (logits[0, 1] - logits[0, 0]).backward()
+        self.assertEqual(spatial.grad[0, 1, 0, 0].item(), 2)
+        self.assertEqual(spatial.grad[0, 1, 1, 1].item(), 0)
+
+    def test_checkpoint_rejects_legacy_policy_architecture(self) -> None:
+        model = TerraMysticaNet(DEBUG_CONFIG)
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.pt"
+            manifest = checkpoint_manifest(model)
+            del manifest["architecture_version"]
+            save_checkpoint(path, model, manifest=manifest)
+            with self.assertRaisesRegex(ValueError, "manifest mismatch"):
+                load_checkpoint(path, model)
+
+    def test_tiny_overfit_distinguishes_boards_for_nonspatial_choices(self) -> None:
+        # Representation fixtures, not reachable-game or strength evidence: keep
+        # globals and the two nonspatial candidates identical, change only board.
+        record = _fixture(self.fixture_binary)["state"]
+        changed = copy.deepcopy(record)
+        for cell in changed["state"]["map"]["hexes"].values():
+            if cell["Terrain"] != 7:
+                cell["Terrain"] = (cell["Terrain"] + 1) % 7
+        actions = [{"kind": 2}, {"kind": 3}]
+        batch = _tensor_batch([encode_position(state, actions) for state in (record, changed)])
+        torch.testing.assert_close(batch[1][0], batch[1][1])
+        torch.testing.assert_close(batch[2][0], batch[2][1])
+        self.assertTrue(torch.all(batch[3] == -1))
+        torch.manual_seed(17)
+        model = TerraMysticaNet(ModelConfig(channels=16, residual_blocks=1))
+        optimizer = torch.optim.AdamW(model.parameters(), lr=0.003, weight_decay=0)
+        policy_targets = torch.tensor([0, 1])
+        value_targets = torch.tensor([-0.75, 0.75])
+        for _ in range(600):
+            logits, values = model(*batch)
+            loss = F.cross_entropy(logits, policy_targets) + F.mse_loss(values, value_targets)
+            optimizer.zero_grad(set_to_none=True)
+            loss.backward()
+            optimizer.step()
+        with torch.no_grad():
+            logits, values = model(*batch)
+        self.assertLess(F.cross_entropy(logits, policy_targets).item(), 0.02)
+        self.assertLess(torch.max(torch.abs(values - value_targets)).item(), 0.04)
 
     def test_training_work_can_be_bound_to_replay_plies(self) -> None:
         self.assertEqual(resolve_training_steps(
@@ -726,7 +799,7 @@ class RepresentationTest(unittest.TestCase):
 if __name__ == "__main__":
     fixture_argument = sys.argv[1]
     inference_argument = sys.argv[2]
-    sys.argv = [sys.argv[0]]
+    sys.argv = [sys.argv[0], *sys.argv[3:]]
     RepresentationTest.fixture_binary = fixture_argument
     RepresentationTest.inference_binary = inference_argument
     unittest.main()
