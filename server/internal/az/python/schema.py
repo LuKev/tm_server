@@ -16,9 +16,9 @@ import numpy as np
 
 FLOAT32_MAX = float(np.finfo(np.float32).max)
 
-RULES_VERSION = 1
-STATE_SCHEMA_VERSION = 1
-ACTION_SCHEMA_VERSION = 1
+RULES_VERSION = 2
+STATE_SCHEMA_VERSION = 2
+ACTION_SCHEMA_VERSION = 2
 
 GRID_HEIGHT = 9
 GRID_WIDTH = 17
@@ -26,7 +26,7 @@ GRID_Q_OFFSET = 4
 AXIAL_NEIGHBORS = ((1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1))
 BRIDGE_DIRECTIONS = ((1, -2), (2, -1), (1, 1), (-1, 2), (-2, 1), (-1, -1))
 
-BASE_ACTION_KINDS = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 26, 30, 31, 32, 33, 34, 35, 36)
+BASE_ACTION_KINDS = (0, 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 20, 21, 26, 30, 31, 32, 33, 34, 35, 36, 40)
 BASE_SPECIALS = (0, 1, 3, 4, 5, 6, 7, 8, 9, 10)
 BASE_FACTIONS = tuple(range(1, 15))
 BASE_TERRAINS = tuple(range(8))
@@ -364,6 +364,7 @@ def _pending_features(features: _Features, state: dict[str, Any]) -> None:
 
     cult_top = state.get("pendingTownCultTopChoice")
     features.flag("pending_town_cult_top", bool(cult_top))
+    features.flag("pending_town_cult_before_main", bool(_value(cult_top, "ContinueMainAction")))
     features.scalar("pending_town_cult_advance", _value(cult_top, "AdvanceAmount"), 2)
     features.scalar("pending_town_cult_max", _value(cult_top, "MaxSelections"), 4)
     candidates = _value(cult_top, "CandidateTracks", []) or []
@@ -504,9 +505,10 @@ def _validate_action(action: dict[str, Any]) -> None:
     allowed = {"kind"}
     hex_count = 0
     if kind == 0:
-        allowed.update(("hexes", "terrain", "build", "use_skip"))
+        allowed.update(("hexes", "terrain", "terrain_steps", "build", "use_skip"))
         hex_count = 1
         _required_domain(action, "terrain", BASE_TERRAINS)
+        _required_domain(action, "terrain_steps", tuple(range(7)))
     elif kind == 1:
         allowed.update(("hexes", "building"))
         hex_count = 1
@@ -515,14 +517,25 @@ def _validate_action(action: dict[str, Any]) -> None:
         allowed.update(("track", "amount"))
         _required_domain(action, "track", CULT_TRACKS)
     elif kind == 6:
-        allowed.add("power")
+        allowed.update(("power", "decline_reward"))
         power = _required_domain(action, "power", POWER_ACTIONS)
-        if power == 0:
+        if action.get("decline_reward", False):
+            pass
+        elif power == 0:
             allowed.add("hexes")
             hex_count = 2
         elif power in (4, 5):
-            allowed.update(("hexes", "build", "use_skip"))
-            hex_count = 1
+            allowed.update(("hexes", "terrain", "build", "use_skip"))
+            hex_count = len(action.get("hexes") or [])
+            if hex_count not in ((0, 1, 2) if power == 5 else (0, 1)):
+                raise ValueError("invalid power spade destination count")
+            if hex_count:
+                _required_domain(action, "terrain", BASE_TERRAINS)
+            if hex_count == 2:
+                allowed.update(("terrain_2", "use_skip_2"))
+                _required_domain(action, "terrain_2", BASE_TERRAINS)
+            elif not hex_count and any(action.get(k) for k in ("terrain", "build", "use_skip")):
+                raise ValueError("unused spade action includes transform parameters")
     elif kind == 7:
         allowed.add("special")
         special = _required_domain(action, "special", BASE_SPECIALS)
@@ -598,7 +611,7 @@ def _validate_action(action: dict[str, Any]) -> None:
 
     if hex_count:
         _validate_action_hexes(action, hex_count)
-    for field in ("build", "use_skip"):
+    for field in ("build", "use_skip", "use_skip_2", "decline_reward"):
         if field in action and not isinstance(action[field], bool):
             raise ValueError(f"action kind {kind} has non-boolean {field}")
     if "amount" in allowed:
@@ -653,8 +666,11 @@ def _action_feature_vector(
     features.one_hot("special", int(action.get("special", 0)) if kind == 7 else -1, BASE_SPECIALS)
     features.one_hot("power", int(action.get("power", 0)) if kind == 6 else -1, POWER_ACTIONS)
     features.one_hot("conversion", action.get("conversion") if kind == 34 else None, CONVERSIONS)
-    terrain_kinds = kind in (0, 10, 14) or (kind == 7 and int(action.get("special", 0)) == 8)
+    terrain_kinds = kind in (0, 10, 14) or (kind == 7 and int(action.get("special", 0)) == 8) or (kind == 6 and bool(action.get("hexes")) and int(action.get("power", 0)) in (4, 5))
     features.one_hot("terrain", int(action.get("terrain", 0)) if terrain_kinds else -1, BASE_TERRAINS)
+    features.one_hot("terrain_2", int(action.get("terrain_2", 0)) if kind == 6 and len(action.get("hexes") or []) == 2 and int(action.get("power", 0)) == 5 else -1, BASE_TERRAINS)
+    features.flag("use_skip_2", action.get("use_skip_2", False))
+    features.flag("decline_reward", action.get("decline_reward", False))
     features.one_hot("building", int(action.get("building", 0)) if kind == 1 else -1, BASE_BUILDINGS)
     track_kinds = kind in (5, 21) or (kind == 7 and int(action.get("special", 0)) in (0, 7, 9))
     features.one_hot("track", int(action.get("track", 0)) if track_kinds else -1, CULT_TRACKS)
@@ -668,6 +684,7 @@ def _action_feature_vector(
     features.one_hot("faction", int(action.get("faction", 0)) if kind == 26 else -1, BASE_FACTIONS)
     features.scalar("amount", action.get("amount"), 20)
     features.scalar("amount_2", action.get("amount_2"), 20)
+    features.scalar("terrain_steps", action.get("terrain_steps"), 6)
     features.flag("build", action.get("build"))
     features.flag("use_skip", action.get("use_skip"))
     features.scalar("subaction_count", len(action.get("subactions") or []), 2)

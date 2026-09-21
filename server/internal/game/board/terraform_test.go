@@ -6,6 +6,34 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+func TestTerraformStepsRulebookRoutes(t *testing.T) {
+	for _, tc := range []struct {
+		name            string
+		from, to, home  models.TerrainType
+		requested, want int
+		invalid         bool
+	}{
+		{"avoid home on short route", models.TerrainLake, models.TerrainMountain, models.TerrainForest, 0, 5, false},
+		{"reject crossing home", models.TerrainLake, models.TerrainMountain, models.TerrainForest, 2, 0, true},
+		{"explicit avoiding route", models.TerrainLake, models.TerrainMountain, models.TerrainForest, 5, 5, false},
+		{"arrive home short", models.TerrainDesert, models.TerrainPlains, models.TerrainPlains, 0, 1, false},
+		{"arrive home long", models.TerrainDesert, models.TerrainPlains, models.TerrainPlains, 6, 6, false},
+		{"leave home long", models.TerrainPlains, models.TerrainDesert, models.TerrainPlains, 6, 6, false},
+		{"no full cycle", models.TerrainPlains, models.TerrainPlains, models.TerrainPlains, 7, 0, true},
+		{"no reverse direction", models.TerrainDesert, models.TerrainPlains, models.TerrainPlains, 3, 0, true},
+		{"build without transform", models.TerrainPlains, models.TerrainPlains, models.TerrainPlains, 0, 0, false},
+		{"negative count", models.TerrainLake, models.TerrainMountain, models.TerrainForest, -1, 0, true},
+		{"river is not wheel", models.TerrainRiver, models.TerrainMountain, models.TerrainForest, 0, 0, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := TerraformSteps(tc.from, tc.to, tc.home, tc.requested)
+			if (err != nil) != tc.invalid || !tc.invalid && got != tc.want {
+				t.Fatalf("got %d, %v; want %d invalid=%t", got, err, tc.want, tc.invalid)
+			}
+		})
+	}
+}
+
 func TestTerrainDistance(t *testing.T) {
 	tests := []struct {
 		name     string

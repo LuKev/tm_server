@@ -156,7 +156,7 @@ func ReadTrajectoryShard(path string) (Trajectory, ShardRef, error) {
 
 func validateTrajectory(trajectory Trajectory) error {
 	manifest := trajectory.Manifest
-	if manifest.FormatVersion != TrajectoryFormatVersion || manifest.RulesVersion != 1 || manifest.StateVersion != StateSchemaVersion || manifest.ActionVersion != ActionSchemaVersion {
+	if manifest.FormatVersion != TrajectoryFormatVersion || manifest.RulesVersion != RulesVersion || manifest.StateVersion != StateSchemaVersion || manifest.ActionVersion != ActionSchemaVersion {
 		return fmt.Errorf("trajectory schema mismatch: format=%d rules=%d state=%d action=%d", manifest.FormatVersion, manifest.RulesVersion, manifest.StateVersion, manifest.ActionVersion)
 	}
 	if manifest.EngineCommit == "" {
@@ -263,7 +263,7 @@ func validateCanonicalRecord(raw json.RawMessage, terminal bool) (models.Faction
 	if err != nil || !bytes.Equal(raw, canonical) {
 		return models.FactionUnknown, fmt.Errorf("state is not canonical JSON")
 	}
-	if record.RulesVersion != 1 || record.StateVersion != StateSchemaVersion || record.ActionVersion != ActionSchemaVersion {
+	if record.RulesVersion != RulesVersion || record.StateVersion != StateSchemaVersion || record.ActionVersion != ActionSchemaVersion {
 		return models.FactionUnknown, fmt.Errorf("state record schema mismatch")
 	}
 	var state struct {

@@ -51,7 +51,7 @@ func TestWebsocketE2E_SetupToActionAndTurnAuthority(t *testing.T) {
 	}
 }
 
-func TestWebsocketContract_SpadeFollowupAndDiscard(t *testing.T) {
+func TestWebsocketContract_AtomicSpadesRejectLegacyRequest(t *testing.T) {
 	deps, server, gameID, clients, state := setupWebsocketGameToAction(t,
 		[]string{"p1", "p2"},
 		map[string]string{"p1": "Halflings", "p2": "Witches"},
@@ -76,48 +76,24 @@ func TestWebsocketContract_SpadeFollowupAndDiscard(t *testing.T) {
 	})
 	state = asMap(readUntilType(t, clients["p1"], "game_state_update", 4*time.Second)["payload"])
 
-	state = performActionAndReadState(t, clients["p1"], gameID, "power_action_claim", map[string]any{
+	performActionExpectReject(t, clients["p1"], gameID, "power_action_claim", map[string]any{
 		"actionType":    int(game.PowerActionSpade2),
 		"targetHex":     map[string]any{"q": target1.Q, "r": target1.R},
 		"buildDwelling": true,
 	}, asInt(state["revision"]))
-
-	pending := asMap(state["pendingDecision"])
-	if asString(pending["type"]) != "spade_followup" {
-		t.Fatalf("expected spade_followup pending decision, got %v", pending)
-	}
-	if asString(pending["playerId"]) != "p1" {
-		t.Fatalf("expected p1 to resolve spade follow-up, got %v", pending["playerId"])
-	}
-	if asInt(pending["spadesRemaining"]) != 1 {
-		t.Fatalf("expected one remaining spade follow-up, got %v", pending["spadesRemaining"])
-	}
-	if canBuild, ok := pending["canBuildDwelling"].(bool); !ok || canBuild {
-		t.Fatalf("expected canBuildDwelling=false after first ACT6 build, got %v", pending["canBuildDwelling"])
-	}
-
-	performActionExpectReject(t, clients["p1"], gameID, "conversion", map[string]any{
-		"conversionType": "worker_to_coin",
-		"amount":         1,
-	}, asInt(state["revision"]))
-
-	performActionExpectReject(t, clients["p1"], gameID, "transform_build", map[string]any{
-		"targetHex":     map[string]any{"q": target2.Q, "r": target2.R},
+	state = performActionAndReadState(t, clients["p1"], gameID, "power_action_claim", map[string]any{
+		"actionType": int(game.PowerActionSpade2), "spadeActionVersion": 2,
+		"targetHex":     map[string]any{"q": target1.Q, "r": target1.R},
+		"secondHex":     map[string]any{"q": target2.Q, "r": target2.R},
+		"secondTerrain": int(models.TerrainPlains),
 		"buildDwelling": true,
 		"targetTerrain": int(models.TerrainPlains),
 	}, asInt(state["revision"]))
-
-	turnBeforeDiscard := currentTurnPlayerID(state)
-	state = performActionAndReadState(t, clients["p1"], gameID, "discard_pending_spade", map[string]any{
-		"count": 1,
-	}, asInt(state["revision"]))
-
-	newPending := asMap(state["pendingDecision"])
-	if asString(newPending["type"]) == "spade_followup" {
-		t.Fatalf("expected spade_followup to clear after discard, still pending: %v", newPending)
+	if asString(asMap(state["pendingDecision"])["type"]) == "spade_followup" || gs.PendingSpades["p1"] != 0 {
+		t.Fatal("atomic action left a spade follow-up")
 	}
-	if currentTurnPlayerID(state) == turnBeforeDiscard {
-		t.Fatalf("expected turn to advance after resolving spade follow-up")
+	if gs.Map.GetHex(target1).Building == nil || gs.Map.GetHex(target2).Building != nil || gs.Map.GetHex(target2).Terrain != models.TerrainPlains {
+		t.Fatal("incorrect atomic split result")
 	}
 }
 

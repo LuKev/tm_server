@@ -66,6 +66,7 @@ type GameState struct {
 	PendingRiverwalkersPriestChoice  *PendingRiverwalkersPriestChoice      `json:"pendingRiverwalkersPriestChoice,omitempty"`
 	PendingTownCultTopChoice         *PendingTownCultTopChoice             `json:"pendingTownCultTopChoice"`
 	PendingFreeActionsPlayerID       string                                `json:"pendingFreeActionsPlayerId"`
+	ExplicitTurnEnd                  bool                                  `json:"explicitTurnEnd"`
 	PendingTurnConfirmationPlayerID  string                                `json:"pendingTurnConfirmationPlayerId"`
 	PendingTurnConfirmationSnapshot  *GameState                            `json:"-"`
 	PendingWispsTradingPostSpade     map[string]board.Hex                  `json:"-"`
@@ -183,10 +184,11 @@ type PendingRiverwalkersPriestChoice struct {
 // PendingTownCultTopChoice represents a key-limited cult-top choice from town tile cult bonuses.
 // Triggered when TW8/TW2 would top multiple cult tracks but player lacks enough keys.
 type PendingTownCultTopChoice struct {
-	PlayerID        string
-	AdvanceAmount   int
-	CandidateTracks []CultTrack
-	MaxSelections   int
+	ContinueMainAction bool // A delayed Mermaid town was claimed before the main action.
+	PlayerID           string
+	AdvanceAmount      int
+	CandidateTracks    []CultTrack
+	MaxSelections      int
 }
 
 // GamePhase represents the current phase of the game
@@ -790,12 +792,15 @@ func (gs *GameState) DecreaseCultTrack(playerID string, track CultTrack, spaces 
 // SelectTownTile allows a player to select a town tile and anchor hex for their pending town formation.
 func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileType, anchorHex *board.Hex) error {
 	// Check if player has any pending town formations
-	pendingTowns, ok := gs.PendingTownFormations[playerID]
-	if !ok || len(pendingTowns) == 0 {
+	pendingTowns := gs.TownFormationChoices(playerID)
+	if len(pendingTowns) == 0 {
 		return fmt.Errorf("no pending town formation for player %s", playerID)
 	}
 
-	pendingIndex := nextPendingTownFormationIndex(pendingTowns)
+	pendingIndex, err := gs.townFormationIndex(playerID, pendingTowns, anchorHex)
+	if err != nil {
+		return err
+	}
 	pending := pendingTowns[pendingIndex]
 
 	// Check if tile is available
@@ -821,6 +826,9 @@ func (gs *GameState) SelectTownTile(playerID string, tileType models.TownTileTyp
 		// Restore pending state on failure.
 		gs.PendingTownFormations[playerID] = pendingTowns
 		return err
+	}
+	if gs.GetPlayer(playerID).Faction.GetType() == models.FactionMermaids {
+		gs.PendingTownFormations[playerID] = gs.TownFormationChoices(playerID)
 	}
 
 	return nil
@@ -1283,70 +1291,19 @@ func (gs *GameState) HasPendingLeechOffers() bool {
 	return false
 }
 
-func (gs *GameState) isBlockingLeechResponder(playerID string) bool {
-	if gs == nil {
-		return false
-	}
-	player := gs.GetPlayer(playerID)
-	if player == nil {
-		return true
-	}
-	// Passed players may defer leech while another player is still taking
-	// actions, but every outstanding offer must be resolved before cleanup can
-	// advance the round.
-	return !player.HasPassed || gs.AllPlayersPassed()
-}
-
 func (gs *GameState) HasBlockingPendingLeechOffers() bool {
-	for playerID, offers := range gs.PendingLeechOffers {
-		if len(offers) == 0 {
-			continue
-		}
-		if !gs.isBlockingLeechResponder(playerID) {
-			continue
-		}
-		return true
-	}
-	return false
+	// Passing ends main actions, not mandatory responses to construction.
+	return gs.HasPendingLeechOffers()
 }
 
 // AcceptLeechOffer allows a player to accept a power leech offer
 func (gs *GameState) AcceptLeechOffer(playerID string, offerIndex int) error {
-	offers := gs.PendingLeechOffers[playerID]
-	if offerIndex < 0 || offerIndex >= len(offers) {
-		return fmt.Errorf("invalid offer index: %d", offerIndex)
-	}
-
-	offer := offers[offerIndex]
-	player := gs.GetPlayer(playerID)
-	if player == nil {
-		return fmt.Errorf("player not found: %s", playerID)
-	}
-
-	// Gain power and lose VP based on the amount actually gained.
-	vpCost := player.Resources.AcceptPowerLeech(offer)
-	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && vpCost > 0 {
-		vpCost--
-	}
-	player.VictoryPoints -= vpCost
-
-	// Remove the offer
-	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
-
-	return nil
+	return executePowerLeechOffer(gs, playerID, offerIndex, true)
 }
 
 // DeclineLeechOffer allows a player to decline a power leech offer
 func (gs *GameState) DeclineLeechOffer(playerID string, offerIndex int) error {
-	offers := gs.PendingLeechOffers[playerID]
-	if offerIndex < 0 || offerIndex >= len(offers) {
-		return fmt.Errorf("invalid offer index: %d", offerIndex)
-	}
-
-	// Simply remove the offer without gaining power or losing VP
-	gs.PendingLeechOffers[playerID] = append(offers[:offerIndex], offers[offerIndex+1:]...)
-
-	return nil
+	return executePowerLeechOffer(gs, playerID, offerIndex, false)
 }
 
 // ClearPendingLeechOffers clears all pending leech offers for a player
@@ -1641,6 +1598,12 @@ func (gs *GameState) NextTurn() bool {
 	// Check if current player has pending actions
 	currentPlayer := gs.GetCurrentPlayer()
 	if currentPlayer != nil && gs.HasPendingActions(currentPlayer.ID) {
+		return false
+	}
+	// Search must represent optional after-action conversions and Mermaid towns
+	// before handing control to the opponent, independently of human undo UX.
+	if gs.ExplicitTurnEnd && gs.Phase == PhaseAction && currentPlayer != nil && !currentPlayer.HasPassed {
+		gs.PendingFreeActionsPlayerID = currentPlayer.ID
 		return false
 	}
 
@@ -2302,25 +2265,5 @@ func (gs *GameState) GetNextLeechResponder() string {
 }
 
 func (gs *GameState) GetNextBlockingLeechResponder() string {
-	if !gs.HasBlockingPendingLeechOffers() || len(gs.TurnOrder) == 0 {
-		return ""
-	}
-
-	startIdx := 0
-	if gs.CurrentPlayerIndex >= 0 && gs.CurrentPlayerIndex < len(gs.TurnOrder) {
-		startIdx = (gs.CurrentPlayerIndex + 1) % len(gs.TurnOrder)
-	}
-
-	for i := 0; i < len(gs.TurnOrder); i++ {
-		idx := (startIdx + i) % len(gs.TurnOrder)
-		playerID := gs.TurnOrder[idx]
-		if offers := gs.PendingLeechOffers[playerID]; len(offers) > 0 {
-			if !gs.isBlockingLeechResponder(playerID) {
-				continue
-			}
-			return playerID
-		}
-	}
-
-	return ""
+	return gs.GetNextLeechResponder()
 }

@@ -64,7 +64,7 @@ func (a *UseCultSpadeAction) Validate(gs *GameState) error {
 
 	// Check if hex is adjacent (directly or indirectly) to player's territory
 	// Note: Temporary shipping bonus does NOT apply to cult reward spades
-	if !gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID) {
+	if !gs.isCultSpadeReachable(a.TargetHex, player) {
 		return fmt.Errorf("hex is not adjacent to your territory (cult spades can only be used on adjacent hexes)")
 	}
 
@@ -72,11 +72,30 @@ func (a *UseCultSpadeAction) Validate(gs *GameState) error {
 	if mapHex.Terrain == player.Faction.GetHomeTerrain() {
 		return fmt.Errorf("hex is already your home terrain")
 	}
+	if player.Faction.GetType() == models.FactionGiants {
+		if gs.PendingCultRewardSpades[a.PlayerID] < 2 {
+			return fmt.Errorf("Giants require two cult spades and cannot buy the missing spade")
+		}
+		if a.TargetTerrain != models.TerrainTypeUnknown && a.TargetTerrain != player.Faction.GetHomeTerrain() {
+			return fmt.Errorf("Giants may only transform into home terrain")
+		}
+		_, err := TerraformSpadeCount(player, mapHex.Terrain, player.Faction.GetHomeTerrain(), 0)
+		return err
+	}
 	if err := a.validateTargetTerrain(mapHex.Terrain, player.Faction.GetHomeTerrain()); err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (gs *GameState) isCultSpadeReachable(target board.Hex, player *Player) bool {
+	for _, origin := range gs.getPlayerBuildingHexes(player.ID) {
+		if gs.areHexesDirectlyAdjacentForPlayer(player.ID, target, origin) || (player.ShippingLevel > 0 && gs.Map.IsIndirectlyAdjacent(target, origin, player.ShippingLevel)) {
+			return true
+		}
+	}
+	return false
 }
 
 // Execute performs the action
@@ -88,6 +107,10 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	player := gs.GetPlayer(a.PlayerID)
 	mapHex := gs.Map.GetHex(a.TargetHex)
 	targetTerrain := a.resolveTargetTerrain(mapHex.Terrain, player.Faction.GetHomeTerrain())
+	spadesUsed := 1
+	if player.Faction.GetType() == models.FactionGiants {
+		targetTerrain, spadesUsed = player.Faction.GetHomeTerrain(), 2
+	}
 
 	// Transform terrain BY 1 spade (not all the way to home)
 	if err := gs.Map.TransformTerrain(a.TargetHex, targetTerrain); err != nil {
@@ -98,7 +121,7 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	if gs.PendingCultRewardSpades[a.PlayerID] <= 0 {
 		return fmt.Errorf("failed to use pending cult reward spade")
 	}
-	gs.PendingCultRewardSpades[a.PlayerID]--
+	gs.PendingCultRewardSpades[a.PlayerID] -= spadesUsed
 	if gs.PendingCultRewardSpades[a.PlayerID] == 0 {
 		delete(gs.PendingCultRewardSpades, a.PlayerID)
 	}
@@ -106,8 +129,6 @@ func (a *UseCultSpadeAction) Execute(gs *GameState) error {
 	// Cult reward spades do NOT award scoring tile VP
 	// These are bonus spades from the previous round's cult rewards
 	// However, faction-specific bonuses still apply (Halflings, Alchemists)
-	spadesUsed := 1 // Cult reward spades are always 1 spade at a time
-
 	// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
 	AwardFactionSpadeBonuses(player, spadesUsed)
 

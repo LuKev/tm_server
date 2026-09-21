@@ -132,6 +132,7 @@ func (gs *GameState) UseSpadeFromReward(playerID string) bool {
 		gs.PendingSpades[playerID]--
 		if gs.PendingSpades[playerID] == 0 {
 			delete(gs.PendingSpades, playerID)
+			delete(gs.PendingSpadeBuildAllowed, playerID)
 		}
 		return true
 	}
@@ -142,4 +143,5 @@ func (gs *GameState) UseSpadeFromReward(playerID string) bool {
 // ClearPendingSpades clears all pending spades (called after all spades are used or forfeited)
 func (gs *GameState) ClearPendingSpades() {
 	gs.PendingSpades = make(map[string]int)
+	gs.PendingSpadeBuildAllowed = make(map[string]bool)
 }

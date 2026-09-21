@@ -1,11 +1,61 @@
 package game
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
+
+// Rulebook p.16: only positive cult positions score. Two players tied first
+// split (8+4)/2; unequal positive positions receive 8 and 4. Exhaust the 1v1
+// track domain against those independent arithmetic expectations.
+func TestRulebookTwoPlayerCultRanks(t *testing.T) {
+	for a := 0; a <= 10; a++ {
+		for b := 0; b <= 10; b++ {
+			if a == 10 && b == 10 { // Only one player may occupy 10.
+				continue
+			}
+			t.Run(fmt.Sprintf("%d-%d", a, b), func(t *testing.T) {
+				cts := NewCultTrackState()
+				cts.InitializePlayer("a")
+				cts.InitializePlayer("b")
+				cts.PlayerPositions["a"][CultFire], cts.PlayerPositions["b"][CultFire] = a, b
+				wantA, wantB := 0, 0
+				switch {
+				case a == 0 && b == 0:
+				case a == b:
+					wantA, wantB = 6, 6
+				case a > b:
+					wantA = 8
+					if b > 0 {
+						wantB = 4
+					}
+				default:
+					wantB = 8
+					if a > 0 {
+						wantA = 4
+					}
+				}
+				got := cts.CalculateEndGameScoring()
+				if got["a"] != wantA || got["b"] != wantB {
+					t.Fatalf("got %v, want a=%d b=%d", got, wantA, wantB)
+				}
+				gs := NewGameState()
+				gs.AddPlayer("a", factions.NewWitches())
+				gs.AddPlayer("b", factions.NewNomads())
+				gs.CultTracks = cts
+				scores := map[string]*PlayerFinalScore{"a": {}, "b": {}}
+				gs.calculateCultBonuses(scores)
+				if scores["a"].CultVP != wantA || scores["b"].CultVP != wantB {
+					t.Fatalf("final-scoring path differs: %+v %+v", scores["a"], scores["b"])
+				}
+			})
+		}
+	}
+}
 
 func TestCultTrackState_InitializePlayer(t *testing.T) {
 	cts := NewCultTrackState()
@@ -529,6 +579,94 @@ func TestCultTrackState_Position10Blocked(t *testing.T) {
 	}
 	if gs.CultTracks.GetPosition("player2", CultFire) != 9 {
 		t.Errorf("expected player2 at position 9 (blocked), got %d", gs.CultTracks.GetPosition("player2", CultFire))
+	}
+}
+
+func TestPermanentPriestPlacementAllowedWithoutAdvancement(t *testing.T) {
+	for _, position := range []int{9, 10} {
+		gs := NewGameState()
+		gs.AddPlayer("actor", factions.NewAuren())
+		player := gs.GetPlayer("actor")
+		player.Keys, player.Resources.Priests = 0, 1
+		player.CultPositions[CultFire] = position
+		gs.CultTracks.PlayerPositions["actor"][CultFire] = position
+		if position == 10 {
+			gs.CultTracks.Position10Occupied[CultFire] = "actor"
+		}
+		action := &SendPriestToCultAction{BaseAction: BaseAction{Type: ActionSendPriestToCult, PlayerID: "actor"}, Track: CultFire, SpacesToClimb: 3}
+		if err := action.Execute(gs); err != nil {
+			t.Fatalf("position %d: %v", position, err)
+		}
+		if gs.CultTracks.GetPosition("actor", CultFire) != position || player.Resources.Priests != 0 || gs.CultTracks.GetTotalPriestsOnCultTracks("actor") != 1 {
+			t.Fatalf("position %d: permanent priest placement did not preserve capped position and consume priest", position)
+		}
+	}
+}
+
+// User-confirmed immediate-key rule: founding two mandatory towns makes both
+// keys available before choosing their rewards. This is a reward-boundary
+// fixture; the small reserved groups intentionally do not test town geometry.
+func TestTownCultBonusUsesOtherMandatoryTownKey(t *testing.T) {
+	for _, candidateCount := range []int{2, 3} {
+		gs := NewGameState()
+		gs.AddPlayer("actor", factions.NewAuren())
+		player := gs.GetPlayer("actor")
+		player.Keys = 0
+		first, second := board.NewHex(0, 0), board.NewHex(4, 0)
+		for _, hex := range []board.Hex{first, second} {
+			gs.Map.GetHex(hex).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "actor", Faction: models.FactionAuren, PowerValue: 1}
+		}
+		gs.PendingTownFormations["actor"] = []*PendingTownFormation{
+			{PlayerID: "actor", Hexes: []board.Hex{first}},
+			{PlayerID: "actor", Hexes: []board.Hex{second}},
+		}
+		tracks := []CultTrack{CultFire, CultWater, CultEarth}
+		for _, track := range tracks[:candidateCount] {
+			player.CultPositions[track] = 9
+			gs.CultTracks.PlayerPositions["actor"][track] = 9
+		}
+		if err := gs.SelectTownTile("actor", models.TownTile8Points, &first); err != nil {
+			t.Fatal(err)
+		}
+		if candidateCount == 3 {
+			if gs.PendingTownCultTopChoice == nil || gs.PendingTownCultTopChoice.MaxSelections != 2 {
+				t.Fatal("three candidate tops must allow choosing two with both immediate keys")
+			}
+			action := &SelectTownCultTopAction{BaseAction: BaseAction{Type: ActionSelectTownCultTop, PlayerID: "actor"}, Tracks: tracks[:2]}
+			if err := action.Execute(gs); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if gs.PendingTownCultTopChoice != nil || gs.CultTracks.GetPosition("actor", CultFire) != 10 || gs.CultTracks.GetPosition("actor", CultWater) != 10 || player.Keys != -1 {
+			t.Fatalf("%d candidates: both immediate keys must fund tops with one pending key debt", candidateCount)
+		}
+		if candidateCount == 3 && gs.CultTracks.GetPosition("actor", CultEarth) != 9 {
+			t.Fatal("unchosen top advanced despite only two keys")
+		}
+		if err := gs.SelectTownTile("actor", models.TownTile9Points, &second); err != nil {
+			t.Fatal(err)
+		}
+		if player.Keys != 0 || len(gs.PendingTownFormations["actor"]) != 0 {
+			t.Fatal("later town reward did not settle borrowed-key debt")
+		}
+	}
+}
+
+func TestOneMandatoryTownKeyCannotReachTwoCultTops(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("actor", factions.NewAuren())
+	player := gs.GetPlayer("actor")
+	player.Keys = 0
+	gs.PendingTownFormations["actor"] = []*PendingTownFormation{{PlayerID: "actor"}}
+	for _, track := range []CultTrack{CultFire, CultWater} {
+		player.CultPositions[track] = 9
+		gs.CultTracks.PlayerPositions["actor"][track] = 9
+		if _, err := gs.AdvanceCultTrack("actor", track, 1); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if gs.CultTracks.GetPosition("actor", CultFire) != 10 || gs.CultTracks.GetPosition("actor", CultWater) != 9 || player.Keys != -1 {
+		t.Fatal("one pending town key was not consumed exclusively by the first cult top")
 	}
 }
 

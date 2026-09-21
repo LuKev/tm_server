@@ -189,10 +189,44 @@ func (sts *ScoringTileState) InitializeForGame() error {
 // randomness. This is the authoritative deterministic setup seam for tests and
 // self-play seeds.
 func (sts *ScoringTileState) InitializeForGameWithRand(rng *rand.Rand) error {
+	return sts.initializeWithTiles(rng, GetAllScoringTiles())
+}
+
+// InitializeBaseGameWithRand excludes the promotional Temple/Priest tile.
+// Draw rounds 6 back to 1, excluding Spades only while drawing rounds 6 and 5
+// (official setup erratum, FAQ 1.1). Uniform draws from the eligible remainder
+// are equivalent to shuffling, setting the forbidden tile aside, and reshuffling
+// it back in: Spades remains in the pool for rounds 4 through 1.
+func (sts *ScoringTileState) InitializeBaseGameWithRand(rng *rand.Rand) error {
 	if rng == nil {
 		return fmt.Errorf("scoring tile RNG is nil")
 	}
-	allTiles := GetAllScoringTiles()
+	tiles := make([]ScoringTile, 0, 8)
+	for _, tile := range GetAllScoringTiles() {
+		if tile.Type != ScoringTemplePriest {
+			tiles = append(tiles, tile)
+		}
+	}
+	selected := make([]ScoringTile, 6)
+	for round := 5; round >= 0; round-- {
+		eligible := make([]int, 0, len(tiles))
+		for i, tile := range tiles {
+			if round < 4 || tile.Type != ScoringSpades {
+				eligible = append(eligible, i)
+			}
+		}
+		index := eligible[rng.Intn(len(eligible))]
+		selected[round] = tiles[index]
+		tiles = append(tiles[:index], tiles[index+1:]...)
+	}
+	sts.Tiles = selected
+	return nil
+}
+
+func (sts *ScoringTileState) initializeWithTiles(rng *rand.Rand, allTiles []ScoringTile) error {
+	if rng == nil {
+		return fmt.Errorf("scoring tile RNG is nil")
+	}
 
 	// Shuffle tiles
 	rng.Shuffle(len(allTiles), func(i, j int) {

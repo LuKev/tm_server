@@ -45,6 +45,46 @@ func TestPositionDeterministicAndPlayerIDRelativeHash(t *testing.T) {
 	}
 }
 
+func TestAssignedCompetitionProfile(t *testing.T) {
+	for _, pair := range [][2]models.FactionType{
+		{models.FactionWitches, models.FactionEngineers},
+		{models.FactionNomads, models.FactionChaosMagicians},
+	} {
+		p, err := NewBaseGame(17, pair[0], pair[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		gs := p.StateClone()
+		if gs.SetupMode != game.SetupModeSnellman || gs.TurnOrderPolicy != game.TurnOrderPolicyPassOrder || gs.Map.ID != board.MapBase || gs.Round != 1 {
+			t.Fatalf("unexpected competition setup: mode=%s order=%s map=%s round=%d", gs.SetupMode, gs.TurnOrderPolicy, gs.Map.ID, gs.Round)
+		}
+		if len(gs.BonusCards.Available) != 5 || len(gs.TownTiles.Available) != 5 {
+			t.Fatal("wrong base tile/card pool")
+		}
+		for _, player := range gs.Players {
+			if player.VictoryPoints != 20 {
+				t.Fatalf("starting VP=%d, want 20", player.VictoryPoints)
+			}
+		}
+		want := []string{"p0", "p1", "p1", "p0"}
+		if pair[0] == models.FactionNomads {
+			want = []string{"p0", "p0", "p0", "p1"}
+		}
+		if len(gs.SetupDwellingOrder) != len(want) {
+			t.Fatalf("dwelling sequence=%v", gs.SetupDwellingOrder)
+		}
+		for i := range want {
+			if gs.SetupDwellingOrder[i] != want[i] {
+				t.Fatalf("dwelling sequence=%v want=%v", gs.SetupDwellingOrder, want)
+			}
+		}
+		gs.ScoringTiles.Tiles[0] = game.GetAllScoringTiles()[4]
+		if _, err := NewPosition(gs); err == nil {
+			t.Fatal("profile admitted promotional scoring tile")
+		}
+	}
+}
+
 func TestCanonicalCacheIsImmutableAndInvalidatedByApply(t *testing.T) {
 	position := forcedActionPosition(t, 1701, models.FactionWitches, models.FactionEngineers)
 	callerJSON, err := position.CanonicalJSON()

@@ -90,15 +90,23 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 	if mapHex == nil || mapHex.Building == nil {
 		return nil
 	}
-
-	// Find all connected buildings for this player
-	// Mermaids can skip one river hex when founding towns
-	var connected []board.Hex
-	var skippedRiver *board.Hex
-
 	if player.Faction.GetType() == models.FactionMermaids {
-		connected, skippedRiver = gs.Map.GetConnectedBuildingsForMermaids(hex, playerID)
-	} else if player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		choices := gs.TownFormationChoices(playerID)
+		gs.PendingTownFormations[playerID] = choices
+		for _, choice := range choices {
+			for _, h := range choice.Hexes {
+				if h == hex {
+					return choice.Hexes
+				}
+			}
+		}
+		return nil
+	}
+
+	// Find all connected buildings for this player.
+	var connected []board.Hex
+
+	if player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
 		connected = gs.getConnectedBuildingsForPlayer(playerID, hex)
 	} else {
 		connected = gs.Map.GetConnectedBuildingsIncludingBridges(hex, playerID)
@@ -114,14 +122,125 @@ func (gs *GameState) CheckForTownFormation(playerID string, hex board.Hex) []boa
 
 	// Check if requirements are met
 	if gs.CanFormTown(playerID, connected) {
-		gs.createPendingTown(playerID, connected, skippedRiver, player.Faction.GetType())
+		gs.createPendingTown(playerID, connected, nil, player.Faction.GetType())
 		return connected
 	}
 
 	return nil
 }
 
+// TownFormationChoices derives Mermaid opportunities from the current board.
+// Delaying a river town reserves neither its buildings nor its river: every
+// possible river is a player choice, and overlap with an existing town makes
+// the entire connected group ineligible. Other factions have mandatory rewards
+// already recorded by the action that founded their towns.
+func (gs *GameState) TownFormationChoices(playerID string) []*PendingTownFormation {
+	player := gs.GetPlayer(playerID)
+	if player == nil || player.Faction.GetType() != models.FactionMermaids {
+		return gs.PendingTownFormations[playerID]
+	}
+	var choices []*PendingTownFormation
+	eligible := func(hexes []board.Hex) bool {
+		sort.Slice(hexes, func(i, j int) bool {
+			if hexes[i].R != hexes[j].R {
+				return hexes[i].R < hexes[j].R
+			}
+			return hexes[i].Q < hexes[j].Q
+		})
+		for _, h := range hexes {
+			if gs.Map.GetHex(h).PartOfTown {
+				return false
+			}
+		}
+		return gs.CanFormTown(playerID, hexes)
+	}
+	seen := make(map[board.Hex]bool)
+	mandatory := make(map[board.Hex]bool)
+	for _, hex := range gs.getPlayerBuildingHexes(playerID) {
+		if seen[hex] {
+			continue
+		}
+		component := gs.Map.GetConnectedBuildingsIncludingBridges(hex, playerID)
+		for _, h := range component {
+			seen[h] = true
+		}
+		if eligible(component) {
+			choices = append(choices, &PendingTownFormation{PlayerID: playerID, Hexes: component})
+			for _, h := range component {
+				mandatory[h] = true
+			}
+		}
+	}
+	for river, mapHex := range gs.Map.Hexes {
+		if mapHex.Terrain != models.TerrainRiver || mapHex.HasTownTile {
+			continue
+		}
+		for _, adjacent := range river.Neighbors() {
+			neighbor := gs.Map.GetHex(adjacent)
+			if neighbor == nil || neighbor.Building == nil || neighbor.Building.PlayerID != playerID {
+				continue
+			}
+			component := gs.Map.GetConnectedBuildingsForMermaidsUsingRiver(adjacent, playerID, river)
+			base := gs.Map.GetConnectedBuildingsIncludingBridges(adjacent, playerID)
+			if len(component) == len(base) {
+				break
+			} // The river must actually connect groups.
+			blocked := false
+			for _, h := range component {
+				if mandatory[h] {
+					blocked = true
+				}
+			}
+			if !blocked && eligible(component) {
+				r := river
+				choices = append(choices, &PendingTownFormation{PlayerID: playerID, Hexes: component, SkippedRiverHex: &r, CanBeDelayed: true})
+			}
+			break // Every owned neighbor of this river yields the same union.
+		}
+	}
+	sort.Slice(choices, func(i, j int) bool {
+		if choices[i].CanBeDelayed != choices[j].CanBeDelayed {
+			return !choices[i].CanBeDelayed
+		}
+		a, b := gs.defaultTownAnchorHex(playerID, choices[i]), gs.defaultTownAnchorHex(playerID, choices[j])
+		if a.R != b.R {
+			return a.R < b.R
+		}
+		return a.Q < b.Q
+	})
+	return choices
+}
+
 func (gs *GameState) createPendingTown(playerID string, connected []board.Hex, skippedRiver *board.Hex, factionType models.FactionType) {
+	// A founded town's reward may still be pending while another immediate
+	// effect grows or merges its component (e.g. Halflings' dwelling). Keep all
+	// existing rewards/keys, but do not award another town for that same group.
+	reserved := make(map[board.Hex]bool)
+	var overlap *PendingTownFormation
+	for _, existing := range gs.PendingTownFormations[playerID] {
+		if existing == nil || existing.CanBeDelayed {
+			continue
+		}
+		for _, h := range existing.Hexes {
+			reserved[h] = true
+			if overlap == nil {
+				for _, candidate := range connected {
+					if h == candidate {
+						overlap = existing
+						break
+					}
+				}
+			}
+		}
+	}
+	if overlap != nil {
+		for _, h := range connected {
+			if !reserved[h] {
+				overlap.Hexes = append(overlap.Hexes, h)
+			}
+		}
+		return
+	}
 	// Avoid duplicate pending formations for the same connected component.
 	// This can happen when a full-board recheck (e.g. after taking Fire+2) touches
 	// multiple buildings within the same component before the town is claimed.
@@ -453,7 +572,9 @@ func (gs *GameState) applyTownCultBonusWithPotentialTopChoice(player *Player, ad
 	}
 
 	candidates := gs.CultTracks.GetTownCultTopCandidates(player.ID, advanceAmount, player, gs)
-	maxSelections := player.Keys
+	// Every simultaneous mandatory town already grants a key, even when its
+	// tile reward is chosen later. AdvancePlayer records borrowed keys as debt.
+	maxSelections := player.Keys + countBorrowablePendingTownKeys(gs, player.ID)
 	if maxSelections < 0 {
 		maxSelections = 0
 	}
@@ -592,6 +713,10 @@ func (gs *GameState) atlanteansTownTraversalNeighbors(playerID string, current b
 // This is useful when a condition changes (e.g. Fire+2 favor tile) that might allow
 // existing clusters to form towns
 func (gs *GameState) CheckAllTownFormations(playerID string) {
+	if player := gs.GetPlayer(playerID); player != nil && player.Faction.GetType() == models.FactionMermaids {
+		gs.PendingTownFormations[playerID] = gs.TownFormationChoices(playerID)
+		return
+	}
 	hexes := make([]board.Hex, 0, len(gs.Map.Hexes))
 	for hex := range gs.Map.Hexes {
 		hexes = append(hexes, hex)

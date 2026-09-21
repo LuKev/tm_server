@@ -1,7 +1,14 @@
 # 1v1 Terra Mystica AlphaZero Plan
 
-Status: implemented through Milestone 5's local scaling foundations; the
-ordered large-checkpoint experiment campaign is in progress.
+Current status (2026-09-20): the [corrective implementation plan](terra-mystica-1v1-remediation-plan.md)
+supersedes the completion claims and experiment ordering below. The
+[first-principles review](terra-mystica-1v1-first-principles-review-20260919.md)
+identified rules, representation, search, and evaluation failures. The following
+implementation-status narrative is retained as historical context, not proof
+that only scaling remains.
+
+Historical status: implemented through Milestone 5's local scaling foundations.
+That experiment campaign is superseded by the corrective plan, not in progress.
 
 Implementation status (updated 2026-08-17): Milestones 0 through 4 are
 complete. The base-rules contract, serial/batch-shaped PUCT, versioned relative

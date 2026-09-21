@@ -11,30 +11,34 @@ import (
 )
 
 // ActionSchemaVersion changes whenever SearchAction's semantic encoding changes.
-const ActionSchemaVersion = 1
+const ActionSchemaVersion = 2
 
 // SearchAction is the stable, player-relative action representation persisted
 // in trajectories. Fields are interpreted by Kind; the acting player is stored
 // on the position record rather than duplicated in every candidate.
 type SearchAction struct {
-	Kind       game.ActionType        `json:"kind"`
-	Hexes      []board.Hex            `json:"hexes,omitempty"`
-	Terrain    models.TerrainType     `json:"terrain,omitempty"`
-	Building   models.BuildingType    `json:"building,omitempty"`
-	Track      game.CultTrack         `json:"track,omitempty"`
-	Tracks     []game.CultTrack       `json:"tracks,omitempty"`
-	Card       game.BonusCardType     `json:"card,omitempty"`
-	FavorTile  game.FavorTileType     `json:"favor_tile,omitempty"`
-	TownTile   models.TownTileType    `json:"town_tile,omitempty"`
-	Faction    models.FactionType     `json:"faction,omitempty"`
-	Power      game.PowerActionType   `json:"power,omitempty"`
-	Special    game.SpecialActionType `json:"special,omitempty"`
-	Conversion game.ConversionType    `json:"conversion,omitempty"`
-	Amount     int                    `json:"amount,omitempty"`
-	Amount2    int                    `json:"amount_2,omitempty"`
-	Build      bool                   `json:"build,omitempty"`
-	UseSkip    bool                   `json:"use_skip,omitempty"`
-	Subactions []SearchAction         `json:"subactions,omitempty"`
+	Kind          game.ActionType        `json:"kind"`
+	Hexes         []board.Hex            `json:"hexes,omitempty"`
+	Terrain       models.TerrainType     `json:"terrain,omitempty"`
+	Terrain2      models.TerrainType     `json:"terrain_2,omitempty"`
+	TerrainSteps  int                    `json:"terrain_steps,omitempty"`
+	Building      models.BuildingType    `json:"building,omitempty"`
+	Track         game.CultTrack         `json:"track,omitempty"`
+	Tracks        []game.CultTrack       `json:"tracks,omitempty"`
+	Card          game.BonusCardType     `json:"card,omitempty"`
+	FavorTile     game.FavorTileType     `json:"favor_tile,omitempty"`
+	TownTile      models.TownTileType    `json:"town_tile,omitempty"`
+	Faction       models.FactionType     `json:"faction,omitempty"`
+	Power         game.PowerActionType   `json:"power,omitempty"`
+	Special       game.SpecialActionType `json:"special,omitempty"`
+	Conversion    game.ConversionType    `json:"conversion,omitempty"`
+	Amount        int                    `json:"amount,omitempty"`
+	Amount2       int                    `json:"amount_2,omitempty"`
+	Build         bool                   `json:"build,omitempty"`
+	UseSkip       bool                   `json:"use_skip,omitempty"`
+	UseSkip2      bool                   `json:"use_skip_2,omitempty"`
+	DeclineReward bool                   `json:"decline_reward,omitempty"`
+	Subactions    []SearchAction         `json:"subactions,omitempty"`
 }
 
 // Key returns a deterministic semantic key suitable for sorting and equality.
@@ -64,6 +68,7 @@ func (a SearchAction) GameAction(playerID string) (game.Action, error) {
 			return nil, err
 		}
 		out := game.NewTransformAndBuildAction(playerID, h, a.Build, a.Terrain)
+		out.TerrainSteps = a.TerrainSteps
 		out.UseSkip = a.UseSkip
 		return out, nil
 	case game.ActionUpgradeBuilding:
@@ -84,6 +89,14 @@ func (a SearchAction) GameAction(playerID string) (game.Action, error) {
 		}, nil
 	case game.ActionPowerAction:
 		var out *game.PowerAction
+		if a.DeclineReward {
+			if len(a.Hexes) != 0 || a.Build || a.UseSkip || a.UseSkip2 || a.Terrain != 0 || a.Terrain2 != 0 {
+				return nil, fmt.Errorf("declined power reward cannot include placement parameters")
+			}
+			out = game.NewPowerAction(playerID, a.Power)
+			out.DeclineReward = true
+			return out, nil
+		}
 		switch a.Power {
 		case game.PowerActionBridge:
 			h1, err := hex(0)
@@ -96,12 +109,28 @@ func (a SearchAction) GameAction(playerID string) (game.Action, error) {
 			}
 			out = game.NewPowerActionWithBridge(playerID, h1, h2)
 		case game.PowerActionSpade1, game.PowerActionSpade2:
+			if len(a.Hexes) > 2 || (a.Power == game.PowerActionSpade1 && len(a.Hexes) > 1) {
+				return nil, fmt.Errorf("invalid power spade destination count")
+			}
+			if len(a.Hexes) == 0 {
+				if a.Build || a.UseSkip || a.UseSkip2 || a.Terrain != 0 || a.Terrain2 != 0 {
+					return nil, fmt.Errorf("unused spade action cannot include transform parameters")
+				}
+				out = game.NewPowerAction(playerID, a.Power)
+				break
+			}
 			h, err := hex(0)
 			if err != nil {
 				return nil, err
 			}
 			out = game.NewPowerActionWithTransform(playerID, a.Power, h, a.Build)
+			terrain := a.Terrain
+			out.TargetTerrain = &terrain
 			out.UseSkip = a.UseSkip
+			if len(a.Hexes) == 2 {
+				h2, terrain2 := a.Hexes[1], a.Terrain2
+				out.SecondTargetHex, out.SecondTargetTerrain, out.SecondUseSkip = &h2, &terrain2, a.UseSkip2
+			}
 		default:
 			out = game.NewPowerAction(playerID, a.Power)
 		}
@@ -165,6 +194,8 @@ func (a SearchAction) GameAction(playerID string) (game.Action, error) {
 		return &game.SelectTownCultTopAction{BaseAction: game.BaseAction{Type: game.ActionSelectTownCultTop, PlayerID: playerID}, Tracks: append([]game.CultTrack(nil), a.Tracks...)}, nil
 	case game.ActionDiscardPendingSpade:
 		return game.NewDiscardPendingSpadeAction(playerID, a.Amount), nil
+	case game.ActionFinishTurn:
+		return game.NewFinishTurnAction(playerID), nil
 	case game.ActionConversion:
 		return &game.ConversionAction{BaseAction: game.BaseAction{Type: game.ActionConversion, PlayerID: playerID}, ConversionType: a.Conversion, Amount: a.Amount}, nil
 	case game.ActionBurnPower:
@@ -283,7 +314,7 @@ func SearchActionFromGameAction(action game.Action) (SearchAction, error) {
 	}
 	switch typed := action.(type) {
 	case *game.TransformAndBuildAction:
-		return SearchAction{Kind: game.ActionTransformAndBuild, Hexes: []board.Hex{typed.TargetHex}, Terrain: typed.TargetTerrain, Build: typed.BuildDwelling, UseSkip: typed.UseSkip}, nil
+		return SearchAction{Kind: game.ActionTransformAndBuild, Hexes: []board.Hex{typed.TargetHex}, Terrain: typed.TargetTerrain, TerrainSteps: typed.TerrainSteps, Build: typed.BuildDwelling, UseSkip: typed.UseSkip}, nil
 	case *game.UpgradeBuildingAction:
 		return SearchAction{Kind: game.ActionUpgradeBuilding, Hexes: []board.Hex{typed.TargetHex}, Building: typed.NewBuildingType}, nil
 	case *game.AdvanceShippingAction:
@@ -293,9 +324,24 @@ func SearchActionFromGameAction(action game.Action) (SearchAction, error) {
 	case *game.SendPriestToCultAction:
 		return SearchAction{Kind: game.ActionSendPriestToCult, Track: typed.Track, Amount: typed.SpacesToClimb}, nil
 	case *game.PowerAction:
-		out := SearchAction{Kind: game.ActionPowerAction, Power: typed.ActionType, Build: typed.BuildDwelling, UseSkip: typed.UseSkip}
+		out := SearchAction{Kind: game.ActionPowerAction, Power: typed.ActionType, Build: typed.BuildDwelling, UseSkip: typed.UseSkip, DeclineReward: typed.DeclineReward}
+		if typed.TargetHex == nil && (typed.ActionType == game.PowerActionSpade1 || typed.ActionType == game.PowerActionSpade2) {
+			out.DeclineReward = false
+		}
+		if typed.TargetTerrain != nil {
+			out.Terrain = *typed.TargetTerrain
+		} else if typed.TargetHex != nil && (typed.ActionType == game.PowerActionSpade1 || typed.ActionType == game.PowerActionSpade2) {
+			return SearchAction{}, fmt.Errorf("power spade search action requires explicit target terrain")
+		}
 		if typed.TargetHex != nil {
 			out.Hexes = append(out.Hexes, *typed.TargetHex)
+		}
+		if typed.SecondTargetHex != nil {
+			if typed.SecondTargetTerrain == nil {
+				return SearchAction{}, fmt.Errorf("second power spade terrain missing")
+			}
+			out.Hexes = append(out.Hexes, *typed.SecondTargetHex)
+			out.Terrain2, out.UseSkip2 = *typed.SecondTargetTerrain, typed.SecondUseSkip
 		}
 		if typed.BridgeHex1 != nil && typed.BridgeHex2 != nil {
 			out.Hexes = []board.Hex{*typed.BridgeHex1, *typed.BridgeHex2}
@@ -367,6 +413,8 @@ func SearchActionFromGameAction(action game.Action) (SearchAction, error) {
 		return (SearchAction{Kind: game.ActionSelectTownCultTop, Tracks: append([]game.CultTrack(nil), typed.Tracks...)}).normalized(), nil
 	case *game.DiscardPendingSpadeAction:
 		return SearchAction{Kind: game.ActionDiscardPendingSpade, Amount: typed.Count}, nil
+	case *game.FinishTurnAction:
+		return SearchAction{Kind: game.ActionFinishTurn}, nil
 	case *game.ConversionAction:
 		return SearchAction{Kind: game.ActionConversion, Conversion: typed.ConversionType, Amount: typed.Amount}, nil
 	case *game.BurnPowerAction:

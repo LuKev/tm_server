@@ -68,7 +68,7 @@ func (a *SelectTownCultTopAction) Execute(gs *GameState) error {
 
 	gs.CultTracks.ApplyTownCultBonusWithTopChoice(a.PlayerID, pending.AdvanceAmount, player, gs, topChoices)
 	gs.PendingTownCultTopChoice = nil
-	if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID {
+	if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID && !pending.ContinueMainAction {
 		gs.NextTurn()
 	}
 	return nil

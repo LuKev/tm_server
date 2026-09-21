@@ -1,6 +1,59 @@
 package board
 
-import "github.com/lukev/tm_server/internal/models"
+import (
+	"fmt"
+
+	"github.com/lukev/tm_server/internal/models"
+)
+
+// TerraformSteps chooses a direction on the seven-terrain wheel. A route may
+// not reverse direction or pass through home terrain before its destination
+// (official FAQ 2.1). Starting on home terrain is allowed. requested == 0
+// selects the shortest legal route; an explicit count selects the other route
+// when both directions are legal. Full cycles are never legal.
+func TerraformSteps(from, to, home models.TerrainType, requested int) (int, error) {
+	wheel := [...]models.TerrainType{models.TerrainPlains, models.TerrainSwamp, models.TerrainLake, models.TerrainForest, models.TerrainMountain, models.TerrainWasteland, models.TerrainDesert}
+	index := func(terrain models.TerrainType) int {
+		for i, candidate := range wheel {
+			if candidate == terrain {
+				return i
+			}
+		}
+		return -1
+	}
+	start, end, stop := index(from), index(to), index(home)
+	if start < 0 || end < 0 || stop < 0 || requested < 0 || requested > 6 {
+		return 0, fmt.Errorf("invalid terrain route")
+	}
+	if start == end {
+		if requested != 0 {
+			return 0, fmt.Errorf("terrain route must change terrain")
+		}
+		return 0, nil
+	}
+	best := 0
+	for _, direction := range []int{1, -1} {
+		for steps := 1; steps <= 6; steps++ {
+			position := (start + direction*steps + len(wheel)) % len(wheel)
+			if position == end {
+				if requested == steps {
+					return steps, nil
+				}
+				if best == 0 || steps < best {
+					best = steps
+				}
+				break
+			}
+			if position == stop {
+				break
+			}
+		}
+	}
+	if requested != 0 || best == 0 {
+		return 0, fmt.Errorf("terrain route crosses home or does not reach destination")
+	}
+	return best, nil
+}
 
 // Based on the official base game map
 // Rivers are represented as TerrainRiver hexes

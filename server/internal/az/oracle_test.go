@@ -2,11 +2,91 @@ package az
 
 import (
 	"sort"
+	"testing"
 
 	"github.com/lukev/tm_server/internal/game"
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/models"
 )
+
+func TestGiantsCultSpadesPublicActionSet(t *testing.T) {
+	position := forcedActionPosition(t, 1902, models.FactionGiants, models.FactionWitches)
+	gs := position.state
+	var target board.Hex
+	found := false
+	for _, h := range sortedHexes(gs) {
+		mh := gs.Map.GetHex(h)
+		if mh.Building == nil && mh.Terrain != models.TerrainRiver && gs.IsAdjacentToPlayerBuilding(h, "p0") {
+			target, found = h, true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("fixture has no target")
+	}
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	gs.PendingCultRewardSpades = map[string]int{"p0": 1}
+	for _, a := range position.LegalActions() {
+		if a.Kind != game.ActionDiscardPendingSpade {
+			t.Fatalf("single Giant cult spade allowed %v", a)
+		}
+	}
+	gs.PendingCultRewardSpades["p0"] = 2
+	want := SearchAction{Kind: game.ActionUseCultSpade, Hexes: []board.Hex{target}, Terrain: models.TerrainWasteland}
+	found = false
+	for _, a := range position.LegalActions() {
+		if a.Kind == game.ActionUseCultSpade && a.Terrain != models.TerrainWasteland {
+			t.Fatal("Giants cult action exposed intermediate terrain")
+		}
+		if a.Key() == want.Key() {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("missing legal two-spade Giants transform")
+	}
+	if err := position.Apply(want); err != nil {
+		t.Fatal(err)
+	}
+	if position.state.PendingCultRewardSpades["p0"] != 0 || position.state.Map.GetHex(target).Terrain != models.TerrainWasteland {
+		t.Fatal("public transition did not consume both spades")
+	}
+}
+
+func TestPowerSpadeIntermediateTerrainInPublicActionSet(t *testing.T) {
+	position := forcedActionPosition(t, 1901, models.FactionHalflings, models.FactionWitches)
+	gs := position.state
+	p := gs.GetPlayer("p0")
+	p.Resources.Workers = 0
+	p.Resources.Power.Bowl3 = 6
+	var target board.Hex
+	found := false
+	for _, h := range sortedHexes(gs) {
+		mh := gs.Map.GetHex(h)
+		if mh.Building == nil && mh.Terrain != models.TerrainRiver && gs.IsAdjacentToPlayerBuilding(h, "p0") {
+			target, found = h, true
+			break
+		}
+	}
+	if !found {
+		t.Fatal("fixture has no reachable empty land")
+	}
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	want := SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade1, Hexes: []board.Hex{target}, Terrain: models.TerrainLake}
+	found = false
+	for _, action := range position.LegalActions() {
+		if action.Key() == want.Key() {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("missing legal free intermediate transform")
+	}
+	if err := position.Apply(want); err != nil {
+		t.Fatal(err)
+	}
+	assertActionSetsEqual(t, position.LegalActions(), oracleLegalActions(position))
+}
 
 // oracleLegalActions deliberately does not call any production candidate
 // generator. Only SearchAction.GameAction and the authoritative transition are
@@ -73,6 +153,34 @@ func oracleCandidateUniverse(gs *game.GameState, playerID string) []SearchAction
 	})
 
 	out := make([]SearchAction, 0, 14000)
+	for power := game.PowerActionBridge; power <= game.PowerActionCoins; power++ {
+		out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: power, DeclineReward: true})
+	}
+	out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade1}, SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade2})
+	player := gs.GetPlayer(playerID)
+	if player != nil && player.Faction != nil && player.Faction.GetType() != models.FactionGiants {
+		for _, first := range hexes {
+			mh := gs.Map.GetHex(first)
+			home := player.Faction.GetHomeTerrain()
+			if mh.Building != nil || board.TerrainDistance(mh.Terrain, home) != 1 {
+				continue
+			}
+			for _, second := range hexes {
+				sh := gs.Map.GetHex(second)
+				if first == second || sh.Building != nil {
+					continue
+				}
+				for _, terrain := range terrains {
+					if board.TerrainDistance(sh.Terrain, terrain) != 1 {
+						continue
+					}
+					for _, build := range []bool{false, true} {
+						out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade2, Hexes: []board.Hex{first, second}, Terrain: home, Terrain2: terrain, Build: build})
+					}
+				}
+			}
+		}
+	}
 	for _, faction := range baseFactionTypes {
 		out = append(out, SearchAction{Kind: game.ActionSelectFaction, Faction: faction})
 	}
@@ -84,10 +192,20 @@ func oracleCandidateUniverse(gs *game.GameState, playerID string) []SearchAction
 		for _, terrain := range terrains {
 			for _, build := range []bool{false, true} {
 				for _, skip := range []bool{false, true} {
+					// Independently enumerate both wheel directions. Validation decides
+					// which would cross home or violate faction/free-spade rules.
+					if mh := gs.Map.GetHex(h); mh != nil && mh.Terrain != terrain {
+						distance := board.TerrainDistance(mh.Terrain, terrain)
+						for _, steps := range []int{distance, 7 - distance} {
+							if steps >= 1 && steps <= 6 {
+								out = append(out, SearchAction{Kind: game.ActionTransformAndBuild, Hexes: []board.Hex{h}, Terrain: terrain, TerrainSteps: steps, Build: build, UseSkip: skip})
+							}
+						}
+					}
 					out = append(out,
 						SearchAction{Kind: game.ActionTransformAndBuild, Hexes: []board.Hex{h}, Terrain: terrain, Build: build, UseSkip: skip},
-						SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade1, Hexes: []board.Hex{h}, Build: build, UseSkip: skip},
-						SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade2, Hexes: []board.Hex{h}, Build: build, UseSkip: skip},
+						SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade1, Hexes: []board.Hex{h}, Terrain: terrain, Build: build, UseSkip: skip},
+						SearchAction{Kind: game.ActionPowerAction, Power: game.PowerActionSpade2, Hexes: []board.Hex{h}, Terrain: terrain, Build: build, UseSkip: skip},
 						SearchAction{Kind: game.ActionSpecialAction, Special: game.SpecialActionBonusCardSpade, Hexes: []board.Hex{h}, Terrain: terrain, Build: build, UseSkip: skip},
 					)
 				}
@@ -107,7 +225,6 @@ func oracleCandidateUniverse(gs *game.GameState, playerID string) []SearchAction
 		out = append(out,
 			SearchAction{Kind: game.ActionSpecialAction, Special: game.SpecialActionWitchesRide, Hexes: []board.Hex{h}},
 			SearchAction{Kind: game.ActionSpecialAction, Special: game.SpecialActionSwarmlingsUpgrade, Hexes: []board.Hex{h}},
-			SearchAction{Kind: game.ActionSpecialAction, Special: game.SpecialActionMermaidsRiverTown, Hexes: []board.Hex{h}},
 		)
 	}
 	for i, h1 := range hexes {
@@ -160,6 +277,7 @@ func oracleCandidateUniverse(gs *game.GameState, playerID string) []SearchAction
 	out = append(out, oracleLeechCandidates(gs, playerID)...)
 	out = append(out, oracleTownCandidates(gs, playerID)...)
 	out = append(out, oracleTownCultCandidates(gs)...)
+	out = append(out, SearchAction{Kind: game.ActionFinishTurn})
 	return out
 }
 
@@ -196,49 +314,27 @@ func oracleConversionCandidates(gs *game.GameState, playerID string) []SearchAct
 
 func oracleLeechCandidates(gs *game.GameState, playerID string) []SearchAction {
 	var out []SearchAction
-	for index, offer := range gs.PendingLeechOffers[playerID] {
+	for index := range gs.PendingLeechOffers[playerID] {
 		out = append(out,
 			SearchAction{Kind: game.ActionAcceptPowerLeech, Amount: index},
 			SearchAction{Kind: game.ActionDeclinePowerLeech, Amount: index},
 		)
-		if offer != nil {
-			for amount := 1; amount < offer.Amount; amount++ {
-				out = append(out, SearchAction{Kind: game.ActionAcceptPowerLeech, Amount: index, Amount2: amount})
-			}
-		}
 	}
 	return out
 }
 
 func oracleTownCandidates(gs *game.GameState, playerID string) []SearchAction {
-	pending := gs.PendingTownFormations[playerID]
-	selected := oracleNextTownFormation(pending)
-	if selected == nil {
-		return nil
-	}
-	anchor, ok := oracleCanonicalTownAnchor(selected)
-	if !ok {
-		return nil
-	}
 	var out []SearchAction
-	for tile := models.TownTile5Points; tile <= models.TownTile2Points; tile++ {
-		out = append(out, SearchAction{Kind: game.ActionSelectTownTile, TownTile: tile, Hexes: []board.Hex{anchor}})
+	for _, pending := range gs.TownFormationChoices(playerID) {
+		anchor, ok := oracleCanonicalTownAnchor(pending)
+		if !ok {
+			continue
+		}
+		for tile := models.TownTile5Points; tile <= models.TownTile2Points; tile++ {
+			out = append(out, SearchAction{Kind: game.ActionSelectTownTile, TownTile: tile, Hexes: []board.Hex{anchor}})
+		}
 	}
 	return out
-}
-
-func oracleNextTownFormation(pending []*game.PendingTownFormation) *game.PendingTownFormation {
-	for _, formation := range pending {
-		if formation != nil && !formation.CanBeDelayed {
-			return formation
-		}
-	}
-	for _, formation := range pending {
-		if formation != nil {
-			return formation
-		}
-	}
-	return nil
 }
 
 func oracleCanonicalTownAnchor(pending *game.PendingTownFormation) (board.Hex, bool) {

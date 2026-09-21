@@ -73,6 +73,9 @@ func TestTrajectoryValidationRejectsSemanticCorruption(t *testing.T) {
 		want   string
 	}{
 		"state hash":          {func(value *Trajectory) { value.Steps[0].StateHash = strings.Repeat("0", 32) }, "state hash mismatch"},
+		"legacy rules":        {func(value *Trajectory) { value.Manifest.RulesVersion = 1 }, "schema mismatch"},
+		"legacy actions":      {func(value *Trajectory) { value.Manifest.ActionVersion = 1 }, "schema mismatch"},
+		"legacy state":        {func(value *Trajectory) { value.Manifest.StateVersion = 1 }, "schema mismatch"},
 		"hash chain":          {func(value *Trajectory) { value.Steps[0].NextStateHash = strings.Repeat("0", 32) }, "hash chain"},
 		"seat faction":        {func(value *Trajectory) { value.Steps[0].DecisionSeat = 1 }, "decision seat"},
 		"result":              {func(value *Trajectory) { value.Steps[0].FinalVP++ }, "inconsistent with final VP"},
@@ -133,7 +136,7 @@ func testTrajectory(t *testing.T) Trajectory {
 	return Trajectory{
 		Manifest: TrajectoryManifest{
 			FormatVersion: TrajectoryFormatVersion,
-			RulesVersion:  1,
+			RulesVersion:  RulesVersion,
 			StateVersion:  StateSchemaVersion,
 			ActionVersion: ActionSchemaVersion,
 			EngineCommit:  "test",

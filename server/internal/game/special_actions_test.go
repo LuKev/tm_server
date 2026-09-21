@@ -1,12 +1,119 @@
 package game
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
+
+// Faction appendix/FAQ 3.6: these abilities transform land, never rivers.
+// Optional dwelling costs must be payable before any part of the action occurs.
+func TestBaseTransformSpecialRejectsInvalidTargetsAtomically(t *testing.T) {
+	for _, faction := range []models.FactionType{models.FactionGiants, models.FactionNomads} {
+		for _, terrain := range []models.TerrainType{models.TerrainRiver, models.TerrainIce, models.TerrainVolcano, models.TerrainForest} {
+			gs := NewGameState()
+			gs.AddPlayer("actor", factions.NewFaction(faction))
+			player := gs.GetPlayer("actor")
+			player.HasStrongholdAbility = true
+			player.Resources.Coins, player.Resources.Workers = 0, 0
+			origin, target := board.NewHex(0, 1), board.NewHex(0, 0)
+			gs.Map.GetHex(origin).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "actor", Faction: faction, PowerValue: 1}
+			gs.Map.GetHex(target).Terrain = terrain
+			kind := SpecialActionGiantsTransform
+			if faction == models.FactionNomads {
+				kind = SpecialActionNomadsSandstorm
+			}
+			action := &SpecialAction{BaseAction: BaseAction{Type: ActionSpecialAction, PlayerID: "actor"}, ActionType: kind, TargetHex: &target, BuildDwelling: terrain == models.TerrainForest}
+			before, _ := json.Marshal(gs)
+			if err := action.Validate(gs); err == nil {
+				t.Errorf("%s validated illegal terrain/build %s", faction, terrain)
+			}
+			if err := action.Execute(gs); err == nil {
+				t.Errorf("%s executed illegal terrain/build %s", faction, terrain)
+			}
+			after, _ := json.Marshal(gs)
+			if string(before) != string(after) {
+				t.Fatalf("%s failed special mutated state for %s", faction, terrain)
+			}
+		}
+	}
+}
+
+// Explicit user adjudication permits zero-effect cult specials; invalid tracks
+// and already-used actions remain illegal.
+func TestCultSpecialAllowsCappedAdvancement(t *testing.T) {
+	for _, kind := range []SpecialActionType{SpecialActionAurenCultAdvance, SpecialActionWater2CultAdvance, SpecialActionBonusCardCultAdvance} {
+		for _, blocked := range []string{"top", "no_key", "occupied", "invalid_track", "used"} {
+			gs := NewGameState()
+			gs.AddPlayer("actor", factions.NewAuren())
+			player := gs.GetPlayer("actor")
+			player.HasStrongholdAbility = true
+			gs.FavorTiles.TakeFavorTile("actor", FavorWater2)
+			gs.BonusCards.PlayerCards["actor"] = BonusCardCultAdvance
+			track := CultFire
+			position := 9
+			if blocked == "top" {
+				position = 10
+			}
+			if blocked == "occupied" {
+				player.Keys = 1
+				gs.CultTracks.Position10Occupied[CultFire] = "other"
+			}
+			if blocked == "invalid_track" {
+				track = CultTrack(99)
+			}
+			if blocked == "used" {
+				player.SpecialActionsUsed[kind] = true
+			}
+			player.CultPositions[CultFire] = position
+			gs.CultTracks.PlayerPositions["actor"][CultFire] = position
+			action := &SpecialAction{BaseAction: BaseAction{Type: ActionSpecialAction, PlayerID: "actor"}, ActionType: kind, CultTrack: &track}
+			before, _ := json.Marshal(gs)
+			if blocked != "invalid_track" && blocked != "used" {
+				if err := action.Execute(gs); err != nil {
+					t.Fatalf("special %d rejected capped advancement %s: %v", kind, blocked, err)
+				}
+				if got := gs.CultTracks.GetPosition("actor", CultFire); got != position || !player.SpecialActionsUsed[kind] {
+					t.Fatalf("capped special changed position or did not consume action: position=%d used=%v", got, player.SpecialActionsUsed[kind])
+				}
+				continue
+			}
+			if err := action.Validate(gs); err == nil {
+				t.Errorf("special %d permits blocked advancement %s", kind, blocked)
+			}
+			if err := action.Execute(gs); err == nil {
+				t.Errorf("special %d executes blocked advancement %s", kind, blocked)
+			}
+			after, _ := json.Marshal(gs)
+			if string(before) != string(after) {
+				t.Fatalf("failed cult special mutated state: kind=%d case=%s", kind, blocked)
+			}
+		}
+	}
+}
+
+func TestAurenCultSpecialAllowsPartialAdvancement(t *testing.T) {
+	for _, tc := range []struct{ start, keys, want int }{{8, 0, 9}, {9, 1, 10}} {
+		gs := NewGameState()
+		gs.AddPlayer("actor", factions.NewAuren())
+		player := gs.GetPlayer("actor")
+		player.HasStrongholdAbility = true
+		player.Keys = tc.keys
+		player.CultPositions[CultFire] = tc.start
+		gs.CultTracks.PlayerPositions["actor"][CultFire] = tc.start
+		track := CultFire
+		action := &SpecialAction{BaseAction: BaseAction{Type: ActionSpecialAction, PlayerID: "actor"}, ActionType: SpecialActionAurenCultAdvance, CultTrack: &track}
+		if err := action.Execute(gs); err != nil {
+			t.Fatalf("partial advancement from %d: %v", tc.start, err)
+		}
+		if got := gs.CultTracks.GetPosition("actor", CultFire); got != tc.want {
+			t.Fatalf("from %d got %d, want %d", tc.start, got, tc.want)
+		}
+	}
+}
 
 // Helper function to build a stronghold for a player
 func buildStrongholdForPlayer(gs *GameState, playerID string, hex board.Hex) {
@@ -155,13 +262,18 @@ func TestAurenCultAdvance_AlreadyAtMax(t *testing.T) {
 
 	// Set cult position at max
 	player.CultPositions[CultEarth] = 10
+	gs.CultTracks.PlayerPositions["player1"][CultEarth] = 10
+	gs.CultTracks.Position10Occupied[CultEarth] = "player1"
 
 	// Try to use Auren cult advance special action
 	action := NewAurenCultAdvanceAction("player1", CultEarth)
 
 	err := action.Execute(gs)
-	if err == nil {
-		t.Fatal("expected error when already at max cult position")
+	if err != nil {
+		t.Fatalf("capped action is allowed by user adjudication: %v", err)
+	}
+	if player.CultPositions[CultEarth] != 10 || !player.SpecialActionsUsed[SpecialActionAurenCultAdvance] {
+		t.Fatal("capped action must preserve position and consume its once-per-round use")
 	}
 }
 

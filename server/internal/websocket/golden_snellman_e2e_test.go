@@ -673,9 +673,11 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		params := map[string]any{
 			"offerIndex": offerIndex,
 		}
-		if a.Explicit && a.PowerAmount > 0 {
-			params["amount"] = a.PowerAmount
-		}
+		// Snellman's "Leech N" names the offered amount, not necessarily
+		// the actual amount charged. S61_D1L1_G3 line 195 records "Leech 3"
+		// but +2 power/-1 VP because only two power can be charged. N was
+		// already used to match the original offer above; let the game apply
+		// capacity/VP caps instead of submitting N as an explicit actual gain.
 		return r.perform(a.PlayerID, "accept_leech", params)
 	case *notation.LogDeclineLeechAction:
 		if !hasPendingLeechOffer(r.state, a.PlayerID) {
@@ -756,6 +758,9 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 	if compound == nil {
 		return fmt.Errorf("nil compound action")
 	}
+	copyCompound := *compound
+	copyCompound.Actions = notation.NormalizePowerSpadeOrder(compound.Actions)
+	compound = &copyCompound
 
 	r.compoundDepth++
 	defer func() { r.compoundDepth-- }()
@@ -832,10 +837,26 @@ func (r *goldenRunner) executeCompound(compound *notation.LogCompoundAction, upc
 
 				params := transformBuildParams(nextTransform)
 				params["actionType"] = int(powerType)
+				params["spadeActionVersion"] = 2
+				consumeSecond := false
+				if powerType == game.PowerActionSpade2 && i+2 < len(compound.Actions) {
+					if second, ok := compound.Actions[i+2].(*game.TransformAndBuildAction); ok && second.TargetHex != nextTransform.TargetHex {
+						params["secondHex"] = toHexParam(second.TargetHex)
+						terrain := second.TargetTerrain
+						if terrain == models.TerrainTypeUnknown {
+							terrain = r.gs.GetPlayer(a.PlayerID).Faction.GetHomeTerrain()
+						}
+						params["secondTerrain"] = int(terrain)
+						consumeSecond = true
+					}
+				}
 				if err := r.perform(a.PlayerID, "power_action_claim", params); err != nil {
 					return err
 				}
 				i++
+				if consumeSecond {
+					i++
+				}
 
 				for i+1 < len(compound.Actions) {
 					followTransform, ok := compound.Actions[i+1].(*game.TransformAndBuildAction)
@@ -1427,10 +1448,6 @@ func (r *goldenRunner) canSelectTownTile(playerID string) bool {
 
 func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcoming []game.Action) error {
 	for guard := 0; guard < 12; guard++ {
-		if r.gs.PendingFavorTileSelection != nil && len(upcoming) > 0 &&
-			actionResolvesPendingDecision("favor_tile_selection", r.gs.PendingFavorTileSelection.PlayerID, upcoming[0]) {
-			return nil
-		}
 		pd := asMap(r.state["pendingDecision"])
 		decisionType := asString(pd["type"])
 		playerID := asString(pd["playerId"])
@@ -1489,6 +1506,9 @@ func (r *goldenRunner) resolveBlockingPendingBefore(nextPlayerID string, upcomin
 			return nil
 		}
 		if decisionType == "leech_offer" {
+			// Snellman permits asynchronous responses after reward-selection
+			// rows. Import their recorded decisions in strict reaction order;
+			// never bypass the engine's leech-before-favor/town requirement.
 			resolved, err := r.resolveFutureLeechResponse(playerID, upcoming)
 			if err != nil {
 				return err
@@ -1623,12 +1643,7 @@ func (r *goldenRunner) canUseImmediateLeechResponse(action game.Action) bool {
 		return false
 	}
 	pd := asMap(r.state["pendingDecision"])
-	switch asString(pd["type"]) {
-	case "town_cult_top_choice", "town_tile_selection", "darklings_ordination":
-		return false
-	default:
-		return true
-	}
+	return asString(pd["type"]) == "leech_offer" && asString(pd["playerId"]) == playerID
 }
 
 func leechActionPlayerID(action game.Action) string {

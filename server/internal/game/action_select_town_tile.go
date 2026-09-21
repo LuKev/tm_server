@@ -29,53 +29,54 @@ func (a *SelectTownTileAction) Validate(gs *GameState) error {
 		return fmt.Errorf("player has already passed")
 	}
 
-	pendingTowns, ok := gs.PendingTownFormations[a.PlayerID]
-	if !ok || len(pendingTowns) == 0 {
-		return fmt.Errorf("no pending town formation for player %s", a.PlayerID)
-	}
-
 	if !gs.TownTiles.IsAvailable(a.TileType) {
 		return fmt.Errorf("town tile %v is not available", a.TileType)
 	}
-	if a.TileType == models.TownTile9Points && gs.RemainingPriestCapacity(a.PlayerID) < 1 {
-		return fmt.Errorf("cannot take priest town tile at the 7-priest limit")
+	choices := gs.TownFormationChoices(a.PlayerID)
+	index, err := gs.townFormationIndex(a.PlayerID, choices, a.AnchorHex)
+	if err != nil {
+		return err
 	}
-	pending := pendingTowns[nextPendingTownFormationIndex(pendingTowns)]
-	if pending.SkippedRiverHex != nil {
-		if a.AnchorHex != nil && *a.AnchorHex != *pending.SkippedRiverHex {
-			return fmt.Errorf("mermaids river town must use the skipped river hex as the town tile anchor")
-		}
-		return nil
-	}
-	if a.AnchorHex == nil {
+	pending := choices[index]
+	if a.AnchorHex == nil && pending.SkippedRiverHex == nil {
 		return fmt.Errorf("town tile anchor hex is required")
 	}
-
-	isValidAnchor := false
-	for _, hex := range pending.Hexes {
-		if hex != *a.AnchorHex {
-			continue
+	if pending.CanBeDelayed {
+		current := gs.GetCurrentPlayer()
+		ownsTurn := current != nil && current.ID == a.PlayerID || gs.PendingFreeActionsPlayerID == a.PlayerID
+		if gs.Phase != PhaseAction || !ownsTurn || gs.HasBlockingPendingLeechOffers() {
+			return fmt.Errorf("delayed Mermaid town requires the owner's action turn, after leech resolves")
 		}
-		mapHex := gs.Map.GetHex(hex)
-		if mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == a.PlayerID {
-			isValidAnchor = true
-		}
-		break
-	}
-	if !isValidAnchor {
-		return fmt.Errorf("anchor hex must be one of the pending town's building hexes")
 	}
 
 	return nil
 }
 
-func nextPendingTownFormationIndex(pending []*PendingTownFormation) int {
-	for i, formation := range pending {
-		if formation != nil && !formation.CanBeDelayed {
-			return i
+// An anchor identifies which simultaneously founded town the player wants to
+// reward first. River anchors additionally identify distinct Mermaid choices.
+func (gs *GameState) townFormationIndex(playerID string, choices []*PendingTownFormation, anchor *board.Hex) (int, error) {
+	mandatory := hasImmediatePendingTownSelection(choices)
+	for i, pending := range choices {
+		if pending == nil || mandatory && pending.CanBeDelayed {
+			continue
+		}
+		if anchor == nil {
+			return i, nil
+		} // Legacy direct-call default.
+		if pending.SkippedRiverHex != nil {
+			if *pending.SkippedRiverHex == *anchor {
+				return i, nil
+			}
+			continue
+		}
+		for _, hex := range pending.Hexes {
+			mapHex := gs.Map.GetHex(hex)
+			if hex == *anchor && mapHex != nil && mapHex.Building != nil && mapHex.Building.PlayerID == playerID {
+				return i, nil
+			}
 		}
 	}
-	return 0
+	return -1, fmt.Errorf("anchor does not identify an eligible pending town")
 }
 
 // Execute performs the town tile selection.
@@ -83,16 +84,22 @@ func (a *SelectTownTileAction) Execute(gs *GameState) error {
 	if err := a.Validate(gs); err != nil {
 		return err
 	}
+	formations := gs.TownFormationChoices(a.PlayerID)
+	index, _ := gs.townFormationIndex(a.PlayerID, formations, a.AnchorHex)
+	delayedBeforeMain := formations[index].CanBeDelayed && gs.PendingFreeActionsPlayerID == ""
 
 	if err := gs.SelectTownTile(a.PlayerID, a.TileType, a.AnchorHex); err != nil {
 		return err
 	}
+	if delayedBeforeMain && gs.PendingTownCultTopChoice != nil {
+		gs.PendingTownCultTopChoice.ContinueMainAction = true
+	}
 	gs.updateAtlanteansStrongholdTown(a.PlayerID)
 
-	if pendingTowns, ok := gs.PendingTownFormations[a.PlayerID]; !ok || len(pendingTowns) == 0 {
-		if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID {
-			gs.NextTurn()
-		}
+	// NextTurn itself waits for mandatory rewards. An unrelated delayed town
+	// must not keep the completed main action open for another main action.
+	if current := gs.GetCurrentPlayer(); current != nil && current.ID == a.PlayerID && !delayedBeforeMain {
+		gs.NextTurn()
 	}
 
 	return nil

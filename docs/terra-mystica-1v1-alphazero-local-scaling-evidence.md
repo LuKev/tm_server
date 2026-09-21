@@ -1,5 +1,12 @@
 # Terra Mystica AlphaZero local scaling evidence
 
+Review notice (2026-09-20): these are historical measurements, not validated
+strength results for correct Terra Mystica. The
+[first-principles review](terra-mystica-1v1-first-principles-review-20260919.md)
+identified rules failures and a lexical-first one-simulation baseline. Follow the
+[corrective plan](terra-mystica-1v1-remediation-plan.md) before reusing the search
+curve conclusions or old replay in a new training lineage.
+
 Date: 2026-08-11
 
 This report is the durable record for the first provenance-clean Milestone 5

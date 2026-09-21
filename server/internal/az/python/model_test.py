@@ -24,12 +24,15 @@ import learner as learner_module
 from learner import Example, ReplayWindow, load_replay, losses, resolve_training_steps, train
 from model import DEBUG_CONFIG, LARGE_CONFIG, MAIN_CONFIG, HexConv2d, TerraMysticaNet, checkpoint_manifest, load_checkpoint, publish_checkpoint, resolve_device, resolve_model_config, save_checkpoint
 from schema import (
+    ACTION_SCHEMA_VERSION,
     ACTION_FEATURE_NAMES,
     AXIAL_NEIGHBORS,
     BASE_ACTION_KINDS,
     BASE_SPECIALS,
     GLOBAL_FEATURE_NAMES,
     MANIFEST,
+    RULES_VERSION,
+    STATE_SCHEMA_VERSION,
     SPATIAL_FEATURE_NAMES,
     encode_actions,
     encode_position,
@@ -69,6 +72,7 @@ def _action_samples() -> list[dict]:
         {"kind": 34, "conversion": "worker_to_coin", "amount": 3},
         {"kind": 35, "amount": 2},
         {"kind": 36, "hexes": [first, second]},
+        {"kind": 40},
     ]
     specials = [
         {"kind": 7, "special": 0, "track": 0},
@@ -129,23 +133,28 @@ class RepresentationTest(unittest.TestCase):
         )
         self.assertEqual(
             hashlib.sha256("\n".join(GLOBAL_FEATURE_NAMES).encode()).hexdigest(),
-            "8f7030c42eff327c38a4229000139407f310a65e9afcf5c80077a0f82f49b25e",
+            "0379c72083360b1184ca0212083bdc2bcc63ae55fcc0edd93259d1d7b1801b78",
         )
         self.assertEqual(
             hashlib.sha256("\n".join(ACTION_FEATURE_NAMES).encode()).hexdigest(),
-            "af60817febe08613a91087f0c7660f8d8de9283bdeacadd87069d2574d46e146",
+            "e01af26a701de75dcb5635e6706dc2d4f1847e5103407a91fe8c2a0afff98a25",
         )
 
     def test_each_typed_action_argument_changes_features_or_gathers(self) -> None:
         first, second = {"Q": 0, "R": 4}, {"Q": 1, "R": 4}
         pairs = [
             ({"kind": 0, "hexes": [first], "terrain": 1}, {"kind": 0, "hexes": [first], "terrain": 2}),
+            ({"kind": 0, "hexes": [first], "terrain": 1}, {"kind": 0, "hexes": [first], "terrain": 1, "terrain_steps": 6}),
             ({"kind": 0, "hexes": [first]}, {"kind": 0, "hexes": [first], "build": True}),
             ({"kind": 0, "hexes": [first]}, {"kind": 0, "hexes": [first], "use_skip": True}),
             ({"kind": 0, "hexes": [first]}, {"kind": 0, "hexes": [second]}),
             ({"kind": 1, "hexes": [first], "building": 1}, {"kind": 1, "hexes": [first], "building": 2}),
             ({"kind": 5, "track": 0, "amount": 2}, {"kind": 5, "track": 1, "amount": 2}),
             ({"kind": 6, "power": 0}, {"kind": 6, "power": 1}),
+            ({"kind": 6, "power": 4, "hexes": [first], "terrain": 1}, {"kind": 6, "power": 4, "hexes": [first], "terrain": 2}),
+            ({"kind": 6, "power": 5, "hexes": [first, second], "terrain_2": 1}, {"kind": 6, "power": 5, "hexes": [first, second], "terrain_2": 2}),
+            ({"kind": 6, "power": 5, "hexes": [first, second]}, {"kind": 6, "power": 5, "hexes": [first, second], "use_skip_2": True}),
+            ({"kind": 6, "power": 1}, {"kind": 6, "power": 1, "decline_reward": True}),
             ({"kind": 7, "special": 0}, {"kind": 7, "special": 1}),
             ({"kind": 8, "card": 0}, {"kind": 8, "card": 1}),
             ({"kind": 11, "amount": 1, "amount_2": 0}, {"kind": 11, "amount": 1, "amount_2": 1}),
@@ -476,9 +485,9 @@ class RepresentationTest(unittest.TestCase):
         trajectory = {
             "manifest": {
                 "format_version": 2,
-                "rules_version": 1,
-                "state_version": 1,
-                "action_version": 1,
+                "rules_version": RULES_VERSION,
+                "state_version": STATE_SCHEMA_VERSION,
+                "action_version": ACTION_SCHEMA_VERSION,
                 "engine_commit": "test",
                 "model_id": "random",
                 "seed": 3,
@@ -700,7 +709,9 @@ class RepresentationTest(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "does not match requested"):
                 resolve_model_config("main", path)
             mutations = [
-                ("rules_version", 2),
+                ("rules_version", 1),
+                ("action_schema_version", 1),
+                ("state_schema_version", 1),
                 ("grid_q_offset", 5),
                 ("spatial_schema_sha256", "same-dimension-but-reordered"),
                 ("action_schema_sha256", "same-dimension-but-reordered"),

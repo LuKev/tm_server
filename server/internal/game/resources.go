@@ -5,6 +5,7 @@ import (
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 // ResourcePool manages a player's resources including power system
@@ -220,9 +221,9 @@ func NewPowerLeechOffer(buildingValue int, fromPlayerID string, targetPower *Pow
 	}
 }
 
-// AcceptPowerLeech accepts a power leech offer
-// Player gains power but loses VP
-// Returns the VP cost that should be deducted
+// AcceptPowerLeech is a resource-only primitive; it does not know a VP budget.
+// Game and replay callers must use Player.AcceptPowerLeech to enforce affordability.
+// Returns the VP cost that should be deducted.
 func (rp *ResourcePool) AcceptPowerLeech(offer *PowerLeechOffer) int {
 	if offer == nil {
 		return 0
@@ -238,6 +239,36 @@ func (rp *ResourcePool) AcceptPowerLeech(offer *PowerLeechOffer) int {
 		return 0
 	}
 	return actualGained - 1
+}
+
+// PowerLeechAmount is the mandatory amount when accepting (rulebook p. 12):
+// only charging capacity and VP affordability can reduce the original offer.
+func (p *Player) PowerLeechAmount(offer *PowerLeechOffer) int {
+	if offer == nil || p.Resources == nil || p.Resources.Power == nil {
+		return 0
+	}
+	capacity := 2*p.Resources.Power.Bowl1 + p.Resources.Power.Bowl2
+	freePower := 1
+	if p.Faction != nil && p.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+		freePower++
+	}
+	return maxInt(0, min(offer.Amount, capacity, maxInt(0, p.VictoryPoints)+freePower))
+}
+
+// AcceptPowerLeech charges an affordable amount and pays for the actual gain.
+// Offer-queue and faction-reaction resolution belongs to the game action.
+func (p *Player) AcceptPowerLeech(offer *PowerLeechOffer) {
+	amount := p.PowerLeechAmount(offer)
+	if amount == 0 {
+		return
+	}
+	capped := *offer
+	capped.Amount = amount
+	cost := p.Resources.AcceptPowerLeech(&capped)
+	if p.Faction != nil && p.Faction.GetType() == models.FactionChildrenOfTheWyrm && cost > 0 {
+		cost--
+	}
+	p.VictoryPoints -= cost
 }
 
 func maxInt(a, b int) int {

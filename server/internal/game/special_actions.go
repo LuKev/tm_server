@@ -648,18 +648,14 @@ func (a *SpecialAction) validateAurenCultAdvance(player *Player) error {
 		return fmt.Errorf("only Auren can use cult advance special action")
 	}
 
-	if a.CultTrack == nil {
-		return fmt.Errorf("cult track must be specified")
+	return a.validateCultSpecialTrack()
+}
+
+func (a *SpecialAction) validateCultSpecialTrack() error {
+	if a.CultTrack == nil || *a.CultTrack < CultFire || *a.CultTrack > CultAir {
+		return fmt.Errorf("valid cult track must be specified")
 	}
-
-	// Check current position on cult track
-	currentPos := player.CultPositions[*a.CultTrack]
-
-	// Can advance 2 spaces, but cannot go beyond 10
-	if currentPos == 10 {
-		return fmt.Errorf("already at maximum position on cult track")
-	}
-
+	// User-adjudicated rules permit spending a cult special even when capped.
 	return nil
 }
 
@@ -781,6 +777,9 @@ func (a *SpecialAction) validateGiantsTransform(gs *GameState, player *Player) e
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
 	}
+	if !isStandardLandTerrain(mapHex.Terrain) {
+		return fmt.Errorf("Giants cannot transform rivers or permanent terrain")
+	}
 	if mapHex.Terrain == effectiveHomeTerrain(player) {
 		return fmt.Errorf("Giants transform must change terrain")
 	}
@@ -794,6 +793,9 @@ func (a *SpecialAction) validateGiantsTransform(gs *GameState, player *Player) e
 	if a.BuildDwelling {
 		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
+		}
+		if !player.Resources.CanAfford(getDwellingBuildCost(gs, player, *a.TargetHex)) {
+			return fmt.Errorf("cannot afford dwelling after Giants transform")
 		}
 	}
 
@@ -818,6 +820,9 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
 	}
+	if !isStandardLandTerrain(mapHex.Terrain) {
+		return fmt.Errorf("sandstorm cannot transform rivers or permanent terrain")
+	}
 	if mapHex.Terrain == effectiveHomeTerrain(player) {
 		return fmt.Errorf("sandstorm must change terrain")
 	}
@@ -841,6 +846,9 @@ func (a *SpecialAction) validateNomadsSandstorm(gs *GameState, player *Player) e
 	if a.BuildDwelling {
 		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
 			return err
+		}
+		if !player.Resources.CanAfford(getDwellingBuildCost(gs, player, *a.TargetHex)) {
+			return fmt.Errorf("cannot afford dwelling after sandstorm")
 		}
 	}
 
@@ -876,11 +884,7 @@ func (a *SpecialAction) validateWater2CultAdvance(gs *GameState) error {
 		return fmt.Errorf("player does not have Water+2 favor tile")
 	}
 
-	if a.CultTrack == nil {
-		return fmt.Errorf("cult track must be specified")
-	}
-
-	return nil
+	return a.validateCultSpecialTrack()
 }
 
 func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) error {
@@ -908,54 +912,20 @@ func (a *SpecialAction) validateBonusCardSpade(gs *GameState, player *Player) er
 		return nil
 	}
 
-	// Validate the transform action (hex must exist, be empty or transformable, etc.)
+	// Validate the free-spade transform without charging shared-action power.
 	if a.TargetHex == nil {
 		return fmt.Errorf("target hex must be specified")
 	}
+	transform := a.bonusSpadeTransform()
+	err := transform.validateSpadeTransform(gs, player, 0)
+	a.UseSkip = transform.UseSkip
+	return err
+}
 
-	mapHex := gs.Map.GetHex(*a.TargetHex)
-	if mapHex == nil {
-		return fmt.Errorf("hex does not exist: %v", a.TargetHex)
-	}
-
-	if mapHex.Building != nil {
-		return fmt.Errorf("hex already has a building")
-	}
-	targetTerrain := effectiveHomeTerrain(player)
-	if a.TargetTerrain != nil {
-		targetTerrain = *a.TargetTerrain
-	}
-	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
-	if err != nil {
-		return err
-	}
-	if distance <= 0 {
-		return fmt.Errorf("bonus-card spade must transform terrain")
-	}
-
-	// Check adjacency (or skip range for Fakirs/Dwarves)
-	isAdjacent := gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID)
-
-	// Auto-detect UseSkip for Dwarves and Fakirs if hex is not adjacent
-	if !isAdjacent && !a.UseSkip {
-		factionType := player.Faction.GetType()
-		if factionType == models.FactionDwarves || factionType == models.FactionFakirs {
-			// Automatically enable skip ability for these factions when hex is not adjacent
-			a.UseSkip = true
-		}
-	}
-
-	if a.UseSkip {
-		if err := ValidateSkipAbility(gs, player, *a.TargetHex); err != nil {
-			return err
-		}
-	} else {
-		if !isAdjacent {
-			return fmt.Errorf("hex is not adjacent to player's buildings")
-		}
-	}
-
-	return nil
+func (a *SpecialAction) bonusSpadeTransform() *PowerAction {
+	transform := NewPowerActionWithTransform(a.PlayerID, PowerActionSpade1, *a.TargetHex, a.BuildDwelling)
+	transform.TargetTerrain, transform.UseSkip = a.TargetTerrain, a.UseSkip
+	return transform
 }
 
 func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState) error {
@@ -971,11 +941,7 @@ func (a *SpecialAction) validateBonusCardCultAdvance(gs *GameState) error {
 		return fmt.Errorf("player does not have the cult advance bonus card")
 	}
 
-	if a.CultTrack == nil {
-		return fmt.Errorf("cult track must be specified")
-	}
-
-	return nil
+	return a.validateCultSpecialTrack()
 }
 
 // Execute performs the special action
@@ -1331,89 +1297,13 @@ func (a *SpecialAction) executeBonusCardSpade(gs *GameState, player *Player) err
 		return nil
 	}
 
-	mapHex := gs.Map.GetHex(*a.TargetHex)
-
-	// Handle skip costs (Fakirs carpet flight / Dwarves tunneling)
-	if a.UseSkip {
-		PaySkipCost(player)
-	}
-
-	// Transform terrain
-	targetTerrain := effectiveHomeTerrain(player)
-	if a.TargetTerrain != nil {
-		targetTerrain = *a.TargetTerrain
-	}
-
-	// Calculate terraform cost (but we get 1 free spade)
-	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
-	if err != nil {
+	transform := a.bonusSpadeTransform()
+	if err := transform.executeTransformWithFreeSpades(gs, player, 1); err != nil {
 		return err
 	}
-	if distance == 0 {
-		// If distance is 0, we might be transforming to same terrain (no-op) or invalid
-		// But if we are here, we probably want to transform.
-		// If same terrain, cost is 0.
-	}
-
-	totalWorkers := player.Faction.GetTerraformCost(distance)
-
-	// Calculate workers per spade (to subtract for the free spade)
-	workersPerSpade := player.Faction.GetTerraformCost(1)
-
-	// Subtract workers for 1 free spade (minimum 0)
-	workersNeeded := totalWorkers - workersPerSpade
-	if workersNeeded < 0 {
-		workersNeeded = 0
-	}
-
-	// Pay remaining workers if needed
-	if workersNeeded > 0 {
-		if player.Faction.GetType() == models.FactionTheEnlightened {
-			if !player.Resources.Power.CanSpend(workersNeeded) {
-				return fmt.Errorf("not enough power: need %d, have %d", workersNeeded, player.Resources.Power.Bowl3)
-			}
-			if err := player.Resources.Power.SpendPower(workersNeeded); err != nil {
-				return err
-			}
-		} else {
-			if player.Resources.Workers < workersNeeded {
-				return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
-			}
-			player.Resources.Workers -= workersNeeded
-		}
-	}
-
-	// Transform terrain
-	if err := gs.Map.TransformTerrain(*a.TargetHex, targetTerrain); err != nil {
-		return fmt.Errorf("failed to transform terrain: %w", err)
-	}
-
-	// Award VP from scoring tile for spades used
-	// Even though we get 1 free spade, we still used spades for the transformation
-	spadesUsed := distance
-	if player.Faction.GetType() == models.FactionGiants {
-		spadesUsed = 2
-	}
-	for i := 0; i < spadesUsed; i++ {
-		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
-	}
-
-	// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
-	AwardFactionSpadeBonuses(player, spadesUsed)
-
-	// Optionally build dwelling if requested
 	if a.BuildDwelling {
-		dwellingCost := getDwellingBuildCost(gs, player, *a.TargetHex)
-		if err := player.Resources.Spend(dwellingCost); err != nil {
-			return fmt.Errorf("failed to pay for dwelling: %w", err)
-		}
-
-		// Place dwelling and handle all VP bonuses
-		if err := gs.BuildDwelling(a.PlayerID, *a.TargetHex); err != nil {
-			return err
-		}
+		return transform.buildDwelling(gs, player)
 	}
-
 	return nil
 }
 
@@ -1430,6 +1320,9 @@ func (a *SpecialAction) executeBonusCardCultAdvance(gs *GameState) error {
 }
 
 func (a *SpecialAction) validateMermaidsRiverTown(gs *GameState, player *Player) error {
+	if gs.ExplicitTurnEnd {
+		return fmt.Errorf("found Mermaid towns by selecting a town tile at the chosen river anchor")
+	}
 	// Verify player is Mermaids
 	if player.Faction.GetType() != models.FactionMermaids {
 		return fmt.Errorf("only Mermaids can use river town ability")

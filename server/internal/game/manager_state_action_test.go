@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
+	"github.com/lukev/tm_server/internal/models"
 )
 
 func TestApplyActionToStateMatchesManagerLifecycle(t *testing.T) {
@@ -93,10 +95,8 @@ func TestDelayedMermaidsTownUsesPostActionWindowAsOwnTurn(t *testing.T) {
 	state.TurnOrder = []string{"mermaids", "opponent"}
 	state.CurrentPlayerIndex = 1
 	state.Phase = PhaseAction
-	state.PendingTownFormations["mermaids"] = []*PendingTownFormation{{
-		PlayerID: "mermaids", CanBeDelayed: true,
-	}}
-	action := &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "mermaids"}}
+	river := setupMermaidChoiceBuildings(state, "mermaids")
+	action := &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "mermaids"}, AnchorHex: &river}
 
 	if err := validateActionTurnAndPendingState(state, action); err == nil {
 		t.Fatal("delayed town was accepted outside the Mermaid player's action window")
@@ -197,5 +197,152 @@ func TestPassedPlayerLeechBecomesBlockingAtRoundEnd(t *testing.T) {
 	}
 	if state.Round != 2 || state.Phase != PhaseAction {
 		t.Fatalf("round did not resume normally: round=%d phase=%d", state.Round, state.Phase)
+	}
+}
+
+// Designer-referenced FAQ 2.10: neighbors decide on construction power before
+// the builder chooses favor/town rewards. Passing does not waive that response.
+func TestLeechPrecedesBuilderRewardsIncludingPassedResponder(t *testing.T) {
+	for _, reward := range []string{"favor", "town"} {
+		for _, passed := range []bool{false, true} {
+			state := NewGameState()
+			state.AddPlayer("actor", factions.NewWitches())
+			state.AddPlayer("responder", factions.NewEngineers())
+			state.TurnOrder = []string{"actor", "responder"}
+			state.Phase = PhaseAction
+			state.SetupSubphase = SetupSubphaseComplete
+			state.GetPlayer("responder").HasPassed = passed
+			state.PendingLeechOffers["responder"] = []*PowerLeechOffer{{FromPlayerID: "actor", Amount: 2}}
+			var premature Action
+			if reward == "favor" {
+				state.PendingFavorTileSelection = &PendingFavorTileSelection{PlayerID: "actor", Count: 1}
+				premature = &SelectFavorTileAction{BaseAction: BaseAction{Type: ActionSelectFavorTile, PlayerID: "actor"}, TileType: FavorFire3}
+			} else {
+				state.PendingTownFormations["actor"] = []*PendingTownFormation{{PlayerID: "actor"}}
+				premature = &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "actor"}}
+			}
+			if owners := DecisionPlayerIDs(state); len(owners) != 1 || owners[0] != "responder" {
+				t.Fatalf("%s passed=%v: wrong decision owner %v", reward, passed, owners)
+			}
+			if pending := serializePendingDecision(state).(map[string]interface{}); pending["type"] != "leech_offer" || pending["playerId"] != "responder" {
+				t.Fatalf("wrong serialized reaction: %v", pending)
+			}
+			if err := ApplyActionToState(state, premature, StateActionOptions{}); err == nil {
+				t.Fatalf("builder chose %s before leech", reward)
+			}
+			if err := ApplyActionToState(state, NewDeclinePowerLeechAction("responder", 0), StateActionOptions{}); err != nil {
+				t.Fatalf("leech resolution blocked by %s: %v", reward, err)
+			}
+			if owners := DecisionPlayerIDs(state); len(owners) != 1 || owners[0] != "actor" {
+				t.Fatalf("%s decision not restored after leech: %v", reward, owners)
+			}
+		}
+	}
+}
+
+func TestLeechRespondersFollowCurrentTurnOrder(t *testing.T) {
+	state := NewGameState()
+	state.AddPlayer("actor", factions.NewWitches())
+	state.AddPlayer("first", factions.NewEngineers())
+	state.AddPlayer("second", factions.NewNomads())
+	state.TurnOrder = []string{"actor", "first", "second"}
+	state.Phase = PhaseAction
+	state.SetupSubphase = SetupSubphaseComplete
+	for _, id := range []string{"first", "second"} {
+		state.PendingLeechOffers[id] = []*PowerLeechOffer{{FromPlayerID: "actor", Amount: 1}}
+	}
+	if err := ApplyActionToState(state, NewDeclinePowerLeechAction("second", 0), StateActionOptions{}); err == nil {
+		t.Fatal("second responder bypassed first")
+	}
+	if err := ApplyActionToState(state, NewDeclinePowerLeechAction("first", 0), StateActionOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if got := state.GetNextBlockingLeechResponder(); got != "second" {
+		t.Fatalf("next responder=%s", got)
+	}
+	if err := ApplyActionToState(state, NewDeclinePowerLeechAction("second", 0), StateActionOptions{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func simultaneousRewardFixture(t *testing.T, faction models.FactionType, sixPower bool) (*GameState, board.Hex) {
+	t.Helper()
+	state := NewGameState()
+	state.AddPlayer("actor", factions.NewFaction(faction))
+	state.AddPlayer("other", factions.NewNomads())
+	state.TurnOrder = []string{"actor", "other"}
+	state.Phase = PhaseAction
+	state.SetupSubphase = SetupSubphaseComplete
+	for q := 0; q < 4; q++ {
+		h := board.NewHex(q, 0)
+		kind, power := models.BuildingTradingHouse, 2
+		if q == 3 || (sixPower && q == 2) {
+			kind, power = models.BuildingDwelling, 1
+		}
+		state.Map.GetHex(h).Terrain = state.GetPlayer("actor").Faction.GetHomeTerrain()
+		if err := state.Map.PlaceBuilding(h, &models.Building{Type: kind, PowerValue: power, Faction: faction, PlayerID: "actor"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	state.CheckAllTownFormations("actor")
+	return state, board.NewHex(0, 0)
+}
+
+func TestSimultaneousDarklingsTownAndOrdinationEitherOrder(t *testing.T) {
+	// FAQ 2.10 expressly allows the town's two workers to feed SH ordination.
+	for _, townFirst := range []bool{false, true} {
+		state, anchor := simultaneousRewardFixture(t, models.FactionDarklings, false)
+		player := state.GetPlayer("actor")
+		player.Resources.Workers, player.Resources.Priests = 1, 0
+		state.PendingDarklingsPriestOrdination = &PendingDarklingsPriestOrdination{PlayerID: "actor"}
+		town := &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "actor"}, TileType: models.TownTile7Points, AnchorHex: &anchor}
+		amount := 1
+		if townFirst {
+			amount = 3
+			if err := ApplyActionToState(state, town, StateActionOptions{}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		ordination := &UseDarklingsPriestOrdinationAction{BaseAction: BaseAction{Type: ActionUseDarklingsPriestOrdination, PlayerID: "actor"}, WorkersToConvert: amount}
+		if err := ApplyActionToState(state, ordination, StateActionOptions{}); err != nil {
+			t.Fatalf("townFirst=%v: %v", townFirst, err)
+		}
+		if !townFirst {
+			if err := ApplyActionToState(state, town, StateActionOptions{}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if player.Resources.Priests != amount || player.Resources.Workers != 3-amount {
+			t.Fatalf("wrong reward ordering outcome: workers=%d priests=%d", player.Resources.Workers, player.Resources.Priests)
+		}
+	}
+}
+
+func TestChaosFirstFireFavorCreatesImmediateTownKey(t *testing.T) {
+	state, anchor := simultaneousRewardFixture(t, models.FactionChaosMagicians, true)
+	player := state.GetPlayer("actor")
+	state.CultTracks.PlayerPositions["actor"][CultFire] = 8
+	player.CultPositions[CultFire] = 8
+	state.PendingFavorTileSelection = &PendingFavorTileSelection{PlayerID: "actor", Count: 2}
+	first := &SelectFavorTileAction{BaseAction: BaseAction{Type: ActionSelectFavorTile, PlayerID: "actor"}, TileType: FavorFire2}
+	if err := ApplyActionToState(state, first, StateActionOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if len(state.PendingTownFormations["actor"]) != 1 || state.CultTracks.GetPosition("actor", CultFire) != 10 || player.Keys != -1 {
+		t.Fatal("first Fire2 must immediately create and borrow town key to reach Fire10")
+	}
+	// The second favor remains legal before selecting the simultaneously founded town.
+	second := &SelectFavorTileAction{BaseAction: BaseAction{Type: ActionSelectFavorTile, PlayerID: "actor"}, TileType: FavorAir3}
+	if err := ApplyActionToState(state, second, StateActionOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	player.Resources.Priests = 7
+	// Rulebook pp.14,18 grants VP/key separately from a capped priest reward.
+	town := &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "actor"}, TileType: models.TownTile9Points, AnchorHex: &anchor}
+	if err := ApplyActionToState(state, town, StateActionOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if player.Keys != 0 || player.Resources.Priests != 7 {
+		t.Fatalf("town key debt/priest cap wrong: keys=%d priests=%d", player.Keys, player.Resources.Priests)
 	}
 }

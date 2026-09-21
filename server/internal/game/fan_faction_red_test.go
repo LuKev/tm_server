@@ -515,7 +515,7 @@ func TestTreasurersPriestsInTreasuryBlockPriestPowerActionAtCap(t *testing.T) {
 	}
 }
 
-func TestTreasurersPriestsInTreasuryBlockPriestTownTileAtCap(t *testing.T) {
+func TestTreasurersPriestTownTileAtCapForfeitsOnlyPriest(t *testing.T) {
 	gs := NewGameState()
 	if err := gs.AddPlayer("p1", factions.NewTreasurers()); err != nil {
 		t.Fatalf("AddPlayer failed: %v", err)
@@ -537,8 +537,13 @@ func TestTreasurersPriestsInTreasuryBlockPriestTownTileAtCap(t *testing.T) {
 	action := &SelectTownTileAction{
 		BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "p1"},
 		TileType:   models.TownTile9Points,
+		AnchorHex:  &hexes[0],
 	}
-	if err := action.Validate(gs); err == nil {
-		t.Fatalf("expected priest town tile to be blocked at total priest cap")
+	beforeVP := player.VictoryPoints
+	if err := action.Execute(gs); err != nil {
+		t.Fatalf("town choice remains legal at priest cap: %v", err)
+	}
+	if gs.GetTotalOwnedPriests("p1") != 7 || player.VictoryPoints != beforeVP+9 || player.Keys != 1 {
+		t.Fatal("priest cap must not discard the town VP or key")
 	}
 }

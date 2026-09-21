@@ -34,6 +34,7 @@ func (gs *GameState) CloneForUndo() *GameState {
 		PendingCultRewardSpades:         cloneStringIntMap(gs.PendingCultRewardSpades),
 		NextLeechEventID:                gs.NextLeechEventID,
 		PendingFreeActionsPlayerID:      gs.PendingFreeActionsPlayerID,
+		ExplicitTurnEnd:                 gs.ExplicitTurnEnd,
 		PendingCultistsLeech:            clonePendingCultistsLeech(gs.PendingCultistsLeech),
 		PendingShapeshiftersLeech:       clonePendingCultistsLeech(gs.PendingShapeshiftersLeech),
 		SkipAbilityUsedThisAction:       cloneSkipAbilityUsedThisAction(gs.SkipAbilityUsedThisAction),

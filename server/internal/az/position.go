@@ -17,9 +17,17 @@ import (
 type PlayerID string
 type Hash128 [16]byte
 
+// RulesVersion 2 excludes the pre-conformance lineage, including fragmented
+// leech offers and incomplete power-spade choices. Old replay must not train it.
+const RulesVersion = 2
+
+// CompetitionProfileID identifies the assigned-faction base-map 1v1 contract.
+// Its exact rules and evidence boundary are documented in docs/tm-rules-contract.md.
+const CompetitionProfileID = "tm-base-1v1-assigned-v2"
+
 // StateSchemaVersion changes whenever CanonicalJSON's search-state semantics
 // change independently of the rules or SearchAction schema.
-const StateSchemaVersion = 1
+const StateSchemaVersion = 2
 
 func (h Hash128) String() string { return hex.EncodeToString(h[:]) }
 
@@ -61,6 +69,9 @@ func NewPosition(gs *game.GameState) (*GamePosition, error) {
 	if gs.SetupMode != game.SetupModeSnellman {
 		return nil, fmt.Errorf("AlphaZero v0 requires Snellman setup")
 	}
+	if gs.Phase == game.PhaseFactionSelection {
+		return nil, fmt.Errorf("AlphaZero assigned-faction profile excludes faction selection")
+	}
 	if gs.TurnOrderPolicy != game.TurnOrderPolicyPassOrder {
 		return nil, fmt.Errorf("AlphaZero v0 requires base pass-order turn order")
 	}
@@ -72,6 +83,29 @@ func NewPosition(gs *game.GameState) (*GamePosition, error) {
 	}
 	if gs.BonusCards == nil {
 		return nil, fmt.Errorf("AlphaZero v0 requires bonus cards")
+	}
+	if gs.ScoringTiles == nil || len(gs.ScoringTiles.Tiles) != 6 {
+		return nil, fmt.Errorf("AlphaZero profile requires six base scoring tiles")
+	}
+	scoringSeen := make(map[game.ScoringTileType]bool, 6)
+	for round, tile := range gs.ScoringTiles.Tiles {
+		if tile.Type < game.ScoringDwellingWater || tile.Type > game.ScoringTown || tile.Type == game.ScoringTemplePriest || scoringSeen[tile.Type] {
+			return nil, fmt.Errorf("AlphaZero profile requires distinct base scoring tiles")
+		}
+		if round >= 4 && tile.Type == game.ScoringSpades {
+			return nil, fmt.Errorf("AlphaZero profile excludes spade scoring in rounds five and six")
+		}
+		canonical := false
+		for _, definition := range game.GetAllScoringTiles() {
+			if tile == definition {
+				canonical = true
+				break
+			}
+		}
+		if !canonical {
+			return nil, fmt.Errorf("AlphaZero profile rejects modified scoring tile rewards")
+		}
+		scoringSeen[tile.Type] = true
 	}
 	for card := range gs.BonusCards.Available {
 		if !isBaseBonusCard(card) {
@@ -96,10 +130,7 @@ func NewPosition(gs *game.GameState) (*GamePosition, error) {
 	homeTerrains := make(map[models.TerrainType]bool, 2)
 	for _, player := range gs.Players {
 		if player.Faction == nil {
-			if gs.Phase != game.PhaseFactionSelection {
-				return nil, fmt.Errorf("AlphaZero v0 requires assigned factions outside faction selection")
-			}
-			continue
+			return nil, fmt.Errorf("AlphaZero profile requires assigned factions")
 		}
 		if !isBaseFaction(player.Faction.GetType()) {
 			return nil, fmt.Errorf("AlphaZero v0 excludes faction %s", player.Faction.GetType())
@@ -165,6 +196,17 @@ func NewPosition(gs *game.GameState) (*GamePosition, error) {
 		return nil, fmt.Errorf("AlphaZero profile rejects replay, fan-faction, and in-action scratch state")
 	}
 	clone := gs.CloneForUndo()
+	clone.ExplicitTurnEnd = true
+	// Mermaid opportunities are derived from the current board, not reserved
+	// historical choices. Normalize imported caches without mutating the caller.
+	for id, player := range clone.Players {
+		if player.Faction.GetType() == models.FactionMermaids {
+			if clone.PendingTownFormations == nil {
+				clone.PendingTownFormations = make(map[string][]*game.PendingTownFormation)
+			}
+			clone.PendingTownFormations[id] = clone.TownFormationChoices(id)
+		}
+	}
 	clone.TurnTimer = nil
 	clone.PendingTurnConfirmationPlayerID = ""
 	clone.PendingTurnConfirmationSnapshot = nil
@@ -360,7 +402,7 @@ func (p *GamePosition) canonicalBytes() ([]byte, error) {
 		ActionVersion int                    `json:"action_version"`
 		State         any                    `json:"state"`
 		FactionState  []factions.SearchState `json:"faction_state"`
-	}{RulesVersion: 1, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion, State: value, FactionState: factionState})
+	}{RulesVersion: RulesVersion, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion, State: value, FactionState: factionState})
 	if err != nil {
 		return nil, err
 	}

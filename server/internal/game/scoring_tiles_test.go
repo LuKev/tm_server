@@ -1,12 +1,82 @@
 package game
 
 import (
+	"math/rand"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
+
+func TestBaseGameScoringPool(t *testing.T) {
+	seen := map[ScoringTileType]bool{}
+	for seed := int64(0); seed < 256; seed++ {
+		state := NewScoringTileState()
+		if err := state.InitializeBaseGameWithRand(rand.New(rand.NewSource(seed))); err != nil {
+			t.Fatal(err)
+		}
+		if len(state.Tiles) != 6 {
+			t.Fatalf("seed %d: got %d rounds", seed, len(state.Tiles))
+		}
+		inGame := map[ScoringTileType]bool{}
+		for round, tile := range state.Tiles {
+			if tile.Type == ScoringTemplePriest || inGame[tile.Type] || (tile.Type == ScoringSpades && round >= 4) {
+				t.Fatalf("seed %d round %d: invalid base tile %v", seed, round+1, tile.Type)
+			}
+			inGame[tile.Type], seen[tile.Type] = true, true
+		}
+	}
+	if len(seen) != 8 {
+		t.Fatalf("base pool covered %d distinct tiles, want 8", len(seen))
+	}
+	if err := NewScoringTileState().InitializeBaseGameWithRand(nil); err == nil {
+		t.Fatal("nil random source accepted")
+	}
+}
+
+type scoringDrawSource struct {
+	draws []int64
+	index int
+}
+
+func (s *scoringDrawSource) Seed(_ int64) { s.index = 0 }
+func (s *scoringDrawSource) Int63() int64 {
+	value := s.draws[s.index]
+	s.index++
+	return value << 32 // rand.Intn's Int31 input, for these small bounds.
+}
+
+func TestBaseScoringSetupDrawsLastRoundFirst(t *testing.T) {
+	// Independent physical draw trace: choose the last legal tile for round 6
+	// (Town), then last legal for round 5 (Stronghold/Air). Spades is back in
+	// the eligible pool for round 4: choose it. Fill 3,2,1 from the front.
+	source := &scoringDrawSource{draws: []int64{6, 5, 5, 0, 0, 0}}
+	state := NewScoringTileState()
+	if err := state.InitializeBaseGameWithRand(rand.New(source)); err != nil {
+		t.Fatal(err)
+	}
+	want := []ScoringTileType{ScoringTradingHouseWater, ScoringDwellingFire, ScoringDwellingWater, ScoringSpades, ScoringStrongholdAir, ScoringTown}
+	for round, tile := range state.Tiles {
+		if tile.Type != want[round] {
+			t.Fatalf("round %d: got %v want %v", round+1, tile.Type, want[round])
+		}
+	}
+	for seed := int64(0); seed < 16; seed++ {
+		a, b := NewScoringTileState(), NewScoringTileState()
+		if err := a.InitializeBaseGameWithRand(rand.New(rand.NewSource(seed))); err != nil {
+			t.Fatal(err)
+		}
+		if err := b.InitializeBaseGameWithRand(rand.New(rand.NewSource(seed))); err != nil {
+			t.Fatal(err)
+		}
+		for i := range a.Tiles {
+			if a.Tiles[i] != b.Tiles[i] {
+				t.Fatal("same seed changed setup")
+			}
+		}
+	}
+}
 
 func TestScoringTileInitialization(t *testing.T) {
 	sts := NewScoringTileState()

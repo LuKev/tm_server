@@ -3298,6 +3298,31 @@ func TestUseDarklingsPriestOrdination_OnlyOnce(t *testing.T) {
 // HALFLINGS STRONGHOLD SPADES TESTS (3 Spades + Optional Dwelling)
 // ============================================================================
 
+func TestHalflingsStrongholdLeftoverCannotBuyExtraSpades(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("player1", factions.NewHalflings())
+	placeHalflingsSpadeFixtureBuildings(gs)
+	p := gs.GetPlayer("player1")
+	p.Resources.Workers, p.Resources.Coins = 20, 20
+	first, second := board.NewHex(0, 0), board.NewHex(1, 0)
+	gs.Map.GetHex(first).Terrain, gs.Map.GetHex(second).Terrain = models.TerrainPlains, models.TerrainLake
+	gs.PendingHalflingsSpades = &PendingHalflingsSpades{PlayerID: "player1", SpadesRemaining: 1, TransformedHexes: []board.Hex{first}}
+	a := &ApplyHalflingsSpadeAction{BaseAction: BaseAction{Type: ActionApplyHalflingsSpade, PlayerID: "player1"}, TargetHex: second, TargetTerrain: models.TerrainPlains}
+	if err := a.Execute(gs); err == nil {
+		t.Fatal("leftover Halflings spade illegally bought paid completion on second hex")
+	}
+	if p.Resources.Workers != 20 || gs.Map.GetHex(second).Terrain != models.TerrainLake || gs.PendingHalflingsSpades.SpadesRemaining != 1 {
+		t.Fatal("rejected extra spades changed state")
+	}
+	a.TargetTerrain = models.TerrainSwamp
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if p.Resources.Workers != 20 || gs.Map.GetHex(second).Terrain != models.TerrainSwamp || gs.PendingHalflingsSpades.SpadesRemaining != 0 {
+		t.Fatal("free leftover must stop at intermediate terrain")
+	}
+}
+
 func TestHalflingsStronghold_Creates3PendingSpades(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewHalflings()
@@ -3340,6 +3365,7 @@ func TestHalflingsStronghold_Creates3PendingSpades(t *testing.T) {
 
 func TestApplyHalflingsSpade_TransformsHexAndAwardsVP(t *testing.T) {
 	gs := NewGameState()
+	placeHalflingsSpadeFixtureBuildings(gs)
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
@@ -3396,6 +3422,7 @@ func TestApplyHalflingsSpade_TransformsHexAndAwardsVP(t *testing.T) {
 
 func TestApplyHalflingsSpade_AllThreeSpades(t *testing.T) {
 	gs := NewGameState()
+	placeHalflingsSpadeFixtureBuildings(gs)
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
@@ -3525,7 +3552,7 @@ func TestBuildHalflingsDwelling_CannotBuildOnUntransformedHex(t *testing.T) {
 	}
 }
 
-func TestBuildHalflingsDwelling_MustApplyAllSpadesFirst(t *testing.T) {
+func TestBuildHalflingsDwelling_ForfeitsUnusedSpades(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
@@ -3535,13 +3562,14 @@ func TestBuildHalflingsDwelling_MustApplyAllSpadesFirst(t *testing.T) {
 
 	// Create pending spades with spades still remaining
 	transformedHex := board.NewHex(0, 0)
+	gs.Map.GetHex(transformedHex).Terrain = models.TerrainPlains
 	gs.PendingHalflingsSpades = &PendingHalflingsSpades{
 		PlayerID:         "player1",
 		SpadesRemaining:  2, // Still have 2 spades left
 		TransformedHexes: []board.Hex{transformedHex},
 	}
 
-	// Try to build dwelling before applying all spades
+	// Building ends the reward and forfeits the remaining spades.
 	action := &BuildHalflingsDwellingAction{
 		BaseAction: BaseAction{
 			Type:     ActionBuildHalflingsDwelling,
@@ -3550,9 +3578,9 @@ func TestBuildHalflingsDwelling_MustApplyAllSpadesFirst(t *testing.T) {
 		TargetHex: transformedHex,
 	}
 
-	err := action.Validate(gs)
-	if err == nil {
-		t.Error("expected error when trying to build dwelling before applying all spades")
+	err := action.Execute(gs)
+	if err != nil || gs.PendingHalflingsSpades != nil {
+		t.Fatalf("build must forfeit unused spades: %v", err)
 	}
 }
 
@@ -3589,6 +3617,7 @@ func TestSkipHalflingsDwelling_ClearsPendingSpades(t *testing.T) {
 
 func TestHalflingsSpades_WithScoringTile(t *testing.T) {
 	gs := NewGameState()
+	placeHalflingsSpadeFixtureBuildings(gs)
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
@@ -3644,6 +3673,7 @@ func TestHalflingsSpades_WithScoringTile(t *testing.T) {
 // Example: 2 hexes using 3 spades total (1 spade + 2 spades)
 func TestHalflingsStronghold_MultiSpadeTransform(t *testing.T) {
 	gs := NewGameState()
+	placeHalflingsSpadeFixtureBuildings(gs)
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
@@ -3728,6 +3758,7 @@ func TestHalflingsStronghold_MultiSpadeTransform(t *testing.T) {
 // applying all stronghold spades
 func TestHalflingsStronghold_DwellingAfterSpades(t *testing.T) {
 	gs := NewGameState()
+	placeHalflingsSpadeFixtureBuildings(gs)
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
 	player := gs.GetPlayer("player1")
@@ -3798,8 +3829,10 @@ func TestHalflingsStronghold_DwellingAfterSpades(t *testing.T) {
 // remaining fails with appropriate error
 func TestHalflingsStronghold_NotEnoughSpades(t *testing.T) {
 	gs := NewGameState()
+	placeHalflingsSpadeFixtureBuildings(gs)
 	faction := factions.NewHalflings()
 	gs.AddPlayer("player1", faction)
+	gs.GetPlayer("player1").Resources.Workers = 0
 
 	// Create pending spades with only 1 remaining
 	faction.BuildStronghold()
@@ -3823,10 +3856,14 @@ func TestHalflingsStronghold_NotEnoughSpades(t *testing.T) {
 	if err == nil {
 		t.Error("expected error when applying more spades than remaining")
 	}
-	// Verify error message indicates insufficient spades
-	errorMsg := err.Error()
-	if err != nil && !(errorMsg == "not enough spades remaining: have 1, need 2" || len(errorMsg) > 0 && errorMsg[:10] == "not enough") {
-		t.Errorf("expected 'not enough spades' error, got: %v", err)
+}
+
+// Both rows of reward targets are adjacent to these existing buildings; newly
+// transformed spaces never extend the reach of the three-spade reward.
+func placeHalflingsSpadeFixtureBuildings(gs *GameState) {
+	for _, hex := range []board.Hex{board.NewHex(0, 1), board.NewHex(2, 1)} {
+		gs.Map.GetHex(hex).Terrain = models.TerrainPlains
+		gs.Map.GetHex(hex).Building = &models.Building{Type: models.BuildingDwelling, Faction: models.FactionHalflings, PlayerID: "player1", PowerValue: 1}
 	}
 }
 

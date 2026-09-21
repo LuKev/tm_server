@@ -10,8 +10,8 @@ import (
 )
 
 // NewBaseGame creates a deterministic base-map, base-rules 1v1 setup with the
-// factions fixed by the evaluation seed. Faction choice itself remains covered
-// by the adapter contract but is not mixed into matchup evaluation.
+// factions supplied by the caller. Faction choice is deliberately excluded from
+// the assigned-faction competition profile.
 func NewBaseGame(seed int64, first, second models.FactionType) (*GamePosition, error) {
 	return newBaseGame(seed, first, second, "p0", "p1")
 }
@@ -28,10 +28,15 @@ func newBaseGame(seed int64, first, second models.FactionType, firstID, secondID
 		return nil, fmt.Errorf("v0 requires base factions, got %s and %s", first, second)
 	}
 	gs := game.NewGameState()
+	// Pin the competition contract rather than inheriting future lobby defaults.
+	gs.SetupMode = game.SetupModeSnellman
+	gs.TurnOrderPolicy = game.TurnOrderPolicyPassOrder
+	gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOff
+	gs.FireIceFinalScoringTile = game.FireIceFinalScoringTileNone
 	gs.TownTiles = game.NewBaseTownTileState()
 	rng := rand.New(rand.NewSource(seed))
 
-	if err := gs.ScoringTiles.InitializeForGameWithRand(rng); err != nil {
+	if err := gs.ScoringTiles.InitializeBaseGameWithRand(rng); err != nil {
 		return nil, err
 	}
 	if cards := gs.BonusCards.SelectRandomBaseBonusCardsWithRand(2, rng); len(cards) != 5 {

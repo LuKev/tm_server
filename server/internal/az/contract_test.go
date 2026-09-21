@@ -39,10 +39,6 @@ func TestOracleCorpusCoversBaseFactionsRoundsAndPendingDecisions(t *testing.T) {
 		assertLegalActionRoundTrips(t, position)
 	}
 
-	selection := factionSelectionPosition(t)
-	assertActionSetsEqual(t, selection.LegalActions(), oracleLegalActions(selection))
-	assertLegalActionRoundTrips(t, selection)
-
 	base := forcedActionPosition(t, 301, models.FactionWitches, models.FactionEngineers)
 	states := map[string]*game.GameState{}
 
@@ -119,7 +115,7 @@ func TestPrunedCandidatesMatchOracleAtResourceAndAbilityBoundaries(t *testing.T)
 	}
 	powerBridge := func(actions []SearchAction) bool {
 		for _, action := range actions {
-			if action.Kind == game.ActionPowerAction && action.Power == game.PowerActionBridge {
+			if action.Kind == game.ActionPowerAction && action.Power == game.PowerActionBridge && !action.DeclineReward {
 				return true
 			}
 		}
@@ -342,10 +338,7 @@ func TestPositionSequencesLeechAndDelayedMermaidTownToOneOwner(t *testing.T) {
 
 	t.Run("delayed_mermaid_town_only_on_own_turn", func(t *testing.T) {
 		state := forcedActionPosition(t, 341, models.FactionMermaids, models.FactionEngineers).StateClone()
-		anchor := ownedBuildingHex(t, state, "p0")
-		state.PendingTownFormations["p0"] = []*game.PendingTownFormation{{
-			PlayerID: "p0", Hexes: []board.Hex{anchor}, CanBeDelayed: true,
-		}}
+		anchor := setupMermaidTownChoices(state)
 		state.CurrentPlayerIndex = 1
 		position, err := NewPosition(state)
 		if err != nil {
@@ -374,6 +367,48 @@ func TestPositionSequencesLeechAndDelayedMermaidTownToOneOwner(t *testing.T) {
 			t.Fatal("delayed Mermaid town was not available on its owner's turn")
 		}
 	})
+}
+
+// Rulebook "The price of Power": a three-power offer costs two VP, not
+// three independently discounted one-power offers. Exercise the public adapter.
+func TestLeechOfferCannotBeFragmentedThroughLegalActions(t *testing.T) {
+	state := forcedActionPosition(t, 342, models.FactionWitches, models.FactionEngineers).StateClone()
+	player := state.GetPlayer("p1")
+	player.VictoryPoints = 20
+	player.Resources.Power = game.NewPowerSystem(0, 12, 0)
+	state.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{{Amount: 3, VPCost: 2, FromPlayerID: "p0", EventID: 1}}
+	position, err := NewPosition(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := position.CanonicalHash()
+	if err := position.Apply(SearchAction{Kind: game.ActionAcceptPowerLeech, Amount2: 1}); err == nil {
+		t.Fatal("accepted illegal one-power fragment")
+	}
+	if position.CanonicalHash() != before {
+		t.Fatal("rejected fragment mutated state")
+	}
+	var accept *SearchAction
+	for _, action := range position.LegalActions() {
+		if action.Kind == game.ActionAcceptPowerLeech {
+			if accept != nil || action.Amount2 != 0 {
+				t.Fatal("noncanonical/duplicate leech acceptance")
+			}
+			copy := action
+			accept = &copy
+		}
+	}
+	if accept == nil {
+		t.Fatal("missing legal full acceptance")
+	}
+	if err := position.Apply(*accept); err != nil {
+		t.Fatal(err)
+	}
+	got := position.StateClone()
+	charged := got.GetPlayer("p1")
+	if charged.VictoryPoints != 18 || charged.Resources.Power.Bowl2 != 9 || charged.Resources.Power.Bowl3 != 3 || len(got.PendingLeechOffers["p1"]) != 0 {
+		t.Fatalf("wrong one-shot leech: VP=%d power=%+v offers=%v", charged.VictoryPoints, charged.Resources.Power, got.PendingLeechOffers["p1"])
+	}
 }
 
 func TestChaosDoubleTurnEnumeratesSecondActionEnabledByFirst(t *testing.T) {
@@ -434,16 +469,50 @@ func TestChaosDoubleTurnExposesInterveningPendingDecision(t *testing.T) {
 	if position.state.PendingFavorTileSelection == nil {
 		t.Fatal("temple upgrade did not expose favor-tile decision")
 	}
-	for _, action := range position.LegalActions() {
-		if action.Kind != game.ActionSelectFavorTile {
-			t.Fatalf("pending favor choice leaked non-resolution action %s", action.Key())
+	// Official reaction timing: the neighboring Engineers resolve leech before
+	// Chaos chooses its two favors. Neither response consumes Chaos' second action.
+	for position.state.HasPendingLeechOffers() {
+		if position.DecisionPlayer() != "p1" {
+			t.Fatalf("neighbor does not own leech response: %s", position.DecisionPlayer())
+		}
+		for _, action := range position.LegalActions() {
+			if action.Kind != game.ActionAcceptPowerLeech && action.Kind != game.ActionDeclinePowerLeech {
+				t.Fatalf("leech response leaked builder choice: %s", action.Key())
+			}
+		}
+		if err := position.Apply(SearchAction{Kind: game.ActionDeclinePowerLeech}); err != nil {
+			t.Fatal(err)
 		}
 	}
-	if err := position.Apply(position.LegalActions()[0]); err != nil {
+	for choice := 0; choice < 2; choice++ {
+		for _, action := range position.LegalActions() {
+			if action.Kind != game.ActionSelectFavorTile {
+				t.Fatalf("pending favor choice leaked non-resolution action %s", action.Key())
+			}
+		}
+		if err := position.Apply(position.LegalActions()[0]); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if position.state.PendingFavorTileSelection != nil || position.DecisionPlayer() != "p0" || position.state.PendingChaosMagiciansDoubleTurn == nil || position.state.PendingChaosMagiciansDoubleTurn.ActionsRemaining != 1 {
+		t.Fatal("Chaos player did not regain the second action after resolving favor choice")
+	}
+	convert := SearchAction{Kind: game.ActionConversion, Conversion: game.ConversionWorkerToCoin, Amount: 1}
+	if !hasAction(position.LegalActions(), convert) {
+		t.Fatal("Chaos cannot convert between its two actions after reactions")
+	}
+	if err := position.Apply(convert); err != nil {
 		t.Fatal(err)
 	}
-	if position.DecisionPlayer() != "p0" || position.state.PendingChaosMagiciansDoubleTurn == nil || position.state.PendingChaosMagiciansDoubleTurn.ActionsRemaining != 1 {
-		t.Fatal("Chaos player did not regain the second action after resolving favor choice")
+	if position.state.PendingChaosMagiciansDoubleTurn.ActionsRemaining != 1 {
+		t.Fatal("conversion consumed the second Chaos action")
+	}
+	second := SearchAction{Kind: game.ActionUpgradeBuilding, Hexes: []board.Hex{buildingHex}, Building: models.BuildingSanctuary}
+	if !hasAction(position.LegalActions(), second) {
+		t.Fatal("second main action unavailable after resolving reactions and converting")
+	}
+	if err := position.Apply(second); err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -540,16 +609,8 @@ func TestCanonicalHashCoversSearchRelevantPendingState(t *testing.T) {
 }
 
 func TestFactionSelectionRejectsSameHomeColor(t *testing.T) {
-	position := factionSelectionPosition(t)
-	if err := position.Apply(SearchAction{Kind: game.ActionSelectFaction, Faction: models.FactionWitches}); err != nil {
-		t.Fatal(err)
-	}
-	paired := SearchAction{Kind: game.ActionSelectFaction, Faction: models.FactionAuren}
-	if hasAction(position.LegalActions(), paired) {
-		t.Fatal("same-home-color faction was emitted")
-	}
-	if err := position.Apply(paired); err == nil {
-		t.Fatal("same-home-color faction selection applied")
+	if _, err := NewBaseGame(1, models.FactionWitches, models.FactionAuren); err == nil {
+		t.Fatal("same-home-color matchup accepted")
 	}
 }
 
@@ -663,7 +724,6 @@ func TestLegalCorpusContainsEveryBaseSpecialBranch(t *testing.T) {
 		t.Fatal(err)
 	}
 	record(setupBonus)
-	record(factionSelectionPosition(t))
 
 	base := forcedActionPosition(t, 451, models.FactionWitches, models.FactionEngineers).StateClone()
 	recordPending := func(state *game.GameState) {
@@ -728,7 +788,7 @@ func TestLegalCorpusContainsEveryBaseSpecialBranch(t *testing.T) {
 		game.ActionSelectFavorTile, game.ActionApplyHalflingsSpade,
 		game.ActionBuildHalflingsDwelling, game.ActionSkipHalflingsDwelling,
 		game.ActionUseDarklingsPriestOrdination, game.ActionSelectCultistsCultTrack,
-		game.ActionSelectFaction, game.ActionSetupBonusCard, game.ActionSelectTownTile,
+		game.ActionSetupBonusCard, game.ActionSelectTownTile,
 		game.ActionSelectTownCultTop, game.ActionDiscardPendingSpade,
 		game.ActionConversion, game.ActionBurnPower, game.ActionEngineersBridge,
 	}
@@ -742,7 +802,7 @@ func TestLegalCorpusContainsEveryBaseSpecialBranch(t *testing.T) {
 		game.SpecialActionSwarmlingsUpgrade, game.SpecialActionChaosMagiciansDoubleTurn,
 		game.SpecialActionGiantsTransform, game.SpecialActionNomadsSandstorm,
 		game.SpecialActionWater2CultAdvance, game.SpecialActionBonusCardSpade,
-		game.SpecialActionBonusCardCultAdvance, game.SpecialActionMermaidsRiverTown,
+		game.SpecialActionBonusCardCultAdvance,
 	} {
 		if !seenSpecials[special] {
 			t.Fatalf("legal corpus did not contain special subtype %v", special)
@@ -759,6 +819,154 @@ func TestPositionApplyIsTransactionalOnError(t *testing.T) {
 	}
 	if got := position.CanonicalHash(); got != before {
 		t.Fatalf("failed apply mutated position: got %s want %s", got, before)
+	}
+}
+
+func TestExplicitPostActionChoicesBeforeOpponentTurn(t *testing.T) {
+	position := forcedActionPosition(t, 502, models.FactionMermaids, models.FactionEngineers)
+	finish := SearchAction{Kind: game.ActionFinishTurn}
+	if err := position.Apply(finish); err == nil {
+		t.Fatal("ended turn before a main action")
+	}
+	main := SearchAction{Kind: game.ActionSendPriestToCult, Track: game.CultFire, Amount: 1}
+	if err := position.Apply(main); err != nil {
+		t.Fatal(err)
+	}
+	if position.DecisionPlayer() != "p0" || position.state.PendingFreeActionsPlayerID != "p0" {
+		t.Fatal("lost post-action window")
+	}
+	if err := position.Apply(main); err == nil {
+		t.Fatal("second main action accepted in free window")
+	}
+	convert := SearchAction{Kind: game.ActionConversion, Conversion: game.ConversionPowerToCoin, Amount: 1}
+	if err := position.Apply(convert); err != nil {
+		t.Fatal(err)
+	}
+	if position.DecisionPlayer() != "p0" {
+		t.Fatal("conversion consumed the optional window")
+	}
+	if !hasAction(position.LegalActions(), finish) {
+		t.Fatal("missing FinishTurn choice")
+	}
+	if err := position.Apply(finish); err != nil {
+		t.Fatal(err)
+	}
+	if position.DecisionPlayer() != "p1" || position.state.GetPlayer("p0").HasPassed {
+		t.Fatal("finish must hand over turn, not pass the round")
+	}
+}
+
+func TestDelayedTownDoesNotConsumeMainActionAndRemainsAvailableAfterIt(t *testing.T) {
+	for _, tile := range []models.TownTileType{models.TownTile5Points, models.TownTile8Points} {
+		for _, afterMain := range []bool{false, true} {
+			position := forcedActionPosition(t, 503, models.FactionMermaids, models.FactionEngineers)
+			main := SearchAction{Kind: game.ActionAdvanceShipping}
+			if afterMain {
+				if err := position.Apply(main); err != nil {
+					t.Fatal(err)
+				}
+			}
+			state := position.StateClone()
+			if tile == models.TownTile8Points {
+				for _, track := range cultTracks {
+					state.GetPlayer("p0").CultPositions[track] = 9
+					state.CultTracks.PlayerPositions["p0"][track] = 9
+				}
+			}
+			anchor := setupMermaidTownChoices(state)
+			position, err := NewPosition(state)
+			if err != nil {
+				t.Fatal(err)
+			}
+			choose := SearchAction{Kind: game.ActionSelectTownTile, TownTile: tile, Hexes: []board.Hex{anchor}}
+			if !hasAction(position.LegalActions(), choose) {
+				t.Fatalf("missing delayed town (afterMain=%v)", afterMain)
+			}
+			if err := position.Apply(choose); err != nil {
+				t.Fatal(err)
+			}
+			if tile == models.TownTile8Points {
+				if position.state.PendingTownCultTopChoice == nil {
+					t.Fatal("fixture did not defer cult-top choice")
+				}
+				if err := position.Apply(SearchAction{Kind: game.ActionSelectTownCultTop, Tracks: []game.CultTrack{game.CultWater}}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			if afterMain {
+				if !hasAction(position.LegalActions(), SearchAction{Kind: game.ActionFinishTurn}) {
+					t.Fatal("town lost post-action window")
+				}
+			} else if err := position.Apply(main); err != nil {
+				t.Fatalf("optional town consumed main action: %v", err)
+			}
+		}
+	}
+}
+
+func TestMandatoryTownDoesNotReopenMainActionWithDelayedTownRemaining(t *testing.T) {
+	position := forcedActionPosition(t, 505, models.FactionMermaids, models.FactionEngineers)
+	state := position.StateClone()
+	setupMermaidTownChoices(state)
+	mandatory := board.NewHex(6, 0)
+	for i := 0; i < 4; i++ {
+		h := board.NewHex(6+i, 0)
+		kind, power := models.BuildingTradingHouse, 2
+		if i == 3 {
+			kind, power = models.BuildingDwelling, 1
+		}
+		state.Map.Hexes[h] = &board.MapHex{Coord: h, Terrain: models.TerrainLake, Building: &models.Building{Type: kind, PowerValue: power, PlayerID: "p0", Faction: models.FactionMermaids}}
+	}
+	state.CheckAllTownFormations("p0")
+	position, err := NewPosition(state)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := position.Apply(SearchAction{Kind: game.ActionSelectTownTile, TownTile: models.TownTile5Points, Hexes: []board.Hex{mandatory}}); err != nil {
+		t.Fatal(err)
+	}
+	if len(position.state.PendingTownFormations["p0"]) == 0 {
+		t.Fatal("fixture lost unrelated delayed town")
+	}
+	if !hasAction(position.LegalActions(), SearchAction{Kind: game.ActionFinishTurn}) {
+		t.Fatal("mandatory reward reopened a second main action instead of optional window")
+	}
+	if err := position.Apply(SearchAction{Kind: game.ActionAdvanceShipping}); err == nil {
+		t.Fatal("second main action accepted")
+	}
+}
+
+// Four buildings in two separate land groups can be joined by either of two
+// river spaces. The opportunities overlap; claiming either invalidates the other.
+func setupMermaidTownChoices(state *game.GameState) board.Hex {
+	for _, hex := range state.Map.Hexes {
+		if hex.Building != nil && hex.Building.PlayerID == "p0" {
+			hex.Building = nil
+		}
+	}
+	hexes := []board.Hex{board.NewHex(1, 2), board.NewHex(2, 2), board.NewHex(3, 3), board.NewHex(4, 3)}
+	kinds := []models.BuildingType{models.BuildingTradingHouse, models.BuildingDwelling, models.BuildingStronghold, models.BuildingDwelling}
+	for i, h := range hexes {
+		state.Map.Hexes[h] = &board.MapHex{Coord: h, Terrain: models.TerrainLake, Building: &models.Building{Type: kinds[i], PowerValue: game.GetPowerValue(kinds[i]), PlayerID: "p0", Faction: models.FactionMermaids}}
+	}
+	for _, river := range []board.Hex{board.NewHex(3, 2), board.NewHex(2, 3)} {
+		state.Map.Hexes[river] = &board.MapHex{Coord: river, Terrain: models.TerrainRiver}
+		state.Map.RiverHexes[river] = true
+	}
+	state.CheckAllTownFormations("p0")
+	return board.NewHex(3, 2)
+}
+
+func TestFinishTurnCannotBypassMandatoryReaction(t *testing.T) {
+	position := forcedActionPosition(t, 504, models.FactionWitches, models.FactionEngineers)
+	state := position.StateClone()
+	state.PendingFreeActionsPlayerID = "p0"
+	state.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{{Amount: 2, FromPlayerID: "p0"}}
+	if err := game.NewFinishTurnAction("p0").Execute(state); err == nil {
+		t.Fatal("direct finish bypassed leech")
+	}
+	if state.PendingFreeActionsPlayerID != "p0" || state.CurrentPlayerIndex != 0 {
+		t.Fatal("rejected finish mutated turn")
 	}
 }
 
@@ -803,11 +1011,13 @@ func TestLegalActionsHaveUniquePostValidationSemantics(t *testing.T) {
 func TestV0ProfileBoundary(t *testing.T) {
 	base := forcedActionPosition(t, 601, models.FactionWitches, models.FactionEngineers).StateClone()
 	tests := map[string]func(*game.GameState){
-		"setup":         func(gs *game.GameState) { gs.SetupMode = game.SetupModeAuction },
-		"turn_order":    func(gs *game.GameState) { gs.TurnOrderPolicy = game.TurnOrderPolicyCyclicFromFirstPasser },
-		"final_scoring": func(gs *game.GameState) { gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOn },
-		"scratch_state": func(gs *game.GameState) { gs.SuppressTurnAdvance = true },
-		"replay_queue":  func(gs *game.GameState) { gs.ReplayRiverBuildHexes = map[string][]board.Hex{"p0": {{Q: 1, R: 1}}} },
+		"faction_selection":       func(gs *game.GameState) { gs.Phase = game.PhaseFactionSelection },
+		"modified_scoring_reward": func(gs *game.GameState) { gs.ScoringTiles.Tiles[0].ActionVP++ },
+		"setup":                   func(gs *game.GameState) { gs.SetupMode = game.SetupModeAuction },
+		"turn_order":              func(gs *game.GameState) { gs.TurnOrderPolicy = game.TurnOrderPolicyCyclicFromFirstPasser },
+		"final_scoring":           func(gs *game.GameState) { gs.FireIceFinalScoringSetting = game.FireIceFinalScoringOn },
+		"scratch_state":           func(gs *game.GameState) { gs.SuppressTurnAdvance = true },
+		"replay_queue":            func(gs *game.GameState) { gs.ReplayRiverBuildHexes = map[string][]board.Hex{"p0": {{Q: 1, R: 1}}} },
 		"fan_pending": func(gs *game.GameState) {
 			gs.PendingGoblinsCultSteps = &game.PendingGoblinsCultSteps{PlayerID: "p0", StepsRemaining: 1}
 		},
@@ -971,27 +1181,4 @@ func ownedBuildingHex(t *testing.T, state *game.GameState, playerID string) boar
 	}
 	t.Fatal("owned building not found")
 	return board.Hex{}
-}
-
-func factionSelectionPosition(t *testing.T) *GamePosition {
-	t.Helper()
-	state := game.NewGameState()
-	state.TownTiles = game.NewBaseTownTileState()
-	state.BonusCards.SetAvailableBonusCards([]game.BonusCardType{
-		game.BonusCardPriest, game.BonusCardShipping, game.BonusCardDwellingVP,
-		game.BonusCardWorkerPower, game.BonusCardSpade,
-	})
-	if err := state.AddPlayer("p0", nil); err != nil {
-		t.Fatal(err)
-	}
-	if err := state.AddPlayer("p1", nil); err != nil {
-		t.Fatal(err)
-	}
-	state.Phase = game.PhaseFactionSelection
-	state.TurnOrder = []string{"p0", "p1"}
-	position, err := NewPosition(state)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return position
 }

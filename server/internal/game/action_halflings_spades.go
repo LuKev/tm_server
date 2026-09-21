@@ -28,7 +28,11 @@ func (a *ApplyHalflingsSpadeAction) GetSpadesNeeded(gs *GameState) int {
 	if mapHex == nil {
 		return 0
 	}
-	return gs.Map.GetTerrainDistance(mapHex.Terrain, a.TargetTerrain)
+	steps, err := TerraformSpadeCount(gs.GetPlayer(a.PlayerID), mapHex.Terrain, a.TargetTerrain, 0)
+	if err != nil {
+		return 0
+	}
+	return steps
 }
 
 // Validate checks if the action is valid
@@ -57,6 +61,23 @@ func (a *ApplyHalflingsSpadeAction) Validate(gs *GameState) error {
 	// Check if player is Halflings
 	if player.Faction.GetType() != models.FactionHalflings {
 		return fmt.Errorf("only Halflings can use this action")
+	}
+	if gs.PendingHalflingsSpades.SpadesRemaining <= 0 {
+		return fmt.Errorf("no free spades remaining")
+	}
+	// FAQ 2.1: finish a space at home before distributing leftovers. Each
+	// application selects a final destination, so revisiting a hex is an alias
+	// of selecting that destination initially, not another legal decision.
+	for _, hex := range gs.PendingHalflingsSpades.TransformedHexes {
+		if hex == a.TargetHex {
+			return fmt.Errorf("terrain space already transformed in this action")
+		}
+		if gs.Map.GetHex(hex).Terrain != effectiveHomeTerrain(player) {
+			return fmt.Errorf("must finish previous terrain at home before distributing spades")
+		}
+	}
+	if !gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID) {
+		return fmt.Errorf("terrain must be directly or indirectly adjacent")
 	}
 
 	// Check if hex is valid (on the map)
@@ -91,8 +112,19 @@ func (a *ApplyHalflingsSpadeAction) Validate(gs *GameState) error {
 		return fmt.Errorf("invalid transform: no spades needed")
 	}
 	if gs.PendingHalflingsSpades.SpadesRemaining < spadesNeeded {
-		return fmt.Errorf("not enough spades remaining: have %d, need %d",
-			gs.PendingHalflingsSpades.SpadesRemaining, spadesNeeded)
+		if len(gs.PendingHalflingsSpades.TransformedHexes) > 0 {
+			return fmt.Errorf("leftover stronghold spades cannot be supplemented on another terrain space")
+		}
+		home := effectiveHomeTerrain(player)
+		homeSteps, _ := TerraformSpadeCount(player, targetHex.Terrain, home, 0)
+		remainingSteps, _ := TerraformSpadeCount(player, a.TargetTerrain, home, 0)
+		if homeSteps != spadesNeeded+remainingSteps {
+			return fmt.Errorf("paid extra spades must follow the shortest route toward home")
+		}
+		workers := player.Faction.GetTerraformCost(spadesNeeded - gs.PendingHalflingsSpades.SpadesRemaining)
+		if player.Resources.Workers < workers {
+			return fmt.Errorf("cannot afford extra spades")
+		}
 	}
 
 	return nil
@@ -112,6 +144,8 @@ func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 
 	// Calculate spades needed for this transform
 	spadesNeeded := a.GetSpadesNeeded(gs)
+	freeSpades := min(spadesNeeded, gs.PendingHalflingsSpades.SpadesRemaining)
+	player.Resources.Workers -= player.Faction.GetTerraformCost(spadesNeeded - freeSpades)
 
 	// Transform the terrain to the specified target (not necessarily home terrain)
 	if err := gs.Map.TransformTerrain(a.TargetHex, a.TargetTerrain); err != nil {
@@ -127,7 +161,7 @@ func (a *ApplyHalflingsSpadeAction) Execute(gs *GameState) error {
 	}
 
 	// Update pending spades - decrement by actual spades used
-	gs.PendingHalflingsSpades.SpadesRemaining -= spadesNeeded
+	gs.PendingHalflingsSpades.SpadesRemaining -= freeSpades
 	gs.PendingHalflingsSpades.TransformedHexes = append(gs.PendingHalflingsSpades.TransformedHexes, a.TargetHex)
 
 	// If all spades have been applied, mark as used
@@ -180,11 +214,6 @@ func (a *BuildHalflingsDwellingAction) Validate(gs *GameState) error {
 		return fmt.Errorf("only Halflings can use this action")
 	}
 
-	// Check if all spades have been applied
-	if gs.PendingHalflingsSpades.SpadesRemaining > 0 {
-		return fmt.Errorf("must apply all 3 spades before building dwelling")
-	}
-
 	// Check if hex is one of the transformed hexes
 	isTransformed := false
 	for _, hex := range gs.PendingHalflingsSpades.TransformedHexes {
@@ -204,6 +233,12 @@ func (a *BuildHalflingsDwellingAction) Validate(gs *GameState) error {
 	}
 	if targetHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
+	}
+	if targetHex.Terrain != effectiveHomeTerrain(player) {
+		return fmt.Errorf("dwelling requires home terrain")
+	}
+	if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
+		return err
 	}
 
 	// Check if player can afford dwelling
@@ -256,7 +291,9 @@ func (a *BuildHalflingsDwellingAction) Execute(gs *GameState) error {
 	gs.CheckForTownFormation(a.PlayerID, a.TargetHex)
 
 	// Clear pending Halflings spades
+	player.Faction.(*factions.Halflings).UseStrongholdSpades()
 	gs.PendingHalflingsSpades = nil
+	gs.NextTurn()
 
 	return nil
 }
@@ -289,9 +326,8 @@ func (a *SkipHalflingsDwellingAction) Validate(gs *GameState) error {
 			gs.PendingHalflingsSpades.PlayerID, a.PlayerID)
 	}
 
-	// Check if all spades have been applied
-	if gs.PendingHalflingsSpades.SpadesRemaining > 0 {
-		return fmt.Errorf("must apply all 3 spades before skipping dwelling")
+	if player.HasPassed || player.Faction.GetType() != models.FactionHalflings {
+		return fmt.Errorf("only active Halflings may resolve their spades")
 	}
 
 	return nil
@@ -304,7 +340,9 @@ func (a *SkipHalflingsDwellingAction) Execute(gs *GameState) error {
 	}
 
 	// Clear pending Halflings spades
+	gs.GetPlayer(a.PlayerID).Faction.(*factions.Halflings).UseStrongholdSpades()
 	gs.PendingHalflingsSpades = nil
+	gs.NextTurn()
 
 	return nil
 }

@@ -231,11 +231,7 @@ func executeLoggedLeechWithoutPendingOffer(player *game.Player, action *LogAccep
 		FromPlayerID: action.FromPlayerID,
 		SourceHex:    action.FromHex,
 	}
-	vpCost := player.Resources.AcceptPowerLeech(offer)
-	if player.Faction != nil && player.Faction.GetType() == models.FactionChildrenOfTheWyrm && vpCost > 0 {
-		vpCost--
-	}
-	player.VictoryPoints -= vpCost
+	player.AcceptPowerLeech(offer)
 	return nil
 }
 
@@ -2041,7 +2037,44 @@ func isReplayPreExecutableActionForError(action game.Action, err error) bool {
 }
 
 // Execute applies the action to the game state.
+// NormalizePowerSpadeOrder translates the unordered pair of ACT6 destinations
+// in external logs into the rules' first-space/second-space order. Only the
+// first space can receive a dwelling. All actual legality remains engine checked.
+func NormalizePowerSpadeOrder(actions []game.Action) []game.Action {
+	out := append([]game.Action(nil), actions...)
+	for i := 0; i+2 < len(out); i++ {
+		power, ok := out[i].(*LogPowerAction)
+		if !ok || ParsePowerActionCode(strings.ToUpper(strings.TrimSpace(power.ActionCode))) != game.PowerActionSpade2 {
+			continue
+		}
+		first, ok1 := out[i+1].(*game.TransformAndBuildAction)
+		j := i + 2
+		for j < len(out) {
+			if _, conversion := out[j].(*LogConversionAction); !conversion {
+				break
+			}
+			j++
+		}
+		if j >= len(out) {
+			continue
+		}
+		second, ok2 := out[j].(*game.TransformAndBuildAction)
+		if ok1 && ok2 && first.TargetHex != second.TargetHex {
+			middle := append([]game.Action(nil), out[i+2:j]...)
+			out[i+1], out[i+2] = first, second
+			if !first.BuildDwelling && second.BuildDwelling {
+				out[i+1], out[i+2] = second, first
+			}
+			copy(out[i+3:j+1], middle)
+		}
+	}
+	return out
+}
+
 func (a *LogCompoundAction) Execute(gs *game.GameState) error {
+	copyAction := *a
+	copyAction.Actions = NormalizePowerSpadeOrder(a.Actions)
+	a = &copyAction
 	if len(a.Actions) == 0 {
 		return fmt.Errorf("empty compound action")
 	}
@@ -2066,6 +2099,36 @@ func (a *LogCompoundAction) Execute(gs *game.GameState) error {
 	for i, action := range a.Actions {
 		if preExecuted[i] {
 			continue
+		}
+		// Replay ACT5/ACT6 through the same atomic rules action as normal play.
+		// Logs put the destinations in subsequent tokens, not inside ACT6.
+		if power, ok := action.(*LogPowerAction); ok && i+1 < len(a.Actions) {
+			kind := ParsePowerActionCode(strings.ToUpper(strings.TrimSpace(power.ActionCode)))
+			if kind == game.PowerActionSpade1 || kind == game.PowerActionSpade2 {
+				if first, ok := a.Actions[i+1].(*game.TransformAndBuildAction); ok {
+					atomic := game.NewPowerActionWithTransform(power.PlayerID, kind, first.TargetHex, first.BuildDwelling)
+					atomic.UseSkip = first.UseSkip
+					if first.TargetTerrain != models.TerrainTypeUnknown {
+						terrain := first.TargetTerrain
+						atomic.TargetTerrain = &terrain
+					}
+					preExecuted[i+1] = true
+					if kind == game.PowerActionSpade2 && i+2 < len(a.Actions) {
+						if second, ok := a.Actions[i+2].(*game.TransformAndBuildAction); ok && second.TargetHex != first.TargetHex {
+							if second.BuildDwelling {
+								return fmt.Errorf("ACT6 has more than one dwelling")
+							}
+							h, terrain := second.TargetHex, second.TargetTerrain
+							if terrain == models.TerrainTypeUnknown {
+								terrain = gs.GetPlayer(power.PlayerID).Faction.GetHomeTerrain()
+							}
+							atomic.SecondTargetHex, atomic.SecondTargetTerrain, atomic.SecondUseSkip = &h, &terrain, second.UseSkip
+							preExecuted[i+2] = true
+						}
+					}
+					action = atomic
+				}
+			}
 		}
 		if err := action.Execute(gs); err != nil {
 			// Snellman rows often place resource conversions at the end of the

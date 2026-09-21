@@ -70,20 +70,30 @@ func canonicalAppliedAction(gs *game.GameState, playerID string, candidate Searc
 }
 
 func productionCandidates(gs *game.GameState, playerID string) []SearchAction {
+	if gs.GetNextBlockingLeechResponder() != "" {
+		return leechCandidates(gs, playerID)
+	}
 	if gs.PendingTownCultTopChoice != nil {
 		return townCultTopCandidates(gs.PendingTownCultTopChoice)
 	}
 	if player := gs.GetPendingTownSelectionPlayer(); player != "" {
-		return townCandidates(gs, player)
+		out := townCandidates(gs, player)
+		if gs.PendingFavorTileSelection != nil && gs.PendingFavorTileSelection.PlayerID == player {
+			out = append(out, favorCandidates()...)
+		}
+		if gs.PendingDarklingsPriestOrdination != nil && gs.PendingDarklingsPriestOrdination.PlayerID == player {
+			out = append(out, amountCandidates(game.ActionUseDarklingsPriestOrdination, 0, 3)...)
+		}
+		if gs.PendingHalflingsSpades != nil && gs.PendingHalflingsSpades.PlayerID == player {
+			out = append(out, halflingsCandidates(gs)...)
+		}
+		return out
 	}
 	if gs.PendingDarklingsPriestOrdination != nil {
 		return amountCandidates(game.ActionUseDarklingsPriestOrdination, 0, 3)
 	}
 	if gs.PendingFavorTileSelection != nil {
 		return favorCandidates()
-	}
-	if gs.HasPendingLeechOffers() && gs.GetNextBlockingLeechResponder() != "" {
-		return leechCandidates(gs, playerID)
 	}
 	if gs.PendingCultistsCultSelection != nil {
 		return trackCandidates(game.ActionSelectCultistsCultTrack)
@@ -124,9 +134,25 @@ func productionCandidates(gs *game.GameState, playerID string) []SearchAction {
 }
 
 func normalCandidates(gs *game.GameState, playerID string) []SearchAction {
+	if gs.ExplicitTurnEnd && gs.PendingFreeActionsPlayerID == playerID {
+		out := []SearchAction{{Kind: game.ActionFinishTurn}}
+		out = append(out, conversionCandidates(gs, playerID)...)
+		out = append(out, townCandidates(gs, playerID)...)
+		return out
+	}
 	hexes := sortedHexes(gs)
 	out := make([]SearchAction, 0, 256)
 	player := gs.GetPlayer(playerID)
+	for power := game.PowerActionBridge; power <= game.PowerActionCoins; power++ {
+		if canUseBasePowerAction(gs, player, power) {
+			out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: power, DeclineReward: true})
+		}
+	}
+	for _, power := range []game.PowerActionType{game.PowerActionSpade1, game.PowerActionSpade2} {
+		if canUseBasePowerAction(gs, player, power) {
+			out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: power})
+		}
+	}
 	canSkip := player != nil && player.Faction != nil && (player.Faction.GetType() == models.FactionFakirs || player.Faction.GetType() == models.FactionDwarves)
 	for _, h := range hexes {
 		mapHex := gs.Map.GetHex(h)
@@ -145,15 +171,49 @@ func normalCandidates(gs *game.GameState, playerID string) []SearchAction {
 					if terrain == mapHex.Terrain && !build {
 						continue
 					}
+					minimum, err := game.TerraformSpadeCount(player, mapHex.Terrain, terrain, 0)
+					if err != nil {
+						continue
+					}
 					out = append(out, SearchAction{Kind: game.ActionTransformAndBuild, Hexes: []board.Hex{h}, Terrain: terrain, Build: build, UseSkip: useSkip})
+					for steps := 1; steps <= 6; steps++ {
+						if steps == minimum {
+							continue
+						}
+						if _, err := game.TerraformSpadeCount(player, mapHex.Terrain, terrain, steps); err == nil {
+							out = append(out, SearchAction{Kind: game.ActionTransformAndBuild, Hexes: []board.Hex{h}, Terrain: terrain, TerrainSteps: steps, Build: build, UseSkip: useSkip})
+						}
+					}
 				}
 			}
 			for _, power := range []game.PowerActionType{game.PowerActionSpade1, game.PowerActionSpade2} {
-				if mapHex.Terrain == player.Faction.GetHomeTerrain() || !canUseBasePowerAction(gs, player, power) {
+				if !canUseBasePowerAction(gs, player, power) {
 					continue
 				}
-				for _, build := range []bool{false, true} {
-					out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: power, Hexes: []board.Hex{h}, Build: build, UseSkip: useSkip})
+				for _, terrain := range landTerrains {
+					if terrain == mapHex.Terrain {
+						continue
+					}
+					for _, build := range []bool{false, true} {
+						out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: power, Hexes: []board.Hex{h}, Terrain: terrain, Build: build, UseSkip: useSkip})
+						if power == game.PowerActionSpade2 && terrain == player.Faction.GetHomeTerrain() && board.TerrainDistance(mapHex.Terrain, terrain) == 1 && player.Faction.GetType() != models.FactionGiants {
+							for _, second := range hexes {
+								mh := gs.Map.GetHex(second)
+								if second == h || mh.Building != nil || mh.Terrain == models.TerrainRiver {
+									continue
+								}
+								skip2 := !gs.IsAdjacentToPlayerBuilding(second, playerID)
+								if skip2 && (useSkip || !canSkip || game.ValidateSkipAbility(gs, player, second) != nil) {
+									continue
+								}
+								for _, terrain2 := range landTerrains {
+									if board.TerrainDistance(mh.Terrain, terrain2) == 1 {
+										out = append(out, SearchAction{Kind: game.ActionPowerAction, Power: power, Hexes: []board.Hex{h, second}, Terrain: terrain, Terrain2: terrain2, Build: build, UseSkip: useSkip, UseSkip2: skip2})
+									}
+								}
+							}
+						}
+					}
 				}
 			}
 		}
@@ -297,10 +357,6 @@ func baseSpecialCandidates(gs *game.GameState, playerID string) []SearchAction {
 			if availableStrongholdSpecial(player, game.SpecialActionSwarmlingsUpgrade) && mapHex.Building != nil && mapHex.Building.PlayerID == playerID && mapHex.Building.Type == models.BuildingDwelling {
 				out = append(out, SearchAction{Kind: game.ActionSpecialAction, Special: game.SpecialActionSwarmlingsUpgrade, Hexes: []board.Hex{h}})
 			}
-		case models.FactionMermaids:
-			if mapHex.Terrain == models.TerrainRiver {
-				out = append(out, SearchAction{Kind: game.ActionSpecialAction, Special: game.SpecialActionMermaidsRiverTown, Hexes: []board.Hex{h}})
-			}
 		case models.FactionGiants:
 			if availableStrongholdSpecial(player, game.SpecialActionGiantsTransform) && mapHex.Building == nil && mapHex.Terrain != player.Faction.GetHomeTerrain() && gs.IsAdjacentToPlayerBuilding(h, playerID) {
 				for _, build := range []bool{false, true} {
@@ -407,51 +463,29 @@ func amountCandidates(kind game.ActionType, minAmount, maxAmount int) []SearchAc
 func leechCandidates(gs *game.GameState, playerID string) []SearchAction {
 	offers := gs.PendingLeechOffers[playerID]
 	out := make([]SearchAction, 0, len(offers)*4)
-	for index, offer := range offers {
+	for index := range offers {
 		out = append(out,
 			SearchAction{Kind: game.ActionAcceptPowerLeech, Amount: index},
 			SearchAction{Kind: game.ActionDeclinePowerLeech, Amount: index},
 		)
-		if offer != nil {
-			for amount := 1; amount < offer.Amount; amount++ {
-				out = append(out, SearchAction{Kind: game.ActionAcceptPowerLeech, Amount: index, Amount2: amount})
-			}
-		}
 	}
 	return out
 }
 
 func townCandidates(gs *game.GameState, playerID string) []SearchAction {
-	pending := gs.PendingTownFormations[playerID]
-	selected := nextTownFormation(pending)
-	if selected == nil {
-		return nil
-	}
-	anchor, ok := canonicalTownAnchor(selected)
-	if !ok {
-		return nil
-	}
 	tiles := gs.TownTiles.GetAvailableTiles()
 	sort.Slice(tiles, func(i, j int) bool { return tiles[i] < tiles[j] })
-	out := make([]SearchAction, 0, len(tiles))
-	for _, tile := range tiles {
-		out = append(out, SearchAction{Kind: game.ActionSelectTownTile, TownTile: tile, Hexes: []board.Hex{anchor}})
+	var out []SearchAction
+	for _, pending := range gs.TownFormationChoices(playerID) {
+		anchor, ok := canonicalTownAnchor(pending)
+		if !ok {
+			continue
+		}
+		for _, tile := range tiles {
+			out = append(out, SearchAction{Kind: game.ActionSelectTownTile, TownTile: tile, Hexes: []board.Hex{anchor}})
+		}
 	}
 	return out
-}
-
-func nextTownFormation(pending []*game.PendingTownFormation) *game.PendingTownFormation {
-	for _, formation := range pending {
-		if formation != nil && !formation.CanBeDelayed {
-			return formation
-		}
-	}
-	for _, formation := range pending {
-		if formation != nil {
-			return formation
-		}
-	}
-	return nil
 }
 
 func canonicalTownAnchor(pending *game.PendingTownFormation) (board.Hex, bool) {

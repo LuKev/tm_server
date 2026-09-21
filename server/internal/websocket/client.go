@@ -72,12 +72,12 @@ type leaveGamePayload struct {
 }
 
 type startGamePayload struct {
-	GameID             string                `json:"gameID"`
-	RandomizeTurnOrder *bool                 `json:"randomizeTurnOrder,omitempty"`
-	SetupMode          string                `json:"setupMode,omitempty"`
-	TurnTimerEnabled   *bool                 `json:"turnTimerEnabled,omitempty"`
-	TurnTimerSeconds   *int                  `json:"turnTimerSeconds,omitempty"`
-	TurnTimerIncrement *int                  `json:"turnTimerIncrementSeconds,omitempty"`
+	GameID             string `json:"gameID"`
+	RandomizeTurnOrder *bool  `json:"randomizeTurnOrder,omitempty"`
+	SetupMode          string `json:"setupMode,omitempty"`
+	TurnTimerEnabled   *bool  `json:"turnTimerEnabled,omitempty"`
+	TurnTimerSeconds   *int   `json:"turnTimerSeconds,omitempty"`
+	TurnTimerIncrement *int   `json:"turnTimerIncrementSeconds,omitempty"`
 }
 
 type lobbyStateMsg struct {
@@ -1051,6 +1051,14 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}, nil
 
 	case "transform_build":
+		terrainSteps := 0
+		if _, ok := getParam("terrainSteps"); ok {
+			value, err := parseIntParam("terrainSteps")
+			if err != nil || value < 0 || value > 6 {
+				return nil, fmt.Errorf("terrainSteps must be an integer from 0 to 6")
+			}
+			terrainSteps = value
+		}
 		hex, err := parseHexParam("hex", "targetHex")
 		if err != nil {
 			return nil, err
@@ -1077,10 +1085,12 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		}
 		if useSkip {
 			a := game.NewTransformAndBuildActionWithSkip(seatID, hex, buildDwelling, targetTerrain)
+			a.TerrainSteps = terrainSteps
 			a.AcolytesCultTrack = acolytesCultTrack
 			return a, nil
 		}
 		a := game.NewTransformAndBuildAction(seatID, hex, buildDwelling, targetTerrain)
+		a.TerrainSteps = terrainSteps
 		a.AcolytesCultTrack = acolytesCultTrack
 		return a, nil
 
@@ -1124,6 +1134,25 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 		if err != nil {
 			return nil, err
 		}
+		if actionType == game.PowerActionSpade1 || actionType == game.PowerActionSpade2 {
+			version, err := parseIntParam("spadeActionVersion")
+			if err != nil || version != 2 {
+				return nil, fmt.Errorf("spadeActionVersion 2 required: submit all destinations atomically; omitted reward is forfeited")
+			}
+		}
+		decline, err := parseBoolParam(false, "declineReward")
+		if err != nil {
+			return nil, err
+		}
+		if decline {
+			if _, specified := getParam("hex", "targetHex", "targetTerrain", "secondHex", "secondTerrain", "bridgeHex1", "bridgeHex2"); specified {
+				return nil, fmt.Errorf("declined reward cannot include placement parameters")
+			}
+			a := game.NewPowerAction(seatID, actionType)
+			a.DeclineReward = true
+			a.UseCoins, err = parseBoolParam(false, "useCoins")
+			return a, err
+		}
 		if actionType == game.PowerActionBridge {
 			hex1, hex2, err := parseBridgeEndpoints()
 			if err != nil {
@@ -1138,6 +1167,26 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 			return a, nil
 		}
 		if actionType == game.PowerActionSpade1 || actionType == game.PowerActionSpade2 {
+			if _, hasHex := getParam("hex", "targetHex"); !hasHex && req.Hex == nil {
+				if _, specified := getParam("targetTerrain", "secondHex", "secondTerrain"); specified {
+					return nil, fmt.Errorf("transform parameters require a first hex")
+				}
+				a := game.NewPowerAction(seatID, actionType)
+				var err error
+				a.BuildDwelling, err = parseBoolParam(false, "buildDwelling")
+				if err != nil {
+					return nil, err
+				}
+				a.UseSkip, err = parseBoolParam(false, "useSkip")
+				if err != nil {
+					return nil, err
+				}
+				a.UseCoins, err = parseBoolParam(false, "useCoins")
+				if err != nil {
+					return nil, err
+				}
+				return a, nil
+			}
 			hex, err := parseHexParam("hex", "targetHex")
 			if err != nil {
 				return nil, err
@@ -1147,11 +1196,33 @@ func buildActionFromPayload(req performActionPayload, seatID string) (game.Actio
 				return nil, err
 			}
 			a := game.NewPowerActionWithTransform(seatID, actionType, hex, buildDwelling)
+			if raw, ok := getParam("targetTerrain"); ok {
+				terrain, err := parseTerrainTypeRaw(raw)
+				if err != nil {
+					return nil, err
+				}
+				a.TargetTerrain = &terrain
+			}
 			useSkip, err := parseBoolParam(false, "useSkip")
 			if err != nil {
 				return nil, err
 			}
 			a.UseSkip = useSkip
+			if _, ok := getParam("secondHex"); ok {
+				h, err := parseHexParam("secondHex")
+				if err != nil {
+					return nil, err
+				}
+				raw, ok := getParam("secondTerrain")
+				if !ok {
+					return nil, fmt.Errorf("secondTerrain required with secondHex")
+				}
+				terrain, err := parseTerrainTypeRaw(raw)
+				if err != nil {
+					return nil, err
+				}
+				a.SecondTargetHex, a.SecondTargetTerrain = &h, &terrain
+			}
 			useCoins, err := parseBoolParam(false, "useCoins")
 			if err != nil {
 				return nil, err

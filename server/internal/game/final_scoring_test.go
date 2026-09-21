@@ -1,12 +1,46 @@
 package game
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
+
+// Rulebook p.16: remaining resources convert to coins, then whole groups of
+// three score one VP (Alchemists: two). Bowl II can be sacrificed in pairs;
+// Bowl I never provides final coins. Expected values do not call game helpers.
+func TestRulebookFinalResourceBoundaries(t *testing.T) {
+	for _, alchemist := range []bool{false, true} {
+		for bowl2 := 0; bowl2 <= 7; bowl2++ {
+			for coins := 0; coins <= 5; coins++ {
+				t.Run(fmt.Sprintf("alchemist=%t/bowl2=%d/coins=%d", alchemist, bowl2, coins), func(t *testing.T) {
+					gs := NewGameState()
+					var f factions.Faction = factions.NewWitches()
+					divisor := 3
+					if alchemist {
+						f, divisor = factions.NewAlchemists(), 2
+					}
+					gs.AddPlayer("p", f)
+					p := gs.GetPlayer("p")
+					p.Resources.Coins, p.Resources.Workers, p.Resources.Priests = coins, 2, 1
+					p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 9, bowl2, 1
+					scores := map[string]*PlayerFinalScore{"p": {}}
+					gs.calculateResourceConversion(scores)
+					wantCoins := coins + 2 + 1 + 1 + bowl2/2
+					if scores["p"].TotalResourceValue != wantCoins || scores["p"].ResourceVP != wantCoins/divisor {
+						t.Fatalf("got %+v; want %d coins / %d = %d VP", scores["p"], wantCoins, divisor, wantCoins/divisor)
+					}
+					if p.Resources.Coins != coins || p.Resources.Power.Bowl2 != bowl2 {
+						t.Fatal("scoring mutated resources")
+					}
+				})
+			}
+		}
+	}
+}
 
 func placeFinalScoringTestBuilding(t *testing.T, gs *GameState, playerID string, hex board.Hex, buildingType models.BuildingType) {
 	t.Helper()
@@ -502,7 +536,7 @@ func TestGetWinner_Clear(t *testing.T) {
 	}
 }
 
-func TestGetWinner_Tiebreaker(t *testing.T) {
+func TestGetWinner_SharedVictoryIgnoresResources(t *testing.T) {
 	gs := NewGameState()
 
 	scores := map[string]*PlayerFinalScore{
@@ -512,8 +546,8 @@ func TestGetWinner_Tiebreaker(t *testing.T) {
 	}
 
 	winner := gs.GetWinner(scores)
-	if winner != "player2" {
-		t.Errorf("expected player2 to win (tiebreaker), got %s", winner)
+	if winner != "" {
+		t.Errorf("expected shared victory, got sole winner %s", winner)
 	}
 }
 
@@ -530,14 +564,13 @@ func TestGetRankedPlayers(t *testing.T) {
 		t.Fatalf("expected 3 players, got %d", len(ranked))
 	}
 
-	// 1st: player3 (100 VP, 20 resources)
-	if ranked[0].PlayerID != "player3" {
-		t.Errorf("1st place: expected player3, got %s", ranked[0].PlayerID)
+	// Equal VP: stable player ID order, not a resource-based rank distinction.
+	if ranked[0].PlayerID != "player2" {
+		t.Errorf("first display entry: expected player2, got %s", ranked[0].PlayerID)
 	}
 
-	// 2nd: player2 (100 VP, 15 resources)
-	if ranked[1].PlayerID != "player2" {
-		t.Errorf("2nd place: expected player2, got %s", ranked[1].PlayerID)
+	if ranked[1].PlayerID != "player3" {
+		t.Errorf("second display entry: expected player3, got %s", ranked[1].PlayerID)
 	}
 
 	// 3rd: player1 (95 VP)
@@ -844,6 +877,25 @@ func TestCalculateFinalScoring_FireIceOutposts(t *testing.T) {
 	}
 	if scores["player3"].FireIceMetricValue != 1 || scores["player3"].FireIceVP != 6 {
 		t.Fatalf("player3 Fire & Ice score = (%d, %d), want (1, 6)", scores["player3"].FireIceMetricValue, scores["player3"].FireIceVP)
+	}
+}
+
+func TestFinalAreaChainsFakirAndDwarfConnectionsWithoutResources(t *testing.T) {
+	for _, faction := range []models.FactionType{models.FactionFakirs, models.FactionDwarves} {
+		gs := NewGameState()
+		gs.AddPlayer("actor", factions.NewFaction(faction))
+		player := gs.GetPlayer("actor")
+		player.Resources.Coins, player.Resources.Workers, player.Resources.Priests = 0, 0, 0
+		player.Resources.Power.Bowl1, player.Resources.Power.Bowl2, player.Resources.Power.Bowl3 = 0, 0, 0
+		for _, hex := range []board.Hex{board.NewHex(0, 0), board.NewHex(2, 0), board.NewHex(4, 0)} {
+			placeFinalScoringTestBuilding(t, gs, "actor", hex, models.BuildingDwelling)
+		}
+		if got := gs.CalculateFinalScoring()["actor"].LargestAreaSize; got != 3 {
+			t.Fatalf("%s chained network = %d, want 3 with no resources", faction, got)
+		}
+		if player.Resources.Workers != 0 || player.Resources.Priests != 0 {
+			t.Fatal("final network scoring charged a movement cost")
+		}
 	}
 }
 

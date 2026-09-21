@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/lukev/tm_server/internal/game/board"
-	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
 
@@ -86,18 +85,22 @@ func GetPowerCost(actionType PowerActionType) int {
 // PowerAction represents taking a power action from the game board
 type PowerAction struct {
 	BaseAction
-	ActionType PowerActionType
-	UseCoins   bool
+	ActionType    PowerActionType
+	UseCoins      bool
+	DeclineReward bool // Pay/occupy the shared action without taking its reward.
 	// For spade actions, these fields specify the transform details
-	TargetHex     *board.Hex // Optional: for spade actions
-	BuildDwelling bool       // Optional: for spade actions
-	UseSkip       bool       // Optional: for spade actions (Fakirs/Dwarves skip)
+	TargetHex           *board.Hex          // Optional: for spade actions
+	TargetTerrain       *models.TerrainType // Nil preserves the legacy home-terrain request.
+	BuildDwelling       bool                // Optional: for spade actions
+	UseSkip             bool                // Optional: for spade actions (Fakirs/Dwarves skip)
+	SecondTargetHex     *board.Hex
+	SecondTargetTerrain *models.TerrainType
+	SecondUseSkip       bool
 	// For bridge action, these fields specify the bridge endpoints
 	BridgeHex1 *board.Hex // Optional: for bridge action
 	BridgeHex2 *board.Hex // Optional: for bridge action
 }
 
-// NewPowerAction creates a new power action
 // NewPowerAction creates a new power action
 func NewPowerAction(playerID string, actionType PowerActionType) *PowerAction {
 	return &PowerAction{
@@ -109,7 +112,9 @@ func NewPowerAction(playerID string, actionType PowerActionType) *PowerAction {
 	}
 }
 
-// NewPowerActionWithTransform creates a power action that includes a transform
+// NewPowerActionWithTransform requests one destination (legacy home terrain).
+// Set SecondTargetHex/SecondTargetTerrain for an atomic ACT6 split. Unused spades
+// are forfeited; this action never opens a live spade-followup decision.
 func NewPowerActionWithTransform(playerID string, actionType PowerActionType, targetHex board.Hex, buildDwelling bool) *PowerAction {
 	return &PowerAction{
 		BaseAction: BaseAction{
@@ -136,8 +141,10 @@ func NewPowerActionWithBridge(playerID string, hex1, hex2 board.Hex) *PowerActio
 }
 
 // Validate checks if the power action is valid
-// Validate checks if the power action is valid
 func (a *PowerAction) Validate(gs *GameState) error {
+	if a.ActionType < PowerActionBridge || a.ActionType > PowerActionSpade2 {
+		return fmt.Errorf("unknown power action %d", a.ActionType)
+	}
 	player := gs.GetPlayer(a.PlayerID)
 	if player == nil {
 		return fmt.Errorf("player not found: %s", a.PlayerID)
@@ -167,13 +174,19 @@ func (a *PowerAction) Validate(gs *GameState) error {
 		}
 	}
 
+	if isRiverwalkers(player) && (a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2) {
+		return fmt.Errorf("riverwalkers cannot take spade power actions")
+	}
+	if a.DeclineReward {
+		if a.TargetHex != nil || a.TargetTerrain != nil || a.SecondTargetHex != nil || a.SecondTargetTerrain != nil || a.BridgeHex1 != nil || a.BridgeHex2 != nil || a.BuildDwelling || a.UseSkip || a.SecondUseSkip {
+			return fmt.Errorf("declined reward cannot include placement parameters")
+		}
+		return nil
+	}
 	// Validate spade actions
 	if a.ActionType == PowerActionSpade1 || a.ActionType == PowerActionSpade2 {
-		if isRiverwalkers(player) {
-			return fmt.Errorf("riverwalkers cannot gain or use spades")
-		}
 		if !isProspectors(player) && !factionConvertsSpadeRewards(player) {
-			if err := a.validateSpadeAction(gs, player); err != nil {
+			if err := a.validateSpadeTransform(gs, player, powerCost); err != nil {
 				return err
 			}
 		}
@@ -201,9 +214,14 @@ func (a *PowerAction) Validate(gs *GameState) error {
 	return nil
 }
 
-func (a *PowerAction) validateSpadeAction(gs *GameState, player *Player) error {
+// validateSpadeTransform checks the transform plan only. Bonus-card spades
+// reuse this helper with zero power charge, without claiming a shared action.
+func (a *PowerAction) validateSpadeTransform(gs *GameState, player *Player, powerCost int) error {
 	if a.TargetHex == nil {
-		return fmt.Errorf("spade power action requires a target hex")
+		if a.BuildDwelling || a.UseSkip || a.TargetTerrain != nil || a.SecondTargetHex != nil || a.SecondTargetTerrain != nil || a.SecondUseSkip {
+			return fmt.Errorf("unused spade action cannot include transform parameters")
+		}
+		return nil // Taking a shared action and forfeiting its reward is legal.
 	}
 
 	// Validate the transform would be legal
@@ -215,16 +233,47 @@ func (a *PowerAction) validateSpadeAction(gs *GameState, player *Player) error {
 	if mapHex.Building != nil {
 		return fmt.Errorf("hex already has a building")
 	}
-	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, effectiveHomeTerrain(player))
+	targetTerrain := a.targetTerrain(player)
+	distance, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, 0)
 	if err != nil {
 		return err
 	}
 	if distance <= 0 {
 		return fmt.Errorf("spade power action must transform terrain")
 	}
+	if player.Faction.GetType() == models.FactionGiants && targetTerrain != effectiveHomeTerrain(player) {
+		return fmt.Errorf("giants may only transform into home terrain")
+	}
+	if a.BuildDwelling && targetTerrain != effectiveHomeTerrain(player) {
+		return fmt.Errorf("dwelling requires home terrain")
+	}
+	freeSpades := 1
+	if a.ActionType == PowerActionSpade2 {
+		freeSpades = 2
+	}
+	requiredSpades, err := a.requiredSpadesForTransform(gs, player)
+	if err != nil {
+		return err
+	}
+	if requiredSpades > freeSpades {
+		homeDistance, err := TerraformSpadeCount(player, mapHex.Terrain, effectiveHomeTerrain(player), 0)
+		if err != nil {
+			return err
+		}
+		remainingDistance, err := TerraformSpadeCount(player, targetTerrain, effectiveHomeTerrain(player), 0)
+		if err != nil {
+			return err
+		}
+		if player.Faction.GetType() != models.FactionGiants && homeDistance != distance+remainingDistance {
+			return fmt.Errorf("paid extra spades must follow the shortest route toward home terrain")
+		}
+	}
 
 	// Check adjacency (or skip range for Fakirs/Dwarves)
 	isAdjacent := gs.IsAdjacentToPlayerBuilding(*a.TargetHex, a.PlayerID)
+	if isAdjacent && a.UseSkip {
+		return fmt.Errorf("cannot tunnel or fly to an already adjacent space")
+	}
 	if !isAdjacent && !a.UseSkip {
 		factionType := player.Faction.GetType()
 		if factionType == models.FactionDwarves || factionType == models.FactionFakirs {
@@ -241,7 +290,83 @@ func (a *PowerAction) validateSpadeAction(gs *GameState, player *Player) error {
 			return fmt.Errorf("hex is not adjacent to player's buildings")
 		}
 	}
+	if a.SecondTargetHex != nil {
+		if a.ActionType != PowerActionSpade2 || requiredSpades != 1 || targetTerrain != effectiveHomeTerrain(player) {
+			return fmt.Errorf("second space requires one free spade completing first space to home")
+		}
+		if *a.SecondTargetHex == *a.TargetHex || a.SecondTargetTerrain == nil {
+			return fmt.Errorf("second space requires a distinct hex and explicit terrain")
+		}
+		second := gs.Map.GetHex(*a.SecondTargetHex)
+		if second == nil || second.Building != nil {
+			return fmt.Errorf("second space must be an empty hex")
+		}
+		distance, err := TerraformSpadeCount(player, second.Terrain, *a.SecondTargetTerrain, 0)
+		if err != nil || distance != 1 {
+			return fmt.Errorf("second space must use exactly one free spade")
+		}
+		secondAdjacent := gs.IsAdjacentToPlayerBuilding(*a.SecondTargetHex, a.PlayerID)
+		if secondAdjacent && a.SecondUseSkip {
+			return fmt.Errorf("cannot tunnel or fly to an already adjacent second space")
+		}
+		if !secondAdjacent {
+			a.SecondUseSkip = true
+		}
+		if a.SecondUseSkip {
+			if a.UseSkip {
+				return fmt.Errorf("cannot tunnel or fly twice in one action")
+			}
+			if err := ValidateSkipAbility(gs, player, *a.SecondTargetHex); err != nil {
+				return err
+			}
+		}
+	} else if a.SecondTargetTerrain != nil || a.SecondUseSkip {
+		return fmt.Errorf("second transform parameters require a second hex")
+	}
+	// Validate all costs before spending power or marking the shared action used.
+	copyPlayer := *player
+	copyResources := *player.Resources
+	copyPower := *player.Resources.Power
+	copyResources.Power = &copyPower
+	copyPlayer.Resources = &copyResources
+	if powerCost > 0 && a.shouldPayWithCoins(player) {
+		copyResources.Coins -= powerCost
+	} else if powerCost > 0 {
+		burn := a.requiredAutoBurn(player)
+		if player.Faction.GetType() == models.FactionChildrenOfTheWyrm {
+			_ = copyPower.BurnPowerChildren(burn)
+		} else {
+			_ = copyPower.BurnPower(burn)
+		}
+		if err := copyPower.SpendPower(powerCost); err != nil {
+			return err
+		}
+	}
+	if a.UseSkip {
+		PaySkipCost(&copyPlayer)
+	}
+	if a.SecondUseSkip {
+		PaySkipCost(&copyPlayer)
+	}
+	if err := a.paySpadeCosts(&copyPlayer, a.calculateRemainingSpades(requiredSpades, freeSpades)); err != nil {
+		return err
+	}
+	if a.BuildDwelling {
+		if err := gs.CheckBuildingLimit(a.PlayerID, models.BuildingDwelling); err != nil {
+			return err
+		}
+		if err := copyResources.Spend(getDwellingBuildCost(gs, player, *a.TargetHex)); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func (a *PowerAction) targetTerrain(player *Player) models.TerrainType {
+	if a.TargetTerrain != nil {
+		return *a.TargetTerrain
+	}
+	return effectiveHomeTerrain(player)
 }
 
 func (a *PowerAction) validateBridgeAction(gs *GameState, player *Player) error {
@@ -297,6 +422,10 @@ func (a *PowerAction) Execute(gs *GameState) error {
 
 	// Mark action as used
 	gs.PowerActions.MarkUsed(a.ActionType)
+	if a.DeclineReward {
+		gs.NextTurn()
+		return nil
+	}
 
 	// Execute the specific action
 	switch a.ActionType {
@@ -350,7 +479,7 @@ func (a *PowerAction) Execute(gs *GameState) error {
 		// The spade action gives free spades for a transform
 		// The actual transform happens as part of this action
 		if a.TargetHex == nil {
-			return fmt.Errorf("spade action requires target hex")
+			break
 		}
 
 		freeSpadesFromAction := 1
@@ -358,35 +487,28 @@ func (a *PowerAction) Execute(gs *GameState) error {
 			freeSpadesFromAction = 2
 		}
 
-		requiredSpades, err := a.requiredSpadesForTransform(gs, player)
-		if err != nil {
-			return err
-		}
-
 		// Execute the transform with free spades
-		err = a.executeTransformWithFreeSpades(gs, player, freeSpadesFromAction)
+		err := a.executeTransformWithFreeSpades(gs, player, freeSpadesFromAction)
 		if err != nil {
 			return fmt.Errorf("failed to execute transform: %w", err)
 		}
 
-		usedFreeSpades := freeSpadesFromAction
-		if usedFreeSpades > requiredSpades {
-			usedFreeSpades = requiredSpades
+		if a.SecondTargetHex != nil {
+			if a.SecondUseSkip {
+				PaySkipCost(player)
+			}
+			if err := gs.Map.TransformTerrain(*a.SecondTargetHex, *a.SecondTargetTerrain); err != nil {
+				return err
+			}
+			a.awardSpadeBonuses(gs, player, 1)
 		}
-		remainingFreeSpades := freeSpadesFromAction - usedFreeSpades
-		if remainingFreeSpades > 0 {
-			if gs.PendingSpades == nil {
-				gs.PendingSpades = make(map[string]int)
+		// Both destinations were validated against pre-action buildings. Build
+		// only after all transformations, so reachability and reactions cannot
+		// be changed halfway through the shared action.
+		if a.BuildDwelling {
+			if err := a.buildDwelling(gs, player); err != nil {
+				return err
 			}
-			if gs.PendingSpadeBuildAllowed == nil {
-				gs.PendingSpadeBuildAllowed = make(map[string]bool)
-			}
-			gs.PendingSpades[a.PlayerID] += remainingFreeSpades
-			canBuildDwelling := !a.BuildDwelling
-			if prior, ok := gs.PendingSpadeBuildAllowed[a.PlayerID]; ok {
-				canBuildDwelling = prior && canBuildDwelling
-			}
-			gs.PendingSpadeBuildAllowed[a.PlayerID] = canBuildDwelling
 		}
 	}
 
@@ -453,8 +575,8 @@ func (a *PowerAction) requiredSpadesForTransform(gs *GameState, player *Player) 
 		return 0, fmt.Errorf("hex does not exist: %v", *a.TargetHex)
 	}
 
-	targetTerrain := effectiveHomeTerrain(player)
-	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	targetTerrain := a.targetTerrain(player)
+	distance, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, 0)
 	if err != nil {
 		return 0, err
 	}
@@ -478,8 +600,8 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 
 	// Calculate spades needed
 	currentTerrain := mapHex.Terrain
-	targetTerrain := effectiveHomeTerrain(player)
-	distance, err := fireIceTerraformDistance(player, currentTerrain, targetTerrain)
+	targetTerrain := a.targetTerrain(player)
+	distance, err := TerraformSpadeCount(player, currentTerrain, targetTerrain, 0)
 	if err != nil {
 		return err
 	}
@@ -506,13 +628,6 @@ func (a *PowerAction) executeTransformWithFreeSpades(gs *GameState, player *Play
 
 	// Award VP from scoring tile for ALL spades used (both free and paid)
 	a.awardSpadeBonuses(gs, player, requiredSpades)
-
-	// Build dwelling if requested
-	if a.BuildDwelling {
-		if err := a.buildDwelling(gs, player); err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -550,6 +665,9 @@ func (a *PowerAction) paySpadeCosts(player *Player, remainingSpades int) error {
 		} else {
 			// Other factions pay workers
 			workersNeeded := player.Faction.GetTerraformCost(remainingSpades)
+			if player.Faction.GetType() == models.FactionGiants {
+				workersNeeded = remainingSpades * (player.Faction.GetTerraformCost(2) / 2)
+			}
 			if player.Resources.Workers < workersNeeded {
 				return fmt.Errorf("not enough workers: need %d, have %d", workersNeeded, player.Resources.Workers)
 			}
@@ -561,19 +679,12 @@ func (a *PowerAction) paySpadeCosts(player *Player, remainingSpades int) error {
 
 func (a *PowerAction) awardSpadeBonuses(gs *GameState, player *Player, totalSpades int) {
 	// Power action spades (ACT5/ACT6) count for scoring, unlike cult reward spades
-	if _, isDarklings := player.Faction.(*factions.Darklings); !isDarklings && totalSpades > 0 {
-		// Convert worker/priest cost back to spades
-		spadesUsed := totalSpades
-		if player.Faction.GetType() == models.FactionGiants {
-			spadesUsed = 2
-		}
-		for i := 0; i < spadesUsed; i++ {
-			gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
-		}
-
-		// Award faction-specific spade bonuses (Halflings VP, Alchemists power)
-		AwardFactionSpadeBonuses(player, spadesUsed)
+	for i := 0; i < totalSpades; i++ {
+		gs.AwardActionVP(a.PlayerID, ScoringActionSpades)
 	}
+	// Darklings' priest bonus is paid only in paySpadeCosts, never for free
+	// spades; their round-tile scoring still counts every spade used.
+	AwardFactionSpadeBonuses(player, totalSpades)
 }
 
 // Fixed version of executeTransformWithFreeSpades with correct helper usage

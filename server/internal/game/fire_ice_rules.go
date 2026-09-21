@@ -12,6 +12,35 @@ func isStandardLandTerrain(terrain models.TerrainType) bool {
 	return terrain >= models.TerrainPlains && terrain <= models.TerrainDesert
 }
 
+// TerraformSpadeCount is the authoritative route-aware spade count. A zero
+// request uses the shortest legal route; positive requests encode an explicit
+// direction on the ordinary terrain wheel, not arbitrary extra resource spend.
+func TerraformSpadeCount(player *Player, from, to models.TerrainType, requested int) (int, error) {
+	if player == nil || player.Faction == nil || requested < 0 || requested > 6 {
+		return 0, fmt.Errorf("invalid terraform player or route")
+	}
+	home := effectiveHomeTerrain(player)
+	if player.Faction.GetType() == models.FactionGiants {
+		if !isStandardLandTerrain(from) || to != home || (requested != 0 && requested != 2) {
+			return 0, fmt.Errorf("Giants can only transform standard terrain to home with two spades")
+		}
+		if from == to {
+			if requested != 0 {
+				return 0, fmt.Errorf("terrain route must change terrain")
+			}
+			return 0, nil
+		}
+		return 2, nil
+	}
+	if isStandardLandTerrain(from) && isStandardLandTerrain(to) && isStandardLandTerrain(home) {
+		return board.TerraformSteps(from, to, home, requested)
+	}
+	if requested != 0 {
+		return 0, fmt.Errorf("explicit terrain routes require the standard terrain wheel")
+	}
+	return fireIceTerraformDistance(player, from, to)
+}
+
 func isPermanentFireIceTerrain(terrain models.TerrainType) bool {
 	return terrain == models.TerrainIce || terrain == models.TerrainVolcano
 }

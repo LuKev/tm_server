@@ -860,6 +860,67 @@ func TestTownFormation_FakirsTownTile4(t *testing.T) {
 	}
 }
 
+func setupMermaidChoiceBuildings(gs *GameState, playerID string) board.Hex {
+	for _, hex := range gs.Map.Hexes {
+		if hex.Building != nil && hex.Building.PlayerID == playerID {
+			hex.Building = nil
+		}
+	}
+	hexes := []board.Hex{board.NewHex(1, 2), board.NewHex(2, 2), board.NewHex(3, 3), board.NewHex(4, 3)}
+	kinds := []models.BuildingType{models.BuildingTradingHouse, models.BuildingDwelling, models.BuildingStronghold, models.BuildingDwelling}
+	for i, h := range hexes {
+		gs.Map.Hexes[h] = &board.MapHex{Coord: h, Terrain: models.TerrainLake, Building: &models.Building{Type: kinds[i], PowerValue: GetPowerValue(kinds[i]), PlayerID: playerID, Faction: models.FactionMermaids}}
+	}
+	for _, river := range []board.Hex{board.NewHex(3, 2), board.NewHex(2, 3)} {
+		gs.Map.Hexes[river] = &board.MapHex{Coord: river, Terrain: models.TerrainRiver}
+		gs.Map.RiverHexes[river] = true
+	}
+	gs.CheckAllTownFormations(playerID)
+	return board.NewHex(3, 2)
+}
+
+func TestPendingTownGrowthAndMergePreservesExactlyTwoKeys(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p0", factions.NewHalflings())
+	left, right, joining := board.NewHex(0, 0), board.NewHex(2, 0), board.NewHex(1, 0)
+	gs.createPendingTown("p0", []board.Hex{left}, nil, models.FactionHalflings)
+	gs.createPendingTown("p0", []board.Hex{right}, nil, models.FactionHalflings)
+	gs.createPendingTown("p0", []board.Hex{left, joining, right}, nil, models.FactionHalflings)
+	gs.createPendingTown("p0", []board.Hex{right, joining, left}, nil, models.FactionHalflings)
+	if len(gs.PendingTownFormations["p0"]) != 2 || countBorrowablePendingTownKeys(gs, "p0") != 2 {
+		t.Fatal("growing/merging pending towns invented another town/key")
+	}
+	seen := make(map[board.Hex]int)
+	for _, town := range gs.PendingTownFormations["p0"] {
+		for _, hex := range town.Hexes {
+			seen[hex]++
+		}
+	}
+	for _, hex := range []board.Hex{left, right, joining} {
+		if seen[hex] != 1 {
+			t.Fatal("town reservations must remain disjoint and include the joining building")
+		}
+	}
+}
+
+func TestMermaidPreMainTownPreservesLiveTurn(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p0", factions.NewMermaids())
+	gs.AddPlayer("p1", factions.NewWitches())
+	gs.TurnOrder = []string{"p0", "p1"}
+	gs.CurrentPlayerIndex = 0
+	gs.Phase = PhaseAction
+	river := setupMermaidChoiceBuildings(gs, "p0")
+	gs.GetPlayer("p0").Resources.Workers = 0
+	a := &SelectTownTileAction{BaseAction: BaseAction{Type: ActionSelectTownTile, PlayerID: "p0"}, TileType: models.TownTile7Points, AnchorHex: &river}
+	if err := ApplyActionToState(gs, a, StateActionOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if gs.GetCurrentPlayer().ID != "p0" || gs.GetPlayer("p0").Resources.Workers != 2 {
+		t.Fatal("pre-main town must immediately grant workers without consuming the live main turn")
+	}
+}
+
 func TestCheckAllTownFormationsUsesDeterministicComponentOrder(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewWitches()

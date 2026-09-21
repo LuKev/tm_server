@@ -8,6 +8,351 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+// User-confirmed rule: a leftover ACT6 spade on the second space cannot be
+// topped up with paid spades. Dwelling choice is tested separately.
+func TestPowerSpadeSecondSpaceRestrictions(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewHalflings())
+	p := gs.GetPlayer("p1")
+	p.Resources.Power.Bowl3 = 6
+	p.Resources.Workers, p.Resources.Coins = 20, 20
+	start, first, second := board.NewHex(0, 1), board.NewHex(1, 0), board.NewHex(1, 1)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionHalflings, PowerValue: 1}
+	gs.Map.GetHex(first).Terrain = models.TerrainSwamp
+	gs.Map.GetHex(second).Terrain = models.TerrainSwamp
+	a := NewPowerActionWithTransform("p1", PowerActionSpade2, first, true)
+	a.SecondTargetHex = &second
+	terrain := models.TerrainPlains
+	a.SecondTargetTerrain = &terrain
+	if err := a.Validate(gs); err != nil {
+		t.Fatal(err)
+	}
+	gs.Map.GetHex(second).Terrain = models.TerrainMountain
+	if err := a.Validate(gs); err == nil {
+		t.Error("second ACT6 space illegally allows paid extra spades")
+	}
+	// The same spare spade remains legal if it stops at intermediate terrain.
+	terrain = models.TerrainForest
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if gs.Map.GetHex(second).Terrain != models.TerrainForest {
+		t.Fatal("leftover free spade failed to stop at intermediate terrain")
+	}
+}
+
+func TestAlchemistsCannotSpendSpadePowerBeforeOptionalDwelling(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewAlchemists())
+	p := gs.GetPlayer("p1")
+	p.HasStrongholdAbility = true
+	p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 0, 8, 4
+	p.Resources.Workers, p.Resources.Coins = 7, 1
+	start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionAlchemists, PowerValue: 1}
+	gs.Map.GetHex(target).Terrain = models.TerrainMountain
+	a := NewPowerActionWithTransform("p1", PowerActionSpade1, target, true)
+	// Three used spades would produce six power, two ending in Bowl III.
+	// Those prospective conversion coins cannot pay this action's dwelling.
+	if err := a.Execute(gs); err == nil {
+		t.Fatal("Alchemists financed dwelling with power not yet gained")
+	}
+	if p.Resources.Coins != 1 || p.Resources.Workers != 7 || p.Resources.Power.Bowl3 != 4 || gs.Map.GetHex(target).Terrain != models.TerrainMountain || !gs.PowerActions.IsAvailable(PowerActionSpade1) {
+		t.Fatal("rejected combined action mutated state")
+	}
+	a.BuildDwelling = false
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if p.Resources.Power.Bowl3 != 2 || gs.Map.GetHex(target).Building != nil {
+		t.Fatal("transform-only must finish before gained power becomes convertible")
+	}
+}
+
+func TestPowerSpadeExplicitTerrainAndCosts(t *testing.T) {
+	// The printed terrain wheel has Plains-Swamp-Lake-Forest on one side.
+	// A Halfling may stop Forest->Lake for one free spade, or pay two
+	// workers exchanges to continue to Plains, but may not build on Lake.
+	for _, tc := range []struct {
+		name        string
+		target      models.TerrainType
+		power       PowerActionType
+		workers     int
+		build       bool
+		wantWorkers int
+		wantError   bool
+	}{
+		{"one free intermediate", models.TerrainLake, PowerActionSpade1, 0, false, 0, false},
+		{"two free intermediate", models.TerrainSwamp, PowerActionSpade2, 0, false, 0, false},
+		{"optional paid completion", models.TerrainPlains, PowerActionSpade1, 6, false, 0, false},
+		{"paid intermediate toward home", models.TerrainSwamp, PowerActionSpade1, 3, false, 0, false},
+		{"no building on intermediate", models.TerrainLake, PowerActionSpade1, 10, true, 10, true},
+		{"unaffordable completion is atomic", models.TerrainPlains, PowerActionSpade1, 0, false, 0, true},
+		{"cannot buy away from home", models.TerrainWasteland, PowerActionSpade1, 10, false, 10, true},
+		{"cannot make river", models.TerrainRiver, PowerActionSpade1, 10, false, 10, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gs := NewGameState()
+			gs.AddPlayer("p1", factions.NewHalflings())
+			p := gs.GetPlayer("p1")
+			p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 0, 0, 6
+			p.Resources.Workers, p.Resources.Coins = tc.workers, 20
+			start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+			gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionHalflings, PowerValue: 1}
+			gs.Map.GetHex(target).Terrain = models.TerrainForest
+			a := NewPowerActionWithTransform("p1", tc.power, target, tc.build)
+			a.TargetTerrain = &tc.target
+			err := a.Execute(gs)
+			if (err != nil) != tc.wantError {
+				t.Fatalf("Execute error = %v, want error %v", err, tc.wantError)
+			}
+			if p.Resources.Workers != tc.wantWorkers {
+				t.Fatalf("workers = %d, want %d", p.Resources.Workers, tc.wantWorkers)
+			}
+			if tc.wantError {
+				if p.Resources.Power.Bowl3 != 6 || !gs.PowerActions.IsAvailable(tc.power) || gs.Map.GetHex(target).Terrain != models.TerrainForest {
+					t.Fatal("failed action mutated state")
+				}
+			} else {
+				if gs.Map.GetHex(target).Terrain != tc.target {
+					t.Fatal("wrong destination terrain")
+				}
+				if gs.PendingSpades["p1"] != 0 {
+					t.Fatal("intermediate terrain must not enable a second space")
+				}
+			}
+		})
+	}
+}
+
+func TestBonusSpadeUsesCorrectFactionCostsWithoutPowerCharge(t *testing.T) {
+	for _, faction := range []models.FactionType{models.FactionGiants, models.FactionDarklings} {
+		gs := NewGameState()
+		gs.AddPlayer("p1", factions.NewFaction(faction))
+		p := gs.GetPlayer("p1")
+		p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 0, 0, 0
+		p.Resources.Workers, p.Resources.Priests = 3, 1
+		gs.BonusCards.PlayerCards["p1"] = BonusCardSpade
+		gs.PowerActions.MarkUsed(PowerActionSpade1)
+		start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+		gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: faction, PowerValue: 1}
+		gs.Map.GetHex(target).Terrain = models.TerrainForest
+		vp := p.VictoryPoints
+		if err := NewBonusCardSpadeAction("p1", target, false, p.Faction.GetHomeTerrain()).Execute(gs); err != nil {
+			t.Fatal(err)
+		}
+		if faction == models.FactionGiants && (p.Resources.Workers != 0 || p.Resources.Priests != 1) {
+			t.Fatal("Giants must pay three workers for missing bonus spade")
+		}
+		if faction == models.FactionDarklings && (p.Resources.Workers != 3 || p.Resources.Priests != 0 || p.VictoryPoints != vp+2) {
+			t.Fatal("Darklings must pay a priest, not workers, and receive two faction VP")
+		}
+		if p.Resources.Power.Bowl3 != 0 {
+			t.Fatal("bonus spade charged shared-action power")
+		}
+	}
+}
+
+func TestPowerSpadeGiantsCannotChooseIntermediateTerrain(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewGiants())
+	p := gs.GetPlayer("p1")
+	p.Resources.Power.Bowl3 = 6
+	start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionGiants, PowerValue: 1}
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	a := NewPowerActionWithTransform("p1", PowerActionSpade2, target, false)
+	terrain := models.TerrainLake
+	a.TargetTerrain = &terrain
+	if err := a.Validate(gs); err == nil {
+		t.Fatal("Giants accepted nonhome destination")
+	}
+	terrain = models.TerrainWasteland
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if gs.Map.GetHex(target).Terrain != terrain {
+		t.Fatal("Giants did not reach home")
+	}
+}
+
+func TestPowerSpadeGiantsCanBuyOnlyMissingSpade(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewGiants())
+	p := gs.GetPlayer("p1")
+	p.Resources.Power.Bowl3, p.Resources.Workers = 4, 3
+	start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionGiants, PowerValue: 1}
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	if err := NewPowerActionWithTransform("p1", PowerActionSpade1, target, false).Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if p.Resources.Workers != 0 || gs.Map.GetHex(target).Terrain != models.TerrainWasteland {
+		t.Fatal("one free spade plus one paid spade should cost three workers")
+	}
+}
+
+func TestPowerSpadeDarklingsRoundAndPriestBonuses(t *testing.T) {
+	for _, tc := range []struct {
+		power           PowerActionType
+		priests, wantVP int
+	}{{PowerActionSpade2, 0, 4}, {PowerActionSpade1, 1, 6}} {
+		gs := NewGameState()
+		gs.AddPlayer("p1", factions.NewDarklings())
+		gs.Round = 1
+		gs.ScoringTiles.Tiles = []ScoringTile{{Type: ScoringSpades, ActionType: ScoringActionSpades, ActionVP: 2}}
+		p := gs.GetPlayer("p1")
+		p.Resources.Power.Bowl3, p.Resources.Priests = 6, tc.priests
+		start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+		gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionDarklings, PowerValue: 1}
+		gs.Map.GetHex(target).Terrain = models.TerrainForest // two to Swamp
+		vp := p.VictoryPoints
+		if err := NewPowerActionWithTransform("p1", tc.power, target, false).Execute(gs); err != nil {
+			t.Fatal(err)
+		}
+		if p.VictoryPoints != vp+tc.wantVP || p.Resources.Priests != 0 {
+			t.Fatalf("power%d got VP%d priests%d, expected VP%d priests0", tc.power, p.VictoryPoints, p.Resources.Priests, vp+tc.wantVP)
+		}
+	}
+}
+
+func TestPowerSpadeAtomicSplitUsesPreActionReachability(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewHalflings())
+	p := gs.GetPlayer("p1")
+	p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 0, 0, 6
+	p.Resources.Workers, p.Resources.Coins = 20, 20
+	// Use an explicit tiny board: second is reachable only AFTER a first dwelling.
+	start, first, second := board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(2, 0)
+	gs.Map.Hexes = map[board.Hex]*board.MapHex{
+		start: {Coord: start, Terrain: models.TerrainPlains, Building: &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionHalflings, PowerValue: 1}},
+		first: {Coord: first, Terrain: models.TerrainSwamp}, second: {Coord: second, Terrain: models.TerrainSwamp},
+	}
+	a := NewPowerActionWithTransform("p1", PowerActionSpade2, first, true)
+	terrain := models.TerrainPlains
+	a.SecondTargetHex, a.SecondTargetTerrain = &second, &terrain
+	if err := a.Execute(gs); err == nil {
+		t.Fatal("new dwelling improperly extends same-action reachability")
+	}
+	if p.Resources.Power.Bowl3 != 6 || gs.Map.GetHex(first).Terrain != models.TerrainSwamp || gs.Map.GetHex(first).Building != nil {
+		t.Fatal("failed split mutated state")
+	}
+	// Move second into original reach. Both transforms now occur atomically.
+	delete(gs.Map.Hexes, second)
+	second = board.NewHex(0, 1)
+	gs.Map.Hexes[second] = &board.MapHex{Coord: second, Terrain: models.TerrainSwamp}
+	a.SecondTargetHex, a.SecondUseSkip = &second, false
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if gs.Map.GetHex(first).Building == nil || gs.Map.GetHex(second).Building != nil || gs.Map.GetHex(second).Terrain != models.TerrainPlains || gs.PendingSpades["p1"] != 0 {
+		t.Fatal("split result incorrect")
+	}
+}
+
+func TestPowerSpadeMayForfeitReward(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewGiants())
+	p := gs.GetPlayer("p1")
+	p.Resources.Power.Bowl3 = 4
+	if err := NewPowerAction("p1", PowerActionSpade1).Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if p.Resources.Power.Bowl3 != 0 || gs.PowerActions.IsAvailable(PowerActionSpade1) || gs.PendingSpades["p1"] != 0 {
+		t.Fatal("forfeited reward not resolved")
+	}
+}
+
+func TestPowerActionExplicitDeclineReward(t *testing.T) {
+	for kind := PowerActionBridge; kind <= PowerActionSpade2; kind++ {
+		gs := NewGameState()
+		gs.AddPlayer("p1", factions.NewHalflings())
+		p := gs.GetPlayer("p1")
+		p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 0, 0, 6
+		p.Resources.Priests, p.BridgesBuilt = 7, 3
+		coins, workers := p.Resources.Coins, p.Resources.Workers
+		a := NewPowerAction("p1", kind)
+		a.DeclineReward = true
+		if err := a.Execute(gs); err != nil {
+			t.Fatalf("kind%d: %v", kind, err)
+		}
+		if p.Resources.Power.Bowl3 != 6-GetPowerCost(kind) || gs.PowerActions.IsAvailable(kind) || p.Resources.Coins != coins || p.Resources.Workers != workers || p.Resources.Priests != 7 || p.BridgesBuilt != 3 {
+			t.Fatalf("kind%d: declined action changed reward resources", kind)
+		}
+	}
+}
+
+func TestPowerActionRiverwalkersCannotDeclineForbiddenSpades(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewRiverwalkers())
+	gs.GetPlayer("p1").Resources.Power.Bowl3 = 6
+	for _, kind := range []PowerActionType{PowerActionSpade1, PowerActionSpade2} {
+		a := NewPowerAction("p1", kind)
+		a.DeclineReward = true
+		if err := a.Execute(gs); err == nil {
+			t.Fatal("Riverwalkers took forbidden spade action by declining reward")
+		}
+	}
+}
+
+func TestLegacyPendingSpadeUsesExistingSkipTracker(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewDwarves())
+	gs.Phase, gs.TurnOrder = PhaseAction, []string{"p1"}
+	p := gs.GetPlayer("p1")
+	p.Resources.Workers = 20
+	start, first, second, adjacent := board.NewHex(0, 0), board.NewHex(0, 2), board.NewHex(2, 0), board.NewHex(1, 0)
+	gs.Map.Hexes = map[board.Hex]*board.MapHex{
+		start: {Coord: start, Terrain: models.TerrainMountain, Building: &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionDwarves, PowerValue: 1}},
+		first: {Coord: first, Terrain: models.TerrainForest}, second: {Coord: second, Terrain: models.TerrainForest}, adjacent: {Coord: adjacent, Terrain: models.TerrainForest},
+	}
+	gs.PendingSpades["p1"] = 2
+	if err := NewTransformAndBuildAction("p1", first, false, models.TerrainMountain).Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if len(gs.SkipAbilityUsedThisAction["p1"]) != 1 {
+		t.Fatal("skip payment tracker not retained across pending decision")
+	}
+	if err := NewTransformAndBuildAction("p1", second, false, models.TerrainMountain).Validate(gs); err == nil {
+		t.Fatal("legacy second spade allowed a second tunnel")
+	}
+	if err := NewTransformAndBuildAction("p1", adjacent, false, models.TerrainMountain).Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if gs.PendingSpades["p1"] != 0 || p.Resources.Workers != 18 {
+		t.Fatal("legacy split did not consume its spades and one tunnel cost")
+	}
+}
+
+func TestPowerSpadeAtomicSplitTunnelOnce(t *testing.T) {
+	for _, remoteFirst := range []bool{false, true} {
+		gs := NewGameState()
+		gs.AddPlayer("p1", factions.NewDwarves())
+		p := gs.GetPlayer("p1")
+		p.Resources.Power.Bowl1, p.Resources.Power.Bowl2, p.Resources.Power.Bowl3 = 0, 0, 6
+		p.Resources.Workers, p.Resources.Coins = 20, 20
+		start, adjacent, remote := board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(0, 2)
+		gs.Map.Hexes = map[board.Hex]*board.MapHex{
+			start:    {Coord: start, Terrain: models.TerrainMountain, Building: &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionDwarves, PowerValue: 1}},
+			adjacent: {Coord: adjacent, Terrain: models.TerrainForest}, remote: {Coord: remote, Terrain: models.TerrainForest},
+		}
+		first, second := adjacent, remote
+		if remoteFirst {
+			first, second = remote, adjacent
+		}
+		a := NewPowerActionWithTransform("p1", PowerActionSpade2, first, false)
+		home := models.TerrainMountain
+		a.SecondTargetHex, a.SecondTargetTerrain = &second, &home
+		vp := p.VictoryPoints
+		if err := a.Execute(gs); err != nil {
+			t.Fatalf("remoteFirst=%v: %v", remoteFirst, err)
+		}
+		if p.Resources.Workers != 18 || p.VictoryPoints != vp+4 {
+			t.Fatal("tunnel must be paid and scored exactly once")
+		}
+	}
+}
+
 func setupOwnedPowerBridge(t testing.TB, gs *GameState, playerID string, q int) (board.Hex, board.Hex) {
 	t.Helper()
 	player := gs.GetPlayer(playerID)
@@ -481,6 +826,9 @@ func TestPowerAction_Spade2TwoHexes(t *testing.T) {
 
 	// Use 2 spade power action - transform first hex and build dwelling
 	action := NewPowerActionWithTransform("player1", PowerActionSpade2, targetHex1, true)
+	action.SecondTargetHex = &targetHex2
+	secondTerrain := models.TerrainPlains
+	action.SecondTargetTerrain = &secondTerrain
 
 	err := action.Execute(gs)
 	if err != nil {
@@ -497,24 +845,6 @@ func TestPowerAction_Spade2TwoHexes(t *testing.T) {
 	}
 	if mapHex1.Building.Type != models.BuildingDwelling {
 		t.Errorf("expected dwelling on first hex, got %v", mapHex1.Building.Type)
-	}
-
-	if gs.PendingSpades["player1"] != 1 {
-		t.Fatalf("expected one pending follow-up spade, got %d", gs.PendingSpades["player1"])
-	}
-	if gs.PendingSpadeBuildAllowed["player1"] {
-		t.Fatalf("expected follow-up build to be disallowed after first build")
-	}
-
-	// Second transform cannot include dwelling build because first transform already built.
-	illegalBuild := NewTransformAndBuildAction("player1", targetHex2, true, models.TerrainPlains)
-	if err := illegalBuild.Validate(gs); err == nil {
-		t.Fatalf("expected follow-up build to be rejected")
-	}
-
-	followup := NewTransformAndBuildAction("player1", targetHex2, false, models.TerrainPlains)
-	if err := followup.Execute(gs); err != nil {
-		t.Fatalf("expected second transform using pending spade to succeed: %v", err)
 	}
 
 	mapHex2 := gs.Map.GetHex(targetHex2)

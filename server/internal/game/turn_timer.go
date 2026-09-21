@@ -112,6 +112,10 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 		}
 	}
 
+	// Official construction reactions precede the builder's reward choices.
+	if playerID := strings.TrimSpace(gs.GetNextBlockingLeechResponder()); playerID != "" {
+		return []string{playerID}
+	}
 	if gs.PendingTownCultTopChoice != nil {
 		return []string{gs.PendingTownCultTopChoice.PlayerID}
 	}
@@ -123,11 +127,6 @@ func activeDecisionPlayerIDs(gs *GameState) []string {
 	}
 	if gs.PendingFavorTileSelection != nil {
 		return []string{gs.PendingFavorTileSelection.PlayerID}
-	}
-	if gs.HasPendingLeechOffers() {
-		if playerID := strings.TrimSpace(gs.GetNextBlockingLeechResponder()); playerID != "" {
-			return []string{playerID}
-		}
 	}
 	if gs.PendingCultistsCultSelection != nil {
 		return []string{gs.PendingCultistsCultSelection.PlayerID}

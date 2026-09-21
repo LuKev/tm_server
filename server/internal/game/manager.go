@@ -377,6 +377,18 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 		return nil
 	}
 
+	// Official FAQ 2.10: opponents resolve construction leech before the
+	// builder chooses favor/town rewards. Passing does not remove this reaction.
+	if expected := gs.GetNextBlockingLeechResponder(); expected != "" {
+		if actionType != ActionAcceptPowerLeech && actionType != ActionDeclinePowerLeech {
+			return fmt.Errorf("leech response pending for player %s", expected)
+		}
+		if playerID != expected {
+			return fmt.Errorf("leech response required from player %s", expected)
+		}
+		return nil
+	}
+
 	if gs.PendingTownCultTopChoice != nil {
 		if actionType != ActionSelectTownCultTop {
 			return fmt.Errorf("town cult-top choice pending for player %s", gs.PendingTownCultTopChoice.PlayerID)
@@ -388,7 +400,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	}
 
 	if townPlayer := gs.GetPendingTownSelectionPlayer(); townPlayer != "" {
-		if actionType != ActionSelectTownTile {
+		// Simultaneous rewards belong to the same action: FAQ 2.10 permits
+		// favor effects and Darklings ordination on either side of town choice.
+		otherReward := actionType == ActionSelectFavorTile && gs.PendingFavorTileSelection != nil && gs.PendingFavorTileSelection.PlayerID == townPlayer ||
+			actionType == ActionUseDarklingsPriestOrdination && gs.PendingDarklingsPriestOrdination != nil && gs.PendingDarklingsPriestOrdination.PlayerID == townPlayer
+		// Working user ruling: Halflings' simultaneous stronghold spades and
+		// town rewards may also be resolved in either order.
+		if gs.PendingHalflingsSpades != nil && gs.PendingHalflingsSpades.PlayerID == townPlayer {
+			otherReward = otherReward || actionType == ActionApplyHalflingsSpade || actionType == ActionBuildHalflingsDwelling || actionType == ActionSkipHalflingsDwelling
+		}
+		if actionType != ActionSelectTownTile && !otherReward {
 			return fmt.Errorf("town tile selection pending for player %s", townPlayer)
 		}
 		if playerID != townPlayer {
@@ -415,22 +436,6 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 			return fmt.Errorf("favor tile selection required from player %s", gs.PendingFavorTileSelection.PlayerID)
 		}
 		return nil
-	}
-
-	if gs.HasPendingLeechOffers() {
-		expected := gs.GetNextBlockingLeechResponder()
-		if actionType == ActionAcceptPowerLeech || actionType == ActionDeclinePowerLeech {
-			if len(gs.PendingLeechOffers[playerID]) == 0 {
-				if expected != "" {
-					return fmt.Errorf("leech response required from player %s", expected)
-				}
-				return fmt.Errorf("no pending leech offer for player %s", playerID)
-			}
-			return nil
-		}
-		if expected != "" {
-			return fmt.Errorf("leech response pending for player %s", expected)
-		}
 	}
 
 	if gs.PendingCultistsCultSelection != nil {
@@ -540,8 +545,16 @@ func validateActionTurnAndPendingState(gs *GameState, action Action) error {
 	}
 
 	if actionType == ActionSelectTownTile {
-		if pendingTowns, ok := gs.PendingTownFormations[playerID]; ok && len(pendingTowns) > 0 {
-			pending := pendingTowns[nextPendingTownFormationIndex(pendingTowns)]
+		if pendingTowns := gs.TownFormationChoices(playerID); len(pendingTowns) > 0 {
+			selection, ok := action.(*SelectTownTileAction)
+			if !ok {
+				return fmt.Errorf("invalid town selection action")
+			}
+			index, err := gs.townFormationIndex(playerID, pendingTowns, selection.AnchorHex)
+			if err != nil {
+				return err
+			}
+			pending := pendingTowns[index]
 			current := gs.GetCurrentPlayer()
 			ownsActionWindow := current != nil && current.ID == playerID ||
 				strings.TrimSpace(gs.PendingFreeActionsPlayerID) == strings.TrimSpace(playerID)
@@ -676,6 +689,8 @@ func canPlayerUsePendingFreeActionsWindow(gs *GameState, action Action) bool {
 		return false
 	}
 	switch action.GetType() {
+	case ActionFinishTurn:
+		return gs.ExplicitTurnEnd
 	case ActionConversion, ActionBurnPower:
 		return true
 	case ActionSpecialAction:
@@ -683,7 +698,7 @@ func canPlayerUsePendingFreeActionsWindow(gs *GameState, action Action) bool {
 		if !ok {
 			return false
 		}
-		return gs.hasPendingPostActionSpecialAction(pendingPlayerID, specialAction.ActionType)
+		return (gs.ExplicitTurnEnd && specialAction.ActionType == SpecialActionMermaidsRiverTown) || gs.hasPendingPostActionSpecialAction(pendingPlayerID, specialAction.ActionType)
 	default:
 		return false
 	}
@@ -728,6 +743,11 @@ func updatePendingFreeActionsWindow(gs *GameState, action Action) {
 	}
 	if gs.Phase != PhaseAction {
 		gs.PendingFreeActionsPlayerID = ""
+		return
+	}
+	if gs.ExplicitTurnEnd {
+		// NextTurn and FinishTurn own this semantic boundary. UX preferences
+		// must neither create nor discard its optional rules choices.
 		return
 	}
 	if gs.PendingChaosMagiciansDoubleTurn != nil {
@@ -1303,7 +1323,13 @@ func serializePendingDecision(gs *GameState) interface{} {
 	if gs == nil {
 		return nil
 	}
-
+	// Keep the public pending decision in the same order as strict validation.
+	if playerID := gs.GetNextBlockingLeechResponder(); playerID != "" {
+		return map[string]interface{}{
+			"type": "leech_offer", "playerId": playerID,
+			"offers": gs.PendingLeechOffers[playerID],
+		}
+	}
 	if gs.Phase == PhaseFactionSelection && gs.AuctionState != nil && gs.AuctionState.Active {
 		factions := make([]string, 0, len(gs.AuctionState.NominationOrder))
 		for _, faction := range gs.AuctionState.NominationOrder {
@@ -1370,15 +1396,10 @@ func serializePendingDecision(gs *GameState) interface{} {
 			"playerId": gs.PendingDarklingsPriestOrdination.PlayerID,
 		}
 	}
-
-	if gs.HasPendingLeechOffers() {
-		if playerID := gs.GetNextBlockingLeechResponder(); playerID != "" {
-			offers := gs.PendingLeechOffers[playerID]
-			return map[string]interface{}{
-				"type":     "leech_offer",
-				"playerId": playerID,
-				"offers":   offers,
-			}
+	if gs.PendingFavorTileSelection != nil {
+		return map[string]interface{}{
+			"type": "favor_tile_selection", "playerId": gs.PendingFavorTileSelection.PlayerID,
+			"count": gs.PendingFavorTileSelection.Count,
 		}
 	}
 
@@ -1416,14 +1437,6 @@ func serializePendingDecision(gs *GameState) interface{} {
 			"type":          "archivists_bonus_card",
 			"playerId":      gs.PendingArchivistsBonusSelection.PlayerID,
 			"returnedCards": gs.PendingArchivistsBonusSelection.ReturnedCards,
-		}
-	}
-
-	if gs.PendingFavorTileSelection != nil {
-		return map[string]interface{}{
-			"type":     "favor_tile_selection",
-			"playerId": gs.PendingFavorTileSelection.PlayerID,
-			"count":    gs.PendingFavorTileSelection.Count,
 		}
 	}
 

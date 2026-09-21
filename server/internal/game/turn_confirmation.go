@@ -5,6 +5,34 @@ import (
 	"strings"
 )
 
+// FinishTurnAction ends optional after-action choices. Unlike ConfirmTurn it
+// has no undo snapshot, and unlike Pass it does not end the player's round.
+type FinishTurnAction struct{ BaseAction }
+
+func NewFinishTurnAction(playerID string) *FinishTurnAction {
+	return &FinishTurnAction{BaseAction{Type: ActionFinishTurn, PlayerID: playerID}}
+}
+
+func (a *FinishTurnAction) Validate(gs *GameState) error {
+	if gs == nil || !gs.ExplicitTurnEnd || gs.Phase != PhaseAction || gs.PendingFreeActionsPlayerID != a.PlayerID {
+		return fmt.Errorf("no optional post-action window for player %s", a.PlayerID)
+	}
+	player := gs.GetCurrentPlayer()
+	if player == nil || player.ID != a.PlayerID || player.HasPassed || gs.HasBlockingPendingLeechOffers() || gs.HasPendingActions(a.PlayerID) {
+		return fmt.Errorf("cannot finish turn while mandatory decisions remain")
+	}
+	return nil
+}
+
+func (a *FinishTurnAction) Execute(gs *GameState) error {
+	if err := a.Validate(gs); err != nil {
+		return err
+	}
+	gs.PendingFreeActionsPlayerID = ""
+	gs.advanceToNextPlayer()
+	return nil
+}
+
 // HasPendingTurnConfirmation reports whether the current game state is waiting
 // for the acting player to either confirm or undo their most recent turn.
 func (gs *GameState) HasPendingTurnConfirmation() bool {

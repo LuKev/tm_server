@@ -761,7 +761,9 @@ func TestBackupUsesDecisionOwnerIdentityOnTerraMysticaStates(t *testing.T) {
 
 	t.Run("leech_response_changes_perspective", func(t *testing.T) {
 		state := forcedActionPosition(t, 902, models.FactionWitches, models.FactionEngineers).StateClone()
-		state.CurrentPlayerIndex = 1
+		// The builder retains its turn while the opponent reacts. Once leech
+		// resolves, p0 owns optional post-action choices before FinishTurn.
+		state.CurrentPlayerIndex = 0
 		state.PendingLeechOffers["p1"] = []*game.PowerLeechOffer{{
 			Amount: 1, VPCost: 0, FromPlayerID: "p0", EventID: 1,
 		}}

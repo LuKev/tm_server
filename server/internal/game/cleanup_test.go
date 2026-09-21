@@ -232,6 +232,95 @@ func TestUseCultSpadeAction_Basic(t *testing.T) {
 	}
 }
 
+func TestCultSpadesGiantsRequirePairAndHomeTerrain(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewGiants())
+	start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionGiants, PowerValue: 1}
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	gs.PendingCultRewardSpades = map[string]int{"p1": 1}
+	a := NewUseCultSpadeActionWithTerrain("p1", target, models.TerrainWasteland)
+	if err := a.Execute(gs); err == nil {
+		t.Fatal("Giants used a single cult spade")
+	}
+	gs.PendingCultRewardSpades["p1"] = 2
+	if err := NewUseCultSpadeActionWithTerrain("p1", target, models.TerrainMountain).Validate(gs); err == nil {
+		t.Fatal("Giants reached intermediate terrain")
+	}
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if gs.PendingCultRewardSpades["p1"] != 0 || gs.Map.GetHex(target).Terrain != models.TerrainWasteland {
+		t.Fatal("Giants must use both cult spades to reach home")
+	}
+}
+
+func TestCultSpadeIgnoresBonusCardShipping(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewHalflings())
+	start, river, target := board.NewHex(0, 0), board.NewHex(1, 0), board.NewHex(2, 0)
+	gs.Map.Hexes = map[board.Hex]*board.MapHex{
+		start: {Coord: start, Terrain: models.TerrainPlains, Building: &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionHalflings, PowerValue: 1}},
+		river: {Coord: river, Terrain: models.TerrainRiver}, target: {Coord: target, Terrain: models.TerrainSwamp},
+	}
+	gs.Map.RiverHexes = map[board.Hex]bool{river: true}
+	gs.PendingCultRewardSpades = map[string]int{"p1": 1}
+	gs.BonusCards.PlayerCards["p1"] = BonusCardShipping
+	if !gs.IsAdjacentToPlayerBuilding(target, "p1") {
+		t.Fatal("fixture does not expose temporary-shipping reach")
+	}
+	a := NewUseCultSpadeActionWithTerrain("p1", target, models.TerrainPlains)
+	if err := a.Validate(gs); err == nil {
+		t.Fatal("cult reward used temporary bonus-card shipping")
+	}
+	gs.GetPlayer("p1").ShippingLevel = 1
+	if err := a.Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestCultSpadesSplitAcrossIntermediateTerrains(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewHalflings())
+	start, first, second := board.NewHex(0, 1), board.NewHex(0, 0), board.NewHex(1, 0)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionHalflings, PowerValue: 1}
+	gs.Map.GetHex(first).Terrain, gs.Map.GetHex(second).Terrain = models.TerrainForest, models.TerrainForest
+	gs.PendingCultRewardSpades = map[string]int{"p1": 2}
+	gs.Round = 1
+	gs.ScoringTiles.Tiles = []ScoringTile{{Type: ScoringSpades, ActionType: ScoringActionSpades, ActionVP: 2}}
+	p := gs.GetPlayer("p1")
+	vp := p.VictoryPoints
+	for _, h := range []board.Hex{first, second} {
+		if err := NewUseCultSpadeActionWithTerrain("p1", h, models.TerrainLake).Execute(gs); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if gs.Map.GetHex(first).Terrain != models.TerrainLake || gs.Map.GetHex(second).Terrain != models.TerrainLake || gs.PendingCultRewardSpades["p1"] != 0 || p.VictoryPoints != vp+2 {
+		t.Fatal("cult spades must split independently and grant only Halflings faction VP")
+	}
+}
+
+func TestTentativeCultSpadeReversalStillAwardsHalflingsVP(t *testing.T) {
+	// Working interpretation explicitly requested by the user, not independent
+	// rulebook confirmation: separate cult spades may reverse on the same hex.
+	gs := NewGameState()
+	gs.AddPlayer("p1", factions.NewHalflings())
+	start, target := board.NewHex(0, 1), board.NewHex(1, 0)
+	gs.Map.GetHex(start).Building = &models.Building{Type: models.BuildingDwelling, PlayerID: "p1", Faction: models.FactionHalflings, PowerValue: 1}
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	gs.PendingCultRewardSpades = map[string]int{"p1": 2}
+	p := gs.GetPlayer("p1")
+	vp := p.VictoryPoints
+	for _, terrain := range []models.TerrainType{models.TerrainLake, models.TerrainForest} {
+		if err := NewUseCultSpadeActionWithTerrain("p1", target, terrain).Execute(gs); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if gs.Map.GetHex(target).Terrain != models.TerrainForest || p.VictoryPoints != vp+2 || gs.PendingCultRewardSpades["p1"] != 0 {
+		t.Fatal("tentative cult reversal must count both used spades")
+	}
+}
+
 func TestUseCultSpadeAction_NotAdjacent(t *testing.T) {
 	gs := NewGameState()
 	faction := factions.NewAuren()

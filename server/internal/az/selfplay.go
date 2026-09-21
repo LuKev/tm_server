@@ -226,7 +226,7 @@ func GenerateSelfPlay(ctx context.Context, positions []*GamePosition, seeds []in
 		}
 		trajectories[i] = Trajectory{
 			Manifest: TrajectoryManifest{
-				FormatVersion: TrajectoryFormatVersion, RulesVersion: 1,
+				FormatVersion: TrajectoryFormatVersion, RulesVersion: RulesVersion,
 				StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
 				EngineCommit: config.EngineCommit, ModelID: config.ModelID, Seed: game.seed,
 				SearchSeed:       game.searchSeed,

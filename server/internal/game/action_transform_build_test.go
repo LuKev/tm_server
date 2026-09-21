@@ -1,12 +1,152 @@
 package game
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/lukev/tm_server/internal/game/board"
 	"github.com/lukev/tm_server/internal/game/factions"
 	"github.com/lukev/tm_server/internal/models"
 )
+
+func TestGiantsTransformOnlyToHomeTerrain(t *testing.T) {
+	// The Giants board has no ordinary terrain wheel. FAQ 3.6 disallows
+	// transforming to nonhome terrain, including transforming home terrain away.
+	for _, from := range []models.TerrainType{models.TerrainForest, models.TerrainWasteland} {
+		gs := NewGameState()
+		gs.AddPlayer("giants", factions.NewGiants())
+		p := gs.GetPlayer("giants")
+		p.Resources.Workers, p.Resources.Coins = 20, 20
+		origin, target := board.NewHex(0, 1), board.NewHex(0, 0)
+		gs.Map.GetHex(origin).Terrain = models.TerrainWasteland
+		gs.Map.GetHex(origin).Building = testBuilding(p.ID, models.FactionGiants, models.BuildingDwelling)
+		gs.Map.GetHex(target).Terrain = from
+		for _, to := range []models.TerrainType{models.TerrainDesert, models.TerrainPlains, models.TerrainSwamp, models.TerrainLake, models.TerrainForest, models.TerrainMountain} {
+			before, err := json.Marshal(gs)
+			if err != nil {
+				t.Fatal(err)
+			}
+			action := NewTransformAndBuildAction(p.ID, target, false, to)
+			if err := action.Validate(gs); err == nil {
+				t.Fatalf("Giants accepted %v to %v", from, to)
+			}
+			if err := action.Execute(gs); err == nil {
+				t.Fatalf("Giants executed %v to %v", from, to)
+			}
+			after, err := json.Marshal(gs)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if string(before) != string(after) {
+				t.Fatal("rejected Giants transformation mutated state")
+			}
+		}
+		if from != models.TerrainWasteland {
+			if err := NewTransformAndBuildAction(p.ID, target, false, models.TerrainWasteland).Execute(gs); err != nil {
+				t.Fatal(err)
+			}
+			if gs.Map.GetHex(target).Terrain != models.TerrainWasteland || p.Resources.Workers != 14 {
+				t.Fatal("Giants must spend exactly six workers for two spades at initial digging level")
+			}
+		}
+	}
+}
+
+func TestTerraformRouteCostsAndScoring(t *testing.T) {
+	// Independently traced terrain wheel: Desert->Wasteland->Mountain->Forest
+	// ->Lake->Swamp->Plains is six spades for Halflings; Plains->Desert->
+	// Wasteland->Mountain->Forest->Lake->Swamp is six for Darklings.
+	for _, tc := range []struct {
+		name                        string
+		faction                     factions.Faction
+		from, to                    models.TerrainType
+		steps, workers, priests, vp int
+	}{
+		{"Halflings long home route", factions.NewHalflings(), models.TerrainDesert, models.TerrainPlains, 6, 18, 0, 18},
+		{"Darklings long home route", factions.NewDarklings(), models.TerrainPlains, models.TerrainSwamp, 6, 0, 6, 24},
+		{"Witches avoid home", factions.NewWitches(), models.TerrainLake, models.TerrainMountain, 0, 15, 0, 10},
+		{"Witches explicit long home route", factions.NewWitches(), models.TerrainLake, models.TerrainForest, 6, 18, 0, 12},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			gs := NewGameState()
+			gs.AddPlayer("p", tc.faction)
+			p := gs.GetPlayer("p")
+			p.Resources.Workers, p.Resources.Priests, p.Resources.Coins = 30, 7, 30
+			gs.Phase, gs.Round = PhaseAction, 1
+			gs.ExplicitTurnEnd = true
+			gs.TurnOrder = []string{p.ID}
+			gs.ScoringTiles.Tiles = []ScoringTile{{Type: ScoringSpades, ActionType: ScoringActionSpades, ActionVP: 2}}
+			origin, target := board.NewHex(0, 1), board.NewHex(0, 0)
+			gs.Map.GetHex(origin).Terrain = tc.faction.GetHomeTerrain()
+			gs.Map.GetHex(origin).Building = testBuilding(p.ID, tc.faction.GetType(), models.BuildingDwelling)
+			gs.Map.GetHex(target).Terrain = tc.from
+			beforeVP := p.VictoryPoints
+			action := NewTransformAndBuildAction(p.ID, target, false, tc.to)
+			action.TerrainSteps = tc.steps
+			if err := action.Execute(gs); err != nil {
+				t.Fatal(err)
+			}
+			if p.Resources.Workers != 30-tc.workers || p.Resources.Priests != 7-tc.priests || p.VictoryPoints != beforeVP+tc.vp || gs.Map.GetHex(target).Terrain != tc.to {
+				t.Fatalf("got workers=%d priests=%d deltaVP=%d terrain=%v; expected costs %dw/%dp +%dVP terrain%v", p.Resources.Workers, p.Resources.Priests, p.VictoryPoints-beforeVP, gs.Map.GetHex(target).Terrain, tc.workers, tc.priests, tc.vp, tc.to)
+			}
+		})
+	}
+}
+
+func TestTerraformRouteRejectsCrossingAndCanonicalizesMinimum(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p", factions.NewWitches())
+	p := gs.GetPlayer("p")
+	p.Resources.Workers, p.Resources.Coins = 30, 30
+	origin, target := board.NewHex(0, 1), board.NewHex(0, 0)
+	gs.Map.GetHex(origin).Building = testBuilding(p.ID, models.FactionWitches, models.BuildingDwelling)
+	gs.Map.GetHex(target).Terrain = models.TerrainLake
+	action := NewTransformAndBuildAction(p.ID, target, false, models.TerrainMountain)
+	action.TerrainSteps = 2
+	before, err := json.Marshal(gs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := action.Execute(gs); err == nil {
+		t.Fatal("accepted route through Forest home terrain")
+	}
+	after, err := json.Marshal(gs)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(before) != string(after) {
+		t.Fatal("rejected crossing mutated state")
+	}
+	action.TerrainSteps = 5
+	if err := action.Validate(gs); err != nil {
+		t.Fatal(err)
+	}
+	if action.TerrainSteps != 0 {
+		t.Fatal("explicit minimum must canonicalize to automatic route")
+	}
+	gs.PendingSpades[p.ID] = 1
+	action.TargetTerrain, action.TerrainSteps = models.TerrainForest, 6
+	if err := action.Execute(gs); err == nil {
+		t.Fatal("bought a long detour with a free spade top-up")
+	}
+}
+
+func TestGiantsActionSpadeCanBuyMissingSpade(t *testing.T) {
+	gs := NewGameState()
+	gs.AddPlayer("p", factions.NewGiants())
+	p := gs.GetPlayer("p")
+	p.Resources.Workers = 3 // Exactly one paid spade at initial exchange rate.
+	gs.PendingSpades[p.ID] = 1
+	origin, target := board.NewHex(0, 1), board.NewHex(0, 0)
+	gs.Map.GetHex(origin).Building = testBuilding(p.ID, models.FactionGiants, models.BuildingDwelling)
+	gs.Map.GetHex(target).Terrain = models.TerrainForest
+	if err := NewTransformAndBuildAction(p.ID, target, false, models.TerrainWasteland).Execute(gs); err != nil {
+		t.Fatal(err)
+	}
+	if p.Resources.Workers != 0 || gs.PendingSpades[p.ID] != 0 || gs.Map.GetHex(target).Terrain != models.TerrainWasteland {
+		t.Fatal("Giants must consume one action spade and buy exactly one additional spade")
+	}
+}
 
 // Helper to create a building for tests
 func testBuilding(playerID string, faction models.FactionType, buildingType models.BuildingType) *models.Building {

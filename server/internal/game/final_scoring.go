@@ -10,7 +10,7 @@ import (
 // Final Scoring (End of Game - After Round 6)
 // 1. Largest connected area of buildings (18 VP for largest)
 // 2. Cult track majority bonuses (8/4/2 VP for top 3 per track)
-// 3. Resource conversion (3 coins = 1 VP, 1 worker = 1 VP, 1 priest = 1 VP)
+// 3. Resource conversion (workers/priests/power to coins, then 3 coins = 1 VP)
 
 // PlayerFinalScore represents a player's final score breakdown
 type PlayerFinalScore struct {
@@ -552,7 +552,7 @@ func (gs *GameState) calculateResourceConversion(scores map[string]*PlayerFinalS
 		// Convert all coins to VP
 		scores[playerID].ResourceVP = totalCoins / coinsPerVP
 
-		// Track total resource value (in coins) for tiebreaker
+		// Track total resource value (in coins) for the score breakdown only.
 		scores[playerID].TotalResourceValue = totalCoins
 	}
 }
@@ -567,31 +567,30 @@ func finalBowl2CoinValue(player *Player) int {
 	return bowl2 / 2
 }
 
-// GetWinner returns the player ID of the winner
-// Tiebreaker: highest total resource value (coins + workers + priests)
+// GetWinner returns the unique highest-VP player, or "" for a shared victory
+// (or no players). Leftover resources are not a second tie-breaking score.
 func (gs *GameState) GetWinner(scores map[string]*PlayerFinalScore) string {
 	var winner string
 	maxVP := -1
-	maxResources := -1
+	tied := false
 
 	for playerID, score := range scores {
 		if score.TotalVP > maxVP {
 			winner = playerID
 			maxVP = score.TotalVP
-			maxResources = score.TotalResourceValue
+			tied = false
 		} else if score.TotalVP == maxVP {
-			// Tiebreaker: highest resource value
-			if score.TotalResourceValue > maxResources {
-				winner = playerID
-				maxResources = score.TotalResourceValue
-			}
+			tied = true
 		}
 	}
-
+	if tied {
+		return ""
+	}
 	return winner
 }
 
-// GetRankedPlayers returns players sorted by final score (descending)
+// GetRankedPlayers returns players sorted by final score (descending).
+// Equal scores use player ID solely for deterministic display, not a tiebreak.
 func GetRankedPlayers(scores map[string]*PlayerFinalScore) []*PlayerFinalScore {
 	ranked := make([]*PlayerFinalScore, 0, len(scores))
 	for _, score := range scores {
@@ -602,8 +601,7 @@ func GetRankedPlayers(scores map[string]*PlayerFinalScore) []*PlayerFinalScore {
 		if ranked[i].TotalVP != ranked[j].TotalVP {
 			return ranked[i].TotalVP > ranked[j].TotalVP
 		}
-		// Tiebreaker: resource value
-		return ranked[i].TotalResourceValue > ranked[j].TotalResourceValue
+		return ranked[i].PlayerID < ranked[j].PlayerID
 	})
 
 	return ranked

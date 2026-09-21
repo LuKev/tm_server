@@ -53,6 +53,7 @@ const (
 	ActionSetPlayerOptions               // Update player UX/automation options
 	ActionConfirmTurn                    // Confirm the current turn before the next player may act
 	ActionUndoTurn                       // Undo the current turn back to the last snapshot
+	ActionFinishTurn                     // End the optional post-action decisions, without UX confirmation/undo
 )
 
 // Action represents a player action
@@ -86,6 +87,7 @@ type TransformAndBuildAction struct {
 	BaseAction
 	TargetHex         board.Hex
 	TargetTerrain     models.TerrainType // Optional: target terrain type (if not home terrain)
+	TerrainSteps      int                // 0: shortest legal route; 1..6: explicit wheel route
 	BuildDwelling     bool               // Whether to build a dwelling after transforming
 	UseSkip           bool               // Fakirs carpet flight / Dwarves tunneling - skip adjacency for one space
 	AcolytesCultTrack *CultTrack         // Optional: cult track Acolytes spend from when creating volcano terrain
@@ -134,20 +136,41 @@ func (a *TransformAndBuildAction) Validate(gs *GameState) error {
 		return fmt.Errorf("hex already has a building: %v", a.TargetHex)
 	}
 	targetTerrain := resolveActionTargetTerrain(player, mapHex.Terrain, a.TargetTerrain)
+	// Giants have no terrain wheel: their only transformation is to Wasteland
+	// for exactly two spades (faction board and FAQ section 3.6).
+	if player.Faction.GetType() == models.FactionGiants && targetTerrain != effectiveHomeTerrain(player) {
+		return fmt.Errorf("Giants may only transform terrain into their home terrain")
+	}
 	if mapHex.Terrain == targetTerrain && !a.BuildDwelling {
 		return fmt.Errorf("transform action must transform terrain or build a dwelling")
 	}
-
-	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
-		requiredSpades, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	if a.TerrainSteps != 0 {
+		steps, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, a.TerrainSteps)
 		if err != nil {
 			return err
 		}
-		if player.Faction.GetType() == models.FactionGiants {
-			requiredSpades = 2
+		minimum, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, 0)
+		if err != nil {
+			return err
+		}
+		if steps == minimum {
+			a.TerrainSteps = 0
+		}
+	}
+
+	if gs.PendingSpades != nil && gs.PendingSpades[a.PlayerID] > 0 {
+		requiredSpades, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, a.TerrainSteps)
+		if err != nil {
+			return err
 		}
 		if requiredSpades <= 0 {
 			return fmt.Errorf("pending spade follow-up must transform terrain")
+		}
+		if allowed, restricted := gs.PendingSpadeBuildAllowed[a.PlayerID]; restricted && !allowed && requiredSpades > gs.PendingSpades[a.PlayerID] {
+			return fmt.Errorf("pending spade follow-up cannot buy additional spades")
+		}
+		if allowed, restricted := gs.PendingSpadeBuildAllowed[a.PlayerID]; restricted && !allowed && len(gs.SkipAbilityUsedThisAction[a.PlayerID]) > 0 && (a.UseSkip || !gs.IsAdjacentToPlayerBuilding(a.TargetHex, a.PlayerID)) {
+			return fmt.Errorf("pending spade follow-up cannot tunnel or fly a second time")
 		}
 		if a.BuildDwelling {
 			if allowed, ok := gs.PendingSpadeBuildAllowed[a.PlayerID]; ok && !allowed {
@@ -259,12 +282,9 @@ func (a *TransformAndBuildAction) canUseCleanupCultRewardSpadeWithoutAdjacency(g
 	if mapHex.Terrain == targetTerrain {
 		return false
 	}
-	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	distance, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, a.TerrainSteps)
 	if err != nil {
 		return false
-	}
-	if player.Faction.GetType() == models.FactionGiants {
-		distance = 2
 	}
 	return distance > 0 && distance <= gs.PendingCultRewardSpades[a.PlayerID]
 }
@@ -335,15 +355,11 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 				return 0, 0, 0, 0, fmt.Errorf("only volcano factions may transform to volcano")
 			}
 		} else {
-			distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+			distance, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, a.TerrainSteps)
 			if err != nil {
 				return 0, 0, 0, 0, err
 			}
 			requiredSpades := distance
-			if player.Faction.GetType() == models.FactionGiants {
-				// Giants always require exactly 2 spades for a terrain transform.
-				requiredSpades = 2
-			}
 			requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
 			// Check for free spades from power actions (ACT5/ACT6) or cult rewards
@@ -357,10 +373,11 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 				}
 			}
 			if player.Faction.GetType() == models.FactionGiants {
-				// Giants cannot use a single free spade; only a full pair is usable.
+				// A single cult reward is forfeited, but an action spade may be
+				// supplemented by buying the missing spade (rulebook pp.10,15).
 				if freeSpades >= 2 {
 					freeSpades = 2
-				} else {
+				} else if gs.PendingSpades[a.PlayerID] == 0 {
 					freeSpades = 0
 				}
 			} else if freeSpades > requiredSpades {
@@ -368,6 +385,14 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 			}
 
 			remainingSpades := requiredSpades - freeSpades
+			if freeSpades > 0 && remainingSpades > 0 && player.Faction.GetType() != models.FactionGiants && isStandardLandTerrain(mapHex.Terrain) && isStandardLandTerrain(targetTerrain) && isStandardLandTerrain(effectiveHomeTerrain(player)) {
+				// Free-spade actions permit buying extra spades only along the
+				// shortest direction toward home (FAQ 2.1), not a long scoring detour.
+				home := effectiveHomeTerrain(player)
+				if board.TerrainDistance(mapHex.Terrain, home) != requiredSpades+board.TerrainDistance(targetTerrain, home) {
+					return 0, 0, 0, 0, fmt.Errorf("paid extra spades must follow the shortest route toward home terrain")
+				}
+			}
 
 			// Darklings pay priests for terraform (1 priest per spade)
 			if remainingSpades > 0 {
@@ -386,6 +411,9 @@ func (a *TransformAndBuildAction) calculateCosts(gs *GameState, player *Player, 
 				} else {
 					// Other factions pay workers
 					totalWorkersNeeded = player.Faction.GetTerraformCost(remainingSpades)
+					if player.Faction.GetType() == models.FactionGiants {
+						totalWorkersNeeded = remainingSpades * player.Faction.GetTerraformCost(2) / 2
+					}
 				}
 			}
 		}
@@ -560,15 +588,11 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		return gs.Map.TransformTerrain(a.TargetHex, targetTerrain)
 	}
 
-	distance, err := fireIceTerraformDistance(player, mapHex.Terrain, targetTerrain)
+	distance, err := TerraformSpadeCount(player, mapHex.Terrain, targetTerrain, a.TerrainSteps)
 	if err != nil {
 		return err
 	}
 	requiredSpades := distance
-	if player.Faction.GetType() == models.FactionGiants {
-		// Giants always require exactly 2 spades for a terrain transform.
-		requiredSpades = 2
-	}
 	requiredSpades = adjustRequiredSpadesForArchitects(gs, player, a.TargetHex, requiredSpades, a.BuildDwelling)
 
 	// Check for free spades from BON1 (count for VP when used)
@@ -584,7 +608,7 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		if !isProspectors(player) && gs.PendingCultRewardSpades != nil {
 			cultPending = gs.PendingCultRewardSpades[a.PlayerID]
 		}
-		if pending+cultPending >= 2 {
+		if pending > 0 || cultPending >= 2 {
 			remainingToConsume := 2
 			if pending > 0 {
 				vpEligibleFreeSpades = pending
@@ -639,6 +663,20 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		}
 	}
 
+	// Log-replay power actions grant their spades before the first transform.
+	// Once that transform has happened, enforce the same second-space contract
+	// as the ordinary atomic PowerAction path.
+	if vpEligibleFreeSpades > 0 && gs.PendingSpades[a.PlayerID] > 0 {
+		if targetTerrain != effectiveHomeTerrain(player) {
+			delete(gs.PendingSpades, a.PlayerID)
+			delete(gs.PendingSpadeBuildAllowed, a.PlayerID)
+		} else {
+			if gs.PendingSpadeBuildAllowed == nil {
+				gs.PendingSpadeBuildAllowed = make(map[string]bool)
+			}
+			gs.PendingSpadeBuildAllowed[a.PlayerID] = false
+		}
+	}
 	totalFreeSpades := vpEligibleFreeSpades + cultRewardSpades
 	remainingSpades := requiredSpades - totalFreeSpades
 
@@ -674,6 +712,9 @@ func (a *TransformAndBuildAction) handleTransform(gs *GameState, player *Player,
 		} else {
 			// Other factions pay workers
 			totalWorkers := player.Faction.GetTerraformCost(remainingSpades)
+			if player.Faction.GetType() == models.FactionGiants {
+				totalWorkers = remainingSpades * player.Faction.GetTerraformCost(2) / 2
+			}
 			player.Resources.Workers -= totalWorkers
 		}
 	}
@@ -1691,6 +1732,9 @@ func (a *SendPriestToCultAction) Execute(gs *GameState) error {
 // Returns error if not valid, or nil if valid.
 // Also validates if the player has enough resources (but does not spend them).
 func ValidateSkipAbility(gs *GameState, player *Player, targetHex board.Hex) error {
+	if gs.IsAdjacentToPlayerBuilding(targetHex, player.ID) {
+		return fmt.Errorf("cannot tunnel or fly to a normally adjacent space")
+	}
 	// Check if already used this action
 	if gs.SkipAbilityUsedThisAction != nil {
 		usedHexes := gs.SkipAbilityUsedThisAction[player.ID]
