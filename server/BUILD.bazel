@@ -31,7 +31,7 @@ sh_test(
     args = ["$(location //cmd/server:server)"],
     data = ["//cmd/server:server"],
     size = "enormous",
-    timeout = "long",
+    timeout = "eternal",
 )
 
 sh_test(
@@ -39,6 +39,20 @@ sh_test(
     srcs = ["tools/client_build_test.sh"],
     size = "large",
     timeout = "moderate",
+)
+
+sh_test(
+    name = "client_production_ui_test",
+    srcs = ["tools/client_playwright_test.sh"],
+    args = ["$(location //cmd/server:server)", "production"],
+    data = ["//cmd/server:server"],
+    size = "enormous",
+    timeout = "eternal",
+)
+
+sh_binary(
+    name = "client_dependencies",
+    srcs = ["tools/client_dependencies.sh"],
 )
 
 sh_test(

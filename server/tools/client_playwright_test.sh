@@ -26,6 +26,7 @@ DEFAULT_REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 REPO_ROOT="${TM_REPO_ROOT:-${DEFAULT_REPO_ROOT}}"
 CLIENT_DIR="${REPO_ROOT}/client"
 SERVER_DIR="${REPO_ROOT}/server"
+MODE="${2:-development}"
 
 if [[ ! -x "${SERVER_BIN}" ]]; then
   echo "server binary is not executable: ${SERVER_BIN}" >&2
@@ -42,12 +43,25 @@ if [[ ! -d "${CLIENT_DIR}/node_modules" ]]; then
   exit 1
 fi
 
+if [[ "${MODE}" == "production" ]]; then
+  SOURCE_CLIENT_DIR="${CLIENT_DIR}"
+  CLIENT_DIR="${TEST_TMPDIR}/client-production"
+  mkdir -p "${CLIENT_DIR}"
+  tar -C "${SOURCE_CLIENT_DIR}" --exclude=node_modules --exclude=dist --exclude=test-results --exclude=playwright-report -cf - . | tar -C "${CLIENT_DIR}" -xf -
+  ln -s "${SOURCE_CLIENT_DIR}/node_modules" "${CLIENT_DIR}/node_modules"
+fi
+
 cd "${CLIENT_DIR}"
 
 export PATH="/opt/homebrew/bin:/usr/bin:/bin:${PATH:-}"
 export CI="${TM_PLAYWRIGHT_CI:-1}"
 export TM_PLAYWRIGHT_SERVER_PORT="18080"
 export TM_PLAYWRIGHT_CLIENT_PORT="14173"
+if [[ "${MODE}" == "production" ]]; then
+  # Bazel may schedule both browser targets together. Give each its own server.
+  export TM_PLAYWRIGHT_SERVER_PORT="18081"
+  export TM_PLAYWRIGHT_CLIENT_PORT="14174"
+fi
 export TM_PLAYWRIGHT_SERVER_COMMAND="${SERVER_BIN}"
 export TM_PLAYWRIGHT_SERVER_CWD="${SERVER_DIR}"
 export TM_PLAYWRIGHT_CLIENT_CWD="${CLIENT_DIR}"
@@ -58,11 +72,16 @@ export VITE_BACKEND_PORT="${TM_PLAYWRIGHT_SERVER_PORT}"
 export VITE_ENABLE_TEST_HOOKS="1"
 export VITE_CACHE_DIR="${TEST_TMPDIR}/vite-cache"
 
+if [[ "${MODE}" == "production" ]]; then
+  ./node_modules/.bin/vite build --configLoader native
+  export TM_PLAYWRIGHT_CLIENT_COMMAND="./node_modules/.bin/vite preview --configLoader native --host 127.0.0.1 --port ${TM_PLAYWRIGHT_CLIENT_PORT} --strictPort"
+fi
+
 cmd=(
   ./node_modules/.bin/playwright
   test
   --workers=1
-  --output="${TEST_TMPDIR}/test-results"
+  --output="${TEST_UNDECLARED_OUTPUTS_DIR:-${TEST_TMPDIR}}/test-results"
 )
 
 if [[ -n "${TM_PLAYWRIGHT_SPEC:-}" ]]; then
