@@ -5,6 +5,7 @@ import { Game } from './components/Game';
 import { Replay } from './components/Replay';
 import { ImportGame } from './components/ImportGame';
 import './App.css'
+import './styles/game-theme.css'
 
 function AppShell(): React.ReactElement {
   const location = useLocation();
@@ -12,6 +13,7 @@ function AppShell(): React.ReactElement {
 
   return (
     <div
+      className={isPlainGameShell ? 'game-theme' : undefined}
       style={{
         minHeight: '100vh',
         background: isPlainGameShell

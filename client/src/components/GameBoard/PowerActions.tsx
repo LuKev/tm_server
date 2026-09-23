@@ -1,5 +1,6 @@
+import { powerActionCost } from '../../utils/powerActionCost';
 import React from 'react';
-import { PowerActionType } from '../../types/game.types';
+import { PowerActionType, type FactionType } from '../../types/game.types';
 import {
     BridgeIcon,
     PriestIcon,
@@ -11,7 +12,6 @@ import './PowerActions.css';
 
 interface PowerActionConfig {
     type: PowerActionType;
-    cost: number;
     label: string;
     icon: React.ReactNode;
 }
@@ -36,19 +36,16 @@ const OctagonWrapper = ({ children }: { children: React.ReactNode }): React.Reac
 const ACTIONS: PowerActionConfig[] = [
     {
         type: PowerActionType.Bridge,
-        cost: 3,
         label: "Bridge",
         icon: <BridgeIcon className="icon-bridge" />
     },
     {
         type: PowerActionType.Priest,
-        cost: 3,
         label: "Priest",
         icon: <PriestIcon className="icon-priest" />
     },
     {
         type: PowerActionType.Workers,
-        cost: 4,
         label: "2 Workers",
         icon: (
             <div className="workers-container">
@@ -59,7 +56,6 @@ const ACTIONS: PowerActionConfig[] = [
     },
     {
         type: PowerActionType.Coins,
-        cost: 4,
         label: "7 Coins",
         icon: (
             <CoinIcon className="coin-icon-large" style={{ width: '24px', height: '24px' }}>
@@ -69,13 +65,11 @@ const ACTIONS: PowerActionConfig[] = [
     },
     {
         type: PowerActionType.Spade,
-        cost: 4,
         label: "Spade",
         icon: <SpadeIcon className="icon-spade" />
     },
     {
         type: PowerActionType.DoubleSpade,
-        cost: 6,
         label: "2 Spades",
         icon: (
             <div className="double-spade-container">
@@ -93,31 +87,37 @@ import { useGameStore } from '../../stores/gameStore';
 interface PowerActionsProps {
     onActionClick?: (action: PowerActionType) => void;
     disabled?: boolean;
+    selectedAction?: PowerActionType;
+    faction?: FactionType;
 }
 
-export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick, disabled = false }): React.ReactElement => {
+export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick, disabled = false, selectedAction, faction }): React.ReactElement => {
     const gameState = useGameStore(state => state.gameState);
     const usedActions = gameState?.powerActions?.UsedActions ?? {};
 
     return (
         <div className="power-actions-container" data-testid="power-actions">
             {ACTIONS.map((action) => {
+                const cost = powerActionCost(action.type, faction);
                 const isUsed = usedActions[action.type];
                 const isDisabled = disabled || isUsed;
 
                 return (
-                    <div
+                    <button
+                        type="button"
                         key={action.type}
                         data-testid={`power-action-${String(action.type)}`}
                         className={`power-action-tile ${isUsed ? 'used' : ''}`}
+                        disabled={isDisabled || !onActionClick}
+                        aria-pressed={selectedAction === action.type}
+                        aria-label={`${action.label}, ${String(cost)} power${isUsed ? ', used this round' : ''}`}
                         onClick={() => !isDisabled && onActionClick?.(action.type)}
                         title={action.label}
-                        style={{ cursor: isDisabled ? 'not-allowed' : 'pointer', opacity: isDisabled ? 0.7 : 1 }}
                     >
                         {/* Power Cost */}
                         <div className="power-cost">
                             <div className="power-cost-circle">
-                                {action.cost}
+                                {cost}
                             </div>
                         </div>
 
@@ -153,7 +153,7 @@ export const PowerActions: React.FC<PowerActionsProps> = ({ onActionClick, disab
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </button>
                 );
             })}
         </div>

@@ -3,6 +3,7 @@ import { BonusCardType, FactionType, type GameState, type PlayerState } from '..
 import { FACTIONS } from '../../data/factions';
 import { FACTION_COLORS } from '../../utils/colors';
 import { CoinIcon, WorkerIcon, PriestIcon, PowerCircleIcon } from '../shared/Icons';
+import { ResourceAmount } from '../shared/GamePrimitives';
 import { ShippingDiggingDisplay } from '../shared/ShippingDiggingDisplay';
 
 const resolveFactionType = (player: PlayerState): FactionType | null => {
@@ -42,7 +43,6 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
   const playerCount = playerIds.length;
 
   // Height is controlled by the surrounding grid item (we render full height).
-  // Do not rely on Tailwind utilities here; production may ship without them.
   return (
     <div
       data-testid="player-summary-bar"
@@ -83,23 +83,11 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
         return (
           <div
             key={pid}
-            style={{
-              height: '100%',
-              paddingLeft: '0.5rem',
-              paddingRight: '0.5rem',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              border: '2px solid #000',
-              borderRadius: '0.375rem',
-              backgroundColor: isCurrent ? '#FEFCE8' : '#FFFFFF', // yellow-50
-              boxSizing: 'border-box',
-              outline: isCurrent ? '2px solid #FACC15' : undefined, // yellow-400
-              outlineOffset: isCurrent ? '0px' : undefined,
-              boxShadow: isLocal ? 'inset 0 0 0 2px #2563eb' : undefined,
-            }}
+            className="player-summary-card"
+            data-current={isCurrent}
+            data-local={isLocal}
           >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', lineHeight: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.35rem', fontSize: '0.8rem', lineHeight: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
                 <div
                   style={{
@@ -112,13 +100,13 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
                   }}
                   title={FactionType[factionType]}
                 />
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#374151', fontWeight: 600 }}>
-                  <span>#{turnOrderNumber}</span>
-                  <span style={{ maxWidth: '8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: 'var(--game-text)', fontWeight: 600, minWidth: 0 }}>
+                  <span style={{ flexShrink: 0 }}>#{turnOrderNumber}</span>
+                  <span title={player.name} style={{ maxWidth: '8rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {player.name}
                   </span>
                   <span style={{ color: '#9ca3af' }}>|</span>
-                  <span style={{ fontWeight: 700 }}>{vp} VP</span>
+                  <span style={{ fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>{vp} VP</span>
                   {firewalkersMarkerVp !== undefined && (
                     <span
                       title="Firewalkers VP marker"
@@ -139,7 +127,7 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
                   )}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
                 {isLocal && (
                   <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#1d4ed8', lineHeight: 1 }}>
                     YOU
@@ -153,25 +141,11 @@ export const PlayerSummaryBar: React.FC<{ gameState: GameState; localPlayerId?: 
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem', minWidth: 0, fontSize: '0.75rem', lineHeight: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <CoinIcon style={{ width: '1.15em', height: '1.15em', fontSize: '0.9em' }} />
-                <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.coins}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <WorkerIcon style={{ width: '1.15em', height: '1.15em', fontSize: '0.9em' }} />
-                <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.workers}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <PriestIcon style={{ width: '1.15em', height: '1.15em' }} />
-                <span style={{ fontWeight: 600, color: '#374151' }}>{player.resources.priests}</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', color: '#374151', fontWeight: 600 }}>
-                <PowerCircleIcon style={{ width: '1.05em', height: '1.05em' }} />
-                <span style={{ fontVariantNumeric: 'tabular-nums' }}>
-                  {player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}
-                </span>
-              </div>
+            <div className="player-summary-resources">
+              <ResourceAmount label="Coins" value={player.resources.coins} icon={<CoinIcon style={{ width: '1.15em', height: '1.15em' }} />} />
+              <ResourceAmount label="Workers" value={player.resources.workers} icon={<WorkerIcon style={{ width: '1.15em', height: '1.15em' }} />} />
+              <ResourceAmount label="Priests" value={player.resources.priests} icon={<PriestIcon style={{ width: '1.15em', height: '1.15em' }} />} />
+              <ResourceAmount label="Power bowls I / II / III" value={`${String(player.resources.power.powerI)}/${String(player.resources.power.powerII)}/${String(player.resources.power.powerIII)}`} icon={<PowerCircleIcon style={{ width: '1.05em', height: '1.05em' }} />} />
               <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0 }}>
                 <ShippingDiggingDisplay
                   factionType={factionType}
