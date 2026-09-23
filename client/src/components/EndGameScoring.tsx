@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { Modal } from './shared/Modal';
+import { ActionButton } from './shared/GamePrimitives';
 import { type GameState, type FactionType } from '../types/game.types';
 import { FACTION_COLORS } from '../utils/colors';
 import { FACTIONS } from '../data/factions';
@@ -8,6 +10,7 @@ interface EndGameScoringProps {
 }
 
 export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => {
+    const [dismissed, setDismissed] = useState(false);
     if (!gameState.finalScoring) return null;
     const fireIceTile = gameState.fireIceFinalScoringTile;
     const showFireIceColumn = fireIceTile !== undefined && fireIceTile !== '';
@@ -79,9 +82,9 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full max-h-[90vh] overflow-auto">
-                <h2 className="text-3xl font-bold mb-6 text-center">Final Scoring</h2>
+        <>
+            <ActionButton onClick={() => { setDismissed(false); }}>View final scoring</ActionButton>
+            <Modal isOpen={!dismissed} onClose={() => { setDismissed(true); }} title="Final Scoring" testId="final-scoring-modal">
 
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
@@ -133,14 +136,13 @@ export const EndGameScoring: React.FC<EndGameScoringProps> = ({ gameState }) => 
                 </div>
 
                 <div className="mt-6 text-center">
-                    <button
-                        className="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800 font-medium transition-colors"
-                        onClick={() => { window.location.reload(); }}
+                    <ActionButton
+                        onClick={() => { setDismissed(true); }}
                     >
                         Close
-                    </button>
+                    </ActionButton>
                 </div>
-            </div>
-        </div>
+            </Modal>
+        </>
     );
 };
