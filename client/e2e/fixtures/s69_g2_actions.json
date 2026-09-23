@@ -421,18 +421,13 @@
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
-        "buildDwelling": false,
-        "targetHex": {
+        "buildDwelling": true,
+        "secondHex": {
           "q": 3,
           "r": 4
-        }
-      }
-    },
-    {
-      "playerId": "Nomads",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": true,
+        },
+        "secondTerrain": 6,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 0,
           "r": 4
@@ -503,6 +498,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": -1,
           "r": 4
@@ -611,6 +607,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 8,
           "r": 5
@@ -655,18 +652,13 @@
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
-        "buildDwelling": false,
-        "targetHex": {
+        "buildDwelling": true,
+        "secondHex": {
           "q": 7,
           "r": 2
-        }
-      }
-    },
-    {
-      "playerId": "Mermaids",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": true,
+        },
+        "secondTerrain": 2,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 2,
           "r": 4
@@ -791,6 +783,13 @@
       }
     },
     {
+      "playerId": "Witches",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
       "playerId": "Nomads",
       "type": "select_favor_tile",
       "params": {
@@ -832,6 +831,13 @@
     {
       "playerId": "Mermaids",
       "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "decline_leech",
       "params": {
         "offerIndex": 0
       }
@@ -930,18 +936,18 @@
     },
     {
       "playerId": "Nomads",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Nomads",
       "type": "send_priest",
       "params": {
         "spaces": 2,
         "track": 3
+      }
+    },
+    {
+      "playerId": "Nomads",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -1126,6 +1132,13 @@
       }
     },
     {
+      "playerId": "Mermaids",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
       "playerId": "Nomads",
       "type": "accept_leech",
       "params": {
@@ -1151,9 +1164,20 @@
       }
     },
     {
+      "playerId": "Mermaids",
+      "type": "decline_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
       "playerId": "Nomads",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 0,
+          "r": 4
+        },
         "tileType": 7
       }
     },
@@ -1227,18 +1251,13 @@
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
-        "buildDwelling": false,
-        "targetHex": {
+        "buildDwelling": true,
+        "secondHex": {
           "q": 5,
           "r": 0
-        }
-      }
-    },
-    {
-      "playerId": "Nomads",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": true,
+        },
+        "secondTerrain": 6,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 4,
           "r": 3
@@ -1258,6 +1277,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 6,
           "r": 8
@@ -1435,6 +1455,10 @@
       "playerId": "Witches",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 3,
+          "r": 7
+        },
         "tileType": 5
       }
     },
@@ -1522,18 +1546,18 @@
     },
     {
       "playerId": "Witches",
-      "type": "conversion",
-      "params": {
-        "amount": 2,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Witches",
       "type": "send_priest",
       "params": {
         "spaces": 2,
         "track": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 2,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -1566,18 +1590,13 @@
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
-        "buildDwelling": false,
-        "targetHex": {
+        "buildDwelling": true,
+        "secondHex": {
           "q": 3,
           "r": 1
-        }
-      }
-    },
-    {
-      "playerId": "Nomads",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": true,
+        },
+        "secondTerrain": 6,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 6,
           "r": 0
@@ -1590,6 +1609,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 6,
           "r": 7
@@ -1711,6 +1731,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": -2,
+          "r": 4
+        },
         "tileType": 3
       }
     },
@@ -2058,6 +2082,10 @@
       "playerId": "Nomads",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 2,
+          "r": 6
+        },
         "tileType": 5
       }
     },
@@ -2118,16 +2146,16 @@
     },
     {
       "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Witches",
       "type": "conversion",
       "params": {
         "amount": 4,
         "conversionType": "power_to_coin"
       }
-    },
-    {
-      "playerId": "Witches",
-      "type": "advance_shipping",
-      "params": {}
     },
     {
       "playerId": "Witches",
@@ -2169,14 +2197,6 @@
     },
     {
       "playerId": "Darklings",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Darklings",
       "type": "transform_build",
       "params": {
         "buildDwelling": true,
@@ -2194,6 +2214,14 @@
       }
     },
     {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
       "playerId": "Mermaids",
       "type": "power_action_claim",
       "params": {
@@ -2204,6 +2232,10 @@
       "playerId": "Mermaids",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 0,
+          "r": 5
+        },
         "tileType": 0
       }
     },
@@ -2213,6 +2245,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 7,
           "r": 0
@@ -2225,6 +2258,7 @@
       "params": {
         "actionType": 5,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 9,
           "r": 3
@@ -2282,6 +2316,10 @@
       "playerId": "Nomads",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 7,
+          "r": 1
+        },
         "tileType": 6
       }
     },
@@ -2314,6 +2352,10 @@
       "playerId": "Witches",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 6,
+          "r": 7
+        },
         "tileType": 0
       }
     },
@@ -2339,6 +2381,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 9,
+          "r": 5
+        },
         "tileType": 2
       }
     },
@@ -2376,6 +2422,10 @@
       "playerId": "Witches",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 9,
+          "r": 2
+        },
         "tileType": 2
       }
     },
@@ -2648,6 +2698,10 @@
       "playerId": "Mermaids",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 6,
+          "r": 2
+        },
         "tileType": 4
       }
     },

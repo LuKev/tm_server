@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import { clickByTestId, clickHex } from './support/uiInteractions'
 import { GOLDEN_SCENARIOS } from './fixtures/golden_scenarios'
 import { realServerWsURL } from './support/realServerConfig'
-import { loadRealServerGamePage, sendPageSocketMessage, setRealServerPageLocalPlayer } from './support/realServerPage'
+import { loadRealServerGamePage, primeRealServerPage, sendPageSocketMessage, setRealServerPageLocalPlayer } from './support/realServerPage'
 import { WsBot, type JsonObject } from './support/wsBot'
 
 type GoldenAction = {
@@ -175,6 +175,7 @@ async function chooseCultistsTrack(page: Page, cultTrack: number): Promise<void>
 
 async function switchActorPage(page: Page, gameID: string, playerId: string, currentPlayerId: string): Promise<string> {
   if (currentPlayerId === '') {
+    await primeRealServerPage(page, playerId)
     await page.goto('/')
     await page.evaluate(({ localPlayerId }) => {
       localStorage.setItem('tm-game-storage', JSON.stringify({ state: { localPlayerId }, version: 0 }))
@@ -225,7 +226,7 @@ async function confirmPendingTurnIfNeeded(
   if (
     pending.type === 'post_action_free_actions'
     && pending.playerId === nextActionPlayerId
-    && (nextActionType === 'conversion' || nextActionType === 'burn_power')
+    && ['conversion', 'burn_power', 'select_town_tile'].includes(nextActionType)
   ) {
     return actorPagePlayerId
   }
@@ -398,12 +399,6 @@ const getPendingSpadePlayers = (snapshot: JsonObject | undefined): string[] => {
   return players
 }
 
-const hasPendingTownSelection = (snapshot: JsonObject | undefined, playerId: string): boolean => {
-  const pendingTownFormations = asRecord(snapshot?.pendingTownFormations)
-  const towns = pendingTownFormations[playerId]
-  return Array.isArray(towns) && towns.length > 0
-}
-
 const actionResolvesPendingSpade = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => {
   const pendingCultRewardSpades = asRecord(snapshot?.pendingCultRewardSpades)
   const pendingSpades = asRecord(snapshot?.pendingSpades)
@@ -419,10 +414,6 @@ const actionResolvesPendingSpade = (action: GoldenAction, snapshot: JsonObject |
 
   return false
 }
-
-const actionResolvesPendingTownSelection = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => (
-  action.type === 'select_town_tile' && hasPendingTownSelection(snapshot, action.playerId)
-)
 
 const actionHasAvailableLeechOffer = (action: GoldenAction, snapshot: JsonObject | undefined): boolean => {
   if (!isLeechAction(action.type)) return false
@@ -470,7 +461,6 @@ const actionRequiresTurnOwnership = (action: GoldenAction, snapshot: JsonObject 
     case 'accept_leech':
     case 'decline_leech':
     case 'select_favor_tile':
-    case 'select_town_tile':
     case 'select_town_cult_top':
     case 'darklings_ordination':
     case 'select_cultists_track':
@@ -620,7 +610,15 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
         const hasTargetTerrain = params.targetTerrain !== undefined
         const targetTerrain = hasTargetTerrain ? readInt(params, 'targetTerrain') : undefined
         await clickHex(page, hex.q, hex.r)
-        await submitHexModal(page, buildDwelling, targetTerrain)
+        await page.getByTestId('hex-action-mode').selectOption(buildDwelling ? 'transform_build' : 'transform_only')
+        if (targetTerrain !== undefined) await page.getByTestId('hex-action-target-terrain').selectOption(String(targetTerrain))
+        if (params.secondHex) {
+          await page.getByTestId('power-spade-second-target').click()
+          const second = readHex(params, 'secondHex')
+          await clickHex(page, second.q, second.r)
+          if (params.secondTerrain !== undefined) await page.getByTestId('power-spade-second-terrain').selectOption(String(params.secondTerrain))
+        }
+        await page.getByTestId('hex-action-submit').click()
         return true
       }
 
@@ -631,7 +629,7 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
     case 'engineers_bridge': {
       const from = readHex(params, 'bridgeHex1', 'fromHex')
       const to = readHex(params, 'bridgeHex2', 'toHex')
-      await clickByTestId(page, `player-${action.playerId}-engineers-bridge`)
+      await clickByTestId(page, `player-${action.playerId}-bridge-action`)
       await clickHex(page, from.q, from.r)
       await clickHex(page, to.q, to.r)
       await maybeConfirmAction(page)
@@ -651,9 +649,7 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
         await clickByTestId(page, 'passing-card-7')
         if (cultTrack === undefined) throw new Error('missing cultTrack for bonus cult action')
         await chooseCultTrackWithFallback(page, cultTrack, async () => {
-          await page.getByTestId('passing-card-7').first().evaluate((el) => {
-            (el as HTMLElement).click()
-          })
+          await clickByTestId(page, 'passing-card-7')
         })
         return true
       }
@@ -662,9 +658,7 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
         await clickByTestId(page, `player-${action.playerId}-water2-action`)
         if (cultTrack === undefined) throw new Error('missing cultTrack for water2 action')
         await chooseCultTrackWithFallback(page, cultTrack, async () => {
-          await page.getByTestId(`player-${action.playerId}-water2-action`).first().evaluate((el) => {
-            (el as HTMLElement).click()
-          })
+          await clickByTestId(page, `player-${action.playerId}-water2-action`)
         })
         return true
       }
@@ -735,6 +729,9 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
         )
       }
       await clickByTestId(page, `town-tile-${String(tileType)}`)
+      const anchorHex = readHex(params, 'anchorHex')
+      const anchor = page.getByTestId(`town-anchor-${anchorHex.q}-${anchorHex.r}`)
+      if (await anchor.isVisible()) await anchor.click()
       await maybeConfirmAction(page)
       return true
     }
@@ -785,10 +782,15 @@ async function clickAction(page: Page, creator: WsBot, gameID: string, action: G
       return true
     }
 
+    case 'darklings_ordination': {
+      await clickByTestId(page, `darklings-ordination-${readInt(params, 'workersToConvert')}`)
+      return true
+    }
+
     case 'use_cult_spade': {
       const hex = readHex(params, 'targetHex', 'hex')
       await clickHex(page, hex.q, hex.r)
-      await submitHexModal(page, false)
+      await submitHexModal(page, false, params.targetTerrain === undefined ? undefined : readInt(params, 'targetTerrain'))
       return true
     }
 
@@ -807,7 +809,6 @@ test.describe('Golden Full-Game Click-Driven Completion', () => {
       test.skip(!scriptExists, `missing golden script fixture at ${scenario.scriptPath}`)
 
       const goldenScript = JSON.parse(fs.readFileSync(scenario.scriptPath, 'utf8')) as GoldenScript
-      goldenScript.expectedFinalScores = scenario.expectedScores
 
       const wsURL = realServerWsURL()
       const { creator, gameID, revision: initialRevision } = await createConfiguredGame(
@@ -958,9 +959,14 @@ test.describe('Golden Full-Game Click-Driven Completion', () => {
               return resolverIndex
             }
 
-            const pendingTownIndex = remaining.find((idx) => actionResolvesPendingTownSelection(goldenScript.actions[idx], snapshotBefore))
-            if (pendingTownIndex !== undefined) {
-              return pendingTownIndex
+            // Optional Mermaid towns are not blocking decisions. Keep their
+            // recorded timing, rather than pulling a future town into this turn.
+            const earliest = remaining[0]
+            const earliestAction = goldenScript.actions[earliest]
+            if (pendingBefore.type === 'post_action_free_actions'
+                && earliestAction.playerId === pendingBefore.playerId
+                && ['conversion', 'burn_power', 'select_town_tile'].includes(earliestAction.type)) {
+              return earliest
             }
 
             const availableLeechIndex = remaining.find((idx) => actionHasAvailableLeechOffer(goldenScript.actions[idx], snapshotBefore))
@@ -1034,6 +1040,10 @@ test.describe('Golden Full-Game Click-Driven Completion', () => {
             await expect(actorPage.getByTestId('player-summary-bar')).toContainText(`${String(vp)} VP`)
           }
         }
+      } catch (error) {
+        // Surface a failed long replay immediately, before other scenarios run.
+        console.error(error)
+        throw error
       } finally {
         await actorContext.close().catch(() => undefined)
         creator.close()

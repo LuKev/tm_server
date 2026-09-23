@@ -199,6 +199,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 6,
           "r": 6
@@ -382,16 +383,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 2
+        "tileType": 6
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 6
+        "track": 2
       }
     },
     {
@@ -407,22 +408,16 @@
       "params": {
         "actionType": 5,
         "buildDwelling": false,
+        "secondHex": {
+          "q": 6,
+          "r": 8
+        },
+        "secondTerrain": 3,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 4,
           "r": 3
         }
-      }
-    },
-    {
-      "playerId": "Engineers",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": false,
-        "targetHex": {
-          "q": 6,
-          "r": 8
-        },
-        "targetTerrain": 3
       }
     },
     {
@@ -663,6 +658,13 @@
           "q": 8,
           "r": 4
         }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
       }
     },
     {
@@ -912,16 +914,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 0
+        "tileType": 10
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 10
+        "track": 0
       }
     },
     {
@@ -971,6 +973,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 2,
           "r": 5
@@ -1043,6 +1046,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 10,
+          "r": 3
+        },
         "tileType": 3
       }
     },
@@ -1193,6 +1200,17 @@
     },
     {
       "playerId": "Cultists",
+      "type": "select_town_tile",
+      "params": {
+        "anchorHex": {
+          "q": 2,
+          "r": 8
+        },
+        "tileType": 7
+      }
+    },
+    {
+      "playerId": "Cultists",
       "type": "select_cultists_track",
       "params": {
         "track": 3
@@ -1200,9 +1218,10 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_town_tile",
+      "type": "conversion",
       "params": {
-        "tileType": 7
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -1217,11 +1236,19 @@
       }
     },
     {
+      "playerId": "Cultists",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
       "playerId": "Witches",
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
         "buildDwelling": false,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 8,
           "r": 1
@@ -1252,6 +1279,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 2,
           "r": 6
@@ -1278,20 +1306,21 @@
     },
     {
       "playerId": "Witches",
-      "type": "transform_build",
+      "type": "conversion",
       "params": {
-        "targetHex": {
-          "q": 10,
-          "r": 0
-        }
+        "amount": 2,
+        "conversionType": "worker_to_coin"
       }
     },
     {
       "playerId": "Witches",
-      "type": "replay_conversion",
+      "type": "transform_build",
       "params": {
-        "amount": 2,
-        "conversionType": "worker_to_coin"
+        "buildDwelling": true,
+        "targetHex": {
+          "q": 10,
+          "r": 0
+        }
       }
     },
     {
@@ -1421,6 +1450,7 @@
       "params": {
         "actionType": 5,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 1,
           "r": 4
@@ -1573,16 +1603,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 3
+        "tileType": 9
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 9
+        "track": 3
       }
     },
     {
@@ -1904,6 +1934,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 5,
           "r": 4
@@ -1938,18 +1969,18 @@
     },
     {
       "playerId": "Cultists",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Cultists",
       "type": "send_priest",
       "params": {
         "spaces": 2,
         "track": 1
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -1970,6 +2001,10 @@
       "playerId": "Engineers",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 3,
+          "r": 2
+        },
         "tileType": 2
       }
     },
@@ -2192,6 +2227,13 @@
       }
     },
     {
+      "playerId": "Darklings",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
       "playerId": "Cultists",
       "type": "transform_build",
       "params": {
@@ -2208,14 +2250,6 @@
       "params": {
         "spaces": 2,
         "track": 0
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
       }
     },
     {
@@ -2282,13 +2316,6 @@
       "type": "pass",
       "params": {
         "bonusCard": 4
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "burn_power",
-      "params": {
-        "amount": 1
       }
     },
     {
@@ -2374,6 +2401,10 @@
       "playerId": "Witches",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 3,
+          "r": 5
+        },
         "tileType": 4
       }
     },
@@ -2434,13 +2465,6 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
-      "params": {
-        "track": 0
-      }
-    },
-    {
-      "playerId": "Cultists",
       "type": "select_favor_tile",
       "params": {
         "tileType": 11
@@ -2450,7 +2474,18 @@
       "playerId": "Cultists",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 3,
+          "r": 4
+        },
         "tileType": 6
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "select_cultists_track",
+      "params": {
+        "track": 0
       }
     },
     {
@@ -2469,14 +2504,6 @@
       "type": "accept_leech",
       "params": {
         "offerIndex": 0
-      }
-    },
-    {
-      "playerId": "Witches",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_worker"
       }
     },
     {
@@ -2501,7 +2528,19 @@
       "playerId": "Witches",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 9,
+          "r": 3
+        },
         "tileType": 5
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -2592,18 +2631,18 @@
     },
     {
       "playerId": "Witches",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Witches",
       "type": "send_priest",
       "params": {
         "spaces": 2,
         "track": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -2630,13 +2669,6 @@
       "type": "accept_leech",
       "params": {
         "offerIndex": 0
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "burn_power",
-      "params": {
-        "amount": 1
       }
     },
     {
@@ -2700,21 +2732,6 @@
     },
     {
       "playerId": "Witches",
-      "type": "burn_power",
-      "params": {
-        "amount": 1
-      }
-    },
-    {
-      "playerId": "Witches",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_worker"
-      }
-    },
-    {
-      "playerId": "Witches",
       "type": "upgrade_building",
       "params": {
         "newBuildingType": 1,
@@ -2729,6 +2746,17 @@
       "type": "accept_leech",
       "params": {
         "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "select_town_tile",
+      "params": {
+        "anchorHex": {
+          "q": 8,
+          "r": 1
+        },
+        "tileType": 5
       }
     },
     {
@@ -2749,6 +2777,10 @@
       "playerId": "Engineers",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 1,
+          "r": 4
+        },
         "tileType": 2
       }
     },
@@ -2756,31 +2788,15 @@
       "playerId": "Cultists",
       "type": "burn_power",
       "params": {
-        "amount": 1
+        "amount": 2
       }
     },
     {
       "playerId": "Cultists",
       "type": "conversion",
       "params": {
-        "amount": 1,
+        "amount": 2,
         "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "worker_to_coin"
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "priest_to_worker"
       }
     },
     {
@@ -2809,6 +2825,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 2,
+          "r": 0
+        },
         "tileType": 4
       }
     },
@@ -2885,6 +2905,10 @@
       "playerId": "Engineers",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 8,
+          "r": 7
+        },
         "tileType": 3
       }
     },
@@ -2914,11 +2938,37 @@
       }
     },
     {
+      "playerId": "Witches",
+      "type": "conversion",
+      "params": {
+        "amount": 3,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Witches",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
       "playerId": "Engineers",
-      "type": "replay_conversion",
+      "type": "conversion",
       "params": {
         "amount": 4,
         "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Engineers",
+      "type": "advance_shipping",
+      "params": {}
+    },
+    {
+      "playerId": "Darklings",
+      "type": "send_priest",
+      "params": {
+        "spaces": 2,
+        "track": 2
       }
     },
     {
@@ -2961,21 +3011,18 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": -2,
+          "r": 4
+        },
         "tileType": 1
-      }
-    },
-    {
-      "playerId": "Darklings",
-      "type": "burn_power",
-      "params": {
-        "amount": 1
       }
     },
     {
       "playerId": "Darklings",
       "type": "conversion",
       "params": {
-        "amount": 6,
+        "amount": 7,
         "conversionType": "power_to_coin"
       }
     },
@@ -3002,22 +3049,6 @@
       "type": "select_favor_tile",
       "params": {
         "tileType": 11
-      }
-    },
-    {
-      "playerId": "Darklings",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "worker_to_coin"
-      }
-    },
-    {
-      "playerId": "Darklings",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "priest_to_worker"
       }
     },
     {
@@ -3067,9 +3098,9 @@
     }
   ],
   "expectedFinalScores": {
-    "Cultists": 160,
-    "Darklings": 161,
-    "Engineers": 113,
-    "Witches": 96
+    "Cultists": 151,
+    "Darklings": 151,
+    "Engineers": 125,
+    "Witches": 126
   }
 }

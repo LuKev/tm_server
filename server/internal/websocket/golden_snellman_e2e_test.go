@@ -152,6 +152,14 @@ func TestWebsocketGolden_SnellmanS61D1L1G3_CompletesWithExpectedScores(t *testin
 	)
 }
 
+func TestWebsocketGolden_SnellmanS60D1L1G4_CompletesWithExpectedScores(t *testing.T) {
+	spec, ok := findGoldenFixtureSpec("s60_g4")
+	if !ok {
+		t.Fatal("missing S60 fixture")
+	}
+	runGoldenSnellmanFixture(t, spec.fixture, spec.playerID, spec.expected, true)
+}
+
 func TestWebsocketGolden_ExportActionScript(t *testing.T) {
 	normalizedID := strings.TrimSpace(os.Getenv("TM_EXPORT_GOLDEN_ID"))
 	if normalizedID == "" {
@@ -579,6 +587,11 @@ func (r *goldenRunner) executeActionWithUpcoming(action game.Action, upcoming []
 		}
 		return r.perform(a.PlayerID, "pass", params)
 	case *notation.LogBurnAction:
+		// Historical logs can contain a zero burn before a real burn. It is a
+		// no-op in the recording, not a live burn request to send to the server.
+		if a.Amount == 0 {
+			return nil
+		}
 		amount := a.Amount
 		maxBurn := maxBurnPossible(r.state, a.PlayerID)
 		if maxBurn <= 0 {

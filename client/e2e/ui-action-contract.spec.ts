@@ -14,8 +14,10 @@ import {
   type PlayerState,
 } from '../src/types/game.types'
 import { makeBaseGameState, withBuildings } from './support/gameStateFactory'
-import { formatDisplayCoordinate, getDisplayCoordinate } from '../src/utils/hexUtils'
+import { BASE_GAME_MAP } from '../src/data/baseGameMap'
+import { buildDisplayCoordinateMap, formatDisplayCoordinate, getDisplayCoordinate } from '../src/utils/hexUtils'
 import {
+  acknowledgeLastAction,
   clearSentMessages,
   emitWs,
   installMockWebSocket,
@@ -140,6 +142,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
       },
     })
 
+    await emitWs(page, { type: 'lobby_state', payload: [] })
     await page.getByTestId('lobby-randomize-turn-order').uncheck()
     await page.getByTestId('lobby-setup-mode').selectOption('fast_auction')
     await emitWs(page, {
@@ -530,10 +533,11 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
   })
 
   test('display coordinates use server-style board labels', () => {
-    expect(formatDisplayCoordinate({ q: 0, r: 0 })).toBe('A1')
-    expect(formatDisplayCoordinate({ q: 3, r: 4 })).toBe('E6')
-    expect(formatDisplayCoordinate({ q: -2, r: 5 })).toBe('F1')
-    expect(formatDisplayCoordinate({ q: 8, r: 8 })).toBe('I12')
+    const labels = buildDisplayCoordinateMap(BASE_GAME_MAP)
+    expect(formatDisplayCoordinate({ q: 0, r: 0 }, labels)).toBe('A1')
+    expect(formatDisplayCoordinate({ q: 3, r: 4 }, labels)).toBe('E6')
+    expect(formatDisplayCoordinate({ q: -2, r: 5 }, labels)).toBe('F1')
+    expect(formatDisplayCoordinate({ q: 8, r: 8 }, labels)).toBe('I12')
     expect(getDisplayCoordinate({ q: 0, r: 2 })).toBeNull()
   })
 
@@ -698,6 +702,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
       payload: {
         ...state,
         pendingDecision: { type: 'town_tile_selection', playerId: 'p1' },
+        pendingTownFormations: { p1: [{ hexes: [{ q: 0, r: 0 }] }] },
       },
     })
     await expect(page.getByTestId('game-decision-strip')).toContainText('You must select a town tile.')
@@ -739,7 +744,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await expect(page.getByTestId('game-decision-strip')).toContainText('Bob must use cult spades.')
   })
 
-  test('selectable town tiles highlight in green on hover', async ({ page }) => {
+  test('selectable town tiles use the shared interaction outline on hover', async ({ page }) => {
     const state = makeBaseGameState({
       pendingDecision: {
         type: 'town_tile_selection',
@@ -751,11 +756,9 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     const tile = page.getByTestId(`town-tile-${String(TownTileId.Vp7Workers2)}`).first()
     await tile.hover()
-    const highlightShadow = await tile.evaluate((node) => {
-      const tileNode = node.querySelector('.town-tile-stack-0') as HTMLElement | null
-      return tileNode ? getComputedStyle(tileNode).boxShadow : ''
-    })
-    expect(highlightShadow).toMatch(/34,\s*197,\s*94/)
+    await expect(tile).toHaveCSS('outline-style', 'solid')
+    await expect(tile).toHaveCSS('outline-width', '2px')
+    await expect(tile).toHaveCSS('outline-color', 'rgb(36, 92, 145)')
   })
 
   test('ship town tile uses iconography instead of the Ship/Carpet text label', async ({ page }) => {
@@ -845,12 +848,14 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
       payload: {
         ...base,
         pendingDecision: { type: 'town_tile_selection', playerId: 'p1' },
+        pendingTownFormations: { p1: [{ hexes: [{ q: 0, r: 0 }] }] },
       },
     })
     await clearSentMessages(page)
     await clickByTestId(page, `town-tile-${String(TownTileId.Vp7Workers2)}`, { allowForce: true })
     await confirmAction(page)
-    await waitForPerformAction(page, 'select_town_tile', { tileType: TownTileId.Vp7Workers2 })
+    await page.getByTestId('town-anchor-0-0').click()
+    await waitForPerformAction(page, 'select_town_tile', { tileType: TownTileId.Vp7Workers2, anchorHex: { q: 0, r: 0 } })
 
     await emitWs(page, {
       type: 'game_state_update',
@@ -880,7 +885,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await clickByTestId(page, `power-action-${String(PowerActionType.Priest)}`)
     await confirmAction(page)
-    await waitForPerformAction(page, 'power_action_claim', { actionType: PowerActionType.Priest })
+    await waitForPerformAction(page, 'power_action_claim', { actionType: PowerActionType.Priest, useCoins: false })
 
     await clearSentMessages(page)
     await clickByTestId(page, `power-action-${String(PowerActionType.Spade)}`)
@@ -888,10 +893,14 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
     await clickByTestId(page, 'hex-action-submit')
     await waitForPerformAction(page, 'power_action_claim', {
       actionType: PowerActionType.Spade,
+      spadeActionVersion: 2,
+      useCoins: false,
       targetHex: { q: 1, r: 0 },
       buildDwelling: true,
       targetTerrain: TerrainType.Desert,
     })
+
+    await acknowledgeLastAction(page)
 
     await emitWs(page, {
       type: 'game_state_update',
@@ -1031,7 +1040,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await emitWs(page, { type: 'game_state_update', payload: engineersState })
     await clearSentMessages(page)
-    await clickByTestId(page, 'player-p1-engineers-bridge')
+    await clickByTestId(page, 'player-p1-bridge-action')
     await clickHex(page, 0, 0)
     await clickHex(page, 1, 0)
     await confirmAction(page)
@@ -1214,9 +1223,7 @@ test.describe('UI Action Contract (Playwright + mocked websocket)', () => {
 
     await openGameWithState(page, base)
 
-    await page.getByTestId('player-p1-water2-action').evaluate((node) => {
-      (node as HTMLButtonElement).click()
-    })
+    await page.getByRole('button', { name: 'Advance a cult with Water favor' }).click()
     await expect(page.getByTestId(`cult-choice-${String(CultType.Water)}`)).toBeVisible()
     await clickByTestId(page, `cult-choice-${String(CultType.Water)}`)
     await waitForPerformAction(page, 'special_action_use', {

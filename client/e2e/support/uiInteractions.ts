@@ -80,6 +80,16 @@ export async function clickHex(page: Page, q: number, r: number): Promise<void> 
 
   await page.waitForTimeout(50)
 
+  // Keep the target below the sticky decision strip. Scrolling a large canvas
+  // into view alone can place its first row underneath that strip.
+  await canvas.evaluate((node, target) => {
+    const rect = node.getBoundingClientRect()
+    const strip = document.querySelector('[data-testid="game-decision-strip"]')?.getBoundingClientRect()
+    const targetY = rect.top + target.y * rect.height
+    const safeY = Math.max(window.innerHeight / 2, (strip?.height ?? 0) + 48)
+    window.scrollBy(0, targetY - safeY)
+  }, { y: internalY / dims.height })
+
   const geometry = await canvas.evaluate((node) => {
     const el = node as HTMLCanvasElement
     const rect = el.getBoundingClientRect()
@@ -103,7 +113,7 @@ export async function clickCultSpot(page: Page, cultIndex: number, tileIndex: nu
   const overlayButton = page.getByTestId(`cult-spot-${String(cultIndex)}-${String(tileIndex)}`).first()
   const overlayVisible = await overlayButton.isVisible().catch(() => false)
   if (overlayVisible) {
-    await overlayButton.click({ force: true })
+    await clickByTestId(page, `cult-spot-${String(cultIndex)}-${String(tileIndex)}`)
     return
   }
 

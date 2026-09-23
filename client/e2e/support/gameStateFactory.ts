@@ -51,7 +51,6 @@ const defaultPlayer = (
   hasStrongholdAbility: false,
   specialActionsUsed: {},
   victoryPoints: 20,
-  name,
   options: {
     autoLeechMode: 'off',
     autoConvertOnPass: false,

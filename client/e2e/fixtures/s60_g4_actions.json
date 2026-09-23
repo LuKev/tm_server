@@ -277,6 +277,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 9,
           "r": 4
@@ -334,18 +335,13 @@
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
-        "buildDwelling": false,
-        "targetHex": {
+        "buildDwelling": true,
+        "secondHex": {
           "q": 3,
           "r": 5
-        }
-      }
-    },
-    {
-      "playerId": "Dwarves",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": true,
+        },
+        "secondTerrain": 4,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 8,
           "r": 4
@@ -502,16 +498,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 3
+        "tileType": 6
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 6
+        "track": 3
       }
     },
     {
@@ -754,16 +750,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 3
+        "tileType": 10
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 10
+        "track": 3
       }
     },
     {
@@ -779,7 +775,7 @@
     },
     {
       "playerId": "Dwarves",
-      "type": "decline_leech",
+      "type": "accept_leech",
       "params": {
         "offerIndex": 0
       }
@@ -824,6 +820,12 @@
       "params": {
         "actionType": 5,
         "buildDwelling": true,
+        "secondHex": {
+          "q": 10,
+          "r": 4
+        },
+        "secondTerrain": 0,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 9,
           "r": 6
@@ -842,17 +844,6 @@
       "type": "select_cultists_track",
       "params": {
         "track": 2
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": false,
-        "targetHex": {
-          "q": 10,
-          "r": 4
-        }
       }
     },
     {
@@ -953,6 +944,7 @@
       "params": {
         "actionType": 5,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 4,
           "r": 1
@@ -1409,16 +1401,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 3
+        "tileType": 9
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 9
+        "track": 3
       }
     },
     {
@@ -1517,16 +1509,20 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_town_tile",
       "params": {
-        "track": 1
+        "anchorHex": {
+          "q": 9,
+          "r": 4
+        },
+        "tileType": 7
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_town_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 7
+        "track": 1
       }
     },
     {
@@ -1538,28 +1534,16 @@
     },
     {
       "playerId": "Dwarves",
-      "type": "burn_power",
-      "params": {
-        "amount": 1
-      }
-    },
-    {
-      "playerId": "Dwarves",
       "type": "power_action_claim",
       "params": {
         "actionType": 5,
-        "buildDwelling": false,
-        "targetHex": {
+        "buildDwelling": true,
+        "secondHex": {
           "q": 7,
           "r": 8
-        }
-      }
-    },
-    {
-      "playerId": "Dwarves",
-      "type": "transform_build",
-      "params": {
-        "buildDwelling": true,
+        },
+        "secondTerrain": 4,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 4,
           "r": 6
@@ -1609,6 +1593,7 @@
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": 0,
           "r": 3
@@ -1651,6 +1636,10 @@
       "playerId": "Dwarves",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 2,
+          "r": 6
+        },
         "tileType": 0
       }
     },
@@ -1724,14 +1713,6 @@
     },
     {
       "playerId": "Darklings",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Darklings",
       "type": "upgrade_building",
       "params": {
         "newBuildingType": 1,
@@ -1753,6 +1734,14 @@
       "type": "decline_leech",
       "params": {
         "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Darklings",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -1806,6 +1795,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 0,
+          "r": 4
+        },
         "tileType": 5
       }
     },
@@ -1813,6 +1806,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 7,
+          "r": 5
+        },
         "tileType": 5
       }
     },
@@ -1984,6 +1981,13 @@
       }
     },
     {
+      "playerId": "Dwarves",
+      "type": "accept_leech",
+      "params": {
+        "offerIndex": 0
+      }
+    },
+    {
       "playerId": "Giants",
       "type": "upgrade_building",
       "params": {
@@ -2110,14 +2114,6 @@
     },
     {
       "playerId": "Dwarves",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Dwarves",
       "type": "upgrade_building",
       "params": {
         "newBuildingType": 1,
@@ -2139,6 +2135,14 @@
       "type": "accept_leech",
       "params": {
         "offerIndex": 0
+      }
+    },
+    {
+      "playerId": "Dwarves",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -2266,6 +2270,10 @@
       "playerId": "Giants",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 4,
+          "r": 0
+        },
         "tileType": 6
       }
     },
@@ -2291,6 +2299,10 @@
       "playerId": "Cultists",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 1,
+          "r": 3
+        },
         "tileType": 2
       }
     },
@@ -2398,16 +2410,16 @@
     },
     {
       "playerId": "Cultists",
-      "type": "select_cultists_track",
+      "type": "select_favor_tile",
       "params": {
-        "track": 3
+        "tileType": 11
       }
     },
     {
       "playerId": "Cultists",
-      "type": "select_favor_tile",
+      "type": "select_cultists_track",
       "params": {
-        "tileType": 11
+        "track": 3
       }
     },
     {
@@ -2561,22 +2573,6 @@
     },
     {
       "playerId": "Cultists",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Cultists",
-      "type": "conversion",
-      "params": {
-        "amount": 1,
-        "conversionType": "power_to_coin"
-      }
-    },
-    {
-      "playerId": "Cultists",
       "type": "transform_build",
       "params": {
         "buildDwelling": true,
@@ -2584,6 +2580,22 @@
           "q": 11,
           "r": 1
         }
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
+      }
+    },
+    {
+      "playerId": "Cultists",
+      "type": "conversion",
+      "params": {
+        "amount": 1,
+        "conversionType": "power_to_coin"
       }
     },
     {
@@ -2664,6 +2676,10 @@
       "playerId": "Darklings",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 3,
+          "r": 8
+        },
         "tileType": 4
       }
     },
@@ -2682,6 +2698,10 @@
       "playerId": "Giants",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 7,
+          "r": 2
+        },
         "tileType": 2
       }
     },
@@ -2698,17 +2718,11 @@
     },
     {
       "playerId": "Dwarves",
-      "type": "burn_power",
-      "params": {
-        "amount": 1
-      }
-    },
-    {
-      "playerId": "Dwarves",
       "type": "power_action_claim",
       "params": {
         "actionType": 4,
         "buildDwelling": true,
+        "spadeActionVersion": 2,
         "targetHex": {
           "q": -1,
           "r": 5
@@ -2824,6 +2838,10 @@
       "playerId": "Dwarves",
       "type": "select_town_tile",
       "params": {
+        "anchorHex": {
+          "q": 8,
+          "r": 8
+        },
         "tileType": 4
       }
     },

@@ -6,7 +6,7 @@ declare global {
   interface Window {
     __tmE2E?: {
       sent: unknown[]
-      sockets: Array<{ emitMessage: (message: unknown) => void; readyState: number }>
+      sockets: Array<{ emitMessage: (message: unknown) => void; close: () => void; readyState: number }>
       emit: (message: unknown) => void
       clearSent: () => void
       performActions: () => Array<{ type: string; params: Record<string, unknown> }>
@@ -17,7 +17,7 @@ declare global {
 export async function installMockWebSocket(page: Page, localPlayerId = 'p1'): Promise<void> {
   await page.addInitScript((playerId: string) => {
     const sent: unknown[] = []
-    const sockets: Array<{ emitMessage: (message: unknown) => void; readyState: number }> = []
+    const sockets: Array<{ emitMessage: (message: unknown) => void; close: () => void; readyState: number }> = []
 
     class MockWebSocket {
       static CONNECTING = 0
@@ -34,8 +34,10 @@ export async function installMockWebSocket(page: Page, localPlayerId = 'p1'): Pr
 
       constructor(url: string) {
         this.url = url
+        const connection = this
         const socketRef = {
-          readyState: this.readyState,
+          get readyState() { return connection.readyState },
+          close: () => { this.close() },
           emitMessage: (message: unknown) => {
             if (this.readyState !== MockWebSocket.OPEN) return
             this.onmessage?.({ data: JSON.stringify(message) } as MessageEvent)
@@ -45,7 +47,6 @@ export async function installMockWebSocket(page: Page, localPlayerId = 'p1'): Pr
 
         setTimeout(() => {
           this.readyState = MockWebSocket.OPEN
-          socketRef.readyState = this.readyState
           this.onopen?.(new Event('open'))
         }, 0)
       }
@@ -137,6 +138,15 @@ export async function clearSentMessages(page: Page): Promise<void> {
   await page.evaluate(() => {
     window.__tmE2E?.clearSent()
   })
+}
+
+export async function acknowledgeLastAction(page: Page, type: 'action_accepted' | 'action_rejected' = 'action_accepted', message?: string): Promise<void> {
+  const actionId = await page.evaluate(() => {
+    const actions = (window.__tmE2E?.sent ?? []) as Array<{ type?: string; payload?: { actionId?: string } }>
+    return actions.filter(action => action.type === 'perform_action').at(-1)?.payload?.actionId
+  })
+  expect(actionId).toBeTruthy()
+  await emitWs(page, { type, payload: { actionId, message } })
 }
 
 export async function waitForPerformAction(

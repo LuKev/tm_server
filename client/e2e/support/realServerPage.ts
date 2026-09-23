@@ -6,6 +6,7 @@ type RealServerPageOptions = {
 }
 
 type TestSocketWindow = Window & {
+  __TM_TEST_GET_REVISION__?: () => number | null
   __TM_DISABLE_EXPECTED_REVISION__?: boolean
   __TM_TEST_IS_CONNECTED__?: () => boolean
   __TM_TEST_SEND_MESSAGE__?: (message: unknown) => void
@@ -29,7 +30,37 @@ export async function primeRealServerPage(
   debugLog('prime', { playerId, disableExpectedRevision: options.disableExpectedRevision ?? false })
   await page.addInitScript(
     ({ localPlayerId, disableExpectedRevision }) => {
-      localStorage.setItem('tm-game-storage', JSON.stringify({ state: { localPlayerId }, version: 0 }))
+      // Observe the real transport from the test page. Production bundles never
+      // need privileged application hooks to participate in this harness.
+      let socket: WebSocket | null = null
+      let revision: number | null = null
+      const NativeWebSocket = window.WebSocket
+      window.WebSocket = class extends NativeWebSocket {
+        constructor(url: string | URL, protocols?: string | string[]) {
+          super(url, protocols)
+          socket = this
+          this.addEventListener('message', event => {
+            const message = JSON.parse(String(event.data)) as { type?: string; payload?: { revision?: number } }
+            if (message.type === 'game_state_update') revision = message.payload?.revision ?? null
+          })
+        }
+      }
+      const testWindow = window as TestSocketWindow
+      testWindow.__TM_TEST_IS_CONNECTED__ = () => socket?.readyState === NativeWebSocket.OPEN
+      testWindow.__TM_TEST_GET_REVISION__ = () => revision
+      testWindow.__TM_TEST_GET_LOCAL_PLAYER_ID__ = () => {
+        const stored = JSON.parse(localStorage.getItem('tm-game-storage') ?? '{}') as { state?: { localPlayerId?: string } }
+        return stored.state?.localPlayerId ?? null
+      }
+      testWindow.__TM_TEST_SEND_MESSAGE__ = message => {
+        if (!socket || socket.readyState !== NativeWebSocket.OPEN) throw new Error('Real test socket is not connected')
+        socket.send(typeof message === 'string' ? message : JSON.stringify(message))
+      }
+      const nextPlayer = sessionStorage.getItem('tm-test-next-player')
+      if (nextPlayer || !localStorage.getItem('tm-game-storage')) {
+        localStorage.setItem('tm-game-storage', JSON.stringify({ state: { localPlayerId: nextPlayer ?? localPlayerId }, version: 0 }))
+        sessionStorage.removeItem('tm-test-next-player')
+      }
       ;(window as TestSocketWindow).__TM_DISABLE_EXPECTED_REVISION__ = disableExpectedRevision
     },
     {
@@ -52,14 +83,13 @@ export async function sendPageSocketMessage(page: Page, message: unknown): Promi
 
 export async function setRealServerPageLocalPlayer(page: Page, playerId: string): Promise<void> {
   debugLog('set-local-player', { playerId })
+  // A server connection is bound to its seat. Switching only the client store
+  // leaves actions authenticated as the previous player; reconnect on every switch.
   await page.evaluate((nextPlayerId) => {
-    const testWindow = window as TestSocketWindow
-    if (typeof testWindow.__TM_TEST_SET_LOCAL_PLAYER_ID__ === 'function') {
-      testWindow.__TM_TEST_SET_LOCAL_PLAYER_ID__(nextPlayerId)
-      return
-    }
-    localStorage.setItem('tm-game-storage', JSON.stringify({ state: { localPlayerId: nextPlayerId }, version: 0 }))
+    sessionStorage.setItem('tm-test-next-player', nextPlayerId)
   }, playerId)
+  await page.reload()
+  await page.waitForFunction(() => (window as TestSocketWindow).__TM_TEST_IS_CONNECTED__?.() === true)
 }
 
 export async function loadRealServerGamePage(
@@ -68,6 +98,8 @@ export async function loadRealServerGamePage(
   playerId: string,
   options: RealServerPageOptions = {},
 ): Promise<void> {
+  page.setDefaultTimeout(15_000)
+  page.setDefaultNavigationTimeout(30_000)
   debugLog('load-start', { gameID, playerId })
   await page.goto(`/game/${gameID}`)
   await expect(page.getByTestId('game-screen')).toBeVisible()

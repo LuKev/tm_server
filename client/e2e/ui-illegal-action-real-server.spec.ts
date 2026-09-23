@@ -107,13 +107,11 @@ test.describe('Illegal Action UI (Real Server)', () => {
     debugLog('wrong-turn-target', { gameID, currentPlayerId, nonCurrentPlayerId, revision })
     const page = await openPlayerPage(browser, gameID, nonCurrentPlayerId)
     try {
-      const workerToCoin = page.getByTestId(`player-${nonCurrentPlayerId}-conversion-worker_to_coin`)
-      const powerToPriest = page.getByTestId(`player-${nonCurrentPlayerId}-conversion-power_to_priest`)
-      await expect(workerToCoin).toBeVisible()
-      await expect(powerToPriest).toBeVisible()
-      await expect(page.getByTestId('player-summary-bar')).toContainText('TURN')
-      await expect(page.getByTestId('player-summary-bar')).not.toContainText(`${nonCurrentPlayerId} TURN`)
-      await workerToCoin.click()
+      // This fixture is still in faction selection: conversions do not exist yet.
+      const factionChoice = page.getByTestId('faction-option-Nomads')
+      await expect(factionChoice).toBeVisible()
+      await expect(factionChoice).toBeDisabled()
+      await factionChoice.evaluate(element => (element as HTMLButtonElement).click())
       await expect.poll(async () => {
         const state = creator.getState(gameID)
         return Number((state ?? {}).revision ?? -1)
