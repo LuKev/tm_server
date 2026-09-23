@@ -186,6 +186,8 @@ export const ScoringTiles: React.FC<ScoringTilesProps> = ({
                 return (
                     <div
                         key={`${String(tileId)}-${String(roundNum)}`}
+                        role="img"
+                        aria-label={`Round ${String(roundNum)}${isCurrentRound ? ', current round' : ''}: ${String(config.vp)} VP for ${config.action === ActionType.Stronghold ? 'Stronghold or Sanctuary' : ActionType[config.action]}; ${roundNum === 6 ? 'no cult reward in final round' : `${config.cultSteps === 0 ? 'each priest sent to a cult track' : `${String(config.cultSteps)} ${CultType[config.cult]} cult steps`} rewards ${String(config.rewardAmount)} ${RewardType[config.reward]}`}`}
                         className={`scoring-tile ${isCurrentRound ? 'current-round' : ''} ${isPastRound ? 'past-round' : ''}`}
                     >
                         {/* Left Side: Scoring Action */}

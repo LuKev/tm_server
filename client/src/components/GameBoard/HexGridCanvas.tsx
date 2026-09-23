@@ -1,10 +1,11 @@
 // Canvas-based hex grid renderer - based on terra-mystica/stc/game.js
 import React, { useEffect, useRef, useCallback, useMemo, useLayoutEffect, useState } from 'react';
 import type { MapHexData } from '../../types/map.types';
-import { buildDisplayCoordinateMap, getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
+import { buildDisplayCoordinateMap, formatDisplayCoordinate, getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
 import type { Building, Bridge } from '../../types/game.types';
-import { BuildingType, FactionType, TownTileId } from '../../types/game.types';
+import { BuildingType, FactionType, TerrainType, TownTileId } from '../../types/game.types';
+import { gameThemeColor } from '../../utils/gameTheme';
 
 interface HexGridCanvasProps {
   hexes: MapHexData[];
@@ -81,6 +82,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   testId,
 }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [keyboardHex, setKeyboardHex] = useState(0);
+  const [keyboardFocused, setKeyboardFocused] = useState(false);
   const [canvasMetrics, setCanvasMetrics] = useState(() => ({
     cssWidth: 1,
     cssHeight: 1,
@@ -299,7 +302,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
 
     makeHexPath(ctx, x, y, HEX_SIZE);
 
-    ctx.strokeStyle = '#FFD700'; // Gold color for highlight
+    ctx.strokeStyle = gameThemeColor(ctx.canvas, 'focus');
     ctx.lineWidth = 3;
     ctx.stroke();
   }, []);
@@ -622,7 +625,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     // 7. Draw highlights on top of everything
     hexes.forEach(hex => {
       const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
-      if (highlightedHexes.has(key)) {
+      if (highlightedHexes.has(key) || (keyboardFocused && hex === hexes[keyboardHex])) {
         drawHighlight(ctx, hex);
       }
     });
@@ -633,6 +636,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     buildings,
     bridges,
     highlightedHexes,
+    keyboardFocused,
+    keyboardHex,
     dims.offsetX,
     dims.offsetY,
     canvasMetrics.backingScale,
@@ -737,25 +742,76 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     }
   };
 
+  const focusedHex = hexes[keyboardHex] ?? hexes[0];
+  const focusedBuilding = focusedHex ? buildings.get(`${String(focusedHex.coord.q)},${String(focusedHex.coord.r)}`) : undefined;
+  const focusedDescription = focusedHex
+    ? `${formatDisplayCoordinate(focusedHex.coord, displayCoordinates)}, ${TerrainType[focusedHex.terrain]}${focusedBuilding ? `, ${FactionType[focusedBuilding.faction]} ${BuildingType[focusedBuilding.type]}, owner ${focusedBuilding.ownerPlayerId}` : ', empty'}`
+    : 'empty map';
+
   return (
+    <div className="hex-board-interaction" style={{ position: 'relative', width: '100%' }}>
     <canvas
       ref={canvasRef}
       data-testid={testId}
       data-logical-width={dims.width}
       data-logical-height={dims.height}
+      tabIndex={onHexClick ? 0 : undefined}
+      role={onHexClick ? 'button' : 'img'}
+      aria-label={`Board: ${focusedDescription}.${onHexClick ? ' Arrow keys move, Enter or Space selects.' : ''}`}
+      onFocus={() => { setKeyboardFocused(true); }}
+      onBlur={() => { setKeyboardFocused(false); }}
+      onKeyDown={(event) => {
+        const current = hexes[keyboardHex] ?? hexes[0];
+        if (!current) return;
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onHexClick?.(current.coord.q, current.coord.r);
+          return;
+        }
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const origin = hexCenter(current.coord.r, current.coord.q);
+        const direction = event.key;
+        const candidates = hexes.map((hex, index) => {
+          const point = hexCenter(hex.coord.r, hex.coord.q);
+          const dx = point.x - origin.x;
+          const dy = point.y - origin.y;
+          const along = direction === 'ArrowRight' ? dx : direction === 'ArrowLeft' ? -dx : direction === 'ArrowDown' ? dy : -dy;
+          const across = direction === 'ArrowRight' || direction === 'ArrowLeft' ? Math.abs(dy) : Math.abs(dx);
+          return { index, along, score: along + across * 2 };
+        }).filter(candidate => candidate.along > 1).sort((a, b) => a.score - b.score);
+        const next = direction === 'Home' ? 0 : direction === 'End' ? hexes.length - 1 : candidates[0]?.index ?? (hexes[keyboardHex] ? keyboardHex : 0);
+        setKeyboardHex(next);
+        onHexHover?.(hexes[next].coord.q, hexes[next].coord.r);
+      }}
       width={canvasMetrics.backingWidth}
       height={canvasMetrics.backingHeight}
       style={{
         width: `${String(canvasMetrics.cssWidth)}px`,
         height: `${String(canvasMetrics.cssHeight)}px`,
-        border: '1px solid #ccc',
-        backgroundColor: '#f0f0f0',
+        border: '1px solid var(--game-border, #ccc)',
+        backgroundColor: 'var(--game-surface-muted, #f0f0f0)',
         cursor: 'pointer',
         display: 'block',
         boxSizing: 'border-box',
       }}
       onClick={(e) => { handleMouseEvent(e, true); }}
-      onMouseMove={(e) => { handleMouseEvent(e, false); }}
+      onPointerMove={(e) => { handleMouseEvent(e, false); }}
     />
+    {bridgeEdgeSelectionEnabled && onBridgeEdgeClick && (
+      <label className="board-keyboard-bridges">
+        Bridge endpoints
+        <select aria-label="Choose bridge endpoints" value="" onChange={(event) => {
+          const candidate = bridgeCandidates[Number(event.target.value)];
+          if (candidate) onBridgeEdgeClick(candidate.from, candidate.to);
+        }}>
+          <option value="" disabled>Select an edge</option>
+          {bridgeCandidates.map((candidate, index) => <option key={index} value={index}>
+            {formatDisplayCoordinate(candidate.from, displayCoordinates)} to {formatDisplayCoordinate(candidate.to, displayCoordinates)}
+          </option>)}
+        </select>
+      </label>
+    )}
+    </div>
   );
 };

@@ -15,46 +15,55 @@ interface TownTileConfig {
     id: TownTileId;
     vp: number;
     rewards: React.ReactNode;
+    description: string;
 }
 
 const TOWN_TILE_CONFIGS: Record<TownTileId, TownTileConfig> = {
     [TownTileId.Vp5Coins6]: {
         id: TownTileId.Vp5Coins6,
+        description: '6 coins',
         vp: 5,
         rewards: <CoinIcon className="icon-md">6</CoinIcon>
     },
     [TownTileId.Vp6Power8]: {
         id: TownTileId.Vp6Power8,
+        description: '8 power',
         vp: 6,
         rewards: <PowerIcon amount={8} className="icon-md" />
     },
     [TownTileId.Vp7Workers2]: {
         id: TownTileId.Vp7Workers2,
+        description: '2 workers',
         vp: 7,
         rewards: <WorkerIcon className="icon-md">2</WorkerIcon>
     },
     [TownTileId.Vp4Ship1]: {
         id: TownTileId.Vp4Ship1,
+        description: '1 shipping advancement',
         vp: 4,
         rewards: <div className="reward-container"><ShippingIcon className="icon-md" /></div>
     },
     [TownTileId.Vp8Cult1]: {
         id: TownTileId.Vp8Cult1,
+        description: '1 step on all cult tracks',
         vp: 8,
         rewards: <CultRhombusIcon className="icon-md" />
     },
     [TownTileId.Vp9Priest1]: {
         id: TownTileId.Vp9Priest1,
+        description: '1 priest',
         vp: 9,
         rewards: <PriestIcon className="icon-md" />
     },
     [TownTileId.Vp11]: {
         id: TownTileId.Vp11,
+        description: 'no extra reward',
         vp: 11,
         rewards: null
     },
     [TownTileId.Vp2Cult2]: {
         id: TownTileId.Vp2Cult2,
+        description: '2 steps on all cult tracks',
         vp: 2,
         rewards: <CultRhombusIcon className="icon-md" showNumber={true} />
     },
@@ -97,12 +106,13 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClic
                             type="button"
                             key={id}
                             data-testid={`town-tile-${String(id)}`}
-                            className={`town-tile-slot ${clickable ? 'town-tile-slot-selectable' : ''}`}
+                            aria-label={`${String(config.vp)} victory point town tile, ${config.description}, ${String(count)} available`}
+                            className={`game-tile town-tile-slot ${clickable ? 'town-tile-slot-selectable' : ''}`}
                             onClick={() => { onTileClick?.(id as TownTileId); }}
                             disabled={isTileClickable ? !clickable : false}
                             style={{
                                 cursor: onTileClick ? (clickable ? 'pointer' : 'not-allowed') : 'default',
-                                opacity: clickable ? 1 : 0.55,
+
                                 background: 'transparent',
                                 border: 'none',
                                 padding: 0,

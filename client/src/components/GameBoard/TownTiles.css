@@ -32,11 +32,6 @@
     -webkit-appearance: none;
 }
 
-.town-tile-slot-selectable:not(:disabled):hover .town-tile-stack-0,
-.town-tile-slot-selectable:focus-visible .town-tile-stack-0 {
-    box-shadow: 0 0 0 0.18em #22c55e, 0 0 0.7em rgba(34, 197, 94, 0.6);
-    transform: translateY(-0.02em);
-}
 
 .town-tile {
     position: absolute;

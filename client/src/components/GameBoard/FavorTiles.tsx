@@ -2,12 +2,19 @@ import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
 import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
 import './FavorTiles.css';
-import { type FavorTileType } from '../../types/game.types';
+import { CultType, type FavorTileType } from '../../types/game.types';
 
 interface FavorTilesProps {
     onTileClick?: (tileType: FavorTileType) => void;
     isTileClickable?: (tileType: FavorTileType, availableCount: number) => boolean;
 }
+
+const REWARD_LABELS: Record<string, string> = {
+    fav_fire_2: 'towns require 6 power', fav_water_2: 'cult advancement action',
+    fav_earth_2: 'income: 1 worker and 1 power', fav_air_2: 'income: 4 power',
+    fav_fire_1: 'income: 3 coins', fav_water_1: '3 VP per trading house built',
+    fav_earth_1: '2 VP per dwelling built', fav_air_1: 'trading house points on passing',
+};
 
 export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClickable }) => {
     const gameState = useGameStore(state => state.gameState);
@@ -29,12 +36,13 @@ export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClick
                         type="button"
                         key={tile.id}
                         data-testid={`favor-tile-${String(tile.type)}`}
-                        className={`favor-tile ${isTileClickable && isTileClickable(tile.type, count) ? 'favor-tile-selectable' : ''}`}
+                        className={`game-tile favor-tile ${isTileClickable && isTileClickable(tile.type, count) ? 'favor-tile-selectable' : ''}`}
+                        aria-label={`${CultType[tile.cult]} favor, ${String(tile.steps)} cult steps${REWARD_LABELS[tile.id] ? `, ${REWARD_LABELS[tile.id]}` : ''}, ${String(count)} available`}
                         onClick={() => { onTileClick?.(tile.type); }}
                         disabled={isTileClickable ? !isTileClickable(tile.type, count) : false}
                         style={{
                             cursor: onTileClick ? ((isTileClickable && !isTileClickable(tile.type, count)) ? 'not-allowed' : 'pointer') : 'default',
-                            opacity: (isTileClickable && !isTileClickable(tile.type, count)) ? 0.55 : 1,
+
                             background: 'transparent',
                             border: 'none',
                             padding: 0,

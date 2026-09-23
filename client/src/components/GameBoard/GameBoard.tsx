@@ -15,6 +15,8 @@ interface GameBoardProps {
   onPowerActionClick?: (action: PowerActionType) => void;
   disablePowerActions?: boolean;
   isReplayMode?: boolean;
+  selectedHexes?: string[];
+  selectedPowerAction?: PowerActionType;
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -23,9 +25,12 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   bridgeEdgeSelectionEnabled,
   onPowerActionClick,
   disablePowerActions = false,
-  isReplayMode
+  isReplayMode,
+  selectedHexes = [],
+  selectedPowerAction,
 }): React.ReactElement => {
   const gameState = useGameStore(s => s.gameState);
+  const localPlayerId = useGameStore(s => s.localPlayerId);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
 
   // In replay mode, don't track hover state
@@ -56,7 +61,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   };
 
   // Highlight hovered hex
-  const highlightedHexes = new Set<string>();
+  const highlightedHexes = new Set<string>(selectedHexes);
   if (hoveredHex) {
     highlightedHexes.add(hoveredHex);
   }
@@ -107,13 +112,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Power Actions Section */}
       <div className="border-t pt-4 flex-1 min-h-0" data-testid="power-actions-section">
-        <PowerActions onActionClick={handlePowerActionClick} disabled={disablePowerActions} />
+        <PowerActions faction={!isReplayMode && localPlayerId ? gameState?.players[localPlayerId]?.faction : undefined} onActionClick={handlePowerActionClick} disabled={disablePowerActions || !!isReplayMode} selectedAction={selectedPowerAction} />
       </div>
 
-      {/* Player Boards Section */}
-      <div className="border-t pt-4">
-
-      </div>
     </div>
   );
 };

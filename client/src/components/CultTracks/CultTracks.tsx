@@ -2,6 +2,7 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { CultType, FactionType } from '../../types/game.types';
 import { FACTION_COLORS, CULT_COLORS, getContrastColor } from '../../utils/colors';
+import { gameThemeColor } from '../../utils/gameTheme';
 
 export interface CultPosition {
   faction: FactionType;
@@ -267,7 +268,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
 
         // Draw border (green if hovered and no priest, gray otherwise)
         if (hoveredTile && hoveredTile.cult === cult && hoveredTile.index === tileIndex && !hasPriest) {
-          ctx.strokeStyle = '#FFD700';
+          ctx.strokeStyle = gameThemeColor(ctx.canvas, 'focus');
           ctx.lineWidth = 2.4;
         } else {
           ctx.strokeStyle = '#999'; // Gray border
@@ -433,6 +434,7 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
               <button
                 key={`${String(cult)}-${String(tileIndex)}`}
                 type="button"
+                aria-label={`${CultType[cult]} cult, ${String(tileIndex < 4 ? (tileIndex === 0 ? 3 : 2) : 1)} steps${hasPriest ? ', occupied' : ''}`}
                 data-testid={`cult-spot-${String(cult)}-${String(tileIndex)}`}
                 disabled={hasPriest || onBonusTileClick === undefined}
                 onClick={() => { onBonusTileClick?.(cult, tileIndex); }}
@@ -440,6 +442,8 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
                   if (!hasPriest) setHoveredTile({ cult, index: tileIndex });
                 }}
                 onMouseLeave={() => { setHoveredTile(null); }}
+                onFocus={() => { setHoveredTile({ cult, index: tileIndex }); }}
+                onBlur={() => { setHoveredTile(null); }}
                 style={{
                   position: 'absolute',
                   left: `${String((rect.x / 250) * 100)}%`,
@@ -447,12 +451,12 @@ export const CultTracks: React.FC<CultTracksProps> = ({ cultPositions, bonusTile
                   width: `${String((tileWidth / 250) * 100)}%`,
                   height: `${String((tileHeight / 560) * 100)}%`,
                   pointerEvents: 'auto',
-                  border: isHovered ? '2px solid #facc15' : 'none',
+                  border: isHovered ? '2px solid var(--game-focus)' : 'none',
                   background: 'transparent',
                   padding: 0,
                   margin: 0,
                   cursor: hasPriest ? 'not-allowed' : 'pointer',
-                  boxShadow: isHovered ? '0 0 10px rgba(250, 204, 21, 0.85)' : 'none',
+                  boxShadow: isHovered ? 'inset 0 0 0 1px var(--game-focus)' : 'none',
                 }}
               />
             );

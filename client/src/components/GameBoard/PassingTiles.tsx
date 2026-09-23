@@ -27,6 +27,19 @@ interface PassingTilesProps {
     activeSpecialCardActionType?: SpecialActionType | null;
 }
 
+const BONUS_DESCRIPTIONS: Record<BonusCardType, string> = {
+    [BonusCardType.Priest]: 'Income: 1 priest',
+    [BonusCardType.Shipping]: 'Temporary shipping +1; income: 3 power',
+    [BonusCardType.DwellingVP]: 'Passing: 1 VP per dwelling; income: 2 coins',
+    [BonusCardType.WorkerPower]: 'Income: 1 worker and 3 power',
+    [BonusCardType.Spade]: 'Action: 1 spade; income: 2 coins',
+    [BonusCardType.TradingHouseVP]: 'Passing: 2 VP per trading house; income: 1 worker',
+    [BonusCardType.Coins6]: 'Income: 6 coins',
+    [BonusCardType.CultAdvance]: 'Action: advance 1 cult step; income: 4 coins',
+    [BonusCardType.StrongholdSanctuaryVP]: 'Passing: 4 VP per stronghold or sanctuary; income: 2 workers',
+    [BonusCardType.ShippingVP]: 'Passing: 3 VP per shipping level; income: 3 power',
+};
+
 const isSplitCard = (type: BonusCardType): boolean => {
     switch (type) {
         case BonusCardType.Priest:
@@ -298,12 +311,14 @@ export const PassingTiles: React.FC<PassingTilesProps> = ({
                         key={cardType}
                         data-testid={`passing-card-${String(cardType)}`}
                         type="button"
-                        className={`${isSpecialActionCard ? 'passing-card-special-action' : ''} ${isActiveSpecialAction ? 'passing-card-special-action-active' : ''}`.trim()}
+                        className={`game-tile ${isSpecialActionCard ? 'passing-card-special-action' : ''} ${isActiveSpecialAction ? 'passing-card-special-action-active' : ''}`.trim()}
+                        aria-label={`${BonusCardType[cardType]} bonus card. ${BONUS_DESCRIPTIONS[cardType]}. ${String(coins)} accumulated coins${isUsed ? ', action used' : ''}${ownerId ? `, held by ${player?.name ?? ownerId}` : ''}`}
+                        aria-pressed={isSpecialActionCard ? isActiveSpecialAction : undefined}
                         onClick={() => { onCardClick?.(cardType); }}
                         disabled={isCardClickable ? !isCardClickable(cardType) : false}
                         style={{
                             cursor: onCardClick ? ((isCardClickable && !isCardClickable(cardType)) ? 'not-allowed' : 'pointer') : 'default',
-                            opacity: (isCardClickable && !isCardClickable(cardType)) ? 0.55 : 1,
+
                             background: 'transparent',
                             border: 'none',
                             padding: 0,
