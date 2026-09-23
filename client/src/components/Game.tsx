@@ -1,3 +1,8 @@
+import { powerActionCost } from '../utils/powerActionCost'
+import { GamePanel } from './shared/GamePrimitives'
+import { usePowerSpadeDraft } from '../hooks/usePowerSpadeDraft'
+import { PowerSpadeControls } from './PowerSpadeControls'
+import { EndGameScoring } from './EndGameScoring'
 import { useParams } from 'react-router-dom'
 import { useMemo, useEffect, useRef, useState } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
@@ -148,25 +153,9 @@ const CHAOS_PARAM_TEMPLATES: Record<string, string> = {
   burn_power: '{\n  "amount": 1\n}',
 }
 
-const getPowerActionCost = (action: PowerActionType): number => {
-  switch (action) {
-    case PowerActionType.Bridge:
-    case PowerActionType.Priest:
-      return 3
-    case PowerActionType.Workers:
-    case PowerActionType.Coins:
-    case PowerActionType.Spade:
-      return 4
-    case PowerActionType.DoubleSpade:
-      return 6
-    default:
-      return 0
-  }
-}
-
 const canPayPowerActionWithPower = (player: PlayerState | null, action: PowerActionType): boolean => {
   if (!player) return false
-  const cost = getPowerActionCost(action)
+  const cost = powerActionCost(action, player.faction)
   const bowl3 = player.resources.power.powerIII ?? 0
   const bowl2 = player.resources.power.powerII ?? 0
   return bowl3 + Math.floor(bowl2 / 2) >= cost
@@ -174,13 +163,13 @@ const canPayPowerActionWithPower = (player: PlayerState | null, action: PowerAct
 
 const shouldAutoUseChashCoins = (player: PlayerState | null, action: PowerActionType): boolean => {
   if (!player || player.faction !== FactionType.ChashDallah || !player.hasStrongholdAbility) return false
-  const cost = getPowerActionCost(action)
+  const cost = powerActionCost(action, player.faction)
   return !canPayPowerActionWithPower(player, action) && (player.resources.coins ?? 0) >= cost
 }
 
 const canPayPowerActionWithCoins = (player: PlayerState | null, action: PowerActionType): boolean => {
   if (!player || player.faction !== FactionType.ChashDallah || !player.hasStrongholdAbility) return false
-  return (player.resources.coins ?? 0) >= getPowerActionCost(action)
+  return (player.resources.coins ?? 0) >= powerActionCost(action, player.faction)
 }
 
 const townTileLabel = (id: number): string => {
@@ -235,6 +224,7 @@ const isActionPhase = (phase?: GamePhase): boolean => phase === GamePhase.Action
 
 export const Game = () => {
   const { gameId } = useParams()
+  const powerSpades = usePowerSpadeDraft(gameId)
   const { isConnected, connectionGeneration, sendMessage, lastMessage } = useWebSocket()
   const gameState = useGameStore((state) => state.gameState)
   const localPlayerId = useGameStore((state) => state.localPlayerId)
@@ -246,6 +236,9 @@ export const Game = () => {
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialog | null>(null)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [powerMode, setPowerMode] = useState<PendingPowerMode | null>(null)
+  useEffect(() => {
+    if (powerSpades.draft?.status === 'accepted') setPowerMode(null)
+  }, [powerSpades.draft?.status])
   const [, setTreasurersDepositCoins] = useState(0)
   const [, setTreasurersDepositWorkers] = useState(0)
   const [, setTreasurersDepositPriests] = useState(0)
@@ -544,7 +537,7 @@ export const Game = () => {
     if (q == null || r == null) return null
     return { q, r }
   }
-  const canInitiateTurnAction = isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe
+  const canInitiateTurnAction = isMyTurn && isActionPhase(gameState?.phase) && !isBlockingPendingDecisionForMe && powerSpades.draft?.status !== 'submitting'
   const pendingTownCultTopCandidates = useMemo(() => {
     if (pendingDecisionType !== 'town_cult_top_choice') return [] as CultType[]
     const raw = (pendingDecision?.candidateTracks as unknown[]) ?? []
@@ -1022,9 +1015,7 @@ export const Game = () => {
     }
 
     if (powerMode?.type === 'power_spade') {
-      setPendingHex({ q, r })
-      setHexActionMode('transform_build')
-      setSelectedTerrain(localHomeTerrain)
+      powerSpades.selectHex({ q, r })
       return
     }
 
@@ -1209,10 +1200,12 @@ export const Game = () => {
 
       if (action === PowerActionType.Spade || action === PowerActionType.DoubleSpade) {
         if (localFactionType === FactionType.Prospectors) {
-          performAction('power_action_claim', { actionType: action, useCoins })
+          performAction('power_action_claim', { actionType: action, useCoins, spadeActionVersion: 2 })
           return
         }
         setPowerMode({ type: 'power_spade', actionType: action, useCoins })
+        setPendingHex(null)
+        powerSpades.begin(action, localHomeTerrain, useCoins)
         return
       }
 
@@ -1971,20 +1964,6 @@ export const Game = () => {
       return
     }
 
-    if (powerMode?.type === 'power_spade') {
-      const buildDwelling = hexActionMode !== 'transform_only'
-      performAction('power_action_claim', {
-        actionType: powerMode.actionType,
-        targetHex: pendingHex,
-        buildDwelling,
-        targetTerrain: selectedTerrain,
-        useCoins: powerMode.useCoins,
-      })
-      setPowerMode(null)
-      closeHexModal()
-      return
-    }
-
     if (powerMode?.type === 'special_action_target') {
       const actionType = powerMode.actionType
       const buildDwelling = hexActionMode !== 'transform_only'
@@ -2132,7 +2111,16 @@ export const Game = () => {
 	            </button>
 	          </div>
 	        </div>
-	      ) : pendingHex ? (
+      ) : powerMode?.type === 'power_spade' ? (
+        <PowerSpadeControls
+          controller={powerSpades}
+          cost={powerActionCost(powerMode.actionType, localFactionType ?? undefined)}
+          formatHex={formatHexCoord}
+          terrainChoices={transformTerrainChoices}
+          canSkip={localFactionType === FactionType.Fakirs || localFactionType === FactionType.Dwarves}
+          onCancel={() => { powerSpades.cancel(); setPowerMode(null); }}
+        />
+      ) : pendingHex ? (
 	        <div className="space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -2845,16 +2833,10 @@ export const Game = () => {
           resizeHandles={['e']}
           draggableHandle=".drag-handle"
         >
-          <div
-            key="summary"
+          <GamePanel key="summary" data-panel="summary"
             style={{
-              backgroundColor: '#ffffff',
-              borderRadius: '0.5rem',
-              boxShadow: '0 0.25rem 0.75rem rgba(0,0,0,0.08)',
-              overflow: 'hidden',
               display: 'flex',
               flexDirection: 'column',
-              minHeight: 0,
             }}
           >
             <div className="drag-handle">
@@ -2877,9 +2859,9 @@ export const Game = () => {
                 />
               )}
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="scoring" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+          <GamePanel key="scoring" data-panel="scoring" className="flex flex-col">
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
@@ -2891,24 +2873,28 @@ export const Game = () => {
                 fireIceFinalScoringTile={gameState?.fireIceFinalScoringTile}
               />
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="board" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+          <GamePanel key="board" data-panel="board" className="flex flex-col">
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
             <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
               <GameBoard
+                selectedPowerAction={powerMode?.type === 'power_spade' ? powerMode.actionType : undefined}
+                selectedHexes={powerMode?.type === 'power_spade'
+                  ? [powerSpades.draft?.first, powerSpades.draft?.second].flatMap(target => target ? [`${String(target.hex.q)},${String(target.hex.r)}`] : [])
+                  : pendingHex ? [`${String(pendingHex.q)},${String(pendingHex.r)}`] : []}
                 onHexClick={handleHexClick}
                 onBridgeEdgeClick={handleBridgeEdgeClick}
                 bridgeEdgeSelectionEnabled={powerMode?.type === 'power_bridge' || powerMode?.type === 'architects_move_bridge'}
                 onPowerActionClick={handlePowerActionClick}
-                disablePowerActions={!canInitiateTurnAction}
+                disablePowerActions={!canInitiateTurnAction || powerSpades.draft?.status === 'submitting'}
               />
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="cult" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+          <GamePanel key="cult" data-panel="cult" className="flex flex-col">
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
@@ -2921,9 +2907,9 @@ export const Game = () => {
                 players={gameState?.players as Record<string, { faction: FactionType }>}
               />
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="towns" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+          <GamePanel key="towns" data-panel="towns" className="flex flex-col">
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
@@ -2938,18 +2924,18 @@ export const Game = () => {
                 isTileClickable={isTownTileClickable}
               />
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="favor" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+          <GamePanel key="favor" data-panel="favor" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
             <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
               <FavorTiles onTileClick={handleFavorTileClick} isTileClickable={isFavorTileClickable} />
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="playerBoards" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+          <GamePanel key="playerBoards" data-panel="playerBoards" className="flex flex-col">
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
@@ -2974,9 +2960,9 @@ export const Game = () => {
                 isWater2Active={activeWater2Action}
               />
             </div>
-          </div>
+          </GamePanel>
 
-          <div key="passing" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+          <GamePanel key="passing" data-panel="passing" style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="drag-handle">
               <div className="drag-handle-pill" />
             </div>
@@ -2992,7 +2978,7 @@ export const Game = () => {
                 activeSpecialCardActionType={activeBonusCardActionType}
               />
             </div>
-          </div>
+          </GamePanel>
         </ResponsiveGridLayout>
 
         <details className="mt-8 p-4 bg-gray-200 rounded">
@@ -3003,6 +2989,7 @@ export const Game = () => {
         </details>
       </div>
 
+      {gameState?.phase === GamePhase.End && <EndGameScoring gameState={gameState} />}
       <Modal
         isOpen={chaosModalOpen}
         onClose={() => { setChaosModalOpen(false) }}

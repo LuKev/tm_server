@@ -27,13 +27,13 @@ const shouldDisableExpectedRevision = (): boolean => {
 }
 
 export function useActionService(): {
-  submitAction: (gameID: string, type: string, params?: Record<string, unknown>) => void
+  submitAction: (gameID: string, type: string, params?: Record<string, unknown>) => string
   submitSetupDwelling: (playerID: string, q: number, r: number, gameID?: string) => void
   submitSelectFaction: (playerID: string, faction: string, gameID: string) => void
 } {
   const { sendMessage } = useWebSocket()
 
-  const submitAction = (gameID: string, type: string, params: Record<string, unknown> = {}): void => {
+  const submitAction = (gameID: string, type: string, params: Record<string, unknown> = {}): string => {
     const expectedRevision = useGameStore.getState().gameState?.revision ?? 0
 
     const payload: PerformActionPayload = {
@@ -52,6 +52,7 @@ export function useActionService(): {
     }
 
     sendMessage(message)
+    return payload.actionId
   }
 
   const submitSetupDwelling = (_playerID: string, q: number, r: number, gameID = '2'): void => {

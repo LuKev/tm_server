@@ -1,3 +1,4 @@
+import { GamePanel } from './shared/GamePrimitives'
 import { useParams } from 'react-router-dom'
 import { useMemo, useEffect, useState, useCallback } from 'react'
 import { GameBoard } from './GameBoard/GameBoard'
@@ -389,16 +390,10 @@ export const Replay = (): React.ReactElement => {
                     draggableHandle=".drag-handle"
                 >
                     {/* Summary Bar (resizable grid item) */}
-                    <div
-                        key="summary"
+                    <GamePanel key="summary" data-panel="summary"
                         style={{
-                            backgroundColor: '#ffffff',
-                            borderRadius: '0.5rem',
-                            boxShadow: '0 0.25rem 0.75rem rgba(0,0,0,0.08)',
-                            overflow: 'hidden',
                             display: 'flex',
                             flexDirection: 'column',
-                            minHeight: 0,
                         }}
                     >
                         <div className="drag-handle">
@@ -415,10 +410,10 @@ export const Replay = (): React.ReactElement => {
                         >
                             {gameState && <PlayerSummaryBar gameState={gameState} />}
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Log Viewer */}
-                    <div key="log" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <GamePanel key="log" data-panel="log" className="flex flex-col">
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
@@ -429,10 +424,10 @@ export const Replay = (): React.ReactElement => {
                             currentRound={gameState?.round.round ?? 0}
                             onLogClick={jumpTo}
                         />
-                    </div>
+                    </GamePanel>
 
                     {/* Scoring Tiles */}
-                    <div key="scoring" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <GamePanel key="scoring" data-panel="scoring" className="flex flex-col">
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
@@ -448,20 +443,20 @@ export const Replay = (): React.ReactElement => {
                                 fireIceFinalScoringTile={gameState?.fireIceFinalScoringTile}
                             />
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Main game board */}
-                    <div key="board" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <GamePanel key="board" data-panel="board" className="flex flex-col">
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-auto p-4 flex items-center justify-center bg-gray-50">
                             <GameBoard onHexClick={undefined} isReplayMode={true} />
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Cult Tracks sidebar */}
-                    <div key="cult" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <GamePanel key="cult" data-panel="cult" className="flex flex-col">
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
@@ -481,40 +476,40 @@ export const Replay = (): React.ReactElement => {
                                 players={gameState?.players}
                             />
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Town Tiles */}
-                    <div key="towns" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <GamePanel key="towns" data-panel="towns" className="flex flex-col">
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-auto">
                             <TownTiles availableTiles={availableTownTiles} />
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Favor Tiles */}
-                    <div key="favor" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <GamePanel key="favor" data-panel="favor" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-auto" style={{ flex: 1 }}>
                             <FavorTiles />
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Player Boards */}
-                    <div key="playerBoards" className="bg-white rounded-lg shadow-md overflow-hidden flex flex-col">
+                    <GamePanel key="playerBoards" data-panel="playerBoards" className="flex flex-col">
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-hidden">
                             <PlayerBoards isReplayMode={true} />
                         </div>
-                    </div>
+                    </GamePanel>
 
                     {/* Passing Tiles (Bonus Cards) */}
-                    <div key="passing" className="bg-white rounded-lg shadow-md overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <GamePanel key="passing" data-panel="passing" style={{ display: 'flex', flexDirection: 'column' }}>
                         <div className="drag-handle">
                             <div className="drag-handle-pill" />
                         </div>
@@ -547,7 +542,7 @@ export const Replay = (): React.ReactElement => {
                                 passedPlayers={new Set(gameState?.passOrder ?? [])}
                             />
                         </div>
-                    </div>
+                    </GamePanel>
                 </ResponsiveGridLayout>
             </div>
         </div>

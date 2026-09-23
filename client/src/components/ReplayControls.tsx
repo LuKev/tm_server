@@ -22,7 +22,7 @@ export const ReplayControls: React.FC<ReplayControlsProps> = ({
     gameId,
 }) => {
     return (
-        <div className="flex items-center gap-4 bg-white p-4 rounded-lg shadow-md mb-4">
+        <div role="group" aria-label="Replay controls" className="flex items-center gap-4 bg-white p-4 rounded-lg shadow-md mb-4">
             <div className="text-lg font-bold text-gray-700">
                 Replay: {gameId}
             </div>
