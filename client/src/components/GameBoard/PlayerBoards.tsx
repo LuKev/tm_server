@@ -391,7 +391,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                 style={{
                     borderLeft: `5px solid ${factionColor}`,
                     transition: 'all 0.3s ease',
-                    boxShadow: isCurrentPlayer ? '0 0 0 4px #FACC15' : 'none', // Yellow-400 ring
+                    boxShadow: isCurrentPlayer ? 'inset 0 0 0 2px var(--game-turn)' : 'none',
                     zIndex: isCurrentPlayer ? 10 : 1
                 }}
             >
@@ -399,7 +399,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                 <div className="pb-header">
                     <div
                         className="turn-order-badge"
-                        style={isCurrentPlayer ? { backgroundColor: '#FACC15', color: 'black' } : undefined}
+                        style={isCurrentPlayer ? { backgroundColor: 'var(--game-turn-soft)', color: 'var(--game-turn)' } : undefined}
                     >
                         {turnOrder}
                     </div>
@@ -418,11 +418,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                     )}
 
                     <div className="resource-display">
-                        <div className="resource-item"><CoinIcon /> {player.resources.coins}</div>
-                        <div className="resource-item"><WorkerIcon /> {player.resources.workers}</div>
-                        <div className="resource-item"><PriestIcon style={{ width: '1.5em', height: '1.5em' }} /> {player.resources.priests}</div>
+                        <div className="resource-item" role="img" aria-label={`Coins: ${String(player.resources.coins)}`}><CoinIcon /> {player.resources.coins}</div>
+                        <div className="resource-item" role="img" aria-label={`Workers: ${String(player.resources.workers)}`}><WorkerIcon /> {player.resources.workers}</div>
+                        <div className="resource-item" role="img" aria-label={`Priests: ${String(player.resources.priests)}`}><PriestIcon style={{ width: '1.5em', height: '1.5em' }} /> {player.resources.priests}</div>
                         <div className="resource-item">
-                            <div className="pb-power-bowl">
+                            <div className="pb-power-bowl" role="img" aria-label={`Power bowls: ${String(player.resources.power.powerI)}, ${String(player.resources.power.powerII)}, ${String(player.resources.power.powerIII)}`}>
                                 <PowerCircleIcon style={{ width: '1.15em', height: '1.15em' }} />
                                 <span>{player.resources.power.powerI}/{player.resources.power.powerII}/{player.resources.power.powerIII}</span>
                             </div>
@@ -790,11 +790,14 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
                                                         <button
                                                             type="button"
                                                             data-testid={`player-${playerId}-water2-action`}
+                                                            aria-label="Advance a cult with Water favor"
+                                                            aria-pressed={isLocalWater2Active}
                                                             className={isLocalWater2Active ? 'pb-special-action-active' : 'pb-special-action-hover'}
                                                             onClick={() => { onWater2Action?.(playerId); }}
                                                             disabled={!canUseTurnActions}
                                                             style={{
                                                                 position: 'absolute',
+                                                                zIndex: 2,
                                                                 inset: 0,
                                                                 background: 'transparent',
                                                                 border: 'none',
@@ -874,8 +877,8 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
         const observer = new ResizeObserver((entries) => {
             for (const entry of entries) {
                 const width = entry.contentRect.width;
-                // 2% of width, minimum 10px
-                const newSize = Math.max(width * 0.02, 10);
+                // Keep game symbols scalable while bounding text to a readable range.
+                const newSize = Math.min(18, Math.max(width * 0.02, 14));
                 setScaleFontSize(newSize);
             }
         });

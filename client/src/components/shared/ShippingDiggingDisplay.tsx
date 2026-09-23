@@ -51,7 +51,7 @@ export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: compact ? '0.5em' : '0.75em' }}>
       {showShipping && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontSize: textSize }}>
+        <div role="img" aria-label={`Shipping: ${String(shipping)}${hasTempShippingBonus ? ', temporary bonus 1' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontSize: textSize }}>
           <ShippingIcon style={{ width: iconSize, height: iconSize }} />
           <span>{shipping}</span>
           {hasTempShippingBonus && (
@@ -60,7 +60,7 @@ export const ShippingDiggingDisplay: React.FC<ShippingDiggingDisplayProps> = ({
         </div>
       )}
       {showDigging && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontSize: textSize }}>
+        <div role="img" aria-label={`Digging: ${String(terraformCost)} ${terraformUsesPower ? 'power' : 'workers'} per spade`} style={{ display: 'flex', alignItems: 'center', gap: '0.25em', fontSize: textSize }}>
           <span style={{ width: iconSize, height: iconSize, display: 'inline-flex' }}>
             <SpadeIcon />
           </span>
