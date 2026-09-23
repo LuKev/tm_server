@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
@@ -8,7 +9,10 @@ const backendPort = process.env.VITE_BACKEND_PORT ?? process.env.TM_PLAYWRIGHT_S
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), tailwindcss()],
+  // The client is deployed independently. Never discover the repository's
+  // legacy Tailwind 3 PostCSS configuration from a parent directory.
+  css: { postcss: { plugins: [] } },
   // Router paths and static asset paths are separate on the dedicated Railway host.
   // VITE_BASE_PATH remains the React Router basename; assets are served at root.
   base: process.env.VITE_ASSET_BASE_PATH || '/',
