@@ -41,7 +41,6 @@ enum RewardType {
 }
 
 interface TileConfig {
-    id: number;
     action: ActionType;
     vp: number;
     cult: CultType;
@@ -52,15 +51,15 @@ interface TileConfig {
 
 // Configuration for all 9 tiles
 const TILE_CONFIGS: Record<number, TileConfig> = {
-    0: { id: 0, action: ActionType.Dwelling, vp: 2, cult: CultType.Water, cultSteps: 4, reward: RewardType.Priest, rewardAmount: 1 },
-    1: { id: 1, action: ActionType.Dwelling, vp: 2, cult: CultType.Fire, cultSteps: 4, reward: RewardType.Power, rewardAmount: 4 },
-    2: { id: 2, action: ActionType.TradingHouse, vp: 3, cult: CultType.Water, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
-    3: { id: 3, action: ActionType.TradingHouse, vp: 3, cult: CultType.Air, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
-    4: { id: 4, action: ActionType.Temple, vp: 4, cult: CultType.Fire, cultSteps: 0, reward: RewardType.Coin, rewardAmount: 2 },
-    5: { id: 5, action: ActionType.Stronghold, vp: 5, cult: CultType.Fire, cultSteps: 2, reward: RewardType.Worker, rewardAmount: 1 },
-    6: { id: 6, action: ActionType.Stronghold, vp: 5, cult: CultType.Air, cultSteps: 2, reward: RewardType.Worker, rewardAmount: 1 },
-    7: { id: 7, action: ActionType.Spade, vp: 2, cult: CultType.Earth, cultSteps: 1, reward: RewardType.Coin, rewardAmount: 1 },
-    8: { id: 8, action: ActionType.Town, vp: 5, cult: CultType.Earth, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
+    0: { action: ActionType.Dwelling, vp: 2, cult: CultType.Water, cultSteps: 4, reward: RewardType.Priest, rewardAmount: 1 },
+    1: { action: ActionType.Dwelling, vp: 2, cult: CultType.Fire, cultSteps: 4, reward: RewardType.Power, rewardAmount: 4 },
+    2: { action: ActionType.TradingHouse, vp: 3, cult: CultType.Water, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
+    3: { action: ActionType.TradingHouse, vp: 3, cult: CultType.Air, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
+    4: { action: ActionType.Temple, vp: 4, cult: CultType.Fire, cultSteps: 0, reward: RewardType.Coin, rewardAmount: 2 },
+    5: { action: ActionType.Stronghold, vp: 5, cult: CultType.Fire, cultSteps: 2, reward: RewardType.Worker, rewardAmount: 1 },
+    6: { action: ActionType.Stronghold, vp: 5, cult: CultType.Air, cultSteps: 2, reward: RewardType.Worker, rewardAmount: 1 },
+    7: { action: ActionType.Spade, vp: 2, cult: CultType.Earth, cultSteps: 1, reward: RewardType.Coin, rewardAmount: 1 },
+    8: { action: ActionType.Town, vp: 5, cult: CultType.Earth, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
 };
 
 const TownIcon = ({ className }: { className?: string }): React.ReactElement => (
@@ -75,7 +74,7 @@ const ActionIcon = ({ type, className }: { type: ActionType, className?: string 
         case ActionType.TradingHouse: return <TradingHouseIcon className={`icon-lg ${className ?? ''}`} />;
         case ActionType.Temple: return <TempleIcon className={`icon-lg ${className ?? ''}`} />;
         case ActionType.Stronghold: return (
-            <div className="flex items-center gap-1">
+            <div className="scoring-buildings">
                 <StrongholdIcon className={`icon-md ${className ?? ''}`} />
                 <SanctuaryIcon className={`icon-md ${className ?? ''}`} />
             </div>

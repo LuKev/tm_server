@@ -1,16 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { type Layouts, type Layout } from 'react-grid-layout';
-import { type GameState } from '../types/game.types';
 
 type LayoutMode = 'game' | 'replay';
 
 export const useGameLayout = (
-    gameState: GameState | null,
     numCards: number,
     mode: LayoutMode
 ): {
     layouts: Layouts;
     rowHeight: number;
+    onPlayerBoardsHeightChange: (height: number) => void;
     handleWidthChange: (containerWidth: number, margin: [number, number], cols: number, containerPadding: [number, number]) => void;
     handleLayoutChange: (currentLayout: Layout[], allLayouts: Layouts) => void;
     isLayoutLocked: boolean;
@@ -100,38 +99,18 @@ export const useGameLayout = (
         });
     }, [numCards]);
 
-    // Update layout when player count changes
+    // Fit the actual board content instead of multiplying width by player count.
+    // That estimate left a large empty tail on wide screens with bounded fonts.
+    const [playerBoardsHeight, onPlayerBoardsHeightChange] = useState(0);
+    const playerBoardRows = Math.ceil((playerBoardsHeight + (isLayoutLocked ? 0 : 15) + 10) / (rowHeight + 10));
     useEffect(() => {
-        const playerCount = Object.keys(gameState?.players ?? {}).length;
-        if (playerCount === 0) return;
-
-        setLayouts((currentLayouts) => {
-            const newLayouts = { ...currentLayouts };
-            let hasChanges = false;
-
-            for (const key of Object.keys(newLayouts)) {
-                newLayouts[key] = newLayouts[key].map((item) => {
-                    if (item.i === 'playerBoards') {
-                        // Game.tsx uses: Math.ceil(playerCount * item.w * 0.5)
-                        // Replay.tsx uses: playerCount * 6 (but commented out logic for 0.3 ratio)
-                        // Let's standardize on the Game.tsx logic which seems more responsive
-                        const newH = Math.ceil(playerCount * item.w * 0.5);
-                        const finalH = Math.max(newH, item.minH ?? 4);
-
-                        if (item.h !== finalH) {
-
-                            hasChanges = true;
-                            return { ...item, h: finalH };
-                        }
-                    }
-                    return item;
-                });
-            }
-
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-            return hasChanges ? newLayouts : currentLayouts;
-        });
-    }, [gameState?.players]);
+        if (!playerBoardsHeight) return;
+        setLayouts(current => Object.fromEntries(Object.entries(current).map(([key, items]) => [
+            key, items.map(item => item.i === 'playerBoards'
+                ? { ...item, h: Math.max(playerBoardRows, item.minH ?? 4) }
+                : item),
+        ])));
+    }, [playerBoardsHeight, playerBoardRows]);
 
     const handleWidthChange = useCallback((containerWidth: number, margin: [number, number] | null | undefined, cols: number, containerPadding: [number, number] | null | undefined) => {
         const safeMargin = margin ?? [10, 10];
@@ -167,8 +146,7 @@ export const useGameLayout = (
                 } else if (item.i === 'passing') {
                     newH = Math.ceil(item.w * (4 / numCards));
                 } else if (item.i === 'playerBoards') {
-                    const playerCount = Object.keys(gameState?.players ?? {}).length || 1;
-                    newH = Math.ceil(playerCount * item.w * 0.37);
+                    newH = Math.max(playerBoardRows, item.minH ?? 4);
                 }
 
                 if (newH !== item.h) {
@@ -187,7 +165,7 @@ export const useGameLayout = (
         } else {
             setLayouts(allLayouts);
         }
-    }, [gameState?.players, numCards]);
+    }, [playerBoardRows, numCards]);
 
     const resetLayout = useCallback(() => {
         setLayouts(defaultLayouts);
@@ -196,6 +174,7 @@ export const useGameLayout = (
     return {
         layouts,
         rowHeight,
+        onPlayerBoardsHeightChange,
         handleWidthChange,
         handleLayoutChange,
         isLayoutLocked,

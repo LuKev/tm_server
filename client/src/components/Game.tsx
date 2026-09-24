@@ -307,12 +307,13 @@ export const Game = () => {
   const {
     layouts,
     rowHeight,
+    onPlayerBoardsHeightChange,
     handleWidthChange,
     handleLayoutChange,
     isLayoutLocked,
     setIsLayoutLocked,
     resetLayout,
-  } = useGameLayout(gameState, numCards, 'game')
+  } = useGameLayout(numCards, 'game')
 
   useEffect(() => {
     if (isConnected && connectionGeneration > 0 && gameId) {
@@ -2039,11 +2040,8 @@ export const Game = () => {
   }
 
   const decisionStrip = (
-    <div className="mb-3 sticky top-2 z-50 rounded border border-slate-300 bg-white px-4 py-3 min-h-[72px] shadow-sm" data-testid="game-decision-strip">
-      <div className="mb-3">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Required Action</div>
-        <div className="text-sm font-semibold text-slate-900">{decisionStripStatus}</div>
-      </div>
+    <div className="game-decision-strip" data-testid="game-decision-strip">
+      <div className="game-decision-status" role="status">{decisionStripStatus}</div>
       {confirmDialog ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -2534,9 +2532,7 @@ export const Game = () => {
             <div className="text-sm text-slate-700">A town tile selection is required.</div>
           </div>
         </div>
-      ) : (
-        <div className="text-sm text-slate-500">No pending follow-up controls.</div>
-      )}
+      ) : null}
     </div>
   )
 
@@ -2941,6 +2937,7 @@ export const Game = () => {
             </div>
             <div className="flex-1 overflow-hidden">
               <PlayerBoards
+                onContentHeightChange={onPlayerBoardsHeightChange}
                 canUseTurnActions={canInitiateTurnAction}
                 canUseConversions={canUseConversionWindow}
                 onConversion={handleConversion}
@@ -2981,12 +2978,6 @@ export const Game = () => {
           </GamePanel>
         </ResponsiveGridLayout>
 
-        <details className="mt-8 p-4 bg-gray-200 rounded">
-          <summary className="font-bold cursor-pointer">Debug: Game State Players</summary>
-          <pre className="mt-2 text-xs overflow-auto max-h-96">
-            {JSON.stringify(gameState?.players, null, 2)}
-          </pre>
-        </details>
       </div>
 
       {gameState?.phase === GamePhase.End && <EndGameScoring gameState={gameState} />}

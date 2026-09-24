@@ -823,6 +823,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
 };
 
 interface PlayerBoardsProps {
+    onContentHeightChange?: (height: number) => void;
     isReplayMode?: boolean;
     canUseTurnActions?: boolean;
     canUseConversions?: boolean;
@@ -844,6 +845,7 @@ interface PlayerBoardsProps {
 }
 
 export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
+    onContentHeightChange,
     isReplayMode,
     canUseTurnActions = false,
     canUseConversions = false,
@@ -886,6 +888,16 @@ export const PlayerBoards: React.FC<PlayerBoardsProps> = ({
         observer.observe(containerRef.current);
         return () => { observer.disconnect(); };
     }, [gameState?.phase, gameState?.players]); // Re-run when game state loads/changes
+
+    React.useEffect(() => {
+        const content = containerRef.current?.firstElementChild;
+        if (!content || !onContentHeightChange) return;
+        const observer = new ResizeObserver(() => {
+            onContentHeightChange(Math.ceil(content.getBoundingClientRect().height));
+        });
+        observer.observe(content);
+        return () => { observer.disconnect(); };
+    }, [onContentHeightChange, gameState?.phase, gameState?.players]);
 
     React.useEffect(() => {
         const hasActiveTimer = Object.values(gameState?.turnTimer?.players ?? {}).some((playerTimer) => playerTimer?.isActive);

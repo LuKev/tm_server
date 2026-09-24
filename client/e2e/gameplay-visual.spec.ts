@@ -28,7 +28,7 @@ for (const width of [1280, 1920]) {
       await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; }' })
       await page.evaluate(() => document.fonts.ready)
       await expect(page.locator('.react-grid-item')).toHaveCount(8)
-      await expect(page.getByTestId('game-decision-strip')).toHaveCSS('position', 'sticky')
+      await expect(page.getByTestId('game-decision-strip')).toHaveCSS('position', 'static')
       await expect(page.getByTestId('game-board')).toHaveCSS('display', 'flex')
       // Let the grid and canvas ResizeObservers settle before capturing geometry.
       await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => requestAnimationFrame(resolve)))))
@@ -46,6 +46,28 @@ for (const width of [1280, 1920]) {
       expect((await bounds('playerBoards')).y).toBeGreaterThan(board.y + board.height)
       expect((await bounds('towns')).y).toBeGreaterThan(scoring.y)
       expect((await bounds('favor')).y).toBeGreaterThan(cult.y)
+      // Visible wrappers alone miss clipped cubes and overflowing town stacks.
+      const assertSidebarFits = async () => {
+        const heights = await page.locator('.scoring-tile').evaluateAll(tiles => tiles.map(tile => tile.getBoundingClientRect().height))
+        expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(1)
+        for (const panel of ['scoring', 'towns']) {
+          const overflow = await page.locator(`[data-panel="${panel}"]`).evaluate(root => {
+            const viewport = root.querySelector(':scope > .drag-handle + div')!.getBoundingClientRect()
+            const selector = '.scoring-tile, .content-row > *, .cult-dot, .town-tile'
+            return Array.from(root.querySelectorAll(selector)).flatMap(element => {
+              const box = element.getBoundingClientRect()
+              return box.left < viewport.left - 1 || box.right > viewport.right + 1
+                || box.top < viewport.top - 1 || box.bottom > viewport.bottom + 1
+                ? [element.className] : []
+            })
+          })
+          expect(overflow, `${panel} artwork stays inside its viewport`).toEqual([])
+        }
+      }
+      await assertSidebarFits()
+      const playerPanel = await bounds('playerBoards')
+      const playerContent = (await page.locator('.player-boards-container').boundingBox())!
+      expect(playerPanel.height - playerContent.height).toBeLessThan(100)
       const panelBounds = await page.locator('.react-grid-item').evaluateAll(items => items.map(item => {
         const { x, y, width, height } = item.getBoundingClientRect()
         return { x, y, width, height }
@@ -55,6 +77,7 @@ for (const width of [1280, 1920]) {
       await writeFile(testInfo.outputPath('panel-bounds.json'), JSON.stringify(panelBounds, null, 2))
       await page.getByTestId('layout-lock-toggle').click()
       await expect(page.locator('.layout')).toHaveClass(/layout-locked/)
+      await assertSidebarFits()
       await page.getByTestId('layout-lock-toggle').click()
       await expect(page.locator('.layout')).not.toHaveClass(/layout-locked/)
       // Exercise the real grid handles, then verify reset restores this panel.

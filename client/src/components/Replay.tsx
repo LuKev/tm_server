@@ -76,12 +76,13 @@ export const Replay = (): React.ReactElement => {
     const {
         layouts,
         rowHeight,
+        onPlayerBoardsHeightChange,
         handleWidthChange,
         handleLayoutChange,
         isLayoutLocked,
         setIsLayoutLocked,
         resetLayout
-    } = useGameLayout(gameState, numCards, 'replay');
+    } = useGameLayout(numCards, 'replay');
 
     // API Calls
     const startReplay = useCallback(async (restart = false) => {
@@ -504,7 +505,7 @@ export const Replay = (): React.ReactElement => {
                             <div className="drag-handle-pill" />
                         </div>
                         <div className="flex-1 overflow-hidden">
-                            <PlayerBoards isReplayMode={true} />
+                            <PlayerBoards isReplayMode={true} onContentHeightChange={onPlayerBoardsHeightChange} />
                         </div>
                     </GamePanel>
 

@@ -114,7 +114,7 @@
    player owns its content height; only the outer viewport fills the panel. */
 .game-theme .player-boards-container > .pb-resize-container { height: auto; overflow: visible; }
 .game-theme .pb-resize-container[data-testid='player-boards'] { overflow: auto; }
-.game-theme .player-boards-container { height: auto; min-height: 100%; }
+.game-theme .player-boards-container { height: auto; min-height: 0; background: var(--game-surface-muted); padding: 8px; }
 .game-theme [data-testid='power-actions-section'] { flex: 0 0 auto; }
 
 .game-theme .drag-handle {
@@ -127,8 +127,8 @@
 .game-theme .scoring-tile.current-round { outline-color: var(--game-turn); }
 .game-theme .tile-section.left { border-right-color: var(--game-border); }
 .game-theme .tt-resize-container { overflow: auto; }
-.game-theme .player-boards-container { background: var(--game-surface-muted); }
-.game-theme .player-board-section { border-radius: var(--game-radius); box-shadow: none; }
+
+.game-theme .player-board-section { border-radius: var(--game-radius); box-shadow: none; margin-bottom: 8px; }
 .game-theme .pb-header { background: var(--game-surface-muted); flex-wrap: wrap; gap: 4px; }
 .game-theme .resource-display { flex-wrap: wrap; }
 .game-theme .resource-item { font-variant-numeric: tabular-nums; color: var(--game-text); }
@@ -166,10 +166,20 @@
   box-shadow: none;
   transform: none;
 }
-.game-theme [data-testid='game-decision-strip'] {
-  border-color: var(--game-border);
-  border-radius: var(--game-radius);
+.game-theme .game-decision-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: var(--game-surface-muted);
+  border-radius: 4px;
   color: var(--game-text);
+}
+.game-theme .game-decision-status {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--game-text-muted);
 }
 .game-theme :where([data-testid='game-decision-strip'], [data-testid='player-options-panel'], .modal-container) :where(button, select, input, textarea) {
   font-size: 14px;
@@ -205,3 +215,15 @@
   font-size: 14px;
   font-weight: 700;
 }
+
+/* Panel content must receive the remaining height below its drag handle. */
+.game-theme .game-panel > .drag-handle { flex-shrink: 0; }
+.game-theme .game-panel > .drag-handle + div { min-height: 0; min-width: 0; }
+.game-theme [data-panel='board'] > .drag-handle + div { padding: 8px; }
+.game-theme .game-board-container { box-sizing: border-box; padding: 8px; gap: 8px; }
+.game-theme .pb-header,
+.game-theme .pb-wrapper,
+.game-theme .pb-board-area { box-sizing: border-box; }
+
+.game-theme .player-board-section:last-child { margin-bottom: 0; }
+.game-theme .pb-wrapper { gap: 8px; }
