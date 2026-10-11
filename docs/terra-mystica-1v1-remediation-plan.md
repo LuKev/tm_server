@@ -42,7 +42,8 @@ claims and experiment ordering. Evidence and rationale are in the
   implemented and adversarially reviewed. The real CPU interruption/relocation
   drill passes; the recovery package was uploaded to Drive, downloaded with an
   identical SHA-256, and successfully resumed locally. See evidence below.
-- R5 — starting the bounded fresh-lineage protocol below. R6 onward not started.
+- R5 — pilot and matched-search follow-up complete; no reliable learning gain.
+  Behavioral diagnosis below is next. R6 onward not started.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
@@ -518,7 +519,7 @@ specific value-error cause. Value-owner/sign review found no concrete defect.
   No architecture, reward, replay-weighting or optimizer changes in these arms.
   Keep the confirmatory suite untouched.
 
-Follow-up results so far (2026-10-11):
+Completed follow-up results (2026-10-11):
 
 - Expanded frozen cycle4/cycle1 arena: 26 wins, 3 draws, 27 losses across all
   28 development pairs, score49.107%, paired95% interval23.441–74.773%, mean
@@ -530,9 +531,105 @@ Follow-up results so far (2026-10-11):
   Round-one building action totals73vs78 also weaken a general early-building
   regression claim, although the specific conversion-churn traces remain valid.
   Artifact: `artifacts/az/r5-comparison-20261011/anchor-28/`.
-- The sequential queue remains active: trained candidate search32 is running;
-  search128, six fresh training arms and common-budget external evaluations
-  follow without changing the preregistered settings. Final suite untouched.
+- Trained candidate search32 versus anchor search8 finished 8–0–8 (50% score,
+  paired95% interval1.98–98.02%, mean VP margin−3.625), all16 games valid, wall
+  682.14seconds. Same eight setups/checkpoints as the prior8-budget28.125%
+  result; this is an exploratory point-estimate increase, not a demonstrated
+  search benefit or evidence about learning. Candidate round1building count
+  remains12; Alchemist conversions remain frequent. Adversarial review verified
+  unchanged arena/search/model code despite the runner-only source revision.
+- Trained candidate search128 versus anchor search8 finished 6–0–10 (37.5%,
+  paired95% interval0–85.52%, VP margin−5.5), all16 games valid, wall1323.62s.
+  Adversarial review verified fixed checkpoints/cases and only the candidate
+  budget change. Candidate round1building actions fell to4 (versus12 at32),
+  while conversion churn decreased. Point estimates are not monotonic in
+  search depth; eight pairs do not establish128 intrinsically worse or identify
+  a specific value/prior defect. No case for scaling training to128 from this.
+- Seed11 common-eight-simulation head-to-head: 32-trained beat8-trained39–0–17,
+  score69.643%, paired95% interval43.977–95.309%, VP margin+4.268; all56 games
+  valid. Adversarial review verified final checkpoint identities and budgets.
+  This is one directional result, not a confirmed multi-seed learning gain.
+  Serious behavioral limitation: the32-trained candidate made no build/upgrade
+  actions across these56 games, while the8-trained baseline made only10.
+  Relative success against another passive policy is not strong TM play.
+  Both arms completed128 games/400 updates; run wall times including internal
+  sanity checks were664.34s (8) and1595.26s (32), with7798 versus6957 positions.
+- Seed22 common-eight-simulation head-to-head reversed the seed11 direction:
+  32-trained scored22–1–33,40.179%, paired95% interval14.513–65.844%, VP margin
+  −2.161. All56 games valid. Neither agent built or upgraded during these games;
+  the32-trained policy almost exclusively passed after setup. Adversarial review
+  checked special-action traces for hidden building effects as well.
+- Secondary frozen-pilot-anchor scores, all at eight simulations and eight
+  development pairs: seed11 8-trained31.25%,32-trained25%; seed22
+  8-trained34.375%,32-trained31.25%. All intervals include50%. These reused
+  setups and opponents are not independent replications or promotion tests.
+- All six training arms completed:768 games,44,409 new positions,2,400 updates,
+  76,800 sampled examples. All24 learner stages reported finite losses and
+  throughput. Independent review verified matched initialization and seed streams
+  within each pair, different initializations across seeds, and unchanged SGD
+  settings. Every committed-stage journal and artifact SHA inventory verified.
+
+  | Seed | Self-play simulations | Positions | Full-run seconds |
+  | --- | ---: | ---: | ---: |
+  | 11 | 8 | 7,798 | 664.34 |
+  | 11 | 32 | 6,957 | 1,595.26 |
+  | 22 | 8 | 7,163 | 589.43 |
+  | 22 | 32 | 6,712 | 1,365.16 |
+  | 33 | 8 | 8,262 | 677.07 |
+  | 33 | 32 | 7,517 | 1,529.90 |
+
+  Each arm used128 games,400 updates and12,800 samples. Full-run wall time
+  includes runner overhead/internal evaluation, but excludes external arenas.
+  The32-search arms cost2.26–2.40× as much; this is not an equal-time experiment.
+- Seed33 common-eight-simulation head-to-head:16–5–35, score33.036%, paired95%
+  interval7.370–58.701%, VP margin−4.000. All56 games valid. The32-trained agent
+  made8 build/upgrade actions versus133 for8-trained (round1:5 versus12).
+  Independent review verified checkpoint identities, budgets and special-action
+  semantics. Secondary anchor scores were37.5% for8-trained (6–0–10, paired95%
+  0–85.52%, margin−4.0625) and25% for32-trained (4–0–12, paired95%0–73.02%,
+  margin−10.9375). All16 games in each secondary comparison valid.
+- Queue completed successfully at03:55PDT. All12 external reports passed
+  mechanical checks:352 naturally completed games, zero invalid actions,
+  duplicate-state failures, tripwire hits or infrastructure failures. Six
+  internal two-game integrity arenas also passed. No weights promoted.
+- Primary result: deeper self-play search did not consistently improve learning
+  at this small matched-game budget. Seed directions disagree; all three paired
+  intervals include50%. Do not pool repeated development setups as independent
+  evidence, or infer that deeper search can never help from this screen. The
+  frequent non-building policies make scaling this recipe premature. No settings
+  changed in response to results; the final suite remains untouched.
+
+Next bounded diagnosis, before further scaling:
+
+1. Freeze a small development-only set of legal pass/build/conversion positions.
+   Record legal-action priors, visits, Q, and child values backed up using the
+   actual decision owner (including reward/leech decisions). Compare policy-only,
+   normal eight-simulation search, and identical-prior/seed search with learned
+   nonterminal leaf values set to zero; retain exact terminal outcomes. A change
+   in passing implicates learned values in the search behavior, not the cause of
+   their errors. If passing persists, a direct online leaf-value explanation is
+   weaker; historical value errors could still have trained poor policy priors.
+2. Distinguish optimizer drift from replay-distribution effects before choosing
+   the next training ablation. Seed22 eligible replay WDL means were−0.070/−0.103
+   for8/32, while arena mean predictions were+0.216/−0.315. On317 observed
+   nonterminal passes by the32-trained model, mean pre-pass value was−0.321 and
+   next-owner value backed to the original owner was+0.282. Passing also changes
+   state/resources/rounds, so this is not an isolated owner-flip experiment or a
+   confirmed sign bug. Uniform decision labels need not average zero; arena
+   outcomes also come from a different policy distribution. Existing value-loss
+   deterioration warrants a bounded fixed-replay optimizer-stability check.
+3. If distribution effects remain the supported hypothesis, preregister a
+   one-factor uniform-eligible-position versus uniform-game → uniform-decision-
+   owner → uniform-eligible-position sampling ablation at eight simulations,
+   retaining matched seeds, network, optimizer and budgets. This changes both
+   heads' data distribution and phase/faction/game-length weighting; it is not
+   an isolated class-bias fix. Track strength against frozen anchor and heuristic,
+   calibration, building activity and conversion churn, without reward shaping
+   or pruning legal actions. Keep the confirmatory suite untouched.
+4. Defer larger networks, longer runs and equal-time search allocation until
+   these diagnostics identify a defensible intervention. The measured search
+   cost ratio can then set a separate equal-total-time comparison; the current
+   matched-game result cannot answer that question.
 
 ## R6 — Optimize measured bottlenecks, then model capacity
 
@@ -603,6 +700,6 @@ adjudicated-fixture and evidence criteria above.
 The initial R0–R2 implementation and clarification follow-up are complete for
 the documented competition contract. R3 is complete at its documented confidence
 level. R4 passed its documented recovery/evaluation gates. The bounded R5
-fresh-lineage screen and pilot completed mechanically, without demonstrated
-strength improvement. Next are the frozen-checkpoint diagnosis and controlled
-search/learning experiments above; R5 remains open.
+fresh-lineage screen, pilot and three-seed matched-search follow-up completed
+mechanically, without a consistent strength improvement. Next is the bounded
+policy/value diagnosis above; R5 remains open. Scaling is not yet justified.
