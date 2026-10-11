@@ -518,6 +518,22 @@ specific value-error cause. Value-owner/sign review found no concrete defect.
   No architecture, reward, replay-weighting or optimizer changes in these arms.
   Keep the confirmatory suite untouched.
 
+Follow-up results so far (2026-10-11):
+
+- Expanded frozen cycle4/cycle1 arena: 26 wins, 3 draws, 27 losses across all
+  28 development pairs, score49.107%, paired95% interval23.441–74.773%, mean
+  VP margin+0.929. All56 games completed naturally without integrity failures.
+  Independent adversarial review verified that the first16 game records match
+  the pilot exactly, including decisions/predictions. The shift from28.1% to
+  49.1% reflects wider setup coverage, not changed weights or learning progress;
+  there are28 pairs total, not36. No demonstrated improvement or regression.
+  Round-one building action totals73vs78 also weaken a general early-building
+  regression claim, although the specific conversion-churn traces remain valid.
+  Artifact: `artifacts/az/r5-comparison-20261011/anchor-28/`.
+- The sequential queue remains active: trained candidate search32 is running;
+  search128, six fresh training arms and common-budget external evaluations
+  follow without changing the preregistered settings. Final suite untouched.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
