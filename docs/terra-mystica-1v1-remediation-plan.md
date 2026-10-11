@@ -1,20 +1,20 @@
 # Trusted 1v1 Terra Mystica engine: implementation plan
 
-Status: active corrective implementation, 2026-09-20. No milestone below is
+Status: active corrective implementation, 2026-10-10. No milestone below is
 complete merely because an equivalent component exists in the current engine.
 This is the active corrective plan; it supersedes the earlier plan's completion
 claims and experiment ordering. Evidence and rationale are in the
 [first-principles review](terra-mystica-1v1-first-principles-review-20260919.md).
 
-## Implementation checkpoint — 2026-09-20
+## Implementation checkpoint — 2026-10-10
 
 - R0 — complete: the [assigned-faction contract](tm-rules-contract.md) and
   [conformance ledger](terra-mystica-rules-conformance.md) are implemented.
   Rules/state/action version 2 rejects the historical lineage without deleting it.
 - R1 — complete: leech fragmentation, atomic power-spade choices, reward refusal, legal
   terrain routes, and caller compatibility checks are implemented with regression
-  tests. The websocket API explicitly rejects obsolete power-spade requests;
-  the frontend requires migration before deployment.
+  tests. The websocket API rejects obsolete power-spade requests; subsequent UI
+  work migrated the client to atomic version-2 requests (`7e5e821`).
 - R2 — complete for the adjudicated contract: source-derived boundary fixtures, additional timing/faction/scoring repairs,
   all-14-faction natural-game invariants, and three detected mutation experiments
   are implemented. The user clarified that replay primarily tests support for
@@ -24,18 +24,31 @@ claims and experiment ordering. Evidence and rationale are in the
   adversarial reviews. Two working interpretations remain tentative and are
   labeled in the contract and tests. External records remain supplemental;
   do not label internal tests independent complete-game validation.
-- R3 — in progress: pooled board context in the single policy scorer, architecture
+- R3 — complete for the bounded base-profile acceptance criteria: pooled board context in the single policy scorer, architecture
   compatibility rejection, pending-owner/event/town-partition encoding, exact
   seeded search tie semantics, and true policy-only/random-legal arena modes are
   implemented. Controlled gradients, tiny overfit, semantic encoding pairs, and
   exact search tests pass. See the [representation audit](terra-mystica-representation-audit.md).
-  Remaining: export actual legal pending-decision boundary records into Python
-  conformance tests; synthetic mutation fixtures alone do not close that evidence.
-- R4 onward: not implemented by this follow-up. Expensive training remains closed
-  until representation/search and recovery/evaluation gates pass.
+  Test-only legal traces now connect the engine to Python across all 14 factions,
+  including leech, favor, Halflings, Chaos, town and Darklings boundaries. They
+  retain complete action provenance, renamed-player replay equality and complete
+  candidate-set encoding checks. Terminal display-name leakage into canonical
+  hashes was repaired. This is not exhaustive rules verification.
+- R4 — in progress: replay windows use explicit oldest-to-newest input batches
+  with content-hash ordering within each batch, independent of mtimes/absolute
+  paths. Relocation and two-example seeded sampling checks cover this contract.
+  Still required: immutable cycle-parent identities, transactional stage resume,
+  RNG/cursor recovery and interruption drills, held-out diagnostics and evaluation.
+- R5 onward: not started. Expensive training remains closed until R4 passes.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
+
+The 2026-10-10 R3/R4 increment passed all 15 backend/AI/loop targets uncached;
+details are in the representation audit. Replay-order tests deliberately reverse
+mtime and directory-name order, relocate batches, distinguish two policy targets,
+and verify within-batch truncation, duplicate handling and empty-batch rejection.
+This establishes stable replay selection/sampling, not interruption recovery.
 
 ## Objective and constraints
 
@@ -338,5 +351,6 @@ Passing this command alone is not independent rules verification; apply the
 adjudicated-fixture and evidence criteria above.
 
 The initial R0–R2 implementation and clarification follow-up are complete for
-the documented competition contract. Next is R3 representation/search, followed
-by R4 recovery/evaluation. No new training campaign until those gates pass.
+the documented competition contract. R3 is complete at its documented confidence
+level. Next is R4 recovery/evaluation, starting with immutable cycle-parent
+identities and retry-safe stage publication. No new training campaign until R4 passes.

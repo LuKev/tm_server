@@ -7,6 +7,9 @@ import gc
 import gzip
 import hashlib
 import json
+import os
+import random
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -631,6 +634,8 @@ class RepresentationTest(unittest.TestCase):
                     load_replay([corrupt_path], expected_engine_commit="test")
             second_trajectory = copy.deepcopy(trajectory)
             second_trajectory["manifest"]["seed"] = 4
+            second_trajectory["steps"][0]["visits"] = [0, 40, 0, 0]
+            second_trajectory["steps"][0]["chosen_index"] = 1
             second_bytes = gzip.compress(json.dumps(second_trajectory, separators=(",", ":")).encode(), mtime=0)
             second_hash = hashlib.sha256(second_bytes).hexdigest()
             second_path = Path(directory) / f"trajectory-{second_hash}.json.gz"
@@ -638,6 +643,42 @@ class RepresentationTest(unittest.TestCase):
             bounded = load_replay(
                 [path, second_path], expected_engine_commit="test", cache_games=1
             )
+            self.assertEqual([item.path for item in bounded.games], [path.resolve(), second_path.resolve()])
+            # Lexical directory order and filesystem time deliberately disagree
+            # with the explicit old-to-new logical input order.
+            original = Path(directory) / "original"
+            older, newer = original / "z-old", original / "a-new"
+            older.mkdir(parents=True)
+            newer.mkdir()
+            shutil.copyfile(path, older / path.name)
+            shutil.copyfile(second_path, newer / second_path.name)
+            os.utime(older / path.name, (9999, 9999))
+            os.utime(newer / second_path.name, (1, 1))
+            selected = learner_module.select_replay_paths([older, newer], 1)
+            self.assertEqual([item.name for item in selected], [second_path.name])
+            restored = Path(directory) / "restored"
+            shutil.copytree(original, restored)
+            os.utime(restored / "a-new" / second_path.name, (99999, 99999))
+            restored_paths = learner_module.select_replay_paths([restored / "z-old", restored / "a-new"], 2)
+            restored_replay = load_replay(restored_paths, expected_engine_commit="test")
+            for first_example, second_example in zip(bounded.sample(random.Random(17), 12), restored_replay.sample(random.Random(17), 12)):
+                np.testing.assert_array_equal(first_example.policy, second_example.policy)
+            self.assertEqual(learner_module.select_replay_paths([older, older, newer], 2), [(older / path.name).resolve(), (newer / second_path.name).resolve()])
+            with self.assertRaisesRegex(ValueError, "duplicate replay identity"):
+                learner_module.select_replay_paths([older, restored / "z-old"], 2)
+            empty = Path(directory) / "empty"
+            empty.mkdir()
+            with self.assertRaisesRegex(ValueError, "empty replay batch"):
+                learner_module.select_replay_paths([empty], 2)
+            batch = Path(directory) / "batch"
+            batch.mkdir()
+            for source in (second_path, path):
+                shutil.copyfile(source, batch / source.name)
+            expected_names = sorted([path.name, second_path.name])
+            self.assertEqual([item.name for item in learner_module.select_replay_paths([batch], 2)], expected_names)
+            self.assertEqual([item.name for item in learner_module.select_replay_paths([batch], 1)], expected_names[-1:])
+            # Sampling above populated the cache; test eviction independently.
+            bounded = load_replay([path, second_path], expected_engine_commit="test", cache_games=1)
             self.assertEqual(bounded.resident_game_count, 0)
             bounded._example(0, 0)
             bounded._example(1, 0)

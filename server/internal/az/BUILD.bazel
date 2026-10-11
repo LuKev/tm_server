@@ -105,6 +105,19 @@ py_test(
 )
 
 py_test(
+    name = "python_legal_trace_test",
+    srcs = ["python/legal_trace_test.py"],
+    args = ["$(location //cmd/az_fixture:az_fixture)"],
+    data = ["//cmd/az_fixture:az_fixture"],
+    env = {"PYTHONNOUSERSITE": "1"},
+    legacy_create_init = 0,
+    main = "python/legal_trace_test.py",
+    deps = [":python_core"],
+    size = "large",
+    timeout = "moderate",
+)
+
+py_test(
     name = "python_test",
     srcs = [
         "python/benchmark.py",

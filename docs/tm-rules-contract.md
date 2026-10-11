@@ -106,8 +106,8 @@ gain reachability from the dwelling just built.
 
 Websocket power-spade requests now require `spadeActionVersion: 2` and support
 explicit first/second terrains and targets. Older requests fail explicitly;
-they must not silently lose their second spade. **The existing frontend has not
-been migrated and must be updated before deploying this backend change.**
+they must not silently lose their second spade. The frontend was migrated to
+typed atomic version-2 requests in subsequent UI work (`7e5e821`).
 Replay import normalizes legacy notation, but its tolerant execution is not
 strict gameplay conformance evidence.
 

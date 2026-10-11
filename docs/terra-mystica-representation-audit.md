@@ -93,10 +93,9 @@ serialize/materialize consistency, axial neighbors, masks and version rejection.
 The separate policy tests exercise board-context gradients with controlled
 weights rather than relying on random output differences.
 
-Remaining proof obligation for full R3 acceptance: connect the pending-event
-mutation tests to exported legal-action traces across every supported faction,
-especially leech, towns, Halflings and Chaos boundaries. Passing
-these focused encoding fixtures alone is not the entire R3 exit criterion.
+The legal-trace integration added on 2026-10-10 closes the remaining R3 evidence
+step described below. Synthetic paired fixtures remain complementary checks for
+rare distinctions, not independent proof that every mutated pair is reachable.
 
 ## Search and policy evidence
 
@@ -125,8 +124,47 @@ batch consistency, and persisted provenance. Existing development cases are not
 claimed to be a new untouched holdout.
 
 Independent adversarial correctness/simplicity reviews found no remaining
-actionable defect in this bounded repair. They explicitly did not treat synthetic
-record mutations as proof of legal reachability or close the remaining R3 gate.
+actionable defect in the original bounded repair. At that point they explicitly
+did not treat synthetic record mutations as proof of legal reachability; the
+subsequent legal-trace integration addresses that missing evidence.
+
+## Legal-trace integration — 2026-10-10
+
+`//internal/az:python_legal_trace_test` runs the test-only `az_fixture --traces`
+exporter through fourteen complete games (seven faction pairs, two seeds each).
+Every game starts at `NewBaseGame`; every transition is an emitted legal action.
+There are no grants, edited boards, injected pending states or replay tolerances.
+One replicate samples randomly; the other deliberately seeks construction and
+stronghold boundaries, conserving income when needed. This is a coverage policy,
+not an evaluation opponent or strength claim.
+
+The exporter retains seed, faction pair, complete action sequence, and sampled
+canonical positions with the full legal candidate set. It checks canonical
+equality against an independently replayed player-ID-renamed game at every ply,
+and candidate equality at sampled boundaries. All six rounds and all fourteen
+factions are required. The Python test requires actual nonempty leech, favor,
+Halflings, Chaos and town boundaries; the fixed cases also exercise Darklings.
+It checks finite tensors, relevant encoded owners/counts/leech slots, and unique
+feature/gather representations for distinct legal candidates.
+
+This caught a terminal canonicalization defect: cached final-score display names
+could contain raw player IDs. Canonicalization now clears those names on its
+clone, with a separate terminal hash/input-isolation regression. Game scoring
+and live display names are unchanged.
+
+These tests close the bounded R3 representation/search acceptance criteria
+together with the existing semantic, exact-tree, gradient and overfit tests.
+They do not prove exhaustive rule correctness or playing strength. R4 recovery
+and evaluation remain necessary before a new training campaign.
+
+Verification on 2026-10-10: all 15 targets passed uncached with the command below,
+including legal traces (34.9s), Python learner/model tests (32.4s), exhaustive AZ
+tests (189.1s), and both training/scaling smoke tests. Adversarial correctness and
+simplicity review findings were resolved. No UI or game-rule behavior changed.
+
+```sh
+bazel test //internal/... //cmd/... //:az_loop_smoke_test //:az_scaling_curves_smoke_test --test_output=errors --nocache_test_results --test_timeout=900
+```
 
 ## Verification — 2026-09-20
 

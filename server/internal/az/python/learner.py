@@ -25,6 +25,7 @@ from model import MODEL_CONFIGS, TerraMysticaNet, load_checkpoint, model_fingerp
 from schema import ACTION_SCHEMA_VERSION, RULES_VERSION, STATE_SCHEMA_VERSION, EncodedPosition, encode_position, validate_position_schema
 
 TRAJECTORY_FORMAT_VERSION = 2
+REPLAY_ORDER = "input-batch-order/content-hash-v1"
 _SHARD_NAME = re.compile(r"trajectory-([0-9a-f]{64})\.json\.gz")
 
 
@@ -235,12 +236,42 @@ def _validate_shard(path: str | Path, expected_engine_commit: str) -> ShardGame:
     return ShardGame(path=raw_path, matchup=matchup, ply_count=len(steps))
 
 
+def select_replay_paths(inputs: list[str | Path], window_shards: int) -> list[Path]:
+    """Inputs are oldest-to-newest batches; ties within a batch use shard ID.
+
+    Copy/restore timestamps and absolute directory names never determine age.
+    Content identity is verified by _read_trajectory during replay admission.
+    """
+    if window_shards <= 0:
+        raise ValueError("--window-shards must be positive")
+    ordered: list[Path] = []
+    identities: dict[str, Path] = {}
+    for value in inputs:
+        path = Path(value).resolve()
+        batch = sorted(path.glob("trajectory-*.json.gz"), key=lambda item: item.name) if path.is_dir() else [path]
+        if not batch:
+            raise ValueError(f"empty replay batch {path}")
+        for shard in batch:
+            if not shard.is_file() or _SHARD_NAME.fullmatch(shard.name) is None:
+                raise ValueError(f"invalid replay shard {shard}")
+            previous = identities.get(shard.name)
+            if previous is not None:
+                if previous != shard:
+                    raise ValueError(f"duplicate replay identity at {previous} and {shard}")
+                continue
+            identities[shard.name] = shard
+            ordered.append(shard)
+    if not ordered:
+        raise ValueError("replay inputs are empty")
+    return ordered[-window_shards:]
+
+
 def load_replay(
     paths: list[str | Path], *, expected_engine_commit: str, cache_games: int = 8
 ) -> ReplayWindow:
     games: list[ShardGame] = []
     matchups: list[tuple[int, int]] = []
-    for path in sorted(Path(value).resolve() for value in paths):
+    for path in (Path(value).resolve() for value in paths):
         game = _validate_shard(path, expected_engine_commit)
         games.append(game)
         matchups.append(game.matchup)
@@ -378,7 +409,7 @@ def resolve_latest(path: str | Path) -> Path:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input", action="append", required=True, help="trajectory shard or directory")
+    parser.add_argument("--input", action="append", required=True, help="oldest-to-newest shard or batch directory; within directories order by content hash")
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--initial-checkpoint")
     parser.add_argument("--initial-latest")
@@ -406,15 +437,11 @@ def main() -> None:
     if args.initial_latest:
         initial_checkpoint = resolve_latest(args.initial_latest)
 
-    paths: list[Path] = []
-    for value in args.input:
-        path = Path(value)
-        paths.extend(sorted(path.glob("trajectory-*.json.gz")) if path.is_dir() else [path])
     if args.window_shards <= 0:
         parser.error("--window-shards must be positive")
     if args.replay_cache_games <= 0:
         parser.error("--replay-cache-games must be positive")
-    paths = sorted(set(paths), key=lambda path: (path.stat().st_mtime_ns, str(path)))[-args.window_shards :]
+    paths = select_replay_paths(args.input, args.window_shards)
     if args.torch_threads < 0:
         parser.error("--torch-threads must be non-negative")
     if args.torch_threads:
@@ -498,6 +525,7 @@ def main() -> None:
         "optimizer_reset": bool(initial_checkpoint and args.reset_optimizer),
         "replay_shards": [path.name.removeprefix("trajectory-").removesuffix(".json.gz") for path in paths],
         "replay": {
+            "ordering": REPLAY_ORDER,
             "games": replay.game_count,
             "plies": replay.ply_count,
             "cache_games": replay.cache_games,

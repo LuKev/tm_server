@@ -85,6 +85,7 @@ fi
   printf 'arena_games_per_batch=%s\n' "${arena_games_per_batch}"
   printf 'replay_cache_games=%s\n' "${replay_cache_games}"
   printf 'replay_window_shards=%s\n' "${replay_window_shards}"
+  printf 'replay_ordering=input-batch-order/content-hash-v1\n'
   printf 'optimizer=%s\n' "${optimizer}"
   printf 'learning_rate=%s\n' "${learning_rate}"
   printf 'weight_decay=%s\n' "${weight_decay}"
@@ -147,6 +148,7 @@ for ((cycle = 1; cycle <= cycles; cycle++)); do
     --search-seed "$((2000000 + cycle * games))" \
     --model-seed 0 \
     --engine-commit "${engine_commit}"
+  # Explicit oldest-to-newest batch order is replay age; never use file mtimes.
   replay_args+=(--input "${cycle_replay}")
 
   learner_work=(--steps "${train_steps}")

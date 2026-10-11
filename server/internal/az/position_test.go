@@ -13,6 +13,26 @@ import (
 	"github.com/lukev/tm_server/internal/models"
 )
 
+func TestTerminalCanonicalHashIgnoresDisplayNames(t *testing.T) {
+	var hashes []Hash128
+	for _, ids := range [][2]string{{"p0", "p1"}, {"alice", "bob"}} {
+		position, err := NewBaseGameWithPlayerIDs(17, models.FactionWitches, models.FactionEngineers, ids[0], ids[1])
+		if err != nil {
+			t.Fatal(err)
+		}
+		position.state.Phase = game.PhaseEnd
+		position.state.FinalScoring = position.state.CalculateFinalScoring()
+		name := position.state.FinalScoring[ids[0]].PlayerName
+		hashes = append(hashes, position.CanonicalHash())
+		if position.state.FinalScoring[ids[0]].PlayerName != name {
+			t.Fatal("canonicalization mutated source score")
+		}
+	}
+	if hashes[0] != hashes[1] {
+		t.Fatal("terminal display names leaked into canonical hash")
+	}
+}
+
 func TestPositionDeterministicAndPlayerIDRelativeHash(t *testing.T) {
 	first, err := newBaseGame(17, models.FactionWitches, models.FactionEngineers, "p0", "p1")
 	if err != nil {

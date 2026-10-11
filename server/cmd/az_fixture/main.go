@@ -11,6 +11,12 @@ import (
 )
 
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "--traces" {
+		if err := exportTraces(); err != nil {
+			fatal(err)
+		}
+		return
+	}
 	seed := int64(20260810)
 	firstID, secondID := "p0", "p1"
 	if len(os.Args) > 1 {

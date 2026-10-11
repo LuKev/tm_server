@@ -356,6 +356,11 @@ func (p *GamePosition) canonicalBytes() ([]byte, error) {
 	clone.ReplayMode = nil
 	clone.PendingTurnConfirmationPlayerID = ""
 	clone.PendingTurnConfirmationSnapshot = nil
+	for _, score := range clone.FinalScoring {
+		if score != nil {
+			score.PlayerName = ""
+		}
+	}
 	for _, player := range clone.Players {
 		player.Name = ""
 		player.Options = game.PlayerOptions{}
