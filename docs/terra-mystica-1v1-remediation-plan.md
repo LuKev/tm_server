@@ -428,8 +428,48 @@ Initial screen evidence (2026-10-10, engine `8acfac5`):
   this denominator is new actor positions, not the growing replay window.
   Within-cycle held-out diagnostic loss fell 3.104→2.897 and 2.940→2.828;
   these changing mixed-replay samples are not a fixed-set strength curve.
-  Cycle-2 paired evaluation is running; strength results remain pending.
+  Completion verified 2026-10-11: runner exited 0 with completed_cycle=4;
+  128 self-play games produced 8,946 positions, and all 400 updates completed
+  (12,800 sampled examples). All 48 arena games completed naturally, with zero
+  invalid actions, duplicate states, tripwires or infrastructure failures.
   The final suite remains untouched.
+
+Pilot strength results (each comparison: eight development pairs, 16 games;
+score counts a draw as one half):
+
+| Comparison | W–D–L | Score | Paired 95% interval | Mean VP margin |
+| --- | --- | --- | --- | --- |
+| Cycle 2 vs cycle 1 | 4–0–12 | 25.0% | 0–73.0% | −9.0 |
+| Cycle 4 vs cycle 3 | 9–0–7 | 56.25% | 8.2–100% | +3.0 |
+| Cycle 4 vs cycle 1 | 4–1–11 | 28.125% | 0–76.1% | −7.5 |
+
+No demonstrated strength improvement. The anchor comparison is directionally
+concerning, but its conservative paired interval includes parity; do not call
+this a confirmed regression or pool dependent comparisons. Cycle-4 diagnostic
+loss also rose (training 3.635→3.824; held-out 2.800→2.912). In the anchor arena,
+cycle 4 made 12 round-one building actions versus 27 for cycle 1, including one
+versus six dwelling builds. These are action counts, not final building stocks
+or proof of the cause of the score difference.
+
+Next experiments, before increasing model size or launching a long run:
+
+1. Freeze these checkpoints. Expand cycle-4 versus cycle-1 development evaluation
+   to all 28 existing setup pairs (56 games total; the first eight pairs overlap
+   this pilot, so do not count them as independent new evidence). Inspect paired
+   openings, passing, building actions, and policy/search targets in lost games.
+2. Revisit search on trained snapshots at 8/32/128 simulations on the same
+   development cases, reporting strength and wall time separately. Inspect root
+   visit coverage and target concentration; low-budget search is a hypothesis,
+   not an established explanation. Keep network and optimizer fixed.
+3. Compare downstream learning at 8 versus 32 simulations from matched fresh
+   initializations, with at least three independent seeds per setting. First
+   match generated games and learner updates, then separately compare equal
+   total-time budgets. Use fixed anchors and a common evaluation search budget;
+   preregister budgets/cadence before launch. These are new runs, not mutation
+   of this completed run's immutable configuration.
+4. Only after repeatable development gains, select a candidate and preregister
+   an adequately sized untouched final comparison. Keep the final suite unused
+   during diagnosis; neither a larger CNN nor a promotion gate is justified yet.
 
 ## R6 — Optimize measured bottlenecks, then model capacity
 
@@ -499,5 +539,7 @@ adjudicated-fixture and evidence criteria above.
 
 The initial R0–R2 implementation and clarification follow-up are complete for
 the documented competition contract. R3 is complete at its documented confidence
-level. R4 passed its documented recovery/evaluation gates. Next is the bounded
-R5 fresh-lineage stability screen and pilot; no confirmed strength claim yet.
+level. R4 passed its documented recovery/evaluation gates. The bounded R5
+fresh-lineage screen and pilot completed mechanically, without demonstrated
+strength improvement. Next are the frozen-checkpoint diagnosis and controlled
+search/learning experiments above; R5 remains open.
