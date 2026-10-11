@@ -1,9 +1,33 @@
 const HOMEPAGE_ORIGIN = 'https://lukev.github.io/website';
 
+function rewriteTmAssets(response: Response): Response {
+	if (!response.headers.get('Content-Type')?.toLowerCase().startsWith('text/html')) {
+		return response;
+	}
+	const rewriteAttribute = (attribute: string) => ({
+		element(element: Element) {
+			const value = element.getAttribute(attribute);
+			if (value?.startsWith('/') && !value.startsWith('//') && !value.startsWith('/tm/')) {
+				element.setAttribute(attribute, `/tm${value}`);
+			}
+		},
+	});
+	const headers = new Headers(response.headers);
+	// Validators and length describe the upstream HTML, not the rewritten body.
+	headers.delete('ETag');
+	headers.delete('Last-Modified');
+	headers.delete('Content-Length');
+	headers.set('Cache-Control', 'no-store');
+	return new HTMLRewriter()
+		.on('script[src]', rewriteAttribute('src'))
+		.on('link[href]', rewriteAttribute('href'))
+		.transform(new Response(response.body, { status: response.status, statusText: response.statusText, headers }));
+}
+
 async function proxyRequest(
 	request: Request,
 	targetUrl: string,
-	options?: { redirect?: RequestRedirect },
+	options?: { redirect?: RequestInit['redirect'] },
 ): Promise<Response> {
 	const headers = new Headers(request.headers);
 	headers.delete('host');
@@ -29,10 +53,17 @@ export default {
 
 		// Route /tm/* to the TM client (frontend)
 		// Strip /tm prefix before forwarding - assets are at /assets/, not /tm/assets/
-		if (path.startsWith('/tm')) {
+		if (path === '/tm' || path.startsWith('/tm/')) {
 			// Strip /tm prefix. /tm -> /, /tm/replay -> /replay, /tm/assets/... -> /assets/...
 			const strippedPath = path === '/tm' ? '/' : path.slice(3);
-			return proxyRequest(request, `https://tm-client-production.up.railway.app${strippedPath}${url.search}`);
+			// A browser may still have the old, unprefixed HTML cached. Fetch its
+			// body rather than forwarding a conditional request that returns 304.
+			const frontendRequest = new Request(request);
+			if (request.headers.get('Accept')?.includes('text/html')) {
+				frontendRequest.headers.delete('If-None-Match');
+				frontendRequest.headers.delete('If-Modified-Since');
+			}
+			return rewriteTmAssets(await proxyRequest(frontendRequest, `https://tm-client-production.up.railway.app${strippedPath}${url.search}`));
 		}
 
 		// Route /foodle/* to the Foodle client (frontend)

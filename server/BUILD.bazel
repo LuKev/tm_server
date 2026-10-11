@@ -55,6 +55,11 @@ sh_binary(
     srcs = ["tools/client_dependencies.sh"],
 )
 
+sh_binary(
+    name = "tm_router_dependencies",
+    srcs = ["tools/tm_router_dependencies.sh"],
+)
+
 sh_test(
     name = "az_loop_smoke_test",
     srcs = ["tools/az_loop_smoke_test.sh"],
