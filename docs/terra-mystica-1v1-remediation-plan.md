@@ -388,6 +388,49 @@ appropriate to the claim, no rules/integrity failures, and finite stable trainin
 If learning fails, inspect search-target quality, coverage, representation,
 gradient/value behavior, and replay reuse before simply adding compute.
 
+Initial screen evidence (2026-10-10, engine `8acfac5`):
+
+- Apple M5, 16 GiB unified memory, MPS/FP32, one Torch CPU thread. Synthetic
+  main-network learner throughput at batch 32/64/128 was approximately
+  515/520/529 positions per second (128 legal actions, ten measured iterations).
+  The small difference does not justify the higher memory footprint for this
+  pilot; retain batch 32. These timings exclude actual replay decoding and do
+  not establish end-to-end training throughput.
+- Fourteen new bootstrap games covered all 14 factions, generated 968 positions
+  in 57.0 seconds at eight simulations, and completed naturally. The fixed
+  diagnostic split reserved 104 positions and admitted 864 training positions.
+  Bootstrap shards are used only for the stability screen, not pilot replay.
+- All three 20-step optimizer trials were finite with zero value saturation.
+  Maximum unclipped gradient norms were 13.49, 14.82 and 19.73 for learning rates
+  1e-4, 3e-4 and 1e-3. Held-out total loss changed from 2.775 to 2.720, 2.674 and
+  2.734 respectively. The predeclared largest-stable-rate rule selects **1e-3**;
+  this is not a claim that it minimizes loss (it did not), is optimal, or improves
+  playing strength. At 1e-3, same-replay training loss rose slightly, 3.986→4.005.
+- Same-initial-network policy-only/8/32/128 search checks each completed one
+  development setup pair with mechanical integrity. Wall times including command
+  startup were 9.9/24.9/66.9/253.1 seconds. Scores against that network's
+  policy-only play were 0.5/0.5/1.0/1.0; one pair is not strength evidence and did
+  not change the planned eight-simulation pilot budget.
+- The untrained eight-simulation network completed four games each against
+  uniform MCTS, random, heuristic and policy-only baselines, scoring
+  0.50/0.50/0.25/0.50 with mechanical integrity throughout. These are sanity
+  checks, not a trained-model strength result.
+- Raw screen artifacts: `artifacts/az/r5-pilot-20261010/screens/`. The fresh
+  four-cycle pilot launched at 23:25 PDT on 2026-10-10 under
+  `artifacts/az/r5-pilot-20261010/run/`, with source pinned to
+  `8acfac55596a478fa16b9dd06e8425b5e6cad121`. Actor and learner use MPS, batch 32
+  SGD at 1e-3, eight simulations, 16 concurrent actor games, 128-shard window,
+  setup/search seed bases 6,000,000/7,000,000, and previous/frozen-anchor evaluation
+  every second cycle. Bootstrap shards and probe weights are not admitted.
+  First two learner stages completed after 64 fresh games (4,358 positions),
+  with 100 updates each and actual learner throughput of 82/76 sampled positions
+  per second. Sampled examples per newly generated position were 1.33/1.64;
+  this denominator is new actor positions, not the growing replay window.
+  Within-cycle held-out diagnostic loss fell 3.104→2.897 and 2.940→2.828;
+  these changing mixed-replay samples are not a fixed-set strength curve.
+  Cycle-2 paired evaluation is running; strength results remain pending.
+  The final suite remains untouched.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
