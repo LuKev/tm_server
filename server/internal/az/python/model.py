@@ -236,6 +236,7 @@ def publish_checkpoint(
     *,
     optimizer_state: dict[str, Any] | None = None,
     optimizer_config: dict[str, Any] | None = None,
+    learner_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     output = Path(directory)
     output.mkdir(parents=True, exist_ok=True)
@@ -251,12 +252,18 @@ def publish_checkpoint(
             raise ValueError("optimizer state and config must be published together")
         payload["optimizer_state"] = optimizer_state
         payload["optimizer_config"] = optimizer_config
+    if learner_state is not None:
+        if optimizer_state is None:
+            raise ValueError("learner recovery state requires optimizer state")
+        payload["learner_state"] = learner_state
     with tempfile.NamedTemporaryFile(prefix=".publish-", suffix=".pt", dir=output, delete=False) as temporary:
         temporary_path = Path(temporary.name)
     temporary_path.unlink()
     try:
         torch.save(payload, temporary_path)
-        checkpoint_sha256 = hashlib.sha256(temporary_path.read_bytes()).hexdigest()
+        with temporary_path.open("rb") as saved:
+            os.fsync(saved.fileno())
+            checkpoint_sha256 = hashlib.sha256(saved.read()).hexdigest()
         target = output / f"checkpoint-{checkpoint_sha256}.pt"
         try:
             os.link(temporary_path, target)

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"testing"
+
+	"github.com/lukev/tm_server/internal/game"
 )
 
 // Even cloned positions must reject a transition: these baselines act only on
@@ -61,7 +63,7 @@ func TestArenaPolicyAndRandomAreNotSearch(t *testing.T) {
 }
 
 func TestArenaModesPersistAndBatchEquivalently(t *testing.T) {
-	for _, mode := range []string{"policy", "random"} {
+	for _, mode := range []string{"policy", "random", "heuristic"} {
 		evaluator := &batchingArenaEvaluator{id: "root-policy"}
 		config := ArenaConfig{HoldoutSuiteID: "test-suite", CandidateMode: mode, BaselineMode: mode,
 			CandidateSimulations: 99, BaselineSimulations: 99, GamesPerBatch: 4, MaxPlies: 2}
@@ -94,6 +96,100 @@ func TestArenaModesPersistAndBatchEquivalently(t *testing.T) {
 		if _, err := WriteArenaReport(t.TempDir(), batched); err == nil {
 			t.Fatal("persisted non-search agent with search work")
 		}
+	}
+}
+
+func TestArenaHeuristicPriorities(t *testing.T) {
+	actions := []SearchAction{
+		{Kind: game.ActionConversion}, {Kind: game.ActionPass},
+		{Kind: game.ActionAdvanceShipping}, {Kind: game.ActionUpgradeBuilding},
+		{Kind: game.ActionTransformAndBuild, Build: true},
+	}
+	result, err := (heuristicEvaluator{}).Evaluate(context.Background(), []EvaluationRequest{{Actions: actions}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for i, score := range result[0].PolicyLogits {
+		if score != float32(i) {
+			t.Fatalf("priority %d=%v", i, score)
+		}
+	}
+	position := rootOnlyPosition{&toyPosition{spec: immediateChoiceSpec(91)}}
+	if _, err := selectArenaActions(context.Background(), nil, "heuristic", SearchConfig{RootSeeds: []int64{7}}, []Position{position}); err != nil {
+		t.Fatalf("heuristic traversed or required network: %v", err)
+	}
+}
+
+func TestConfirmatorySuiteReservedAndPreregistered(t *testing.T) {
+	cases := ConfirmatoryCases()
+	seen := map[int64]bool{}
+	for _, c := range HoldoutCases() {
+		seen[c.Seed] = true
+	}
+	for _, c := range cases {
+		if seen[c.Seed] || !IsHoldoutSeed(c.Seed) {
+			t.Fatal("final seed overlaps or is not reserved")
+		}
+		seen[c.Seed] = true
+	}
+	id, err := ConfirmatorySuiteIdentity(cases)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if validateHoldoutSuiteIdentity("custom-development", cases[:1]) == nil {
+		t.Fatal("reserved final seed usable as development")
+	}
+	config := ArenaConfig{HoldoutSuiteID: id}
+	if validateConfirmatory(config, cases) == nil {
+		t.Fatal("unregistered final comparison accepted")
+	}
+	config.Confirmatory = &ConfirmatoryPlan{Pairs: len(cases), MinimumEffect: .05, PrecisionTarget: .1, StoppingRule: "fixed_sample"}
+	if err := validateConfirmatory(config, cases); err != nil {
+		t.Fatal(err)
+	}
+	config.Confirmatory.PrecisionTarget = .01
+	if validateConfirmatory(config, cases) == nil {
+		t.Fatal("impossible precision accepted")
+	}
+	config.Confirmatory.PrecisionTarget = .1
+	config.Confirmatory.StoppingRule = "stop_when_winning"
+	if validateConfirmatory(config, cases) == nil {
+		t.Fatal("optional stopping accepted")
+	}
+	config.Confirmatory.StoppingRule = "fixed_sample"
+	config.Confirmatory.Pairs--
+	if validateConfirmatory(config, cases) == nil {
+		t.Fatal("incomplete sample accepted")
+	}
+}
+
+func TestArenaMechanicalValidityIsNotStrength(t *testing.T) {
+	games := []ArenaGame{
+		{Seed: 1, Completed: true, CandidateSeat: 0, FinalVP: [2]int{100, 90}},
+		{Seed: 1, Completed: true, CandidateSeat: 1, FinalVP: [2]int{90, 100}},
+	}
+	summary := summarizeArena(ArenaReport{Games: games})
+	if !summary.MechanicalValid || summary.StrengthConclusion != "development_only_no_confirmatory_claim" {
+		t.Fatal(summary)
+	}
+	summary = summarizeArena(ArenaReport{Games: games, Config: ArenaConfig{Confirmatory: &ConfirmatoryPlan{MinimumEffect: .05}}})
+	if summary.StrengthConclusion != "inconclusive" {
+		t.Fatal("two wins claimed meaningful strength", summary)
+	}
+}
+
+func TestConfirmatoryRegistrationImmutable(t *testing.T) {
+	dir := t.TempDir()
+	report := ArenaReport{CandidateID: "frozen-candidate", BaselineID: "frozen-anchor"}
+	if err := writeConfirmatoryRegistration(dir, report); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeConfirmatoryRegistration(dir, report); err != nil {
+		t.Fatal(err)
+	}
+	report.CandidateID = "changed-after-looking"
+	if writeConfirmatoryRegistration(dir, report) == nil {
+		t.Fatal("changed preregistration")
 	}
 }
 

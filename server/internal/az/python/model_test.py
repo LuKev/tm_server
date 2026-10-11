@@ -26,6 +26,7 @@ from benchmark import benchmark as run_model_benchmark
 import learner as learner_module
 from learner import Example, ReplayWindow, load_replay, losses, resolve_training_steps, train
 from model import DEBUG_CONFIG, LARGE_CONFIG, MAIN_CONFIG, HexConv2d, ModelConfig, TerraMysticaNet, checkpoint_manifest, load_checkpoint, publish_checkpoint, resolve_device, resolve_model_config, save_checkpoint
+from optimizer_probe import stability_probe
 from schema import (
     ACTION_SCHEMA_VERSION,
     ACTION_FEATURE_NAMES,
@@ -453,7 +454,7 @@ class RepresentationTest(unittest.TestCase):
         )
         with tempfile.TemporaryDirectory() as directory:
             model = TerraMysticaNet(LARGE_CONFIG)
-            metrics, optimizer_state = train(
+            metrics, optimizer_state, _ = train(
                 model, replay, steps=1, batch_size=1, learning_rate=1e-4,
                 weight_decay=1e-4, seed=31, device=device,
             )
@@ -621,6 +622,10 @@ class RepresentationTest(unittest.TestCase):
                 ("engine commit mismatch", lambda value: value["manifest"].__setitem__("engine_commit", "other")),
                 ("model identity", lambda value: value["manifest"].__setitem__("model_id", "")),
                 ("search seed", lambda value: value["manifest"].pop("search_seed")),
+                ("evaluation setup seed", lambda value: value["manifest"].__setitem__("seed", 910000001)),
+                ("evaluation setup seed", lambda value: value["manifest"].__setitem__("seed", 910000028)),
+                ("evaluation setup seed", lambda value: value["manifest"].__setitem__("seed", 930000001)),
+                ("evaluation setup seed", lambda value: value["manifest"].__setitem__("seed", 930000256)),
                 ("checkpoint identity", lambda value: value["manifest"].__setitem__("model_id", "model-" + "a" * 64)),
             ]
             for expected, mutate in mutations:
@@ -686,7 +691,7 @@ class RepresentationTest(unittest.TestCase):
             bounded._example(0, 0)
             self.assertEqual(bounded.materialization_loads, 3)
             model = TerraMysticaNet(DEBUG_CONFIG)
-            metrics, _ = train(
+            metrics, _, _ = train(
                 model,
                 replay,
                 steps=50,
@@ -716,7 +721,7 @@ class RepresentationTest(unittest.TestCase):
         )
         for optimizer_name in ("sgd", "adamw"):
             model = TerraMysticaNet(DEBUG_CONFIG)
-            metrics, _ = train(
+            metrics, _, _ = train(
                 model, replay, steps=1, batch_size=1, learning_rate=1e-4,
                 weight_decay=1e-4, seed=1, optimizer_name=optimizer_name,
             )
@@ -738,18 +743,19 @@ class RepresentationTest(unittest.TestCase):
         payload = _fixture(self.fixture_binary)
         encoded = encode_position(payload["state"], payload["actions"][:2])
         replay = ReplayWindow(
-            [[Example(encoded, np.asarray([1.0, 0.0], dtype=np.float32), 1.0)]],
+            [[Example(encoded, np.asarray([1.0, 0.0], dtype=np.float32), 1.0),
+              Example(encoded, np.asarray([0.0, 1.0], dtype=np.float32), -1.0)]],
             [(7, 13)],
         )
         torch.manual_seed(91)
         initial = TerraMysticaNet(DEBUG_CONFIG)
         uninterrupted = copy.deepcopy(initial)
         split = copy.deepcopy(initial)
-        _, uninterrupted_optimizer = train(
+        _, uninterrupted_optimizer, uninterrupted_state = train(
             uninterrupted, replay, steps=4, batch_size=1, learning_rate=1e-4,
             weight_decay=1e-4, seed=7, optimizer_name="sgd",
         )
-        _, first_optimizer = train(
+        _, first_optimizer, first_state = train(
             split, replay, steps=2, batch_size=1, learning_rate=1e-4,
             weight_decay=1e-4, seed=7, optimizer_name="sgd",
         )
@@ -758,18 +764,123 @@ class RepresentationTest(unittest.TestCase):
             published = publish_checkpoint(
                 directory, split, {"test": True}, optimizer_state=first_optimizer,
                 optimizer_config=config,
+                learner_state=first_state,
             )
             resumed = TerraMysticaNet(DEBUG_CONFIG)
             checkpoint = load_checkpoint(published["path"], resumed)
             self.assertEqual(checkpoint["optimizer_config"], config)
-            _, resumed_optimizer = train(
+            _, resumed_optimizer, resumed_state = train(
                 resumed, replay, steps=2, batch_size=1, learning_rate=1e-4,
-                weight_decay=1e-4, seed=8, optimizer_name="sgd",
+                weight_decay=1e-4, seed=7, optimizer_name="sgd",
                 optimizer_state=checkpoint["optimizer_state"],
+                learner_state=checkpoint["learner_state"],
             )
         for name, expected in uninterrupted.state_dict().items():
             torch.testing.assert_close(resumed.state_dict()[name], expected, rtol=0, atol=0)
         self.assertEqual(resumed_optimizer["param_groups"], uninterrupted_optimizer["param_groups"])
+        self.assertEqual(resumed_state["sampling_rng"], uninterrupted_state["sampling_rng"])
+        self.assertEqual(resumed_state["completed_steps"], 4)
+        for index, state in uninterrupted_optimizer["state"].items():
+            for key, expected in state.items():
+                torch.testing.assert_close(resumed_optimizer["state"][index][key], expected, rtol=0, atol=0)
+        for change in ({"seed": 8}, {"batch_size": 2}, {"learning_rate": 0.01}):
+            kwargs = dict(steps=1, batch_size=1, learning_rate=1e-4, weight_decay=1e-4, seed=7)
+            kwargs.update(change)
+            with self.assertRaisesRegex(ValueError, "incompatible learner resume"):
+                train(resumed, replay, **kwargs, optimizer_state=resumed_optimizer, learner_state=resumed_state)
+        corrupted_optimizer = copy.deepcopy(resumed_optimizer)
+        corrupted_optimizer["param_groups"][0]["lr"] = 0.1
+        with self.assertRaisesRegex(ValueError, "parameter groups disagree"):
+            train(resumed, replay, steps=1, batch_size=1, learning_rate=1e-4,
+                  weight_decay=1e-4, seed=7, optimizer_state=corrupted_optimizer, learner_state=resumed_state)
+
+    def test_heldout_split_excludes_repeated_states_and_covers_strata(self) -> None:
+        # Distinct early/late phase/faction strata, each with one reserved and
+        # one optimizer position. Repeat a state in another game to test that
+        # exclusion is by position identity, not just shard membership.
+        game = learner_module.ShardGame(
+            Path("trajectory-" + "a" * 64 + ".json.gz"), (7, 13), 8,
+            tuple(f"{number:032x}" for number in (10, 11, 20, 21, 30, 31, 40, 41)),
+            ((0, 0, 7), (0, 0, 7), (2, 1, 13), (2, 1, 13),
+             (2, 6, 7), (2, 6, 7), (4, 6, 13), (4, 6, 13)),
+        )
+        replay = ReplayWindow([game, game], [(7, 13), (7, 13)], holdout=True)
+        self.assertEqual(replay.training_ply_count, 8)
+        self.assertEqual(replay.heldout_plies, [[0, 2, 4, 6], [0, 2, 4, 6]])
+        refs = replay.diagnostic_refs(4, heldout=True)
+        self.assertEqual({game.strata[ply] for _, ply in refs}, set(game.strata))
+        with mock.patch.object(replay, "_example", side_effect=lambda game, ply: (game, ply)):
+            samples = replay.sample(random.Random(43), 1000)
+        self.assertEqual({ply for _, ply in samples}, {1, 3, 5, 7})
+        self.assertTrue(set(samples).isdisjoint(replay.diagnostic_refs(100, heldout=True)))
+        reserved_only = learner_module.ShardGame(game.path, game.matchup, 1, (f"{10:032x}",), ((0, 0, 7),))
+        with self.assertRaisesRegex(ValueError, "no training positions"):
+            ReplayWindow([reserved_only], [(7, 13)], holdout=True)
+        training_only = learner_module.ShardGame(game.path, game.matchup, 1, (f"{11:032x}",), ((0, 0, 7),))
+        self.assertEqual(ReplayWindow([training_only], [(7, 13)], holdout=True).diagnostic_refs(32, heldout=True), [])
+
+    def test_mps_training_recovery_has_explicit_numerical_tolerance(self) -> None:
+        if not torch.backends.mps.is_available():
+            self.skipTest("MPS unavailable")
+        payload = _fixture(self.fixture_binary)
+        encoded = encode_position(payload["state"], payload["actions"][:2])
+        replay = ReplayWindow([[Example(encoded, np.asarray([1., 0.], dtype=np.float32), 1.),
+                               Example(encoded, np.asarray([0., 1.], dtype=np.float32), -1.)]], [(7, 13)])
+        torch.manual_seed(19)
+        initial = TerraMysticaNet(DEBUG_CONFIG)
+        full, split = copy.deepcopy(initial), copy.deepcopy(initial)
+        kwargs = dict(batch_size=2, learning_rate=1e-4, weight_decay=1e-4, seed=7, device="mps")
+        _, full_optimizer, full_state = train(full, replay, steps=4, **kwargs)
+        _, split_optimizer, split_state = train(split, replay, steps=2, **kwargs)
+        with tempfile.TemporaryDirectory() as directory:
+            published = publish_checkpoint(directory, split, {"test": True}, optimizer_state=split_optimizer,
+                                           optimizer_config=split_state["contract"]["optimizer"], learner_state=split_state)
+            resumed = TerraMysticaNet(DEBUG_CONFIG)
+            checkpoint = load_checkpoint(published["path"], resumed)
+            _, resumed_optimizer, resumed_state = train(
+                resumed, replay, steps=2, **kwargs, optimizer_state=checkpoint["optimizer_state"],
+                learner_state=checkpoint["learner_state"],
+            )
+        for name, expected in full.state_dict().items():
+            torch.testing.assert_close(resumed.state_dict()[name].cpu(), expected.cpu(), rtol=1e-4, atol=1e-5)
+        for index, state in full_optimizer["state"].items():
+            for key, expected in state.items():
+                torch.testing.assert_close(resumed_optimizer["state"][index][key].cpu(), expected.cpu(), rtol=1e-4, atol=1e-5)
+        self.assertEqual(resumed_state["sampling_rng"], full_state["sampling_rng"])
+        self.assertEqual(resumed_state["completed_steps"], full_state["completed_steps"])
+
+    def test_optimizer_probe_is_bounded_and_reports_stability(self) -> None:
+        payload = _fixture(self.fixture_binary)
+        encoded = encode_position(payload["state"], payload["actions"][:2])
+        replay = ReplayWindow([[Example(encoded, np.asarray([1., 0.], dtype=np.float32), 1.)]], [(7, 13)])
+        report = stability_probe(replay, model_config="debug", device="cpu", steps=2, batch_size=1,
+                                 learning_rates=(1e-4, 1e-3))
+        self.assertEqual(report["examples_per_training_ply"], 2)
+        self.assertEqual(report["runs"][0]["initial_model_id"], report["runs"][1]["initial_model_id"])
+        for run in report["runs"]:
+            self.assertEqual(run["status"], "finite")
+            self.assertEqual(run["completed_steps"], 2)
+            self.assertGreater(run["diagnostics"]["stability"]["max_gradient_norm"], 0)
+            self.assertLessEqual(run["diagnostics"]["stability"]["max_batch_value_saturation_fraction"], 1)
+        with self.assertRaisesRegex(ValueError, "bounded"):
+            stability_probe(replay, steps=101)
+
+    def test_replay_samples_positions_not_games_or_matchups(self) -> None:
+        replay = ReplayWindow([[None], [None] * 9], [(7, 13), (1, 2)])
+        with mock.patch.object(replay, "_example", side_effect=lambda game, ply: (game, ply)):
+            samples = replay.sample(random.Random(43), 10000)
+        first_game = sum(game == 0 for game, _ in samples)
+        self.assertTrue(850 < first_game < 1150, first_game)
+        self.assertEqual(set(samples), {(0, 0)} | {(1, ply) for ply in range(9)})
+
+    def test_learner_rejects_incompatible_or_contaminated_parent(self) -> None:
+        valid = {"provenance": {"engine_commit": "source", "replay": {"diagnostic_split": learner_module.DIAGNOSTIC_SPLIT}}}
+        learner_module.validate_parent_provenance(valid, "source")
+        with self.assertRaisesRegex(ValueError, "engine commit mismatch"):
+            learner_module.validate_parent_provenance(valid, "different-source")
+        del valid["provenance"]["replay"]["diagnostic_split"]
+        with self.assertRaisesRegex(ValueError, "predates held-out exclusion"):
+            learner_module.validate_parent_provenance(valid, "source")
 
     def test_inference_rejects_mislabeled_checkpoint_identity(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

@@ -1,4 +1,5 @@
 load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 
 # gazelle:prefix github.com/lukev/tm_server
 gazelle(name = "gazelle")
@@ -13,10 +14,21 @@ gazelle(
     command = "update-repos",
 )
 
-sh_binary(
+py_binary(
     name = "run_az_cycles",
-    srcs = ["tools/run_az_cycles.sh"],
+    srcs = ["tools/run_az_cycles.py"],
+    main = "tools/run_az_cycles.py",
+    legacy_create_init = 0,
+    data = ["WORKSPACE", "az_requirements_lock.txt"],
     visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "az_recovery_test",
+    srcs = ["tools/az_recovery_test.py", "tools/run_az_cycles.py"],
+    main = "tools/az_recovery_test.py",
+    imports = ["tools"],
+    legacy_create_init = 0,
 )
 
 sh_binary(
@@ -98,4 +110,28 @@ sh_test(
     ],
     size = "large",
     timeout = "moderate",
+)
+
+py_test(
+    name = "az_real_recovery_test",
+    deps = ["//internal/az:python_core"],
+    legacy_create_init = 0,
+    srcs = ["tools/az_real_recovery_test.py"],
+    main = "tools/az_real_recovery_test.py",
+    args = [
+        "$(location :run_az_cycles)",
+        "$(location //cmd/az_selfplay:az_selfplay)",
+        "$(location //internal/az:az_inference)",
+        "$(location //internal/az:az_learner)",
+        "$(location //cmd/az_eval:az_eval)",
+    ],
+    data = [
+        ":run_az_cycles",
+        "//cmd/az_eval:az_eval",
+        "//cmd/az_selfplay:az_selfplay",
+        "//internal/az:az_inference",
+        "//internal/az:az_learner",
+    ],
+    size = "large",
+    timeout = "long",
 )

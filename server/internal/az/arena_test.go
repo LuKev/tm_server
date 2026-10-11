@@ -38,10 +38,11 @@ func (e *batchingArenaEvaluator) Evaluate(_ context.Context, requests []Evaluati
 func TestArenaSummaryUsesPairedSeatsAndComparableDiagnostics(t *testing.T) {
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion,
-		EngineCommit:  "test-commit",
-		CandidateID:   "candidate",
-		BaselineID:    "baseline",
-		Config:        ArenaConfig{HoldoutSuiteID: "test-suite", CandidateMode: "mcts", BaselineMode: "mcts", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
+		RulesVersion:  RulesVersion, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
+		EngineCommit: "test-commit",
+		CandidateID:  "candidate",
+		BaselineID:   "baseline",
+		Config:       ArenaConfig{HoldoutSuiteID: "test-suite", CandidateMode: "mcts", BaselineMode: "mcts", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
 		Cases: []ArenaCase{
 			{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants},
 			{Seed: 2, First: models.FactionNomads, Second: models.FactionGiants},
@@ -113,6 +114,7 @@ func TestArenaFailureReportPersistsWithoutClaimingStrength(t *testing.T) {
 	failed.TripwireHits = 1
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: "test", CandidateID: "candidate", BaselineID: "baseline",
+		RulesVersion: RulesVersion, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
 		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateMode: "mcts", BaselineMode: "mcts", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
 		Cases:  []ArenaCase{{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants}},
 		Games:  []ArenaGame{complete, failed},
@@ -131,6 +133,7 @@ func TestArenaDuplicateStateInvalidatesStrength(t *testing.T) {
 	first.DuplicateStates = 1
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: "test", CandidateID: "candidate", BaselineID: "baseline",
+		RulesVersion: RulesVersion, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
 		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateMode: "mcts", BaselineMode: "mcts", CandidateSimulations: 8, BaselineSimulations: 4, GamesPerBatch: 2},
 		Cases:  []ArenaCase{{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants}},
 		Games:  []ArenaGame{first, testArenaGame(1, 1, [2]int{90, 100})},
@@ -147,6 +150,7 @@ func TestArenaDuplicateStateInvalidatesStrength(t *testing.T) {
 func TestArenaReportAllowsSameNetworkAtDifferentSearchBudgets(t *testing.T) {
 	report := ArenaReport{
 		FormatVersion: EvaluationFormatVersion, EngineCommit: "test", CandidateID: "same-model", BaselineID: "same-model",
+		RulesVersion: RulesVersion, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
 		Config: ArenaConfig{HoldoutSuiteID: "test-suite", CandidateMode: "mcts", BaselineMode: "mcts", CandidateSimulations: 32, BaselineSimulations: 1, GamesPerBatch: 2},
 		Cases:  []ArenaCase{{Seed: 1, First: models.FactionNomads, Second: models.FactionGiants}},
 		Games: []ArenaGame{

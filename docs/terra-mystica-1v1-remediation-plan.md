@@ -34,12 +34,15 @@ claims and experiment ordering. Evidence and rationale are in the
   retain complete action provenance, renamed-player replay equality and complete
   candidate-set encoding checks. Terminal display-name leakage into canonical
   hashes was repaired. This is not exhaustive rules verification.
-- R4 — in progress: replay windows use explicit oldest-to-newest input batches
+- R4 — complete for the documented stage-recovery/evaluation contract: replay windows use explicit oldest-to-newest input batches
   with content-hash ordering within each batch, independent of mtimes/absolute
   paths. Relocation and two-example seeded sampling checks cover this contract.
-  Still required: immutable cycle-parent identities, transactional stage resume,
-  RNG/cursor recovery and interruption drills, held-out diagnostics and evaluation.
-- R5 onward: not started. Expensive training remains closed until R4 passes.
+  Immutable cycle-parent identities, transactional stage resume, RNG/cursor
+  recovery, held-out diagnostics and development/final evaluation separation are
+  implemented and adversarially reviewed. The real CPU interruption/relocation
+  drill passes; the recovery package was uploaded to Drive, downloaded with an
+  identical SHA-256, and successfully resumed locally. See evidence below.
+- R5 — starting the bounded fresh-lineage protocol below. R6 onward not started.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
@@ -58,7 +61,7 @@ policy/value network, search-derived policy targets, terminal WDL values, and
 continual latest-network self-play. Keep the residual hex-CNN as the baseline.
 Do not use a 55% promotion gate to block learning; deployment selection is separate.
 
-Do not restart expensive training on the current rules. Preserve existing runs
+Do not restart expensive training until the R4 recovery/evaluation gates pass. Preserve existing runs
 as historical artifacts, not admissible new training data or validated strength
 benchmarks. No destructive cleanup or blanket rewrite is required.
 
@@ -193,7 +196,7 @@ driven by serialization order. Use debug models and fixtures, not long training.
 
 ## R4 — Make training recoverable and evaluation trustworthy
 
-Recovery (`tools/run_az_cycles.sh`, checkpoint/trajectory/learner code):
+Recovery (`tools/run_az_cycles.py`, checkpoint/trajectory/learner code):
 
 - Add explicit new-run and resume modes. Persist last completed stage, next
   cycle, immutable checkpoint/replay identities, optimizer and random state,
@@ -239,6 +242,67 @@ mechanical validity from strength evidence; evaluation cannot contaminate traini
 Keep evaluation bounded and less frequent than training; a separate service is
 not required yet.
 
+Implementation contract (2026-10-10): the sequential runner requires explicit
+`--mode new|resume`. Recovery retries only an unpublished stage from its pinned
+parent and seeds; partial attempts are quarantined, not admitted to replay. This
+is stage-level recovery, not live minibatch checkpointing. A completed stage has
+a SHA-256 inventory and journal entry; configuration and executable/source
+identity are immutable. Resume cannot extend the configured cycle count or
+silently change device settings, training settings, or source revision. Runtime
+identity trusts Bazel's pinned interpreter/wheel definitions; it is not an audit
+against a maliciously modified dependency cache or a physical-chip fingerprint.
+
+Learner checkpoints persist optimizer state, sampling/Torch RNG states, and an
+update cursor. `--resume-training` continues the same validated replay stream;
+normal cycle transitions retain optimizer state but begin a new seeded stream.
+Ten percent of canonical state hashes are permanently excluded from optimizer
+sampling for development diagnostics, with phase/round/faction coverage reported.
+The same state remains excluded if encountered in a later game or cycle. These
+are correlated within-game diagnostics, not independent strength measurements.
+
+Evaluation format 7 calls integrity `mechanical_valid`; the deprecated
+`strength_valid` alias means exactly the same thing, not evidence of improvement.
+The old 28-case suite is development-only. A separate reserved 256-case suite
+requires effect/precision/fixed-sample preregistration before play; both suites'
+setup seeds are forbidden in actors and learner replay. The final suite is
+operationally single-use: after inspecting its outcomes, retire/version it for
+later confirmatory claims. A new output directory does not make exposed cases
+untouched again. No final-suite games have been played in this increment.
+
+The heuristic baseline is deliberately simple: prefer build-dwelling actions,
+then building upgrades, then other legal actions; pass/finish before generic
+resource conversions or power burns. Required decisions use legal actions with seeded ties.
+It performs no search and is a reproducible weak baseline, not expert play.
+
+R4 acceptance evidence, 2026-10-10:
+
+- All 17 backend/AI/recovery/loop targets passed uncached across the broad run
+  and corrected real-drill rerun. `//internal/az:az_test` took 188.3 seconds;
+  Python's 29 tests passed in 35.2 seconds, including exact CPU and tolerant MPS
+  split/resume tests. `//:az_real_recovery_test` passed in 95.3 seconds.
+  The broad run's initial drill failure was a test-output path outside Bazel's
+  writable sandbox; it now retains evidence through Bazel undeclared outputs.
+- Generic actor/learner/evaluation transaction tests inject failures after the
+  command, before directory publication and after publication. The real drill
+  kills an actor after partial cycle-2 output, archives a run with a completed
+  cycle-1 checkpoint, relocates it, and proves exact trajectory IDs, weights,
+  optimizer, RNG/cursor and unchanged repeated resume against the same pinned
+  parent. It does not claim to have killed all three real workloads mid-compute.
+- Adversarial reviews found and resolved a signal-handler wait deadlock,
+  latest-pointer rollback during resume, missing-journal corruption handling,
+  and launcher-only source identity. Learner/evaluation/probe reviews found no
+  remaining blocking correctness or simplicity issue. Independent new runs may
+  have different checkpoint byte hashes because timing provenance differs;
+  exact recovery comparisons share the same immutable parent package.
+- Durable [recovery package](https://drive.google.com/file/d/1O28f6a4BLpmkeCBf5gWKk2dSAY5OK81O/view)
+  is 5,832,122 bytes, SHA-256
+  `722c05e5c1b9c58d07877c9d0b1add1f2e2451c77c117ca51068156ecb433204`.
+  Cloud readback matched byte-for-byte; a fresh extraction resumed successfully
+  to model `67482a386d00feafd41aef985917f6a8d55c5acb97c9b542324dd4f4ea3c6911`,
+  matching the uninterrupted reference. Local evidence is retained under
+  `artifacts/az/r4-recovery-20261010/`. This debug recovery model is not a
+  promoted playing-strength checkpoint and will not warm-start R5.
+
 ## R5 — Demonstrate learning on the corrected game
 
 Start a fresh lineage after R1–R4; do not warm-start the headline experiment from
@@ -278,6 +342,46 @@ Experiment order:
    substitute for this learning experiment.
 5. Evaluate planned snapshots against frozen anchors on development setups;
    perform a preregistered final comparison on untouched setups.
+
+First corrected pilot protocol (declared before results, 2026-10-10):
+
+- Fresh main 10×128 network; no historical checkpoint or replay. A separate
+  14-game corrected-data bootstrap is permitted only for a bounded optimizer
+  screen, not as a warm-start checkpoint. Compare momentum-SGD learning rates
+  1e-4, 3e-4 and 1e-3 for 20 steps at batch 32 with identical initialization and
+  sampled positions. Prefer the largest tested rate with finite gradients/loss,
+  maximum unclipped gradient norm below 100, less than 10% value saturation
+  (absolute value output at least 0.95), and no greater
+  than 10% increase in held-out diagnostic loss. If none qualifies, stop and
+  inspect rather than launching the pilot. This screen does not establish an
+  optimal rate or learning strength.
+- Measure synthetic main-network learner throughput at batches 32/64/128, plus
+  corrected same-initial-network development searches at policy-only/8/32/128
+  on a small fixed prefix. These are sanity/throughput screens, not a contest to
+  choose the strongest untrained network. Begin the modest pilot at 8 simulations
+  unless measured failures make that setting unusable; revisit on trained data.
+- Bound the pilot to four cycles × 32 newly generated games, 100 SGD updates per
+  cycle at batch 32, and at most 128 recent shards. Sample eligible positions
+  uniformly. Use MPS for inference/learning with one Torch CPU thread, bounded
+  actor concurrency, and no overlap between actors and learner on this Mac.
+  Record actual sampled examples per new position from actor and learner counts.
+- Run weak-baseline sanity checks once on two development pairs against uniform
+  MCTS, random, heuristic and policy-only. For recurring pilot evaluation use
+  `TM_AZ_EVAL_BASELINES=previous,anchor` with `TM_AZ_EVAL_EVERY=2`: evaluate cycles
+  2 and 4 on eight development setup pairs with fixed search budgets against
+  previous and cycle-1 frozen weights where applicable. The identical previous/
+  anchor at cycle 2 is evaluated once. This bounds recurring arena work to 48
+  games, rather than letting a six-baseline matrix dominate the 128 training
+  games. Cycle 1 is an early trained anchor,
+  not an expert baseline. This small screen has wide paired intervals and is
+  exploratory: do not infer confirmed improvement from a favorable point estimate.
+  Eight pairs give a conservative Hoeffding half-width of about 0.48; modest
+  gains need a substantially larger subsequent comparison. Four hundred updates
+  without improvement would likewise not establish that learning cannot work.
+- Stop for invalid/incomplete games, non-finite training, failed provenance, or
+  failed recovery. Continue latest-network learning independently of arena WDL;
+  no 55% promotion gate. The final 256-case suite remains untouched. Subsequent
+  multi-seed/equal-compute runs are required before closing R5.
 
 Exit: repeatable improvement across runs and held-out opponents with uncertainty
 appropriate to the claim, no rules/integrity failures, and finite stable training.
@@ -341,7 +445,7 @@ promise is credible until the independent conformance audit bounds the unknowns.
 Existing core regression command, from `server/`:
 
 ```sh
-bazel test //internal/game/... //internal/az:az_test //internal/az:python_test //:az_loop_smoke_test //:az_scaling_curves_smoke_test --test_output=errors --nocache_test_results
+bazel test //internal/... //cmd/... //:az_recovery_test //:az_real_recovery_test //:az_loop_smoke_test //:az_scaling_curves_smoke_test --test_output=errors --nocache_test_results --test_timeout=900
 ```
 
 Add new fixtures and recovery/evaluation checks to appropriate Bazel targets.
@@ -352,5 +456,5 @@ adjudicated-fixture and evidence criteria above.
 
 The initial R0–R2 implementation and clarification follow-up are complete for
 the documented competition contract. R3 is complete at its documented confidence
-level. Next is R4 recovery/evaluation, starting with immutable cycle-parent
-identities and retry-safe stage publication. No new training campaign until R4 passes.
+level. R4 passed its documented recovery/evaluation gates. Next is the bounded
+R5 fresh-lineage stability screen and pilot; no confirmed strength claim yet.

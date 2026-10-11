@@ -54,6 +54,7 @@ go_test(
 
 py_library(
     name = "python_core",
+    visibility = ["//:__pkg__"],
     srcs = [
         "python/__init__.py",
         "python/batching.py",
@@ -94,6 +95,15 @@ py_binary(
     deps = [":python_core"],
 )
 
+py_binary(
+    name = "az_optimizer_probe",
+    srcs = ["python/learner.py", "python/optimizer_probe.py"],
+    legacy_create_init = 0,
+    main = "python/optimizer_probe.py",
+    visibility = ["//visibility:public"],
+    deps = [":python_core"],
+)
+
 py_test(
     name = "python_encoding_test",
     srcs = ["python/encoding_audit_test.py"],
@@ -123,6 +133,7 @@ py_test(
         "python/benchmark.py",
         "python/learner.py",
         "python/model_test.py",
+        "python/optimizer_probe.py",
     ],
     args = [
         "$(location //cmd/az_fixture:az_fixture)",

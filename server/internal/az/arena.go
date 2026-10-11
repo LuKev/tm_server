@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	EvaluationFormatVersion = 6
+	EvaluationFormatVersion = 7
 	HoldoutSuiteID          = "tm-v0-paired-v2"
+	ConfirmatorySuiteID     = "tm-rules2-confirmatory-v1"
 	arenaCandidateAgent     = "candidate"
 	arenaBaselineAgent      = "baseline"
 )
@@ -64,6 +65,26 @@ var holdoutCases = []ArenaCase{
 
 func HoldoutCases() []ArenaCase { return append([]ArenaCase(nil), holdoutCases...) }
 
+// Existing holdouts have been repeatedly inspected: they are development data.
+// Reserve this separate suite for one fixed-sample, preregistered comparison.
+// Constructing/validating cases does not play or expose their outcomes.
+func ConfirmatoryCases() []ArenaCase {
+	cases := make([]ArenaCase, 256)
+	for i := range cases {
+		cases[i] = holdoutCases[i%len(holdoutCases)]
+		cases[i].Seed = 930000001 + int64(i)
+	}
+	return cases
+}
+
+func ConfirmatorySuiteIdentity(cases []ArenaCase) (string, error) {
+	all := ConfirmatoryCases()
+	if len(cases) == 0 || len(cases) > len(all) || !reflect.DeepEqual(cases, all[:len(cases)]) {
+		return "", fmt.Errorf("cases are not an ordered prefix of %s", ConfirmatorySuiteID)
+	}
+	return fmt.Sprintf("%s-prefix-%d", ConfirmatorySuiteID, len(cases)), nil
+}
+
 func HoldoutSuiteIdentity(cases []ArenaCase) (string, error) {
 	if len(cases) == 0 || len(cases) > len(holdoutCases) || !reflect.DeepEqual(cases, holdoutCases[:len(cases)]) {
 		return "", fmt.Errorf("cases are not an ordered prefix of %s", HoldoutSuiteID)
@@ -75,6 +96,9 @@ func HoldoutSuiteIdentity(cases []ArenaCase) (string, error) {
 }
 
 func IsHoldoutSeed(seed int64) bool {
+	if seed >= 930000001 && seed <= 930000256 {
+		return true
+	}
 	for _, item := range holdoutCases {
 		if item.Seed == seed {
 			return true
@@ -84,14 +108,41 @@ func IsHoldoutSeed(seed int64) bool {
 }
 
 type ArenaConfig struct {
-	HoldoutSuiteID       string  `json:"holdout_suite_id"`
-	CandidateMode        string  `json:"candidate_mode"`
-	BaselineMode         string  `json:"baseline_mode"`
-	CandidateSimulations int     `json:"candidate_simulations"`
-	BaselineSimulations  int     `json:"baseline_simulations"`
-	GamesPerBatch        int     `json:"games_per_batch"`
-	CPUCT                float64 `json:"c_puct"`
-	MaxPlies             int     `json:"max_plies"`
+	RegistrationDirectory string            `json:"-"`
+	Confirmatory          *ConfirmatoryPlan `json:"confirmatory_plan,omitempty"`
+	HoldoutSuiteID        string            `json:"holdout_suite_id"`
+	CandidateMode         string            `json:"candidate_mode"`
+	BaselineMode          string            `json:"baseline_mode"`
+	CandidateSimulations  int               `json:"candidate_simulations"`
+	BaselineSimulations   int               `json:"baseline_simulations"`
+	GamesPerBatch         int               `json:"games_per_batch"`
+	CPUCT                 float64           `json:"c_puct"`
+	MaxPlies              int               `json:"max_plies"`
+}
+
+// All values are frozen before play. Pair count, not positions or games, is the
+// independent sample size; no optional stopping or repeated-look claims.
+type ConfirmatoryPlan struct {
+	Pairs           int     `json:"pairs"`
+	MinimumEffect   float64 `json:"minimum_score_effect_above_half"`
+	PrecisionTarget float64 `json:"maximum_95_half_width"`
+	StoppingRule    string  `json:"stopping_rule"`
+}
+
+func validateConfirmatory(config ArenaConfig, cases []ArenaCase) error {
+	final := strings.HasPrefix(config.HoldoutSuiteID, ConfirmatorySuiteID)
+	if !final && config.Confirmatory == nil {
+		return nil
+	}
+	p := config.Confirmatory
+	if !final || p == nil || p.Pairs != len(cases) || p.StoppingRule != "fixed_sample" ||
+		!(p.MinimumEffect > 0 && p.MinimumEffect < .5) || !(p.PrecisionTarget > 0 && p.PrecisionTarget < .5) {
+		return fmt.Errorf("confirmatory suite requires a fixed-sample plan with matching pairs and effect/precision in (0,.5)")
+	}
+	if math.Sqrt(math.Log(40)/(2*float64(p.Pairs))) > p.PrecisionTarget {
+		return fmt.Errorf("confirmatory pair count cannot meet preregistered precision target")
+	}
+	return nil
 }
 
 // Empty mode retains the existing MCTS API default. Persist normalized names
@@ -106,10 +157,10 @@ func normalizeArenaMode(mode string, simulations int) (string, int, error) {
 		if simulations <= 0 {
 			return "", 0, fmt.Errorf("MCTS arena simulations must be positive")
 		}
-	case "policy", "random":
+	case "policy", "random", "heuristic":
 		simulations = 0
 	default:
-		return "", 0, fmt.Errorf("unknown arena mode %q; use mcts, policy, or random", mode)
+		return "", 0, fmt.Errorf("unknown arena mode %q; use mcts, policy, random, or heuristic", mode)
 	}
 	return mode, simulations, nil
 }
@@ -117,6 +168,35 @@ func normalizeArenaMode(mode string, simulations int) (string, int, error) {
 type randomLegalEvaluator struct{ UniformEvaluator }
 
 func (randomLegalEvaluator) ModelID() string { return "random-legal" }
+
+// Deliberately simple, frozen non-neural baseline: build > upgrade > useful
+// action > pass/end > optional conversions/burn. Equal priorities use the same
+// seeded action-key tie rule as policy-only. It never searches or estimates value.
+type heuristicEvaluator struct{}
+
+func (heuristicEvaluator) ModelID() string { return "build-first-heuristic-v1" }
+func (heuristicEvaluator) Evaluate(_ context.Context, requests []EvaluationRequest) ([]EvaluationResult, error) {
+	results := make([]EvaluationResult, len(requests))
+	for i, request := range requests {
+		results[i].PolicyLogits = make([]float32, len(request.Actions))
+		for j, action := range request.Actions {
+			priority := float32(2)
+			if _, builds := actionBuilding(action); builds {
+				priority = 4
+			}
+			switch action.Kind {
+			case game.ActionUpgradeBuilding:
+				priority = 3
+			case game.ActionPass, game.ActionFinishTurn:
+				priority = 1
+			case game.ActionConversion, game.ActionBurnPower:
+				priority = 0
+			}
+			results[i].PolicyLogits[j] = priority
+		}
+	}
+	return results, nil
+}
 
 type AgentPrediction struct {
 	AgentID       string  `json:"agent_id"`
@@ -178,6 +258,8 @@ type ArenaSummary struct {
 	Games                  int                                   `json:"games"`
 	CompletePairs          int                                   `json:"complete_pairs"`
 	StrengthValid          bool                                  `json:"strength_valid"`
+	MechanicalValid        bool                                  `json:"mechanical_valid"`
+	StrengthConclusion     string                                `json:"strength_conclusion"`
 	Wins                   Proportion                            `json:"wins"`
 	Draws                  Proportion                            `json:"draws"`
 	Losses                 Proportion                            `json:"losses"`
@@ -205,6 +287,9 @@ type ArenaSummary struct {
 }
 
 type ArenaReport struct {
+	RulesVersion              int          `json:"rules_version"`
+	StateVersion              int          `json:"state_version"`
+	ActionVersion             int          `json:"action_version"`
 	FormatVersion             int          `json:"format_version"`
 	EngineCommit              string       `json:"engine_commit"`
 	CandidateID               string       `json:"candidate_id"`
@@ -233,6 +318,12 @@ func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []
 	if config.BaselineMode == "random" {
 		baseline = randomLegalEvaluator{}
 	}
+	if config.CandidateMode == "heuristic" {
+		candidate = heuristicEvaluator{}
+	}
+	if config.BaselineMode == "heuristic" {
+		baseline = heuristicEvaluator{}
+	}
 	candidateID, err := evaluatorModelID(candidate)
 	if err != nil {
 		return ArenaReport{}, fmt.Errorf("candidate: %w", err)
@@ -248,6 +339,9 @@ func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []
 		return ArenaReport{}, fmt.Errorf("arena holdout suite identity is required")
 	}
 	if err := validateHoldoutSuiteIdentity(config.HoldoutSuiteID, cases); err != nil {
+		return ArenaReport{}, err
+	}
+	if err := validateConfirmatory(config, cases); err != nil {
 		return ArenaReport{}, err
 	}
 	if engineCommit == "" {
@@ -271,10 +365,16 @@ func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []
 	agents := map[string]Evaluator{arenaCandidateAgent: candidate, arenaBaselineAgent: baseline}
 	games := make([]ArenaGame, 0, len(cases)*2)
 	report := ArenaReport{
+		RulesVersion: RulesVersion, StateVersion: StateSchemaVersion, ActionVersion: ActionSchemaVersion,
 		FormatVersion: EvaluationFormatVersion, EngineCommit: engineCommit,
 		CandidateID: candidateID, CandidateCheckpointSHA256: evaluatorCheckpointHash(candidate),
 		BaselineID: baselineID, BaselineCheckpointSHA256: evaluatorCheckpointHash(baseline),
 		Config: config, Cases: append([]ArenaCase(nil), cases...),
+	}
+	if config.Confirmatory != nil {
+		if err := writeConfirmatoryRegistration(config.RegistrationDirectory, report); err != nil {
+			return ArenaReport{}, err
+		}
 	}
 	casesPerBatch := config.GamesPerBatch / 2
 	for start := 0; start < len(cases); start += casesPerBatch {
@@ -307,6 +407,52 @@ func RunPairedArena(ctx context.Context, candidate, baseline Evaluator, cases []
 	report.Games = games
 	report.Summary = summarizeArena(report)
 	return report, nil
+}
+
+// Publish the complete frozen comparison before any final-suite game starts.
+// A rerun may recover the same experiment, never change its identities/budgets.
+func writeConfirmatoryRegistration(directory string, report ArenaReport) error {
+	if directory == "" {
+		return fmt.Errorf("confirmatory evaluation requires durable registration directory")
+	}
+	report.Games = nil
+	report.Summary = ArenaSummary{}
+	raw, err := json.Marshal(report)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(directory, 0o755); err != nil {
+		return err
+	}
+	path := filepath.Join(directory, "confirmatory-registration.json")
+	if old, err := os.ReadFile(path); err == nil {
+		if string(old) != string(raw) {
+			return fmt.Errorf("confirmatory registration already exists with different experiment")
+		}
+		return nil
+	} else if !os.IsNotExist(err) {
+		return err
+	}
+	f, err := os.CreateTemp(directory, ".registration-*.tmp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(f.Name())
+	defer f.Close()
+	if _, err = f.Write(raw); err != nil {
+		return err
+	}
+	if err = f.Sync(); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
+		return err
+	}
+	// Link is atomic and cannot overwrite a concurrent registration.
+	if err = os.Link(f.Name(), path); err != nil {
+		return err
+	}
+	return os.Chmod(path, 0o444)
 }
 
 func evaluatorCheckpointHash(evaluator Evaluator) string {
@@ -498,7 +644,10 @@ func selectArenaActions(ctx context.Context, evaluator Evaluator, mode string, c
 	}
 	// Zero traversals evaluate the root policy only; no child is applied or
 	// evaluated. The search result's prior argmax supplies the same tie contract.
-	if mode == "policy" {
+	if mode == "heuristic" {
+		evaluator = heuristicEvaluator{}
+	}
+	if mode == "policy" || mode == "heuristic" {
 		config.DirichletEpsilon = 0
 	}
 	search, err := NewMCTS(evaluator, config)
@@ -691,6 +840,13 @@ func summarizeArena(report ArenaReport) ArenaSummary {
 	intervals := pairedIntervals95(report.Games)
 	summary.CompletePairs = intervals.pairs
 	summary.StrengthValid = summary.NaturalCompletions == len(report.Games) && intervals.pairs*2 == len(report.Games) && summary.InvalidActions == 0 && summary.TripwireHits == 0 && summary.InfrastructureFailures == 0 && summary.DuplicateStates == 0
+	// Deprecated compatibility alias: strength_valid has ONLY ever established
+	// mechanical completion, not evidence that the candidate is stronger.
+	summary.MechanicalValid = summary.StrengthValid
+	summary.StrengthConclusion = "development_only_no_confirmatory_claim"
+	if !summary.MechanicalValid {
+		summary.StrengthConclusion = "invalid_mechanical_integrity"
+	}
 	if n == 0 {
 		summary.Wins = Proportion{Low95: intervals.win[0], High95: intervals.win[1]}
 		summary.Draws = Proportion{Low95: intervals.draw[0], High95: intervals.draw[1]}
@@ -704,6 +860,14 @@ func summarizeArena(report ArenaReport) ArenaSummary {
 	summary.Losses = Proportion{Count: losses, Rate: float64(losses) / n, Low95: intervals.loss[0], High95: intervals.loss[1]}
 	summary.ScoreRate = (float64(wins) + 0.5*float64(draws)) / n
 	summary.ScoreLow95, summary.ScoreHigh95 = intervals.score[0], intervals.score[1]
+	if report.Config.Confirmatory != nil && summary.MechanicalValid {
+		summary.StrengthConclusion = "inconclusive"
+		if summary.ScoreLow95 > .5+report.Config.Confirmatory.MinimumEffect {
+			summary.StrengthConclusion = "exceeds_preregistered_minimum_effect"
+		} else if summary.ScoreHigh95 < .5+report.Config.Confirmatory.MinimumEffect {
+			summary.StrengthConclusion = "below_preregistered_minimum_effect"
+		}
+	}
 	summary.PairedUncertainty = summary.ConfidenceMethod
 	if summary.StrengthValid {
 		smoothedScore := (float64(wins) + 0.5*float64(draws) + 0.5) / (n + 1)
@@ -903,6 +1067,9 @@ func WriteArenaReport(directory string, report ArenaReport) (ReportRef, error) {
 }
 
 func validateArenaReport(report ArenaReport) error {
+	if report.RulesVersion != RulesVersion || report.StateVersion != StateSchemaVersion || report.ActionVersion != ActionSchemaVersion {
+		return fmt.Errorf("arena report rules/state/action version mismatch")
+	}
 	if report.FormatVersion != EvaluationFormatVersion || report.EngineCommit == "" || report.CandidateID == "" || report.BaselineID == "" {
 		return fmt.Errorf("refusing to persist incomplete arena report")
 	}
@@ -922,6 +1089,9 @@ func validateArenaReport(report ArenaReport) error {
 		}
 	}
 	if err := validateHoldoutSuiteIdentity(report.Config.HoldoutSuiteID, report.Cases); err != nil {
+		return err
+	}
+	if err := validateConfirmatory(report.Config, report.Cases); err != nil {
 		return err
 	}
 	if len(report.Cases) == 0 || len(report.Games) != 2*len(report.Cases) {
@@ -968,6 +1138,18 @@ func validateArenaReport(report ArenaReport) error {
 }
 
 func validateHoldoutSuiteIdentity(identity string, cases []ArenaCase) error {
+	for _, item := range cases {
+		if item.Seed >= 930000001 && item.Seed <= 930000256 && !strings.HasPrefix(identity, ConfirmatorySuiteID) {
+			return fmt.Errorf("reserved confirmatory seed cannot be used in development/custom evaluation")
+		}
+	}
+	if strings.HasPrefix(identity, ConfirmatorySuiteID) {
+		expected, err := ConfirmatorySuiteIdentity(cases)
+		if err != nil || identity != expected {
+			return fmt.Errorf("confirmatory suite identity does not match cases")
+		}
+		return nil
+	}
 	if !strings.HasPrefix(identity, HoldoutSuiteID) {
 		return nil
 	}

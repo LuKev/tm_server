@@ -20,8 +20,11 @@ func main() {
 		baselineCheckpoint  = flag.String("baseline-checkpoint", "", "baseline snapshot; empty uses random initialization")
 		baselineLatest      = flag.String("baseline-latest", "", "baseline latest.json")
 		baselineUniform     = flag.Bool("baseline-uniform", false, "use exact uniform-policy/zero-value ancestor")
-		candidateMode       = flag.String("candidate-mode", "mcts", "candidate decision mode: mcts, policy, random")
-		baselineMode        = flag.String("baseline-mode", "mcts", "baseline decision mode: mcts, policy, random; uniform MCTS is not random play")
+		candidateMode       = flag.String("candidate-mode", "mcts", "candidate decision mode: mcts, policy, random, heuristic")
+		baselineMode        = flag.String("baseline-mode", "mcts", "baseline decision mode: mcts, policy, random, heuristic; uniform MCTS is not random play")
+		suite               = flag.String("suite", "development", "development or confirmatory; confirmatory requires a preregistered fixed sample")
+		minimumEffect       = flag.Float64("minimum-effect", 0, "confirmatory minimum worthwhile score rate above 0.5")
+		precisionTarget     = flag.Float64("precision-target", 0, "confirmatory maximum 95% interval half-width")
 		modelConfig         = flag.String("model-config", "auto", "auto, debug, main, or large")
 		inferenceDevice     = flag.String("inference-device", "cpu", "inference device: cpu, cuda, mps, or auto")
 		inferenceThreads    = flag.Int("inference-torch-threads", 1, "PyTorch CPU threads; zero keeps the default")
@@ -41,11 +44,12 @@ func main() {
 		fatal(fmt.Errorf("--output and --engine-commit are required"))
 	}
 	for _, mode := range []string{*candidateMode, *baselineMode} {
-		if mode != "mcts" && mode != "policy" && mode != "random" {
+		if mode != "mcts" && mode != "policy" && mode != "random" && mode != "heuristic" {
 			fatal(fmt.Errorf("unknown decision mode %q", mode))
 		}
 	}
-	if *inference == "" && (*candidateMode != "random" || (*baselineMode != "random" && !*baselineUniform)) {
+	neural := func(mode string) bool { return mode == "mcts" || mode == "policy" }
+	if *inference == "" && (neural(*candidateMode) || (neural(*baselineMode) && !*baselineUniform)) {
 		fatal(fmt.Errorf("--inference is required for neural agents"))
 	}
 	candidatePath, err := az.ResolveCheckpointReference(*candidateCheckpoint, *candidateLatest)
@@ -59,14 +63,14 @@ func main() {
 	if *baselineUniform && baselinePath != "" {
 		fatal(fmt.Errorf("--baseline-uniform cannot be combined with a baseline checkpoint"))
 	}
-	if (*candidateMode == "random" && candidatePath != "") || (*baselineMode == "random" && (baselinePath != "" || *baselineUniform)) {
-		fatal(fmt.Errorf("random mode cannot use a checkpoint or --baseline-uniform"))
+	if (!neural(*candidateMode) && candidatePath != "") || (!neural(*baselineMode) && (baselinePath != "" || *baselineUniform)) {
+		fatal(fmt.Errorf("non-neural modes cannot use a checkpoint or --baseline-uniform"))
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 	var candidate az.Evaluator = az.UniformEvaluator{}
-	if *candidateMode != "random" {
+	if neural(*candidateMode) {
 		process, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, az.PythonEvaluatorOptions{
 			Checkpoint: candidatePath, ModelConfig: *modelConfig, Device: *inferenceDevice,
 			Seed: *candidateSeed, TorchThreads: *inferenceThreads,
@@ -78,8 +82,8 @@ func main() {
 		candidate = process
 	}
 	var baseline az.Evaluator = az.UniformEvaluator{}
-	if !*baselineUniform && *baselineMode != "random" {
-		if *candidateMode != "random" && baselinePath == candidatePath && *baselineSeed == *candidateSeed {
+	if !*baselineUniform && neural(*baselineMode) {
+		if neural(*candidateMode) && baselinePath == candidatePath && *baselineSeed == *candidateSeed {
 			baseline = candidate
 		} else {
 			baselineProcess, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, az.PythonEvaluatorOptions{
@@ -95,6 +99,11 @@ func main() {
 	}
 
 	cases := az.HoldoutCases()
+	if *suite == "confirmatory" {
+		cases = az.ConfirmatoryCases()
+	} else if *suite != "development" {
+		fatal(fmt.Errorf("unknown suite %q", *suite))
+	}
 	if *caseCount < 0 || *caseCount > len(cases) {
 		fatal(fmt.Errorf("--cases must be between 0 and %d", len(cases)))
 	}
@@ -102,6 +111,13 @@ func main() {
 		cases = cases[:*caseCount]
 	}
 	holdoutSuiteID, err := az.HoldoutSuiteIdentity(cases)
+	var confirmatory *az.ConfirmatoryPlan
+	if *suite == "confirmatory" {
+		holdoutSuiteID, err = az.ConfirmatorySuiteIdentity(cases)
+		confirmatory = &az.ConfirmatoryPlan{Pairs: len(cases), MinimumEffect: *minimumEffect, PrecisionTarget: *precisionTarget, StoppingRule: "fixed_sample"}
+	} else if *minimumEffect != 0 || *precisionTarget != 0 {
+		fatal(fmt.Errorf("confirmatory flags require --suite confirmatory"))
+	}
 	if err != nil {
 		fatal(err)
 	}
@@ -113,8 +129,10 @@ func main() {
 		baselineBudget = *simulations
 	}
 	report, err := az.RunPairedArena(ctx, candidate, baseline, cases, az.ArenaConfig{
-		HoldoutSuiteID: holdoutSuiteID,
-		CandidateMode:  *candidateMode, BaselineMode: *baselineMode,
+		RegistrationDirectory: *output,
+		HoldoutSuiteID:        holdoutSuiteID,
+		Confirmatory:          confirmatory,
+		CandidateMode:         *candidateMode, BaselineMode: *baselineMode,
 		CandidateSimulations: candidateBudget, BaselineSimulations: baselineBudget,
 		GamesPerBatch: *gamesPerBatch, CPUCT: 1.5, MaxPlies: *maxPlies,
 	}, *engineCommit)
@@ -134,8 +152,8 @@ func main() {
 	if err != nil {
 		fatal(err)
 	}
-	if !report.Summary.StrengthValid {
-		fatal(fmt.Errorf("arena attempt recorded failures; strength result is invalid"))
+	if !report.Summary.MechanicalValid {
+		fatal(fmt.Errorf("arena attempt recorded failures; mechanical integrity is invalid"))
 	}
 }
 
