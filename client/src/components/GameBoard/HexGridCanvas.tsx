@@ -4,7 +4,10 @@ import type { MapHexData } from '../../types/map.types';
 import { buildDisplayCoordinateMap, formatDisplayCoordinate, getDisplayCoordinate, hexCenter, HEX_SIZE } from '../../utils/hexUtils';
 import { TERRAIN_COLORS, FACTION_COLORS, getContrastColor } from '../../utils/colors';
 import type { Building, Bridge } from '../../types/game.types';
-import { BuildingType, FactionType, TerrainType, TownTileId } from '../../types/game.types';
+import { BuildingType, FactionType, TerrainType } from '../../types/game.types';
+import { TOWN_TILES } from '../../data/townTiles';
+import { TownTileFace } from '../shared/TownTileFace';
+import { drawTownTileFace } from '../shared/townTileGeometry';
 import { gameThemeColor } from '../../utils/gameTheme';
 
 interface HexGridCanvasProps {
@@ -22,51 +25,6 @@ interface HexGridCanvasProps {
   testId?: string;
 }
 
-const drawRoundedRect = (
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-): void => {
-  const r = Math.min(radius, width / 2, height / 2);
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + width - r, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + r);
-  ctx.lineTo(x + width, y + height - r);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
-  ctx.lineTo(x + r, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-};
-
-const getTownTileMarker = (tileType: TownTileId): { vp: string; reward: string } => {
-  switch (tileType) {
-    case TownTileId.Vp5Coins6:
-      return { vp: '5 VP', reward: '6C' };
-    case TownTileId.Vp6Power8:
-      return { vp: '6 VP', reward: '8PW' };
-    case TownTileId.Vp7Workers2:
-      return { vp: '7 VP', reward: '2W' };
-    case TownTileId.Vp4Ship1:
-      return { vp: '4 VP', reward: 'SHIP' };
-    case TownTileId.Vp8Cult1:
-      return { vp: '8 VP', reward: 'CULT' };
-    case TownTileId.Vp9Priest1:
-      return { vp: '9 VP', reward: '1P' };
-    case TownTileId.Vp11:
-      return { vp: '11 VP', reward: '' };
-    case TownTileId.Vp2Cult2:
-      return { vp: '2 VP', reward: '2 CULT' };
-    default:
-      return { vp: 'TOWN', reward: '' };
-  }
-};
-
 export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   hexes,
   buildings = new Map<string, Building>(),
@@ -82,6 +40,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   testId,
 }): React.ReactElement => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [hoveredTown, setHoveredTown] = useState<string | null>(null);
+  const [keyboardPreview, setKeyboardPreview] = useState(false);
   const [keyboardHex, setKeyboardHex] = useState(0);
   const [keyboardFocused, setKeyboardFocused] = useState(false);
   const [canvasMetrics, setCanvasMetrics] = useState(() => ({
@@ -280,19 +240,25 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Show coordinates when showCoords is true
-    if (showCoords) {
-      const displayCoord = getDisplayCoordinate(hex.coord, displayCoordinates)
-      if (displayCoord === null) return
-      ctx.save();
-      ctx.fillStyle = getContrastColor(fillColor);
-      ctx.font = '10px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(displayCoord, center.x, center.y);
-      ctx.restore();
-    }
-  }, [displayCoordinates, showCoords]);
+  }, []);
+
+  // Labels stay readable above pieces and town tiles, including when markings
+  // are restored after a player temporarily hides them.
+  const drawCoordinate = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
+    if (!showCoords) return;
+    const displayCoord = getDisplayCoordinate(hex.coord, displayCoordinates);
+    if (displayCoord === null) return;
+    const center = hexCenter(hex.coord.r, hex.coord.q);
+    const occupied = buildings.has(`${String(hex.coord.q)},${String(hex.coord.r)}`) || hex.hasTownTile;
+    const fillColor = hex.hasTownTile ? '#f8eed1' : TERRAIN_COLORS[hex.terrain];
+    ctx.save();
+    ctx.fillStyle = getContrastColor(fillColor);
+    ctx.font = occupied ? '600 7px sans-serif' : '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(displayCoord, center.x + (hex.hasTownTile ? -21 : 0), center.y + (occupied && !hex.hasTownTile ? -24 : 0));
+    ctx.restore();
+  }, [buildings, displayCoordinates, showCoords]);
 
   // Draw highlight border on top of everything
   const drawHighlight = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
@@ -489,45 +455,21 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     if (!hex.hasTownTile || hex.townTileType == null) return;
 
     const center = hexCenter(hex.coord.r, hex.coord.q);
-    const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
-    const hasBuilding = buildings.has(key);
-    const marker = getTownTileMarker(hex.townTileType);
+    const tile = TOWN_TILES[hex.townTileType];
     const ownerFaction = hex.townTileOwnerPlayerId ? playerFactions.get(hex.townTileOwnerPlayerId) : undefined;
-    const borderColor = ownerFaction != null ? FACTION_COLORS[ownerFaction] : '#5C4033';
-    const width = 34;
-    const height = 22;
-    const x = center.x - width / 2;
-    const y = center.y + (hasBuilding ? 10 : 3);
+    const borderColor = ownerFaction != null ? FACTION_COLORS[ownerFaction] : '#9b773b';
+    const size = HEX_SIZE - 1;
 
     ctx.save();
-
-    drawRoundedRect(ctx, x, y, width, height, 5);
-    ctx.fillStyle = '#f8eed1';
-    ctx.fill();
+    // Use the supply tile's face beneath the piece, with a slim faction rim
+    // following the anchor hex. Hover exposes artwork covered by buildings.
+    drawTownTileFace(ctx, tile, center.x, center.y, (HEX_SIZE - 3) * 2);
+    makeHexPath(ctx, center.x - Math.cos(Math.PI / 6) * size, center.y + size / 2, size);
     ctx.strokeStyle = borderColor;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(x + 3, y + 11);
-    ctx.lineTo(x + width - 3, y + 11);
-    ctx.strokeStyle = 'rgba(92, 64, 51, 0.35)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    ctx.fillStyle = '#5C4033';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = '700 7px sans-serif';
-    ctx.fillText(marker.vp, center.x, y + 6.5);
-
-    if (marker.reward !== '') {
-      ctx.font = marker.reward.length > 4 ? '600 5.5px sans-serif' : '600 6px sans-serif';
-      ctx.fillText(marker.reward, center.x, y + 16.5);
-    }
-
     ctx.restore();
-  }, [buildings, playerFactions]);
+  }, [playerFactions]);
 
   const drawChildrenRiverToken = useCallback((ctx: CanvasRenderingContext2D, hex: MapHexData) => {
     if (!hex.powerTokenOwnerPlayerId) return;
@@ -622,6 +564,8 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       drawBuilding(ctx, building, r, q);
     });
 
+    hexes.forEach(hex => { drawCoordinate(ctx, hex); });
+
     // 7. Draw highlights on top of everything
     hexes.forEach(hex => {
       const key = `${String(hex.coord.q)},${String(hex.coord.r)}`;
@@ -642,6 +586,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
     dims.offsetY,
     canvasMetrics.backingScale,
     drawHex,
+    drawCoordinate,
     drawBridge,
     drawTownTileMarker,
     drawChildrenRiverToken,
@@ -730,14 +675,18 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
 
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!closestHex) {
+      if (!isClick) setHoveredTown(null);
       return;
     }
 
     // Type assertion: we know closestHex is not null here
     const hex = closestHex as MapHexData;
+    setKeyboardPreview(false);
     if (isClick) {
+      setKeyboardHex(hexes.indexOf(hex));
       onHexClick?.(hex.coord.q, hex.coord.r);
     } else {
+      setHoveredTown(hex.hasTownTile ? `${String(hex.coord.q)},${String(hex.coord.r)}` : null);
       onHexHover?.(hex.coord.q, hex.coord.r);
     }
   };
@@ -745,20 +694,28 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
   const focusedHex = hexes[keyboardHex] ?? hexes[0];
   const focusedBuilding = focusedHex ? buildings.get(`${String(focusedHex.coord.q)},${String(focusedHex.coord.r)}`) : undefined;
   const focusedDescription = focusedHex
-    ? `${formatDisplayCoordinate(focusedHex.coord, displayCoordinates)}, ${TerrainType[focusedHex.terrain]}${focusedBuilding ? `, ${FactionType[focusedBuilding.faction]} ${BuildingType[focusedBuilding.type]}, owner ${focusedBuilding.ownerPlayerId}` : ', empty'}`
+    ? `${formatDisplayCoordinate(focusedHex.coord, displayCoordinates)}, ${TerrainType[focusedHex.terrain]}${focusedHex.hasTownTile && focusedHex.townTileType !== undefined ? `, ${String(TOWN_TILES[focusedHex.townTileType].vp)} VP town, ${TOWN_TILES[focusedHex.townTileType].description}` : ''}${focusedBuilding ? `, ${FactionType[focusedBuilding.faction]} ${BuildingType[focusedBuilding.type]}, owner ${focusedBuilding.ownerPlayerId}` : ', empty'}`
     : 'empty map';
+
+  const hoveredTownHex = hexes.find(hex => `${String(hex.coord.q)},${String(hex.coord.r)}` === hoveredTown);
+  const previewHex = hoveredTownHex ?? (keyboardFocused && keyboardPreview && focusedHex?.hasTownTile ? focusedHex : undefined);
+  const previewTile = previewHex?.townTileType !== undefined ? TOWN_TILES[previewHex.townTileType] : undefined;
+  const previewCenter = previewHex ? hexCenter(previewHex.coord.r, previewHex.coord.q) : { x: 0, y: 0 };
+  const cssScale = canvasMetrics.cssWidth / dims.width;
+  const previewOwner = previewHex?.townTileOwnerPlayerId ? playerFactions.get(previewHex.townTileOwnerPlayerId) : undefined;
 
   return (
     <div className="hex-board-interaction" style={{ position: 'relative', width: '100%' }}>
     <canvas
       ref={canvasRef}
       data-testid={testId}
+      data-show-coords={showCoords}
       data-logical-width={dims.width}
       data-logical-height={dims.height}
       tabIndex={onHexClick ? 0 : undefined}
       role={onHexClick ? 'button' : 'img'}
       aria-label={`Board: ${focusedDescription}.${onHexClick ? ' Arrow keys move, Enter or Space selects.' : ''}`}
-      onFocus={() => { setKeyboardFocused(true); }}
+      onFocus={() => { setKeyboardFocused(true); setKeyboardPreview(true); }}
       onBlur={() => { setKeyboardFocused(false); }}
       onKeyDown={(event) => {
         const current = hexes[keyboardHex] ?? hexes[0];
@@ -770,6 +727,7 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
         }
         if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
         event.preventDefault();
+        setKeyboardPreview(true);
         const origin = hexCenter(current.coord.r, current.coord.q);
         const direction = event.key;
         const candidates = hexes.map((hex, index) => {
@@ -797,7 +755,17 @@ export const HexGridCanvas: React.FC<HexGridCanvasProps> = ({
       }}
       onClick={(e) => { handleMouseEvent(e, true); }}
       onPointerMove={(e) => { handleMouseEvent(e, false); }}
+      onPointerLeave={() => { setHoveredTown(null); }}
     />
+    {previewHex?.townTileType !== undefined && previewTile && <div role="tooltip" data-testid="town-tile-preview" style={{
+      position: 'absolute', pointerEvents: 'none', zIndex: 20, width: 120, padding: 8,
+      left: Math.max(0, Math.min(canvasMetrics.cssWidth - 120, (previewCenter.x + dims.offsetX) * cssScale + 20)),
+      top: Math.max(0, (previewCenter.y + dims.offsetY) * cssScale - 152),
+      background: '#fff', border: '1px solid var(--game-border)', color: '#252b32', boxSizing: 'border-box',
+    }}>
+      <div style={{ width: 80, height: 92, margin: '0 auto 4px' }}><TownTileFace tileId={previewHex.townTileType} borderColor={previewOwner !== undefined ? FACTION_COLORS[previewOwner] : undefined} /></div>
+      <div style={{ fontSize: 12, textAlign: 'center', lineHeight: 1.25 }}>{previewTile.vp} VP · {previewTile.description}</div>
+    </div>}
     {bridgeEdgeSelectionEnabled && onBridgeEdgeClick && (
       <label className="board-keyboard-bridges">
         Bridge endpoints

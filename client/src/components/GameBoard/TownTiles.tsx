@@ -1,64 +1,8 @@
 import React from 'react';
-import { TownTileId } from '../../types/game.types';
+import { type TownTileId } from '../../types/game.types';
 import './TownTiles.css';
-import {
-    PriestIcon,
-    PowerIcon,
-    WorkerIcon,
-    CoinIcon,
-    CultRhombusIcon,
-    ShippingIcon
-} from '../shared/Icons';
-
-// Config for the 8 distinct town tiles
-interface TownTileConfig {
-    vp: number;
-    rewards: React.ReactNode;
-    description: string;
-}
-
-const TOWN_TILE_CONFIGS: Record<TownTileId, TownTileConfig> = {
-    [TownTileId.Vp5Coins6]: {
-        description: '6 coins',
-        vp: 5,
-        rewards: <CoinIcon className="icon-md">6</CoinIcon>
-    },
-    [TownTileId.Vp6Power8]: {
-        description: '8 power',
-        vp: 6,
-        rewards: <PowerIcon amount={8} className="icon-md" />
-    },
-    [TownTileId.Vp7Workers2]: {
-        description: '2 workers',
-        vp: 7,
-        rewards: <WorkerIcon className="icon-md">2</WorkerIcon>
-    },
-    [TownTileId.Vp4Ship1]: {
-        description: '1 shipping advancement',
-        vp: 4,
-        rewards: <div className="reward-container"><ShippingIcon className="icon-md" /></div>
-    },
-    [TownTileId.Vp8Cult1]: {
-        description: '1 step on all cult tracks',
-        vp: 8,
-        rewards: <CultRhombusIcon className="icon-md" />
-    },
-    [TownTileId.Vp9Priest1]: {
-        description: '1 priest',
-        vp: 9,
-        rewards: <PriestIcon className="icon-md" />
-    },
-    [TownTileId.Vp11]: {
-        description: 'no extra reward',
-        vp: 11,
-        rewards: null
-    },
-    [TownTileId.Vp2Cult2]: {
-        description: '2 steps on all cult tracks',
-        vp: 2,
-        rewards: <CultRhombusIcon className="icon-md" showNumber={true} />
-    },
-};
+import { TOWN_TILES } from '../../data/townTiles';
+import { TownTileFace } from '../shared/TownTileFace';
 
 interface TownTilesProps {
     availableTiles?: number[]; // List of available TownTileIds (can include duplicates)
@@ -69,7 +13,7 @@ interface TownTilesProps {
 export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClick, isTileClickable }) => {
     // Default: 2 of tiles 0-5, 1 of tiles 6 and 7
     const defaultTiles = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 7];
-    const tiles = availableTiles && availableTiles.length > 0 ? availableTiles : defaultTiles;
+    const tiles = availableTiles ?? defaultTiles;
 
     // Group tiles by ID
     const tileCounts = tiles.reduce<Record<number, number>>((acc, id) => {
@@ -85,7 +29,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClic
             <div className="town-tiles-container" data-testid="town-tiles">
                 {filledSlots.map((id) => {
                     const count = tileCounts[id] || 0;
-                    const config = TOWN_TILE_CONFIGS[id as TownTileId];
+                    const config = TOWN_TILES[id as TownTileId];
 
                     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
                     if (!config) return null;
@@ -115,15 +59,7 @@ export const TownTiles: React.FC<TownTilesProps> = ({ availableTiles, onTileClic
                                     key={index}
                                     className={`town-tile town-tile-stack-${String(index)}`}
                                 >
-                                    <div className="town-tile-content">
-                                        <div className="town-tile-top">
-                                            <span className="vp-value">{config.vp}</span>
-                                            <span className="vp-label">VP</span>
-                                        </div>
-                                        <div className="town-tile-bottom">
-                                            {config.rewards}
-                                        </div>
-                                    </div>
+                                    <TownTileFace tileId={id as TownTileId} />
                                 </div>
                             ))}
                         </button>

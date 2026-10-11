@@ -12,7 +12,8 @@ import {
     PriestIcon,
     WorkerIcon,
     CoinIcon,
-    PowerIcon
+    PowerIcon,
+    KeyIcon
 } from '../shared/Icons';
 
 // Types for tile configuration
@@ -62,12 +63,6 @@ const TILE_CONFIGS: Record<number, TileConfig> = {
     8: { action: ActionType.Town, vp: 5, cult: CultType.Earth, cultSteps: 4, reward: RewardType.Spade, rewardAmount: 1 },
 };
 
-const TownIcon = ({ className }: { className?: string }): React.ReactElement => (
-    <div className={`icon-lg town-icon ${className ?? ''}`}>
-        TOWN
-    </div>
-);
-
 const ActionIcon = ({ type, className }: { type: ActionType, className?: string }): React.ReactElement | null => {
     switch (type) {
         case ActionType.Dwelling: return <DwellingIcon className={`icon-lg ${className ?? ''}`} />;
@@ -80,7 +75,7 @@ const ActionIcon = ({ type, className }: { type: ActionType, className?: string 
             </div>
         );
         case ActionType.Spade: return <SpadeIcon className={`icon-lg ${className ?? ''}`} />;
-        case ActionType.Town: return <TownIcon className={className} />;
+        case ActionType.Town: return <KeyIcon className={`icon-lg ${className ?? ''}`} />;
         default: return null;
     }
 };
@@ -90,8 +85,8 @@ const RewardIcon = ({ type, amount, className }: { type: RewardType, amount: num
         case RewardType.Priest: return <PriestIcon className={`icon-md ${className ?? ''}`} />;
         case RewardType.Power: return <PowerIcon amount={amount} className={`icon-xs reward-power ${className ?? ''}`} />;
         case RewardType.Spade: return <SpadeIcon className={`icon-md ${className ?? ''}`} />;
-        case RewardType.Worker: return <WorkerIcon className={`icon-sm reward-worker ${className ?? ''}`} />;
-        case RewardType.Coin: return <CoinIcon className={`icon-sm reward-coin ${className ?? ''}`} />;
+        case RewardType.Worker: return <WorkerIcon className={`icon-sm reward-worker ${className ?? ''}`}>{amount}</WorkerIcon>;
+        case RewardType.Coin: return <CoinIcon className={`icon-sm reward-coin ${className ?? ''}`}>{amount}</CoinIcon>;
         default: return null;
     }
 };

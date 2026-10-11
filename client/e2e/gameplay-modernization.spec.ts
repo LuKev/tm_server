@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { PowerActionType, TerrainType, GamePhase, FactionType, type GameState } from '../src/types/game.types'
+import { CultType, PowerActionType, TerrainType, GamePhase, FactionType, type GameState } from '../src/types/game.types'
 import { makeBaseGameState } from './support/gameStateFactory'
 import { acknowledgeLastAction, clearSentMessages, emitWs, installMockWebSocket, waitForPerformAction, waitForSocketReady } from './support/mockWebSocket'
 import { clickHex } from './support/uiInteractions'
@@ -104,6 +104,38 @@ test('cult spaces and tile rewards have accessible names', async ({ page }) => {
   await expect(page.getByTestId('cult-spot-0-0')).toHaveAccessibleName(/Fire cult/)
   await expect(page.getByTestId('favor-tile-0')).toHaveAccessibleName(/favor/)
   await expect(page.getByTestId('passing-card-0')).toHaveAccessibleName(/bonus card/)
+})
+
+test('cult priest artwork and click targets agree on occupied and available spaces', async ({ page }) => {
+  const state = makeBaseGameState()
+  state.players.p1.options!.confirmActions = false
+  state.cultTracks!.priestsOnTrack![CultType.Fire] = { 3: ['p2'], 2: ['p1'], 1: [] }
+  await openGame(page, state)
+  await expect(page.getByTestId('cult-spot-0-0')).toBeDisabled()
+  await expect(page.getByTestId('cult-spot-0-0')).toHaveAccessibleName('Fire cult, 3 steps, occupied')
+  await expect(page.getByTestId('cult-spot-0-1')).toBeDisabled()
+  await page.getByTestId('cult-spot-0-2').click()
+  await waitForPerformAction(page, 'send_priest', { cultTrack: CultType.Fire, spacesToClimb: 2 })
+})
+
+test('hex markings toggle redraws the board, preserves accessible coordinates, and saves the preference', async ({ page }) => {
+  await openGame(page)
+  const canvas = page.getByTestId('hex-grid-canvas')
+  const toggle = page.getByTestId('hex-markings-toggle')
+  const image = () => canvas.evaluate(element => (element as HTMLCanvasElement).toDataURL())
+  await expect(toggle).toHaveText('Hide hex markings')
+  const marked = await image()
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await expect.poll(image).not.toBe(marked)
+  await expect(canvas).toHaveAccessibleName(/Board: A1/)
+  await page.reload()
+  await waitForSocketReady(page)
+  await emitWs(page, { type: 'game_state_update', payload: makeBaseGameState() })
+  await expect(toggle).toHaveText('Show hex markings')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+  await expect.poll(image).toBe(marked)
 })
 
 

@@ -33,6 +33,21 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   const localPlayerId = useGameStore(s => s.localPlayerId);
   const [hoveredHex, setHoveredHex] = useState<string | null>(null);
 
+  const [showCoords, setShowCoords] = useState(() => {
+    try {
+      const saved = localStorage.getItem('tm-show-hex-markings');
+      return saved === null ? !isReplayMode : saved === 'true';
+    } catch {
+      return !isReplayMode;
+    }
+  });
+
+  const toggleCoords = (): void => {
+    const next = !showCoords;
+    setShowCoords(next);
+    try { localStorage.setItem('tm-show-hex-markings', String(next)); } catch { /* The toggle also works without storage. */ }
+  };
+
   // In replay mode, don't track hover state
   const handleHexHover = (q: number, r: number): void => {
     if (!isReplayMode) {
@@ -93,6 +108,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
 
   return (
     <div className="game-board-container bg-white rounded-lg shadow-md p-4 flex flex-col gap-4 h-full w-full overflow-y-auto" data-testid="game-board">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          data-testid="hex-markings-toggle"
+          aria-pressed={showCoords}
+          onClick={toggleCoords}
+          className="rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+        >
+          {showCoords ? 'Hide hex markings' : 'Show hex markings'}
+        </button>
+      </div>
       <div className="overflow-auto flex-shrink-0">
         <HexGridCanvas
           testId="hex-grid-canvas"
@@ -105,7 +131,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
           onBridgeEdgeClick={onBridgeEdgeClick}
           bridgeEdgeSelectionEnabled={bridgeEdgeSelectionEnabled}
           onHexHover={handleHexHover}
-          showCoords={!isReplayMode}
+          showCoords={showCoords}
           disableHover={isReplayMode}
         />
       </div>

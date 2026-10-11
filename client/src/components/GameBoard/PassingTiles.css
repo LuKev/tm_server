@@ -8,15 +8,31 @@
     box-sizing: border-box;
 }
 
+.passing-tiles-container > button {
+    min-width: 0;
+    min-height: 0;
+    container-type: size;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.passing-tiles-container .passing-tile {
+    width: min(100cqw, calc(100cqh / 4));
+    flex-shrink: 0;
+}
+
 .passing-tile {
     position: relative;
     width: 100%;
     aspect-ratio: 1 / 4;
     display: flex;
     flex-direction: column;
+    border: 1px solid #cdd1d4;
+    background: white;
+    box-sizing: border-box;
     border-radius: 0.5cqw;
     overflow: hidden;
-    box-shadow: 0 0.2cqw 0.5cqw rgba(0, 0, 0, 0.3);
     transition: transform 0.2s;
     cursor: pointer;
     container-type: inline-size;
@@ -55,6 +71,7 @@
 
 .passing-tile-top {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -64,6 +81,7 @@
 
 .passing-tile-bottom {
     flex: 1;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;

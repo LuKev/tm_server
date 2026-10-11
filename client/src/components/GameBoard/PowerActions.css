@@ -139,35 +139,12 @@
 .worker-icon-styled {
     width: 12px;
     height: 12px;
-    background-color: white;
-    border: 1px solid #6b7280;
-    /* gray-500 */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
 
 /* Coins Action */
 .coin-icon-large {
     width: 24px;
     height: 24px;
-    background-color: #facc15;
-    /* yellow-400 */
-    border: 1px solid #ca8a04;
-    /* yellow-600 */
-    border-radius: 9999px;
-    /* rounded-full */
-    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    /* shadow-sm */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.coins-text {
-    font-weight: bold;
-    color: black;
-    /* Black text on yellow coin */
-    font-size: 12px;
-    line-height: 1;
 }
 
 /* Double Spade Action */

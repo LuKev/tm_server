@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import { writeFile } from 'node:fs/promises'
 import { makeBaseGameState, withBuildings } from './support/gameStateFactory'
-import { BuildingType, FactionType, GamePhase, TerrainType } from '../src/types/game.types'
+import { BuildingType, CultType, FactionType, GamePhase, TerrainType, TownTileId } from '../src/types/game.types'
 import { emitWs, installMockWebSocket, waitForSocketReady } from './support/mockWebSocket'
 
 for (const width of [1280, 1920]) {
@@ -23,6 +23,16 @@ for (const width of [1280, 1920]) {
       })) }
       state.turnOrder = state.turnOrder.slice(0, playerCount)
       state.players = Object.fromEntries(state.turnOrder.map(id => [id, state.players[id]]))
+      // Exercise the town artwork beneath a piece, on an empty land hex, and
+      // on a Mermaid river anchor, with varied cult positions and priests.
+      Object.assign(state.map.hexes['0,0'], { hasTownTile: true, townTileType: TownTileId.Vp5Coins6, townTileOwnerPlayerId: 'p1' })
+      Object.assign(state.map.hexes['3,0'], { hasTownTile: true, townTileType: TownTileId.Vp8Cult1, townTileOwnerPlayerId: 'p2' })
+      Object.assign(state.map.hexes['4,0'], { hasTownTile: true, townTileType: TownTileId.Vp11, townTileOwnerPlayerId: 'p1' })
+      Object.assign(state.map.hexes['1,1'], { terrain: TerrainType.River, hasTownTile: true, townTileType: TownTileId.Vp2Cult2, townTileOwnerPlayerId: 'p1' })
+      state.turnOrder.forEach((id, index) => {
+        state.players[id].cults = { [CultType.Fire]: index === 0 ? 10 : 6, [CultType.Water]: 5, [CultType.Earth]: index + 2, [CultType.Air]: 0 }
+      })
+      state.cultTracks!.priestsOnTrack![CultType.Fire] = { 3: ['p1'], 2: ['p2'], 1: [] }
       await emitWs(page, { type: 'game_state_update', payload: state })
       await expect(page.getByTestId('hex-grid-canvas')).toBeVisible()
       await page.addStyleTag({ content: '*, *::before, *::after { animation: none !important; transition: none !important; }' })

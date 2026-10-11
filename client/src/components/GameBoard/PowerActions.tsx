@@ -59,7 +59,7 @@ const ACTIONS: PowerActionConfig[] = [
         label: "7 Coins",
         icon: (
             <CoinIcon className="coin-icon-large" style={{ width: '24px', height: '24px' }}>
-                <span className="coins-text">7</span>
+                7
             </CoinIcon>
         )
     },

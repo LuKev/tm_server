@@ -1,8 +1,17 @@
 import React from 'react';
 import { Shovel, Sailboat } from 'lucide-react';
+import { PRIEST_PAWN_PATH } from './iconGeometry';
 
 // Common Icon Styles
 // These rely on the parent component or CSS to define sizing classes like 'icon-lg', 'icon-md', etc.
+
+export const KeyIcon = ({ className }: { className?: string }): React.ReactElement => (
+    <svg viewBox="0 0 30 30" className={className} aria-hidden="true">
+        <path d="M 12 15 L 25 15 L 25 21 L 21 21 L 21 18 L 18 18 L 18 15" fill="none" stroke="#8c682c" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="8" cy="15" r="5" fill="#f4d58a" stroke="#8c682c" strokeWidth="2.5" />
+        <circle cx="8" cy="15" r="1.5" fill="#fffaf0" />
+    </svg>
+);
 
 export const DwellingIcon = ({ className, style, color }: { className?: string, style?: React.CSSProperties, color?: string }): React.ReactElement => (
     <svg viewBox="0 0 30 30" className={className} style={style}>
@@ -34,13 +43,11 @@ export const SanctuaryIcon = ({ className, style, color }: { className?: string,
     </svg>
 );
 
-export const PriestIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
-    <div className={className} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}>
-        <svg viewBox="0 0 20 20" style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0 }}>
-            <path d="M 10 2 L 14 6 L 14 18 L 6 18 L 6 6 Z" fill="#A0A0A0" stroke="#404040" strokeWidth="1.5" />
-        </svg>
-        <span style={{ position: 'relative', zIndex: 1, fontSize: '0.7em', fontWeight: 'bold', color: '#333' }}>{children}</span>
-    </div>
+export const PriestIcon = ({ className, style, children, color = '#A0A0A0' }: { className?: string, style?: React.CSSProperties, children?: number | string, color?: string }): React.ReactElement => (
+    <svg data-icon="priest" viewBox="0 0 20 20" className={className} style={{ width: '1.5em', height: '1.5em', flexShrink: 0, display: 'block', ...style }}>
+        <path d={PRIEST_PAWN_PATH} fill={color} stroke="#404040" strokeWidth="1.2" />
+        <text x="10" y="14.5" textAnchor="middle" dominantBaseline="central" fontSize="7" fontWeight="700" fill="#252b32">{children}</text>
+    </svg>
 );
 
 export const BridgeIcon = ({ className }: { className?: string }): React.ReactElement => (
@@ -52,31 +59,32 @@ export const BridgeIcon = ({ className }: { className?: string }): React.ReactEl
 );
 
 export const ShippingIcon = ({ className, style }: { className?: string, style?: React.CSSProperties }): React.ReactElement => (
-    <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}>
-        <Sailboat color="#5C4033" size="100%" strokeWidth={2} />
-    </div>
+    <Sailboat className={className} color="#5C4033" strokeWidth={2} style={{ width: '1.5em', height: '1.5em', display: 'block', flexShrink: 0, ...style }} />
 );
 
 export const SpadeIcon = ({ className }: { className?: string }): React.ReactElement => (
     <Shovel className={className} color="#5C4033" size="100%" strokeWidth={2} />
 );
 
-export const WorkerIcon = ({ className, children, style }: { className?: string, children?: React.ReactNode, style?: React.CSSProperties }): React.ReactElement => (
-    <div className={className} style={{ width: '1.5em', height: '1.5em', backgroundColor: 'white', border: '0.15em solid #5C4033', boxShadow: '0 0.05em 0.1em rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1em', borderRadius: 0, flexShrink: 0, color: '#5C4033', ...style }}>
-        {children}
-    </div>
+export const WorkerIcon = ({ className, children, style }: { className?: string, children?: number | string, style?: React.CSSProperties }): React.ReactElement => (
+    <svg data-icon="worker" viewBox="0 0 30 30" className={className} style={{ width: '1.5em', height: '1.5em', flexShrink: 0, display: 'block', ...style }}>
+        <rect x="3" y="3" width="24" height="24" fill="white" stroke="#5C4033" strokeWidth="2.5" />
+        <text x="15" y="15" textAnchor="middle" dominantBaseline="central" fontSize="16" fontWeight="700" fill="#5C4033">{children}</text>
+    </svg>
 );
 
-export const CoinIcon = ({ className, children, style }: { className?: string, children?: React.ReactNode, style?: React.CSSProperties }): React.ReactElement => (
-    <div className={className} style={{ width: '1.5em', height: '1.5em', borderRadius: '50%', backgroundColor: '#FBBF24', border: '0.15em solid #D97706', boxShadow: '0 0.05em 0.1em rgba(0,0,0,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', fontSize: '1em', flexShrink: 0, color: '#5C4033', ...style }}>
-        {children}
-    </div>
+export const CoinIcon = ({ className, children, style }: { className?: string, children?: number | string, style?: React.CSSProperties }): React.ReactElement => (
+    <svg data-icon="coin" viewBox="0 0 30 30" className={className} style={{ width: '1.5em', height: '1.5em', flexShrink: 0, display: 'block', ...style }}>
+        <circle cx="15" cy="15" r="12" fill="#FBBF24" stroke="#D97706" strokeWidth="2.5" />
+        <text x="15" y="15" textAnchor="middle" dominantBaseline="central" fontSize={String(children).length > 1 ? 13 : 16} fontWeight="700" fill="#5C4033">{children}</text>
+    </svg>
 );
 
 export const PowerIcon = ({ amount, className, style }: { amount: number, className?: string, style?: React.CSSProperties }): React.ReactElement => (
-    <div className={className} style={{ width: '1.5em', height: '1.5em', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#7C3AED', color: 'white', borderRadius: '50%', fontWeight: 'bold', fontSize: '1em', flexShrink: 0, border: '0.1em solid #5C4033', ...style }}>
-        {amount}
-    </div>
+    <svg data-icon="power" viewBox="0 0 30 30" className={className} style={{ width: '1.5em', height: '1.5em', flexShrink: 0, display: 'block', ...style }}>
+        <circle cx="15" cy="15" r="12" fill="#7C3AED" stroke="#5C4033" strokeWidth="2" />
+        <text x="15" y="15" textAnchor="middle" dominantBaseline="central" fontSize={amount > 9 ? 13 : 16} fontWeight="700" fill="white">{amount}</text>
+    </svg>
 );
 
 // Purple power circle (used as a label/icon without a number).
@@ -97,36 +105,15 @@ export const PowerCircleIcon = ({ className, style }: { className?: string, styl
     />
 );
 
-export const CultRhombusIcon = ({ className, showNumber = false }: { className?: string, showNumber?: boolean }): React.ReactElement => {
-    // Rhombus where circles just touch at their borders (not intersecting)
-    // Using em units for responsive scaling
-    // Base: container 2.47em × 2em (matches ratio 37:30)
-
-    const horizontalOffset = '0.866'; // em units: ~35% of width for rhombus geometry
-
-    return (
-        <div className={className} style={{ position: 'relative', width: '2.47em', height: '2em', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {/* Top circle - white (Air) */}
-            <div style={{ position: 'absolute', top: '0.5em', left: '50%', transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#E5E7EB', border: '0.1em solid #333' }} />
-
-            {/* Left circle - brown (Earth) */}
-            <div style={{ position: 'absolute', top: '50%', left: `calc(50% - ${horizontalOffset}em)`, transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#92400E', border: '0.1em solid #333' }} />
-
-            {/* Right circle - blue (Water) */}
-            <div style={{ position: 'absolute', top: '50%', left: `calc(50% + ${horizontalOffset}em)`, transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#3B82F6', border: '0.1em solid #333' }} />
-
-            {/* Bottom circle - red (Fire) */}
-            <div style={{ position: 'absolute', top: '1.5em', left: '50%', transform: 'translate(-50%, -50%)', width: '0.8em', height: '0.8em', borderRadius: '50%', backgroundColor: '#EF4444', border: '0.1em solid #333' }} />
-
-            {/* Number "2" in the center - only for 2VP town */}
-            {showNumber && (
-                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '1em', fontWeight: 'bold', color: '#333', textShadow: '0 0 0.2em rgba(255, 255, 255, 0.8)', zIndex: 10 }}>
-                    2
-                </div>
-            )}
-        </div>
-    );
-};
+export const CultRhombusIcon = ({ className, showNumber = false, style }: { className?: string, showNumber?: boolean, style?: React.CSSProperties }): React.ReactElement => (
+    <svg viewBox="0 0 40 34" className={className} style={{ width: '1.8em', height: '1.5em', flexShrink: 0, display: 'block', ...style }}>
+        <circle cx="20" cy="7" r="6" fill="#E5E7EB" stroke="#333" />
+        <circle cx="8" cy="17" r="6" fill="#92400E" stroke="#333" />
+        <circle cx="32" cy="17" r="6" fill="#3B82F6" stroke="#333" />
+        <circle cx="20" cy="27" r="6" fill="#EF4444" stroke="#333" />
+        {showNumber && <text x="20" y="17" textAnchor="middle" dominantBaseline="central" fontSize="12" fontWeight="700" fill="#333">2</text>}
+    </svg>
+);
 
 export const CultActionIcon = ({ className, style, children }: { className?: string, style?: React.CSSProperties, children?: React.ReactNode }): React.ReactElement => (
     <div className={className} style={{ position: 'relative', aspectRatio: '1/1', ...style }}>

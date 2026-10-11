@@ -19,34 +19,33 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    container-type: inline-size;
-    overflow: hidden;
+    container-type: size;
 }
 
+.favor-tile-face {
+    position: relative;
+    width: min(100cqw, calc((100cqh - 8px) * 2));
+    aspect-ratio: 2 / 1;
+    container-type: inline-size;
+    isolation: isolate;
+    flex-shrink: 0;
+}
 
 .favor-tile-bg {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
-    z-index: 0;
     pointer-events: none;
 }
 
 .favor-tile-content {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
+    inset: 15% 12%;
     display: flex;
-    flex-direction: row;
     align-items: center;
-    justify-content: space-between;
-    padding: 0 5%;
-    box-sizing: border-box;
+    justify-content: center;
+    gap: 4cqw;
 }
 
 .favor-cult-steps {
@@ -54,46 +53,38 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.5cqw;
-    width: 40%;
+    gap: 1cqw;
+    flex-shrink: 0;
 }
 
 .cult-step-circle {
-    width: 10cqw;
-    height: 10cqw;
+    width: 9cqw;
+    height: 9cqw;
     border-radius: 50%;
-    border: 1px solid rgba(0, 0, 0, 0.3);
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
 }
 
-.favor-tile-content.justify-center {
-    justify-content: center;
-}
-
-.favor-cult-steps.w-full {
-    width: 100%;
-    flex-direction: row;
-    gap: 2cqw;
-}
+.favor-steps-only .favor-cult-steps { flex-direction: row; gap: 4cqw; }
 
 .favor-reward {
+    flex: 1;
+    min-width: 0;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 60%;
-    font-size: 15cqw;
-    font-weight: bold;
+    font-size: 11cqw;
+    font-weight: 700;
     color: #333;
     text-align: center;
-    line-height: 1;
+    line-height: 1.1;
 }
 
-.favor-icon {
-    width: 1em;
-    height: 1em;
-    font-size: inherit;
-}
+.favor-reward-artwork { position: relative; display: flex; align-items: center; justify-content: center; }
+.favor-reward-row { display: flex; align-items: center; justify-content: center; gap: 0.15em; white-space: nowrap; }
+.favor-pass-reward { display: flex; flex-direction: column; align-items: center; font-size: 0.85em; gap: 0.1em; }
+.favor-used { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.favor-icon { width: 1.5em; height: 1.5em; font-size: inherit; }
 
 /* Cult Colors */
 .bg-fire {

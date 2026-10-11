@@ -3,10 +3,13 @@ import { useGameStore } from '../../stores/gameStore';
 import { GamePhase, BuildingType, FactionType, SpecialActionType, FavorTileType, BonusCardType, type PlayerState, type TurnTimerState } from '../../types/game.types';
 import { FACTION_BOARDS, type BuildingSlot } from '../../data/factionBoards';
 import { FACTIONS } from '../../data/factions';
-import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon, CultRhombusIcon, ShippingIcon } from '../shared/Icons';
+import { CoinIcon, WorkerIcon, PriestIcon, PowerIcon, PowerCircleIcon, DwellingIcon, TradingHouseIcon, TempleIcon, StrongholdIcon, SanctuaryIcon } from '../shared/Icons';
 import { FACTION_COLORS } from '../../utils/colors';
-import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
-import { TownTileId } from '../../types/game.types';
+import { FAVOR_TILES } from '../../data/favorTiles';
+import { TOWN_TILES } from '../../data/townTiles';
+import { TownTileFace } from '../shared/TownTileFace';
+import { FavorTileFace } from '../shared/FavorTileFace';
+import { type TownTileId } from '../../types/game.types';
 import { ShippingDiggingDisplay, canShowDiggingForFaction, canShowShippingForFaction } from '../shared/ShippingDiggingDisplay';
 import './PlayerBoards.css';
 import './FavorTiles.css';
@@ -30,30 +33,6 @@ const getStrongholdActionType = (faction: FactionType): SpecialActionType | null
         case FactionType.Shapeshifters: return SpecialActionType.ShapeshiftersShiftTerrain;
         case FactionType.Selkies: return SpecialActionType.SelkiesStronghold;
         default: return null;
-    }
-};
-
-// Helper to get town tile config with VP and rewards
-const getTownTileConfig = (tileId: TownTileId): { vp: number; rewards: React.ReactNode } => {
-    switch (tileId) {
-        case TownTileId.Vp5Coins6:
-            return { vp: 5, rewards: <CoinIcon className="icon-sm">6</CoinIcon> };
-        case TownTileId.Vp6Power8:
-            return { vp: 6, rewards: <PowerIcon amount={8} className="icon-sm" /> };
-        case TownTileId.Vp7Workers2:
-            return { vp: 7, rewards: <WorkerIcon className="icon-sm">2</WorkerIcon> };
-        case TownTileId.Vp4Ship1:
-            return { vp: 4, rewards: <ShippingIcon className="icon-sm" /> };
-        case TownTileId.Vp8Cult1:
-            return { vp: 8, rewards: <CultRhombusIcon className="icon-sm" /> };
-        case TownTileId.Vp9Priest1:
-            return { vp: 9, rewards: <PriestIcon className="icon-sm" /> };
-        case TownTileId.Vp11:
-            return { vp: 11, rewards: null };
-        case TownTileId.Vp2Cult2:
-            return { vp: 2, rewards: <CultRhombusIcon className="icon-sm" showNumber={true} /> };
-        default:
-            return { vp: 0, rewards: null };
     }
 };
 
@@ -360,21 +339,11 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
         return (
             <div className="pb-towns-list">
                 {townTiles.map((tileId, idx) => {
-                    const config = getTownTileConfig(tileId as TownTileId);
+                    const config = TOWN_TILES[tileId as TownTileId];
                     return (
-                        <div key={`town-${String(idx)}`} className="pb-town-slot">
+                        <div key={`town-${String(idx)}`} className="pb-town-slot" title={`${String(config.vp)} VP, ${config.description}`}>
                             <div className="town-tile">
-                                <div className="town-tile-content">
-                                    <div className="town-tile-top">
-                                        <span className="vp-value">{config.vp}</span>
-                                        <span className="vp-label">VP</span>
-                                    </div>
-                                    {config.rewards && (
-                                        <div className="town-tile-bottom">
-                                            {config.rewards}
-                                        </div>
-                                    )}
-                                </div>
+                                <TownTileFace tileId={tileId as TownTileId} />
                             </div>
                         </div>
                     );
@@ -748,44 +717,7 @@ const PlayerBoard: React.FC<PlayerBoardProps> = ({
 
                                             return (
                                                 <div key={`${String(tileType)}-${String(idx)}`} className="pb-favor-tile">
-                                                    <svg className="favor-tile-bg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" style={{ zIndex: 0 }}>
-                                                        <ellipse cx="100" cy="50" rx="98" ry="48"
-                                                            className={`${getCultColorClass(tileData.cult)} opacity-20`}
-                                                            stroke="currentColor"
-                                                            strokeWidth="3"
-                                                        />
-                                                        <ellipse cx="100" cy="50" rx="95" ry="45"
-                                                            className="fill-white"
-                                                            fill="white"
-                                                        />
-                                                    </svg>
-
-                                                    <div className={`favor-tile-content ${!tileData.reward ? 'justify-center' : ''}`}>
-                                                        <div className={`favor-cult-steps ${!tileData.reward ? 'w-full' : ''}`}>
-                                                            {Array.from({ length: tileData.steps }).map((_, i) => (
-                                                                <div
-                                                                    key={i}
-                                                                    className={`cult-step-circle ${getCultColorClass(tileData.cult)}`}
-                                                                />
-                                                            ))}
-                                                        </div>
-
-                                                        {tileData.reward && (
-                                                            <div className="favor-reward">
-                                                                <div style={{ position: 'relative', display: 'inline-flex' }}>
-                                                                    {tileData.reward}
-                                                                    {isUsed && (
-                                                                        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 10, pointerEvents: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                            <svg viewBox="-2 -2 44 44" style={{ width: '100%', height: '100%', display: 'block' }} preserveAspectRatio="xMidYMid meet">
-                                                                                <path d="M 12 0 L 28 0 L 40 12 L 40 28 L 28 40 L 12 40 L 0 28 L 0 12 Z" fill="#d6d3d1" stroke="#78716c" strokeWidth="2" fillOpacity="0.9" />
-                                                                                <path d="M 10 10 L 30 30 M 30 10 L 10 30" stroke="#78716c" strokeWidth="3" strokeLinecap="round" />
-                                                                            </svg>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
+                                                    <FavorTileFace tile={tileData} used={!!isUsed} />
                                                     {tileType === FavorTileType.Water2 && !isUsed && isLocalPlayer && (
                                                         <button
                                                             type="button"

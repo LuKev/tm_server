@@ -138,7 +138,9 @@ export const useGameLayout = (
                 } else if (item.i === 'cult') {
                     newH = Math.ceil(item.w * 2.25);
                 } else if (item.i === 'board') {
-                    newH = Math.ceil(item.w * 0.83);
+                    // Reserve a row for controls and the power-action artwork.
+                    // Width alone underallocates the board at the md breakpoint.
+                    newH = Math.ceil(item.w * 0.83) + 1;
                 } else if (item.i === 'towns') {
                     newH = Math.ceil(item.w * 2 / 3);
                 } else if (item.i === 'favor') {

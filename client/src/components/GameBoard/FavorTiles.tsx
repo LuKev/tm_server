@@ -1,7 +1,8 @@
 import React from 'react';
 import { useGameStore } from '../../stores/gameStore';
-import { FAVOR_TILES, getCultColorClass } from '../../data/favorTiles';
+import { FAVOR_TILES } from '../../data/favorTiles';
 import './FavorTiles.css';
+import { FavorTileFace } from '../shared/FavorTileFace';
 import { CultType, type FavorTileType } from '../../types/game.types';
 
 interface FavorTilesProps {
@@ -48,68 +49,7 @@ export const FavorTiles: React.FC<FavorTilesProps> = ({ onTileClick, isTileClick
                             padding: 0,
                         }}
                     >
-                        {/* Render underlying stack layers (if any) */}
-                        {Array.from({ length: stackHeight - 1 }).map((_, index) => {
-                            const offset = (stackHeight - 1 - index) * 3;
-
-                            return (
-                                <svg
-                                    key={`bg-${String(index)}`}
-                                    className="favor-tile-bg"
-                                    viewBox="0 0 200 100"
-                                    preserveAspectRatio="xMidYMid meet"
-                                    style={{
-                                        // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
-                                        transform: `translate(0px, -${offset}cqw)`,
-                                        zIndex: 0 // Keep them at base level
-                                    }}
-                                >
-                                    <ellipse cx="100" cy="50" rx="98" ry="48"
-                                        className={`${getCultColorClass(tile.cult)} opacity-20`}
-                                        stroke="currentColor"
-                                        strokeWidth="3"
-                                    />
-                                    <ellipse cx="100" cy="50" rx="95" ry="45"
-                                        className="fill-white"
-                                        fill="white"
-                                    />
-                                </svg>
-                            );
-                        })}
-
-                        {/* Top Layer Background */}
-                        <svg className="favor-tile-bg" viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet" style={{ zIndex: 0 }}>
-                            <ellipse cx="100" cy="50" rx="98" ry="48"
-                                className={`${getCultColorClass(tile.cult)} opacity-20`}
-                                stroke="currentColor"
-                                strokeWidth="3"
-                            />
-                            <ellipse cx="100" cy="50" rx="95" ry="45"
-                                className="fill-white"
-                                fill="white"
-                            />
-                        </svg>
-
-                        {/* Top Layer Content */}
-                        <div className={`favor-tile-content ${!tile.reward ? 'justify-center' : ''}`}>
-                            {/* Cult Steps */}
-                            <div className={`favor-cult-steps ${!tile.reward ? 'w-full' : ''}`}>
-                                {Array.from({ length: tile.steps }).map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className={`cult-step-circle ${getCultColorClass(tile.cult)}`}
-                                    />
-                                ))}
-                            </div>
-
-                            {/* Right: Reward (only if exists) */}
-                            {tile.reward && (
-                                <div className="favor-reward">
-                                    {tile.reward}
-                                </div>
-                            )}
-
-                        </div>
+                        <FavorTileFace tile={tile} stackCount={stackHeight} />
                     </button>
                 );
             })}
