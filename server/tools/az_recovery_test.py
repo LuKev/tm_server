@@ -5,11 +5,83 @@ import shutil
 import sys
 import tempfile
 import unittest
+from unittest import mock
+from types import SimpleNamespace
+
+import run_az_cycles as runner
 
 from run_az_cycles import adopt, atomic_json, checkpoint, digest, stage, verify_journal, tool_identity, runtime_pins
 
 
 class RecoveryTest(unittest.TestCase):
+    def seed_config(self, seed=None, learner_seed_base=None):
+        args = SimpleNamespace(engine_commit="test", cycles=2, games=4, simulations=8,
+                               train_steps=3, eval_cases=1, model_config="debug",
+                               selfplay="actor", inference="inference", learner="learner", evaluator="eval")
+        env = {} if seed is None else {"TM_AZ_MODEL_SEED": seed}
+        if learner_seed_base is not None:
+            env["TM_AZ_LEARNER_SEED_BASE"] = learner_seed_base
+        with mock.patch.dict(runner.os.environ, env, clear=True), mock.patch.object(runner, "tool_identity", return_value={}), mock.patch.object(runner, "runtime_pins", return_value={}):
+            return args, runner.configuration(args)
+
+    def test_model_seed_configuration_and_resume_are_immutable(self):
+        args, default = self.seed_config()
+        self.assertEqual(default["model_seed"], "0")
+        self.assertEqual(default["learner_seed_base"], "0")
+        _, config = self.seed_config("0017")
+        self.assertEqual(config["model_seed"], "17")
+        for invalid in ("-1", str(2**63), "1.5"):
+            with self.assertRaises(ValueError):
+                self.seed_config(invalid)
+        for invalid in ("-1", str(2**63 - 2), "1.5"):
+            with self.assertRaises(ValueError):
+                self.seed_config("17", invalid)
+        self.assertEqual(self.seed_config("17", str(2**63 - 3))[1]["learner_seed_base"], str(2**63 - 3))
+        with tempfile.TemporaryDirectory() as temporary, mock.patch.object(runner, "execute_cycles"):
+            args.run_dir, args.mode = temporary, "new"
+            with mock.patch.object(runner, "configuration", return_value=config):
+                runner.run(args)
+                args.mode = "resume"
+                runner.run(args)
+            with mock.patch.object(runner, "configuration", return_value=default), self.assertRaisesRegex(ValueError, "immutable manifest"):
+                runner.run(args)
+            _, changed_sampling = self.seed_config("17", "100")
+            with mock.patch.object(runner, "configuration", return_value=changed_sampling), self.assertRaisesRegex(ValueError, "immutable manifest"):
+                runner.run(args)
+            # Older manifests stay bound to their original runner revision;
+            # do not silently migrate them by injecting a default seed.
+            old = dict(config)
+            del old["model_seed"]
+            atomic_json(Path(temporary) / "run-manifest.json", old)
+            with mock.patch.object(runner, "configuration", return_value=config), self.assertRaisesRegex(ValueError, "immutable manifest"):
+                runner.run(args)
+
+    def test_model_seed_reaches_actor_learner_and_initial_parent(self):
+        args, config = self.seed_config("17", "100")
+        commands = []
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            candidate = root / "weights.pt"
+            candidate.write_bytes(b"fixed checkpoint")
+            def capture(root, relative, identity, command):
+                output = root / relative
+                output.mkdir(parents=True)
+                commands.append(command(output))
+                return output
+            with mock.patch.object(runner, "stage", side_effect=capture), mock.patch.object(runner, "checkpoint", return_value=candidate), mock.patch.object(runner, "adopt"):
+                runner.execute_cycles(args, root, config)
+            self.assertEqual(json.loads((root / "cycle-1-parent.json").read_text())["parent_sha256"], "random-seed-17")
+            self.assertEqual(json.loads((root / "cycle-2-parent.json").read_text())["parent_sha256"], digest(candidate))
+            seeded = [cmd for cmd in commands if cmd[0] in ("actor", "learner")]
+            self.assertEqual(len(seeded), 4)
+            for command in seeded:
+                self.assertEqual(command[command.index("--model-seed") + 1], "17")
+            learners = [cmd for cmd in seeded if cmd[0] == "learner"]
+            self.assertEqual([cmd[cmd.index("--seed") + 1] for cmd in learners], ["101", "102"])
+            actors = [cmd for cmd in seeded if cmd[0] == "actor"]
+            self.assertEqual(actors[0][actors[0].index("--checkpoint") + 1], "")
+            self.assertEqual(actors[1][actors[1].index("--checkpoint") + 1], str(candidate))
+
     def test_every_stage_boundary(self):
         for role in ("actor", "learner", "evaluation"):
             for boundary in ("after_command", "before_publish", "after_publish"):

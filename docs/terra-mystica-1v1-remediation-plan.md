@@ -471,6 +471,53 @@ Next experiments, before increasing model size or launching a long run:
    an adequately sized untouched final comparison. Keep the final suite unused
    during diagnosis; neither a larger CNN nor a promotion gate is justified yet.
 
+Follow-up protocol (2026-10-11, before comparison results):
+
+Read-only adversarial diagnosis of the pilot: cycle4 made no round-one building
+or upgrade in 11/16 anchor-arena games versus 5/16 for the anchor. Both weights
+showed Alchemist conversion churn; in seed910000006, candidate round-one
+conversions alone had net −15VP/−3coins. Cycle4 self-play passed 20/64 times in
+round1 with a legal building option (not proof passing was wrong). One example,
+seed6000128/state0104734c52621f104507d70476d7b5db, had ten legal actions including
+two building choices, eight actions tied at one root visit, then selected pass.
+Among nonforced positions, visited actions averaged 4.76 versus 16.27 legal
+actions in cycle4. Single-action targets rose from 0.81% in cycle1 to 8.34%
+in cycle4 across different replay populations; this is not a controlled collapse
+measurement. Arena traces lack visit vectors/priors/Q; replay has visits but
+not priors, so these artifacts cannot establish policy-improvement KL or a
+specific value-error cause. Value-owner/sign review found no concrete defect.
+
+- Expand the frozen pilot cycle-4/cycle-1 comparison to all 28 development pairs
+  at eight simulations each. Retain the original overlapping eight-pair result
+  as a subset, not additional independent games.
+- On that same frozen candidate and anchor, compare candidate search 8/32/128
+  against anchor search fixed at eight on the first eight development pairs.
+  The eight-search result already exists. This is an unequal-compute inference
+  experiment, not evidence about the benefit of training with deeper search.
+- Train paired fresh model seeds 11/22/33 at 8 versus 32 simulations. Each arm
+  gets four cycles of 32 new games and 100 batch-32 SGD updates per cycle,
+  main 10×128, learning rate 0.001, momentum 0.9, weight decay 0.0001, window128,
+  MPS/FP32, one Torch thread, actor/inference batch16 and arena batch8.
+  Within each pair, match initialization, setup/search/sampling seeds; across
+  pairs, change all four: setup base=10,000,000+100,000×model seed, search
+  base=20,000,000+100,000×model seed, learner base=1,000×model seed.
+  No pilot weights or replay enter training. Alternate
+  arm execution order by seed. Stop for nonfinite training or integrity failure.
+  This matches games and updates, not positions or compute: report both actual
+  positions/reuse and elapsed time. Keep latest-network adoption, without gating.
+- Primary development comparison: final 32-search-trained versus corresponding
+  8-search-trained weights at a common eight-simulation evaluation budget over
+  all 28 pairs, separately for each training seed. Secondary: each final model
+  versus frozen pilot cycle1 over the first eight pairs. Internal runner arena
+  checks use only one pair against each run's own early anchor at cycle4;
+  those unequal-search, different-anchor checks are integrity diagnostics only.
+- These are exploratory multi-seed screens. Report each seed, uncertainty and
+  time; do not pool reused setups/comparisons as independent evidence. Use the
+  measured timings to specify the subsequent equal-total-time training budget,
+  rather than pretending the matched-game comparison is compute-matched.
+  No architecture, reward, replay-weighting or optimizer changes in these arms.
+  Keep the confirmatory suite untouched.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,

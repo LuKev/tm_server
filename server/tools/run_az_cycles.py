@@ -186,10 +186,20 @@ def configuration(args):
         "EXAMPLES_PER_REPLAY_PLY": "", "OPTIMIZER": "sgd", "LEARNING_RATE": "1e-4",
         "WEIGHT_DECAY": "1e-4", "MOMENTUM": "", "BATCH_SIZE": "32",
         "SETUP_SEED_BASE": "1000000", "SEARCH_SEED_BASE": "2000000", "EVAL_EVERY": "1",
+        "MODEL_SEED": "0", "LEARNER_SEED_BASE": "0",
         "EVAL_BASELINES": "uniform,random,heuristic,policy,previous,anchor",
     }
     settings = {key.lower(): os.environ.get("TM_AZ_" + key, value) for key, value in defaults.items()}
     settings["learner_device"] = os.environ.get("TM_AZ_LEARNER_DEVICE", settings["inference_device"])
+    # Match the actor's Go int64 CLI as well as PyTorch's manual_seed range.
+    model_seed = int(settings["model_seed"])
+    if not 0 <= model_seed <= 2**63 - 1:
+        raise ValueError("model_seed must be between 0 and 2**63 - 1")
+    settings["model_seed"] = str(model_seed)
+    learner_seed_base = int(settings["learner_seed_base"])
+    if not 0 <= learner_seed_base <= 2**63 - 1 - args.cycles:
+        raise ValueError("learner_seed_base plus cycles must fit a non-negative int64")
+    settings["learner_seed_base"] = str(learner_seed_base)
     for key in ("actor_games_per_batch", "inference_max_batch", "replay_cache_games", "replay_window_shards", "arena_games_per_batch", "batch_size", "eval_every"):
         if int(settings[key]) <= 0:
             raise ValueError(f"{key} must be positive")
@@ -244,7 +254,7 @@ def execute_cycles(args, root, c):
     anchor = None
     replay = []
     for cycle in range(1, c["cycles"] + 1):
-        identity = {"cycle": cycle, "parent_sha256": digest(parent) if parent else "random-seed-0"}
+        identity = {"cycle": cycle, "parent_sha256": digest(parent) if parent else f"random-seed-{c['model_seed']}"}
         pin = root / f"cycle-{cycle}-parent.json"
         if pin.exists() and json.loads(pin.read_text()) != identity:
             raise ValueError(f"cycle parent changed: {cycle}")
@@ -255,7 +265,7 @@ def execute_cycles(args, root, c):
             *common, "--inference-max-batch", c["inference_max_batch"], "--inference-max-wait", c["inference_max_wait"],
             "--root-search-mode", c["root_search_mode"], "--output", str(output), "--games", str(c["games"]),
             "--games-per-batch", c["actor_games_per_batch"], "--simulations", str(c["simulations"]),
-            "--seed", str(int(c["setup_seed_base"]) + cycle * c["games"]), "--search-seed", str(int(c["search_seed_base"]) + cycle * c["games"]), "--model-seed", "0"])
+            "--seed", str(int(c["setup_seed_base"]) + cycle * c["games"]), "--search-seed", str(int(c["search_seed_base"]) + cycle * c["games"]), "--model-seed", c["model_seed"]])
         replay.extend(["--input", str(actor)])
         work = ["--examples-per-replay-ply", c["examples_per_replay_ply"]] if c["examples_per_replay_ply"] else ["--steps", str(c["train_steps"])]
         trained = stage(root, f"checkpoints/cycle-{cycle}", identity, lambda output: [
@@ -264,7 +274,7 @@ def execute_cycles(args, root, c):
             "--output-dir", str(output), "--engine-commit", c["engine_commit"], *work,
             "--batch-size", c["batch_size"], "--window-shards", c["replay_window_shards"], "--replay-cache-games", c["replay_cache_games"],
             "--optimizer", c["optimizer"], "--learning-rate", c["learning_rate"], "--weight-decay", c["weight_decay"],
-            *(["--momentum", c["momentum"]] if c["momentum"] else []), "--model-seed", "0", "--seed", str(cycle)])
+            *(["--momentum", c["momentum"]] if c["momentum"] else []), "--model-seed", c["model_seed"], "--seed", str(int(c["learner_seed_base"]) + cycle)])
         candidate = checkpoint(trained)
         opponents = {"uniform": ["--baseline-uniform"], "random": ["--baseline-mode", "random"],
                      "heuristic": ["--baseline-mode", "heuristic"],
