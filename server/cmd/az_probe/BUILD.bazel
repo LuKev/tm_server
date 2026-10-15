@@ -1,0 +1,22 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "az_probe_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/lukev/tm_server/cmd/az_probe",
+    visibility = ["//visibility:private"],
+    deps = ["//internal/az"],
+)
+
+go_binary(
+    name = "az_probe",
+    embed = [":az_probe_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "az_probe_test",
+    srcs = ["main_test.go"],
+    embed = [":az_probe_lib"],
+    deps = ["//internal/az", "//internal/models"],
+)

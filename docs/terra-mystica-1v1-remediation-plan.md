@@ -601,7 +601,17 @@ Completed follow-up results (2026-10-11):
 
 Next bounded diagnosis, before further scaling:
 
-1. Freeze a small development-only set of legal pass/build/conversion positions.
+User constraint (2026-10-11): learning must remain purely self-play, from random
+initial weights and normal legal game starts. No expert/replay demonstrations,
+heuristic-generated training targets, curated training positions, opening
+curriculum, building incentives, reward shaping, or special replay balancing to
+steer behavior. Policy targets come from self-play MCTS visits; value targets
+come from terminal game outcomes. Random-number seeds identify reproducible
+independent runs; they do not seed the learner with strategic knowledge.
+Heuristic opponents are evaluation-only and never supply training data. Diagnostic
+probes below are read-only analysis, not an altered self-play training recipe.
+
+1. Freeze a small development-only set of positions drawn from existing self-play.
    Record legal-action priors, visits, Q, and child values backed up using the
    actual decision owner (including reward/leech decisions). Compare policy-only,
    normal eight-simulation search, and identical-prior/seed search with learned
@@ -618,14 +628,13 @@ Next bounded diagnosis, before further scaling:
    confirmed sign bug. Uniform decision labels need not average zero; arena
    outcomes also come from a different policy distribution. Existing value-loss
    deterioration warrants a bounded fixed-replay optimizer-stability check.
-3. If distribution effects remain the supported hypothesis, preregister a
-   one-factor uniform-eligible-position versus uniform-game → uniform-decision-
-   owner → uniform-eligible-position sampling ablation at eight simulations,
-   retaining matched seeds, network, optimizer and budgets. This changes both
-   heads' data distribution and phase/faction/game-length weighting; it is not
-   an isolated class-bias fix. Track strength against frozen anchor and heuristic,
-   calibration, building activity and conversion churn, without reward shaping
-   or pruning legal actions. Keep the confirmatory suite untouched.
+3. Retain uniform eligible-position replay sampling. The previously proposed
+   game/decision-owner-balanced sampler is withdrawn from the next-run plan.
+   Use diagnostics to identify implementation defects or numerical instability;
+   any next experiment must preserve the pure self-play targets and objective.
+   Building activity and conversion churn are descriptive checks, not targets
+   or criteria for selectively admitting training games. Keep evaluation data
+   out of replay and the confirmatory suite untouched.
 4. Defer larger networks, longer runs and equal-time search allocation until
    these diagnostics identify a defensible intervention. The measured search
    cost ratio can then set a separate equal-total-time comparison; the current

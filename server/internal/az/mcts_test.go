@@ -413,6 +413,51 @@ func TestBackupUsesDecisionOwnerIdentity(t *testing.T) {
 	}
 }
 
+func TestConstantValueBiasAcrossDecisionOwners(t *testing.T) {
+	// Equal priors and equally long branches isolate owner-relative value bias:
+	// a constant negative prediction favors handing the decision to the opponent,
+	// even though the backup sign is correct. Consistent seat-relative predictions
+	// and zero predictions have no such preference.
+	tests := []struct {
+		name       string
+		values     [2]float32
+		wantQ      []float32
+		wantVisits []int
+	}{
+		{"negative_bias", [2]float32{-0.25, -0.25}, []float32{-0.25, 0.25}, []int{2, 6}},
+		{"positive_bias", [2]float32{0.25, 0.25}, []float32{0.25, -0.25}, []int{6, 2}},
+		{"zero", [2]float32{0, 0}, []float32{0, 0}, []int{4, 4}},
+		{"consistent_seat_value", [2]float32{0.25, -0.25}, []float32{0.25, 0.25}, []int{4, 4}},
+	}
+	for i, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			spec := &toySpec{id: byte(100 + i), nodes: map[int]toyNode{
+				0: {player: "A", edges: []toyEdge{{toyAction(1), 1}, {toyAction(2), 100}}},
+			}}
+			for branch, player := range []PlayerID{"A", "B"} {
+				start := 1 + 99*branch
+				// Eight traversals cannot reach either terminal: every backed-up
+				// value therefore comes from the controlled evaluator.
+				for depth := 0; depth < 9; depth++ {
+					spec.nodes[start+depth] = toyNode{player: player, value: test.values[branch], edges: []toyEdge{{toyAction(1), start + depth + 1}}}
+				}
+				spec.nodes[start+9] = toyNode{terminal: true, winner: "A"}
+			}
+			search, err := NewMCTS(toyValueEvaluator{}, SearchConfig{Simulations: 8, CPUCT: 1.5, Seed: 7})
+			if err != nil {
+				t.Fatal(err)
+			}
+			result, err := search.Search(context.Background(), &toyPosition{spec: spec})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(result.QValues, test.wantQ) || !reflect.DeepEqual(result.Visits, test.wantVisits) {
+				t.Fatalf("Q=%v visits=%v, want Q=%v visits=%v", result.QValues, result.Visits, test.wantQ, test.wantVisits)
+			}
+		})
+	}
+}
+
 type countingEvaluator struct {
 	calls      int
 	requests   int
