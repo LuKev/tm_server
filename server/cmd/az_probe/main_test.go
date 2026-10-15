@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -93,7 +94,7 @@ func TestOneStepOwnerValuesAndTerminalExact(t *testing.T) {
 		t.Fatal("probe mutated root")
 	}
 	p.terminalOnly = true
-	view, err := probe(context.Background(), constantEvaluator{}, p, az.TrajectoryStep{Actions: p.LegalActions(), ChosenIndex: 0}, 0, 11, []int{8})
+	view, err := probe(context.Background(), constantEvaluator{}, p, az.TrajectoryStep{Actions: p.LegalActions(), ChosenIndex: 0}, 0, az.SearchConfig{Seed: 11}, []int{8})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -113,7 +114,7 @@ func TestOneStepOwnerValuesAndTerminalExact(t *testing.T) {
 
 func TestValueAblationPreservesNonuniformPriorsAndSeparateCaches(t *testing.T) {
 	p := &graph{}
-	view, err := probe(context.Background(), constantEvaluator{}, p, az.TrajectoryStep{Actions: p.LegalActions(), ChosenIndex: 0}, 0, 11, []int{8})
+	view, err := probe(context.Background(), constantEvaluator{}, p, az.TrajectoryStep{Actions: p.LegalActions(), ChosenIndex: 0}, 0, az.SearchConfig{Seed: 11}, []int{8})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,6 +145,37 @@ type reusedEvaluator struct{ results []az.EvaluationResult }
 
 func (e *reusedEvaluator) Evaluate(context.Context, []az.EvaluationRequest) ([]az.EvaluationResult, error) {
 	return e.results, nil
+}
+
+func TestNoiseMatchesAcrossAblationsButPolicyRemainsRaw(t *testing.T) {
+	p := &graph{}
+	step := az.TrajectoryStep{Actions: p.LegalActions(), ChosenIndex: 0}
+	config := az.SearchConfig{Seed: 11, DirichletEpsilon: .25, DirichletTotalConcentration: 10}
+	noisy, err := probe(context.Background(), constantEvaluator{}, p, step, 0, config, []int{8, 32})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, err := probe(context.Background(), constantEvaluator{}, p, step, 0, az.SearchConfig{Seed: 11}, []int{8})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(noisy.Searches[0].Result.Priors, raw.Searches[0].Result.Priors) {
+		t.Fatal("policy-only received root noise")
+	}
+	priors := noisy.Searches[1].Result.Priors
+	if reflect.DeepEqual(priors, raw.Searches[0].Result.Priors) {
+		t.Fatal("noise not applied to MCTS")
+	}
+	for _, search := range noisy.Searches[1:] {
+		if !reflect.DeepEqual(priors, search.Result.Priors) {
+			t.Fatal("noise differs across modes/budgets")
+		}
+	}
+	for _, pair := range [][2]float64{{-.1, 10}, {1.1, 10}, {math.NaN(), 10}, {.25, 0}, {.25, math.Inf(1)}} {
+		if validateNoise(pair[0], pair[1]) == nil {
+			t.Fatal("accepted invalid noise parameters")
+		}
+	}
 }
 
 func TestReplayAndRejectModifiedActionHash(t *testing.T) {
@@ -205,6 +237,27 @@ func TestImmutablePublicationAndBoundedFlags(t *testing.T) {
 	for _, text := range []string{"", "8,8", "999", "8,32,128,8"} {
 		if _, err := parseList(text, 3, func(v int) bool { return v == 8 || v == 32 || v == 128 }); err == nil {
 			t.Fatalf("accepted %q", text)
+		}
+	}
+}
+
+func TestRandomModelRequiresExplicitIndependentSeedAndConfig(t *testing.T) {
+	for _, seed := range []string{"0", "22"} {
+		options, err := modelOptions("", "", seed, "main", "cpu")
+		if err != nil || options.Checkpoint != "" || options.ModelConfig != "main" || options.Device != "cpu" {
+			t.Fatalf("random options: %+v %v", options, err)
+		}
+		if seed == "22" && options.Seed != 22 {
+			t.Fatal("initialization seed not preserved")
+		}
+	}
+	for _, args := range [][4]string{
+		{"", "", "", "main"}, {"", "", "-1", "main"}, {"", "", "9223372036854775808", "main"},
+		{"", "", "22", "auto"}, {"", "", "22", "typo"},
+		{"checkpoint.pt", "", "22", "main"}, {"", "latest.json", "22", "main"},
+	} {
+		if _, err := modelOptions(args[0], args[1], args[2], args[3], "cpu"); err == nil {
+			t.Fatalf("accepted invalid model source %v", args)
 		}
 	}
 }

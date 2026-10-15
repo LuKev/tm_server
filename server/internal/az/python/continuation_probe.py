@@ -33,7 +33,7 @@ def calibration(model, examples, device):
     if not examples:
         return None
     model.eval()
-    values, targets, policy_losses = [], [], []
+    values, targets, policy_losses, target_entropies = [], [], [], []
     with torch.inference_mode():
         for start in range(0, len(examples), 32):
             batch, target_policy, target_value = _training_batch(examples[start:start + 32], device)
@@ -41,6 +41,7 @@ def calibration(model, examples, device):
             values.extend(value.cpu().tolist())
             targets.extend(target_value.cpu().tolist())
             policy_losses.extend((-(target_policy * F.log_softmax(logits, -1)).sum(-1)).cpu().tolist())
+            target_entropies.extend((-(target_policy * target_policy.clamp_min(1e-30).log()).sum(-1)).cpu().tolist())
     v, z = torch.tensor(values), torch.tensor(targets)
     return {
         "positions": len(examples), "prediction_mean": float(v.mean()),
@@ -49,6 +50,8 @@ def calibration(model, examples, device):
         "diagnostic_target_mean_constant_mse": float(((z - z.mean()) ** 2).mean()),
         "zero_constant_mse": float((z ** 2).mean()),
         "policy_loss": sum(policy_losses) / len(policy_losses),
+        "target_policy_entropy": sum(target_entropies) / len(target_entropies),
+        "target_to_prediction_policy_kl": (sum(policy_losses) - sum(target_entropies)) / len(policy_losses),
         "saturation_fraction": float((v.abs() >= .95).float().mean()),
         "by_target": {str(target): {"count": int((z == target).sum()),
                        "prediction_mean": float(v[z == target].mean())}
@@ -76,11 +79,13 @@ def main():
     parser.add_argument("--output", required=True)
     parser.add_argument("--device", default="mps")
     parser.add_argument("--seed", type=int, default=22004)
+    parser.add_argument("--model-seed", type=int, default=22)
     parser.add_argument("--steps", type=int, default=100)
+    parser.add_argument("--chunk-steps", type=int, default=10)
     parser.add_argument("--diagnostic-positions", type=int, default=512)
     parser.add_argument("--learning-rates", type=float, nargs="+", default=[.001, .0003, .0001])
     args = parser.parse_args()
-    if not 1 <= args.steps <= 100 or not 1 <= args.diagnostic_positions <= 1024:
+    if not 1 <= args.steps <= 100 or not 1 <= args.chunk_steps <= 100 or not 1 <= args.diagnostic_positions <= 1024:
         parser.error("bounded to 100 updates and 1024 positions per diagnostic population")
     if not 1 <= len(args.learning_rates) <= 3 or not all(0 < rate <= .001 for rate in args.learning_rates):
         parser.error("bounded to three positive learning rates at most .001")
@@ -99,8 +104,13 @@ def main():
     replay = load_replay(paths, expected_engine_commit=args.engine_commit, holdout=True)
     populations = {"training": fixed_examples(replay, False, args.diagnostic_positions, 54721),
                    "heldout": fixed_examples(replay, True, args.diagnostic_positions, 54722)}
+    baseline.to(device)
+    baseline_calibration = {name: calibration(baseline, examples, device)
+                            for name, examples in populations.items()}
+    baseline.cpu()
     runs = []
     for rate in args.learning_rates:
+        torch.manual_seed(args.model_seed)
         model = TerraMysticaNet(config)
         parent = load_checkpoint(initial, model)
         validate_parent_provenance(parent, args.engine_commit)
@@ -116,8 +126,8 @@ def main():
         agreement = mode_agreement(model, populations["training"], device)
         started = time.perf_counter()
         state = None
-        for start in range(0, args.steps, 10):
-            count = min(10, args.steps - start)
+        for start in range(0, args.steps, args.chunk_steps):
+            count = min(args.chunk_steps, args.steps - start)
             metrics, optimizer, state = train(
                 model, replay, steps=count, batch_size=32, learning_rate=rate,
                 weight_decay=.0001, seed=args.seed, device=device, optimizer_name="sgd",
@@ -140,9 +150,14 @@ def main():
     report = {"purpose": "fixed self-play replay LR-only continuation; not strength evidence",
               "intervention": "preserve initial weights and SGD momentum; change group LR only",
               "engine_commit": args.engine_commit, "device": str(device), "torch_version": str(torch.__version__),
-              "seed": args.seed, "batch_size": 32, "steps": args.steps,
+              "seed": args.seed, "model_seed": args.model_seed, "batch_size": 32, "steps": args.steps,
+              "chunk_steps": args.chunk_steps,
               "initial_checkpoint_sha256": hashlib.sha256(initial.read_bytes()).hexdigest(),
               "baseline_model_id": baseline_payload["model_id"],
+              "baseline_calibration": baseline_calibration,
+              "baseline_learner_contract": baseline_payload["learner_state"]["contract"],
+              "baseline_sampling_rng_sha256": hashlib.sha256(repr(
+                  baseline_payload["learner_state"]["sampling_rng"]).encode()).hexdigest(),
               "replay_identity": replay.identity(), "replay_shards": [path.name for path in paths],
               "training_positions": replay.training_ply_count, "heldout_positions": replay.ply_count - replay.training_ply_count,
               "diagnostics": "fixed uniform samples without replacement, RNG independent of optimizer; heldout excluded from optimizer",

@@ -156,9 +156,9 @@ func oneStepValues(ctx context.Context, evaluator az.Evaluator, p az.Position) (
 	return values, nil
 }
 
-func probe(ctx context.Context, evaluator az.Evaluator, p az.Position, step az.TrajectoryStep, ply int, seed int64, budgets []int) (positionView, error) {
+func probe(ctx context.Context, evaluator az.Evaluator, p az.Position, step az.TrajectoryStep, ply int, config az.SearchConfig, budgets []int) (positionView, error) {
 	view := positionView{Ply: ply, Hash: p.CanonicalHash().String(), DecisionOwner: p.DecisionPlayer(), ArchivedChosen: step.Actions[step.ChosenIndex], ArchivedVisits: step.Visits}
-	view.SearchSeed = seed
+	view.SearchSeed = config.Seed
 	if gamePosition, ok := p.(*az.GamePosition); ok {
 		state := gamePosition.StateClone()
 		view.Round, view.Phase = state.Round, int(state.Phase)
@@ -177,7 +177,12 @@ func probe(ctx context.Context, evaluator az.Evaluator, p az.Position, step az.T
 			if mode == "zero_learned_value" {
 				selectedEvaluator = zeroValues{evaluator}
 			}
-			search, err := az.NewMCTS(selectedEvaluator, az.SearchConfig{Simulations: budget, CPUCT: 1.5, Seed: seed})
+			searchConfig := config
+			searchConfig.Simulations, searchConfig.CPUCT = budget, 1.5
+			if budget == 0 {
+				searchConfig.DirichletEpsilon = 0
+			}
+			search, err := az.NewMCTS(selectedEvaluator, searchConfig)
 			if err != nil {
 				return view, err
 			}
@@ -244,18 +249,59 @@ func publish(path string, report any) error {
 	return os.Link(f.Name(), path)
 }
 
+func modelOptions(checkpoint, latest, randomSeed, config, device string) (az.PythonEvaluatorOptions, error) {
+	options := az.PythonEvaluatorOptions{ModelConfig: config, Device: device, TorchThreads: 1}
+	if randomSeed != "" {
+		if checkpoint != "" || latest != "" {
+			return options, fmt.Errorf("random-model-seed and checkpoint inputs are mutually exclusive")
+		}
+		seed, err := strconv.ParseInt(randomSeed, 10, 64)
+		if err != nil || seed < 0 {
+			return options, fmt.Errorf("random-model-seed must be a non-negative int64")
+		}
+		if config != "debug" && config != "main" && config != "large" {
+			return options, fmt.Errorf("random initialization requires explicit model-config debug, main, or large")
+		}
+		options.Seed = seed
+		return options, nil
+	}
+	path, err := az.ResolveCheckpointReference(checkpoint, latest)
+	if err != nil {
+		return options, err
+	}
+	if path == "" {
+		return options, fmt.Errorf("frozen checkpoint or explicit random-model-seed required")
+	}
+	options.Checkpoint = path
+	return options, nil
+}
+
+func validateNoise(epsilon, concentration float64) error {
+	if math.IsNaN(epsilon) || epsilon < 0 || epsilon > 1 || math.IsNaN(concentration) || math.IsInf(concentration, 0) || concentration <= 0 {
+		return fmt.Errorf("Dirichlet epsilon must be in [0,1] and concentration must be finite and positive")
+	}
+	return nil
+}
+
 func run() error {
 	trajectory := flag.String("trajectory", "", "content-addressed self-play shard")
 	pliesFlag := flag.String("plies", "", "zero-based archived decision indices, max16")
 	budgetsFlag := flag.String("budgets", "8", "comma-separated subset of 8,32,128; policy-only always included")
 	checkpoint := flag.String("checkpoint", "", "frozen checkpoint")
 	latest := flag.String("checkpoint-latest", "", "resolve and pin latest reference once")
+	randomSeed := flag.String("random-model-seed", "", "explicit non-negative random initialization seed, mutually exclusive with checkpoints")
+	modelConfig := flag.String("model-config", "auto", "auto for checkpoint; explicit debug, main, or large for random initialization")
 	inference := flag.String("inference", "", "az_inference executable")
 	device := flag.String("device", "cpu", "inference device")
 	output := flag.String("output", "", "new immutable report file")
 	commit := flag.String("engine-commit", "", "diagnostic source revision")
 	seed := flag.Int64("search-seed", 1, "controlled diagnostic seed base; not replay of archived self-play RNG")
+	epsilon := flag.Float64("dirichlet-epsilon", 0, "root noise weight for MCTS only, in [0,1]; policy-only always uses raw priors")
+	concentration := flag.Float64("dirichlet-concentration", 10, "positive total root Dirichlet concentration")
 	flag.Parse()
+	if err := validateNoise(*epsilon, *concentration); err != nil {
+		return err
+	}
 	if *trajectory == "" || *inference == "" || *output == "" || *commit == "" {
 		return fmt.Errorf("trajectory, inference, output and engine-commit required")
 	}
@@ -270,12 +316,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	path, err := az.ResolveCheckpointReference(*checkpoint, *latest)
+	options, err := modelOptions(*checkpoint, *latest, *randomSeed, *modelConfig, *device)
 	if err != nil {
 		return err
-	}
-	if path == "" {
-		return fmt.Errorf("frozen checkpoint required")
 	}
 	t, ref, err := az.ReadTrajectoryShard(*trajectory)
 	if err != nil {
@@ -287,20 +330,25 @@ func run() error {
 	}
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
-	evaluator, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, az.PythonEvaluatorOptions{Checkpoint: path, ModelConfig: "auto", Device: *device, TorchThreads: 1})
+	evaluator, err := az.StartPythonEvaluatorWithOptions(ctx, *inference, options)
 	if err != nil {
 		return err
 	}
 	defer evaluator.Close()
 	views := []positionView{}
 	for _, ply := range plies {
-		view, err := probe(ctx, evaluator, positions[ply], t.Steps[ply], ply, *seed+int64(ply), budgets)
+		config := az.SearchConfig{Seed: *seed + int64(ply), DirichletEpsilon: *epsilon, DirichletTotalConcentration: *concentration}
+		view, err := probe(ctx, evaluator, positions[ply], t.Steps[ply], ply, config, budgets)
 		if err != nil {
 			return err
 		}
 		views = append(views, view)
 	}
-	return publish(*output, map[string]any{"format_version": 1, "purpose": "archived self-play search diagnostic; not strength evidence", "engine_commit": *commit, "trajectory_sha256": ref.SHA256, "trajectory_manifest": t.Manifest, "checkpoint": evaluator.Metadata(), "c_puct": 1.5, "root_noise_epsilon": 0, "selection_temperature": 0, "search_seed_base": *seed, "search_seed_rule": "diagnostic seed base + ply; not archived self-play RNG replay", "positions": views})
+	source := map[string]any{"kind": "frozen_checkpoint"}
+	if *randomSeed != "" {
+		source = map[string]any{"kind": "random_initialization", "model_seed": options.Seed}
+	}
+	return publish(*output, map[string]any{"format_version": 1, "purpose": "archived self-play search diagnostic; not strength evidence", "engine_commit": *commit, "trajectory_sha256": ref.SHA256, "trajectory_manifest": t.Manifest, "model_source": source, "checkpoint": evaluator.Metadata(), "c_puct": 1.5, "root_noise_epsilon": *epsilon, "root_noise_total_concentration": *concentration, "policy_only_uses_raw_priors": true, "selection_temperature": 0, "search_seed_base": *seed, "search_seed_rule": "diagnostic seed base + ply; not archived self-play RNG replay", "positions": views})
 }
 
 func main() {

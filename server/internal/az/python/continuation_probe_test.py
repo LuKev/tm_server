@@ -30,6 +30,8 @@ class ProbeTest(unittest.TestCase):
         self.assertEqual(report["diagnostic_target_mean_constant_mse"], 1.)
         self.assertAlmostEqual(report["value_mse"], losses(model, examples)["value"], places=6)
         self.assertAlmostEqual(report["policy_loss"], losses(model, examples)["policy"], places=6)
+        self.assertEqual(report["target_policy_entropy"], 0.)
+        self.assertAlmostEqual(report["target_to_prediction_policy_kl"], report["policy_loss"])
         self.assertEqual(mode_agreement(model, examples, "cpu"),
                          {"logit_max_abs_difference": 0., "value_max_abs_difference": 0.})
         self.assertEqual(len(fixed_examples(replay, False, 100, 19)), 2)
