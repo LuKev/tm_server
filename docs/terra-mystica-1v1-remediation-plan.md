@@ -760,7 +760,7 @@ Conclusion and next bounded experiment:
 - Lower LR stabilizes the fixed-replay continuation probes but is not sufficient
   from random initialization over400 updates. Distinguish insufficient optimizer
   work from weak search targets before increasing architecture or scaling the run.
-- Next proposed screen (not launched): fresh seeds44 then55, each with three
+- Authorized three-arm screen (2026-10-14): fresh seeds44 then55, each with three
   four-cycle arms,32 games/cycle: A32 simulations/100 updates; B128 simulations/
   100 updates; C32 simulations/400 updates. Keep main10×128, batch32, SGD.0001,
   momentum.9, weight decay.0001, replaywindow128 and all exploration/runtime
@@ -775,6 +775,33 @@ Conclusion and next bounded experiment:
   strength, inspect target quality and policy learnability before broader scaling;
   if one does, replicate the frozen contrast before adopting the recipe.
   No heuristic rewards, expert data, curated starts or replay balancing.
+
+Execution protocol frozen before launch:
+
+- Output root `artifacts/az/r5-budget-comparison-20261014/`. Run sequentially on
+  the Mac GPU: seed44 A/B/C and its evaluations, then seed55 A/B/C and its
+  evaluations. Each arm starts from its seed's random initialization and has an
+  isolated replay/checkpoint directory. Other arms' data never enter training.
+- Per seed s, model seed=s, setup base=10,000,000+100,000s, search base=
+  20,000,000+100,000s, learner base=1,000s. Keep MPS FP32, Torch threads1,
+  actor/inference batch16, inference wait1ms, concurrent roots, replay cache8,
+  replaywindow128, uniform eligible-position sampling, and ordinary root noise/
+  temperature. Pin one full source revision and tool identities for every arm.
+- Primary contrasts B4−A4 and C4−A4 each use28 development setup pairs with both
+  players at8 simulations. All three final models also face frozen pilotcycle1
+  on8 development pairs at common8. Internal evaluation is one anchor pair at
+  cycle4 for integrity only. No B−C contrast, adaptive settings or promotion gate.
+- Total six runs:768 fresh training games,4,800 updates/153,600 sampled examples;
+  ten external arenas/320 games, plus12 internal integrity-check games. Report
+  both seed results even if they disagree. A gain is only suggestive when both
+  seeds move positively on the same contrast; intervals crossing50% remain
+  inconclusive, and anchor/behavior diagnostics are not substitutes for WDL.
+  Reused development setups and selected budgets preclude confirmatory claims.
+- Stop on nonfinite training, invalid/incomplete games or provenance failures.
+  Keep completed artifacts immutable; resume only the unfinished stage under its
+  existing manifest. Never rerun the entire new-mode queue over existing outputs,
+  duplicate live jobs, or rebuild modified engine sources into running tools.
+  Final suite remains untouched. No production engine changes are required.
 
 ## R6 — Optimize measured bottlenecks, then model capacity
 
