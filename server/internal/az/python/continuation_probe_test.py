@@ -32,6 +32,7 @@ class ProbeTest(unittest.TestCase):
         self.assertAlmostEqual(report["policy_loss"], losses(model, examples)["policy"], places=6)
         self.assertEqual(report["target_policy_entropy"], 0.)
         self.assertAlmostEqual(report["target_to_prediction_policy_kl"], report["policy_loss"])
+        self.assertAlmostEqual(report["target_to_uniform_policy_kl"], float(np.log(2)), places=6)
         self.assertEqual(mode_agreement(model, examples, "cpu"),
                          {"logit_max_abs_difference": 0., "value_max_abs_difference": 0.})
         self.assertEqual(len(fixed_examples(replay, False, 100, 19)), 2)

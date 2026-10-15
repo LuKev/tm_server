@@ -1,12 +1,12 @@
 # Trusted 1v1 Terra Mystica engine: implementation plan
 
-Status: active corrective implementation, 2026-10-10. No milestone below is
+Status: active corrective implementation, 2026-10-14. No milestone below is
 complete merely because an equivalent component exists in the current engine.
 This is the active corrective plan; it supersedes the earlier plan's completion
 claims and experiment ordering. Evidence and rationale are in the
 [first-principles review](terra-mystica-1v1-first-principles-review-20260919.md).
 
-## Implementation checkpoint — 2026-10-10
+## Implementation checkpoint — 2026-10-14
 
 - R0 — complete: the [assigned-faction contract](tm-rules-contract.md) and
   [conformance ledger](terra-mystica-rules-conformance.md) are implemented.
@@ -43,7 +43,8 @@ claims and experiment ordering. Evidence and rationale are in the
   drill passes; the recovery package was uploaded to Drive, downloaded with an
   identical SHA-256, and successfully resumed locally. See evidence below.
 - R5 — pilot and matched-search follow-up complete; no reliable learning gain.
-  Behavioral diagnosis below is next. R6 onward not started.
+  Behavioral diagnostics reproduced value/search sensitivity; controlled
+  learning-rate validation below is next. R6 onward not started.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
@@ -640,6 +641,72 @@ probes below are read-only analysis, not an altered self-play training recipe.
    cost ratio can then set a separate equal-total-time comparison; the current
    matched-game result cannot answer that question.
 
+Diagnostic findings and controlled next experiment (2026-10-14):
+
+- New bounded diagnostic tools replay entire content-addressed self-play games,
+  verifying every state hash, legal action list, chosen transition and terminal
+  state. Probe positions are the first per round admitting pass and ordinary
+  build/upgrade in the first content-hash shard of seed22/33 search32 cycle4.
+  Reports: `artifacts/az/r5-diagnosis-20261014/`. These selected positions are
+  not a representative strength sample or training curriculum.
+- On the same six seed22 positions, cycle3→4 normal8 pass visits rose35/48→47/48,
+  while zero-nonterminal-value8 stayed25/48 and raw priors barely changed. At
+  round3 normal128 pass visits rose22→117; zero128 stayed20. A synthetic test
+  independently demonstrates how constant decision-owner value bias can favor
+  switching owners even with correct backup signs. No sign-code defect found.
+- Values are not the sole cause: policy-only and zero-value8 pass6/6 for seed22;
+  seed33 normal8 passes1/6 versus zero8's5/6. Initial random fingerprints match
+  the original runs; policy-only initially passed0/6 for both seeds versus6/6
+  and5/6 after learning. This establishes learned ranking changes, not that the
+  initial moves were good. Construction includes power-spade build variants:
+  seed33 round1 has63/239 construction choices with28.02% prior mass, slightly
+  above uniform26.36%; a blanket construction-suppression claim is false.
+- Fixed-replay, momentum-preserving100-update LR-only continuation uses identical
+  sample streams, weights, targets and diagnostic populations. Heldout value MSE:
+
+  | Seed | Before | LR0.001 | LR0.0003 | LR0.0001 |
+  | --- | ---: | ---: | ---: | ---: |
+  | 22 | 0.5695 | 0.6097 | 0.6001 | 0.5118 |
+  | 33 | 0.7831 | 0.7690 | 0.6405 | 0.7103 |
+
+  Lower rates reduce prediction oscillation in both seeds; no rate is proven
+  optimal. Heldout states share self-play games and are not a strength test.
+  Policy target KL remains about0.39–0.41 nats and barely changes in this stage.
+  Train/eval outputs agree; no normalization-mode or target-sign defect found.
+  MPS reruns do not reproduce original parameters bitwise despite matching
+  code/replay/sampler/runtime; CPU segmented-continuation regression is exact.
+  Two identical uninterrupted100-update MPS continuations also diverged:
+  maximum parameter difference0.001076 and fixed128-state heldout MSE difference
+  0.00348. This establishes numerical non-repeatability under these controls,
+  not a replay-order or segmented-resume defect. Exact CPU recovery remains
+  separately tested; do not promise bitwise MPS reproducibility.
+- With ordinary self-play root noise (epsilon0.25, total concentration10),
+  seed22 normal32 assigned113/192 aggregate visits to passes versus42/192 with
+  learned values zeroed on the six selected states. This remains an isolated
+  value intervention with identical noisy priors, not an improvement recipe;
+  self-play normally samples visits whereas displayed diagnostic choices are
+  greedy. Exact terminal outcomes remain active in every variant.
+- Before new strength results: run fresh seeds22/33 with32 self-play simulations,
+  four cycles×32 games×100 batch32 updates, main10×128, SGD momentum0.9,
+  weight decay0.0001, changing only learning rate0.001→0.0001 versus their old
+  matched32-search arms. Keep original setup/search/learner/model seeds, MPSFP32,
+  one thread, actor/inference batch16, wait1ms, concurrent roots, replaywindow128,
+  cache8 and uniform eligible-position sampling. No old replay or weights enter
+  these new lineages. Root noise and temperature retain ordinary self-play defaults.
+  This is an exploratory validation of a conservative rate, not a tuned optimum.
+  Seeds/rate were selected after these diagnostics; controls are historical and
+  MPS updates are not bitwise repeatable. This is not a confirmatory or perfectly
+  paired deterministic causal comparison.
+- Primary: each final new model versus its corresponding old32-trained model,
+  both at8 evaluation simulations, all28 development pairs. Secondary: each
+  new final versus frozen pilotcycle1, both8 simulations, first8 pairs. Report
+  seeds separately, uncertainty and behavioral changes; do not pool shared
+  setups. Internal cycle4 anchor one-pair check is integrity-only. No adaptive
+  changes mid-run, no promotion gate, no final-suite use. Preserve immutable
+  outputs under `artifacts/az/r5-lr-validation-20261014/`; stop on integrity or
+  nonfinite failures. More search, larger networks and shaped rewards are not
+  part of this experiment.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
@@ -662,8 +729,8 @@ Apply one change at a time, in measured order:
    training hour and strength per move-time budget, not throughput alone.
 
 Optional later ablations: Gumbel low-budget search, randomized playout budgets,
-auxiliary outcome/score predictions, explicit connectivity features, expert-data
-pretraining, or distillation. Each needs an isolated hypothesis and equal-compute
+auxiliary outcome/score predictions, explicit connectivity features, or self-play
+distillation. Each needs an isolated hypothesis and equal-compute
 comparison; none should delay the corrected baseline. Keep terminal WDL as utility.
 
 Exit: each retained optimization has correctness evidence and a repeatable
@@ -710,5 +777,6 @@ The initial R0–R2 implementation and clarification follow-up are complete for
 the documented competition contract. R3 is complete at its documented confidence
 level. R4 passed its documented recovery/evaluation gates. The bounded R5
 fresh-lineage screen, pilot and three-seed matched-search follow-up completed
-mechanically, without a consistent strength improvement. Next is the bounded
-policy/value diagnosis above; R5 remains open. Scaling is not yet justified.
+mechanically, without a consistent strength improvement. Bounded policy/value
+diagnostics are complete; the fresh learning-rate validation above is next.
+R5 remains open. Scaling is not yet justified.

@@ -33,7 +33,7 @@ def calibration(model, examples, device):
     if not examples:
         return None
     model.eval()
-    values, targets, policy_losses, target_entropies = [], [], [], []
+    values, targets, policy_losses, target_entropies, uniform_losses = [], [], [], [], []
     with torch.inference_mode():
         for start in range(0, len(examples), 32):
             batch, target_policy, target_value = _training_batch(examples[start:start + 32], device)
@@ -42,6 +42,7 @@ def calibration(model, examples, device):
             targets.extend(target_value.cpu().tolist())
             policy_losses.extend((-(target_policy * F.log_softmax(logits, -1)).sum(-1)).cpu().tolist())
             target_entropies.extend((-(target_policy * target_policy.clamp_min(1e-30).log()).sum(-1)).cpu().tolist())
+            uniform_losses.extend(batch.action_mask.sum(-1).float().log().cpu().tolist())
     v, z = torch.tensor(values), torch.tensor(targets)
     return {
         "positions": len(examples), "prediction_mean": float(v.mean()),
@@ -52,6 +53,8 @@ def calibration(model, examples, device):
         "policy_loss": sum(policy_losses) / len(policy_losses),
         "target_policy_entropy": sum(target_entropies) / len(target_entropies),
         "target_to_prediction_policy_kl": (sum(policy_losses) - sum(target_entropies)) / len(policy_losses),
+        "uniform_legal_policy_loss": sum(uniform_losses) / len(uniform_losses),
+        "target_to_uniform_policy_kl": (sum(uniform_losses) - sum(target_entropies)) / len(uniform_losses),
         "saturation_fraction": float((v.abs() >= .95).float().mean()),
         "by_target": {str(target): {"count": int((z == target).sum()),
                        "prediction_mean": float(v[z == target].mean())}
@@ -109,11 +112,15 @@ def main():
                             for name, examples in populations.items()}
     baseline.cpu()
     runs = []
+    previous_states = {}
     for rate in args.learning_rates:
         torch.manual_seed(args.model_seed)
         model = TerraMysticaNet(config)
         parent = load_checkpoint(initial, model)
         validate_parent_provenance(parent, args.engine_commit)
+        initial_model_id = "model-" + model_fingerprint(model)
+        if initial_model_id != parent["model_id"]:
+            raise ValueError("initial model fingerprint mismatch")
         if parent["optimizer_config"] != {"name": "sgd", "learning_rate": .001,
                                           "weight_decay": .0001, "momentum": .9}:
             raise ValueError("probe requires the original SGD configuration")
@@ -138,9 +145,16 @@ def main():
         model.cpu()
         differences = [float((value - baseline.state_dict()[key]).abs().max())
                        for key, value in model.state_dict().items()]
+        duplicate_difference = (max(float((value - previous_states[rate][key]).abs().max())
+                                    for key, value in model.state_dict().items())
+                                if rate in previous_states else None)
+        if args.learning_rates.count(rate) > 1:
+            previous_states[rate] = {key: value.detach().clone() for key, value in model.state_dict().items()}
         runs.append({"learning_rate": rate, "elapsed_seconds": time.perf_counter() - started,
+                     "initial_model_id": initial_model_id,
                      "mode_agreement": agreement, "checkpoints": checkpoints,
                      "final_model_id": "model-" + model_fingerprint(model),
+                     "same_rate_previous_max_parameter_difference": duplicate_difference,
                      "original_final_max_parameter_difference": max(differences),
                      "original_final_allclose_rtol1em4_atol1em5": all(
                          torch.allclose(value, baseline.state_dict()[key], rtol=1e-4, atol=1e-5)
