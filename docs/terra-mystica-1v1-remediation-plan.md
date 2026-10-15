@@ -44,7 +44,8 @@ claims and experiment ordering. Evidence and rationale are in the
   identical SHA-256, and successfully resumed locally. See evidence below.
 - R5 — pilot and matched-search follow-up complete; no reliable learning gain.
   Behavioral diagnostics reproduced value/search sensitivity; controlled
-  learning-rate validation below is next. R6 onward not started.
+  fresh learning-rate validation also failed to demonstrate stronger play.
+  The bounded search-versus-update screen below is next. R6 onward not started.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
@@ -697,6 +698,11 @@ Diagnostic findings and controlled next experiment (2026-10-14):
   Seeds/rate were selected after these diagnostics; controls are historical and
   MPS updates are not bitwise repeatable. This is not a confirmatory or perfectly
   paired deterministic causal comparison.
+  Actual seed22 cycle1 replay matches all32 historical games exactly except
+  source-commit metadata (1,646 decisions). That metadata changes content hashes
+  and sorted replay order: only1/32 games retains its old slot, so the same learner
+  RNG seed does not give identical minibatches. Uniform sampling and canonical
+  diagnostic holdout membership are unchanged. This further limits causal claims.
 - Primary: each final new model versus its corresponding old32-trained model,
   both at8 evaluation simulations, all28 development pairs. Secondary: each
   new final versus frozen pilotcycle1, both8 simulations, first8 pairs. Report
@@ -706,6 +712,69 @@ Diagnostic findings and controlled next experiment (2026-10-14):
   outputs under `artifacts/az/r5-lr-validation-20261014/`; stop on integrity or
   nonfinite failures. More search, larger networks and shaped rewards are not
   part of this experiment.
+
+Fresh learning-rate validation results (2026-10-14, complete):
+
+- Source `602621f6425bcb3ebcdbe38e8afe677fdeb284f8`; immutable queue, manifests,
+  checkpoints and reports in `artifacts/az/r5-lr-validation-20261014/`.
+  Queue exited0; both four-cycle runs and all four external arenas completed.
+  Total256 fresh games,15,016 raw positions,800 updates/25,600 sampled examples;
+  all eight learner stages finite. All144 external games and four internal
+  integrity-check games completed naturally, without reported integrity failures.
+- Primary lower-LR candidate versus same-seed historical32-search final, common8
+  evaluation simulations; intervals are the conservative95% paired-case bounds:
+
+  | Seed | W/D/L | Score | 95% interval | Mean VP margin |
+  | --- | ---: | ---: | ---: | ---: |
+  | 22 | 27/0/29 | 48.21% | 22.55–73.88% | −1.32 |
+  | 33 | 24/1/31 | 43.75% | 18.08–69.42% | +0.30 |
+
+  Do not pool seeds/shared setups as independent evidence. Neither establishes
+  improvement or equivalence. Secondary versus frozen pilot: both5/0/11,
+  score31.25%, interval0–79.27%; margins−5.06/−8.50VP respectively.
+- Sparse construction persisted despite changed activity: seed22 candidate built/upgraded zero times
+  across72 external games, despite increased non-pass activity. Seed33 primary
+  candidate made six construction actions versus baseline four, and zero
+  conversions versus baseline1,002; reducing churn did not establish strength.
+  Counts include power-build variants, not just ordinary build/upgrade kinds.
+- Final-cycle own diagnostic value MSE: seed22 heldout .95075→.92708;
+  seed33 training1.03307→.93563 but heldout .96679→.99833. Policy losses were
+  essentially flat/slightly worse. These within-run diagnostics are not independent
+  game generalization tests. Old/new diagnostic subsets differ with replay order.
+- Run wall times1517.36/1646.74s exclude external arenas; matched games/updates
+  are not matched compute or positions. Both seeds' first32 self-play games match
+  historical controls exactly except provenance (1646/1804 decisions); replay
+  ordering caveats above still apply. No old weights/replay or probe outputs were
+  adopted. Final suite remained untouched. Adversarial training and evaluation
+  reviews found no integrity blocker and rejected claiming a repaired engine.
+
+Conclusion and next bounded experiment:
+
+- Verified search sensitivity: learned near-tied policy rankings and decision-owner
+  value estimates materially alter pass visits. Correct backup can amplify
+  inconsistent values. These probes do not establish optimal actions or the
+  original cause of learning failure. A self-reinforcing weak policy/value loop
+  is the leading interpretation, not a universal pass-bias explanation; effects
+  differ across seeds. No concrete
+  rules, backup-sign, target-sign or train/eval-mode defect was found by these checks.
+- Lower LR stabilizes the fixed-replay continuation probes but is not sufficient
+  from random initialization over400 updates. Distinguish insufficient optimizer
+  work from weak search targets before increasing architecture or scaling the run.
+- Next proposed screen (not launched): fresh seeds44 then55, each with three
+  four-cycle arms,32 games/cycle: A32 simulations/100 updates; B128 simulations/
+  100 updates; C32 simulations/400 updates. Keep main10×128, batch32, SGD.0001,
+  momentum.9, weight decay.0001, replaywindow128 and all exploration/runtime
+  settings fixed. Same pinned source and four seed streams across each seed's arms.
+  The conservative LR is a controlled reference, not an established optimum.
+- Freeze B−A and C−A contrasts for both seeds before observing outcomes. Evaluate
+  cycle4 at common8 simulations on28 development pairs, plus8-pair frozen-pilot
+  checks. Report each seed separately with uncertainty, wall time, positions and
+  reuse;384 games/2400 updates per seed, not an equal-compute experiment. This
+  screens main effects but cannot identify a search×optimizer interaction.
+  Defer the additional eight-cycle horizon arm for simplicity. If no arm gains
+  strength, inspect target quality and policy learnability before broader scaling;
+  if one does, replicate the frozen contrast before adopting the recipe.
+  No heuristic rewards, expert data, curated starts or replay balancing.
 
 ## R6 — Optimize measured bottlenecks, then model capacity
 
@@ -778,5 +847,6 @@ the documented competition contract. R3 is complete at its documented confidence
 level. R4 passed its documented recovery/evaluation gates. The bounded R5
 fresh-lineage screen, pilot and three-seed matched-search follow-up completed
 mechanically, without a consistent strength improvement. Bounded policy/value
-diagnostics are complete; the fresh learning-rate validation above is next.
+diagnostics and two-seed fresh learning-rate validation are complete, without
+demonstrated improvement. The bounded search-versus-update screen above is next.
 R5 remains open. Scaling is not yet justified.
