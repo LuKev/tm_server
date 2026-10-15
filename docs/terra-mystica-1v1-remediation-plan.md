@@ -1,12 +1,12 @@
 # Trusted 1v1 Terra Mystica engine: implementation plan
 
-Status: active corrective implementation, 2026-10-14. No milestone below is
+Status: active corrective implementation, 2026-10-15. No milestone below is
 complete merely because an equivalent component exists in the current engine.
 This is the active corrective plan; it supersedes the earlier plan's completion
 claims and experiment ordering. Evidence and rationale are in the
 [first-principles review](terra-mystica-1v1-first-principles-review-20260919.md).
 
-## Implementation checkpoint — 2026-10-14
+## Implementation checkpoint — 2026-10-15
 
 - R0 — complete: the [assigned-faction contract](tm-rules-contract.md) and
   [conformance ledger](terra-mystica-rules-conformance.md) are implemented.
@@ -45,7 +45,8 @@ claims and experiment ordering. Evidence and rationale are in the
 - R5 — pilot and matched-search follow-up complete; no reliable learning gain.
   Behavioral diagnostics reproduced value/search sensitivity; controlled
   fresh learning-rate validation also failed to demonstrate stronger play.
-  The bounded search-versus-update screen below is next. R6 onward not started.
+  The two-seed search-versus-update screen also completed without a replicated
+  gain. A bounded policy-target fitting diagnostic is next. R6 onward not started.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
@@ -803,6 +804,95 @@ Execution protocol frozen before launch:
   duplicate live jobs, or rebuild modified engine sources into running tools.
   Final suite remains untouched. No production engine changes are required.
 
+### Three-arm comparison results — 2026-10-15
+
+Source pinned to `f1cf73f4983857bcc640aec6c1ba571b53b2864c`; evidence under
+`artifacts/az/r5-budget-comparison-20261014/`. All six training runs completed
+four cycles:768 games,51,419 raw positions,4,800 updates/153,600 sampled examples.
+Adversarial audits verified checkpoint hashes/parent lineage, finite learner
+stages, matched manifests and natural internal games. A/C first-cycle replay
+files were byte-identical in the same sorted order within each seed; subsequent
+on-policy replay naturally diverged. All starts were random initialization and
+ordinary legal setups, with no external data or special seeding.
+
+Primary results, common8 evaluation simulations,28 paired development setups
+(56 games) per row. Score counts draws as half; intervals are paired95%
+finite-sample Hoeffding bounds, not independent-game binomial intervals.
+
+| Seed | Contrast | W/D/L | Score | Paired95% interval | Mean VP margin |
+| --- | --- | --- | --- | --- | --- |
+| 44 | B128/100 vs A32/100 | 30/0/26 | 53.57% | 27.91–79.24% | +1.23 |
+| 44 | C32/400 vs A32/100 | 36/1/19 | 65.18% | 39.51–90.84% | +1.73 |
+| 55 | B128/100 vs A32/100 | 24/1/31 | 43.75% | 18.08–69.42% | −0.82 |
+| 55 | C32/400 vs A32/100 | 26/0/30 | 46.43% | 20.76–72.09% | −2.25 |
+
+Neither intervention's positive seed44 direction replicated in seed55. Every
+interval includes50%: this demonstrates neither improvement nor equivalence or
+harm. Do not pool shared setups or infer C beats B without a direct contrast.
+All224 primary games completed naturally with zero invalid actions, duplicate
+states, tripwire hits or infrastructure failures. Final suite remains untouched.
+
+Secondary checks against frozen pilotcycle1, common8 simulations,8 pairs/16 games
+per row (not additional independent evidence for the primary contrasts):
+
+| Seed/arm | W/D/L | Score | Paired95% interval | Mean VP margin |
+| --- | --- | --- | --- | --- |
+| 44 A | 5/0/11 | 31.25% | 0–79.27% | −8.44 |
+| 44 B | 5/0/11 | 31.25% | 0–79.27% | −9.50 |
+| 44 C | 4/0/12 | 25.00% | 0–73.02% | −4.38 |
+| 55 A | 6/1/9 | 40.63% | 0–88.64% | +1.31 |
+| 55 B | 7/0/9 | 43.75% | 0–91.77% | +3.56 |
+| 55 C | 7/0/9 | 43.75% | 0–91.77% | −2.13 |
+
+All ten external arenas finished:320 natural games with zero failure counters,
+plus12 valid internal integrity games (at each arm's training search budget,
+not common8). Recovery queue exited0 and published `queue-complete.txt`.
+No arm established an advantage over the pilot. Positive mean VP does not
+override the WDL objective or wide uncertainty.
+
+Compute accounting (seconds, rounded): each run has128 games; A/B400 updates
+and12,800 sampled examples; C1,600 updates and51,200 examples.
+
+| Seed/arm | Raw positions | Committed actor | Committed learner | Full run wall |
+| --- | --- | --- | --- | --- |
+| 44 A | 7,813 | 1,481.62 | 176.75 | 1,719.93 |
+| 44 B | 8,685 | 4,977.69 | 176.66 | unavailable: interrupted |
+| 44 C | 8,035 | 1,343.54 | 619.40 | 2,061.91 |
+| 55 A | 8,540 | 1,260.39 | 168.33 | 1,596.66 |
+| 55 B | 9,367 | 4,592.91 | 173.82 | 5,225.52 |
+| 55 C | 8,979 | 1,329.49 | 647.63 | 2,102.88 |
+
+This is equal-game, not equal-position or equal-compute. Committed actor+learner
+cost for B/A was3.11x/3.34x across seeds44/55; C/A was1.18x/1.38x. Components
+exclude startup/internal arenas; full run wall excludes external arenas. Seed44B
+was interrupted by the user pause: unpublished cycle4 replay was quarantined and
+retried under its immutable manifest. Its1,259.338 seconds of wasted work are
+interruption overhead, not additional training games. Recovery wall1,421.21s
+overlaps committed stage compute and is neither full-run cost nor additive to it.
+Recovery provenance is in `RECOVERY.md`, `recovery-20261015.sh` and
+`recovery-20261015/manifest.json`. Never rerun either new-mode queue over outputs.
+
+Behavioral evidence is seed-sensitive, not a universal no-building failure.
+Against A44, B built/upgraded54 times versus0 and C6 versus0; C made427
+conversions. Against A55, B constructed253 versus317; C175 versus270 and made584
+conversions versus35. Counts include power/bonus builds and implicit faction
+build/upgrade specials, not just explicit build flags. More construction is not
+a strength metric. Policy losses remained nearly flat, while value-fit changes
+varied by seed; neither observation proves one root cause or predicts strength.
+
+Next justified experiment: a small diagnostic-only fit of existing self-play
+MCTS visit targets, comparing the current joint policy/value objective with
+policy-only fitting. Freeze identical initialization, replay, legal masks and
+sample stream and canonical heldout split; predeclare a bounded update budget
+and training-KL reduction criterion for fitting. Measure train/heldout policy
+KL, target entropy, top-visit agreement and joint-branch value MSE. If only the
+policy-only branch fits, investigate objective interference; if neither fits,
+investigate optimization/representation/scoring; if both fit, investigate target
+quality and action selection. These are hypotheses, not definitive localization.
+Discard diagnostic weights: no actor adoption, expert labels, curated starts,
+replay balancing or production objective change. Do not launch another large
+training queue or enlarge the network before this cheaper test. R5 remains open.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
@@ -875,5 +965,6 @@ level. R4 passed its documented recovery/evaluation gates. The bounded R5
 fresh-lineage screen, pilot and three-seed matched-search follow-up completed
 mechanically, without a consistent strength improvement. Bounded policy/value
 diagnostics and two-seed fresh learning-rate validation are complete, without
-demonstrated improvement. The bounded search-versus-update screen above is next.
-R5 remains open. Scaling is not yet justified.
+demonstrated improvement. The two-seed search-versus-update screen is complete
+without a replicated gain. The diagnostic-only policy-target fit above is next;
+it has not been launched. R5 remains open. Scaling is not yet justified.
