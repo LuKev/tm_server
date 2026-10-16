@@ -1052,7 +1052,7 @@ alias obstruction was found. These results narrow the failure, not fully explain
 it: cross-position interference, effective policy expressivity and target
 predictability remain unresolved. Do not claim a stronger engine or scale runs.
 
-Next justified diagnostic: a deterministic small-subset overfit ladder on actual
+Historical next-step rationale (subsequently executed below): a deterministic small-subset overfit ladder on actual
 pure-self-play targets, uniformly selecting1 then8 non-forced positions from
 each frozen training sample (filter forced positions only for informativeness).
 Keep the original main network, joint objective and one preregistered optimizer;
@@ -1094,7 +1094,7 @@ bilinear scoring and context scaling are not validated remedies.
 Exposure control declared before execution: measure the same original eight-position
 branches after12 and13 AdamW updates (48/52 expected exposures), bracketing the
 256-position400-update control's50 exposures. Preserve samples, initialization
-and minibatch prefixes. This separates exposure from subset-complexity effects
+and minibatch prefixes. This helps assess whether exposure explains the apparent subset difference
 more cheaply than a very long256-position memorization run. The wrapper also
 retains its single-position branch for each budget; do not use it as the matched
 exposure comparison. Write new `seed-{44,55}-subsets-steps{12,13}.json` reports,
@@ -1104,6 +1104,38 @@ Any eventual optimizer/head candidate still needs fresh random-initialized,
 pure-self-play two-seed learning curves and common-budget arenas. Keep the CNN
 and joint policy/value objective for now; optimize the measured policy-learning
 bottleneck before spending more on search or model capacity.
+
+Exposure controls completed (`62d585a`), all finite. Eight-position KL after
+12/13 updates: seed44 .155044/.154250 from .246733 (37.16%/37.48% reduction),
+seed55 .315473/.313840 from .413746 (23.75%/24.15%). These are not better than
+the256-position AdamW controls'37.42%/34.17% at roughly matched expected exposure.
+Thus the strong400-step tiny-subset result is consistent with increased reuse;
+it is not evidence of a special cross-position failure. Expected rather than
+exact per-position draws are matched, and gradient aggregation/update counts
+still differ. No causal equivalence or statistical strength claim is intended.
+
+Posthoc inspection localizes96.9% of seed55's eight-position residual KL to the
+31/74-action positions. The74-action round2 state is mainly spatial transforms
+and specials, with32 visits on only9 actions; the31-action round6 state mixes
+cult amounts, conversions and passes, with32 visits on14 actions. This is not
+solely a conversion-amount or nonspatial-gating issue. Sparse search targets may
+be hard to predict, but these examples alone do not establish target noise or
+prove that more search would improve learning. They must not become curated
+actor starts, special replay weighting, or replacement policy targets.
+
+Decision after this diagnostic round: keep the existing CNN and joint loss;
+do not adopt the tested head/scaling changes or scale search. The demonstrated
+proximal bottleneck is weak policy fitting at the current small learning rate
+and limited replay exposure, while more aggressive fitting does not transfer
+reliably. The remaining question is how much comes from optimizer conditioning
+versus predictability of sparse self-play search targets. Before another costly
+training comparison, measure repeated-search target stability on uniformly
+selected frozen self-play states (diagnostic only, never actor seeding), and
+compare optimizer/reuse settings on the full frozen replay with a whole-game
+validation split. Preserve original visit/WDL targets for fitting. Select a
+candidate only on predefined fit/validation criteria, then require fresh
+pure-self-play two-seed strength evaluation. No configuration from this round
+has yet earned a claim of improved play.
 
 All current probes used unchanged self-play visit/WDL labels, ordinary recorded
 starts and disposable random-initialized models. Heldout positions share source
