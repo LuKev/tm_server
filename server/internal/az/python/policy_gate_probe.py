@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 import torch
+import numpy as np
 
 from batching import collate_positions
 from learner import load_replay
@@ -41,6 +42,52 @@ def aggregate(rows):
             "pair_weighted": {name: sum(row[name] * row["pairs"] for row in rows) / pairs for name in names}}
 
 
+def array_identity(arrays):
+    digest = hashlib.sha256()
+    for array in arrays:
+        array = np.ascontiguousarray(array)
+        digest.update(json.dumps([array.dtype.str, array.shape]).encode())
+        digest.update(array.tobytes())
+    return digest.hexdigest()
+
+
+def alias_floor(examples):
+    groups = {}
+    for example in examples:
+        encoded = example.encoded
+        identity = array_identity([encoded.spatial, encoded.global_features,
+                                   encoded.action_features, encoded.action_hex_indices])
+        groups.setdefault(identity, []).append(example)
+    rows = []
+    for group in groups.values():
+        encoded = group[0].encoded
+        actions = {}
+        for index in range(len(group[0].policy)):
+            identity = array_identity([encoded.action_features[index], encoded.action_hex_indices[index]])
+            actions.setdefault(identity, []).append(index)
+        optimum = np.mean([example.policy.astype(np.float64) for example in group], axis=0)
+        for indices in actions.values():
+            optimum[indices] = optimum[indices].mean()
+        variance = float(np.var([example.value for example in group]))
+        aliased_actions = sum(len(indices) for indices in actions.values() if len(indices) > 1)
+        for example in group:
+            positive = example.policy > 0
+            target = example.policy[positive].astype(np.float64)
+            kl = float(np.sum(target * np.log(target / optimum[positive])))
+            rows.append({"kl": kl, "legal": len(example.policy), "duplicate_state": len(group) > 1,
+                         "aliased_actions": aliased_actions, "value_variance": variance})
+    result = {}
+    for name, population in (("all", rows), ("multiple_legal_actions", [row for row in rows if row["legal"] > 1])):
+        count = len(population)
+        result[name] = {"positions": count,
+                        "policy_kl_lower_bound": sum(row["kl"] for row in population) / count if count else None,
+                        "duplicate_encoding_positions": sum(row["duplicate_state"] for row in population),
+                        "positions_with_aliased_actions": sum(row["aliased_actions"] > 0 for row in population),
+                        "aliased_action_occurrences": sum(row["aliased_actions"] for row in population),
+                        "value_mse_lower_bound": sum(row["value_variance"] for row in population) / count if count else None}
+    return result
+
+
 def audit(model, examples):
     model.eval()
     rows = {"baseline": [], "zero_context": []}
@@ -74,7 +121,8 @@ def audit(model, examples):
     if maximum_error > 1e-5:
         raise ValueError("manual versus actual policy logits differ")
     return {"sampled_positions": len(examples), "positions_with_nonspatial_actions": nonspatial_positions,
-            "manual_forward_max_abs_error": maximum_error, **{name: aggregate(values) for name, values in rows.items()}}
+            "manual_forward_max_abs_error": maximum_error, "exact_encoding_alias_floor": alias_floor(examples),
+            **{name: aggregate(values) for name, values in rows.items()}}
 
 
 def main():

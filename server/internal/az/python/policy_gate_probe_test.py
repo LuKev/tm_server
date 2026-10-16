@@ -1,11 +1,31 @@
 import unittest
+import math
+import numpy as np
 
 import torch
 
-from policy_gate_probe import aggregate, pair_metrics
+from policy_gate_probe import aggregate, alias_floor, pair_metrics
+from learner import Example
+from schema import EncodedPosition
 
 
 class GateProbeTest(unittest.TestCase):
+    def test_exact_alias_floor(self):
+        def example(actions, target, value=0.):
+            encoded = EncodedPosition(np.zeros((1, 1, 1), np.float32), np.zeros(1, np.float32),
+                                      np.array(actions, np.float32), np.full((2, 2), -1, np.int64))
+            return Example(encoded, np.array(target, np.float32), value)
+        identical_actions = alias_floor([example([[0.], [0.]], [1., 0.])])["all"]
+        self.assertAlmostEqual(identical_actions["policy_kl_lower_bound"], math.log(2))
+        self.assertEqual(identical_actions["aliased_action_occurrences"], 2)
+        duplicate_states = alias_floor([example([[0.], [1.]], [1., 0.], -1.),
+                                        example([[0.], [1.]], [0., 1.], 1.)])["all"]
+        self.assertAlmostEqual(duplicate_states["policy_kl_lower_bound"], math.log(2))
+        self.assertEqual(duplicate_states["duplicate_encoding_positions"], 2)
+        self.assertEqual(duplicate_states["value_mse_lower_bound"], 1.)
+        unique = alias_floor([example([[0.], [1.]], [1., 0.])])["all"]
+        self.assertEqual(unique["policy_kl_lower_bound"], 0.)
+
     def test_identical_gates_cancel_context_but_not_action_derivative(self):
         result = pair_metrics(torch.ones(2, 2), torch.tensor([[2., 3.], [4., 5.]]),
                               torch.tensor([[1., 2.]]), 1, 1)

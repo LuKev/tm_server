@@ -1003,6 +1003,23 @@ weights saved/adopted. Only diagnostic tooling gains an optimizer option;
 production learner/model are unchanged. Source hashes explicitly distinguish
 this probe revision from prior SGD reports. Outputs `seed-{44,55}-adamw.json`.
 
+AdamW also failed50%: joint training KL .225774/.218121 and policy-only
+.213233/.203037 for44/55; heldout KL worsened in both seeds. Exact ordered-input
+and identical-action-row collision checks on the same256 training examples found
+zero collisions and zero unavoidable-KL lower bound. This excludes only those
+sampled exact collisions, not general encoder ambiguity or network invariances.
+
+One final controlled gating intervention is declared before results: keep the
+original architecture and every initial weight, but multiply only the policy
+input's shared global-action and pooled-board segments by0.1. Leave action
+features, spatial gathers, biases and value path unchanged. Run both seeds at
+the matched AdamW0.001/400-step settings and same references/stream; compare to
+the completed AdamW controls. No extra parameters or new head initialization.
+This tests the measured context-dominance mechanism more directly than replacing
+the head. It changes gradients as well as activations, so does not isolate gating
+alone. Same50% criterion, separate heldout results, no production adoption or
+saved weights. Output `seed-{44,55}-context-scaled.json`.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
