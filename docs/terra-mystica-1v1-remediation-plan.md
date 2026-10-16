@@ -893,6 +893,33 @@ Discard diagnostic weights: no actor adoption, expert labels, curated starts,
 replay balancing or production objective change. Do not launch another large
 training queue or enlarge the network before this cheaper test. R5 remains open.
 
+Policy-fitting diagnostic protocol (2026-10-16, before results): use only the
+first-cycle A-arm self-play shards from the completed seed44 and55 comparisons,
+validated against source `f1cf73f4983857bcc640aec6c1ba571b53b2864c`. For each seed,
+uniformly select256 eligible training positions without replacement and128
+canonical heldout positions (or all available if fewer). Do not select positions
+by action, outcome, phase or faction. Freeze references and identical minibatch
+streams; both branches start from the same main10x128 random initialization with
+model seed44/55. Use training-subset seed731, heldout-subset seed732 and
+minibatch-stream seed732, batch32,400 SGD updates at0.0001,
+momentum0.9 and weight decay0.0001. Only the inclusion of value loss differs.
+Record initial/100/400-step train/heldout KL, target entropy, top-visit agreement,
+value MSE and logit spread, separately for all and multi-action positions.
+Also measure policy/value shared-trunk gradient norms and their cosine on the
+same first minibatch before/after fitting; this tests scale/interference without
+changing updates. A small gradient alone does not establish a causal bug.
+The preregistered fitting criterion is at least50% reduction of mean training
+KL on multi-action positions; heldout improvement is reported separately and is
+not required for this memorization check. Initial KL below1e-6 is uninformative.
+Finite gradients, matching sample/init identities and intact replay hashes are
+required. This small-subset overfit test deliberately differs from full-window
+training and cannot establish playing strength or universal capacity limits.
+Use MPS FP32 sequentially, one Torch thread. No weights are saved or adopted;
+all targets remain original self-play visit distributions and terminal WDL.
+Further probes require explicit recorded hypotheses after these results, not
+silent changes to this protocol. Adversarial implementation/result reviews are
+required. Output root: `artifacts/az/r5-policy-fit-20261016/`.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
