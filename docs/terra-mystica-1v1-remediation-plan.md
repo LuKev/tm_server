@@ -1,12 +1,12 @@
 # Trusted 1v1 Terra Mystica engine: implementation plan
 
-Status: active corrective implementation, 2026-10-15. No milestone below is
+Status: active corrective implementation, 2026-10-16. No milestone below is
 complete merely because an equivalent component exists in the current engine.
 This is the active corrective plan; it supersedes the earlier plan's completion
 claims and experiment ordering. Evidence and rationale are in the
 [first-principles review](terra-mystica-1v1-first-principles-review-20260919.md).
 
-## Implementation checkpoint — 2026-10-15
+## Implementation checkpoint — 2026-10-16
 
 - R0 — complete: the [assigned-faction contract](tm-rules-contract.md) and
   [conformance ledger](terra-mystica-rules-conformance.md) are implemented.
@@ -46,7 +46,8 @@ claims and experiment ordering. Evidence and rationale are in the
   Behavioral diagnostics reproduced value/search sensitivity; controlled
   fresh learning-rate validation also failed to demonstrate stronger play.
   The two-seed search-versus-update screen also completed without a replicated
-  gain. A bounded policy-target fitting diagnostic is next. R6 onward not started.
+  gain. Bounded policy-target fitting diagnostics found slow policy optimization
+  and poor heldout transfer, but no validated strength fix. R6 onward not started.
 
 Final verification results are recorded in the conformance ledger. Implemented
 code is not a substitute for satisfying a milestone's evidence requirements.
@@ -1020,6 +1021,66 @@ the head. It changes gradients as well as activations, so does not isolate gatin
 alone. Same50% criterion, separate heldout results, no production adoption or
 saved weights. Output `seed-{44,55}-context-scaled.json`.
 
+### Policy-fitting diagnostic outcome — 2026-10-16
+
+All bounded probes completed with finite results. Context scaling reduced train
+KL from .359843 to .207654 (44,42.29%) and .335622 to .206308 (55,38.53%),
+still below50%. Heldout KL worsened to .464187/.417832, also worse than the
+matched original-head AdamW controls. Thus input scaling improves memorization
+modestly but is not a validated remedy. No production code or weights changed.
+
+Summary of **joint-objective multi-action training KL reduction**; each column
+is a separate seed, not pooled evidence. Percentages use each variant's own
+initial prediction, which changes for head/scaling interventions.
+
+| Diagnostic | Seed44 | Seed55 |
+| --- | ---: | ---: |
+| Original SGD0.0001,400 updates | 2.99% | 2.59% |
+| Original SGD0.003,400 updates | 32.54% | 22.79% |
+| Original SGD0.003,2000 updates | 39.28% | 35.39% |
+| Original AdamW0.001,400 updates | 37.42% | 34.17% |
+| Bilinear head, SGD0.003,400 updates | 7.04% | 7.97% |
+| Original head with context×0.1, AdamW0.001,400 updates | 42.29% | 38.53% |
+
+Interpretation: current SGD0.0001 barely learns the actual policy targets even
+on a tiny frozen subset. Faster optimization helps, but longer fitting and
+AdamW do not solve the residual fit limitation and generally worsen heldout
+policy fit. Removing value loss does not repair this, despite its larger initial
+trunk gradients. Initial policy-context cancellation is measurable, but neither
+tested head intervention provides a convincing fix. No sampled exact-input
+alias obstruction was found. These results narrow the failure, not fully explain
+it: cross-position interference, effective policy expressivity and target
+predictability remain unresolved. Do not claim a stronger engine or scale runs.
+
+Next justified diagnostic: a deterministic small-subset overfit ladder on actual
+pure-self-play targets, uniformly selecting1 then8 non-forced positions from
+each frozen training sample (filter forced positions only for informativeness).
+Keep the original main network, joint objective and one preregistered optimizer;
+record per-position KL, not only its mean. If individual positions cannot fit,
+audit their representation/gradient path before adding capacity. If individual
+positions fit but the shared subset does not, focus on cross-position coupling
+and the policy scorer. This is diagnostic data selection only, never actor
+seeding or replay balancing. Do not launch another full self-play comparison
+until a specific intervention passes the fitting check; then test it from fresh
+random initialization in both seeds at matched games and common arena budget.
+
+Small-subset follow-up frozen before execution: for each seed, use RNG731 to
+uniformly shuffle the multi-action members of the original256 training refs,
+then take nested prefixes of1 and8. Retain original128 heldout refs. Reset the
+original main10x128 network to modelseed44/55 for each size; joint AdamW0.001
+(same betas/epsilon/decay),400 updates, batch32 sampled with replacement using
+RNG732. Record per-position initial/final KL, finite gradients and identities.
+The50% mean train-KL reduction remains the threshold; each position's residual
+must be reported. These tiny subsets deliberately change coverage, not targets;
+they are never used for actors or production checkpoints. No new architecture.
+
+All current probes used unchanged self-play visit/WDL labels, ordinary recorded
+starts and disposable random-initialized models. Heldout positions share source
+games with training positions; no independent-game generalization claim applies.
+Source/replay/sample/init/minibatch hashes are in each report. These adaptive
+diagnostics are not equal-compute comparisons or new strength evaluations;
+the final confirmatory suite remains untouched.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
@@ -1093,5 +1154,7 @@ fresh-lineage screen, pilot and three-seed matched-search follow-up completed
 mechanically, without a consistent strength improvement. Bounded policy/value
 diagnostics and two-seed fresh learning-rate validation are complete, without
 demonstrated improvement. The two-seed search-versus-update screen is complete
-without a replicated gain. The diagnostic-only policy-target fit above is next;
-it has not been launched. R5 remains open. Scaling is not yet justified.
+without a replicated gain. Diagnostic-only policy-target fitting found slow
+optimization and poor heldout transfer; it has not established a production fix
+or fully isolated the residual fitting limitation. R5 remains open. Scaling is
+not yet justified.
