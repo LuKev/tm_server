@@ -107,9 +107,14 @@ def shared_gradients(model, examples, device):
             "cosine": float(torch.dot(policy_flat, value_flat) / (policy_norm * value_norm)) if denominator > 0 else None}
 
 
-def run_arm(model, training, heldout, stream, *, arm, device, learning_rate):
+def run_arm(model, training, heldout, stream, *, arm, device, learning_rate, optimizer_name="sgd"):
     model.to(device)
-    optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=.9, weight_decay=1e-4)
+    if optimizer_name == "sgd":
+        optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate, momentum=.9, weight_decay=1e-4)
+    elif optimizer_name == "adamw":
+        optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate, betas=(.9, .999), eps=1e-8, weight_decay=1e-4)
+    else:
+        raise ValueError("unknown diagnostic optimizer")
     started = time.perf_counter()
     result = {"arm": arm, "initial_fingerprint": model_fingerprint(model), "snapshots": [],
               "max_gradient_norm": 0., "status": "finite"}
@@ -145,7 +150,8 @@ def run_arm(model, training, heldout, stream, *, arm, device, learning_rate):
 
 
 def probe(replay, *, model_seed=44, sample_seed=731, batch_seed=732, model_config="main",
-          device="mps", steps=400, learning_rate=1e-4, training_count=256, heldout_count=128, batch_size=32):
+          device="mps", steps=400, learning_rate=1e-4, training_count=256, heldout_count=128, batch_size=32,
+          optimizer_name="sgd"):
     if not replay.holdout:
         raise ValueError("canonical heldout split is required")
     if not (1 <= steps <= 2000 and 1 <= batch_size <= 128 and 1 <= training_count <= 1024
@@ -165,7 +171,8 @@ def probe(replay, *, model_seed=44, sample_seed=731, batch_seed=732, model_confi
     for arm in ("joint", "policy_only"):
         torch.manual_seed(model_seed)
         model = TerraMysticaNet(MODEL_CONFIGS[model_config])
-        runs.append(run_arm(model, training, heldout, stream, arm=arm, device=device, learning_rate=learning_rate))
+        runs.append(run_arm(model, training, heldout, stream, arm=arm, device=device, learning_rate=learning_rate,
+                            optimizer_name=optimizer_name))
         del model
     if runs[0]["initial_fingerprint"] != runs[1]["initial_fingerprint"]:
         raise RuntimeError("arms did not share initialization")
@@ -174,7 +181,8 @@ def probe(replay, *, model_seed=44, sample_seed=731, batch_seed=732, model_confi
         "model_config": model_config, "model_seed": model_seed, "sample_seed": sample_seed, "batch_seed": batch_seed,
         "device": str(device), "torch_version": str(torch.__version__), "torch_threads": torch.get_num_threads(),
         "dtype": "float32", "steps": steps, "batch_size": batch_size,
-        "optimizer": {"name": "sgd", "learning_rate": learning_rate, "momentum": .9, "weight_decay": 1e-4},
+        "optimizer": {"name": optimizer_name, "learning_rate": learning_rate, "weight_decay": 1e-4,
+                      **({"momentum": .9} if optimizer_name == "sgd" else {"betas": [.9, .999], "eps": 1e-8})},
         "split": DIAGNOSTIC_SPLIT, "sampling": "uniform-without-replacement subsets; uniform-with-replacement minibatches",
         "eligible_training_positions": replay.training_ply_count,
         "eligible_heldout_positions": replay.ply_count - replay.training_ply_count,
@@ -210,6 +218,7 @@ def main():
                           ("steps", 400), ("batch-size", 32), ("training-count", 256), ("heldout-count", 128)):
         parser.add_argument("--" + name, type=int, default=default)
     parser.add_argument("--learning-rate", type=float, default=1e-4)
+    parser.add_argument("--optimizer-name", choices=("sgd", "adamw"), default="sgd")
     args = parser.parse_args()
     if Path(args.output).exists():
         parser.error("refusing to overwrite completed probe")

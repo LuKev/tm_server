@@ -65,10 +65,18 @@ class PolicyProbeTest(unittest.TestCase):
         duplicate = copy.deepcopy(model)
         kwargs = dict(arm="joint", device="cpu", learning_rate=1e-4)
         first = run_arm(model, examples(), examples(), stream, **kwargs)
-        second = run_arm(duplicate, examples(), examples(), stream, **kwargs)
+        second = run_arm(duplicate, examples(), examples(), stream, optimizer_name="sgd", **kwargs)
         self.assertEqual(first["initial_fingerprint"], second["initial_fingerprint"])
         self.assertEqual(first["final_fingerprint"], second["final_fingerprint"])
         self.assertEqual(first["snapshots"], second["snapshots"])
+
+    def test_adamw_updates_are_finite(self):
+        model = TerraMysticaNet(ModelConfig(8, 1))
+        result = run_arm(model, examples(), examples(), minibatches(2, 2, 2, 731),
+                         arm="joint", device="cpu", learning_rate=.001, optimizer_name="adamw")
+        self.assertEqual(result["status"], "finite")
+        self.assertNotEqual(result["initial_fingerprint"], result["final_fingerprint"])
+        self.assertTrue(math.isfinite(result["max_gradient_norm"]))
 
     def test_exclusive_report(self):
         with tempfile.TemporaryDirectory() as directory:

@@ -986,6 +986,23 @@ reported separately. This isolates a practical head-design intervention, not
 mathematical proof that interaction alone causes any change. All weights remain
 disposable; output `seed-{44,55}-interaction.json` in the diagnostic root.
 
+The bilinear head failed the fitting criterion:400-step joint train KL
+.360463→.335099 (44) and .344017→.316596 (55), less fitting than the original
+head; heldout KL .407897/.322992 was slightly better. No adoption is justified.
+It also has a known restriction: raw nonspatial scalar action features enter
+linearly, so otherwise identical conversion amounts have affine logits and
+cannot prefer an interior amount. Thus this is not a production-ready design
+and does not refute nonlinear state/action interaction alternatives.
+
+Final bounded optimizer/capacity check, declared before results: original head,
+same model/sample/minibatch seeds and400 updates, both objectives/seeds, AdamW
+learning rate0.001, betas(0.9,0.999), epsilon1e-8 and weight decay0.0001. This
+tests an optimizer configuration, not the isolated effect of optimizer family
+or learning rate. Keep50% training-KL criterion, report heldout separately; no
+weights saved/adopted. Only diagnostic tooling gains an optimizer option;
+production learner/model are unchanged. Source hashes explicitly distinguish
+this probe revision from prior SGD reports. Outputs `seed-{44,55}-adamw.json`.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,
