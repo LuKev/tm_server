@@ -920,6 +920,72 @@ Further probes require explicit recorded hypotheses after these results, not
 silent changes to this protocol. Adversarial implementation/result reviews are
 required. Output root: `artifacts/az/r5-policy-fit-20261016/`.
 
+Initial fitting results (probe source `85334ad`,2026-10-16): both seeds failed
+the50% fitting criterion. Multi-action training KL: seed44 .360796→.350021
+(joint) or .348295(policy-only); seed55 .331326→.322748 or .321063. Thus removing
+value loss alone did not fix the roughly3% policy-fit improvement. Initial
+shared-trunk value gradients were about15x/11x policy gradients on the fixed
+first minibatch, with cosine−.074/−.009: scale disparity, not proof of conflict.
+Matching initialization fingerprints also match the original self-play actors.
+All four branches remained finite; no diagnostic weights were saved.
+
+Adaptive follow-up declared before results: repeat the same two objectives and
+both seeds at SGD learning rate0.003,400 steps, changing nothing else. Same
+sample/init/stream hashes are mandatory. This is an optimizer-step-scale probe
+(effective SGD weight decay per update also increases30x), not a policy-specific
+rate or production setting change. Apply the same50% train-KL criterion. If both
+branches fit, current low-rate/budget is implicated; if only policy-only fits,
+investigate joint optimization; if neither fits, inspect policy gating before
+claiming insufficient capacity. Heldout fit is not playing strength. Store
+`seed-44-lr003.json` and `seed-55-lr003.json`, with disposable weights only.
+
+The400-step higher-rate probe remained finite but still missed50% train-KL
+reduction: seed44 joint .243391/policy-only .240202; seed55 .255802/.230073.
+Both objectives learned faster than at0.0001, but heldout policy KL did not
+improve consistently. This supports a step-scale limitation, not a production
+learning-rate recommendation. Two bounded follow-ups are declared before results:
+(1) read-only analytical nonspatial-action gating inspection on the exact frozen
+training references and random initial weights, reporting baseline versus zero
+shared-global/pooled-context counterfactual; no trained or adopted weights;
+(2) repeat the0.003 probe from identical initialization for2,000 steps, same
+samples and the same initial400-step minibatch prefix, both objectives/seeds.
+The latter distinguishes slow fitting from inability to fit the small subset;
+heldout deterioration remains evidence against treating memorization as strength.
+Keep the same50% criterion and report initial/100/final diagnostics. These are
+adaptive diagnostic extensions, not independent confirmation or training changes.
+
+Read-only gate inspection completed and adversarially reviewed. For seed44/55,
+217/219 of256 sampled training positions contained at least two nonspatial
+actions, giving10,561/11,041 within-position pairs. Ordinary forward logits
+matched the reconstruction exactly. Mean per-position identical-gate pair
+fractions were24.37%/25.14%; only1.31%/1.24% of hidden gates differed between
+actions on average. For identical gates, the shared-context contribution to
+relative logits cancels exactly locally. Zeroing both shared context vectors
+(preserving biases) increased the mean per-position context-Jacobian RMS by
+5.17x/6.07x. This demonstrates local suppression at random initialization, not
+total state blindness, persistent suppression after learning, or a proven cause
+of weak play. Spatial action paths and gate changes remain available. The
+counterfactual is never a proposed production policy. Pair counts are dependent
+diagnostics; no confidence interval or independent-game interpretation applies.
+
+Seed44's2,000-step check still failed the50% criterion (joint KL .219066,
+policy-only .221254 from .360796), with heldout KL worsening to .468471/.466748.
+Before further results, declare one diagnostic head ablation: retain the exact
+original main-model trunk initialization and replace only the policy scorer with
+two biased linear projections of action features and the remaining state/local
+features into128 dimensions, scored by their dot product divided by sqrt(128).
+The latter features include action-dependent spatial gathers, not just global
+context. Initialize this head with modelseed+100; record original/trunk/variant
+fingerprints, parameter counts and initial entropy/logit spread. Use identical
+base-report replay references and400-step stream, joint loss, SGD0.003 and both
+seeds. Compare against the completed400-step original-head runs, acknowledging
+MPS non-bitwise reproducibility and different head initialization/parameterization.
+No normalization, extra nonlinear layers, expert targets or production model
+changes. The criterion remains50% training-KL reduction, with heldout results
+reported separately. This isolates a practical head-design intervention, not
+mathematical proof that interaction alone causes any change. All weights remain
+disposable; output `seed-{44,55}-interaction.json` in the diagnostic root.
+
 ## R6 — Optimize measured bottlenecks, then model capacity
 
 Profile end-to-end wall time and allocations for enumeration, clones, transitions,

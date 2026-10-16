@@ -140,6 +140,24 @@ py_test(
     size = "small",
 )
 
+py_binary(
+    name = "az_policy_gate_probe",
+    srcs = ["python/learner.py", "python/policy_fit_probe.py", "python/policy_gate_probe.py"],
+    legacy_create_init = 0,
+    main = "python/policy_gate_probe.py",
+    visibility = ["//visibility:public"],
+    deps = [":python_core"],
+)
+
+py_test(
+    name = "policy_gate_probe_test",
+    srcs = ["python/learner.py", "python/policy_fit_probe.py", "python/policy_gate_probe.py", "python/policy_gate_probe_test.py"],
+    legacy_create_init = 0,
+    main = "python/policy_gate_probe_test.py",
+    deps = [":python_core"],
+    size = "small",
+)
+
 py_test(
     name = "python_encoding_test",
     srcs = ["python/encoding_audit_test.py"],
