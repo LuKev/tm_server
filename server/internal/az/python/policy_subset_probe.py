@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--fit-report", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--device", default="mps")
+    parser.add_argument("--steps", type=int, choices=(12, 13, 400), default=400)
     args = parser.parse_args()
     if Path(args.output).exists():
         parser.error("refusing to overwrite subset probe")
@@ -69,7 +70,7 @@ def main():
             raise ValueError("baseline initialization differs")
         model.to(device)
         before = [measure(model, [example], device)["all"] for example in training]
-        stream = minibatches(len(training), 400, 32, 732)
+        stream = minibatches(len(training), args.steps, 32, 732)
         run = run_arm(model, training, examples["heldout"], stream, arm="joint", device=device,
                       learning_rate=.001, optimizer_name="adamw")
         after = [measure(model, [example], device)["all"] for example in training]
@@ -90,7 +91,7 @@ def main():
                     "model_config": baseline["model_config"], "subset_seed": 731, "batch_seed": 732,
                     "sampling": "uniform shuffled multi-action frozen-training indices; nested prefixes 1 and 8",
                     "minibatches": "uniform sampling with replacement; size1 repeats its sole position 32 times per update",
-                    "steps": 400, "batch_size": 32, "optimizer": optimizer, "device": str(device),
+                    "steps": args.steps, "batch_size": 32, "optimizer": optimizer, "device": str(device),
                     "dtype": "float32", "torch_version": str(torch.__version__), "torch_threads": 1, "runs": runs})
     print(json.dumps({"report": args.output, "statuses": [run["status"] for run in runs]}))
 

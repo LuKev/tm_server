@@ -1074,6 +1074,37 @@ The50% mean train-KL reduction remains the threshold; each position's residual
 must be reported. These tiny subsets deliberately change coverage, not targets;
 they are never used for actors or production checkpoints. No new architecture.
 
+The ladder completed (`a2c07a5`), both seeds finite and independently reviewed.
+Single-position KL reached0 at floating-point reporting precision from .294353
+(44) and .102159 (55). Eight-position mean KL fell .246733→.048380 (80.39%)
+and .413746→.125120 (69.76%), passing50% in both seeds. This demonstrates basic
+learnability of actual targets with the unchanged main network and joint loss.
+It does not show every target fits: seed44 has an18-action residual .225919;
+seed55 has31/74-action residuals .356321/.613721. Some initially near-uniform
+targets worsen. Eight-position heldout KL worsened to1.224582/.800206.
+
+Important limitation:400×32 gives12,800 draws, hence expected exposures per
+position of12,800/1,600/50 for subset sizes1/8/256. The ladder therefore does
+**not** isolate cross-position interference from optimization exposure. Do not
+claim a disconnected learning path, insufficient CNN capacity, or a proven
+representation defect. The practical failure remains weak policy fitting at
+current settings plus poor transfer when fit is accelerated; value removal,
+bilinear scoring and context scaling are not validated remedies.
+
+Exposure control declared before execution: measure the same original eight-position
+branches after12 and13 AdamW updates (48/52 expected exposures), bracketing the
+256-position400-update control's50 exposures. Preserve samples, initialization
+and minibatch prefixes. This separates exposure from subset-complexity effects
+more cheaply than a very long256-position memorization run. The wrapper also
+retains its single-position branch for each budget; do not use it as the matched
+exposure comparison. Write new `seed-{44,55}-subsets-steps{12,13}.json` reports,
+preserving all400-step outputs. No further full
+training or architecture change is justified by this diagnostic round alone.
+Any eventual optimizer/head candidate still needs fresh random-initialized,
+pure-self-play two-seed learning curves and common-budget arenas. Keep the CNN
+and joint policy/value objective for now; optimize the measured policy-learning
+bottleneck before spending more on search or model capacity.
+
 All current probes used unchanged self-play visit/WDL labels, ordinary recorded
 starts and disposable random-initialized models. Heldout positions share source
 games with training positions; no independent-game generalization claim applies.
